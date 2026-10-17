@@ -58,6 +58,7 @@ The first list of world events, in chronological order, with the title the app s
 | 1871 | German unification | Versailles | Political change | Germany appears as one state on the overlay |
 | 1884–1885 | Berlin Conference | Berlin | Political change | European colonies divide Africa on the overlay |
 | 1903 | First powered flight | Kitty Hawk, USA | Invention or idea | A small plane flies for a few seconds |
+| 1915–1917 | The Armenian genocide | Eastern Anatolia to the Syrian desert | Destruction | Explained in cards with care and accuracy: the Ottoman government deports the Armenians; about a million die in killings and death marches; Armenian villages disappear from the map |
 | 1941–1945 | The Holocaust | Europe | Destruction | Explained in cards with care and accuracy; Jewish communities disappear from the map |
 | 1945 | Atomic bombings of Hiroshima and Nagasaki | Japan | Destruction | Shown with great care; the cities appear as ruins |
 | 1945 | Founding of the United Nations | San Francisco | Political change | Delegates gather |
