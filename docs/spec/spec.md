@@ -46,7 +46,7 @@ The whole of history takes a little over five hours at normal speed, and about h
 
 ### 2.3 Life clock
 
-Everyday activity runs on its own clock in real time, independent of the historical rate and speed multiplier. It decides what each figure is doing right now: which task it picks next (every 10 to 30 real seconds), where it walks and which animation plays. It keeps running when history is paused and stops only when everything is frozen. Because the historical date sets the era and the life clock sets the moment, people never race around at fast historical rates and never stand idle when history stops.
+Everyday activity runs on its own clock in real time, independent of the historical rate and speed multiplier. It decides what each figure is doing right now: which task it picks next (every 10 to 30 real seconds), where it walks and which animation plays. It also plays the loops of vignettes (section 5). It keeps running when history is paused and stops only when everything is frozen. Because the historical date sets the era and the life clock sets the moment, people never race around at fast historical rates and never stand idle when history stops.
 
 ### 2.4 People morph instead of dying of age
 
@@ -85,10 +85,12 @@ History enters the app as a curated database of dated, located records; everythi
 | --- | --- | --- |
 | Culture regions | An area, a date range and a culture profile, such as "Roman, Imperial period" or "Han China" | Curated by hand from standard histories |
 | Culture profiles | Architecture set, clothing, tools, vehicles, crops and animals, and an activity mix (farming, fishing, crafts, trade, worship, soldiering) | Curated; the main art cost |
-| Population | People per area over time, which sets how many figures appear | HYDE (History Database of the Global Environment); licence to check against section 13 |
+| Population | People per area over time, which sets how many figures appear | HYDE (History Database of the Global Environment) from 10,000 BCE, licence to check against section 13; before that, a hand-set density per culture area ([milestone-2.md](milestone-2.md#3-where-people-live) section 3) |
 | Settlements | Localised name, coordinates, founding date, population over time, landmarks with build dates | Urban history datasets, Wikidata |
 | Polities | Borders at snapshot dates, localised name, colour, capital | historical-basemaps (open GeoJSON of world borders; GPL-3.0, so it needs Yang's decision under section 13), Wikidata (CC0) |
 | Routes | Trade routes, migrations and voyages with date ranges | Curated |
+| Landmarks | Unique buildings and sites with construction stages, later changes and ruins by date | Curated, with an approved model each |
+| Vignettes | Small staged stories at a place and time, built from reusable templates | Curated; see [milestone-2.md](milestone-2.md#6-vignettes) |
 | Events | Start and end date, optional peak, place with a point to fly to ([content-format.md](content-format.md#4-place) section 4), type, localised title and text, how it is shown over its span; wars also name their sides, battles their war, and both the famous people who took part | Curated; see [events.md](events.md) and [wars.md](wars.md) |
 | Famous people | Life dates, places over their life, stable id, role, category, look, localised text | Wikidata plus curation; see [people.md](people.md) |
 
@@ -127,6 +129,8 @@ Every event has a type, and each type has one reusable way of showing itself on 
 | Religion | A temple, church or mosque is built; its style spreads along routes | Spread of Buddhism, Christianity, Islam |
 
 **Events take time.** Every event has a start date and an end date, which are the same for an event of a single day, and may have a peak: the day, years or phase when it is strongest. The span covers everything the globe shows, not just the headline moment: the warning signs before an eruption, the years of cold after it, the later waves of a plague, the centuries a desert takes to spread. Between start and peak the effect builds up, and between peak and end it fades, at the pace the record gives; a slow climate shift changes the land gradually over centuries, while an earthquake starts at full strength. Changes that outlast the event stay in the world after its end, such as a crater lake, a drowned coastline, ruins or a toppled statue. An event that came back in waves, such as plague or cholera, lists its waves as phases, each with its own dates and places.
+
+**Vignettes.** Many events are shown as a **vignette**: a small staged story with a cast, props and a short script that loops on the life clock, such as Vikings raiding a village, hunters stalking a mammoth or workers hauling a pillar. While history runs it plays during its span; while history is paused it repeats; when everything is frozen it stops mid-beat. A vignette is repeated (one record places many instances over a span and area, such as Viking raids), singular and long (one instance whose progress follows the date, such as building the pyramids), or short but stretched: an event of a few days is shown for a minimum watching time so it can be seen at all, while the card gives its true date (decided by Yang on 2026-10-17). Things too small to see from above, such as cave paintings, open as a cutaway, like a dollhouse, when the camera comes close. The format and rules are in [milestone-2.md](milestone-2.md#6-vignettes).
 
 **Finding events.** Events in progress near the camera show a small floating marker with an icon and the title. Events far away appear on the timeline and in a list "Happening now". Double-clicking any event flies the camera there and, if needed, moves time to its start.
 
@@ -185,7 +189,7 @@ The target is the look of Warcraft III: stylised, chunky proportions, hand-paint
 
 | Asset | Detail at the closest zoom | Notes |
 | --- | --- | --- |
-| Figure | About 500 to 1,000 triangles, one painted texture | One shared skeleton for all humans; clothing, headgear and tools swap per culture profile |
+| Figure | About 500 to 1,000 triangles, flat cel-shaded colour regions | One shared skeleton for all humans; clothing, headgear and tools swap per culture profile |
 | Building | About 1,000 to 4,000 triangles | Modular kits per architecture style so a city can be assembled from parts |
 | Landmark | Up to about 20,000 triangles | Pyramids, Colosseum, Hagia Sophia and other unique buildings |
 | Animals, ships, vehicles | 300 to 3,000 triangles | Reused across cultures with texture variants |

@@ -43,25 +43,32 @@ Detailed spec: [milestone-1.md](milestone-1.md).
 
 ## 2. First people
 
-**Goal:** the first living humans. Proves the world query, the life clock driving figures, and determinism.
+**Goal:** the first living humans, and the small stories they live out. Proves the world query, the life clock driving figures, determinism, and the vignette, landmark, migration and cutaway systems every later milestone reuses.
+
+Detailed spec: [milestone-2.md](milestone-2.md).
 
 **Scope**
 
-- World query in a Web Worker computing a scene from date, life clock and area in view.
-- Seeded hashing, whole-day dates, golden snapshot tests.
-- First figure rig with instanced, GPU-animated figures and levels of detail.
-- Culture profiles for Paleolithic hunter-gatherers in Africa, Europe and Asia: camps, hunting, gathering, tool-making, fire.
-- Population density driving figure counts.
-- The Out of Africa migration and the settlement of Australia and the Americas as migration events.
-- Info cards for figures.
+- World query in a Web Worker computing a scene from date, life clock and area in view, with deterministic arithmetic on every device.
+- First figure rig with instanced, GPU-animated figures and levels of detail, in the toy-planet style.
+- Culture profiles for the hunter-gatherers of Africa, Asia, Sahul, Europe (including Neanderthals), Siberia and the Americas, and the Natufians: camps, hunting, gathering, tool-making, fire.
+- Where people live from culture areas and migrations, with a hand-set density per area; no population model.
+- Vignettes: small staged stories that loop on the life clock, built from templates, in three forms: repeated, singular and long, and short but stretched so they can be watched.
+- Landmarks with construction stages, visible from orbit, starting with Göbekli Tepe.
+- Cutaways and scene markers for small scenes, starting with the painters of Lascaux.
+- The Out of Africa migration and the settlement of Sahul, Europe, Asia and the Americas as migration events.
+- The part of the event system these need: event records, timeline icons and double-click fly-to.
+- Info cards for figures, camps, vignettes, landmarks and events.
 
 **Exit criteria**
 
 - Opening at 50,000 BCE shows bands of people at work in Africa and spreading along the coasts of Asia.
-- Pausing history keeps people working; freezing everything stops them mid-step.
+- Scrubbing from 70,000 to 9000 BCE shows people reaching Sahul, Europe, Siberia and finally the Americas.
+- Pausing history keeps people and vignettes going; freezing everything stops them mid-step.
+- Lascaux opens as a cutaway, and Göbekli Tepe rises over its real span and can be found from orbit.
 - Golden snapshots match on two different machines.
 
-**Out of scope:** farming, buildings, borders, famous people.
+**Out of scope:** farming, morphing, settlements, borders, famous people, a population model.
 
 ## 3. Neolithic
 
@@ -72,8 +79,8 @@ Detailed spec: [milestone-1.md](milestone-1.md).
 - Morphing: figures change roles, clothes and tools across a transition window.
 - Neolithic culture profiles for the Fertile Crescent and Europe: fields, herds, mudbrick and timber houses, pottery.
 - Settlements growing from population data.
-- Event system with event types, timeline markers, the "Happening now" list and double-click fly-to.
-- First events from [events.md](events.md): Göbekli Tepe, the start of farming, Çatalhöyük, Doggerland drowning.
+- The rest of the event system: all event types, floating event markers and the "Happening now" list (event records, timeline icons and fly-to come in milestone 2).
+- First events from [events.md](events.md): the start of farming, Çatalhöyük, Doggerland drowning.
 - Construction and founding event visuals.
 
 **Exit criteria**
