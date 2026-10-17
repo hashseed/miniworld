@@ -42,7 +42,7 @@ app/              the browser app
   src/perf/       stress scene, quality tiers, dynamic resolution, stats overlay
   messages/       en.json, de.json
 data/
-  sources/        copies of the source datasets used, with their licence texts (Git LFS)
+  sources/        simplified extracts of the source datasets used, with their licence texts
   curated/        hand-curated records, such as eras (format in content-format.md)
   schema/         one schema per content kind, shared by the data build and the app
   build/          Node scripts for the offline data build
@@ -50,7 +50,7 @@ data/
 dist/             build output (not committed)
 ```
 
-**Source data is kept in the repository.** Every dataset the data build reads is committed under `data/sources/<source-id>/`, together with its licence text and a `SOURCE.md` naming where and when it was downloaded, so the app can always be rebuilt even if a source disappears from the web. Large files are stored with Git LFS. Only the files actually used are kept, not whole archives (section 4.1). The data build reads only from `data/sources/` and checks every file against the checksum in `data/sources.json`.
+**Simplified source data is kept in the repository** (decided by Yang on 2026-10-17). The full original downloads are not stored: `npm run fetch-data` downloads them into `data/out/` (not committed) and checks them against the checksums recorded in `data/sources.json`, and `npm run simplify-data` turns them into small extracts that are committed under `data/sources/<source-id>/` as plain files (no Git LFS), together with the licence text, so the app can always be rebuilt even if a source disappears from the web. An extract keeps only the variables, times (from the timeline's start onwards) and resolution the app needs (section 4.1). Gridded extracts are Brotli-compressed little-endian grids, `<name>.bin.br`, each with a JSON header, `<name>.json`, giving the variable, units, type, scale, no-data value, size, grid registration, origin, cell size and the years before present of each layer; layers follow one another, rows run from north to south and columns from west to east. The data build reads only from `data/sources/` and checks every file against the checksum in `data/sources.json`.
 
 `src/time` and the pure functions of `src/globe` that depend on the date (sea level, ice, ocean mask) contain no DOM, Three.js or network code, so the world query of milestone 2 can move them into the Web Worker unchanged.
 
@@ -60,7 +60,8 @@ All are npm scripts, run in the dev container or any machine with the pinned Nod
 
 | Script | Does |
 | --- | --- |
-| `npm run fetch-data` | Downloads a new or updated source dataset listed in `data/sources.json` into `data/sources/` and records its checksum; used only when adding or updating a source |
+| `npm run fetch-data` | Downloads the original source datasets listed in `data/sources.json` into `data/out/` and checks them against their recorded checksums (recording the checksum of a new source); used only when adding or updating a source |
+| `npm run simplify-data` | Turns the original downloads into the simplified extracts under `data/sources/` and records their checksums; used only when adding or updating a source |
 | `npm run build-data` | Runs the offline data build (section 10): terrain tiles, ocean mask, ice, sea-level curve, startup index, chunks, manifest |
 | `npm run dev` | The dev server on port 8800 |
 | `npm run build` | Production build of app plus data into `dist/` |
@@ -142,9 +143,11 @@ There is no day and night (decided by Yang on 2026-10-17). Everything is cel sha
 
 | Layer | Source | Licence | Kept in the repository |
 | --- | --- | --- | --- |
-| Elevation and sea floor | NOAA ETOPO 2022, 60 arc-second bedrock elevation (GeoTIFF), [doi:10.25921/fd45-gt74](https://doi.org/10.25921/fd45-gt74) | CC0 1.0, not subject to copyright in the US | The 60 arc-second bedrock file only |
+| Elevation and sea floor | NOAA ETOPO 2022, 60 arc-second bedrock elevation (GeoTIFF), [doi:10.25921/fd45-gt74](https://doi.org/10.25921/fd45-gt74) | CC0 1.0, not subject to copyright in the US | Elevation averaged to 4 arc-minutes (about 7 km, 17 MB) |
 | Lakes and rivers | Natural Earth 1:10m physical: lakes, rivers and lake centrelines | Public domain | The used layers only |
 | Ice sheets and sea level | A rough model written for Miniworld from general references (section 5), in `data/curated/ice-age.json` | Our own | The file itself |
+| Ice sheets and sea level (reconstruction, not yet read by the build) | PaleoMIST 1.0, Gowan et al. 2021, [doi:10.1594/PANGAEA.905800](https://doi.org/10.1594/PANGAEA.905800) | CC BY 4.0 | Grounded ice thickness and relative sea level on 0.25°, every 2,500 years from 52,500 years ago (6 MB) |
+| Climate and vegetation (not yet read by the build) | Beyer, Krapp and Manica 2020, [doi:10.6084/m9.figshare.12293345](https://doi.org/10.6084/m9.figshare.12293345) | CC BY 4.0 | BIOME4 biomes, annual mean temperature and annual precipitation on 0.5°, every 1,000 to 2,000 years from 54,000 years ago (6 MB) |
 
 Every source must meet the data licence policy in [spec.md](spec.md#13-licences): freely available and usable commercially. `data/sources.json` lists every source with its URL, version, checksum, licence (as an SPDX identifier) and citation. The data build fails when a source used by a layer has no licence entry or its licence is not on the allowed list, and the app's About panel lists every source and its licence in both languages.
 
@@ -198,7 +201,7 @@ Sea level and ice come from a deliberately rough model in `data/curated/ice-age.
 ### 5.1 Sea level and coastlines
 
 - **Sea-level curve.** Global mean sea level relative to today, given in the ice-age model as control points (years before present and metres) that follow the table above, and interpolated smoothly (monotone cubic) between them so the sea never rises in visible jumps. It is stored every 100 years in the startup index (section 10.2) with its source.
-- **Ocean mask.** A coastline cannot simply be "everywhere below sea level", because inland basins such as the Caspian Sea and the Dead Sea lie below today's sea level but are not part of the ocean. The data build therefore computes, for every terrain sample, the lowest sea level at which that sample is connected to the open ocean (a priority flood fill outward from the deep ocean, seeded from sea floor deeper than 3,000 m, in 1 m steps from −130 m to +10 m, on a grid of about 2 arc-minutes built from the elevation by taking the minimum of each block so narrow straits stay open). The Black Sea and the Caspian Sea are flooded as permanent lakes at today's levels (0 m and −28 m). Natural Earth lakes are flat water at the 20th percentile of the heights along their shore. A sample is sea at a date when that value is at or below the date's sea level. The value is stored as an extra channel of each terrain tile.
+- **Ocean mask.** A coastline cannot simply be "everywhere below sea level", because inland basins such as the Caspian Sea and the Dead Sea lie below today's sea level but are not part of the ocean. The data build therefore computes, for every terrain sample, the lowest sea level at which that sample is connected to the open ocean (a priority flood fill outward from the deep ocean, seeded from sea floor deeper than 3,000 m, in 1 m steps from −130 m to +10 m, on the 4 arc-minute elevation grid). The Black Sea and the Caspian Sea are flooded as permanent lakes at today's levels (0 m and −28 m). Natural Earth lakes are flat water at the 20th percentile of the heights along their shore. A sample is sea at a date when that value is at or below the date's sea level. The value is stored as an extra channel of each terrain tile.
 - **Known simplifications**, named in the About panel: the land surface is today's, so the sinking of land under the ice sheets and its later rebound are not shown; past lakes that no longer exist (such as the glacial Lake Agassiz) and the Black Sea before it joined the Mediterranean are not shown in this milestone.
 - **Teaching moments the data must show** (exit criterion 1): Beringia joining Siberia and Alaska, Doggerland joining Britain to the continent, and Sundaland joining Sumatra, Java and Borneo to mainland Asia, each opening as the sea falls and drowning as it rises again. Sahul (Australia joined to New Guinea) shows too.
 

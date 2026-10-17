@@ -40,7 +40,7 @@ import {
 import { checkLicences, type SourceEntry } from './lib/licence.ts';
 import { floodInlandSeas, INLAND_SEAS, oceanConnection } from './lib/ocean.ts';
 import { Output } from './lib/output.ts';
-import { readEtopo } from './lib/readers.ts';
+import { readElevation } from './lib/readers.ts';
 import { enlargeIslands, smoothElevation } from './lib/simplify.ts';
 import { regionGrid } from './lib/regions.ts';
 import { allTileKeys, buildTerrainTile, isDeepTile } from './lib/terrain.ts';
@@ -151,9 +151,13 @@ if (eraErrors.length) fail(eraErrors.join('\n'));
 const output = new Output(OUT);
 let source: Grid = fixture
   ? fixtureElevation(neFile('ne_10m_land.geojson'))
-  : await readEtopo(sourceFiles('etopo-2022')[0]!);
-// The map is simplified (spec milestone 1, section 4.2): 2 arc-minutes is
-// plenty under a 25 km smoothing and keeps the build's memory in bounds.
+  : readElevation(
+      sourceFiles('etopo-2022')
+        .find((p) => p.endsWith('elevation.json'))!
+        .replace(/\.json$/, ''),
+    );
+// The map is simplified (spec milestone 1, section 4.2): the elevation extract
+// is 4 arc-minutes; finer grids (the fixture) are averaged down to at most 2.
 while (source.width > 10800) {
   const m = source.downsampleMean();
   source = new Grid(m.width, m.height, Int16Array.from(m.data, Math.round));
@@ -165,8 +169,8 @@ log(
 );
 const pyramid = new GridPyramid(elevation);
 
-// The ocean mask runs on a grid of about 2 arc-minutes, using the minimum of
-// each block so narrow straits stay open.
+// The ocean mask runs on the elevation grid; a grid finer than 2 arc-minutes
+// is reduced by the minimum of each block so narrow straits stay open.
 let conn: Grid<GridData> = elevation;
 while (conn.width > 10800) conn = downsampleMin(conn);
 log(`ocean mask grid ${conn.width} × ${conn.height}`);

@@ -2,6 +2,7 @@
 // of the build does not depend on file formats.
 
 import { readFileSync } from 'node:fs';
+import { readExtract } from './extract.ts';
 import { Grid } from './grid.ts';
 
 /** ETOPO 2022 60 arc-second bedrock elevation GeoTIFF → whole metres. */
@@ -26,4 +27,17 @@ export async function readEtopo(path: string): Promise<Grid> {
   const out = new Int16Array(width * height);
   for (let i = 0; i < out.length; i++) out[i] = Math.round(Number(rasters[i]));
   return new Grid(width, height, out);
+}
+
+/** The simplified ETOPO elevation extract (simplify-data.ts) → whole metres. */
+export function readElevation(basePath: string): Grid {
+  const { header, data } = readExtract(basePath);
+  if (
+    header.type !== 'int16' ||
+    header.registration !== 'cell' ||
+    header.west !== -180 ||
+    header.north !== 90
+  )
+    throw new Error(`${basePath}: unexpected elevation extract`);
+  return new Grid(header.width, header.height, data as Int16Array);
 }

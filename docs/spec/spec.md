@@ -282,7 +282,7 @@ The spec comes first, always: every change to behaviour, content or data format 
 
 **Code.** Miniworld is closed source. The code, spec and assets are proprietary, with all rights reserved, as stated in `LICENSE` at the root of the repository; the repository stays private. `package.json` is marked `"private": true` with the licence `UNLICENSED`. Third-party libraries the app includes must have permissive licences (such as MIT, BSD, ISC, Apache-2.0 or Zlib) that allow use in closed-source software; their notices are collected into a third-party notices file shipped with the app.
 
-**Data.** Every dataset used must be freely available and usable commercially, and a copy of the data actually used is kept in the repository under `data/sources/` with its licence text, so the app never depends on a source staying online.
+**Data.** Every dataset used must be freely available and usable commercially, and the data actually used is kept in the repository under `data/sources/` with its licence text, so the app never depends on a source staying online. Only small simplified extracts are kept (the variables, times and resolution the app needs), not the full original downloads; the original URLs and checksums are recorded so the extracts can be remade (decided by Yang on 2026-10-17).
 
 - Allowed without asking: public domain, CC0, CC BY (any version), ODC-BY, and US government works.
 - Needs Yang's decision for each case: share-alike licences (CC BY-SA, ODbL) and copyleft licences (GPL), whose conditions can reach our own derived data.
