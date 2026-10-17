@@ -288,6 +288,7 @@ The camera has one fly-to operation used by bookmarks now and by events and famo
 | Quality | Automatic, High, Medium, Low | Automatic (section 11.2) |
 | True time scale | On, Off | Off |
 | Slow down when zoomed in | On, Off | On (section 3.3) |
+| Enlarge busy regions | On, Off | On ([history-lens.md](history-lens.md); also the "True sizes" button) |
 | Show performance stats | On, Off | Off |
 
 The language names in the selector are always written in their own language. Changes apply immediately and are saved (section 9).
