@@ -20,24 +20,27 @@ The lens is one fixed warp for the whole timeline and is not tied to the current
 The warp is computed from the coordinates of every event, war and battle in the spec lists (see [content-format.md](content-format.md#4-place) section 4), each counted once:
 
 1. Event density is smoothed over the sphere with a wide Gaussian kernel of 1,500 km. The wide kernel makes the size change gently over thousands of kilometres. Seas between busy coasts, such as the Mediterranean, grow together with both shores, and North Africa grows almost as much as southern Europe. The falloff happens far from the busy places, across the Sahara, the steppe and the open ocean.
-2. The target area factor of each spot is (density / mean density) to the power 0.3. The exponent keeps the contrast mild.
-3. The factor is limited to between 0.6 and 3.0. It is then scaled so that the total area of the globe stays the same.
+2. The target area factor of each spot is (density / mean density + 0.3) to the power 0.5. The added 0.3 keeps nearly empty places from shrinking too fast next to a single lonely event, and the exponent sets how strong the lens is.
+3. The factor is scaled so that the total area of the globe stays the same, and then limited to between 0.6 and 3.5.
 
 A first estimate from the 1,842 coordinates now in the spec, before the shape limit of section 3:
 
 | Region | Area factor | Width factor (about) |
 | --- | --- | --- |
-| Alps and central Europe | 2.4 | 1.5 |
-| Sicily and the central Mediterranean | 2.5 | 1.6 |
-| Tunisia | 2.4 | 1.5 |
-| Algerian coast | 2.1 | 1.5 |
-| Nile valley and Egypt | 2.7 | 1.6 |
-| Central Sahara | 1.9 | 1.4 |
-| Sahel | 1.2 | 1.1 |
-| Americas | 0.76 | 0.87 |
-| Open Pacific | 0.75 | 0.87 |
+| Europe as a whole | 3.0 | 1.7 |
+| Alps and central Europe | 3.3 | 1.8 |
+| Tunisia and the central Mediterranean | 3.3 | 1.8 |
+| Algerian coast | 2.7 | 1.6 |
+| Nile valley and Egypt | 3.5 (the upper limit) | 1.9 |
+| Northern India | 2.8 | 1.7 |
+| Eastern China | 2.7 | 1.6 |
+| Central Sahara | 2.3 | 1.5 |
+| Sahel | 1.3 | 1.1 |
+| Siberia | 1.3 | 1.1 |
+| Americas | 0.69 | 0.83 |
+| Open Pacific | 0.62 | 0.79 |
 
-Along 12° east, from Scandinavia to the Sahel, the area factor rises from 2.0 to a top of 2.5 at the Mediterranean and falls back to 1.7, with no step anywhere. A narrow kernel of 600 km would make Europe larger (3.2) but drop from 2.2 on the North African coast to 0.8 in the central Sahara within about 1,300 km. That would squeeze the desert visibly, so the wide kernel is the default.
+Along 12° east, from Scandinavia to the Sahel, the area factor rises from 2.4 to a top of 3.5 at the Mediterranean and falls back to 1.9, with no step anywhere. Both shores of the Mediterranean grow alike, and most of the falloff happens in the Sahara. A narrow kernel of 600 km would drop from 2.2 on the North African coast to 0.8 in the central Sahara within about 1,300 km. That would squeeze the desert visibly, so the wide kernel is the default, and the strength comes from the exponent instead.
 
 Only five regions have their own event lists for now, so the lens favours them. When lists for the Americas, Africa and other regions are added, the warp is computed again and those regions grow.
 
@@ -45,7 +48,7 @@ Only five regions have their own event lists for now, so the lens favours them. 
 
 The warp is a smooth, one-to-one map of the sphere onto itself, from true positions to drawn positions. It is computed offline as a density-equalising cartogram on the sphere: a diffusion cartogram after Gastner and Newman (2004), adapted to the sphere so that it has no seam at the date line or the poles.
 
-- **Limits.** The data build checks the warp. It must not fold anywhere, so it stays one-to-one. Its stretch in one direction must never be more than 1.3 times its stretch in the other direction, so shapes stay recognisable. The area factor must not change by more than 1.5 times over any 1,000 km, so there are no sudden size steps, for example across a narrow sea. If any check fails, the build first widens the kernel of section 2, then lowers the exponent, step by step until all checks pass.
+- **Limits.** The data build checks the warp. It must not fold anywhere, so it stays one-to-one. Its stretch in one direction must never be more than 1.3 times its stretch in the other direction, so shapes stay recognisable. The area factor must not change by more than 2 times over any 1,000 km (the estimate above stays at or below 2 everywhere; its steepest spots are in the open ocean off Madagascar and in the Gulf of Guinea), so there are no sudden size steps, for example across a narrow sea. If any check fails, the build lowers the exponent of section 2 step by step until all checks pass.
 - **Storage.** The data build writes the warp as two grids of 2 degrees, one forward (true to drawn) and one inverse (drawn to true), quantised to 16 bits. Each grid is about 65 KB. Both ship with the startup index, because the first frame needs them. Values between grid points are interpolated bilinearly, which is accurate enough because the warp only changes over hundreds of kilometres.
 - **Versioning.** The warp is a data build output with its own version. It changes only when the event lists change and the data is built again. A new warp moves where things are drawn, so before it ships the build renders a before-and-after preview of the globe for Yang to approve.
 
