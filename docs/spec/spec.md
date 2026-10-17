@@ -90,7 +90,7 @@ History enters the app as a curated database of dated, located records; everythi
 | Polities | Borders at snapshot dates, localised name, colour, capital | historical-basemaps (open GeoJSON of world borders; GPL-3.0, so it needs Yang's decision under section 13), Wikidata (CC0) |
 | Routes | Trade routes, migrations and voyages with date ranges | Curated |
 | Events | Start and end date, optional peak, place, type, localised title and text, how it is shown over its span | Curated; see [events.md](events.md) |
-| Famous people | Life dates, places over their life, role, look, localised text | Wikidata plus curation; see [people.md](people.md) |
+| Famous people | Life dates, places over their life, role, category, look, localised text | Wikidata plus curation; see [people.md](people.md) |
 
 **Culture profiles carry the look.** A profile is what makes Egyptian farmers on the Nile look different from Maya farmers in Yucatán: different houses, clothes, crops and tools doing a similar job. A solid first version needs about 40 profiles; later versions add more and split them by period.
 
@@ -135,7 +135,7 @@ The world has two kinds of figures: ordinary people, who carry the everyday life
 
 **Activities.** Each role has a few era-typical routines made of short animated actions: walk to a place, work there, carry something, rest, talk. Examples: gatherers search bushes and return to camp; Egyptian farmers work shaduf and fields along the Nile; Roman legionaries march on roads and build camps; medieval monks copy books; industrial workers walk to factories. The goal is that a child can watch one place for a minute and describe what people did there.
 
-**Famous people.** Famous historical figures appear as unique, recognisable figures in the right place for the period they were active, and follow their real movements: Caesar campaigns in Gaul, Marco Polo travels to China, Zheng He sails with his fleet. Their card tells who they were, what they did and why they are remembered, in a sentence or two a child can follow. When their life ends they fade out in a soft light. A searchable list "Famous people" lets you jump to any of them. The first list is in [people.md](people.md).
+**Famous people.** Famous historical figures appear as unique, recognisable figures in the right place for the period they were active, and follow their real movements: Caesar campaigns in Gaul, Marco Polo travels to China, Zheng He sails with his fleet. Their card tells who they were, what they did and why they are remembered, in a sentence or two a child can follow. When their life ends they fade out in a soft light. A searchable list "Famous people", which can be filtered by category (rulers, conquerors, scientists, artists and others), lets you jump to any of them. The first list is in [people.md](people.md).
 
 ## 7. Interface
 
