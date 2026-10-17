@@ -92,6 +92,8 @@ History enters the app as a curated database of dated, located records; everythi
 | Events | Date or range, place, type, localised title and text, how it is shown | Curated; see [events.md](events.md) |
 | Famous people | Life dates, places over their life, role, look, localised text | Wikidata plus curation; see [people.md](people.md) |
 
+Every record is stored in the format of [content-format.md](content-format.md): one Markdown file per record with structured fields and English and German text, validated by the data build, with chronological indexes generated from the records.
+
 **Culture profiles carry the look.** A profile is what makes Egyptian farmers on the Nile look different from Maya farmers in Yucatán: different houses, clothes, crops and tools doing a similar job. A solid first version needs about 40 profiles; later versions add more and split them by period.
 
 **Accuracy policy.**
