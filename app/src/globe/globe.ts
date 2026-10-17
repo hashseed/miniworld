@@ -23,9 +23,10 @@ import { windowAt, type PlanetState } from './planet.ts';
 import { terrainFragment, terrainVertex } from './shaders.ts';
 import { EARTH_RADIUS_KM, TILE_VERTS, buildTileGeometry } from './tileMesh.ts';
 import { sampleIce, sampleTile, TerrainStore } from './terrainStore.ts';
+import type { TerrainTile } from '../content/formats.ts';
 
 export const EXAGGERATION = 12;
-export const MAX_RENDER_LEVEL = 14;
+export const MAX_RENDER_LEVEL = 12;
 const MAX_CACHED_MESHES = 700;
 
 interface TileEntry {
@@ -57,6 +58,7 @@ export class Globe {
   /** Tiles drawn last frame. */
   drawnTiles = 0;
   private iceWindow = 0;
+  private maxHeights = new WeakMap<TerrainTile, number>();
 
   constructor(loader: ContentLoader) {
     this.loader = loader;
@@ -114,20 +116,35 @@ export class Globe {
     const iceWindow = windowAt(this.loader.manifest.windows, day);
     this.iceWindow = iceWindow;
 
+    // Ice can stand up to about 4 km on land during glacials.
+    const iceRoom = planet.glacialIndex > 0.02 ? 4000 : 0;
     const selected: TileEntry[] = [];
     const visit = (key: TileKey) => {
       const c = tileSampleUv(key, TILE_N / 2, TILE_N / 2);
       const cd = faceUvToDir(key.face, c.u, c.v);
       const ang = tileAngularSize(key.level);
-      // Horizon culling with room for mountains and ice.
       const angle = Math.acos(
         Math.max(-1, Math.min(1, cd[0] * camDir.x + cd[1] * camDir.y + cd[2] * camDir.z)),
       );
-      if (angle - ang * 0.75 > horizon + 0.08) return;
+      // Highest point of the tile (exaggerated, with room for ice), from its
+      // data tile once loaded; mountains stay visible beyond the horizon.
+      const topKm =
+        (this.maxHeightM(key, angle * EARTH_RADIUS_KM + key.level) + iceRoom) *
+        EXAGGERATION *
+        0.001;
+      const beyond = Math.acos(EARTH_RADIUS_KM / (EARTH_RADIUS_KM + Math.max(0, topKm)));
+      if (angle - ang * 0.75 > horizon + beyond + 0.002) return;
       const centre = new THREE.Vector3(cd[0], cd[1], cd[2]).multiplyScalar(EARTH_RADIUS_KM);
       const extent = EARTH_RADIUS_KM * ang * 0.75;
-      // Culling allows for the highest exaggerated mountains and ice.
-      if (!frustum.intersectsSphere(new THREE.Sphere(centre, extent + 110))) return;
+      // The tile is a thin column from sea level to its top: test spheres along it.
+      const top = Math.max(1, topKm);
+      const steps = Math.min(8, Math.ceil(top / Math.max(1, extent)));
+      let inside = false;
+      for (let k = 0; k <= steps && !inside; k++) {
+        const c = centre.clone().addScaledVector(camDirOf(cd), (top * k) / steps);
+        inside = frustum.intersectsSphere(new THREE.Sphere(c, extent + top / (2 * steps) + 0.5));
+      }
+      if (!inside) return;
       const dist = Math.max(0.5, centre.distanceTo(camPos) - extent);
       // Geometric error of the vertex grid, estimated as half its sample spacing.
       const errorKm = (0.5 * EARTH_RADIUS_KM * ang) / TILE_N;
@@ -162,6 +179,20 @@ export class Globe {
     this.drawnTiles = selected.length;
     this.store.endFrame();
     this.evict();
+  }
+
+  /** Highest terrain in metres under a tile, from its data tile; a safe guess until loaded. */
+  private maxHeightM(key: TileKey, priority: number): number {
+    const src = this.store.sourceFor(key, priority);
+    if (src === 'deep') return 0;
+    if (!src) return 9000;
+    let m = this.maxHeights.get(src);
+    if (m === undefined) {
+      m = -Infinity;
+      for (const h of src.heights) if (h > m) m = h;
+      this.maxHeights.set(src, m);
+    }
+    return Math.max(0, m);
   }
 
   private entryFor(key: TileKey, priority: number): TileEntry | undefined {
@@ -295,4 +326,8 @@ export class Globe {
     const { face, u, v } = dirToFaceUv(dir);
     return tileAt(face, u, v, DATA_MAX_LEVEL);
   }
+}
+
+function camDirOf(d: Vec3): THREE.Vector3 {
+  return new THREE.Vector3(d[0], d[1], d[2]);
 }

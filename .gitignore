@@ -7,3 +7,4 @@ playwright-report/
 perf-report*.json
 *.log
 .DS_Store
+app/.vite/
