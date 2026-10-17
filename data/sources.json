@@ -10,9 +10,7 @@
       "url": "https://doi.org/10.25921/fd45-gt74",
       "download": {
         "url": "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_bed_elev_gtif/ETOPO_2022_v1_60s_N90W180_bed.tif",
-        "files": [
-          "ETOPO_2022_v1_60s_N90W180_bed.tif"
-        ]
+        "files": ["ETOPO_2022_v1_60s_N90W180_bed.tif"]
       },
       "files": []
     },
