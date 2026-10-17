@@ -272,8 +272,8 @@ function LensHint({ t, actions }: { t: T; actions: Actions }) {
       )}
       <button
         class="btn close"
-        aria-label={t('dialog.close')}
-        title={t('dialog.close')}
+        aria-label={t('lens.closeHint')}
+        title={t('lens.closeHint')}
         onClick={() => actions.closeLensHint()}
       >
         <CloseIcon />

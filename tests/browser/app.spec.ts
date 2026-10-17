@@ -195,7 +195,7 @@ test('the lens hint shows once until closed', async ({ page }) => {
   await expect(hint).toContainText(en['lens.hint']!);
   await hint.getByRole('button', { name: en['lens.learnMore'] }).click();
   await expect(hint).toContainText(en['lens.learnMoreText']!);
-  await hint.getByRole('button', { name: en['dialog.close'] }).click();
+  await hint.getByRole('button', { name: en['lens.closeHint'] }).click();
   await expect(hint).toHaveCount(0);
   await page.reload();
   await expect(page.locator('.overlay')).toHaveCount(0, { timeout: 60_000 });
