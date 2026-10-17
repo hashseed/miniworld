@@ -1,6 +1,7 @@
 // The app controller: loads the manifest and index, builds the scene, runs
 // the frame loop and implements the interface's actions (spec milestone 1).
 
+import '@fontsource-variable/fredoka';
 import * as THREE from 'three';
 import { h, render } from 'preact';
 import { ContentLoader } from './content/loader.ts';
@@ -10,6 +11,7 @@ import { latLonToDir } from './globe/cube.ts';
 import { CameraController } from './globe/cameraController.ts';
 import { Globe } from './globe/globe.ts';
 import { lowestSeaLevel, planetAt, type PlanetState } from './globe/planet.ts';
+import { Clouds } from './globe/clouds.ts';
 import { Sky, cameraLight } from './globe/sky.ts';
 import { formatDateReadout } from './i18n/dates.ts';
 import { I18n } from './i18n/i18n.ts';
@@ -112,14 +114,15 @@ const renderer = new THREE.WebGLRenderer({
   powerPreference: 'high-performance',
 });
 renderer.info.autoReset = false;
-renderer.setClearColor(0x05070d);
+renderer.setClearColor(0xfbe3d4);
 const frames = new FrameRenderer(renderer);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 1, 1e5);
 const loader = new ContentLoader('data/');
 const globe = new Globe(loader);
 const sky = new Sky();
-scene.add(sky.dome, globe.group);
+const clouds = new Clouds();
+scene.add(sky.dome, globe.group, clouds.mesh);
 
 let index: StartupIndex | undefined;
 let minSeaLevel = -130;
@@ -479,9 +482,12 @@ function frame(now: number): void {
   const u = globe.material.uniforms;
   camera.updateMatrixWorld();
   cameraLight(camera, u.lightDir!.value);
+  const e = camera.matrixWorld.elements;
+  u.screenUp!.value.set(e[4]!, e[5]!, e[6]!);
   u.time!.value = clock.lifeMs / 1000;
   globe.update(camera, innerHeight, planet, clock.day);
   sky.update(camera);
+  clouds.update(camera, clock.lifeMs, u.lightDir!.value);
   if (stress) {
     const ground = globe.surfaceKm(latLonToDir(STRESS_CENTRE.lat, STRESS_CENTRE.lon), planet);
     if (ground > 0 || globe.drawnTiles > 0) stress.setGround(ground);

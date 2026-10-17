@@ -26,6 +26,8 @@ import { sampleIce, sampleTile, TerrainStore } from './terrainStore.ts';
 import type { TerrainTile } from '../content/formats.ts';
 
 export const EXAGGERATION = 100;
+/** Every land vertex stands this many metres above its height (section 4.2). */
+export const LAND_LIFT_M = 250;
 export const MAX_RENDER_LEVEL = 12;
 const MAX_CACHED_MESHES = 700;
 
@@ -72,7 +74,9 @@ export class Globe {
         exaggeration: { value: EXAGGERATION },
         iceT: { value: 0 },
         skirtDepth: { value: 200 },
+        landLift: { value: LAND_LIFT_M },
         lightDir: { value: new THREE.Vector3(0, 0, 1) },
+        screenUp: { value: new THREE.Vector3(0, 1, 0) },
         glacial: { value: 0 },
         time: { value: 0 },
         cameraWorld: { value: new THREE.Vector3() },
@@ -125,7 +129,7 @@ export class Globe {
       // Highest point of the tile (exaggerated, with room for ice), from its
       // data tile once loaded; mountains stay visible beyond the horizon.
       const topKm =
-        (this.maxHeightM(key, angle * EARTH_RADIUS_KM + key.level) + iceRoom) *
+        (this.maxHeightM(key, angle * EARTH_RADIUS_KM + key.level) + iceRoom + LAND_LIFT_M) *
         EXAGGERATION *
         0.001;
       const beyond = Math.acos(EARTH_RADIUS_KM / (EARTH_RADIUS_KM + Math.max(0, topKm)));
@@ -302,7 +306,9 @@ export class Globe {
   /** Surface height in km above the sphere at a direction, including sea, ice and exaggeration. */
   surfaceKm(dir: Vec3, planet: PlanetState): number {
     const h = this.store.heightAt(dir) + this.iceAt(dir, planet);
-    return Math.max(h, planet.seaLevel) * EXAGGERATION * 0.001;
+    // Approximates the ocean mask by height: land stands on its lift above the sea.
+    const top = h > planet.seaLevel ? h + LAND_LIFT_M : planet.seaLevel;
+    return top * EXAGGERATION * 0.001;
   }
 
   /** Ice thickness in metres at a direction, blended like the shader; 0 until the chunk is loaded. */

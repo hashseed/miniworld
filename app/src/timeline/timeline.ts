@@ -238,15 +238,15 @@ export class Timeline {
     const ctx = this.ctx;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.clearRect(0, 0, this.width, this.height);
-    ctx.fillStyle = 'rgba(16, 22, 34, 0.82)';
+    ctx.fillStyle = 'rgba(255, 251, 243, 0.94)';
     ctx.fillRect(0, 0, this.width, this.height);
     this.drawRuler();
     let y = RULER_H + 2;
-    ctx.font = `${Math.max(10, this.rowH - 5)}px system-ui, sans-serif`;
+    ctx.font = `${Math.max(10, this.rowH - 5)}px "Fredoka Variable", system-ui, sans-serif`;
     ctx.textBaseline = 'middle';
     for (const lane of this.lanes) {
       const h = lane.rows * this.rowH;
-      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      ctx.fillStyle = 'rgba(74, 52, 36, 0.04)';
       ctx.fillRect(0, y, this.width, h);
       for (const { era, row } of lane.eras) {
         const x0 = Math.max(-2, this.x(era.fromDay));
@@ -254,8 +254,8 @@ export class Timeline {
         if (x1 < 0 || x0 > this.width || x1 - x0 < 0.5) continue;
         const ry = y + row * this.rowH + 1;
         ctx.fillStyle = era.color;
-        ctx.globalAlpha = 0.85;
-        roundRect(ctx, x0, ry, x1 - x0, this.rowH - 2, 3);
+        ctx.globalAlpha = 0.9;
+        roundRect(ctx, x0, ry, x1 - x0, this.rowH - 2, (this.rowH - 2) / 2);
         ctx.fill();
         ctx.globalAlpha = 1;
         const label = era.label;
@@ -270,19 +270,19 @@ export class Timeline {
         }
       }
       // Lane name at the left edge.
-      ctx.font = `600 ${Math.max(9, this.rowH - 7)}px system-ui, sans-serif`;
+      ctx.font = `600 ${Math.max(9, this.rowH - 7)}px "Fredoka Variable", system-ui, sans-serif`;
       const name = lane.label;
       const tw = ctx.measureText(name).width;
-      ctx.fillStyle = 'rgba(10, 14, 22, 0.7)';
+      ctx.fillStyle = 'rgba(255, 251, 243, 0.9)';
       ctx.fillRect(0, y, tw + 8, Math.min(h, this.rowH));
-      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.fillStyle = '#3b2a1e';
       ctx.fillText(name, 4, y + this.rowH / 2);
-      ctx.font = `${Math.max(10, this.rowH - 5)}px system-ui, sans-serif`;
+      ctx.font = `${Math.max(10, this.rowH - 5)}px "Fredoka Variable", system-ui, sans-serif`;
       y += h + 3;
     }
     // Playhead.
     const px = this.x(day);
-    ctx.fillStyle = '#ffd166';
+    ctx.fillStyle = '#ff8a3d';
     ctx.fillRect(px - 1, 0, 2, this.height);
     ctx.beginPath();
     ctx.moveTo(px - 6, 0);
@@ -294,9 +294,9 @@ export class Timeline {
 
   private drawRuler(): void {
     const ctx = this.ctx;
-    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.fillStyle = 'rgba(74, 52, 36, 0.06)';
     ctx.fillRect(0, 0, this.width, RULER_H);
-    ctx.font = '11px system-ui, sans-serif';
+    ctx.font = '500 11px "Fredoka Variable", system-ui, sans-serif';
     ctx.textBaseline = 'middle';
     const lang = this.i18n.language;
     let lastLabelEnd = -Infinity;
@@ -305,12 +305,12 @@ export class Timeline {
       const day = dayFromContinuousYear(astro);
       const x = this.x(day);
       if (x < 0 || x > this.width) continue;
-      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.fillStyle = 'rgba(59, 42, 30, 0.35)';
       ctx.fillRect(Math.round(x), RULER_H - 6, 1, 6);
       const label = formatYear(astro, lang);
       const w = ctx.measureText(label).width;
       if (x - w / 2 > lastLabelEnd + 8 && x + w / 2 < this.width) {
-        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.fillStyle = 'rgba(59, 42, 30, 0.85)';
         ctx.fillText(label, x - w / 2, RULER_H / 2 - 2);
         lastLabelEnd = x + w / 2;
       }
@@ -344,7 +344,7 @@ export class Timeline {
     const t = this.tooltip;
     if (!t || performance.now() > t.until) return;
     const ctx = this.ctx;
-    ctx.font = '13px system-ui, sans-serif';
+    ctx.font = '13px "Fredoka Variable", system-ui, sans-serif';
     const w = ctx.measureText(t.text).width + 16;
     const x = Math.min(Math.max(4, t.x - w / 2), this.width - w - 4);
     const y = Math.max(2, t.y - 30);

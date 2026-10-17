@@ -1,11 +1,15 @@
 :root {
-  --panel: rgba(16, 22, 34, 0.88);
-  --panel-border: rgba(255, 255, 255, 0.12);
-  --text: #f3f5f9;
-  --muted: rgba(243, 245, 249, 0.7);
-  --accent: #ffd166;
-  --radius: 12px;
-  color-scheme: dark;
+  /* Toy-planet look (spec section 8): soft, rounded, light plastic pieces. */
+  --panel: rgba(255, 251, 243, 0.94);
+  --panel-hover: #fff3dc;
+  --panel-border: rgba(74, 52, 36, 0.12);
+  --text: #3b2a1e;
+  --muted: rgba(59, 42, 30, 0.68);
+  --accent: #ff8a3d;
+  --accent-soft: #ffd8b8;
+  --shadow: 0 4px 0 rgba(74, 52, 36, 0.14), 0 8px 18px rgba(74, 52, 36, 0.12);
+  --radius: 18px;
+  color-scheme: light;
 }
 
 * {
@@ -17,14 +21,10 @@ body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #05070d;
+  background: #fbe3d4;
   color: var(--text);
-  font-family:
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
+  font-family: 'Fredoka Variable', system-ui, sans-serif;
+  font-weight: 500;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -58,9 +58,10 @@ input {
   min-width: 44px;
   min-height: 44px;
   padding: 0 12px;
-  border-radius: 10px;
+  border-radius: 14px;
   border: 1px solid var(--panel-border);
   background: var(--panel);
+  box-shadow: var(--shadow);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -69,7 +70,11 @@ input {
 }
 
 .btn:hover {
-  background: rgba(40, 52, 74, 0.95);
+  background: var(--panel-hover);
+}
+
+.btn:active {
+  transform: translateY(2px);
 }
 
 .btn:focus-visible,
@@ -81,7 +86,7 @@ input:focus-visible {
 }
 
 .btn[aria-pressed='true'] {
-  background: rgba(255, 209, 102, 0.25);
+  background: var(--accent-soft);
   border-color: var(--accent);
 }
 
@@ -141,23 +146,29 @@ input:focus-visible {
 .date {
   font-size: clamp(20px, 3.4vw, 30px);
   font-weight: 700;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
-  padding: 0 6px;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 2px 16px 4px;
   white-space: nowrap;
 }
 
 .rate {
-  color: var(--muted);
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+  color: var(--text);
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 4px 10px;
   white-space: nowrap;
 }
 
 .speed {
   display: inline-flex;
-  border-radius: 10px;
+  border-radius: 14px;
   overflow: hidden;
   border: 1px solid var(--panel-border);
   background: var(--panel);
+  box-shadow: var(--shadow);
 }
 
 .speed button {
@@ -169,7 +180,7 @@ input:focus-visible {
 }
 
 .speed button[aria-pressed='true'] {
-  background: rgba(255, 209, 102, 0.3);
+  background: var(--accent-soft);
 }
 
 .timeline-wrap {
@@ -177,6 +188,7 @@ input:focus-visible {
   border-radius: var(--radius);
   overflow: hidden;
   border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow);
 }
 
 .timeline-wrap canvas {
@@ -200,8 +212,8 @@ input:focus-visible {
   background: var(--panel);
   border: 1px solid var(--panel-border);
   border-radius: var(--radius);
+  box-shadow: var(--shadow);
   padding: 16px;
-  backdrop-filter: blur(8px);
 }
 
 .panel h2 {
@@ -229,7 +241,7 @@ input:focus-visible {
   min-height: 40px;
   border-radius: 8px;
   border: 1px solid var(--panel-border);
-  background: rgba(0, 0, 0, 0.3);
+  background: #fff;
   padding: 0 8px;
   max-width: 60%;
 }
@@ -291,7 +303,7 @@ input:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #05070d;
+  background: #fbe3d4;
   font-size: 18px;
   text-align: center;
   padding: 24px;
@@ -305,8 +317,8 @@ input:focus-visible {
 
 .notice {
   align-self: flex-start;
-  background: rgba(120, 60, 0, 0.75);
-  border-radius: 8px;
+  background: #ffe9a8;
+  border-radius: 10px;
   padding: 4px 10px;
   font-size: 13px;
 }

@@ -32,11 +32,13 @@ export function rasterizeLakes(
   heights: Grid<GridData>,
   lakesPath: string,
   out: Int16Array,
+  maxRank = Infinity,
 ): number {
   const { width: w, height: h } = heights;
   let count = 0;
   const inside = new Uint8Array(w * h);
   for (const f of readFeatures(lakesPath)) {
+    if (Number(f.properties['scalerank'] ?? 10) > maxRank) continue;
     for (const poly of featurePolygons(f)) {
       const cells: number[] = [];
       rasterizePolygon(heights, poly, (c, r) => {
@@ -80,10 +82,12 @@ export function rasterizeRivers(
   target: { width: number; height: number },
   riversPath: string,
   out: Uint8Array,
+  maxRank = Infinity,
 ): number {
   let count = 0;
   for (const f of readFeatures(riversPath)) {
     const rank = Number(f.properties['scalerank'] ?? 10);
+    if (rank > maxRank) continue;
     const strength = Math.max(40, Math.min(255, Math.round(255 - rank * 20)));
     for (const line of featureLines(f)) {
       rasterizeLine(target, line, (c, r) => {

@@ -71,7 +71,7 @@ export function fixtureElevation(
   for (let r = 0; r < height; r++)
     for (let c = 0; c < width; c++) {
       const i = r * width + c;
-      const n = valueNoise(c / 40, r / 40, 11) * 0.7 + valueNoise(c / 9, r / 9, 12) * 0.3;
+      const n = valueNoise(c / 40, r / 40, 11) * 0.85 + valueNoise(c / 9, r / 9, 12) * 0.15;
       if (land[i]) {
         out[i] = Math.round(20 + Math.min(dist[i]! * 15, 600) + Math.pow(n, 3) * 3500);
       } else {

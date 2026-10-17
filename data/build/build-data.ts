@@ -38,6 +38,7 @@ import { checkLicences, type SourceEntry } from './lib/licence.ts';
 import { floodInlandSeas, INLAND_SEAS, oceanConnection } from './lib/ocean.ts';
 import { Output } from './lib/output.ts';
 import { readEtopo } from './lib/readers.ts';
+import { smoothElevation } from './lib/simplify.ts';
 import { regionGrid } from './lib/regions.ts';
 import { allTileKeys, buildTerrainTile, isDeepTile } from './lib/terrain.ts';
 import { NO_LAKE, rasterizeLakes, rasterizeRivers } from './lib/water.ts';
@@ -49,6 +50,10 @@ const OUT = join(ROOT, 'app/public/data');
 /** Watching seconds per content time window (spec milestone 1, section 10.3). */
 export const WINDOW_SECONDS = 600;
 const PART_LEVEL = 2;
+/** Simplified map (spec milestone 1, section 4.2). */
+const SMOOTHING_KM = 25;
+const MAX_RIVER_RANK = 5;
+const MAX_LAKE_RANK = 4;
 
 const args = process.argv.slice(2);
 const useFixture = args.includes('--fixture');
@@ -131,10 +136,17 @@ if (eraErrors.length) fail(eraErrors.join('\n'));
 // --- Elevation, ocean mask, lakes and rivers -------------------------------
 
 const output = new Output(OUT);
-const elevation: Grid = fixture
+let source: Grid = fixture
   ? fixtureElevation(neFile('ne_10m_land.geojson'))
   : await readEtopo(sourceFiles('etopo-2022')[0]!);
-log(`elevation grid ${elevation.width} × ${elevation.height}`);
+// The map is simplified (spec milestone 1, section 4.2): 2 arc-minutes is
+// plenty under a 25 km smoothing and keeps the build's memory in bounds.
+while (source.width > 10800) {
+  const m = source.downsampleMean();
+  source = new Grid(m.width, m.height, Int16Array.from(m.data, Math.round));
+}
+const elevation = smoothElevation(source, SMOOTHING_KM);
+log(`elevation grid ${elevation.width} × ${elevation.height}, smoothed ${SMOOTHING_KM} km`);
 const pyramid = new GridPyramid(elevation);
 
 // The ocean mask runs on a grid of about 2 arc-minutes, using the minimum of
@@ -149,13 +161,14 @@ const lakeLevel = new Grid(
   conn.height,
   new Int16Array(conn.width * conn.height).fill(NO_LAKE),
 );
-const lakes = rasterizeLakes(conn, neFile('ne_10m_lakes.geojson'), lakeLevel.data);
+const lakes = rasterizeLakes(conn, neFile('ne_10m_lakes.geojson'), lakeLevel.data, MAX_LAKE_RANK);
 floodInlandSeas(conn, INLAND_SEAS, (i, level) => (lakeLevel.data[i] = level));
 const rivers = new Grid(conn.width, conn.height, new Uint8Array(conn.width * conn.height));
 const riverCount = rasterizeRivers(
   conn,
   neFile('ne_10m_rivers_lake_centerlines.geojson'),
   rivers.data,
+  MAX_RIVER_RANK,
 );
 log(`${lakes} lakes, ${riverCount} river lines`);
 
