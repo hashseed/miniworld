@@ -24,6 +24,8 @@ export interface TerrainInputs {
   heights: GridPyramid;
   /** Grids at the ocean-mask resolution. */
   ocean: Grid<Uint16Array>;
+  /** Ocean fields for coarse levels, by level, prefiltered for their sample spacing. */
+  coarseOcean?: Map<number, Grid<Uint16Array>>;
   /** Lake surface level per cell, spread to cover the smoothed lakes, or NO_LAKE. */
   lakeLevel: Grid<Int16Array>;
   lakes: Grid<Uint8Array>;
@@ -41,6 +43,7 @@ export function buildTerrainTile(key: TileKey, inputs: TerrainInputs): TerrainTi
   const lakes = new Uint8Array(TERRAIN_SAMPLES * TERRAIN_SAMPLES);
   const rivers = new Uint8Array(TERRAIN_SAMPLES * TERRAIN_SAMPLES);
   const flow = new Uint8Array(TERRAIN_SAMPLES * TERRAIN_SAMPLES * 2);
+  const oceanGrid = inputs.coarseOcean?.get(key.level) ?? inputs.ocean;
   const dir: Vec3 = [0, 0, 0];
   for (let j = -1; j <= TILE_N + 1; j++) {
     for (let i = -1; i <= TILE_N + 1; i++) {
@@ -54,7 +57,7 @@ export function buildTerrainTile(key: TileKey, inputs: TerrainInputs): TerrainTi
       if (lake !== NO_LAKE && lakeField >= 100) height = lake;
       if (inner) {
         const s = j * TERRAIN_SAMPLES + i;
-        ocean[s] = Math.round(inputs.ocean.bilinear(lat, lon));
+        ocean[s] = Math.round(oceanGrid.bilinear(lat, lon));
         lakes[s] = Math.round(lakeField);
         rivers[s] = Math.round(inputs.rivers.bilinear(lat, lon));
         flow[s * 2] = Math.round(inputs.flowCos.bilinear(lat, lon));

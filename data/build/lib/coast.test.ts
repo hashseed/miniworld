@@ -56,6 +56,18 @@ describe('smooth coasts', () => {
     for (let k = 1; k < values.length; k++) expect(values[k]!).toBeGreaterThan(values[k - 1]!);
   });
 
+  it('keeps a narrow peninsula', () => {
+    // Open sea with a 20 km wide strip of land (2 cells at the equator).
+    const conn = new Grid(W, H, new Uint8Array(W * H).fill(0));
+    for (let r = 800; r < 1000; r++)
+      for (let c = 1800; c < 1802; c++) conn.data[r * W + c] = OCEAN_NEVER;
+    const smooth = smoothOcean(conn, []);
+    const land = (c: number) => OCEAN_MIN_LEVEL + smooth[899 * W + c]! / OCEAN_SCALE >= 0;
+    expect(land(1800) && land(1801)).toBe(true);
+    // Not much wider than the strip.
+    expect(land(1795) || land(1806)).toBe(false);
+  });
+
   it('simplifies polar regions only', () => {
     expect(polarWeight(0)).toBe(0);
     expect(polarWeight(60)).toBe(0);

@@ -24,6 +24,9 @@ uniform float iceT;
 uniform float skirtDepth;
 uniform float landLift; // metres every land vertex stands above its height
 
+// How far below the sea level the flat sea surface lies (section 4.4).
+const float SEA_DROP = 3.0;
+
 varying vec3 vWorld;
 varying vec3 vUp;
 varying vec3 vNormal;
@@ -46,26 +49,24 @@ void main() {
   float iceM = mix(ice.x, ice.y, iceT);
 
   // Both the ocean level and the lake field are smooth, so the water signal
-  // below crosses zero along smooth curves (sections 4.3 and 5.1).
+  // below crosses zero along smooth curves (sections 4.3 and 5.1). Where the
+  // sea reaches a lake basin, it is sea.
   float seaWater = seaLevel - oceanLevel;
   float lakeWater = (lake - 0.5) * 80.0;
-  bool sea = lake <= 0.5 && seaWater > 0.0;
+  bool sea = seaWater > 0.0;
+  bool isLake = !sea && lake > 0.5;
+  float water = sea ? seaWater : isLake ? lakeWater : max(seaWater, lakeWater);
   float surface = h;
-  float water;
-  if (lake > 0.5) {
-    water = lakeWater;
-  } else if (sea) {
-    water = seaWater;
-    surface = seaLevel;
-  } else {
-    water = max(seaWater, lakeWater);
-  }
-  // Land rises from the coast in a soft, rounded bevel, like the edge of a
-  // clay slab: the smoothed coast can leave sea floor on the land side, and
-  // land near the coast is eased down to the sea, so there are no cliffs.
   float ramp = 1.0;
-  if (!sea && lake <= 0.5) {
-    ramp = smoothstep(0.0, 35.0, -water);
+  if (sea) {
+    // The terrain's sea is left out; the flat sea surface lies just below
+    // (section 4.4), so coast triangles never dip under it on the land side.
+    surface = seaLevel;
+  } else if (!isLake) {
+    // Land rises from the coast in a soft, rounded bevel, like the edge of a
+    // clay slab: the smoothed coast can leave sea floor on the land side, and
+    // land near the coast is eased down to the sea, so there are no cliffs.
+    ramp = smoothstep(0.0, 35.0, -seaWater);
     surface = seaLevel + (max(surface, seaLevel) - seaLevel) * ramp;
   }
   if (iceM > 1.0) {
@@ -78,9 +79,12 @@ void main() {
     }
     water = min(water, -1.0);
   }
-  if (lake > 0.5) surface += landLift;
+  if (isLake) surface += landLift;
   else if (!sea) surface += landLift * ramp;
   surface -= extra.z * skirtDepth;
+#ifdef SEA_SURFACE
+  surface = seaLevel - SEA_DROP;
+#endif
 
   float lift = surface * exaggeration * 0.001;
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
@@ -264,6 +268,9 @@ void main() {
   vec3 viewDir = normalize(cameraWorld - vWorld);
 
   vec3 n = normalize(vNormal);
+#ifdef SEA_SURFACE
+  n = up;
+#endif
   vec3 smoothN = n;
   // The coast cliffs and ice edges are made in the vertex shader, so their
   // slope comes from the screen-space derivative of the surface.
@@ -283,21 +290,25 @@ void main() {
   float riverF = wf.z;
   float seaW = seaLevel - wf.x;
   float lakeW = (lakeF - 0.5) * 80.0;
-  float water = lakeF > 0.5 ? lakeW : seaW > 0.0 ? seaW : max(seaW, lakeW);
+  float water = seaW > 0.0 ? seaW : lakeF > 0.5 ? lakeW : max(seaW, lakeW);
   if (vIce > 1.0) water = min(water, -1.0);
   bool isWater = water > 0.0 && !hasIce;
+#ifndef SEA_SURFACE
+  // The sea is the flat sea surface's (section 4.4); the terrain leaves it out.
+  if (isWater && seaW > 0.0) discard;
+#endif
   bool isRiver = !isWater && !hasIce && riverF > riverThreshold;
   // Arctic pack ice (section 5.2): the sea north of a wobbly edge near 78°N
   // today, reaching 70°N at the glacial maximum.
   float lat = degrees(asin(clamp(up.y, -1.0, 1.0)));
   float packEdge = mix(78.0, 70.0, glacial) + (noise3(vWorld * 0.004) - 0.5) * 4.0;
-  bool isPack = isWater && lakeF <= 0.5 && lat > packEdge;
+  bool isPack = isWater && seaW > 0.0 && lat > packEdge;
   if (isPack) {
     albedo = mix(vec3(0.93, 0.97, 1.0), vec3(0.78, 0.9, 0.98), smoothstep(1.5, 0.0, lat - packEdge));
     n = up;
   } else if (isWater || isRiver) {
     // One glossy sea colour, with no shallows (section 4.4).
-    albedo = (lakeF > 0.5 && seaW <= 0.0) || isRiver ? vec3(0.24, 0.62, 0.92) : vec3(0.08, 0.44, 0.86);
+    albedo = seaW <= 0.0 || isRiver ? vec3(0.24, 0.62, 0.92) : vec3(0.08, 0.44, 0.86);
     n = up;
     if (waterDetail > 0.5) {
       float w = sin(dot(vWorld, vec3(3.1, 1.7, 2.3)) + time * 1.3) + sin(dot(vWorld, vec3(-1.9, 2.8, 1.1)) + time * 0.9);
@@ -335,7 +346,7 @@ void main() {
   // No coast line across a river mouth.
   if (riverF < riverThreshold && !hasIce) ink = max(ink, inkLine(clamp(water, -30.0, 30.0), 0.0, 1.6));
   ink = max(ink, inkLine(clamp(vIce, 0.0, ICE_EDGE * 2.0), ICE_EDGE, 1.6));
-  if (isWater && lakeF <= 0.5) ink = max(ink, inkLine(clamp(lat - packEdge, -1.0, 1.0), 0.0, 1.6));
+  if (isWater && seaW > 0.0) ink = max(ink, inkLine(clamp(lat - packEdge, -1.0, 1.0), 0.0, 1.6));
   if (!isWater && !hasIce) ink = max(ink, inkLine(riverF, riverThreshold, 1.4));
   if (vSkirt > 0.5) ink = 0.0;
   colour = mix(colour, INK, ink * 0.85);

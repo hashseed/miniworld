@@ -17,6 +17,11 @@ const KM_PER_DEG = 111.32;
 /** Gaussian sigma (km) of the coast smoothing, and of the coast in polar regions. */
 export const COAST_SIGMA_KM = 20;
 export const POLAR_COAST_SIGMA_KM = 60;
+/**
+ * Distance (km) every coast grows seaward before the smoothing, so narrow
+ * peninsulas and islands survive the blur and come out slightly larger.
+ */
+export const COAST_GROW_KM = 16;
 /** Level (m) given to land that never joins the ocean before smoothing. */
 export const NEVER_LEVEL_M = OCEAN_MIN_LEVEL + OCEAN_TOP;
 
@@ -67,6 +72,53 @@ export function blurField(
   }
   for (let i = 0; i < w * h; i++) value[i] = value[i]! / weight[i]!;
   return value;
+}
+
+/** Sliding-window maximum of radius r along a row, wrapping around, into out. */
+function rowMax(src: Float32Array, off: number, w: number, r: number, out: Float32Array): void {
+  if (r <= 0) {
+    out.set(src.subarray(off, off + w));
+    return;
+  }
+  // Van Herk / Gil-Werman: block prefix and suffix maxima over the padded row.
+  const k = 2 * r + 1;
+  const n = w + 2 * r;
+  const pad = new Float32Array(n);
+  for (let i = 0; i < n; i++) pad[i] = src[off + ((((i - r) % w) + w) % w)]!;
+  const pre = new Float32Array(n);
+  const suf = new Float32Array(n);
+  for (let i = 0; i < n; i++) pre[i] = i % k === 0 ? pad[i]! : Math.max(pre[i - 1]!, pad[i]!);
+  for (let i = n - 1; i >= 0; i--)
+    suf[i] = i === n - 1 || (i + 1) % k === 0 ? pad[i]! : Math.max(suf[i + 1]!, pad[i]!);
+  for (let c = 0; c < w; c++) out[c] = Math.max(suf[c]!, pre[c + 2 * r]!);
+}
+
+/** Maximum of a field over a disc of radiusKm around every cell (land grows into the sea). */
+export function growField(
+  values: Float32Array,
+  w: number,
+  h: number,
+  radiusKm: number,
+): Float32Array {
+  const cellDeg = 360 / w;
+  const cellKm = cellDeg * KM_PER_DEG;
+  const R = Math.floor(radiusKm / cellKm);
+  const out = Float32Array.from(values);
+  if (radiusKm <= 0) return out;
+  const tmp = new Float32Array(w);
+  for (let r = 0; r < h; r++) {
+    const lat = 90 - (r + 0.5) * cellDeg;
+    const kmPerCol = Math.max(cellKm * Math.cos((lat * Math.PI) / 180), 1e-3);
+    for (let dr = -R; dr <= R; dr++) {
+      const rr = r + dr;
+      if (rr < 0 || rr >= h) continue;
+      const half = Math.sqrt(Math.max(0, radiusKm * radiusKm - (dr * cellKm) ** 2));
+      const cr = Math.min(Math.floor((w - 1) / 2), Math.floor(half / kmPerCol));
+      rowMax(values, rr * w, w, cr, tmp);
+      for (let c = 0; c < w; c++) if (tmp[c]! > out[r * w + c]!) out[r * w + c] = tmp[c]!;
+    }
+  }
+  return out;
 }
 
 /** Blurs with sigmaKm, and with polarSigmaKm in the polar regions, blending by latitude. */
@@ -203,7 +255,8 @@ export function carveStraits(g: Grid<GridData>, straits: Strait[]): void {
 
 /**
  * Smooths the flood fill result into the stored ocean channel: levels in
- * metres, land that never joins the ocean at NEVER_LEVEL_M, blurred, then the
+ * metres, land that never joins the ocean at NEVER_LEVEL_M, grown by
+ * COAST_GROW_KM and blurred, then the
  * straits laid in with a flat core and sloping banks so they are open exactly
  * when the sea is above their sill. Returns bytes 0..OCEAN_TOP.
  */
@@ -211,6 +264,7 @@ export function smoothOcean(
   connection: Grid<Uint8Array>,
   straits: Strait[],
   keep: KeptIsland[] = [],
+  growKm = COAST_GROW_KM,
 ): Uint16Array {
   const { width: w, height: h } = connection;
   const n = w * h;
@@ -219,7 +273,8 @@ export function smoothOcean(
     const v = connection.data[i]!;
     level[i] = v === OCEAN_NEVER ? NEVER_LEVEL_M : Math.min(NEVER_LEVEL_M, OCEAN_MIN_LEVEL + v);
   }
-  const smooth = blurFieldPolar(level, w, h, COAST_SIGMA_KM, POLAR_COAST_SIGMA_KM);
+  const grown = growField(level, w, h, growKm);
+  const smooth = blurFieldPolar(grown, w, h, COAST_SIGMA_KM, POLAR_COAST_SIGMA_KM);
   for (const s of straits) {
     forCellsNearLine(connection, s.line, STRAIT_CORE_KM + STRAIT_BANK_KM, (i, d) => {
       const t = Math.max(0, d - STRAIT_CORE_KM) / STRAIT_BANK_KM;
@@ -234,6 +289,48 @@ export function smoothOcean(
       const t = Math.max(0, d - ISLAND_CORE_KM) / ISLAND_BANK_KM;
       const v = NEVER_LEVEL_M - (NEVER_LEVEL_M - OCEAN_MIN_LEVEL) * t;
       if (v > smooth[i]!) smooth[i] = v;
+    });
+  }
+  const out = new Uint16Array(n);
+  for (let i = 0; i < n; i++) {
+    const v = Math.max(0, Math.min(OCEAN_TOP, smooth[i]! - OCEAN_MIN_LEVEL));
+    out[i] = Math.round(v * OCEAN_SCALE);
+  }
+  return out;
+}
+
+/**
+ * Ocean field for tiles whose samples lie spacingKm apart (section 4.2): the
+ * coast grows by COARSE_GROW of a spacing and is blurred by COARSE_SIGMA of
+ * one, so the shader's smooth interpolation neither loses islands and
+ * peninsulas narrower than a few samples nor shrinks the coasts. Straits are
+ * laid in again at least half a spacing wide.
+ */
+export const COARSE_GROW = 0.4;
+export const COARSE_SIGMA = 0.5;
+/** Levels whose samples lie at least this far apart (km) get a prefiltered coast. */
+export const COARSE_MIN_SPACING_KM = 30;
+export function coarseOcean(
+  ocean: Grid<Uint16Array>,
+  spacingKm: number,
+  straits: Strait[],
+): Uint16Array {
+  const { width: w, height: h } = ocean;
+  const n = w * h;
+  const level = new Float32Array(n);
+  for (let i = 0; i < n; i++) level[i] = OCEAN_MIN_LEVEL + ocean.data[i]! / OCEAN_SCALE;
+  const smooth = blurField(
+    growField(level, w, h, spacingKm * COARSE_GROW),
+    w,
+    h,
+    spacingKm * COARSE_SIGMA,
+  );
+  const core = Math.max(STRAIT_CORE_KM, spacingKm / 2);
+  for (const s of straits) {
+    forCellsNearLine(ocean, s.line, core + spacingKm / 2, (i, d) => {
+      const t = Math.max(0, d - core) / (spacingKm / 2);
+      const v = s.sill + (NEVER_LEVEL_M - s.sill) * t;
+      if (v < smooth[i]!) smooth[i] = v;
     });
   }
   const out = new Uint16Array(n);
@@ -275,6 +372,51 @@ export function smoothLakes(lakeLevel: Grid<Int16Array>, noLake: number): Uint8A
     lakeLevel.data.set(next);
   }
   return out;
+}
+
+/**
+ * Where the sea reaches a drawn lake (such as the Baltic), the lake's outline
+ * is the coast (section 5.1): every cell inside the smooth lake field takes
+ * the level at which the nearest lake cell joins the ocean, if lower, so the
+ * sea fills exactly the lake's shape. Changes ocean in place.
+ */
+export function joinInlandSeas(
+  ocean: Uint16Array,
+  connection: Grid<Uint8Array>,
+  lakes: Uint8Array,
+): void {
+  const { width: w, height: h } = connection;
+  const n = w * h;
+  const level = new Float32Array(n).fill(Infinity);
+  let front: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const v = connection.data[i]!;
+    if (lakes[i]! >= 128 && v !== OCEAN_NEVER) {
+      level[i] = OCEAN_MIN_LEVEL + v;
+      front.push(i);
+    }
+  }
+  // Spread outwards through the lake field, one ring of cells at a time.
+  while (front.length) {
+    const next: number[] = [];
+    for (const i of front) {
+      const r = (i / w) | 0;
+      const c = i - r * w;
+      for (const j of [r * w + ((c + 1) % w), r * w + ((c - 1 + w) % w), i - w, i + w]) {
+        if (j < 0 || j >= n || lakes[j]! < 128 || level[j] !== Infinity) continue;
+        level[j] = level[i]!;
+        next.push(j);
+      }
+    }
+    front = next;
+  }
+  for (let i = 0; i < n; i++) {
+    if (level[i] === Infinity) continue;
+    const v = Math.round(
+      Math.max(0, Math.min(OCEAN_TOP, level[i]! - OCEAN_MIN_LEVEL)) * OCEAN_SCALE,
+    );
+    if (v < ocean[i]!) ocean[i] = v;
+  }
 }
 
 /** Blends two elevation grids by the polar weight of each row (section 4.2). */

@@ -29,7 +29,29 @@ export const EXAGGERATION = 100;
 /** Every land vertex stands this many metres above its height (section 4.2). */
 export const LAND_LIFT_M = 250;
 export const MAX_RENDER_LEVEL = 9;
-const MAX_CACHED_MESHES = 700;
+/** Meshes kept beyond those touched this frame; touched meshes are never evicted. */
+const MAX_CACHED_MESHES = 1500;
+
+/** Cells per side of a tile's flat sea grid (section 4.4). */
+const SEA_CELLS = 8;
+let seaIndexCache: THREE.BufferAttribute | undefined;
+/** Triangles of the sea grid over a tile's vertex grid, every TILE_N / SEA_CELLS vertices. */
+function seaIndex(): THREE.BufferAttribute {
+  if (seaIndexCache) return seaIndexCache;
+  const S = TILE_N + 1;
+  const step = TILE_N / SEA_CELLS;
+  const idx: number[] = [];
+  for (let j = 0; j < SEA_CELLS; j++)
+    for (let i = 0; i < SEA_CELLS; i++) {
+      const a = j * step * S + i * step;
+      const b = a + step;
+      const c = a + step * S;
+      const d = c + step;
+      idx.push(a, c, b, b, c, d);
+    }
+  seaIndexCache = new THREE.BufferAttribute(new Uint16Array(idx), 1);
+  return seaIndexCache;
+}
 
 interface TileEntry {
   key: TileKey;
@@ -51,6 +73,8 @@ export interface GlobeQuality {
 export class Globe {
   readonly group = new THREE.Group();
   readonly material: THREE.ShaderMaterial;
+  /** The flat sea surface over every tile, sharing the terrain's uniforms (section 4.4). */
+  readonly seaMaterial: THREE.ShaderMaterial;
   readonly store: TerrainStore;
   private loader: ContentLoader;
   private tiles = new Map<string, TileEntry>();
@@ -84,6 +108,13 @@ export class Globe {
         waterDetail: { value: 1 },
         fields: { value: null },
       },
+    });
+    this.seaMaterial = new THREE.ShaderMaterial({
+      vertexShader: terrainVertex,
+      fragmentShader: terrainFragment,
+      side: THREE.DoubleSide,
+      uniforms: this.material.uniforms,
+      defines: { SEA_SURFACE: 1 },
     });
   }
 
@@ -155,9 +186,11 @@ export class Globe {
         const children = childKeys(key);
         // Split only when every child has a mesh; otherwise draw this tile and build them.
         let ready = true;
-        for (const ch of children)
-          if (!this.tiles.has(tileId(ch)) && !this.entryFor(ch, priority)) ready = false;
+        for (const ch of children) if (!this.entryFor(ch, priority)) ready = false;
         if (ready) {
+          // Keep this tile's mesh too, so zooming out never waits for a rebuild.
+          const own = this.tiles.get(tileId(key));
+          if (own) own.lastUsed = this.frame;
           for (const ch of children) visit(ch);
           return;
         }
@@ -166,15 +199,17 @@ export class Globe {
       if (entry) {
         this.updateIce(entry, planet, iceWindow, priority);
         selected.push(entry);
+      } else if (key.level < MAX_RENDER_LEVEL) {
+        // No mesh yet: keep drawing finer children that still exist rather than a hole.
+        const children = childKeys(key);
+        if (children.every((ch) => this.tiles.has(tileId(ch))))
+          for (const ch of children) visit(ch);
       }
     };
     for (let face = 0; face < FACE_COUNT; face++) visit({ face, level: 0, x: 0, y: 0 });
 
     for (const e of this.tiles.values()) e.mesh.visible = false;
-    for (const e of selected) {
-      e.mesh.visible = true;
-      e.lastUsed = this.frame;
-    }
+    for (const e of selected) e.mesh.visible = true;
     this.drawnTiles = selected.length;
     this.store.endFrame();
     this.evict();
@@ -198,7 +233,10 @@ export class Globe {
     const id = tileId(key);
     const existing = this.tiles.get(id);
     const source = this.store.sourceFor(key, priority);
-    if (existing) return existing;
+    if (existing) {
+      existing.lastUsed = this.frame;
+      return existing;
+    }
     if (!source) return undefined;
     if (this.buildsThisFrame >= 12 && key.level > 1) return undefined;
     this.buildsThisFrame++;
@@ -211,6 +249,20 @@ export class Globe {
       this.material.uniformsNeedUpdate = true;
     };
     mesh.userData.fields = g.fields;
+    // The flat sea: the same vertices on a coarse grid, a child so it shares
+    // the tile's placement and visibility.
+    const seaGeometry = new THREE.BufferGeometry();
+    for (const [name, attr] of Object.entries(g.geometry.attributes))
+      seaGeometry.setAttribute(name, attr);
+    seaGeometry.setIndex(seaIndex());
+    const sea = new THREE.Mesh(seaGeometry, this.seaMaterial);
+    sea.onBeforeRender = () => {
+      this.material.uniforms.fields!.value = g.fields;
+      this.seaMaterial.uniformsNeedUpdate = true;
+    };
+    sea.frustumCulled = false;
+    sea.matrixAutoUpdate = false;
+    mesh.add(sea);
     mesh.position.copy(g.centre);
     mesh.frustumCulled = false;
     mesh.matrixAutoUpdate = false;
@@ -307,10 +359,11 @@ export class Globe {
   private evict(): void {
     if (this.tiles.size <= MAX_CACHED_MESHES) return;
     const old = [...this.tiles.values()]
-      .filter((e) => !e.mesh.visible)
+      .filter((e) => e.lastUsed < this.frame)
       .sort((a, b) => a.lastUsed - b.lastUsed);
     for (const e of old.slice(0, this.tiles.size - MAX_CACHED_MESHES)) {
       this.group.remove(e.mesh);
+      for (const child of e.mesh.children) (child as THREE.Mesh).geometry.dispose();
       e.mesh.geometry.dispose();
       (e.mesh.userData.fields as THREE.DataTexture).dispose();
       this.tiles.delete(tileId(e.key));

@@ -170,6 +170,53 @@
         [141.55, 52.9]
       ],
       "source": "Encyclopaedia Britannica, Tatar Strait: https://www.britannica.com/place/Tatar-Strait"
+    },
+    {
+      "id": "north-channel",
+      "name": "North Channel",
+      "sill": -100,
+      "line": [
+        [-5.2, 54.5],
+        [-5.45, 54.85],
+        [-5.8, 55.1],
+        [-6.1, 55.35],
+        [-6.4, 55.55]
+      ],
+      "source": "Encyclopaedia Britannica, North Channel: https://www.britannica.com/place/North-Channel; sill set so Ireland is an island from about 14,000 BCE"
+    },
+    {
+      "id": "tsugaru",
+      "name": "Tsugaru Strait",
+      "sill": -130,
+      "line": [
+        [139.9, 41.45],
+        [140.4, 41.4],
+        [140.9, 41.45],
+        [141.4, 41.5]
+      ],
+      "source": "Encyclopaedia Britannica, Tsugaru Strait: https://www.britannica.com/place/Tsugaru-Strait; open even at the ice-age low stand"
+    },
+    {
+      "id": "sunda",
+      "name": "Sunda Strait",
+      "sill": -20,
+      "line": [
+        [105.6, -6.9],
+        [105.75, -6.3],
+        [105.9, -5.7]
+      ],
+      "source": "Encyclopaedia Britannica, Sunda Strait: https://www.britannica.com/place/Sunda-Strait"
+    },
+    {
+      "id": "cook",
+      "name": "Cook Strait",
+      "sill": -80,
+      "line": [
+        [174.2, -41.6],
+        [174.5, -41.3],
+        [174.9, -41.0]
+      ],
+      "source": "Encyclopaedia Britannica, Cook Strait: https://www.britannica.com/place/Cook-Strait"
     }
   ]
 }

@@ -20,7 +20,7 @@ import {
   type StartupIndex,
   type SourceInfo,
 } from '../../app/src/content/types.ts';
-import { ancestorAt, tilePath, type TileKey } from '../../app/src/globe/cube.ts';
+import { ancestorAt, tilePath, TILE_N, type TileKey } from '../../app/src/globe/cube.ts';
 import { LANGUAGES, type Language } from '../../app/src/i18n/messages.ts';
 import { TIMELINE_START, continuousYear, dayFromDate } from '../../app/src/time/calendar.ts';
 import { buildWatchTable, yearAtSeconds, totalSeconds } from '../../app/src/time/watchTable.ts';
@@ -49,6 +49,9 @@ import {
   carveStraits,
   smoothLakes,
   smoothOcean,
+  coarseOcean,
+  joinInlandSeas,
+  COARSE_MIN_SPACING_KM,
   validateIslands,
   validateStraits,
   type KeptIsland,
@@ -231,6 +234,7 @@ const lakeCount = rasterizeLakes(
 );
 floodInlandSeas(conn, INLAND_SEAS, (i, level) => (lakeLevel.data[i] = level));
 const lakes = new Grid(conn.width, conn.height, smoothLakes(lakeLevel, NO_LAKE));
+joinInlandSeas(ocean.data, connection, lakes.data);
 const rivers = new Grid(conn.width, conn.height, new Uint8Array(conn.width * conn.height));
 const riverContext = {
   ocean: connection.data,
@@ -267,12 +271,25 @@ function place(layer: LayerOut, key: TileKey): { chunks: Record<string, string>;
   return p;
 }
 
+// Coarse levels sample a coast prefiltered for their spacing (section 4.2).
+const coarse = new Map<number, Grid<Uint16Array>>();
+for (let level = 0; level <= maxLevel; level++) {
+  const spacingKm = ((90 / (1 << level)) * 111.32) / TILE_N;
+  if (spacingKm < COARSE_MIN_SPACING_KM) break;
+  coarse.set(
+    level,
+    new Grid(ocean.width, ocean.height, coarseOcean(ocean, spacingKm, straits.straits)),
+  );
+}
+log(`coarse coasts for levels 0..${coarse.size - 1}`);
+
 const terrain = newLayer();
 let tileCount = 0;
 for (const key of allTileKeys(maxLevel)) {
   const tile = buildTerrainTile(key, {
     heights: pyramid,
     ocean,
+    coarseOcean: coarse,
     lakeLevel,
     lakes,
     rivers,
