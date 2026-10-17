@@ -1,0 +1,141 @@
+{
+  "description": "Straits the coast smoothing must keep open (spec milestone 1, section 5.1). Each line runs from one sea to the other through the strait; sill is the depth in metres of the shallowest point on the deepest way through, approximate.",
+  "straits": [
+    {
+      "id": "gibraltar",
+      "name": "Strait of Gibraltar",
+      "sill": -280,
+      "line": [
+        [-6.4, 35.85],
+        [-5.75, 35.93],
+        [-5.35, 36.0],
+        [-4.9, 36.1]
+      ],
+      "source": "Encyclopaedia Britannica, Strait of Gibraltar: https://www.britannica.com/place/Strait-of-Gibraltar"
+    },
+    {
+      "id": "dardanelles",
+      "name": "Dardanelles",
+      "sill": -65,
+      "line": [
+        [25.95, 39.98],
+        [26.2, 40.05],
+        [26.4, 40.17],
+        [26.68, 40.4],
+        [26.95, 40.52]
+      ],
+      "source": "Encyclopaedia Britannica, Dardanelles: https://www.britannica.com/place/Dardanelles"
+    },
+    {
+      "id": "bosporus",
+      "name": "Bosporus",
+      "sill": -35,
+      "line": [
+        [28.95, 40.92],
+        [29.0, 41.02],
+        [29.06, 41.12],
+        [29.12, 41.24],
+        [29.2, 41.32]
+      ],
+      "source": "Encyclopaedia Britannica, Bosporus: https://www.britannica.com/place/Bosporus"
+    },
+    {
+      "id": "kerch",
+      "name": "Kerch Strait",
+      "sill": -5,
+      "line": [
+        [36.55, 45.5],
+        [36.58, 45.3],
+        [36.6, 45.15],
+        [36.65, 44.95]
+      ],
+      "source": "Encyclopaedia Britannica, Kerch Strait: https://www.britannica.com/place/Kerch-Strait"
+    },
+    {
+      "id": "messina",
+      "name": "Strait of Messina",
+      "sill": -80,
+      "line": [
+        [15.68, 38.35],
+        [15.63, 38.25],
+        [15.6, 38.1],
+        [15.62, 37.95]
+      ],
+      "source": "Encyclopaedia Britannica, Strait of Messina: https://www.britannica.com/place/Strait-of-Messina"
+    },
+    {
+      "id": "bonifacio",
+      "name": "Strait of Bonifacio",
+      "sill": -50,
+      "line": [
+        [8.85, 41.33],
+        [9.15, 41.32],
+        [9.45, 41.3],
+        [9.7, 41.25]
+      ],
+      "source": "Encyclopaedia Britannica, Strait of Bonifacio: https://www.britannica.com/place/Strait-of-Bonifacio"
+    },
+    {
+      "id": "bab-el-mandeb",
+      "name": "Bab-el-Mandeb",
+      "sill": -137,
+      "line": [
+        [42.3, 14.4],
+        [42.7, 13.75],
+        [43.15, 12.95],
+        [43.4, 12.6],
+        [43.9, 12.3]
+      ],
+      "source": "Encyclopaedia Britannica, Bab el-Mandeb: https://www.britannica.com/place/Bab-el-Mandeb"
+    },
+    {
+      "id": "hormuz",
+      "name": "Strait of Hormuz",
+      "sill": -70,
+      "line": [
+        [55.6, 26.3],
+        [56.2, 26.55],
+        [56.6, 26.45],
+        [57.0, 26.1]
+      ],
+      "source": "Encyclopaedia Britannica, Strait of Hormuz: https://www.britannica.com/place/Strait-of-Hormuz"
+    },
+    {
+      "id": "oresund",
+      "name": "Øresund",
+      "sill": -8,
+      "line": [
+        [12.55, 56.15],
+        [12.65, 55.95],
+        [12.72, 55.65],
+        [12.85, 55.35]
+      ],
+      "source": "Encyclopaedia Britannica, Øresund: https://www.britannica.com/place/Oresund"
+    },
+    {
+      "id": "great-belt",
+      "name": "Great Belt and Fehmarn Belt to the Darss Sill",
+      "sill": -18,
+      "line": [
+        [11.0, 56.05],
+        [11.0, 55.6],
+        [10.95, 55.15],
+        [11.15, 54.6],
+        [11.9, 54.5],
+        [12.6, 54.65]
+      ],
+      "source": "Encyclopaedia Britannica, Great Belt: https://www.britannica.com/place/Great-Belt"
+    },
+    {
+      "id": "bering",
+      "name": "Bering Strait",
+      "sill": -50,
+      "line": [
+        [-169.8, 66.6],
+        [-169.2, 65.9],
+        [-168.7, 65.3]
+      ],
+      "source": "Encyclopaedia Britannica, Bering Strait: https://www.britannica.com/place/Bering-Strait"
+    }
+  ]
+}

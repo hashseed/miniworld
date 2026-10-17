@@ -1,6 +1,8 @@
 // Lakes and rivers from Natural Earth (spec milestone 1, section 4.3).
 
 import { readFileSync } from 'node:fs';
+import { OCEAN_RANGE } from '../../../app/src/content/formats.ts';
+import { forCellsNearLine } from './coast.ts';
 import type { Grid, GridData } from './grid.ts';
 import {
   featureLines,
@@ -108,72 +110,260 @@ export function smoothLine(line: number[][], rounds = 2): number[][] {
   return pts;
 }
 
+export interface RiverPick {
+  /** Natural Earth name of a river line. */
+  name: string;
+  /** Only lines starting inside [west, south, east, north], for names used twice. */
+  box?: [number, number, number, number];
+}
+
+export interface RiverContext {
+  /** Raw flood fill level per cell (0 = sea at every date, OCEAN_NEVER inland). */
+  ocean: Uint8Array;
+  /** The neighbour the flood fill reached each cell from, or -1. */
+  parents: Int32Array;
+  /** Smoothed elevation per cell. */
+  heights: GridData;
+  /** Smooth lake field per cell, a lake from 128. */
+  lakes: Uint8Array;
+}
+
+/** Pulse spacing along rivers in km (section 4.3). */
+export const FLOW_PERIOD_KM = 150;
+/** How near (km) a river end must come to the sea at some date to be continued downhill. */
+const MOUTH_SEARCH_KM = 40;
+
 /**
- * Rasterises rivers as a smooth field: 255 inside a river's core, falling
- * linearly to 0 over RIVER_FALLOFF_KM beyond it. The renderer draws water
- * where the interpolated field passes one half, so banks come out as smooth
- * curves at any grid resolution (spec milestone 1, section 4.3).
+ * Rasterises the picked rivers as a smooth field: 255 inside a river's core,
+ * falling linearly to 0 over RIVER_FALLOFF_KM beyond it, so banks come out
+ * as smooth curves. Each river end near the sea is continued downhill to sea
+ * that is sea at every date, or to a lake (section 4.3). Returns the number
+ * of lines and continuations drawn.
  */
 export function rasterizeRivers(
   target: { width: number; height: number },
   riversPath: string,
   out: Uint8Array,
-  maxRank = Infinity,
-  alsoNamed: ReadonlySet<string> = new Set(),
+  picks: RiverPick[],
+  context?: RiverContext,
 ): number {
   const { width: w, height: h } = target;
   const cellDeg = 360 / w;
   let count = 0;
-  for (const f of readFeatures(riversPath)) {
-    const rank = Number(f.properties['scalerank'] ?? 10);
-    if (rank > maxRank && !alsoNamed.has(String(f.properties['name'] ?? ''))) continue;
-    const core = riverCoreKm(rank);
+  const stamp = (line: number[][], core: number) => {
     const reach = core + RIVER_FALLOFF_KM;
-    for (const raw of featureLines(f)) {
-      const line = smoothLine(raw);
-      for (let i = 1; i < line.length; i++) {
-        stampSegment(line[i - 1]!, line[i]!);
+    forCellsNearLine(target, line, reach, (k, d) => {
+      const value = Math.round(255 * Math.min(1, (reach - d) / RIVER_FALLOFF_KM));
+      if (out[k]! < value) out[k] = value;
+    });
+  };
+  const cellOf = (p: number[]) => {
+    const c = Math.round((p[0]! + 180) / cellDeg - 0.5);
+    const r = Math.min(h - 1, Math.max(0, Math.round((90 - p[1]!) / cellDeg - 0.5)));
+    return r * w + (((c % w) + w) % w);
+  };
+  const centre = (i: number): number[] => {
+    const r = (i / w) | 0;
+    return [-180 + (i - r * w + 0.5) * cellDeg, 90 - (r + 0.5) * cellDeg];
+  };
+  const isMouth = (i: number) =>
+    context !== undefined && (context.ocean[i] === 0 || context.lakes[i]! >= 128);
+  const nearSea = (i: number) => {
+    if (!context) return false;
+    const r = (i / w) | 0;
+    const c = i - r * w;
+    const dr = Math.ceil(MOUTH_SEARCH_KM / (cellDeg * KM_PER_DEG));
+    for (let y = Math.max(0, r - dr); y <= Math.min(h - 1, r + dr); y++)
+      for (let x = c - dr * 2; x <= c + dr * 2; x++) {
+        const j = y * w + (((x % w) + w) % w);
+        if (context.ocean[j]! <= OCEAN_RANGE || context.lakes[j]! >= 128) return true;
       }
-      count++;
+    return false;
+  };
+  /**
+   * The way down to the sea: inland of the flood, the steepest way down the
+   * ground; then the path the flood fill came along, which leads to the ocean.
+   */
+  const continueDownhill = (end: number[]): number[][] | undefined => {
+    if (!context) return undefined;
+    let cur = cellOf(end);
+    if (isMouth(cur) || !nearSea(cur)) return undefined;
+    const path: number[][] = [end];
+    for (let step = 0; step < 2000 && !isMouth(cur); step++) {
+      let next = context.parents[cur]!;
+      if (next < 0) {
+        const r = (cur / w) | 0;
+        const c = cur - r * w;
+        for (let dr = -1; dr <= 1; dr++)
+          for (let dc = -1; dc <= 1; dc++) {
+            const rr = r + dr;
+            if ((dr === 0 && dc === 0) || rr < 0 || rr >= h) continue;
+            const j = rr * w + ((((c + dc) % w) + w) % w);
+            if (context.heights[j]! < context.heights[next < 0 ? cur : next]!) next = j;
+          }
+      }
+      if (next < 0) break;
+      cur = next;
+      path.push(centre(cur));
     }
+    return path.length > 1 ? path : undefined;
+  };
 
-    function stampSegment(a: number[], b: number[]): void {
-      const midLat = (a[1]! + b[1]!) / 2;
-      const kx = KM_PER_DEG * Math.max(0.05, Math.cos((midLat * Math.PI) / 180));
-      // Work in km relative to a, unwrapping longitude across the date line.
-      let dLon = b[0]! - a[0]!;
-      if (dLon > 180) dLon -= 360;
-      if (dLon < -180) dLon += 360;
-      const bx = dLon * kx;
-      const by = (b[1]! - a[1]!) * KM_PER_DEG;
-      const len2 = bx * bx + by * by;
-      const padLon = reach / kx;
-      const padLat = reach / KM_PER_DEG;
-      const lon0 = Math.min(a[0]!, a[0]! + dLon) - padLon;
-      const lon1 = Math.max(a[0]!, a[0]! + dLon) + padLon;
-      const lat0 = Math.min(a[1]!, b[1]!) - padLat;
-      const lat1 = Math.max(a[1]!, b[1]!) + padLat;
-      const c0 = Math.floor((lon0 + 180) / cellDeg - 0.5);
-      const c1 = Math.ceil((lon1 + 180) / cellDeg - 0.5);
-      const r0 = Math.max(0, Math.floor((90 - lat1) / cellDeg - 0.5));
-      const r1 = Math.min(h - 1, Math.ceil((90 - lat0) / cellDeg - 0.5));
-      for (let r = r0; r <= r1; r++) {
-        const py = (90 - (r + 0.5) * cellDeg - a[1]!) * KM_PER_DEG;
-        for (let c = c0; c <= c1; c++) {
-          const px = (-180 + (c + 0.5) * cellDeg - a[0]!) * kx;
-          const t = len2 > 0 ? Math.max(0, Math.min(1, (px * bx + py * by) / len2)) : 0;
-          const dx = px - t * bx;
-          const dy = py - t * by;
-          const d = Math.sqrt(dx * dx + dy * dy);
-          if (d >= reach) continue;
-          const value = Math.round(255 * Math.min(1, (reach - d) / RIVER_FALLOFF_KM));
-          const k = r * w + (((c % w) + w) % w);
-          if (out[k]! < value) out[k] = value;
+  for (const f of readFeatures(riversPath)) {
+    const name = String(f.properties['name'] ?? '');
+    const rank = Number(f.properties['scalerank'] ?? 10);
+    const lines = featureLines(f).filter((line) =>
+      picks.some((p) => {
+        if (p.name !== name) return false;
+        if (!p.box) return true;
+        const [lon, lat] = line[0]!;
+        const [west, south, east, north] = p.box;
+        return lon! >= west && lon! <= east && lat! >= south && lat! <= north;
+      }),
+    );
+    const core = riverCoreKm(rank);
+    for (const raw of lines) {
+      stamp(smoothLine(raw), core);
+      count++;
+      for (const end of [raw[0]!, raw[raw.length - 1]!]) {
+        const more = continueDownhill(end);
+        if (more) {
+          stamp(smoothLine(more), core);
+          count++;
         }
       }
     }
   }
   return count;
+}
+
+/**
+ * River flow phase (section 4.3): the distance along the river network to the
+ * mouth, as cosine and sine of one turn per FLOW_PERIOD_KM, 128 ± 127. Cells
+ * outside the rivers stay at 128.
+ */
+export function riverFlow(
+  target: { width: number; height: number },
+  rivers: Uint8Array,
+  context: RiverContext,
+): { cos: Uint8Array; sin: Uint8Array } {
+  const { width: w, height: h } = target;
+  const n = w * h;
+  const cellKm = (360 / w) * KM_PER_DEG;
+  const dist = new Float64Array(n).fill(Infinity);
+  const heap = new MinHeap();
+  const inRiver = (i: number) => rivers[i]! >= 128;
+  for (let i = 0; i < n; i++) {
+    if (inRiver(i) && (context.ocean[i] === 0 || context.lakes[i]! >= 128)) {
+      dist[i] = 0;
+      heap.push(0, i);
+    }
+  }
+  const relax = () => {
+    while (heap.size) {
+      const [d, i] = heap.pop();
+      if (d > dist[i]!) continue;
+      const r = (i / w) | 0;
+      const c = i - r * w;
+      const kx = cellKm * Math.cos(((90 - (r + 0.5) * (180 / h)) * Math.PI) / 180);
+      for (let dr = -1; dr <= 1; dr++)
+        for (let dc = -1; dc <= 1; dc++) {
+          const rr = r + dr;
+          if ((dr === 0 && dc === 0) || rr < 0 || rr >= h) continue;
+          const j = rr * w + ((((c + dc) % w) + w) % w);
+          if (!inRiver(j)) continue;
+          const nd = d + Math.hypot(dc * kx, dr * cellKm);
+          if (nd < dist[j]!) {
+            dist[j] = nd;
+            heap.push(nd, j);
+          }
+        }
+    }
+  };
+  relax();
+  // Rivers that reach no sea or lake (for example, ending in a desert) flow
+  // towards their lowest cell.
+  for (let i = 0; i < n; i++) {
+    if (!inRiver(i) || dist[i] !== Infinity) continue;
+    let low = i;
+    const stack = [i];
+    const seen = new Set([i]);
+    while (stack.length) {
+      const k = stack.pop()!;
+      if (context.heights[k]! < context.heights[low]!) low = k;
+      const r = (k / w) | 0;
+      const c = k - r * w;
+      for (let dr = -1; dr <= 1; dr++)
+        for (let dc = -1; dc <= 1; dc++) {
+          const rr = r + dr;
+          if (rr < 0 || rr >= h) continue;
+          const j = rr * w + ((((c + dc) % w) + w) % w);
+          if (inRiver(j) && !seen.has(j) && dist[j] === Infinity) {
+            seen.add(j);
+            stack.push(j);
+          }
+        }
+    }
+    dist[low] = 0;
+    heap.push(0, low);
+    relax();
+  }
+  const cos = new Uint8Array(n).fill(128);
+  const sin = new Uint8Array(n).fill(128);
+  for (let i = 0; i < n; i++) {
+    if (dist[i] === Infinity) continue;
+    const a = (2 * Math.PI * dist[i]!) / FLOW_PERIOD_KM;
+    cos[i] = Math.round(128 + 127 * Math.cos(a));
+    sin[i] = Math.round(128 + 127 * Math.sin(a));
+  }
+  return { cos, sin };
+}
+
+class MinHeap {
+  private keys: number[] = [];
+  private values: number[] = [];
+  get size(): number {
+    return this.keys.length;
+  }
+  push(key: number, value: number): void {
+    const k = this.keys;
+    const v = this.values;
+    let i = k.length;
+    k.push(key);
+    v.push(value);
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (k[p]! <= key) break;
+      k[i] = k[p]!;
+      v[i] = v[p]!;
+      i = p;
+    }
+    k[i] = key;
+    v[i] = value;
+  }
+  pop(): [number, number] {
+    const k = this.keys;
+    const v = this.values;
+    const top: [number, number] = [k[0]!, v[0]!];
+    const lastK = k.pop()!;
+    const lastV = v.pop()!;
+    if (k.length) {
+      let i = 0;
+      for (;;) {
+        const l = i * 2 + 1;
+        if (l >= k.length) break;
+        const r = l + 1;
+        const m = r < k.length && k[r]! < k[l]! ? r : l;
+        if (k[m]! >= lastK) break;
+        k[i] = k[m]!;
+        v[i] = v[m]!;
+        i = m;
+      }
+      k[i] = lastK;
+      v[i] = lastV;
+    }
+    return top;
+  }
 }
 
 /** Area of one grid cell in km² at the row of a cell index. */

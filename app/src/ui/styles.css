@@ -26,6 +26,15 @@ body {
   font-family: 'Fredoka Variable', system-ui, sans-serif;
   font-weight: 500;
   -webkit-tap-highlight-color: transparent;
+  /* Controls and the timeline are never highlighted by clicks or drags (section 8.1). */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.panel p,
+.panel li {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 #globe {

@@ -8,10 +8,7 @@ import {
   ICE_LEVEL,
   ICE_N,
   ICE_SAMPLES,
-  OCEAN_LAKE,
   OCEAN_MIN_LEVEL,
-  OCEAN_NEVER,
-  OCEAN_RANGE,
   TERRAIN_BORDERED,
   TERRAIN_SAMPLES,
   type IceChunk,
@@ -30,8 +27,6 @@ import {
 } from './cube.ts';
 
 export const DEEP_HEIGHT = -1000;
-/** Ocean level meaning "never sea". */
-export const NEVER_SEA = 1e4;
 
 type Slot<T> = T | 'deep' | 'none' | 'loading';
 
@@ -147,35 +142,45 @@ export class TerrainStore {
 export interface TileSamples {
   /** Heights in metres, (TILE_N + 3)², with a one-sample border. */
   heights: Float32Array;
-  /** Sea level at which each sample joins the ocean, or NEVER_SEA, (TILE_N + 1)². */
+  /** Smoothed sea level at which each sample is sea, (TILE_N + 1)². */
   oceanLevel: Float32Array;
-  lake: Uint8Array;
+  /** Smooth lake field 0..1; a lake where it passes one half. */
+  lake: Float32Array;
+  /** Smooth river field 0..1; a river where it passes one half. */
   rivers: Float32Array;
+  /** River flow phase as cosine and sine, −1..1, interleaved. */
+  flow: Float32Array;
 }
 
-/** Samples a render tile from its data tile. */
+/**
+ * Samples a render tile from its data tile. Every channel is interpolated, so
+ * coasts, lakes and rivers are smooth curves rather than the steps of the
+ * data grid (sections 4.2 and 5.1).
+ */
 export function sampleTile(key: TileKey, source: TerrainTile | 'deep'): TileSamples {
   const B = TERRAIN_BORDERED;
   const S = TERRAIN_SAMPLES;
   const heights = new Float32Array(B * B);
   const oceanLevel = new Float32Array(S * S);
-  const lake = new Uint8Array(S * S);
+  const lake = new Float32Array(S * S);
   const rivers = new Float32Array(S * S);
+  const flow = new Float32Array(S * S * 2);
   if (source === 'deep') {
     heights.fill(DEEP_HEIGHT);
     oceanLevel.fill(OCEAN_MIN_LEVEL);
-    return { heights, oceanLevel, lake, rivers };
+    return { heights, oceanLevel, lake, rivers, flow };
   }
   const data = source.key;
   if (data.level === key.level) {
     for (let k = 0; k < B * B; k++) heights[k] = source.heights[k]!;
     for (let k = 0; k < S * S; k++) {
-      const o = source.ocean[k]!;
-      lake[k] = o === OCEAN_LAKE ? 1 : 0;
-      oceanLevel[k] = decodeOcean(o);
+      oceanLevel[k] = OCEAN_MIN_LEVEL + source.ocean[k]!;
+      lake[k] = source.lakes[k]! / 255;
       rivers[k] = source.rivers[k]! / 255;
+      flow[k * 2] = (source.flow[k * 2]! - 128) / 127;
+      flow[k * 2 + 1] = (source.flow[k * 2 + 1]! - 128) / 127;
     }
-    return { heights, oceanLevel, lake, rivers };
+    return { heights, oceanLevel, lake, rivers, flow };
   }
   // Deeper tile: map each sample into the ancestor's grid.
   const scale = 1 << (key.level - data.level);
@@ -187,55 +192,35 @@ export function sampleTile(key: TileKey, source: TerrainTile | 'deep'): TileSamp
       const fj = (oy + j / TILE_N / scale) * TILE_N;
       heights[(j + 1) * B + (i + 1)] = bicubicBordered(source.heights, fi, fj);
       if (i >= 0 && j >= 0 && i <= TILE_N && j <= TILE_N) {
-        // Interpolated so coastlines are smooth curves rather than the steps
-        // of the data grid (section 4.2).
         const s = j * S + i;
-        lake[s] =
-          sampleOcean(source.ocean, fi, fj, (o) => (o === OCEAN_LAKE ? 1 : 0)) >= 0.5 ? 1 : 0;
-        const level = sampleOcean(source.ocean, fi, fj, (o) =>
-          Math.min(decodeOcean(o), OCEAN_MIN_LEVEL + OCEAN_RANGE + 50),
-        );
-        oceanLevel[s] = level > OCEAN_MIN_LEVEL + OCEAN_RANGE ? NEVER_SEA : level;
+        oceanLevel[s] = OCEAN_MIN_LEVEL + bilinear(source.ocean, S, fi, fj);
+        lake[s] = bilinear(source.lakes, S, fi, fj) / 255;
         rivers[s] = bilinear(source.rivers, S, fi, fj) / 255;
+        flow[s * 2] = (bilinear(source.flow, S, fi, fj, 2, 0) - 128) / 127;
+        flow[s * 2 + 1] = (bilinear(source.flow, S, fi, fj, 2, 1) - 128) / 127;
       }
     }
   }
-  return { heights, oceanLevel, lake, rivers };
+  return { heights, oceanLevel, lake, rivers, flow };
 }
 
-/** Bilinear sample of a value derived from the ocean channel. */
-function sampleOcean(
-  ocean: ArrayLike<number>,
+function bilinear(
+  grid: ArrayLike<number>,
+  size: number,
   fi: number,
   fj: number,
-  value: (o: number) => number,
+  stride = 1,
+  offset = 0,
 ): number {
-  const S = TERRAIN_SAMPLES;
-  const i0 = Math.min(S - 2, Math.max(0, Math.floor(fi)));
-  const j0 = Math.min(S - 2, Math.max(0, Math.floor(fj)));
-  const ti = Math.min(1, Math.max(0, fi - i0));
-  const tj = Math.min(1, Math.max(0, fj - j0));
-  const a = value(ocean[j0 * S + i0]!);
-  const b = value(ocean[j0 * S + i0 + 1]!);
-  const c = value(ocean[(j0 + 1) * S + i0]!);
-  const d = value(ocean[(j0 + 1) * S + i0 + 1]!);
-  return (a * (1 - ti) + b * ti) * (1 - tj) + (c * (1 - ti) + d * ti) * tj;
-}
-
-function decodeOcean(o: number): number {
-  if (o === OCEAN_NEVER || o === OCEAN_LAKE || o > OCEAN_RANGE) return NEVER_SEA;
-  return OCEAN_MIN_LEVEL + o;
-}
-
-function bilinear(grid: ArrayLike<number>, size: number, fi: number, fj: number): number {
   const i0 = Math.min(size - 2, Math.max(0, Math.floor(fi)));
   const j0 = Math.min(size - 2, Math.max(0, Math.floor(fj)));
   const ti = Math.min(1, Math.max(0, fi - i0));
   const tj = Math.min(1, Math.max(0, fj - j0));
-  const a = grid[j0 * size + i0]!;
-  const b = grid[j0 * size + i0 + 1]!;
-  const c = grid[(j0 + 1) * size + i0]!;
-  const d = grid[(j0 + 1) * size + i0 + 1]!;
+  const at = (k: number) => grid[k * stride + offset]!;
+  const a = at(j0 * size + i0);
+  const b = at(j0 * size + i0 + 1);
+  const c = at((j0 + 1) * size + i0);
+  const d = at((j0 + 1) * size + i0 + 1);
   return (a * (1 - ti) + b * ti) * (1 - tj) + (c * (1 - ti) + d * ti) * tj;
 }
 

@@ -38,7 +38,7 @@ describe('simplified map', () => {
     expect(s.data[90 * 360 + 359]!).toBe(s.data[90 * 360 + 1]!);
   });
 
-  it('enlarges mid-sized islands but not continents', () => {
+  it('removes tiny islands and enlarges mid-sized ones but not continents', () => {
     // 1/8 degree cells: a 10×10 island of about 19,000 km² and a big continent.
     const w = 2880;
     const h = 1440;
@@ -46,7 +46,13 @@ describe('simplified map', () => {
     for (let r = 715; r < 725; r++) for (let c = 1430; c < 1440; c++) data[r * w + c] = 400;
     for (let r = 400; r < 600; r++) for (let c = 100; c < 600; c++) data[r * w + c] = 300;
     const g = new Grid(w, h, data);
-    expect(enlargeIslands(g)).toBe(1);
+    // A tiny island far away is removed; a kept tiny one stays.
+    g.data[100 * w + 2000] = 50;
+    g.data[100 * w + 2400] = 50;
+    const kept = [{ lat: 90 - 100.5 / 8, lon: -180 + 2400.5 / 8 }];
+    expect(enlargeIslands(g, kept)).toEqual({ grown: 2, removed: 1 });
+    expect(g.data[100 * w + 2000]!).toBeLessThan(0);
+    expect(g.data[100 * w + 2400]!).toBe(50);
     // It grows by 25 km, just under two cells of 13.9 km.
     expect(g.data[719 * w + 1440]!).toBeGreaterThan(0);
     expect(g.data[719 * w + 1429]!).toBeGreaterThan(0);

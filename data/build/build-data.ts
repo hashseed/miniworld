@@ -22,7 +22,7 @@ import { buildWatchTable, yearAtSeconds, totalSeconds } from '../../app/src/time
 import { dayFromContinuousYear } from '../../app/src/time/calendar.ts';
 import { erasForLanguage, validateEras, type CuratedEras } from './lib/eras.ts';
 import { fixtureElevation } from './lib/fixture.ts';
-import { Grid, GridPyramid, type GridData } from './lib/grid.ts';
+import { Grid, GridPyramid } from './lib/grid.ts';
 import {
   DesertField,
   IceField,
@@ -42,9 +42,25 @@ import { floodInlandSeas, INLAND_SEAS, oceanConnection } from './lib/ocean.ts';
 import { Output } from './lib/output.ts';
 import { readElevation } from './lib/readers.ts';
 import { enlargeIslands, smoothElevation } from './lib/simplify.ts';
+import {
+  blendPolar,
+  carveStraits,
+  smoothLakes,
+  smoothOcean,
+  validateIslands,
+  validateStraits,
+  type KeptIsland,
+  type Strait,
+} from './lib/coast.ts';
 import { regionGrid } from './lib/regions.ts';
 import { allTileKeys, buildTerrainTile, isDeepTile } from './lib/terrain.ts';
-import { NO_LAKE, rasterizeLakes, rasterizeRivers } from './lib/water.ts';
+import {
+  NO_LAKE,
+  rasterizeLakes,
+  rasterizeRivers,
+  riverFlow,
+  type RiverPick,
+} from './lib/water.ts';
 
 const ROOT = new URL('../..', import.meta.url).pathname;
 const SOURCES = join(ROOT, 'data/sources');
@@ -55,16 +71,19 @@ export const WINDOW_SECONDS = 600;
 const PART_LEVEL = 2;
 /** Simplified map (spec milestone 1, section 4.2). */
 const SMOOTHING_KM = 25;
+const POLAR_SMOOTHING_KM = 80;
 // Only a short list of the rivers history needs most (decided by Yang on
 // 2026-10-17), by their Natural Earth names, including local spellings.
-const MAX_RIVER_RANK = -1;
-const EXTRA_RIVERS = new Set([
+const AMAZON_BASIN: [number, number, number, number] = [-80, -20, -45, 6];
+const RIVERS: RiverPick[] = [
   ...['Nile', 'Rosetta Branch', 'Damietta Branch'],
   ...['Euphrates', 'Firat', 'Al Furat', 'Tigris', 'Dicle', 'Shatt al Arab'],
   ...['Indus', 'Ganges', 'Huang', 'Yangtze', 'Chang Jiang', 'Mekong'],
-  ...['Danube', 'Donau', 'Rhine', 'Rhein', 'Rhin', 'Waal', 'Volga'],
-  ...['Mississippi', 'Amazonas', 'Congo', 'Niger'],
-]);
+  ...['Danube', 'Donau', 'Bratul Chillia', 'Bratul Sulina', 'Bratul Sfintu Gheorghe'],
+  ...['Rhine', 'Rhein', 'Rhin', 'Waal', 'Volga', 'Mississippi', 'Congo', 'Niger'],
+  ...['Amazonas', 'Madeira', 'Xingu', 'Tapajós'],
+].map((name) => ({ name }));
+RIVERS.push({ name: 'Negro', box: AMAZON_BASIN });
 const MAX_LAKE_RANK = 4;
 const MIN_LAKE_KM2 = 3000;
 
@@ -162,26 +181,46 @@ while (source.width > 10800) {
   const m = source.downsampleMean();
   source = new Grid(m.width, m.height, Int16Array.from(m.data, Math.round));
 }
-const elevation = smoothElevation(source, SMOOTHING_KM);
-const islands = enlargeIslands(elevation);
+const straits = JSON.parse(readFileSync(join(ROOT, 'data/curated/straits.json'), 'utf8')) as {
+  straits: Strait[];
+};
+const keptIslands = JSON.parse(readFileSync(join(ROOT, 'data/curated/islands.json'), 'utf8')) as {
+  islands: KeptIsland[];
+};
+const mapErrors = [...validateStraits(straits.straits), ...validateIslands(keptIslands.islands)];
+if (mapErrors.length) fail(mapErrors.join('\n'));
+
+// Islands are edited on today's coastline before anything else (section 4.2).
+const islands = enlargeIslands(source, keptIslands.islands);
+const elevation = blendPolar(
+  smoothElevation(source, SMOOTHING_KM),
+  smoothElevation(source, POLAR_SMOOTHING_KM),
+);
 log(
-  `elevation grid ${elevation.width} × ${elevation.height}, smoothed ${SMOOTHING_KM} km, ${islands} islands enlarged`,
+  `elevation grid ${elevation.width} × ${elevation.height}, smoothed ${SMOOTHING_KM} km, ` +
+    `${islands.removed} small islands removed, ${islands.grown} enlarged`,
 );
 const pyramid = new GridPyramid(elevation);
 
-// The ocean mask runs on the elevation grid; a grid finer than 2 arc-minutes
-// is reduced by the minimum of each block so narrow straits stay open.
-let conn: Grid<GridData> = elevation;
-while (conn.width > 10800) conn = downsampleMin(conn);
-log(`ocean mask grid ${conn.width} × ${conn.height}`);
-const ocean = new Grid(conn.width, conn.height, oceanConnection(conn));
+// The ocean mask floods the unsmoothed elevation with the straits carved to
+// their sills, then smooths the result into the coast (section 5.1).
+const conn = new Grid(source.width, source.height, Int16Array.from(source.data));
+carveStraits(conn, straits.straits);
+const parents = new Int32Array(conn.width * conn.height);
+const connection = new Grid(conn.width, conn.height, oceanConnection(conn, parents));
+const ocean = new Grid(
+  conn.width,
+  conn.height,
+  smoothOcean(connection, straits.straits, keptIslands.islands),
+);
+log(`ocean mask grid ${conn.width} × ${conn.height}, ${straits.straits.length} straits`);
 
 const lakeLevel = new Grid(
   conn.width,
   conn.height,
   new Int16Array(conn.width * conn.height).fill(NO_LAKE),
 );
-const lakes = rasterizeLakes(
+const lakeCount = rasterizeLakes(
   conn,
   neFile('ne_10m_lakes.geojson'),
   lakeLevel.data,
@@ -189,15 +228,25 @@ const lakes = rasterizeLakes(
   MIN_LAKE_KM2,
 );
 floodInlandSeas(conn, INLAND_SEAS, (i, level) => (lakeLevel.data[i] = level));
+const lakes = new Grid(conn.width, conn.height, smoothLakes(lakeLevel, NO_LAKE));
 const rivers = new Grid(conn.width, conn.height, new Uint8Array(conn.width * conn.height));
+const riverContext = {
+  ocean: connection.data,
+  parents,
+  heights: elevation.data,
+  lakes: lakes.data,
+};
 const riverCount = rasterizeRivers(
   conn,
   neFile('ne_10m_rivers_lake_centerlines.geojson'),
   rivers.data,
-  MAX_RIVER_RANK,
-  EXTRA_RIVERS,
+  RIVERS,
+  riverContext,
 );
-log(`${lakes} lakes, ${riverCount} river lines`);
+const flow = riverFlow(conn, rivers.data, riverContext);
+const flowCos = new Grid(conn.width, conn.height, flow.cos);
+const flowSin = new Grid(conn.width, conn.height, flow.sin);
+log(`${lakeCount} lakes, ${riverCount} river lines`);
 
 // --- Terrain tiles ----------------------------------------------------------
 
@@ -219,7 +268,15 @@ function place(layer: LayerOut, key: TileKey): { chunks: Record<string, string>;
 const terrain = newLayer();
 let tileCount = 0;
 for (const key of allTileKeys(maxLevel)) {
-  const tile = buildTerrainTile(key, { heights: pyramid, ocean, lakeLevel, rivers });
+  const tile = buildTerrainTile(key, {
+    heights: pyramid,
+    ocean,
+    lakeLevel,
+    lakes,
+    rivers,
+    flowCos,
+    flowSin,
+  });
   const target = place(terrain, key);
   const path = tilePath(key);
   if (isDeepTile(tile)) target.deep.push(path);
@@ -336,20 +393,3 @@ log(
 );
 for (const language of LANGUAGES)
   log(`index ${language}: ${(output.sizes.get(index[language])! / 1000).toFixed(0)} KB Brotli`);
-
-function downsampleMin(g: Grid<GridData>): Grid<Int16Array> {
-  const w = g.width >> 1;
-  const h = g.height >> 1;
-  const out = new Int16Array(w * h);
-  for (let r = 0; r < h; r++)
-    for (let c = 0; c < w; c++) {
-      const i = 2 * r * g.width + 2 * c;
-      out[r * w + c] = Math.min(
-        g.data[i]!,
-        g.data[i + 1]!,
-        g.data[i + g.width]!,
-        g.data[i + g.width + 1]!,
-      );
-    }
-  return new Grid(w, h, out);
-}

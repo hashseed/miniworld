@@ -11,12 +11,12 @@ const KM_PER_DEGREE = 111.32;
 export const SHELF_SPLIT_M = -150;
 
 /** Radius of one of three box passes that together approximate a Gaussian of sigma cells. */
-function boxRadius(sigmaCells: number): number {
+export function boxRadius(sigmaCells: number): number {
   return Math.max(0, Math.round((Math.sqrt(4 * sigmaCells * sigmaCells + 1) - 1) / 2));
 }
 
 /** Box blur of one line in place, through a scratch buffer of prefix sums. */
-function blurLine(
+export function blurLine(
   data: Float32Array,
   start: number,
   stride: number,
@@ -92,9 +92,11 @@ export function smoothElevation(g: Grid, sigmaKm: number): Grid {
   return new Grid(w, h, out);
 }
 
-/** Islands of this area range (km²) are enlarged by enlargeIslands. */
-export const ISLAND_MIN_KM2 = 100;
+/** Islands under ISLAND_MIN_KM2 are removed unless kept; those up to ISLAND_MAX_KM2 are enlarged. */
+export const ISLAND_MIN_KM2 = 1000;
 export const ISLAND_MAX_KM2 = 60000;
+/** Height (m) the sea floor is set to where a small island is removed. */
+export const REMOVED_ISLAND_DEPTH = -150;
 
 /** How far (km) an island of an area grows outwards: 40% of its equivalent radius, 6 to 25 km. */
 export function islandGrowthKm(areaKm2: number): number {
@@ -103,16 +105,27 @@ export function islandGrowthKm(areaKm2: number): number {
 }
 
 /**
- * Makes islands such as Hawaii, Crete or Malta somewhat larger than they are,
- * so the oversized figures of later milestones have room on them (section
- * 4.2). Every island between ISLAND_MIN_KM2 and ISLAND_MAX_KM2 grows into the
- * surrounding sea by islandGrowthKm, as a low shore sloping down from its
- * coast. Land stays land, so every place keeps its island. Returns the
- * number of islands grown.
+ * Removes small islands and makes the rest of the islands larger (section
+ * 4.2). Islands under ISLAND_MIN_KM2 become sea floor at REMOVED_ISLAND_DEPTH
+ * unless one of the kept points lies on them or within one cell; every other
+ * island up to ISLAND_MAX_KM2 grows into the surrounding sea by
+ * islandGrowthKm, as a low shore sloping down from its coast.
  */
-export function enlargeIslands(g: Grid): number {
+export function enlargeIslands(
+  g: Grid,
+  keep: { lat: number; lon: number }[] = [],
+): { grown: number; removed: number } {
   const { width: w, height: h } = g;
   const n = w * h;
+  const kept = new Uint8Array(n);
+  for (const k of keep) {
+    const { c, r } = g.position(k.lat, k.lon);
+    for (let dr = -1; dr <= 1; dr++)
+      for (let dc = -1; dc <= 1; dc++) {
+        const rr = Math.round(r) + dr;
+        if (rr >= 0 && rr < h) kept[g.index(Math.round(c) + dc, rr)] = 1;
+      }
+  }
   const cellKm = g.cellDegrees * KM_PER_DEGREE;
   const colKm = new Float64Array(h);
   for (let r = 0; r < h; r++) {
@@ -123,6 +136,7 @@ export function enlargeIslands(g: Grid): number {
   const raised = new Int16Array(n);
   const stack: number[] = [];
   let grown = 0;
+  let removed = 0;
   for (let start = 0; start < n; start++) {
     if (label[start] !== -1 || g.data[start]! <= 0) continue;
     // Flood one land mass, 4-connected and wrapping at the date line.
@@ -148,7 +162,12 @@ export function enlargeIslands(g: Grid): number {
         stack.push(j);
       }
     }
-    if (area < ISLAND_MIN_KM2 || area > ISLAND_MAX_KM2) continue;
+    if (area > ISLAND_MAX_KM2) continue;
+    if (area < ISLAND_MIN_KM2 && !cells.some((i) => kept[i])) {
+      for (const i of cells) g.data[i] = REMOVED_ISLAND_DEPTH;
+      removed++;
+      continue;
+    }
     grown++;
     const reach = islandGrowthKm(area);
     const dr = Math.ceil(reach / cellKm);
@@ -177,6 +196,6 @@ export function enlargeIslands(g: Grid): number {
       }
     }
   }
-  for (let j = 0; j < n; j++) if (raised[j]! > 0) g.data[j] = raised[j]!;
-  return grown;
+  for (let j = 0; j < n; j++) if (raised[j]! > 0 && g.data[j]! <= 0) g.data[j] = raised[j]!;
+  return { grown, removed };
 }

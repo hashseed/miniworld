@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { OCEAN_LAKE, OCEAN_NEVER } from '../../../app/src/content/formats.ts';
+import { OCEAN_NEVER } from '../../../app/src/content/formats.ts';
 import { Grid } from './grid.ts';
 import { floodInlandSeas, oceanConnection } from './ocean.ts';
 
@@ -36,10 +36,31 @@ describe('ocean connection', () => {
   it('floods inland seas from a seed', () => {
     const g = world();
     const marks = new Map<number, number>();
-    const seas = [{ id: 'basin', lat: 90 - 2.5 * 30, lon: -180 + 8.5 * 30, level: -100 }];
+    const seas = [
+      {
+        id: 'basin',
+        lat: 90 - 2.5 * 30,
+        lon: -180 + 8.5 * 30,
+        level: -100,
+        box: [-180, -90, 180, 90] as [number, number, number, number],
+      },
+    ];
     floodInlandSeas(g, seas, (i, level) => marks.set(i, level));
     expect(marks.size).toBe(4);
     expect([...marks.values()]).toEqual([-100, -100, -100, -100]);
-    expect(OCEAN_LAKE).toBe(254);
+  });
+
+  it('keeps an inland sea inside its box', () => {
+    const g = world();
+    const marks = new Map<number, number>();
+    // Seeded in the shelf with a level that would reach the whole ocean.
+    const box: [number, number, number, number] = [-180 + 3 * 30, -90, -180 + 5 * 30, 90];
+    floodInlandSeas(
+      g,
+      [{ id: 'shelf', lat: 15, lon: -180 + 3.5 * 30, level: 0 }].map((s) => ({ ...s, box })),
+      (i, level) => marks.set(i, level),
+    );
+    for (const i of marks.keys()) expect([3, 4]).toContain(i % W);
+    expect(marks.size).toBe(12);
   });
 });

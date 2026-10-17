@@ -10,9 +10,11 @@ export const OPEN_OCEAN_DEPTH = -3000;
 
 /**
  * Returns, per cell, a byte v in 0..OCEAN_RANGE meaning "sea once the sea
- * level reaches OCEAN_MIN_LEVEL + v metres", or OCEAN_NEVER.
+ * level reaches OCEAN_MIN_LEVEL + v metres", or OCEAN_NEVER. When parents is
+ * given, it receives for every reached cell the neighbour the flood came
+ * from, which is the way down to the ocean (section 4.3), or -1.
  */
-export function oceanConnection(heights: Grid<GridData>): Uint8Array {
+export function oceanConnection(heights: Grid<GridData>, parents?: Int32Array): Uint8Array {
   const { width: w, height: h } = heights;
   const n = w * h;
   const hd = heights.data;
@@ -21,12 +23,14 @@ export function oceanConnection(heights: Grid<GridData>): Uint8Array {
   const next = new Int32Array(n);
   const done = new Uint8Array(n);
 
-  const push = (i: number, level: number) => {
+  if (parents) parents.fill(-1);
+  const push = (i: number, level: number, from = -1) => {
     const b = Math.max(0, Math.ceil(level - OCEAN_MIN_LEVEL));
     if (b > OCEAN_RANGE) return;
     next[i] = buckets[b]!;
     buckets[b] = i;
     out[i] = b; // tentative; lowered only by an earlier bucket
+    if (parents) parents[i] = from;
   };
 
   for (let i = 0; i < n; i++) {
@@ -52,7 +56,7 @@ export function oceanConnection(heights: Grid<GridData>): Uint8Array {
           if (done[j]) continue;
           const level = Math.max(b + OCEAN_MIN_LEVEL, hd[j]!);
           const nb = Math.max(0, Math.ceil(level - OCEAN_MIN_LEVEL));
-          if (nb <= OCEAN_RANGE && (out[j] === OCEAN_NEVER || nb < out[j]!)) push(j, level);
+          if (nb <= OCEAN_RANGE && (out[j] === OCEAN_NEVER || nb < out[j]!)) push(j, level, i);
         }
       }
     }
@@ -64,14 +68,17 @@ export interface InlandSea {
   id: string;
   lat: number;
   lon: number;
-  /** Today's surface level in metres; shown at this level at every date. */
+  /** Surface level in metres; shown at this level at every date. */
   level: number;
+  /** The sea's basin as [west, south, east, north] in degrees; the flood stays inside. */
+  box: [number, number, number, number];
 }
 
 /** Seas that are shown as water at every date (spec milestone 1, section 5.1). */
 export const INLAND_SEAS: InlandSea[] = [
-  { id: 'black-sea', lat: 43.0, lon: 34.0, level: 0 },
-  { id: 'caspian-sea', lat: 42.0, lon: 50.5, level: -28 },
+  { id: 'black-sea', lat: 43.0, lon: 34.0, level: 0, box: [27.3, 41.1, 42.0, 47.5] },
+  { id: 'caspian-sea', lat: 42.0, lon: 50.5, level: -28, box: [46.0, 36.0, 55.5, 47.5] },
+  { id: 'baltic-sea', lat: 57.0, lon: 19.5, level: 0, box: [12.9, 53.8, 30.5, 66.0] },
 ];
 
 /** Floods each inland sea from its seed through cells below its level. */
@@ -103,6 +110,10 @@ export function floodInlandSeas(
         const r2 = rr + dr;
         if (r2 < 0 || r2 >= hgt) continue;
         const j = r2 * w + ((cc + dc + w) % w);
+        const lat = 90 - ((r2 + 0.5) * 180) / hgt;
+        const lon = -180 + ((j - r2 * w + 0.5) * 360) / w;
+        const [west, south, east, north] = sea.box;
+        if (lat < south || lat > north || lon < west || lon > east) continue;
         if (!seen[j] && heights.data[j]! < sea.level) {
           seen[j] = 1;
           stack.push(j);

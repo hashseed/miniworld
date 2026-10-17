@@ -10,8 +10,9 @@ export const terrainVertex = /* glsl */ `
 #include <common>
 #include <logdepthbuf_pars_vertex>
 
-attribute vec2 elev;   // height (m), sea level at which the sample joins the ocean (m)
-attribute vec4 extra;  // lake, river, skirt, unused (0..1)
+attribute vec2 elev;   // height (m), smoothed sea level at which the sample is sea (m)
+attribute vec4 extra;  // lake field, river field, skirt, unused (0..1)
+attribute vec2 flow;   // river flow phase as cosine and sine (-1..1)
 attribute vec4 ice;    // ice thickness at slice A and B (m), aridity at A and B (0..1000)
 
 uniform float seaLevel;
@@ -30,6 +31,7 @@ varying float vRiver;
 varying float vLake;
 varying float vSkirt;
 varying float vArid;
+varying vec2 vFlow;
 
 void main() {
   vec4 world0 = modelMatrix * vec4(position, 1.0);
@@ -39,17 +41,23 @@ void main() {
   float lake = extra.x;
   float iceM = mix(ice.x, ice.y, iceT);
 
-  bool sea = lake < 0.5 && oceanLevel <= seaLevel && h < seaLevel;
+  // Both the ocean level and the lake field are smooth, so the water signal
+  // below crosses zero along smooth curves (sections 4.3 and 5.1).
+  float seaWater = seaLevel - oceanLevel;
+  float lakeWater = (lake - 0.5) * 80.0;
+  bool sea = lake <= 0.5 && seaWater > 0.0;
   float surface = h;
   float water;
   if (lake > 0.5) {
-    water = 4.0;
+    water = lakeWater;
   } else if (sea) {
-    water = seaLevel - h;
+    water = seaWater;
     surface = seaLevel;
   } else {
-    water = -max(h - seaLevel, 1.0);
+    water = max(seaWater, lakeWater);
   }
+  // The smoothed coast can leave sea floor on the land side; it stands at sea level.
+  if (!sea && lake <= 0.5) surface = max(surface, seaLevel);
   if (iceM > 1.0) {
     float top = h + iceM;
     if (sea && top < seaLevel + 1.0) {
@@ -60,7 +68,10 @@ void main() {
     }
     water = min(water, -1.0);
   }
-  if (!sea || surface > seaLevel + 80.0) surface += landLift;
+  // The lift ramps in over the first metres of the smoothed coast, so the
+  // cliff follows the smooth coastline rather than the vertex grid.
+  if (lake > 0.5 || surface > seaLevel + 80.0) surface += landLift;
+  else if (!sea) surface += landLift * clamp(-water / 30.0, 0.0, 1.0);
   surface -= extra.z * skirtDepth;
 
   float lift = surface * exaggeration * 0.001;
@@ -78,6 +89,7 @@ void main() {
   vLake = lake;
   vSkirt = extra.z;
   vArid = mix(ice.z, ice.w, iceT) * 0.001;
+  vFlow = flow;
   #include <logdepthbuf_vertex>
 }
 `;
@@ -104,6 +116,7 @@ varying float vRiver;
 varying float vLake;
 varying float vSkirt;
 varying float vArid;
+varying vec2 vFlow;
 
 float hash3(vec3 p) {
   p = fract(p * 0.3183099 + 0.1);
@@ -163,7 +176,7 @@ float waveLayer(vec3 p, float scale, float t) {
   float h = hash3(cell);
   vec3 off = vec3(hash3(cell + 1.7), hash3(cell + 3.1), hash3(cell + 5.3)) - 0.5;
   float life = 0.5 + 0.5 * sin(t * 1.1 + h * 6.2832);
-  float crest = (1.0 - smoothstep(0.08, 0.15, length(f - off * 0.6))) * step(0.55, h) * life;
+  float crest = (1.0 - smoothstep(0.08, 0.15, length(f - off * 0.6))) * step(0.75, h) * life;
   return max(lines, crest);
 }
 
@@ -224,11 +237,17 @@ void main() {
     // Cartoon waves on the sea and the large lakes (section 4.4), in world space, at a scale that follows the distance.
     if (!isRiver) {
       float t = waterDetail > 0.5 ? time : 0.0;
-      float lod = log2(max(length(cameraWorld - vWorld), 1.0) / 120.0);
+      float lod = log2(max(length(cameraWorld - vWorld), 1.0) / 40.0);
       float l0 = floor(lod);
       float s0 = pow(2.0, l0);
       float mark = mix(waveLayer(vWorld, s0, t), waveLayer(vWorld, s0 * 2.0, t), lod - l0);
       albedo = mix(albedo, vec3(0.86, 0.95, 1.0), mark * 0.75);
+    }
+    // Pulses flowing down the river towards its mouth (section 4.3).
+    if (isRiver) {
+      float t = waterDetail > 0.5 ? time * 0.8 : 0.0;
+      float pulse = dot(vFlow, vec2(cos(t), -sin(t)));
+      albedo = mix(albedo, vec3(0.78, 0.92, 1.0), smoothstep(0.2, 1.0, pulse) * 0.5);
     }
     // Glossy plastic sheen towards the globe's edge.
     float sheen = pow(1.0 - clamp(dot(up, viewDir), 0.0, 1.0), 2.5);
@@ -244,7 +263,8 @@ void main() {
   // Ink outlines: the globe's silhouette, coastlines, river banks and ice edges.
   // The water and ice fields are clamped so the lines keep an even width.
   float ink = inkLine(min(dot(up, viewDir), 0.25), 0.0, 5.0);
-  ink = max(ink, inkLine(clamp(vWater, -30.0, 30.0), 0.0, 1.6));
+  // No coast line across a river mouth.
+  if (vRiver < riverThreshold) ink = max(ink, inkLine(clamp(vWater, -30.0, 30.0), 0.0, 1.6));
   ink = max(ink, inkLine(clamp(vIce, 0.0, ICE_EDGE * 2.0), ICE_EDGE, 1.6));
   if (!isWater && !hasIce) ink = max(ink, inkLine(vRiver, riverThreshold, 1.4));
   if (vSkirt > 0.5) ink = 0.0;

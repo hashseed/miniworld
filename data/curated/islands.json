@@ -1,0 +1,173 @@
+{
+  "description": "Small islands (under 1,000 km²) that stay on the map because history needs them (spec milestone 1, section 4.2). The reason is for editors and is not shown in the app.",
+  "islands": [
+    {
+      "id": "thera",
+      "name": "Thera (Santorini)",
+      "lat": 36.42,
+      "lon": 25.43,
+      "reason": "Minoan eruption, about 1600 BCE",
+      "source": "Encyclopaedia Britannica, Thera: https://www.britannica.com/place/Thera"
+    },
+    {
+      "id": "delos",
+      "name": "Delos",
+      "lat": 37.4,
+      "lon": 25.27,
+      "reason": "Sanctuary of Apollo and the Delian League",
+      "source": "Encyclopaedia Britannica, Delos: https://www.britannica.com/place/Delos"
+    },
+    {
+      "id": "salamis",
+      "name": "Salamis",
+      "lat": 37.93,
+      "lon": 23.48,
+      "reason": "Battle of Salamis, 480 BCE",
+      "source": "Encyclopaedia Britannica, Salamis: https://www.britannica.com/place/Salamis-island-Greece"
+    },
+    {
+      "id": "samos",
+      "name": "Samos",
+      "lat": 37.75,
+      "lon": 26.8,
+      "reason": "Pythagoras; Greek city state",
+      "source": "Encyclopaedia Britannica, Samos: https://www.britannica.com/place/Samos-island-Greece"
+    },
+    {
+      "id": "chios",
+      "name": "Chios",
+      "lat": 38.37,
+      "lon": 26.0,
+      "reason": "Greek city state; Genoese trade",
+      "source": "Encyclopaedia Britannica, Chios: https://www.britannica.com/place/Chios"
+    },
+    {
+      "id": "corfu",
+      "name": "Corfu",
+      "lat": 39.6,
+      "lon": 19.9,
+      "reason": "Corcyra; Venetian rule",
+      "source": "Encyclopaedia Britannica, Corfu: https://www.britannica.com/place/Corfu-island-Greece"
+    },
+    {
+      "id": "malta",
+      "name": "Malta",
+      "lat": 35.9,
+      "lon": 14.42,
+      "reason": "Megalithic temples; Knights of Malta; siege of 1565",
+      "source": "Encyclopaedia Britannica, Malta: https://www.britannica.com/place/Malta"
+    },
+    {
+      "id": "elba",
+      "name": "Elba",
+      "lat": 42.78,
+      "lon": 10.27,
+      "reason": "Napoleon's first exile, 1814",
+      "source": "Encyclopaedia Britannica, Elba: https://www.britannica.com/place/Elba"
+    },
+    {
+      "id": "iona",
+      "name": "Iona",
+      "lat": 56.33,
+      "lon": -6.41,
+      "reason": "Monastery of St Columba; Viking raids",
+      "source": "Encyclopaedia Britannica, Iona: https://www.britannica.com/place/Iona"
+    },
+    {
+      "id": "madeira",
+      "name": "Madeira",
+      "lat": 32.75,
+      "lon": -16.95,
+      "reason": "Portuguese exploration and sugar plantations",
+      "source": "Encyclopaedia Britannica, Madeira: https://www.britannica.com/place/Madeira-island-Portugal"
+    },
+    {
+      "id": "sao-miguel",
+      "name": "São Miguel (Azores)",
+      "lat": 37.78,
+      "lon": -25.5,
+      "reason": "Portuguese exploration of the Atlantic",
+      "source": "Encyclopaedia Britannica, Azores: https://www.britannica.com/place/Azores"
+    },
+    {
+      "id": "santiago-cape-verde",
+      "name": "Santiago (Cape Verde)",
+      "lat": 15.08,
+      "lon": -23.62,
+      "reason": "Portuguese colony and the Atlantic slave trade",
+      "source": "Encyclopaedia Britannica, Cabo Verde: https://www.britannica.com/place/Cabo-Verde"
+    },
+    {
+      "id": "goree",
+      "name": "Gorée",
+      "lat": 14.67,
+      "lon": -17.4,
+      "reason": "Atlantic slave trade",
+      "source": "Encyclopaedia Britannica, Gorée: https://www.britannica.com/place/Goree"
+    },
+    {
+      "id": "saint-helena",
+      "name": "Saint Helena",
+      "lat": -15.96,
+      "lon": -5.71,
+      "reason": "Napoleon's last exile, 1815 to 1821",
+      "source": "Encyclopaedia Britannica, Saint Helena: https://www.britannica.com/place/Saint-Helena-island-South-Atlantic-Ocean"
+    },
+    {
+      "id": "san-salvador",
+      "name": "San Salvador (Bahamas)",
+      "lat": 24.05,
+      "lon": -74.5,
+      "reason": "Columbus's first landfall, 1492",
+      "source": "Encyclopaedia Britannica, San Salvador: https://www.britannica.com/place/San-Salvador-island-Bahamas"
+    },
+    {
+      "id": "bermuda",
+      "name": "Bermuda",
+      "lat": 32.3,
+      "lon": -64.78,
+      "reason": "English colony from 1612",
+      "source": "Encyclopaedia Britannica, Bermuda: https://www.britannica.com/place/Bermuda"
+    },
+    {
+      "id": "rapa-nui",
+      "name": "Rapa Nui (Easter Island)",
+      "lat": -27.12,
+      "lon": -109.35,
+      "reason": "Polynesian settlement and the moai",
+      "source": "Encyclopaedia Britannica, Easter Island: https://www.britannica.com/place/Easter-Island"
+    },
+    {
+      "id": "guam",
+      "name": "Guam",
+      "lat": 13.45,
+      "lon": 144.78,
+      "reason": "Magellan's voyage, 1521; Second World War",
+      "source": "Encyclopaedia Britannica, Guam: https://www.britannica.com/place/Guam"
+    },
+    {
+      "id": "iwo-jima",
+      "name": "Iwo Jima",
+      "lat": 24.78,
+      "lon": 141.32,
+      "reason": "Battle of Iwo Jima, 1945",
+      "source": "Encyclopaedia Britannica, Iwo Jima: https://www.britannica.com/place/Iwo-Jima"
+    },
+    {
+      "id": "singapore",
+      "name": "Singapore",
+      "lat": 1.35,
+      "lon": 103.82,
+      "reason": "Trading port; British colony from 1819",
+      "source": "Encyclopaedia Britannica, Singapore: https://www.britannica.com/place/Singapore"
+    },
+    {
+      "id": "hong-kong",
+      "name": "Hong Kong Island",
+      "lat": 22.27,
+      "lon": 114.18,
+      "reason": "Ceded to Britain after the First Opium War, 1842",
+      "source": "Encyclopaedia Britannica, Hong Kong: https://www.britannica.com/place/Hong-Kong"
+    }
+  ]
+}

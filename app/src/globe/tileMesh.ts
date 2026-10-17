@@ -96,6 +96,7 @@ export function buildTileGeometry(
   const normal = new Int8Array(TILE_VERTS * 4);
   const elev = new Int16Array(TILE_VERTS * 2);
   const extra = new Uint8Array(TILE_VERTS * 4);
+  const flow = new Int8Array(TILE_VERTS * 2);
   const ice = new Uint16Array(TILE_VERTS * 4); // ice A, ice B, aridity A, aridity B
 
   const pa = [0, 0, 0];
@@ -142,8 +143,10 @@ export function buildTileGeometry(
       normal[v * 4 + 2] = Math.round((nz / len) * 127);
       elev[v * 2] = Math.round(h);
       elev[v * 2 + 1] = Math.min(10000, Math.round(samples.oceanLevel[v]!));
-      extra[v * 4] = samples.lake[v]! ? 255 : 0;
+      extra[v * 4] = Math.round(Math.min(1, samples.lake[v]!) * 255);
       extra[v * 4 + 1] = Math.round(Math.min(1, samples.rivers[v]!) * 255);
+      flow[v * 2] = Math.round(samples.flow[v * 2]! * 127);
+      flow[v * 2 + 1] = Math.round(samples.flow[v * 2 + 1]! * 127);
     }
   // Skirt vertices copy their edge vertex and are pulled down in the shader.
   const edges = [
@@ -161,6 +164,7 @@ export function buildTileGeometry(
       elev.copyWithin(dst * 2, src * 2, src * 2 + 2);
       extra.copyWithin(dst * 4, src * 4, src * 4 + 4);
       extra[dst * 4 + 2] = 255;
+      flow.copyWithin(dst * 2, src * 2, src * 2 + 2);
     }
 
   const geometry = new THREE.BufferGeometry();
@@ -168,6 +172,7 @@ export function buildTileGeometry(
   geometry.setAttribute('normal', new THREE.BufferAttribute(normal, 4, true));
   geometry.setAttribute('elev', new THREE.BufferAttribute(elev, 2, false));
   geometry.setAttribute('extra', new THREE.BufferAttribute(extra, 4, true));
+  geometry.setAttribute('flow', new THREE.BufferAttribute(flow, 2, true));
   const iceAttr = new THREE.BufferAttribute(ice, 4, false);
   iceAttr.setUsage(THREE.DynamicDrawUsage);
   geometry.setAttribute('ice', iceAttr);

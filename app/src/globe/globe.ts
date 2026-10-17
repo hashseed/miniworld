@@ -269,11 +269,17 @@ export class Globe {
     const attr = entry.mesh.geometry.getAttribute('ice') as THREE.BufferAttribute;
     const arr = attr.array as Uint16Array;
     const n = 1 << ICE_LEVEL;
+    // Ice tiles this render tile covers; vertices on its edge stay in them, so
+    // no edge reads a neighbouring ice tile that was never loaded.
+    const shift = key.level - ICE_LEVEL;
+    const x0 = shift >= 0 ? key.x >> shift : key.x << -shift;
+    const y0 = shift >= 0 ? key.y >> shift : key.y << -shift;
+    const span = shift >= 0 ? 1 : 1 << -shift;
     for (let v = 0; v < TILE_VERTS; v++) {
       const u = entry.uv[v * 2]!;
       const w = entry.uv[v * 2 + 1]!;
-      const ix = Math.min(n - 1, Math.max(0, Math.floor(((u + 1) / 2) * n)));
-      const iy = Math.min(n - 1, Math.max(0, Math.floor(((w + 1) / 2) * n)));
+      const ix = Math.min(x0 + span - 1, Math.max(x0, Math.floor(((u + 1) / 2) * n)));
+      const iy = Math.min(y0 + span - 1, Math.max(y0, Math.floor(((w + 1) / 2) * n)));
       const chunk = chunks.get(`${key.face}-${ICE_LEVEL}-${ix}-${iy}`);
       const o = v * 4;
       if (!chunk || chunk === 'none') {

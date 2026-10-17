@@ -7,28 +7,39 @@ import { TILE_N, type TileKey } from '../globe/cube.ts';
 export const TERRAIN_BORDERED = TILE_N + 3;
 export const TERRAIN_SAMPLES = TILE_N + 1;
 
-/** Ocean channel: values 0..OCEAN_RANGE give the sea level (−130 m + v) at which a sample joins the ocean. */
+/**
+ * Ocean channel: values 0..OCEAN_TOP give the sea level (−130 m + v) at which
+ * a sample is sea. The build smooths this level across coasts (section 5.1),
+ * so values above the highest sea level still vary smoothly inland.
+ */
 export const OCEAN_MIN_LEVEL = -130;
+/** Highest sea level in metres above OCEAN_MIN_LEVEL that the flood fill considers. */
 export const OCEAN_RANGE = 140;
+/** Highest stored ocean value; land that never joins the ocean is stored at OCEAN_MIN_LEVEL + 170 = +40 m. */
+export const OCEAN_TOP = 170;
+/** Raw flood fill result for cells that never join the ocean (build only). */
 export const OCEAN_NEVER = 250;
-export const OCEAN_LAKE = 254;
 
 export interface TerrainTile {
   key: TileKey;
   /** Heights in metres, TERRAIN_BORDERED², row-major (j, then i), starting one sample outside. */
   heights: Int16Array;
-  /** Ocean-connection level per sample, TERRAIN_SAMPLES². */
+  /** Smoothed ocean level per sample, 0..OCEAN_TOP, TERRAIN_SAMPLES². */
   ocean: Uint8Array;
-  /** River strength 0..255 per sample, TERRAIN_SAMPLES². */
+  /** Smooth lake field 0..255 per sample; a lake where it passes 128. */
+  lakes: Uint8Array;
+  /** Smooth river field 0..255 per sample; a river where it passes 128. */
   rivers: Uint8Array;
+  /** River flow phase as cosine and sine, 128 ± 127, interleaved per sample. */
+  flow: Uint8Array;
 }
 
-const TERRAIN_MAGIC = 0x3154574d; // "MWT1"
+const TERRAIN_MAGIC = 0x3254574d; // "MWT2"
 
 export function encodeTerrainTile(t: TerrainTile): Uint8Array {
   const hb = TERRAIN_BORDERED * TERRAIN_BORDERED * 2;
   const sb = TERRAIN_SAMPLES * TERRAIN_SAMPLES;
-  const buf = new ArrayBuffer(16 + hb + sb * 2);
+  const buf = new ArrayBuffer(16 + hb + sb * 5);
   const dv = new DataView(buf);
   dv.setUint32(0, TERRAIN_MAGIC, true);
   dv.setUint8(4, t.key.level);
@@ -39,7 +50,9 @@ export function encodeTerrainTile(t: TerrainTile): Uint8Array {
   const h = new Int16Array(buf, 16, TERRAIN_BORDERED * TERRAIN_BORDERED);
   h.set(t.heights);
   out.set(t.ocean, 16 + hb);
-  out.set(t.rivers, 16 + hb + sb);
+  out.set(t.lakes, 16 + hb + sb);
+  out.set(t.rivers, 16 + hb + sb * 2);
+  out.set(t.flow, 16 + hb + sb * 3);
   return out;
 }
 
@@ -58,7 +71,9 @@ export function decodeTerrainTile(bytes: ArrayBuffer): TerrainTile {
     key,
     heights: new Int16Array(bytes.slice(16, 16 + hb)),
     ocean: new Uint8Array(bytes, 16 + hb, sb),
-    rivers: new Uint8Array(bytes, 16 + hb + sb, sb),
+    lakes: new Uint8Array(bytes, 16 + hb + sb, sb),
+    rivers: new Uint8Array(bytes, 16 + hb + sb * 2, sb),
+    flow: new Uint8Array(bytes, 16 + hb + sb * 3, sb * 2),
   };
 }
 
