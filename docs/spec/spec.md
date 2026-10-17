@@ -247,7 +247,7 @@ Content will grow to many thousands of records, hundreds of models and a global 
 - **Time:** windows aligned to the rate curve, so each window covers a similar amount of watching time (thousands of years in the deep past, a few years in the 20th century).
 - **Language:** text lives in separate per-language chunks, so a viewer only downloads one language.
 
-Card texts and "Mehr erfahren" sections load on demand when a card opens. Models and textures are bundled per culture profile and load when that culture is near the camera and the current time window.
+Card texts and "Learn more" sections load on demand when a card opens. Models and textures are bundled per culture profile and load when that culture is near the camera and the current time window.
 
 **Formats.** Chunks start as Brotli-compressed JSON and move to a binary format only if size or parse time demands it. Models are glTF with meshopt compression and KTX2 textures; terrain uses compressed heightmap tiles per quadtree level.
 
