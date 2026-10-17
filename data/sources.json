@@ -9,10 +9,16 @@
       "citation": "NOAA National Centers for Environmental Information. 2022: ETOPO 2022 15 Arc-Second Global Relief Model. NOAA National Centers for Environmental Information. https://doi.org/10.25921/fd45-gt74",
       "url": "https://doi.org/10.25921/fd45-gt74",
       "download": {
-        "url": "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_bed_elev_gtif/ETOPO_2022_v1_60s_N90W180_bed.tif",
+        "url": "https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO2022/data/60s/60s_bed_elev_gtif/ETOPO_2022_v1_60s_N90W180_bed.tif",
         "files": ["ETOPO_2022_v1_60s_N90W180_bed.tif"]
       },
-      "files": []
+      "files": [
+        {
+          "path": "ETOPO_2022_v1_60s_N90W180_bed.tif",
+          "sha256": "a2cc72f8a4292dee928f439069457cdefc1fba319876807c626edce40258ba7a",
+          "bytes": 478386633
+        }
+      ]
     },
     {
       "id": "natural-earth",
@@ -26,7 +32,10 @@
         "files": [
           "ne_10m_lakes.geojson",
           "ne_10m_rivers_lake_centerlines.geojson",
-          "ne_10m_land.geojson"
+          "ne_10m_land.geojson",
+          "ne_10m_coastline.geojson",
+          "ne_10m_glaciated_areas.geojson",
+          "ne_10m_antarctic_ice_shelves_polys.geojson"
         ]
       },
       "files": [
@@ -44,6 +53,21 @@
           "path": "ne_10m_land.geojson",
           "sha256": "1ac90796408bc6ad6911d69448485d3c4dbf2190370080368a09976e1c9f7416",
           "bytes": 10157965
+        },
+        {
+          "path": "ne_10m_coastline.geojson",
+          "sha256": "6f75ae0e0de157b14946e2255eb1f5486d9a13819032e26d4610852d296788f6",
+          "bytes": 10110735
+        },
+        {
+          "path": "ne_10m_glaciated_areas.geojson",
+          "sha256": "04fd2303d5f0ece2cf482af19d06731d745db9690501d7b0a2a4b7fe23a7726f",
+          "bytes": 5876193
+        },
+        {
+          "path": "ne_10m_antarctic_ice_shelves_polys.geojson",
+          "sha256": "8f9bf62368695f5664b5fcd9bc0e2baea66da295aea014ce0e9cf510f209898d",
+          "bytes": 561580
         },
         {
           "path": "LICENSE.md",

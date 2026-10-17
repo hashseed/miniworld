@@ -110,7 +110,7 @@ if (!realData && !useFixture)
   fail(
     'ETOPO 2022 is not in data/sources yet. Run npm run fetch-data, or build the test fixture with --fixture.',
   );
-const fixture = !realData;
+const fixture = useFixture || !realData;
 log(
   fixture
     ? 'building from the synthetic test fixture (not for release)'
