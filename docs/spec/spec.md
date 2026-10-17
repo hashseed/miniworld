@@ -64,8 +64,9 @@ A gentle day and night cycle runs on the life clock, about 4 real minutes per da
 
 The world is the real Earth with accurate continents, coasts, mountains and rivers, but everything people make is drawn as a miniature far larger than true scale. A true-scale person would be invisible from any height that shows a landscape, so the globe uses two scales at once.
 
-- **Geography at true proportions.** Landmasses, coastlines, rivers and lakes sit in their real places. Elevation is exaggerated (12 times to start, tunable between about 10 and 20) so mountains and valleys read clearly when you are close.
+- **Geography at true proportions.** Landmasses, coastlines, rivers and lakes sit in their real places (the history lens below changes their drawn size, not their order or shape). Elevation is exaggerated (12 times to start, tunable between about 10 and 20) so mountains and valleys read clearly when you are close.
 - **People and buildings as miniatures.** Figures, houses, ships and monuments are scaled up by a fixed factor so a village reads clearly from a low camera. A settlement is drawn as a representative cluster: a Neolithic village is 5 to 15 huts, Rome at its height a few hundred buildings around its real landmarks. Cluster size follows the real population.
+- **History lens.** By default the globe draws regions with many events, such as Europe and the Nile valley, larger and empty regions such as the open oceans smaller, so the busy places have room. Shapes and neighbours stay recognisable, everything stays in its real place relative to the land, and a button "True sizes" shows the real proportions. The lens is applied only when the world is drawn, never in the world itself; the design is in [history-lens.md](history-lens.md).
 - **Camera range.** You zoom continuously from a view of the whole planet down to a close-up where a dozen figures fill the screen. Close to the ground the curved horizon gives the Populous: The Beginning look naturally.
 
 **The planet changes over time.** The globe follows known long-term changes, which are some of the best teaching moments:
