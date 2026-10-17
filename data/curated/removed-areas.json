@@ -1,0 +1,75 @@
+{
+  "description": "Shallow banks and small islands left off the map for simplicity (spec milestone 1, section 4.2, decided by Yang on 2026-10-17). Inside each polygon ([lon, lat] points) the elevation becomes deep sea floor before anything else, at every date. Kept islands (islands.json) inside a polygon stay.",
+  "areas": [
+    {
+      "id": "bahamas",
+      "name": "Bahama Banks and the Turks and Caicos",
+      "reason": "Small low islands and banks that would show as large land at low sea level; San Salvador stays for Columbus",
+      "polygon": [
+        [-79.45, 27.6],
+        [-77.0, 27.6],
+        [-75.0, 26.0],
+        [-72.8, 24.0],
+        [-71.0, 22.0],
+        [-71.0, 21.0],
+        [-72.6, 20.9],
+        [-74.0, 21.5],
+        [-75.4, 22.0],
+        [-76.5, 22.75],
+        [-78.5, 23.25],
+        [-79.6, 23.45],
+        [-80.4, 23.85],
+        [-79.9, 24.4],
+        [-79.45, 25.2]
+      ]
+    },
+    {
+      "id": "mascarene-plateau",
+      "name": "Seychelles, Mascarene Plateau, Mauritius and Réunion",
+      "reason": "Small islands and banks between Madagascar and India",
+      "polygon": [
+        [52.5, -2.0],
+        [64.0, -2.0],
+        [64.0, -23.0],
+        [53.5, -23.0],
+        [52.5, -12.0]
+      ]
+    },
+    {
+      "id": "maldives-chagos",
+      "name": "Lakshadweep, Maldives and Chagos",
+      "reason": "Atolls between Madagascar and India",
+      "polygon": [
+        [71.0, 13.0],
+        [73.6, 13.0],
+        [73.6, 8.5],
+        [74.8, 7.0],
+        [74.8, -8.5],
+        [70.0, -8.5],
+        [70.0, 7.0]
+      ]
+    },
+    {
+      "id": "faroe-rockall",
+      "name": "Faroe Islands and Faroe Bank",
+      "reason": "Small North Atlantic islands and banks that matter little for history (decided by Yang on 2026-10-17)",
+      "polygon": [
+        [-9.5, 60.3],
+        [-4.5, 60.3],
+        [-4.5, 63.0],
+        [-9.5, 63.0]
+      ]
+    },
+    {
+      "id": "rockall",
+      "name": "Rockall Bank",
+      "reason": "A bank that would show as an island at low sea level",
+      "polygon": [
+        [-16.5, 56.0],
+        [-12.0, 56.0],
+        [-12.0, 59.0],
+        [-16.5, 59.0]
+      ]
+    }
+  ]
+}

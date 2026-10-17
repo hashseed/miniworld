@@ -84,6 +84,12 @@ export class Globe {
   /** Tiles drawn last frame. */
   drawnTiles = 0;
   private iceWindow = 0;
+  /**
+   * The ice the globe shows: the slices, blend and time window. A new pair
+   * of slices is shown only once every drawn tile has its chunks, so the
+   * whole globe changes at once instead of tile by tile (section 10.7).
+   */
+  private shownIce = { iceA: NaN, iceB: NaN, iceT: 0, window: 0 };
   private maxHeights = new WeakMap<TerrainTile, number>();
 
   constructor(loader: ContentLoader) {
@@ -129,7 +135,6 @@ export class Globe {
     this.buildsThisFrame = 0;
     const u = this.material.uniforms;
     u.seaLevel!.value = planet.seaLevel;
-    u.iceT!.value = planet.iceT;
     u.glacial!.value = planet.glacialIndex;
     u.cameraWorld!.value.copy(camera.position);
     u.waterDetail!.value = this.quality.waterDetail;
@@ -144,11 +149,11 @@ export class Globe {
     const camDir = camPos.clone().normalize();
     const horizon = Math.acos(Math.min(1, EARTH_RADIUS_KM / camDist));
     const iceWindow = windowAt(this.loader.manifest.windows, day);
-    this.iceWindow = iceWindow;
 
     // Ice can stand up to about 4 km on land during glacials.
     const iceRoom = planet.glacialIndex > 0.02 ? 4000 : 0;
     const selected: TileEntry[] = [];
+    const priorities: number[] = [];
     const visit = (key: TileKey) => {
       const c = tileSampleUv(key, TILE_N / 2, TILE_N / 2);
       const cd = faceUvToDir(key.face, c.u, c.v);
@@ -197,8 +202,8 @@ export class Globe {
       }
       const entry = this.entryFor(key, priority);
       if (entry) {
-        this.updateIce(entry, planet, iceWindow, priority);
         selected.push(entry);
+        priorities.push(priority);
       } else if (key.level < MAX_RENDER_LEVEL) {
         // No mesh yet: keep drawing finer children that still exist rather than a hole.
         const children = childKeys(key);
@@ -209,6 +214,24 @@ export class Globe {
     for (let face = 0; face < FACE_COUNT; face++) visit({ face, level: 0, x: 0, y: 0 });
 
     for (const e of this.tiles.values()) e.mesh.visible = false;
+    const shown = this.shownIce;
+    if (planet.iceA !== shown.iceA || planet.iceB !== shown.iceB || iceWindow !== shown.window) {
+      let ready = true;
+      for (let k = 0; k < selected.length; k++)
+        if (!this.iceChunks(selected[k]!.key, iceWindow, priorities[k]!)) ready = false;
+      if (ready)
+        this.shownIce = {
+          iceA: planet.iceA,
+          iceB: planet.iceB,
+          iceT: planet.iceT,
+          window: iceWindow,
+        };
+    } else {
+      shown.iceT = planet.iceT;
+    }
+    this.iceWindow = this.shownIce.window;
+    u.iceT!.value = this.shownIce.iceT;
+    for (let k = 0; k < selected.length; k++) this.updateIce(selected[k]!, priorities[k]!);
     for (const e of selected) e.mesh.visible = true;
     this.drawnTiles = selected.length;
     this.store.endFrame();
@@ -300,12 +323,12 @@ export class Globe {
     return entry;
   }
 
-  /** Fills the tile's ice attribute for the current pair of slices, when the chunks are loaded. */
-  private updateIce(entry: TileEntry, planet: PlanetState, window: number, priority: number): void {
-    const stamp = `${planet.iceA}:${planet.iceB}`;
-    if (entry.iceStamp === stamp) return;
-    // Ice tiles touched by this render tile.
-    const key = entry.key;
+  /** The ice chunks a render tile needs for a window, or undefined while any is loading. */
+  private iceChunks(
+    key: TileKey,
+    window: number,
+    priority: number,
+  ): Map<string, ReturnType<TerrainStore['iceChunk']>> | undefined {
     const iceKeys = new Map<string, TileKey>();
     if (key.level >= ICE_LEVEL) {
       const shift = key.level - ICE_LEVEL;
@@ -320,11 +343,23 @@ export class Globe {
         }
     }
     const chunks = new Map<string, ReturnType<TerrainStore['iceChunk']>>();
+    let ready = true;
     for (const [id, k] of iceKeys) {
       const c = this.store.iceChunk(k, window, priority);
-      if (c === undefined) return; // keep the previous ice until everything has arrived
-      chunks.set(id, c);
+      if (c === undefined) ready = false;
+      else chunks.set(id, c);
     }
+    return ready ? chunks : undefined;
+  }
+
+  /** Fills the tile's ice attribute for the shown pair of slices, when the chunks are loaded. */
+  private updateIce(entry: TileEntry, priority: number): void {
+    const planet = this.shownIce;
+    const stamp = `${planet.iceA}:${planet.iceB}`;
+    if (entry.iceStamp === stamp) return;
+    const key = entry.key;
+    const chunks = this.iceChunks(key, planet.window, priority);
+    if (!chunks) return; // keep the previous ice until everything has arrived
     const attr = entry.mesh.geometry.getAttribute('ice') as THREE.BufferAttribute;
     const arr = attr.array as Uint16Array;
     const n = 1 << ICE_LEVEL;

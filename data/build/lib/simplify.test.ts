@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { Grid } from './grid.ts';
-import { enlargeIslands, islandGrowthKm, smoothElevation } from './simplify.ts';
+import {
+  enlargeIslands,
+  islandGrowthKm,
+  removeAreas,
+  REMOVED_AREA_DEPTH,
+  smoothElevation,
+} from './simplify.ts';
 
 function grid(fill: (c: number, r: number) => number, w = 360, h = 180): Grid {
   const data = new Int16Array(w * h);
@@ -64,6 +70,28 @@ describe('simplified map', () => {
   it('grows islands by 6 to 25 km', () => {
     expect(islandGrowthKm(100)).toBe(6);
     expect(islandGrowthKm(10400)).toBeCloseTo(23, 0);
-    expect(islandGrowthKm(60000)).toBe(25);
+    expect(islandGrowthKm(60000)).toBe(30);
+    expect(islandGrowthKm(227000)).toBe(15);
+  });
+
+  it('turns removed areas into deep sea floor, keeping kept islands', () => {
+    // A 1° grid of land around 0°, 0°.
+    const g = grid(() => 100);
+    const area = {
+      id: 'test',
+      name: 'Test',
+      reason: 'test',
+      polygon: [
+        [-5, -5],
+        [5, -5],
+        [5, 5],
+        [-5, 5],
+      ] as [number, number][],
+    };
+    removeAreas(g, [area], [{ lat: 2.5, lon: 2.5 }]);
+    const at = (lat: number, lon: number) => g.data[g.index(lon + 180 - 0.5, 90 - lat - 0.5)]!;
+    expect(at(-2.5, -2.5)).toBe(REMOVED_AREA_DEPTH);
+    expect(at(2.5, 2.5)).toBe(100);
+    expect(at(10.5, 10.5)).toBe(100);
   });
 });

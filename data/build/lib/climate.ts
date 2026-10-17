@@ -79,6 +79,8 @@ export class TimeStack {
 
 /** Radius (km) over which the polar ice surface is averaged (section 5.2). */
 export const POLAR_ICE_RADIUS_KM = 120;
+/** Radius (km) of the ice smoothing south of ANTARCTIC_LAT. */
+export const ANTARCTIC_ICE_RADIUS_KM = 250;
 /** South of this latitude, land with ice nearby is always ice-covered. */
 export const ANTARCTIC_LAT = -60;
 
@@ -117,13 +119,15 @@ export function iceThickness(
   smoothing?: IceSmoothing,
 ): Uint16Array {
   const out = new Uint16Array(lats.length);
-  const taps = smoothing ? discTaps(POLAR_ICE_RADIUS_KM) : [];
+  const northTaps = smoothing ? discTaps(POLAR_ICE_RADIUS_KM) : [];
+  const southTaps = smoothing ? discTaps(ANTARCTIC_ICE_RADIUS_KM) : [];
   for (let k = 0; k < lats.length; k++) {
     const lat = lats[k]!;
     const lon = lons[k]!;
     let m = ice.sample(lat, lon, yearsBP) ?? 0;
     const w = smoothing ? smoothing.weight(lat) : 0;
     if (smoothing && w > 0) {
+      const taps = lat < ANTARCTIC_LAT ? southTaps : northTaps;
       const kmPerLon = Math.max(1, 111.32 * Math.cos((lat * Math.PI) / 180));
       let iceSum = 0;
       let surfaceSum = 0;

@@ -168,6 +168,30 @@
       "lon": 114.18,
       "reason": "Ceded to Britain after the First Opium War, 1842",
       "source": "Encyclopaedia Britannica, Hong Kong: https://www.britannica.com/place/Hong-Kong"
+    },
+    {
+      "id": "oahu",
+      "name": "Oʻahu",
+      "reason": "Pearl Harbor attack, 1941; Honolulu",
+      "source": "Encyclopaedia Britannica, Oahu: https://www.britannica.com/place/Oahu",
+      "lat": 21.47,
+      "lon": -157.98
+    },
+    {
+      "id": "maui",
+      "name": "Maui",
+      "reason": "Hawaiian Islands, united by Kamehameha I about 1810",
+      "source": "Encyclopaedia Britannica, Maui: https://www.britannica.com/place/Maui-island-Hawaii",
+      "lat": 20.8,
+      "lon": -156.33
+    },
+    {
+      "id": "kauai",
+      "name": "Kauaʻi",
+      "reason": "James Cook reaches Hawaii at Waimea, 1778",
+      "source": "Encyclopaedia Britannica, Kauai: https://www.britannica.com/place/Kauai",
+      "lat": 22.05,
+      "lon": -159.5
     }
   ]
 }

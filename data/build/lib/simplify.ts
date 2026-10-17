@@ -94,14 +94,21 @@ export function smoothElevation(g: Grid, sigmaKm: number): Grid {
 
 /** Islands under ISLAND_MIN_KM2 are removed unless kept; those up to ISLAND_MAX_KM2 are enlarged. */
 export const ISLAND_MIN_KM2 = 5000;
-export const ISLAND_MAX_KM2 = 60000;
+export const ISLAND_MAX_KM2 = 250000;
+/** Islands above this area (such as Honshu, Cuba and Java) grow by BIG_ISLAND_GROWTH_KM. */
+export const SMALL_ISLAND_MAX_KM2 = 60000;
+export const BIG_ISLAND_GROWTH_KM = 15;
 /** Height (m) the sea floor is set to where a small island is removed. */
 export const REMOVED_ISLAND_DEPTH = -150;
 
-/** How far (km) an island of an area grows outwards: 40% of its equivalent radius, 6 to 25 km. */
+/**
+ * How far (km) an island of an area grows outwards: 40% of its equivalent
+ * radius, 6 to 30 km, and BIG_ISLAND_GROWTH_KM for the big islands.
+ */
 export function islandGrowthKm(areaKm2: number): number {
+  if (areaKm2 > SMALL_ISLAND_MAX_KM2) return BIG_ISLAND_GROWTH_KM;
   const radius = Math.sqrt(areaKm2 / Math.PI);
-  return Math.max(6, Math.min(25, 0.4 * radius));
+  return Math.max(6, Math.min(30, 0.4 * radius));
 }
 
 /**
@@ -198,4 +205,85 @@ export function enlargeIslands(
   }
   for (let j = 0; j < n; j++) if (raised[j]! > 0 && g.data[j]! <= 0) g.data[j] = raised[j]!;
   return { grown, removed };
+}
+
+export interface RemovedArea {
+  id: string;
+  name: string;
+  reason: string;
+  /** [lon, lat] points. */
+  polygon: [number, number][];
+}
+
+export function validateRemovedAreas(areas: RemovedArea[]): string[] {
+  const errors: string[] = [];
+  const ids = new Set<string>();
+  for (const a of areas) {
+    if (ids.has(a.id)) errors.push(`removed area ${a.id}: duplicate id`);
+    ids.add(a.id);
+    if (!a.reason) errors.push(`removed area ${a.id}: no reason`);
+    if (a.polygon.length < 3) errors.push(`removed area ${a.id}: needs at least three points`);
+  }
+  return errors;
+}
+
+/** Depth (m) given to the sea floor of removed areas. */
+export const REMOVED_AREA_DEPTH = -1000;
+/** Kept islands within this distance (km) stay inside a removed area. */
+const REMOVED_AREA_KEEP_KM = 25;
+
+function insidePolygon(lon: number, lat: number, poly: [number, number][]): boolean {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i]!;
+    const [xj, yj] = poly[j]!;
+    if (yi > lat !== yj > lat && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+/**
+ * Turns every cell inside a removed area into deep sea floor (section 4.2),
+ * except near kept islands. Returns the number of cells changed.
+ */
+export function removeAreas(
+  g: Grid,
+  areas: RemovedArea[],
+  keep: { lat: number; lon: number }[] = [],
+): number {
+  const { width: w, height: h } = g;
+  let changed = 0;
+  for (const a of areas) {
+    const lons = a.polygon.map((p) => p[0]);
+    const lats = a.polygon.map((p) => p[1]);
+    const near = keep.filter(
+      (k) =>
+        k.lon > Math.min(...lons) - 1 &&
+        k.lon < Math.max(...lons) + 1 &&
+        k.lat > Math.min(...lats) - 1 &&
+        k.lat < Math.max(...lats) + 1,
+    );
+    const r0 = Math.max(0, Math.floor((90 - Math.max(...lats)) / g.cellDegrees));
+    const r1 = Math.min(h - 1, Math.ceil((90 - Math.min(...lats)) / g.cellDegrees));
+    const c0 = Math.floor((Math.min(...lons) + 180) / g.cellDegrees);
+    const c1 = Math.ceil((Math.max(...lons) + 180) / g.cellDegrees);
+    for (let r = r0; r <= r1; r++) {
+      const lat = 90 - (r + 0.5) * g.cellDegrees;
+      for (let c = c0; c <= c1; c++) {
+        const lon = -180 + (c + 0.5) * g.cellDegrees;
+        if (!insidePolygon(lon, lat, a.polygon)) continue;
+        const kept = near.some((k) => {
+          const dx = (k.lon - lon) * Math.cos((lat * Math.PI) / 180);
+          return Math.hypot(dx, k.lat - lat) * KM_PER_DEGREE < REMOVED_AREA_KEEP_KM;
+        });
+        if (kept) continue;
+        const i = r * w + (((c % w) + w) % w);
+        if (g.data[i]! > REMOVED_AREA_DEPTH) {
+          g.data[i] = REMOVED_AREA_DEPTH;
+          changed++;
+        }
+      }
+    }
+  }
+  return changed;
 }

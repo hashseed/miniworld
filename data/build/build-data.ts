@@ -42,7 +42,13 @@ import { checkLicences, type SourceEntry } from './lib/licence.ts';
 import { floodInlandSeas, INLAND_SEAS, oceanConnection } from './lib/ocean.ts';
 import { Output } from './lib/output.ts';
 import { readElevation } from './lib/readers.ts';
-import { enlargeIslands, smoothElevation } from './lib/simplify.ts';
+import {
+  enlargeIslands,
+  removeAreas,
+  smoothElevation,
+  validateRemovedAreas,
+  type RemovedArea,
+} from './lib/simplify.ts';
 import {
   blendPolar,
   polarWeight,
@@ -82,6 +88,7 @@ const POLAR_SMOOTHING_KM = 150;
 const AMAZON_BASIN: [number, number, number, number] = [-80, -20, -45, 6];
 const RIVERS: RiverPick[] = [
   ...['Nile', 'Rosetta Branch', 'Damietta Branch'],
+  ...['El Bahr el Abyad', 'Bahr el Jebel', 'Albert Nile', 'Victoria Nile', 'El Bahr el Azraq'],
   ...['Euphrates', 'Firat', 'Al Furat', 'Tigris', 'Dicle', 'Shatt al Arab'],
   ...['Indus', 'Ganges', 'Huang', 'Yangtze', 'Chang Jiang', 'Mekong'],
   ...['Danube', 'Donau', 'Bratul Chillia', 'Bratul Sulina', 'Bratul Sfintu Gheorghe'],
@@ -89,6 +96,8 @@ const RIVERS: RiverPick[] = [
   ...['Amazonas', 'Madeira', 'Xingu', 'Tapajós'],
 ].map((name) => ({ name }));
 RIVERS.push({ name: 'Negro', box: AMAZON_BASIN });
+// The Blue Nile up to Lake Tana.
+RIVERS.push({ name: 'Abay', box: [33, 9, 39, 12.5] });
 const MAX_LAKE_RANK = 4;
 const MIN_LAKE_KM2 = 3000;
 
@@ -192,10 +201,18 @@ const straits = JSON.parse(readFileSync(join(ROOT, 'data/curated/straits.json'),
 const keptIslands = JSON.parse(readFileSync(join(ROOT, 'data/curated/islands.json'), 'utf8')) as {
   islands: KeptIsland[];
 };
-const mapErrors = [...validateStraits(straits.straits), ...validateIslands(keptIslands.islands)];
+const removedAreas = JSON.parse(
+  readFileSync(join(ROOT, 'data/curated/removed-areas.json'), 'utf8'),
+) as { areas: RemovedArea[] };
+const mapErrors = [
+  ...validateStraits(straits.straits),
+  ...validateIslands(keptIslands.islands),
+  ...validateRemovedAreas(removedAreas.areas),
+];
 if (mapErrors.length) fail(mapErrors.join('\n'));
 
 // Islands are edited on today's coastline before anything else (section 4.2).
+removeAreas(source, removedAreas.areas, keptIslands.islands);
 const islands = enlargeIslands(source, keptIslands.islands);
 const elevation = blendPolar(
   smoothElevation(source, SMOOTHING_KM),

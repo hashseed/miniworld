@@ -17,6 +17,13 @@ const KM_PER_DEG = 111.32;
 /** Gaussian sigma (km) of the coast smoothing, and of the coast in polar regions. */
 export const COAST_SIGMA_KM = 20;
 export const POLAR_COAST_SIGMA_KM = 60;
+/** Gaussian sigma (km) of Antarctica's coast, which is simplified even more. */
+export const ANTARCTIC_COAST_SIGMA_KM = 120;
+
+/** Weight of the Antarctic simplification: 1 south of 60°S, 0 north of 50°S. */
+export function antarcticWeight(lat: number): number {
+  return Math.max(0, Math.min(1, (-50 - lat) / 10));
+}
 /**
  * Distance (km) every coast grows seaward before the smoothing, so narrow
  * peninsulas and islands survive the blur and come out slightly larger.
@@ -121,22 +128,30 @@ export function growField(
   return out;
 }
 
-/** Blurs with sigmaKm, and with polarSigmaKm in the polar regions, blending by latitude. */
+/**
+ * Blurs with sigmaKm, with polarSigmaKm in the polar regions and with
+ * antarcticSigmaKm (when given) around Antarctica, blending by latitude.
+ */
 export function blurFieldPolar(
   values: Float32Array,
   w: number,
   h: number,
   sigmaKm: number,
   polarSigmaKm: number,
+  antarcticSigmaKm?: number,
 ): Float32Array {
   const near = blurField(values, w, h, sigmaKm);
   const far = blurField(values, w, h, polarSigmaKm);
+  const south = antarcticSigmaKm ? blurField(values, w, h, antarcticSigmaKm) : undefined;
   for (let r = 0; r < h; r++) {
-    const k = polarWeight(rowLat({ height: h }, r));
+    const lat = rowLat({ height: h }, r);
+    const k = polarWeight(lat);
     if (k === 0) continue;
+    const a = south ? antarcticWeight(lat) : 0;
     for (let c = 0; c < w; c++) {
       const i = r * w + c;
-      near[i] = near[i]! * (1 - k) + far[i]! * k;
+      const polar = a > 0 ? far[i]! * (1 - a) + south![i]! * a : far[i]!;
+      near[i] = near[i]! * (1 - k) + polar * k;
     }
   }
   return near;
@@ -193,8 +208,10 @@ export const ISLAND_CORE_KM = 10;
 export const ISLAND_BANK_KM = 10;
 
 /** Half-width (km) of the always-open core of a strait, and the width of its banks. */
-export const STRAIT_CORE_KM = 6;
-export const STRAIT_BANK_KM = 10;
+export const STRAIT_CORE_KM = 12;
+export const STRAIT_BANK_KM = 12;
+/** Half-width (km) carved to the sill before the flood. */
+export const STRAIT_CARVE_KM = 6;
 
 /**
  * Calls visit(index, distanceKm) for every cell within reachKm of a polyline,
@@ -245,7 +262,7 @@ export function forCellsNearLine(
  * cell either side, so the flood fill finds the way through (section 5.1).
  */
 export function carveStraits(g: Grid<GridData>, straits: Strait[]): void {
-  const reach = Math.max(STRAIT_CORE_KM, (360 / g.width) * KM_PER_DEG);
+  const reach = Math.max(STRAIT_CARVE_KM, (360 / g.width) * KM_PER_DEG);
   for (const s of straits) {
     forCellsNearLine(g, s.line, reach, (i) => {
       if (g.data[i]! > s.sill) g.data[i] = s.sill;
@@ -274,7 +291,14 @@ export function smoothOcean(
     level[i] = v === OCEAN_NEVER ? NEVER_LEVEL_M : Math.min(NEVER_LEVEL_M, OCEAN_MIN_LEVEL + v);
   }
   const grown = growField(level, w, h, growKm);
-  const smooth = blurFieldPolar(grown, w, h, COAST_SIGMA_KM, POLAR_COAST_SIGMA_KM);
+  const smooth = blurFieldPolar(
+    grown,
+    w,
+    h,
+    COAST_SIGMA_KM,
+    POLAR_COAST_SIGMA_KM,
+    ANTARCTIC_COAST_SIGMA_KM,
+  );
   for (const s of straits) {
     forCellsNearLine(connection, s.line, STRAIT_CORE_KM + STRAIT_BANK_KM, (i, d) => {
       const t = Math.max(0, d - STRAIT_CORE_KM) / STRAIT_BANK_KM;
@@ -374,11 +398,16 @@ export function smoothLakes(lakeLevel: Grid<Int16Array>, noLake: number): Uint8A
   return out;
 }
 
+/** Metres the joined level rises per step of the lake field (0..255) below one half. */
+export const JOIN_SLOPE_M = 2;
+
 /**
  * Where the sea reaches a drawn lake (such as the Baltic), the lake's outline
- * is the coast (section 5.1): every cell inside the smooth lake field takes
- * the level at which the nearest lake cell joins the ocean, if lower, so the
- * sea fills exactly the lake's shape. Changes ocean in place.
+ * is the coast (section 5.1): every cell of the smooth lake field takes the
+ * level at which the nearest lake cell joins the ocean, raised by JOIN_SLOPE_M
+ * per step the field lies below one half, if lower. The joined level changes
+ * smoothly with the field, so wherever the lake is drawn the sea is too, and
+ * the coast follows the lake's smooth outline. Changes ocean in place.
  */
 export function joinInlandSeas(
   ocean: Uint16Array,
@@ -403,7 +432,7 @@ export function joinInlandSeas(
       const r = (i / w) | 0;
       const c = i - r * w;
       for (const j of [r * w + ((c + 1) % w), r * w + ((c - 1 + w) % w), i - w, i + w]) {
-        if (j < 0 || j >= n || lakes[j]! < 128 || level[j] !== Infinity) continue;
+        if (j < 0 || j >= n || lakes[j]! === 0 || level[j] !== Infinity) continue;
         level[j] = level[i]!;
         next.push(j);
       }
@@ -412,6 +441,7 @@ export function joinInlandSeas(
   }
   for (let i = 0; i < n; i++) {
     if (level[i] === Infinity) continue;
+    level[i] = level[i]! + (128 - lakes[i]!) * JOIN_SLOPE_M;
     const v = Math.round(
       Math.max(0, Math.min(OCEAN_TOP, level[i]! - OCEAN_MIN_LEVEL)) * OCEAN_SCALE,
     );
