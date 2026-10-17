@@ -7,7 +7,6 @@
 import { readFileSync } from 'node:fs';
 import { valueNoise } from '../../../app/src/core/hash.ts';
 import { Grid } from './grid.ts';
-import type { IceSlice } from './ice.ts';
 import { featurePolygons, rasterizePolygon, type GeoJsonFeature } from './rasterize.ts';
 
 export const FIXTURE_WIDTH = 2160; // 10 arc-minutes
@@ -84,61 +83,4 @@ export function fixtureElevation(
       }
     }
   return new Grid(width, height, out);
-}
-
-/** Fixture glacial index from 0 (today) to 1 (glacial maximum) by years before 1950. */
-export function fixtureGlacialIndex(yearsBP: number): number {
-  const pts: [number, number][] = [
-    [0, 0],
-    [7500, 0.02],
-    [10000, 0.3],
-    [12500, 0.65],
-    [15000, 0.85],
-    [20000, 1],
-    [25000, 0.97],
-    [30000, 0.7],
-    [45000, 0.6],
-    [60000, 0.68],
-    [72000, 0.55],
-    [80000, 0.45],
-  ];
-  for (let k = 1; k < pts.length; k++) {
-    const [x1, y1] = pts[k]!;
-    const [x0, y0] = pts[k - 1]!;
-    if (yearsBP <= x1) return y0 + ((yearsBP - x0) / (x1 - x0)) * (y1 - y0);
-  }
-  return pts[pts.length - 1]![1];
-}
-
-/** Fixture ice: permanent Antarctic and Greenland ice plus northern sheets scaled by the glacial index. */
-export function fixtureIce(): IceSlice[] {
-  const w = 1440;
-  const h = 720;
-  const slices: IceSlice[] = [];
-  for (let bp = 0; bp <= 80000; bp += 2500) {
-    const g = fixtureGlacialIndex(bp);
-    const data = new Float32Array(w * h);
-    for (let r = 0; r < h; r++) {
-      const lat = 90 - (r + 0.5) * 0.25;
-      for (let c = 0; c < w; c++) {
-        const lon = -180 + (c + 0.5) * 0.25;
-        let t = 0;
-        if (lat < -65) t = 2500;
-        if (lat > 62 && lon > -55 && lon < -20) t = Math.max(t, 2000);
-        const laurentide = Math.max(
-          0,
-          1 - Math.hypot((lat - 60) / (22 * g + 1), (lon + 90) / (40 * g + 1)),
-        );
-        const fenno = Math.max(
-          0,
-          1 - Math.hypot((lat - 64) / (12 * g + 1), (lon - 20) / (22 * g + 1)),
-        );
-        if (g > 0.05)
-          t = Math.max(t, Math.sqrt(laurentide) * 3200 * g, Math.sqrt(fenno) * 2400 * g);
-        data[r * w + c] = t;
-      }
-    }
-    slices.push({ yearsBP: bp, thickness: new Grid(w, h, data) });
-  }
-  return slices;
 }

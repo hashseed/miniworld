@@ -1,25 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { DAY_LENGTH_MS, lifeMsForMorning, sunDirection } from './sky.ts';
-import { latLonToDir } from './cube.ts';
+import { cameraLight } from './sky.ts';
 
-describe('day and night', () => {
-  it('lasts four minutes per day', () => {
-    const a = sunDirection(1000);
-    const b = sunDirection(1000 + DAY_LENGTH_MS);
-    expect(a.distanceTo(b)).toBeLessThan(1e-9);
-  });
-
-  it('starts mid-morning at the camera longitude', () => {
-    for (const lon of [0, 31, -100, 150]) {
-      const sun = sunDirection(lifeMsForMorning(lon));
-      const place = new THREE.Vector3(...latLonToDir(0, lon));
-      const elevation = Math.asin(sun.dot(place)) * (180 / Math.PI);
-      expect(elevation).toBeGreaterThan(25);
-      expect(elevation).toBeLessThan(65);
-      // Morning: the sun is east of the place, moving west.
-      const later = sunDirection(lifeMsForMorning(lon) + DAY_LENGTH_MS / 24);
-      expect(later.dot(place)).toBeGreaterThan(sun.dot(place));
-    }
+describe('camera light', () => {
+  it('comes from behind the camera, from above and from the left', () => {
+    const camera = new THREE.PerspectiveCamera();
+    camera.position.set(0, 0, 10000);
+    camera.lookAt(0, 0, 0);
+    camera.updateMatrixWorld();
+    const light = cameraLight(camera);
+    expect(light.length()).toBeCloseTo(1);
+    expect(light.z).toBeGreaterThan(0.5); // towards the camera
+    expect(light.y).toBeGreaterThan(0); // above
+    expect(light.x).toBeLessThan(0); // left
   });
 });

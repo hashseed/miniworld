@@ -105,6 +105,15 @@ input:focus-visible {
   top: calc(max(12px, env(safe-area-inset-top)) + 56px);
 }
 
+.tilt {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  top: calc(max(12px, env(safe-area-inset-top)) + 104px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .bottom {
   position: fixed;
   left: 0;

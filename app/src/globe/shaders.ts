@@ -16,7 +16,6 @@ uniform float seaLevel;
 uniform float exaggeration;
 uniform float iceT;
 uniform float skirtDepth;
-uniform float relief; // 0 in orbit (clean sphere), 1 below about 1,500 km
 
 varying vec3 vWorld;
 varying vec3 vUp;
@@ -58,7 +57,7 @@ void main() {
   }
   surface -= extra.z * skirtDepth;
 
-  float lift = surface * exaggeration * 0.001 * relief;
+  float lift = surface * exaggeration * 0.001;
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
   mv.xyz += normalize(mat3(viewMatrix) * up) * lift;
   gl_Position = projectionMatrix * mv;
@@ -79,13 +78,10 @@ export const terrainFragment = /* glsl */ `
 #include <common>
 #include <logdepthbuf_pars_fragment>
 
-uniform vec3 sunDir;
-uniform float alwaysDay;
+uniform vec3 lightDir; // follows the camera (section 3.6)
 uniform float glacial;
 uniform float time;
 uniform vec3 cameraWorld;
-uniform float fogDistance;
-uniform vec3 hazeColor;
 uniform float riverThreshold;
 uniform float waterDetail; // 0 low, 1 medium, 2 high
 
@@ -146,8 +142,7 @@ void main() {
   #include <logdepthbuf_fragment>
   vec3 up = normalize(vUp);
   vec3 viewDir = normalize(cameraWorld - vWorld);
-  vec3 light = alwaysDay > 0.5 ? viewDir : sunDir;
-  float daylight = alwaysDay > 0.5 ? 1.0 : smoothstep(-0.12, 0.2, dot(up, sunDir));
+  vec3 light = lightDir;
 
   vec3 n = normalize(vNormal);
   vec3 albedo;
@@ -157,18 +152,14 @@ void main() {
   bool isWater = vWater > 0.0 && vIce <= 1.0;
   bool isRiver = !isWater && vIce <= 1.0 && vRiver > riverThreshold;
   if (isWater || isRiver) {
-    float depth = isRiver ? 2.0 : vWater;
-    vec3 shallow = vec3(0.30, 0.76, 0.75);
-    vec3 deep = vec3(0.07, 0.25, 0.50);
-    albedo = vLake > 0.5 || isRiver ? vec3(0.20, 0.47, 0.62) : mix(shallow, deep, smoothstep(0.0, 160.0, depth));
+    // One sea colour, with no shallows (section 4.4).
+    albedo = vLake > 0.5 || isRiver ? vec3(0.20, 0.47, 0.62) : vec3(0.09, 0.30, 0.55);
     n = up;
     if (waterDetail > 0.5) {
       float w = sin(dot(vWorld, vec3(3.1, 1.7, 2.3)) + time * 1.3) + sin(dot(vWorld, vec3(-1.9, 2.8, 1.1)) + time * 0.9);
       n = normalize(up + (vec3(sin(time + vWorld.x * 2.0), 0.0, cos(time * 0.8 + vWorld.z * 2.0)) * 0.02) * w);
     }
     if (waterDetail > 1.5) spec = 0.7;
-    float foam = (1.0 - smoothstep(0.0, 3.0, depth)) * 0.55 * (vLake > 0.5 ? 0.3 : 1.0);
-    albedo = mix(albedo, vec3(0.92, 0.96, 0.97), foam);
     shininess = 120.0;
   } else if (vIce > 1.0) {
     float edge = 1.0 - smoothstep(20.0, 300.0, vIce);
@@ -184,47 +175,8 @@ void main() {
     vec3 h = normalize(light + viewDir);
     lit += vec3(1.0, 0.97, 0.9) * pow(max(dot(n, h), 0.0), shininess) * spec;
   }
-  vec3 night = albedo * vec3(0.16, 0.19, 0.30);
-  vec3 colour = mix(night, lit, daylight);
-
-  float dist = length(cameraWorld - vWorld);
-  float fog = 1.0 - exp(-dist / fogDistance);
-  colour = mix(colour, hazeColor * mix(0.25, 1.0, daylight), clamp(fog, 0.0, 0.85));
-  gl_FragColor = vec4(colour, 1.0);
+  gl_FragColor = vec4(lit, 1.0);
   #include <colorspace_fragment>
-}
-`;
-
-export const atmosphereVertex = /* glsl */ `
-#include <common>
-#include <logdepthbuf_pars_vertex>
-varying vec3 vNormalW;
-varying vec3 vWorld;
-void main() {
-  vec4 w = modelMatrix * vec4(position, 1.0);
-  vWorld = w.xyz;
-  vNormalW = normalize(w.xyz);
-  gl_Position = projectionMatrix * viewMatrix * w;
-  #include <logdepthbuf_vertex>
-}
-`;
-
-export const atmosphereFragment = /* glsl */ `
-#include <common>
-#include <logdepthbuf_pars_fragment>
-uniform vec3 cameraWorld;
-uniform vec3 sunDir;
-uniform float alwaysDay;
-uniform float strength;
-varying vec3 vNormalW;
-varying vec3 vWorld;
-void main() {
-  #include <logdepthbuf_fragment>
-  vec3 viewDir = normalize(vWorld - cameraWorld);
-  float rim = pow(1.0 - abs(dot(vNormalW, viewDir)), 3.0);
-  float day = alwaysDay > 0.5 ? 1.0 : smoothstep(-0.3, 0.3, dot(vNormalW, sunDir));
-  vec3 c = vec3(0.35, 0.6, 1.0) * rim * (0.25 + 0.75 * day) * strength;
-  gl_FragColor = vec4(c, rim * strength);
 }
 `;
 
@@ -239,7 +191,6 @@ void main() {
 
 export const skyFragment = /* glsl */ `
 uniform vec3 localUp;
-uniform float daylight;
 uniform float atmosphere; // 1 near the ground, 0 in space
 varying vec3 vDir;
 void main() {
@@ -247,10 +198,8 @@ void main() {
   vec3 zenith = vec3(0.22, 0.45, 0.85);
   vec3 horizon = vec3(0.72, 0.83, 0.95);
   vec3 sky = mix(horizon, zenith, smoothstep(-0.05, 0.6, e));
-  vec3 nightSky = vec3(0.02, 0.03, 0.08);
   vec3 space = vec3(0.005, 0.008, 0.02);
-  vec3 c = mix(nightSky, sky, daylight);
-  gl_FragColor = vec4(mix(space, c, atmosphere), 1.0);
+  gl_FragColor = vec4(mix(space, sky, atmosphere), 1.0);
   #include <colorspace_fragment>
 }
 `;

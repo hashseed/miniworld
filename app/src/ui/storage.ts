@@ -10,7 +10,8 @@ export type Tier = 'high' | 'medium' | 'low';
 export interface Settings {
   language: Language;
   quality: QualitySetting;
-  alwaysDay: boolean;
+  /** Timeline shows every lane instead of only the region under the globe centre. */
+  timelineExpanded: boolean;
   trueTimeScale: boolean;
   slowWhenZoomed: boolean;
   showStats: boolean;
@@ -90,7 +91,7 @@ export function loadSettings(defaults: Settings): Settings {
     quality: ['auto', 'high', 'medium', 'low'].includes(v.quality as string)
       ? (v.quality as QualitySetting)
       : defaults.quality,
-    alwaysDay: isBool(v.alwaysDay) ? v.alwaysDay : defaults.alwaysDay,
+    timelineExpanded: isBool(v.timelineExpanded) ? v.timelineExpanded : defaults.timelineExpanded,
     trueTimeScale: isBool(v.trueTimeScale) ? v.trueTimeScale : defaults.trueTimeScale,
     slowWhenZoomed: isBool(v.slowWhenZoomed) ? v.slowWhenZoomed : defaults.slowWhenZoomed,
     showStats: isBool(v.showStats) ? v.showStats : defaults.showStats,

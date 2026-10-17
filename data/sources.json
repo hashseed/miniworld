@@ -1,5 +1,5 @@
 {
-  "description": "Every source dataset the data build reads. Files are kept under data/sources/<id>/ (Git LFS) and checked against these checksums. Licences must meet spec section 13.",
+  "description": "Every source dataset the data build reads. Files are kept under data/sources/<id>/ and checked against these checksums. Licences must meet spec section 13.",
   "sources": [
     {
       "id": "etopo-2022",
@@ -51,20 +51,6 @@
           "bytes": 4636
         }
       ]
-    },
-    {
-      "id": "paleomist-1.0",
-      "title": "PaleoMIST 1.0: global ice sheet reconstruction for the past 80,000 years",
-      "role": "ice",
-      "licence": "CC-BY-4.0",
-      "citation": "Gowan, E.J., Zhang, X., Khosravi, S., Rovere, A., Stocchi, P., Hughes, A.L.C., Gyllencreutz, R., Mangerud, J., Svendsen, J.-I., Lohmann, G. (2021): A new global ice sheet reconstruction for the past 80 000 years. Nature Communications 12, 1199. Data: https://doi.org/10.1594/PANGAEA.905800",
-      "url": "https://doi.org/10.1594/PANGAEA.905800",
-      "download": {
-        "url": "https://doi.pangaea.de/10.1594/PANGAEA.905800?format=zip",
-        "archive": "zip",
-        "note": "Keep only the 0.25 degree ice thickness grids for every time step and the dataset's readme and licence."
-      },
-      "files": []
     }
   ]
 }

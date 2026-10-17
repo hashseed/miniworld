@@ -10,7 +10,7 @@ import { latLonToDir } from './globe/cube.ts';
 import { CameraController } from './globe/cameraController.ts';
 import { Globe } from './globe/globe.ts';
 import { lowestSeaLevel, planetAt, type PlanetState } from './globe/planet.ts';
-import { Sky, lifeMsForMorning, sunDirection } from './globe/sky.ts';
+import { Sky, cameraLight } from './globe/sky.ts';
 import { formatDateReadout } from './i18n/dates.ts';
 import { I18n } from './i18n/i18n.ts';
 import { detectLanguage } from './i18n/messages.ts';
@@ -62,7 +62,7 @@ const deviceId = `${navigator.userAgent}|${screen.width}x${screen.height}@${devi
 const settings = loadSettings({
   language: detectLanguage(navigator.languages ?? [navigator.language]),
   quality: 'auto',
-  alwaysDay: false,
+  timelineExpanded: false,
   trueTimeScale: false,
   slowWhenZoomed: true,
   showStats: false,
@@ -93,8 +93,6 @@ const ui = new Store<UiState>({
   bookmarks: loadBookmarks(),
   follow: true,
   isPhone,
-  compactTimeline: isPhone,
-  lanesExpanded: false,
   stressScene: STRESS,
   stats: { fps: 0, avg: 0, p99: 0, calls: 0, triangles: 0, scale: 1 },
   fixture: false,
@@ -121,7 +119,7 @@ const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 1, 1e5)
 const loader = new ContentLoader('data/');
 const globe = new Globe(loader);
 const sky = new Sky();
-scene.add(sky.dome, sky.stars, globe.group, sky.atmosphere);
+scene.add(sky.dome, globe.group);
 
 let index: StartupIndex | undefined;
 let minSeaLevel = -130;
@@ -183,11 +181,9 @@ function regionLane(): string | undefined {
 let lastRegion: string | undefined;
 function updateVisibleLanes(): void {
   if (!timeline || !index) return;
-  // Phones, and windows too short for every lane, show the World lane and the
-  // lane of the region under the camera.
-  const compact = isPhone || innerWidth < 700 || timeline.fullHeight() > innerHeight * 0.3;
-  if (compact !== ui.value.compactTimeline) ui.update({ compactTimeline: compact });
-  if (!compact || ui.value.lanesExpanded) {
+  // Collapsed, the timeline shows only the lane of the region the globe is
+  // centred on; expanded, the World lane and every regional lane.
+  if (ui.value.settings.timelineExpanded) {
     if (timeline.visibleLanes !== undefined) {
       timeline.setVisibleLanes(undefined);
       lastRegion = undefined;
@@ -198,15 +194,14 @@ function updateVisibleLanes(): void {
   const region = regionLane();
   if (region === lastRegion && timeline.visibleLanes) return;
   lastRegion = region;
-  timeline.setVisibleLanes(region ? ['world', region] : ['world']);
+  timeline.setVisibleLanes([region ?? 'world']);
   layoutTimeline();
 }
 
 function layoutTimeline(): void {
   if (!timeline) return;
   const width = timeline.canvas.parentElement?.clientWidth ?? innerWidth;
-  const max =
-    ui.value.compactTimeline && ui.value.lanesExpanded ? innerHeight * 0.66 : innerHeight * 0.3;
+  const max = innerHeight * (ui.value.settings.timelineExpanded && isPhone ? 0.66 : 0.33);
   timeline.resize(width, timeline.desiredHeight(max));
   centreGlobe();
 }
@@ -272,12 +267,13 @@ const actions: Actions = {
   },
   deleteBookmark: (id) => setBookmarks(ui.value.bookmarks.filter((b) => b.id !== id)),
   resetCamera: () => controller.resetOrientation(),
+  tiltCamera: (degrees) => controller.tiltBy(degrees),
   zoomTimeline: (factor) => {
     timeline?.zoomBy(factor);
   },
   followPlayhead: () => timeline?.setFollow(true),
   toggleLanes: () => {
-    ui.update({ lanesExpanded: !ui.value.lanesExpanded });
+    actions.setSetting('timelineExpanded', !ui.value.settings.timelineExpanded);
     updateVisibleLanes();
     layoutTimeline();
   },
@@ -462,7 +458,6 @@ async function benchmark(): Promise<void> {
 
 // --- Frame loop ---------------------------------------------------------------------
 
-const sun = new THREE.Vector3();
 let lastFrame = performance.now();
 let stressStart = 0;
 
@@ -481,14 +476,12 @@ function frame(now: number): void {
   clock.tick(dt);
 
   planet = planetAt(index, clock.day, minSeaLevel);
-  sunDirection(clock.lifeMs, sun);
-  const alwaysDay = ui.value.settings.alwaysDay;
   const u = globe.material.uniforms;
-  u.sunDir!.value.copy(sun);
-  u.alwaysDay!.value = alwaysDay ? 1 : 0;
+  camera.updateMatrixWorld();
+  cameraLight(camera, u.lightDir!.value);
   u.time!.value = clock.lifeMs / 1000;
   globe.update(camera, innerHeight, planet, clock.day);
-  sky.update(camera, sun, alwaysDay);
+  sky.update(camera);
   if (stress) {
     const ground = globe.surfaceKm(latLonToDir(STRESS_CENTRE.lat, STRESS_CENTRE.lon), planet);
     if (ground > 0 || globe.drawnTiles > 0) stress.setGround(ground);
@@ -507,7 +500,7 @@ function frame(now: number): void {
   }
 
   timeline?.draw();
-  if (ui.value.compactTimeline) updateVisibleLanes();
+  if (!ui.value.settings.timelineExpanded) updateVisibleLanes();
   syncUi(now);
   if (now - lastViewSave > VIEW_SAVE_MS) {
     lastViewSave = now;
@@ -557,7 +550,6 @@ async function start(): Promise<void> {
       day: startDay,
       playState: STRESS ? 'playing' : (savedView?.playState ?? 'historyPaused'),
       speedIndex: savedView?.speedIndex,
-      lifeMs: lifeMsForMorning(controller.state.lon),
     });
     clock.subscribe(() => syncUi(performance.now()));
     ui.update({

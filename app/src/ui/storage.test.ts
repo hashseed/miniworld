@@ -21,7 +21,7 @@ class MemoryStorage {
 const defaults: Settings = {
   language: 'en',
   quality: 'auto',
-  alwaysDay: false,
+  timelineExpanded: false,
   trueTimeScale: false,
   slowWhenZoomed: true,
   showStats: false,
@@ -38,8 +38,11 @@ describe('saved state', () => {
     expect(loadSettings(defaults)).toEqual(defaults);
     storage.setItem('miniworld.settings.v1', '{not json');
     expect(loadSettings(defaults)).toEqual(defaults);
-    storage.setItem('miniworld.settings.v1', JSON.stringify({ language: 'fr', alwaysDay: true }));
-    expect(loadSettings(defaults)).toEqual({ ...defaults, alwaysDay: true });
+    storage.setItem(
+      'miniworld.settings.v1',
+      JSON.stringify({ language: 'fr', timelineExpanded: true }),
+    );
+    expect(loadSettings(defaults)).toEqual({ ...defaults, timelineExpanded: true });
   });
 
   it('restores a playing view as history paused', () => {

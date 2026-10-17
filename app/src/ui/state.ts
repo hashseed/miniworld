@@ -22,9 +22,6 @@ export interface UiState {
   bookmarks: Bookmark[];
   follow: boolean;
   isPhone: boolean;
-  /** The timeline shows the World lane and the region under the camera, with a button for all lanes. */
-  compactTimeline: boolean;
-  lanesExpanded: boolean;
   stressScene: boolean;
   stats: { fps: number; avg: number; p99: number; calls: number; triangles: number; scale: number };
   fixture: boolean;
@@ -45,6 +42,8 @@ export interface Actions {
   renameBookmark(id: string, name: string): void;
   deleteBookmark(id: string): void;
   resetCamera(): void;
+  /** Positive degrees tilt towards the horizon. */
+  tiltCamera(degrees: number): void;
   zoomTimeline(factor: number): void;
   followPlayhead(): void;
   toggleLanes(): void;

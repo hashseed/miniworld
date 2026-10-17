@@ -51,7 +51,7 @@ test.beforeEach(async ({ page }) => {
         JSON.stringify({
           language: 'en',
           quality: 'low',
-          alwaysDay: false,
+          timelineExpanded: false,
           trueTimeScale: false,
           slowWhenZoomed: true,
           showStats: false,
@@ -106,8 +106,9 @@ test('language switch changes every string without a reload', async ({ page }) =
 test('settings and bookmarks survive a reload', async ({ page }) => {
   await open(page);
   await page.getByRole('button', { name: en['menu.settings'] }).click();
-  await page.getByLabel(en['settings.alwaysDay']!).check();
+  await page.getByLabel(en['settings.slowWhenZoomed']!).uncheck();
   await page.getByRole('button', { name: en['dialog.close'] }).click();
+  await page.getByRole('button', { name: en['timeline.expand'] }).click();
   await page.getByRole('button', { name: en['menu.bookmarks'] }).click();
   await page.getByRole('button', { name: en['bookmarks.add'] }).click();
   await expect(page.locator('.bookmark')).toHaveCount(1);
@@ -117,7 +118,9 @@ test('settings and bookmarks survive a reload', async ({ page }) => {
   await expect(page.locator('.bookmark')).toHaveCount(1);
   await page.getByRole('button', { name: en['dialog.close'] }).click();
   await page.getByRole('button', { name: en['menu.settings'] }).click();
-  await expect(page.getByLabel(en['settings.alwaysDay']!)).toBeChecked();
+  await expect(page.getByLabel(en['settings.slowWhenZoomed']!)).not.toBeChecked();
+  await page.getByRole('button', { name: en['dialog.close'] }).click();
+  await expect(page.getByRole('button', { name: en['timeline.collapse'] })).toBeVisible();
 });
 
 test('scrubbing the timeline changes the date and the sea level', async ({ page }) => {

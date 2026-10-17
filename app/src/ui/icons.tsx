@@ -49,6 +49,20 @@ export const CompassIcon = () => (
   </svg>
 );
 
+export const TiltFlatterIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M3 18h18v2H3z" />
+    <path d="M4 15l8-5 8 5-1.1 1.6L12 12.4l-6.9 4.2z" />
+  </svg>
+);
+
+export const TiltSteeperIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M3 18h18v2H3z" />
+    <path d="M11 3h2v8.2l2.6-2.6 1.4 1.4-5 5-5-5 1.4-1.4 2.6 2.6z" />
+  </svg>
+);
+
 export const PlusIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M11 4h2v16h-2zM4 11h16v2H4z" />

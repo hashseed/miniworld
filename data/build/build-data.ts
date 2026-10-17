@@ -21,19 +21,23 @@ import { TIMELINE_START, continuousYear, dayFromDate } from '../../app/src/time/
 import { buildWatchTable, yearAtSeconds, totalSeconds } from '../../app/src/time/watchTable.ts';
 import { dayFromContinuousYear } from '../../app/src/time/calendar.ts';
 import { erasForLanguage, validateEras, type CuratedEras } from './lib/eras.ts';
-import { fixtureElevation, fixtureIce } from './lib/fixture.ts';
+import { fixtureElevation } from './lib/fixture.ts';
 import { Grid, GridPyramid, type GridData } from './lib/grid.ts';
 import {
+  IceField,
   iceChunksForTile,
+  iceStepYears,
   iceTileKeys,
+  iceTilePoints,
   seaLevelCurve,
   sliceDay,
-  type IceSlice,
+  validateIceModel,
+  type IceAgeModel,
 } from './lib/ice.ts';
 import { checkLicences, type SourceEntry } from './lib/licence.ts';
 import { floodInlandSeas, INLAND_SEAS, oceanConnection } from './lib/ocean.ts';
 import { Output } from './lib/output.ts';
-import { readEtopo, readPaleoMist } from './lib/readers.ts';
+import { readEtopo } from './lib/readers.ts';
 import { regionGrid } from './lib/regions.ts';
 import { allTileKeys, buildTerrainTile, isDeepTile } from './lib/terrain.ts';
 import { NO_LAKE, rasterizeLakes, rasterizeRivers } from './lib/water.ts';
@@ -89,10 +93,10 @@ const natural = sourceFiles('natural-earth');
 const neFile = (name: string) =>
   natural.find((p) => p.endsWith(name)) ?? fail(`natural-earth: missing ${name}`);
 
-const realData = hasSource('etopo-2022') && hasSource('paleomist-1.0');
+const realData = hasSource('etopo-2022');
 if (!realData && !useFixture)
   fail(
-    'ETOPO 2022 and PaleoMIST are not in data/sources yet. Run npm run fetch-data, or build the test fixture with --fixture.',
+    'ETOPO 2022 is not in data/sources yet. Run npm run fetch-data, or build the test fixture with --fixture.',
   );
 const fixture = !realData;
 log(
@@ -191,14 +195,22 @@ log(`${tileCount} terrain tiles`);
 
 // --- Ice and sea level -------------------------------------------------------
 
-const slices: IceSlice[] = fixture
-  ? fixtureIce()
-  : await readPaleoMist(join(SOURCES, 'paleomist-1.0'));
-const seaLevel = seaLevelCurve(slices, TIMELINE_START, cutoffDay);
+const iceModel = JSON.parse(
+  readFileSync(join(ROOT, 'data/curated/ice-age.json'), 'utf8'),
+) as IceAgeModel;
+const iceErrors = validateIceModel(iceModel);
+if (iceErrors.length) fail(iceErrors.join('\n'));
+const seaLevel = seaLevelCurve(iceModel, TIMELINE_START, cutoffDay);
+const iceYears = iceStepYears(TIMELINE_START);
+const iceDays = iceYears.map(sliceDay); // ascending, as the years descend
+const bed = (lat: number, lon: number) => elevation.bilinear(lat, lon);
 const ice = newLayer();
 let iceChunks = 0;
 for (const key of iceTileKeys()) {
-  for (const [w, chunk] of iceChunksForTile(key, slices, windows, cutoffDay)) {
+  const { lats, lons } = iceTilePoints(key);
+  const field = new IceField(iceModel, lats, lons, bed);
+  const samples = iceYears.map((bp) => field.thickness(bp));
+  for (const [w, chunk] of iceChunksForTile(key, iceDays, samples, windows, cutoffDay)) {
     const path = tilePath(key);
     place(ice, key).chunks[chunkKey(path, String(w), 'xx')] = output.write(
       `ice/${path}/${w}`,
@@ -209,14 +221,23 @@ for (const key of iceTileKeys()) {
   }
 }
 log(
-  `${iceChunks} ice chunks from ${slices.length} slices; lowest sea level ${Math.min(...seaLevel.metres)} m`,
+  `${iceChunks} ice chunks from ${iceYears.length} model steps; lowest sea level ${Math.min(...seaLevel.metres)} m`,
 );
 
 // --- Index and manifest ---------------------------------------------------------
 
 const sources: SourceInfo[] = registry.sources
   .filter((s) => (fixture ? s.id === 'natural-earth' : true))
-  .map((s) => ({ id: s.id, title: s.title, licence: s.licence, citation: s.citation, url: s.url }));
+  .map((s) => ({ id: s.id, title: s.title, licence: s.licence, citation: s.citation, url: s.url }))
+  .concat(
+    Object.entries(iceModel.sources).map(([id, r]) => ({
+      id,
+      title: r.title,
+      licence: 'reference',
+      citation: `${r.publisher}: ${r.title} (reference for the rough ice-age model)`,
+      url: r.url,
+    })),
+  );
 
 const index = {} as Record<Language, string>;
 for (const language of LANGUAGES) {
@@ -225,7 +246,7 @@ for (const language of LANGUAGES) {
     ...erasForLanguage(eras, language, TIMELINE_START, cutoffDay),
     watchTable: watch,
     seaLevel,
-    iceSlices: slices.map((s) => sliceDay(s.yearsBP)).sort((a, b) => a - b),
+    iceSlices: iceDays,
     regions: regionGrid(),
     sources,
     events: [],

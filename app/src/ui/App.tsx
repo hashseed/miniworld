@@ -16,6 +16,8 @@ import {
   BookmarkIcon,
   CloseIcon,
   CompassIcon,
+  TiltFlatterIcon,
+  TiltSteeperIcon,
   FollowIcon,
   FreezeIcon,
   GearIcon,
@@ -106,6 +108,24 @@ export function App({ store, i18n, actions }: Props) {
       >
         <CompassIcon />
       </button>
+      <div class="tilt">
+        <button
+          class="btn"
+          aria-label={t('camera.tiltFlatter')}
+          title={t('camera.tiltFlatter')}
+          onClick={() => actions.tiltCamera(15)}
+        >
+          <TiltFlatterIcon />
+        </button>
+        <button
+          class="btn"
+          aria-label={t('camera.tiltSteeper')}
+          title={t('camera.tiltSteeper')}
+          onClick={() => actions.tiltCamera(-15)}
+        >
+          <TiltSteeperIcon />
+        </button>
+      </div>
 
       {s.panel === 'settings' && <SettingsPanel s={s} t={t} actions={actions} />}
       {s.panel === 'bookmarks' && <BookmarksPanel s={s} t={t} lang={lang} actions={actions} />}
@@ -188,17 +208,15 @@ export function App({ store, i18n, actions }: Props) {
               <FollowIcon />
             </button>
           )}
-          {s.compactTimeline && (
-            <button
-              class="btn"
-              aria-label={s.lanesExpanded ? t('timeline.fewerLanes') : t('timeline.allLanes')}
-              title={s.lanesExpanded ? t('timeline.fewerLanes') : t('timeline.allLanes')}
-              aria-pressed={s.lanesExpanded}
-              onClick={() => actions.toggleLanes()}
-            >
-              <LanesIcon />
-            </button>
-          )}
+          <button
+            class="btn"
+            aria-label={s.settings.timelineExpanded ? t('timeline.collapse') : t('timeline.expand')}
+            title={s.settings.timelineExpanded ? t('timeline.collapse') : t('timeline.expand')}
+            aria-pressed={s.settings.timelineExpanded}
+            onClick={() => actions.toggleLanes()}
+          >
+            <LanesIcon />
+          </button>
         </div>
         <TimelineCanvas t={t} actions={actions} />
       </div>
@@ -305,11 +323,6 @@ function SettingsPanel({ s, t, actions }: { s: UiState; t: T; actions: Actions }
           <option value="low">{tierName('low')}</option>
         </select>
       </label>
-      <Toggle
-        label={t('settings.alwaysDay')}
-        value={s.settings.alwaysDay}
-        onChange={(v) => set('alwaysDay', v)}
-      />
       <Toggle
         label={t('settings.trueTimeScale')}
         value={s.settings.trueTimeScale}

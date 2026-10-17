@@ -9,7 +9,8 @@ import { EARTH_RADIUS_KM } from './tileMesh.ts';
 export const MIN_DISTANCE_KM = 2;
 export const MAX_DISTANCE_KM = EARTH_RADIUS_KM * 2.6;
 const MIN_CLEARANCE_KM = 0.4;
-const MAX_EXTRA_TILT = 25;
+/** Steepest view from straight down; near 90° looks along the ground to the horizon. */
+export const MAX_TILT = 85;
 
 /** Tilt (degrees from straight down) that follows the distance to the target. */
 export function autoTilt(distanceKm: number): number {
@@ -93,6 +94,13 @@ export class CameraController {
     this.flyTo({ ...this.state, heading: 0, tilt: 0 });
   }
 
+  /** Tilts the view by some degrees: positive is flatter, towards the horizon. */
+  tiltBy(degrees: number): void {
+    const auto = autoTilt(this.state.altitudeKm);
+    const tilt = THREE.MathUtils.clamp(this.state.tilt + degrees, -auto, MAX_TILT - auto);
+    this.flyTo({ ...this.state, tilt });
+  }
+
   update(dtMs: number, now = performance.now()): void {
     const dt = Math.min(dtMs, 100) / 1000;
     const s = this.state;
@@ -124,7 +132,8 @@ export class CameraController {
     s.lat = THREE.MathUtils.clamp(s.lat, -89.5, 89.5);
     s.lon = ((((s.lon + 180) % 360) + 360) % 360) - 180;
     s.altitudeKm = THREE.MathUtils.clamp(s.altitudeKm, MIN_DISTANCE_KM, MAX_DISTANCE_KM);
-    s.tilt = THREE.MathUtils.clamp(s.tilt, -MAX_EXTRA_TILT, MAX_EXTRA_TILT);
+    const auto = autoTilt(s.altitudeKm);
+    s.tilt = THREE.MathUtils.clamp(s.tilt, -auto, MAX_TILT - auto);
     this.place();
     const actualAlt =
       this.camera.position.length() -
@@ -136,7 +145,7 @@ export class CameraController {
 
   /** Total tilt in degrees from straight down. */
   get totalTilt(): number {
-    return THREE.MathUtils.clamp(autoTilt(this.state.altitudeKm) + this.state.tilt, 0, 82);
+    return THREE.MathUtils.clamp(autoTilt(this.state.altitudeKm) + this.state.tilt, 0, MAX_TILT);
   }
 
   private place(): void {

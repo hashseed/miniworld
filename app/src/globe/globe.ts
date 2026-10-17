@@ -25,7 +25,7 @@ import { EARTH_RADIUS_KM, TILE_VERTS, buildTileGeometry } from './tileMesh.ts';
 import { sampleIce, sampleTile, TerrainStore } from './terrainStore.ts';
 import type { TerrainTile } from '../content/formats.ts';
 
-export const EXAGGERATION = 12;
+export const EXAGGERATION = 100;
 export const MAX_RENDER_LEVEL = 12;
 const MAX_CACHED_MESHES = 700;
 
@@ -72,14 +72,10 @@ export class Globe {
         exaggeration: { value: EXAGGERATION },
         iceT: { value: 0 },
         skirtDepth: { value: 200 },
-        relief: { value: 1 },
-        sunDir: { value: new THREE.Vector3(1, 0, 0) },
-        alwaysDay: { value: 0 },
+        lightDir: { value: new THREE.Vector3(0, 0, 1) },
         glacial: { value: 0 },
         time: { value: 0 },
         cameraWorld: { value: new THREE.Vector3() },
-        fogDistance: { value: 1e9 },
-        hazeColor: { value: new THREE.Color(0.72, 0.83, 0.95) },
         riverThreshold: { value: 2 },
         waterDetail: { value: 1 },
       },
@@ -105,9 +101,6 @@ export class Globe {
     const camPos = camera.position;
     const camDist = camPos.length();
     const altitude = camDist - EARTH_RADIUS_KM;
-    // Relief fades in below about 2,500 km so the outline stays a clean sphere from orbit.
-    u.relief!.value = 1 - THREE.MathUtils.smoothstep(altitude, 1500, 2500);
-    u.fogDistance!.value = altitude > 400 ? 1e9 : Math.max(60, altitude * 25);
     u.riverThreshold!.value = altitude > 3000 ? 2 : altitude > 600 ? 0.75 : 0.35;
 
     const frustum = new THREE.Frustum().setFromProjectionMatrix(
