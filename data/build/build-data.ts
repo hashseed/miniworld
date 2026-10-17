@@ -55,10 +55,16 @@ export const WINDOW_SECONDS = 600;
 const PART_LEVEL = 2;
 /** Simplified map (spec milestone 1, section 4.2). */
 const SMOOTHING_KM = 25;
-// Only the major rivers (decided by Yang on 2026-10-17): Natural Earth scale
-// rank 3 or lower, plus the Tigris and Rhine, which history needs.
-const MAX_RIVER_RANK = 3;
-const EXTRA_RIVERS = new Set(['Tigris', 'Dicle', 'Rhine', 'Rhein', 'Rhin', 'Waal']);
+// Only a short list of the rivers history needs most (decided by Yang on
+// 2026-10-17), by their Natural Earth names, including local spellings.
+const MAX_RIVER_RANK = -1;
+const EXTRA_RIVERS = new Set([
+  ...['Nile', 'Rosetta Branch', 'Damietta Branch'],
+  ...['Euphrates', 'Firat', 'Al Furat', 'Tigris', 'Dicle', 'Shatt al Arab'],
+  ...['Indus', 'Ganges', 'Huang', 'Yangtze', 'Chang Jiang', 'Mekong'],
+  ...['Danube', 'Donau', 'Rhine', 'Rhein', 'Rhin', 'Waal', 'Volga'],
+  ...['Mississippi', 'Amazonas', 'Congo', 'Niger'],
+]);
 const MAX_LAKE_RANK = 4;
 const MIN_LAKE_KM2 = 3000;
 
