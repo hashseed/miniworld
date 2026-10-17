@@ -6,8 +6,8 @@
 // Usage: node data/build/build-data.ts [--fixture] [--max-level N]
 
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import {
   encodeIceChunk,
   encodeTerrainTile,
@@ -40,6 +40,9 @@ import { aridity, iceThickness, meanSeaLevel, TimeStack } from './lib/climate.ts
 import { readExtract } from './lib/extract.ts';
 import { checkLicences, type SourceEntry } from './lib/licence.ts';
 import { floodInlandSeas, INLAND_SEAS, oceanConnection } from './lib/ocean.ts';
+import { buildLens, LENS_PARAMS, parseCoordinates } from './lib/lens.ts';
+import { lensPreviewSvg } from './lib/lensPreview.ts';
+import { decodeLensGrids, encodeLensGrids } from '../../app/src/globe/lens.ts';
 import { Output } from './lib/output.ts';
 import { readElevation } from './lib/readers.ts';
 import {
@@ -368,6 +371,58 @@ log(
   `${iceChunks} ice chunks from ${iceYears.length} steps; lowest sea level ${Math.min(...seaLevel.metres)} m`,
 );
 
+// --- History lens -------------------------------------------------------------
+
+// The warp comes from the coordinates in the spec's event lists (spec
+// history-lens.md, section 2). It takes a while to compute, so it is kept in
+// data/out/lens/ by a hash of its inputs and rebuilt only when they change.
+const SPEC = join(ROOT, 'docs/spec');
+const eventFiles = [
+  join(SPEC, 'events.md'),
+  join(SPEC, 'wars.md'),
+  ...readdirSync(join(SPEC, 'events'))
+    .filter((f) => f.endsWith('.md'))
+    .sort()
+    .map((f) => join(SPEC, 'events', f)),
+];
+const eventPoints = eventFiles.flatMap((f) => parseCoordinates(readFileSync(f, 'utf8')));
+const lensVersion = createHash('sha256')
+  .update(JSON.stringify({ points: eventPoints, params: LENS_PARAMS }))
+  .digest('hex')
+  .slice(0, 12);
+const lensCache = join(ROOT, 'data/out/lens', `${lensVersion}.bin`);
+let lensBytes: Uint8Array;
+let lensExponent: number;
+if (existsSync(lensCache)) {
+  lensBytes = new Uint8Array(readFileSync(lensCache));
+  lensExponent = Number(readFileSync(`${lensCache}.exponent`, 'utf8'));
+  log(`history lens ${lensVersion} from the cache, exponent ${lensExponent}`);
+} else {
+  const lens = buildLens(eventPoints, LENS_PARAMS, log);
+  lensBytes = encodeLensGrids(lens.forward, lens.inverse);
+  lensExponent = lens.exponent;
+  mkdirSync(dirname(lensCache), { recursive: true });
+  writeFileSync(lensCache, lensBytes);
+  writeFileSync(`${lensCache}.exponent`, String(lensExponent));
+  log(`history lens ${lensVersion} from ${eventPoints.length} event coordinates`);
+}
+// The before-and-after preview Yang approves before a new warp ships (section 3).
+const lensPreview = join(ROOT, 'data/out/lens', `preview-${lensVersion}.svg`);
+if (!existsSync(lensPreview))
+  writeFileSync(
+    lensPreview,
+    lensPreviewSvg(neFile('ne_10m_land.geojson'), decodeLensGrids(lensBytes).forward),
+  );
+const curatedLens = JSON.parse(readFileSync(join(ROOT, 'data/curated/lens.json'), 'utf8')) as {
+  approvedVersion: string;
+};
+if (curatedLens.approvedVersion !== lensVersion)
+  log(
+    `history lens ${lensVersion} is not approved yet (approved: ${curatedLens.approvedVersion}); ` +
+      `preview in ${lensPreview}`,
+  );
+const lensFile = output.write('lens', 'bin', lensBytes);
+
 // --- Index and manifest ---------------------------------------------------------
 
 const sources: SourceInfo[] = registry.sources
@@ -413,6 +468,7 @@ const manifest: Manifest = {
   languages: [...LANGUAGES],
   windows,
   index,
+  lens: { file: lensFile, version: lensVersion, exponent: lensExponent },
   layers: {
     terrain: finishLayer('terrain', terrain, 0, maxLevel, false),
     ice: finishLayer('ice', ice, 3, 3, true),

@@ -15,6 +15,10 @@ export interface Settings {
   trueTimeScale: boolean;
   slowWhenZoomed: boolean;
   showStats: boolean;
+  /** The history lens: busy regions drawn larger; off shows true sizes (history-lens.md). */
+  historyLens: boolean;
+  /** The first-start hint about the lens was closed. */
+  lensHintSeen: boolean;
 }
 
 export interface CameraState {
@@ -95,6 +99,8 @@ export function loadSettings(defaults: Settings): Settings {
     trueTimeScale: isBool(v.trueTimeScale) ? v.trueTimeScale : defaults.trueTimeScale,
     slowWhenZoomed: isBool(v.slowWhenZoomed) ? v.slowWhenZoomed : defaults.slowWhenZoomed,
     showStats: isBool(v.showStats) ? v.showStats : defaults.showStats,
+    historyLens: isBool(v.historyLens) ? v.historyLens : defaults.historyLens,
+    lensHintSeen: isBool(v.lensHintSeen) ? v.lensHintSeen : defaults.lensHintSeen,
   };
 }
 

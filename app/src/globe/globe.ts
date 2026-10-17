@@ -19,6 +19,7 @@ import {
   type TileKey,
   type Vec3,
 } from './cube.ts';
+import { LENS_COLS, LENS_ROWS, Lens } from './lens.ts';
 import { windowAt, type PlanetState } from './planet.ts';
 import { terrainFragment, terrainVertex } from './shaders.ts';
 import { EARTH_RADIUS_KM, TILE_VERTS, buildTileGeometry } from './tileMesh.ts';
@@ -91,6 +92,9 @@ export class Globe {
    */
   private shownIce = { iceA: NaN, iceB: NaN, iceT: 0, window: 0 };
   private maxHeights = new WeakMap<TerrainTile, number>();
+  /** The history lens; the identity until the warp has loaded (history-lens.md). */
+  lens = Lens.identity();
+  private lensTexture: THREE.DataTexture;
 
   constructor(loader: ContentLoader) {
     this.loader = loader;
@@ -113,8 +117,12 @@ export class Globe {
         riverThreshold: { value: 0.5 },
         waterDetail: { value: 1 },
         fields: { value: null },
+        lensGrid: { value: null },
+        lensBlend: { value: 0 },
+        earthRadius: { value: EARTH_RADIUS_KM },
       },
     });
+    this.lensTexture = this.makeLensTexture();
     this.seaMaterial = new THREE.ShaderMaterial({
       vertexShader: terrainVertex,
       fragmentShader: terrainFragment,
@@ -122,6 +130,30 @@ export class Globe {
       uniforms: this.material.uniforms,
       defines: { SEA_SURFACE: 1 },
     });
+  }
+
+  /** Uses a loaded warp, keeping the current state of the switch. */
+  setLens(lens: Lens): void {
+    lens.setOn(this.lens.isOn, false);
+    this.lens = lens;
+    this.lensTexture.dispose();
+    this.lensTexture = this.makeLensTexture();
+  }
+
+  private makeLensTexture(): THREE.DataTexture {
+    // Read with texelFetch and interpolated in the shader, so it needs no float filtering.
+    const tex = new THREE.DataTexture(
+      this.lens.textureData(),
+      LENS_COLS,
+      LENS_ROWS,
+      THREE.RGBAFormat,
+      THREE.FloatType,
+    );
+    tex.minFilter = THREE.NearestFilter;
+    tex.magFilter = THREE.NearestFilter;
+    tex.needsUpdate = true;
+    this.material.uniforms.lensGrid!.value = tex;
+    return tex;
   }
 
   /** Selects and updates the tiles for this frame. */
@@ -138,6 +170,10 @@ export class Globe {
     u.glacial!.value = planet.glacialIndex;
     u.cameraWorld!.value.copy(camera.position);
     u.waterDetail!.value = this.quality.waterDetail;
+    const lens = this.lens;
+    u.lensBlend!.value = lens.blend;
+    const corner: Vec3 = [0, 0, 0];
+    const drawnCorner: Vec3 = [0, 0, 0];
 
     const camPos = camera.position;
     const camDist = camPos.length();
@@ -156,8 +192,20 @@ export class Globe {
     const priorities: number[] = [];
     const visit = (key: TileKey) => {
       const c = tileSampleUv(key, TILE_N / 2, TILE_N / 2);
-      const cd = faceUvToDir(key.face, c.u, c.v);
-      const ang = tileAngularSize(key.level);
+      const trueCentre = faceUvToDir(key.face, c.u, c.v);
+      // Tiles are chosen and culled where they are drawn (history-lens.md, section 4).
+      const cd = lens.toDrawn(trueCentre);
+      const width = lens.widthAt(trueCentre);
+      let spread = 1;
+      if (lens.blend > 0)
+        for (const [i, j] of CORNERS) {
+          const p = tileSampleUv(key, i, j);
+          faceUvToDir(key.face, p.u, p.v, corner);
+          lens.toDrawn(corner, drawnCorner);
+          const t = angleBetween(trueCentre, corner);
+          if (t > 0) spread = Math.max(spread, angleBetween(cd, drawnCorner) / t);
+        }
+      const ang = tileAngularSize(key.level) * spread;
       const angle = Math.acos(
         Math.max(-1, Math.min(1, cd[0] * camDir.x + cd[1] * camDir.y + cd[2] * camDir.z)),
       );
@@ -166,7 +214,8 @@ export class Globe {
       const topKm =
         (this.maxHeightM(key, angle * EARTH_RADIUS_KM + key.level) + iceRoom + LAND_LIFT_M) *
         EXAGGERATION *
-        0.001;
+        0.001 *
+        width;
       const beyond = Math.acos(EARTH_RADIUS_KM / (EARTH_RADIUS_KM + Math.max(0, topKm)));
       if (angle - ang * 0.75 > horizon + beyond + 0.002) return;
       const centre = new THREE.Vector3(cd[0], cd[1], cd[2]).multiplyScalar(EARTH_RADIUS_KM);
@@ -182,7 +231,7 @@ export class Globe {
       if (!inside) return;
       const dist = Math.max(0.5, centre.distanceTo(camPos) - extent);
       // Geometric error of the vertex grid, estimated as half its sample spacing.
-      const errorKm = (0.5 * EARTH_RADIUS_KM * ang) / TILE_N;
+      const errorKm = (0.5 * EARTH_RADIUS_KM * tileAngularSize(key.level) * width) / TILE_N;
       const errorPx = (errorKm / dist) * pxPerRad;
       const priority = dist + key.level;
 
@@ -405,12 +454,20 @@ export class Globe {
     }
   }
 
-  /** Surface height in km above the sphere at a direction, including sea, ice and exaggeration. */
-  surfaceKm(dir: Vec3, planet: PlanetState): number {
+  /**
+   * Drawn surface height in km above the sphere at a drawn direction,
+   * including sea, ice, exaggeration and the lens's relief scale.
+   */
+  surfaceKm(drawnDir: Vec3, planet: PlanetState): number {
+    return this.surfaceAtTrue(this.lens.toTrue(drawnDir), planet);
+  }
+
+  /** Drawn surface height in km above the sphere over a true direction. */
+  surfaceAtTrue(dir: Vec3, planet: PlanetState): number {
     const h = this.store.heightAt(dir) + this.iceAt(dir, planet);
     // Approximates the ocean mask by height: land stands on its lift above the sea.
     const top = h > planet.seaLevel ? h + LAND_LIFT_M : planet.seaLevel;
-    return top * EXAGGERATION * 0.001;
+    return top * EXAGGERATION * 0.001 * this.lens.widthAt(dir);
   }
 
   /** Ice thickness in metres at a direction, blended like the shader; 0 until the chunk is loaded. */
@@ -430,6 +487,17 @@ export class Globe {
     const { face, u, v } = dirToFaceUv(dir);
     return tileAt(face, u, v, DATA_MAX_LEVEL);
   }
+}
+
+const CORNERS = [
+  [0, 0],
+  [TILE_N, 0],
+  [0, TILE_N],
+  [TILE_N, TILE_N],
+] as const;
+
+function angleBetween(a: Vec3, b: Vec3): number {
+  return Math.acos(Math.max(-1, Math.min(1, a[0] * b[0] + a[1] * b[1] + a[2] * b[2])));
 }
 
 function camDirOf(d: Vec3): THREE.Vector3 {

@@ -25,6 +25,8 @@ const defaults: Settings = {
   trueTimeScale: false,
   slowWhenZoomed: true,
   showStats: false,
+  historyLens: true,
+  lensHintSeen: false,
 };
 
 describe('saved state', () => {

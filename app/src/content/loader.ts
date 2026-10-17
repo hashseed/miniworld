@@ -160,6 +160,15 @@ export class ContentLoader {
     }
   }
 
+  /** Fetches a whole file at startup, outside the chunk queue. */
+  async fetchBytes(file: string): Promise<Uint8Array> {
+    const res = await fetch(this.base + file);
+    if (!res.ok) throw new Error(`${res.status} ${file}`);
+    const buf = await res.arrayBuffer();
+    this.bytesLoaded += buf.byteLength;
+    return new Uint8Array(buf);
+  }
+
   private async fetchJson<T>(file: string): Promise<T> {
     const res = await fetch(this.base + file);
     if (!res.ok) throw new Error(`${res.status} ${file}`);
