@@ -118,7 +118,7 @@ Every event has a type, and each type has one reusable way of showing itself on 
 | Voyage | Ships trace the real route with a fading wake line | Zheng He, Columbus, Magellan |
 | Trade route | Caravans or ships moving steadily along the route for its whole active period | Silk Road, trans-Saharan trade |
 | Epidemic or famine | Figures thin out, fields go bare, streets empty; numbers follow the record | Black Death, Irish famine |
-| Natural disaster | Eruption, earthquake, flood or tsunami at the real place | Vesuvius 79, Lisbon 1755 |
+| Natural disaster | Eruption, earthquake, flood, tsunami, storm or impact at the real place; a climate shift (ice age, cold spell, drought, desert spreading) shows as ice, rivers, fields and terrain changing over its real span | Vesuvius 79, Lisbon 1755, Little Ice Age |
 | Invention or idea | A glowing workshop scene where it happened, then the new thing spreads to neighbouring regions | Writing, printing press, steam engine |
 | Political change | Borders, flags and capital markers change on the overlay; a crowd gathers at the capital | Coronation of Charlemagne, French Revolution |
 | Religion | A temple, church or mosque is built; its style spreads along routes | Spread of Buddhism, Christianity, Islam |
