@@ -141,7 +141,7 @@ The screen is the globe with a timeline along the bottom; everything else stays 
 
 ### 7.1 Timeline
 
-- A top lane "World" shows global eras as coloured ranges (Paleolithic, Neolithic, Bronze Age and so on). Below it, one lane per world region shows that region's eras and empires as coloured ranges: Europe and Mediterranean, Middle East and North Africa, Sub-Saharan Africa, South Asia, East Asia, Americas, Oceania. Ranges are defined in [eras.md](eras.md).
+- A top lane "World" shows global eras as coloured ranges (Paleolithic, Neolithic, Bronze Age and so on). Below it, one lane per world region shows that region's eras and empires as coloured ranges: Europe and Mediterranean, Middle East and North Africa, Sub-Saharan Africa, Central Asia and steppe, South Asia, East Asia, Southeast Asia, Americas, Oceania. Ranges are defined in [eras.md](eras.md).
 - Events sit on the timeline as small icons by type. Hovering or tapping shows the title and date; double-clicking (double-tapping on phones) flies the camera to the place and moves time there.
 - The timeline zooms from the whole of history down to single years. Its axis follows the same rate curve as the clock, so each period is as wide as its watching time. A toggle "True time scale" switches to the true linear scale, where all of written history is a thin sliver at the end.
 - Dragging the playhead scrubs through time. Controls: pause history, freeze everything, and speed from ×¼ to ×16.
