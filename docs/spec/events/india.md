@@ -1,6 +1,6 @@
 # Events: India
 
-Dated events for South Asia (India, Pakistan, Bangladesh, Sri Lanka and Nepal) from the Mahajanapadas (c. 600 BCE) to today. From the founding of the Maurya Empire in 322 BCE there is an event at least every 20 years, except where the dated record itself is thin; those stretches are listed under "Known gaps" instead of being filled. Before 322 BCE the list gives approximate dates for what the record holds. Dates come from general historical knowledge, are approximate where marked "c.", and are checked against sources during the data build. Natural disasters, epidemics and famines are in [events.md](../events.md), and the headline events from [events.md](../events.md) (the campaigns of Alexander the Great, Vasco da Gama reaching India, the building of the Taj Mahal and the independence of India) are not repeated here but count toward the 20-year rule. Every event has a stable id. Major wars and battles are in [wars.md](../wars.md) and are linked by id under "Linked wars and battles" below; smaller wars and battles of the region are listed here.
+Dated events for South Asia (India, Pakistan, Bangladesh, Sri Lanka and Nepal) from the Mahajanapadas (c. 600 BCE) to the end of the timeline in December 1991. From the founding of the Maurya Empire in 322 BCE there is an event at least every 20 years, except where the dated record itself is thin; those stretches are listed under "Known gaps" instead of being filled. Before 322 BCE the list gives approximate dates for what the record holds. Dates come from general historical knowledge, are approximate where marked "c.", and are checked against sources during the data build. Natural disasters, epidemics and famines are in [events.md](../events.md), and the headline events from [events.md](../events.md) (the campaigns of Alexander the Great, Vasco da Gama reaching India, the building of the Taj Mahal and the independence of India) are not repeated here but count toward the 20-year rule. Every event has a stable id. Major wars and battles are in [wars.md](../wars.md) and are linked by id under "Linked wars and battles" below; smaller wars and battles of the region are listed here.
 
 | Id | Date | Event | German | Place | Type | What you see |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -291,15 +291,6 @@ Dated events for South Asia (India, Pakistan, Bangladesh, Sri Lanka and Nepal) f
 | `india-wins-cricket-world-cup` | 1983 | India wins the Cricket World Cup | Indien gewinnt die Cricket-Weltmeisterschaft | London to Mumbai | Invention or idea | Crowds celebrate; cricket becomes India's great passion |
 | `assassination-indira-gandhi` | 1984 | Assassination of Indira Gandhi | Ermordung Indira Gandhis | New Delhi | Political change | After the army storms the Golden Temple, her Sikh bodyguards kill her; thousands of Sikhs are killed in riots |
 | `economic-reforms` | 1991 | Economic reforms | Wirtschaftsreformen | New Delhi | Trade route | India opens its economy; software and phone companies grow |
-| `demolition-babri-masjid` | 1992 | Demolition of the Babri Masjid | Zerstörung der Babri-Moschee | Ayodhya | Destruction | A Hindu nationalist crowd tears down a mosque; riots follow |
-| `civil-war-nepal` | 1996–2006 | Civil war in Nepal | Bürgerkrieg in Nepal | Kathmandu | War | Maoist rebels fight the government; a peace deal ends it |
-| `nuclear-tests-india-pakistan` | 1998 | Nuclear tests in India and Pakistan | Atomtests in Indien und Pakistan | Pokhran and Chagai | Invention or idea | Both countries test nuclear weapons within weeks |
-| `assassination-benazir-bhutto` | 2007 | Assassination of Benazir Bhutto | Ermordung von Benazir Bhutto | Rawalpindi | Political change | Pakistan's first woman prime minister is killed at a rally |
-| `nepal-becomes-republic` | 2008 | Nepal becomes a republic | Nepal wird Republik | Kathmandu | Political change | The monarchy is abolished |
-| `mumbai-attacks` | 2008 | Mumbai attacks | Anschläge von Mumbai | Mumbai | Destruction | Terrorists attack a station and hotels; 166 people are killed |
-| `mangalyaan-reaches-mars` | 2014 | Mangalyaan reaches Mars | Mangalyaan erreicht den Mars | Sriharikota | Voyage | India's first Mars probe enters orbit |
-| `chandrayaan-3-lands-moon` | 2023 | Chandrayaan-3 lands on the Moon | Chandrayaan-3 landet auf dem Mond | Sriharikota | Voyage | The first landing near the Moon's south pole |
-| `student-protests-bangladesh` | 2024 | Student protests in Bangladesh | Studentenproteste in Bangladesch | Dhaka | Political change | After protests in which hundreds are killed, Prime Minister Sheikh Hasina flees the country |
 
 ## Linked wars and battles
 

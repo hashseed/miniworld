@@ -1,6 +1,6 @@
 # Events: Europe
 
-Dated events for Europe and the Greek and Roman Mediterranean, including Byzantium, Russia and the Ottoman Empire in Europe, from the first Olympic Games in 776 BCE to today. From 776 BCE there is an event at least every 20 years. Dates come from general historical knowledge, are approximate where marked "c.", and are checked against sources during the data build. Natural disasters, epidemics and famines are in [events.md](../events.md), and the headline events from [events.md](../events.md) (such as the founding of Rome, Marathon, the Parthenon, the sack of Rome, Charlemagne, Hastings, the Reformation, the French Revolution and the fall of the Berlin Wall) are not repeated here but count toward the 20-year rule. Every event has a stable id. Major wars and battles are in [wars.md](../wars.md) and are linked by id under "Linked wars and battles" below; smaller wars and battles of the region are listed here.
+Dated events for Europe and the Greek and Roman Mediterranean, including Byzantium, Russia and the Ottoman Empire in Europe, from the first Olympic Games in 776 BCE to the end of the timeline in December 1991. From 776 BCE there is an event at least every 20 years. Dates come from general historical knowledge, are approximate where marked "c.", and are checked against sources during the data build. Natural disasters, epidemics and famines are in [events.md](../events.md), and the headline events from [events.md](../events.md) (such as the founding of Rome, Marathon, the Parthenon, the sack of Rome, Charlemagne, Hastings, the Reformation, the French Revolution and the fall of the Berlin Wall) are not repeated here but count toward the 20-year rule. Every event has a stable id. Major wars and battles are in [wars.md](../wars.md) and are linked by id under "Linked wars and battles" below; smaller wars and battles of the region are listed here.
 
 | Id | Date | Event | German | Place | Type | What you see |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -275,14 +275,6 @@ Dated events for Europe and the Greek and Roman Mediterranean, including Byzanti
 | `helsinki-accords` | 1975 | Helsinki Accords | Schlussakte von Helsinki | Helsinki | Political change | East and West agree on borders and on human rights |
 | `solidarity` | 1980 | Solidarity | Solidarność | Gdańsk | Political change | Shipyard workers found a free trade union |
 | `chernobyl-nuclear-disaster` | 1986 | Chernobyl nuclear disaster | Reaktorkatastrophe von Tschernobyl | Chernobyl | Destruction | A nuclear reactor explodes; the nearby town of Pripyat is abandoned |
-| `founding-european-union` | 1993 | Founding of the European Union | Gründung der Europäischen Union | Maastricht | Political change | The Maastricht Treaty comes into force |
-| `srebrenica-genocide` | 1995 | Srebrenica genocide | Völkermord von Srebrenica | Srebrenica | Destruction | Bosnian Serb forces murder about 8,000 Bosniak men and boys |
-| `euro-coins-notes` | 2002 | Euro coins and notes | Euro-Bargeld | Frankfurt | Trade route | People in twelve countries pay with the same money |
-| `eu-enlargement` | 2004 | EU enlargement | EU-Osterweiterung | Brussels | Political change | Ten countries join, most of them in central and eastern Europe |
-| `russia-annexes-crimea` | 2014 | Russia annexes Crimea | Russland annektiert die Krim | Simferopol | War | Russian troops take Crimea; war begins in eastern Ukraine |
-| `refugees-reach-europe` | 2015 | Refugees reach Europe | Flüchtlinge kommen nach Europa | Lesbos | Migration | Over a million people fleeing war, many from Syria, cross the sea and the Balkans |
-| `brexit-referendum` | 2016 | Brexit referendum | Brexit-Referendum | London | Political change | British voters choose to leave the EU; the UK leaves in 2020 |
-| `russian-invasion-ukraine` | 2022 | Russian invasion of Ukraine | Russischer Angriffskrieg gegen die Ukraine | Kyiv | War | Russia invades the whole country; millions flee and Ukraine defends itself |
 
 ## Linked wars and battles
 

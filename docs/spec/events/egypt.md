@@ -1,6 +1,6 @@
 # Events: Egypt
 
-Dated events for Egypt from the unification of the country around 3100 BCE to today: pharaonic, Persian, Ptolemaic, Roman, Byzantine, Islamic, Ottoman and modern Egypt, with Nubia where its history meets Egypt's. From c. 3100 BCE onward there should be an event at least every 20 years; where the record really has a longer gap, it is listed under "Known gaps" instead of being filled. Dates come from general historical knowledge, are approximate where marked "c.", and are checked against sources during the data build. Early dates follow the conventional chronology (as in Shaw, *The Oxford History of Ancient Egypt*) and can be off by decades before about 700 BCE. Natural disasters, epidemics and famines are in [events.md](../events.md), and the headline events of events.md (unification of Egypt, the Great Pyramid, the Battle of Kadesh) are not repeated here but count toward the 20-year rule. Every event has a stable id. Major wars and battles are in [wars.md](../wars.md) and are linked by id under "Linked wars and battles" below; smaller wars and battles of the region are listed here.
+Dated events for Egypt from the unification of the country around 3100 BCE to the end of the timeline in December 1991: pharaonic, Persian, Ptolemaic, Roman, Byzantine, Islamic, Ottoman and modern Egypt, with Nubia where its history meets Egypt's. From c. 3100 BCE onward there should be an event at least every 20 years; where the record really has a longer gap, it is listed under "Known gaps" instead of being filled. Dates come from general historical knowledge, are approximate where marked "c.", and are checked against sources during the data build. Early dates follow the conventional chronology (as in Shaw, *The Oxford History of Ancient Egypt*) and can be off by decades before about 700 BCE. Natural disasters, epidemics and famines are in [events.md](../events.md), and the headline events of events.md (unification of Egypt, the Great Pyramid, the Battle of Kadesh) are not repeated here but count toward the 20-year rule. Every event has a stable id. Major wars and battles are in [wars.md](../wars.md) and are linked by id under "Linked wars and battles" below; smaller wars and battles of the region are listed here.
 
 | Id | Date | Event | German | Place | Type | What you see |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -424,13 +424,6 @@ Dated events for Egypt from the unification of the country around 3100 BCE to to
 | `camp-david-accords` | 1978 | Camp David Accords | Abkommen von Camp David | Camp David | Political change | Sadat and Begin agree to make peace; Sinai is returned by 1982 |
 | `sadat-assassinated` | 1981 | Sadat assassinated | Ermordung Sadats | Cairo | Political change | Soldiers belonging to an extremist group kill the president at a parade; Mubarak takes over |
 | `nobel-prize-naguib-mahfouz` | 1988 | Nobel Prize for Naguib Mahfouz | Nobelpreis für Nagib Machfus | Cairo | Invention or idea | A Cairo novelist becomes the first Arabic-language writer to win the prize |
-| `luxor-attack` | 1997 | Luxor attack | Anschlag von Luxor | Deir el-Bahari | Destruction | Extremists kill 62 people, most of them tourists, at Hatshepsut's temple |
-| `bibliotheca-alexandrina` | 2002 | Bibliotheca Alexandrina | Bibliotheca Alexandrina | Alexandria | Construction | A new great library opens near the site of the ancient one |
-| `revolution-2011` | 2011 | Revolution of 2011 | Revolution von 2011 | Tahrir Square, Cairo | Political change | Huge crowds in Tahrir Square; President Mubarak steps down |
-| `first-free-presidential-election` | 2012 | First free presidential election | Erste freie Präsidentschaftswahl | Cairo | Political change | Mohamed Morsi of the Muslim Brotherhood is elected |
-| `army-removes-morsi` | 2013 | Army removes Morsi | Die Armee setzt Mursi ab | Cairo | Political change | After mass protests the army takes power; security forces kill hundreds of Morsi's supporters at a sit-in |
-| `new-suez-canal` | 2015 | New Suez Canal | Neuer Sueskanal | Ismailia | Construction | A second channel lets ships pass in both directions |
-| `grand-egyptian-museum-opens` | 2025 | Grand Egyptian Museum opens | Eröffnung des Großen Ägyptischen Museums | Giza | Construction | A huge museum opens near the pyramids, with Tutankhamun's treasures |
 
 ## Linked wars and battles
 

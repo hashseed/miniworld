@@ -1,6 +1,6 @@
 # Events: Mesopotamia and Iran
 
-Dated events for Mesopotamia (Sumer, Akkad, Babylon, Assyria) and Iran (Elam, the Medes, the Achaemenids, Seleucids, Parthians and Sasanians, Islamic Iran, the Safavids, Qajars and Pahlavis, and the Islamic Republic) from c. 3100 BCE to today, including Iraq after Mesopotamia stops being the centre of its own empires. From 911 BCE, when the Assyrian lists of yearly officials (eponyms) give a secure date for every year, there is an event at least every 20 years; before that the list gives approximate dates for what the record holds. Dates come from general historical knowledge, are approximate where marked "c.", and are checked against sources during the data build. Dates before 1500 BCE follow the middle chronology, which is debated. Natural disasters, epidemics and famines are in [events.md](../events.md), and the headline events from [events.md](../events.md) (writing at Uruk, the Code of Hammurabi, Marathon, Alexander's campaigns, the Silk Road, the early spread of Islam) are not repeated here but count toward the 20-year rule. Every event has a stable id. Major wars and battles are in [wars.md](../wars.md) and are linked by id under "Linked wars and battles" below; smaller wars and battles of the region are listed here.
+Dated events for Mesopotamia (Sumer, Akkad, Babylon, Assyria) and Iran (Elam, the Medes, the Achaemenids, Seleucids, Parthians and Sasanians, Islamic Iran, the Safavids, Qajars and Pahlavis, and the Islamic Republic) from c. 3100 BCE to the end of the timeline in December 1991, including Iraq after Mesopotamia stops being the centre of its own empires. From 911 BCE, when the Assyrian lists of yearly officials (eponyms) give a secure date for every year, there is an event at least every 20 years; before that the list gives approximate dates for what the record holds. Dates come from general historical knowledge, are approximate where marked "c.", and are checked against sources during the data build. Dates before 1500 BCE follow the middle chronology, which is debated. Natural disasters, epidemics and famines are in [events.md](../events.md), and the headline events from [events.md](../events.md) (writing at Uruk, the Code of Hammurabi, Marathon, Alexander's campaigns, the Silk Road, the early spread of Islam) are not repeated here but count toward the 20-year rule. Every event has a stable id. Major wars and battles are in [wars.md](../wars.md) and are linked by id under "Linked wars and battles" below; smaller wars and battles of the region are listed here.
 
 | Id | Date | Event | German | Place | Type | What you see |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -327,10 +327,6 @@ Dated events for Mesopotamia (Sumer, Akkad, Babylon, Assyria) and Iran (Elam, th
 | `anfal-campaign-halabja` | 1986–1989 | Anfal campaign and Halabja | Anfal-Operation und Halabdscha | Halabja | Destruction | Saddam Hussein's army kills Kurdish villagers, including with poison gas at Halabja; a genocide |
 | `death-khomeini` | 1989 | Death of Khomeini | Tod Chomeinis | Tehran | Political change | Millions attend the funeral; Khamenei becomes Supreme Leader |
 | `uprisings-iraq-kurdish-self-rule` | 1991 | Uprisings in Iraq and Kurdish self-rule | Aufstände im Irak und kurdische Selbstverwaltung | Erbil | Political change | Revolts are crushed; a protected Kurdish region forms in the north |
-| `sectarian-civil-war-iraq` | 2006–2008 | Sectarian civil war in Iraq | Konfessioneller Bürgerkrieg im Irak | Baghdad | War | Sunni and Shia militias fight; neighbourhoods are walled off |
-| `islamic-state-iraq` | 2014–2017 | Islamic State in Iraq | Islamischer Staat im Irak | Mosul | War | The extremist group takes Mosul and commits genocide against the Yazidis; it is driven out by 2017 |
-| `woman-life-freedom` | 2022 | Woman, Life, Freedom | Frau, Leben, Freiheit | Tehran | Political change | Protests after Mahsa Amini dies in the custody of the morality police |
-| `twelve-day-war` | 2025 | Twelve-Day War | Zwölftagekrieg | Tehran | War | Israel and Iran exchange missile and air strikes; the US bombs nuclear sites |
 
 ## Linked wars and battles
 
@@ -341,7 +337,6 @@ These wars and battles of this region are listed in [wars.md](../wars.md) and ar
 | 331 BCE | `battle-gaugamela` | Battle of Gaugamela |
 | 1980–1988 | `iran-iraq-war` | Iran–Iraq War |
 | 1990–1991 | `gulf-war` | Kuwait invaded and freed |
-| 2003 | `iraq-war` | Iraq War |
 
 ## Known gaps
 

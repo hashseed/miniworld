@@ -1,6 +1,6 @@
 # Events: China
 
-Dated events for China from the Shang dynasty (c. 1600 BCE) to today, including the dynasties that ruled from China, Taiwan after 1949, and Tibet and Xinjiang where they relate to China. From 841 BCE, the first securely dated year in Chinese history, there is an event at least every 20 years; before that the list gives approximate dates for what the record holds. Dates come from general historical knowledge, are approximate where marked "c.", and are checked against sources during the data build. Natural disasters, epidemics and famines are in [events.md](../events.md), and the headline events from [events.md](../events.md) (Qin unifies China, the Silk Road, paper, Zheng He, the founding of the PRC) are not repeated here but count toward the 20-year rule. Every event has a stable id. Major wars and battles are in [wars.md](../wars.md) and are linked by id under "Linked wars and battles" below; smaller wars and battles of the region are listed here.
+Dated events for China from the Shang dynasty (c. 1600 BCE) to the end of the timeline in December 1991, including the dynasties that ruled from China, Taiwan after 1949, and Tibet and Xinjiang where they relate to China. From 841 BCE, the first securely dated year in Chinese history, there is an event at least every 20 years; before that the list gives approximate dates for what the record holds. Dates come from general historical knowledge, are approximate where marked "c.", and are checked against sources during the data build. Natural disasters, epidemics and famines are in [events.md](../events.md), and the headline events from [events.md](../events.md) (Qin unifies China, the Silk Road, paper, Zheng He, the founding of the PRC) are not repeated here but count toward the 20-year rule. Every event has a stable id. Major wars and battles are in [wars.md](../wars.md) and are linked by id under "Linked wars and battles" below; smaller wars and battles of the region are listed here.
 
 | Id | Date | Event | German | Place | Type | What you see |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -318,16 +318,6 @@ Dated events for China from the Shang dynasty (c. 1600 BCE) to today, including 
 | `one-child-policy` | 1980 | One-child policy | Ein-Kind-Politik | Beijing | Political change | Most families are allowed only one child |
 | `martial-law-ends-taiwan` | 1987 | Martial law ends in Taiwan | Ende des Kriegsrechts in Taiwan | Taipei | Political change | Parties and newspapers become free; democracy begins |
 | `tiananmen-square-protests` | 1989 | Tiananmen Square protests | Proteste auf dem Tian'anmen-Platz | Beijing | Political change | Students call for freedom; the army ends the protests by force and kills many |
-| `building-three-gorges-dam` | 1994–2006 | Building of the Three Gorges Dam | Bau des Drei-Schluchten-Damms | Yichang, Hubei | Construction | The largest dam in the world rises; over a million people must move |
-| `taiwans-first-direct-presidential-election` | 1996 | Taiwan's first direct presidential election | Erste direkte Präsidentenwahl in Taiwan | Taipei | Political change | Voters choose their president |
-| `hong-kong-returns-china` | 1997 | Hong Kong returns to China | Rückgabe Hongkongs an China | Hong Kong | Political change | Britain hands Hong Kong back; flags change at midnight |
-| `china-joins-wto` | 2001 | China joins the WTO | China tritt der WTO bei | Geneva | Trade route | Container ships carry goods from Chinese factories worldwide |
-| `first-chinese-astronaut` | 2003 | First Chinese astronaut | Erster chinesischer Raumfahrer | Jiuquan, Gansu | Voyage | Yang Liwei orbits the Earth in Shenzhou 5 |
-| `beijing-olympics` | 2008 | Beijing Olympics | Olympische Spiele in Peking | Beijing | Invention or idea | Crowds fill the Bird's Nest stadium |
-| `belt-road-initiative` | 2013 | Belt and Road Initiative | Initiative Neue Seidenstraße | Beijing | Trade route | New railways, ports and roads link China with Asia, Africa and Europe |
-| `mass-detention-uyghurs` | c. 2017 | Mass detention of Uyghurs | Massenhafte Internierung von Uiguren | Ürümqi, Xinjiang | Political change | Many Uyghurs and other Muslims are held in camps (start date approximate) |
-| `national-security-law-hong-kong` | 2020 | National security law in Hong Kong | Sicherheitsgesetz für Hongkong | Hong Kong | Political change | After mass protests, a new law ends most open opposition |
-| `zhurong-rover-lands-mars` | 2021 | Zhurong rover lands on Mars | Rover Zhurong landet auf dem Mars | Wenchang, Hainan | Voyage | The Tianwen-1 mission, launched from Hainan in 2020, puts a rover on Mars |
 
 ## Linked wars and battles
 

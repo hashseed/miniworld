@@ -18,7 +18,6 @@ Every regional lane starts with the peoples who lived there before states and wr
 | Modern Era | Moderne | c. 1800 | 1914 | Industrialisation, nation states, colonial empires |
 | Age of the World Wars | Zeitalter der Weltkriege | 1914 | 1945 | |
 | Post-war and Cold War | Nachkriegszeit und Kalter Krieg | 1945 | 1991 | |
-| Present | Gegenwart | 1991 | today | |
 
 ## Europe and Mediterranean
 
@@ -67,7 +66,7 @@ Every regional lane starts with the peoples who lived there before states and wr
 | Soviet Union | Sowjetunion | 1922 | 1991 | Also spans northern and Central Asia |
 | Nazi Germany | Zeit des Nationalsozialismus | 1933 | 1945 | Dictatorship that started the Second World War in Europe and carried out the Holocaust |
 | Divided Germany | Geteiltes Deutschland | 1949 | 1990 | West Germany and East Germany |
-| European integration | Europäische Einigung | 1957 | today | From the Treaties of Rome; European Union from 1993 |
+| European integration | Europäische Einigung | 1957 | End of timeline | From the Treaties of Rome |
 
 ## Middle East and North Africa
 
@@ -141,8 +140,8 @@ Every regional lane starts with the peoples who lived there before states and wr
 | Sokoto Caliphate | Kalifat von Sokoto | 1804 | 1903 | |
 | Zulu Kingdom | Zulureich | 1816 | 1897 | |
 | Colonial rule | Kolonialherrschaft | 1881 | c. 1975 | Scramble for Africa to decolonisation; European forts on the coasts from the 1480s and the Dutch Cape Colony from 1652 came earlier |
-| Apartheid | Apartheid | 1948 | 1994 | South Africa |
-| Independent states | Unabhängige Staaten | 1956 | today | From Sudan and Ghana onward |
+| Apartheid | Apartheid | 1948 | End of timeline | South Africa; still in force when the timeline ends |
+| Independent states | Unabhängige Staaten | 1956 | End of timeline | From Sudan and Ghana onward |
 
 ## Central Asia and steppe
 
@@ -181,7 +180,7 @@ Every regional lane starts with the peoples who lived there before states and wr
 | Maratha Empire | Marathenreich | 1674 | 1818 | |
 | East India Company rule | Herrschaft der Ostindien-Kompanie | 1757 | 1858 | |
 | British Raj | Britisch-Indien | 1858 | 1947 | |
-| India and Pakistan | Indien und Pakistan | 1947 | today | Independence and partition; Bangladesh from 1971 |
+| India and Pakistan | Indien und Pakistan | 1947 | End of timeline | Independence and partition; Bangladesh from 1971 |
 
 ## East Asia
 
@@ -223,9 +222,9 @@ Every regional lane starts with the peoples who lived there before states and wr
 | Empire of Japan | Japanisches Kaiserreich | 1868 | 1945 | Rapid modernisation from the Meiji period, then wars of conquest in Asia |
 | Japanese rule in Korea | Japanische Herrschaft über Korea | 1910 | 1945 | |
 | Republic of China | Republik China | 1912 | 1949 | Continues on Taiwan after 1949 |
-| Japan since 1945 | Japan seit 1945 | 1945 | today | |
-| Divided Korea | Geteiltes Korea | 1945 | today | North and South Korea; Korean War from 1950 to 1953 |
-| People's Republic of China | Volksrepublik China | 1949 | today | |
+| Japan since 1945 | Japan seit 1945 | 1945 | End of timeline | |
+| Divided Korea | Geteiltes Korea | 1945 | End of timeline | North and South Korea; Korean War from 1950 to 1953 |
+| People's Republic of China | Volksrepublik China | 1949 | End of timeline | |
 
 ## Southeast Asia
 
@@ -269,18 +268,18 @@ Every regional lane starts with the peoples who lived there before states and wr
 | Cahokia | Cahokia | c. 1050 | c. 1350 | |
 | Aztec Empire | Aztekenreich | 1428 | 1521 | |
 | Inca Empire | Inkareich | 1438 | 1533 | |
-| Haudenosaunee Confederacy | Irokesenbund (Haudenosaunee) | c. 1450 | today | Founding date debated |
+| Haudenosaunee Confederacy | Irokesenbund (Haudenosaunee) | c. 1450 | End of timeline | Founding date debated |
 | Colonial period | Kolonialzeit | 1492 | c. 1825 | Independence of most of the Americas by about 1825 |
 | Wars of independence | Unabhängigkeitskriege | 1775 | 1826 | United States, Haiti (1804, the first state founded by people who had freed themselves from slavery), then Spanish America; Brazil in 1822 |
-| United States | Vereinigte Staaten | 1776 | today | Slavery until 1865 |
+| United States | Vereinigte Staaten | 1776 | End of timeline | Slavery until 1865 |
 | Westward expansion and Native American removal | Westexpansion und Vertreibung der Ureinwohner | 1803 | 1890 | Settlers move west; Native nations are driven from their lands |
 
 ## Oceania
 
 | English | German | From | To | Note |
 | --- | --- | --- | --- | --- |
-| First Australians | Erste Australier | Start of timeline | today | Aboriginal peoples, one of the oldest continuous cultures on Earth; arrival around 65,000 to 50,000 BCE is debated |
-| Farmers of the New Guinea Highlands | Bauern im Hochland Neuguineas | c. 7000 BCE | today | One of the places where farming was invented independently (Kuk Swamp) |
+| First Australians | Erste Australier | Start of timeline | End of timeline | Aboriginal peoples, one of the oldest continuous cultures on Earth; arrival around 65,000 to 50,000 BCE is debated |
+| Farmers of the New Guinea Highlands | Bauern im Hochland Neuguineas | c. 7000 BCE | End of timeline | One of the places where farming was invented independently (Kuk Swamp) |
 | Lapita culture | Lapita-Kultur | c. 1600 BCE | c. 500 BCE | |
 | Polynesian homeland | Polynesische Urheimat | c. 500 BCE | c. 1000 | Tonga and Samoa, before the long voyages east |
 | Tuʻi Tonga Empire | Tuʻi-Tonga-Reich | c. 950 | c. 1500 | Seafaring chiefdom ruling across western Polynesia |

@@ -70,7 +70,6 @@ The first list of world events, in chronological order, with the title the app s
 | 1990 | German reunification | Germany | Political change | Germany becomes one state again on the overlay |
 | 1991 | Dissolution of the Soviet Union | Eurasia | Political change | Many new states appear on the overlay |
 | 1991 | The World Wide Web | CERN, Geneva | Invention or idea | A computer lab; screens appear in homes in later decades |
-| 1994 | The genocide against the Tutsi | Rwanda | Destruction | Explained in cards with care and accuracy: in about 100 days, extremist Hutu forces and militias murder about 800,000 people, most of them Tutsi |
 
 ## Natural disasters, epidemics and famines
 
