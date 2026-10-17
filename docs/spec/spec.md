@@ -100,6 +100,7 @@ History enters the app as a curated database of dated, located records; everythi
 - Procedural details may fill gaps but never contradict the data: no buildings before their date, no crops on the wrong continent, no iron tools in the Bronze Age.
 - The view is global, not only European. Each era lane on the timeline covers several regions of the world.
 - Disputed topics (for example dates of early dynasties) show the mainstream view and say that it is debated.
+- Event density: wherever a civilisation keeps dated records, its events leave no gap longer than 20 years, so there is always something recent happening there. The headline events are in [events.md](events.md) and the dense regional lists in [events/](events/). Where the record itself has a longer gap, the regional list names the gap instead of inventing events.
 
 **Child-appropriate presentation.** The audience is an 11-year-old with a parent. Nothing is bloody, but nothing is softened into something it was not: wars, conquest, slavery, colonial violence, genocide and the Holocaust are named and explained correctly in the cards. Fallen figures sink down and fade out, with no blood. Famine shows as bare fields, thin herds and fewer people; plague as empty streets and closed doors. Card texts are written for a reader of about 11 to 12, with a "Learn more" section for more detail.
 

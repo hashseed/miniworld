@@ -9,6 +9,7 @@ This folder is the source of truth for what Miniworld does. Every change to beha
 | [milestone-1.md](milestone-1.md) | Detailed spec for milestone 1, Globe and time |
 | [eras.md](eras.md) | Era and empire ranges shown as coloured bands on the timeline |
 | [events.md](events.md) | The first list of world events and how each appears on the globe |
+| [events/](events/) | Dense regional event lists (China, Egypt, Mesopotamia and Iran, India, Europe) with an event at least every 20 years |
 | [people.md](people.md) | The first list of famous people |
 
 The spec is written in English. English and German are equal localisations of the app, developed together; translated strings live in the localisation files, not here. The spec started as a Claude Doc draft written with Yang on 2026-10-17. From now on, changes are made here.
