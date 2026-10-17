@@ -91,3 +91,92 @@ export function smoothElevation(g: Grid, sigmaKm: number): Grid {
   for (let i = 0; i < n; i++) if (g.data[i]! > 0 && out[i]! < 1) out[i] = 1;
   return new Grid(w, h, out);
 }
+
+/** Islands of this area range (km²) are enlarged by enlargeIslands. */
+export const ISLAND_MIN_KM2 = 100;
+export const ISLAND_MAX_KM2 = 60000;
+
+/** How far (km) an island of an area grows outwards: 40% of its equivalent radius, 6 to 25 km. */
+export function islandGrowthKm(areaKm2: number): number {
+  const radius = Math.sqrt(areaKm2 / Math.PI);
+  return Math.max(6, Math.min(25, 0.4 * radius));
+}
+
+/**
+ * Makes islands such as Hawaii, Crete or Malta somewhat larger than they are,
+ * so the oversized figures of later milestones have room on them (section
+ * 4.2). Every island between ISLAND_MIN_KM2 and ISLAND_MAX_KM2 grows into the
+ * surrounding sea by islandGrowthKm, as a low shore sloping down from its
+ * coast. Land stays land, so every place keeps its island. Returns the
+ * number of islands grown.
+ */
+export function enlargeIslands(g: Grid): number {
+  const { width: w, height: h } = g;
+  const n = w * h;
+  const cellKm = g.cellDegrees * KM_PER_DEGREE;
+  const colKm = new Float64Array(h);
+  for (let r = 0; r < h; r++) {
+    const lat = 90 - (r + 0.5) * g.cellDegrees;
+    colKm[r] = Math.max(cellKm * Math.cos((lat * Math.PI) / 180), 1e-3);
+  }
+  const label = new Int32Array(n).fill(-1);
+  const raised = new Int16Array(n);
+  const stack: number[] = [];
+  let grown = 0;
+  for (let start = 0; start < n; start++) {
+    if (label[start] !== -1 || g.data[start]! <= 0) continue;
+    // Flood one land mass, 4-connected and wrapping at the date line.
+    const cells: number[] = [];
+    let area = 0;
+    label[start] = start;
+    stack.push(start);
+    while (stack.length) {
+      const i = stack.pop()!;
+      cells.push(i);
+      const r = (i / w) | 0;
+      const c = i - r * w;
+      area += cellKm * colKm[r]!;
+      const next = [
+        r * w + ((c + 1) % w),
+        r * w + ((c - 1 + w) % w),
+        r > 0 ? i - w : -1,
+        r < h - 1 ? i + w : -1,
+      ];
+      for (const j of next) {
+        if (j < 0 || label[j] !== -1 || g.data[j]! <= 0) continue;
+        label[j] = start;
+        stack.push(j);
+      }
+    }
+    if (area < ISLAND_MIN_KM2 || area > ISLAND_MAX_KM2) continue;
+    grown++;
+    const reach = islandGrowthKm(area);
+    const dr = Math.ceil(reach / cellKm);
+    for (const i of cells) {
+      const r = (i / w) | 0;
+      const c = i - r * w;
+      const coast =
+        g.data[r * w + ((c + 1) % w)]! <= 0 ||
+        g.data[r * w + ((c - 1 + w) % w)]! <= 0 ||
+        (r > 0 && g.data[i - w]! <= 0) ||
+        (r < h - 1 && g.data[i + w]! <= 0);
+      if (!coast) continue;
+      const top = g.data[i]!;
+      for (let rr = Math.max(0, r - dr); rr <= Math.min(h - 1, r + dr); rr++) {
+        const dy = (rr - r) * cellKm;
+        const dc = Math.min(Math.floor((w - 1) / 2), Math.ceil(reach / colKm[rr]!));
+        for (let k = -dc; k <= dc; k++) {
+          const dx = k * colKm[rr]!;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d > reach) continue;
+          const j = rr * w + ((((c + k) % w) + w) % w);
+          if (g.data[j]! > 0) continue;
+          const height = Math.max(1, Math.round(top * (1 - d / reach) * 0.5 + 1));
+          if (raised[j]! < height) raised[j] = height;
+        }
+      }
+    }
+  }
+  for (let j = 0; j < n; j++) if (raised[j]! > 0) g.data[j] = raised[j]!;
+  return grown;
+}

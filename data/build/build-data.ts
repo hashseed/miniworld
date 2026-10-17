@@ -41,7 +41,7 @@ import { checkLicences, type SourceEntry } from './lib/licence.ts';
 import { floodInlandSeas, INLAND_SEAS, oceanConnection } from './lib/ocean.ts';
 import { Output } from './lib/output.ts';
 import { readEtopo } from './lib/readers.ts';
-import { smoothElevation } from './lib/simplify.ts';
+import { enlargeIslands, smoothElevation } from './lib/simplify.ts';
 import { regionGrid } from './lib/regions.ts';
 import { allTileKeys, buildTerrainTile, isDeepTile } from './lib/terrain.ts';
 import { NO_LAKE, rasterizeLakes, rasterizeRivers } from './lib/water.ts';
@@ -153,7 +153,10 @@ while (source.width > 10800) {
   source = new Grid(m.width, m.height, Int16Array.from(m.data, Math.round));
 }
 const elevation = smoothElevation(source, SMOOTHING_KM);
-log(`elevation grid ${elevation.width} × ${elevation.height}, smoothed ${SMOOTHING_KM} km`);
+const islands = enlargeIslands(elevation);
+log(
+  `elevation grid ${elevation.width} × ${elevation.height}, smoothed ${SMOOTHING_KM} km, ${islands} islands enlarged`,
+);
 const pyramid = new GridPyramid(elevation);
 
 // The ocean mask runs on a grid of about 2 arc-minutes, using the minimum of
