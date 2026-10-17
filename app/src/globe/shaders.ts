@@ -159,7 +159,8 @@ vec3 landColour(vec3 n, vec3 up) {
   c = mix(c, steppe, smoothstep(0.05, 0.4, vArid + (v - 0.5) * 0.2) * 0.7);
   c = mix(c, sand, smoothstep(0.45, 0.75, vArid + (v - 0.5) * 0.25));
   c = mix(c, rock, smoothstep(0.35, 0.6, slope) + smoothstep(2500.0, 3500.0, vHeight) * 0.6);
-  float snowLine = 4800.0 - smoothstep(20.0, 70.0, coldLat) * 4600.0;
+  // Never below 1500 m, so lowland snow does not look like ice the data lacks.
+  float snowLine = 4800.0 - smoothstep(20.0, 70.0, coldLat) * 3300.0;
   c = mix(c, snow, smoothstep(snowLine, snowLine + 400.0, vHeight + v * 300.0));
   return c * (0.93 + 0.14 * v);
 }
@@ -264,7 +265,7 @@ void main() {
   // The water and ice fields are clamped so the lines keep an even width.
   float ink = inkLine(min(dot(up, viewDir), 0.25), 0.0, 5.0);
   // No coast line across a river mouth.
-  if (vRiver < riverThreshold) ink = max(ink, inkLine(clamp(vWater, -30.0, 30.0), 0.0, 1.6));
+  if (vRiver < riverThreshold && !hasIce) ink = max(ink, inkLine(clamp(vWater, -30.0, 30.0), 0.0, 1.6));
   ink = max(ink, inkLine(clamp(vIce, 0.0, ICE_EDGE * 2.0), ICE_EDGE, 1.6));
   if (!isWater && !hasIce) ink = max(ink, inkLine(vRiver, riverThreshold, 1.4));
   if (vSkirt > 0.5) ink = 0.0;

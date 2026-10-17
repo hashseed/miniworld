@@ -8,7 +8,12 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { encodeIceChunk, encodeTerrainTile } from '../../app/src/content/formats.ts';
+import {
+  encodeIceChunk,
+  encodeTerrainTile,
+  OCEAN_MIN_LEVEL,
+  OCEAN_NEVER,
+} from '../../app/src/content/formats.ts';
 import {
   chunkKey,
   type Manifest,
@@ -24,19 +29,15 @@ import { erasForLanguage, validateEras, type CuratedEras } from './lib/eras.ts';
 import { fixtureElevation } from './lib/fixture.ts';
 import { Grid, GridPyramid } from './lib/grid.ts';
 import {
-  DesertField,
-  IceField,
   iceChunksForTile,
   iceStepYears,
   iceTileKeys,
   iceTilePoints,
   seaLevelCurve,
   sliceDay,
-  validateDesertModel,
-  validateIceModel,
-  type DesertModel,
-  type IceAgeModel,
 } from './lib/ice.ts';
+import { aridity, iceThickness, meanSeaLevel, TimeStack } from './lib/climate.ts';
+import { readExtract } from './lib/extract.ts';
 import { checkLicences, type SourceEntry } from './lib/licence.ts';
 import { floodInlandSeas, INLAND_SEAS, oceanConnection } from './lib/ocean.ts';
 import { Output } from './lib/output.ts';
@@ -292,27 +293,28 @@ log(`${tileCount} terrain tiles`);
 
 // --- Ice and sea level -------------------------------------------------------
 
-const iceModel = JSON.parse(
-  readFileSync(join(ROOT, 'data/curated/ice-age.json'), 'utf8'),
-) as IceAgeModel;
-const desertModel = JSON.parse(
-  readFileSync(join(ROOT, 'data/curated/deserts.json'), 'utf8'),
-) as DesertModel;
-const iceErrors = [...validateIceModel(iceModel), ...validateDesertModel(desertModel)];
-if (iceErrors.length) fail(iceErrors.join('\n'));
-const seaLevel = seaLevelCurve(iceModel, TIMELINE_START, cutoffDay);
+const stack = (id: string, name: string) => {
+  const json =
+    sourceFiles(id).find((p) => p.endsWith(`/${name}.json`)) ?? fail(`${id}: no ${name}`);
+  const { header, data } = readExtract(json.replace(/\.json$/, ''));
+  return new TimeStack(header, data);
+};
+const iceStack = stack('paleomist-1.0', 'ice_thickness');
+const precipitation = stack('beyer-2020', 'BIO12');
+const seaPoints = meanSeaLevel(stack('paleomist-1.0', 'sea_level'), (lat, lon) => {
+  const v = connection.nearest(lat, lon);
+  return v !== OCEAN_NEVER && OCEAN_MIN_LEVEL + v <= 0;
+});
+const seaLevel = seaLevelCurve(seaPoints, TIMELINE_START, cutoffDay);
 const iceYears = iceStepYears(TIMELINE_START);
 const iceDays = iceYears.map(sliceDay); // ascending, as the years descend
-const bed = (lat: number, lon: number) => elevation.bilinear(lat, lon);
 const ice = newLayer();
 let iceChunks = 0;
 for (const key of iceTileKeys()) {
   const { lats, lons } = iceTilePoints(key);
-  const field = new IceField(iceModel, lats, lons, bed);
-  const samples = iceYears.map((bp) => field.thickness(bp));
-  const deserts = new DesertField(desertModel, lats, lons);
-  const aridity = iceYears.map((bp) => deserts.aridity(bp));
-  for (const [w, chunk] of iceChunksForTile(key, iceDays, samples, aridity, windows, cutoffDay)) {
+  const samples = iceYears.map((bp) => iceThickness(iceStack, lats, lons, bp));
+  const dryness = iceYears.map((bp) => aridity(precipitation, lats, lons, bp));
+  for (const [w, chunk] of iceChunksForTile(key, iceDays, samples, dryness, windows, cutoffDay)) {
     const path = tilePath(key);
     place(ice, key).chunks[chunkKey(path, String(w), 'xx')] = output.write(
       `ice/${path}/${w}`,
@@ -323,23 +325,14 @@ for (const key of iceTileKeys()) {
   }
 }
 log(
-  `${iceChunks} ice chunks from ${iceYears.length} model steps; lowest sea level ${Math.min(...seaLevel.metres)} m`,
+  `${iceChunks} ice chunks from ${iceYears.length} steps; lowest sea level ${Math.min(...seaLevel.metres)} m`,
 );
 
 // --- Index and manifest ---------------------------------------------------------
 
 const sources: SourceInfo[] = registry.sources
-  .filter((s) => (fixture ? s.id === 'natural-earth' : true))
-  .map((s) => ({ id: s.id, title: s.title, licence: s.licence, citation: s.citation, url: s.url }))
-  .concat(
-    Object.entries({ ...iceModel.sources, ...desertModel.sources }).map(([id, r]) => ({
-      id,
-      title: r.title,
-      licence: 'reference',
-      citation: `${r.publisher}: ${r.title} (reference for the rough ice-age and desert models)`,
-      url: r.url,
-    })),
-  );
+  .filter((s) => !(fixture && s.id === 'etopo-2022'))
+  .map((s) => ({ id: s.id, title: s.title, licence: s.licence, citation: s.citation, url: s.url }));
 
 const index = {} as Record<Language, string>;
 for (const language of LANGUAGES) {
