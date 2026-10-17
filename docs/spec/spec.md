@@ -18,7 +18,7 @@ Principles that decide every design question:
 
 ## 2. Time model
 
-History plays at a varying rate: the deep past rushes by because little visibly changes, and time slows as events grow denser towards today. The little people always move at a natural, watchable pace. These are two different clocks, and keeping them apart is what makes the diorama both accurate and pleasant to watch.
+History plays at a varying rate: the deep past rushes by because little visibly changes, and time slows as events grow denser towards the end of the timeline. The little people always move at a natural, watchable pace. These are two different clocks, and keeping them apart is what makes the diorama both accurate and pleasant to watch.
 
 ### 2.1 Historical clock
 
@@ -34,7 +34,7 @@ The historical date decides everything that is true about the world: which cultu
 | 1800 to 1900 | about 5 years per minute | about 20 min |
 | 1900 to 1991 | about 2 years per minute | about 45 min |
 
-The whole of history takes about five hours at normal speed, and about half of that is the last 2,500 years.
+The whole of history takes a little over five hours at normal speed, and about half of that is the last 2,500 years.
 
 ### 2.2 Speed and pausing
 
@@ -54,7 +54,7 @@ Each ordinary figure is a persistent individual who stays on screen across centu
 
 ### 2.5 Range and start
 
-The timeline runs from about 70,000 BCE (modern humans leaving Africa) to the dissolution of the Soviet Union on 26 December 1991 (decided by Yang on 2026-10-17): the timeline stops there so it does not reach wars that are still going on. The app opens at 50,000 BCE, in the middle of the last ice age, with modern humans already spreading out of Africa.
+The timeline runs from about 70,000 BCE (modern humans leaving Africa) to 26 December 1991, the day the Soviet Union was dissolved, which ends the Cold War (decided by Yang on 2026-10-17). That date is the content cutoff, fixed for every build: no event, war, border, building or era on the globe or the timeline goes past it, and an event or war that began before it but mostly happened after it is left out. A card may say in a sentence what happened next, such as Nelson Mandela becoming president in 1994, but the world itself stops at the cutoff. The app opens at 50,000 BCE, in the middle of the last ice age, with modern humans already spreading out of Africa.
 
 ### 2.6 Lighting
 
@@ -102,6 +102,7 @@ Every record is stored in the format of [content-format.md](content-format.md): 
 - Procedural details may fill gaps but never contradict the data: no buildings before their date, no crops on the wrong continent, no iron tools in the Bronze Age.
 - The view is global, not only European. Each era lane on the timeline covers several regions of the world.
 - Disputed topics (for example dates of early dynasties) show the mainstream view and say that it is debated.
+- Event density: wherever a civilisation keeps dated records, its events leave no gap longer than 20 years, so there is always something recent happening there. The headline events are in [events.md](events.md) and the dense regional lists in [events/](events/). Where the record itself has a longer gap, the regional list names the gap instead of inventing events.
 
 **Child-appropriate presentation.** The audience is an 11-year-old with a parent. Nothing is bloody, but nothing is softened into something it was not: wars, conquest, slavery, colonial violence, genocide and the Holocaust are named and explained correctly in the cards. Fallen figures sink down and fade out, with no blood. Famine shows as bare fields, thin herds and fewer people; plague as empty streets and closed doors. Card texts are written for a reader of about 11 to 12, with a "Learn more" section for more detail.
 
@@ -145,7 +146,7 @@ The screen is the globe with a timeline along the bottom; everything else stays 
 
 ### 7.1 Timeline
 
-- A top lane "World" shows global eras as coloured ranges (Paleolithic, Neolithic, Bronze Age and so on). Below it, one lane per world region shows that region's eras and empires as coloured ranges: Europe and Mediterranean, Middle East and North Africa, Sub-Saharan Africa, South Asia, East Asia, Americas, Oceania. Ranges are defined in [eras.md](eras.md).
+- A top lane "World" shows global eras as coloured ranges (Paleolithic, Neolithic, Bronze Age and so on). Below it, one lane per world region shows that region's eras and empires as coloured ranges: Europe and Mediterranean, Middle East and North Africa, Sub-Saharan Africa, Central Asia and steppe, South Asia, East Asia, Southeast Asia, Americas, Oceania. Ranges are defined in [eras.md](eras.md).
 - Events sit on the timeline as small icons by type. An event that lasts longer than it takes to watch for a moment shows as a thin bar from start to end, with its icon at the peak and its phases marked on the bar. Hovering or tapping shows the title and date; double-clicking (double-tapping on phones) flies the camera to the place and moves time there.
 - The timeline zooms from the whole of history down to single years. Its axis follows the same rate curve as the clock, so each period is as wide as its watching time. A toggle "True time scale" switches to the true linear scale, where all of written history is a thin sliver at the end.
 - Dragging the playhead scrubs through time. Controls: pause history, freeze everything, and speed from ×¼ to ×16.

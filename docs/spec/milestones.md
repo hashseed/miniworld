@@ -34,7 +34,7 @@ Detailed spec: [milestone-1.md](milestone-1.md).
 
 **Exit criteria**
 
-- Scrubbing from 50,000 BCE to today shows Beringia, Doggerland and Sundaland drowning and the ice sheets retreating.
+- Scrubbing from 50,000 BCE to the end of the timeline shows Beringia, Doggerland and Sundaland drowning and the ice sheets retreating.
 - The stress scene meets the performance budget on both reference devices.
 - The first view loads with at most about 3 MB on a phone.
 - Switching language changes every visible string without a reload.
@@ -153,14 +153,14 @@ Detailed spec: [milestone-1.md](milestone-1.md).
 
 ## 8. Modern age
 
-**Goal:** industry, nation states, the world wars and the world we live in.
+**Goal:** industry, nation states, the world wars and the Cold War, up to the end of the timeline in 1991.
 
 **Scope**
 
 - Culture profiles for industrial cities, railways, steamships, then the 20th century.
 - Nation-state borders, decolonisation and the Cold War on the overlay.
 - The world wars with front lines; the Holocaust and the atomic bombings presented with care and accuracy.
-- Modern events up to the end of the timeline (the dissolution of the Soviet Union in 1991) from the content lists.
+- Modern events up to the end of the timeline (the dissolution of the Soviet Union on 26 December 1991) from the content lists.
 
 **Exit criteria**
 
