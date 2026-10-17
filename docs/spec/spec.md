@@ -273,16 +273,4 @@ The spec comes first, always: every change to behaviour, content or data format 
 
 ## 13. Milestones
 
-Each milestone ends with something to show an 11-year-old. The first three prove the hardest technical ideas (the globe, the time model, morphing figures) on a small slice of history before content is added era by era.
-
-1. **Globe and time.** devenv setup, accurate Earth with painted terrain, camera from orbit to ground on desktop and phone, English and German UI shell with a language switch, timeline with speeds, both pause modes and scrubbing, settings and bookmarks in local storage, chunked content loading, and the performance stress scene.
-2. **First people.** Deterministic world query, Paleolithic hunter-gatherers in Africa and Europe from 50,000 BCE, the Out of Africa migration, sea level and ice sheets changing with the date, golden snapshot tests.
-3. **Neolithic.** Figures morph from foragers to farmers in the Fertile Crescent and spread into Europe; first villages; first events on the timeline with fly-to.
-4. **Early civilisations.** Egypt, Mesopotamia, the Indus Valley and Shang China; the border overlay; famous people with cards.
-5. **Classical world.** Greece, Persia, the stages of Rome, Maurya India, Qin and Han China; trade routes such as the Silk Road.
-6. **Late antiquity and Middle Ages.** The Migration Period and fall of the Western Roman Empire, Byzantium, the caliphates, Tang and Song China, the Mongols, Mali, the Maya.
-7. **Early modern.** Renaissance, voyages of discovery, colonialism, the Aztec and Inca empires, Ming and Qing China, the Mughal Empire, the Ottomans.
-8. **Modern age.** Industrialisation, nation states, the world wars, decolonisation, the Cold War, the present.
-9. **Polish.** Offline support, performance on older phones, more culture profiles and events.
-
-**Later: guided tours.** Passive camera journeys through a story, such as "A day in Rome" or "The travels of Marco Polo", built on the same timeline and fly-to.
+The build order, the scope and exit criteria of each milestone, and the definition of done that applies to all of them are in [milestones.md](milestones.md). The first three milestones prove the globe, the two clocks and morphing figures on a small slice of history; the rest add history era by era, and guided tours come after.
