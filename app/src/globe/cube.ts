@@ -4,7 +4,7 @@
 
 export const FACE_COUNT = 6;
 /** Intervals per tile edge; a tile has (TILE_N + 1)² samples. */
-export const TILE_N = 64;
+export const TILE_N = 32;
 /** Deepest level stored in data; deeper tiles interpolate it. */
 export const DATA_MAX_LEVEL = 6;
 

@@ -23,7 +23,7 @@ export const DEEP_CLAMP = -1000;
 export interface TerrainInputs {
   heights: GridPyramid;
   /** Grids at the ocean-mask resolution. */
-  ocean: Grid<Uint8Array>;
+  ocean: Grid<Uint16Array>;
   /** Lake surface level per cell, spread to cover the smoothed lakes, or NO_LAKE. */
   lakeLevel: Grid<Int16Array>;
   lakes: Grid<Uint8Array>;
@@ -37,7 +37,7 @@ export function buildTerrainTile(key: TileKey, inputs: TerrainInputs): TerrainTi
   const spacingDeg = (90 / (1 << key.level) / TILE_N) * 1.0;
   const hgrid = inputs.heights.forSpacing(spacingDeg);
   const heights = new Int16Array(TERRAIN_BORDERED * TERRAIN_BORDERED);
-  const ocean = new Uint8Array(TERRAIN_SAMPLES * TERRAIN_SAMPLES);
+  const ocean = new Uint16Array(TERRAIN_SAMPLES * TERRAIN_SAMPLES);
   const lakes = new Uint8Array(TERRAIN_SAMPLES * TERRAIN_SAMPLES);
   const rivers = new Uint8Array(TERRAIN_SAMPLES * TERRAIN_SAMPLES);
   const flow = new Uint8Array(TERRAIN_SAMPLES * TERRAIN_SAMPLES * 2);

@@ -42,6 +42,8 @@ export class CameraController {
   private gesture: { dist: number; angle: number; midY: number } | undefined;
   private flight: Flight | undefined;
   private easedAltitude: number;
+  /** Surface height (km) under the look point, eased so the camera never jumps at coasts or as tiles load. */
+  private targetSurfKm: number | undefined;
   reducedMotion = false;
   onInteract: () => void = () => {};
 
@@ -134,7 +136,7 @@ export class CameraController {
     s.altitudeKm = THREE.MathUtils.clamp(s.altitudeKm, MIN_DISTANCE_KM, MAX_DISTANCE_KM);
     const auto = autoTilt(s.altitudeKm);
     s.tilt = THREE.MathUtils.clamp(s.tilt, -auto, MAX_TILT - auto);
-    this.place();
+    this.place(dt);
     const actualAlt =
       this.camera.position.length() -
       EARTH_RADIUS_KM -
@@ -148,10 +150,15 @@ export class CameraController {
     return THREE.MathUtils.clamp(autoTilt(this.state.altitudeKm) + this.state.tilt, 0, MAX_TILT);
   }
 
-  private place(): void {
+  private place(dt: number): void {
     const s = this.state;
     const up = new THREE.Vector3(...latLonToDir(s.lat, s.lon));
-    const surf = this.surface.surfaceKm([up.x, up.y, up.z]);
+    const ground = this.surface.surfaceKm([up.x, up.y, up.z]);
+    this.targetSurfKm =
+      this.targetSurfKm === undefined
+        ? ground
+        : this.targetSurfKm + (ground - this.targetSurfKm) * (1 - Math.exp(-dt * 2));
+    const surf = this.targetSurfKm;
     const target = up.clone().multiplyScalar(EARTH_RADIUS_KM + surf);
     const north = new THREE.Vector3(0, 1, 0).sub(up.clone().multiplyScalar(up.y)).normalize();
     if (!Number.isFinite(north.x) || north.lengthSq() < 1e-6) north.set(0, 0, 1);
@@ -169,9 +176,9 @@ export class CameraController {
     const pos = target.clone().add(back.multiplyScalar(s.altitudeKm));
     // Keep clear of the ground under the camera.
     const camUp = pos.clone().normalize();
-    const ground =
+    const clear =
       EARTH_RADIUS_KM + this.surface.surfaceKm([camUp.x, camUp.y, camUp.z]) + MIN_CLEARANCE_KM;
-    if (pos.length() < ground) pos.setLength(ground);
+    if (pos.length() < clear) pos.setLength(clear);
     this.camera.position.copy(pos);
     const camUpVec = forward
       .clone()

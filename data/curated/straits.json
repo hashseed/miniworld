@@ -136,6 +136,40 @@
         [-168.7, 65.3]
       ],
       "source": "Encyclopaedia Britannica, Bering Strait: https://www.britannica.com/place/Bering-Strait"
+    },
+    {
+      "id": "dover",
+      "name": "Strait of Dover",
+      "sill": -13,
+      "line": [
+        [1.0, 50.75],
+        [1.45, 50.98],
+        [1.9, 51.2],
+        [2.3, 51.35]
+      ],
+      "source": "Encyclopaedia Britannica, Strait of Dover: https://www.britannica.com/place/Strait-of-Dover; sill set so Britain becomes an island about 6500 BCE"
+    },
+    {
+      "id": "la-perouse",
+      "name": "La Pérouse Strait",
+      "sill": -55,
+      "line": [
+        [141.2, 45.75],
+        [141.95, 45.7],
+        [142.7, 45.65]
+      ],
+      "source": "Encyclopaedia Britannica, La Pérouse Strait: https://www.britannica.com/place/La-Perouse-Strait"
+    },
+    {
+      "id": "nevelskoy",
+      "name": "Nevelskoy Strait",
+      "sill": -8,
+      "line": [
+        [141.55, 51.5],
+        [141.6, 52.2],
+        [141.55, 52.9]
+      ],
+      "source": "Encyclopaedia Britannica, Tatar Strait: https://www.britannica.com/place/Tatar-Strait"
     }
   ]
 }

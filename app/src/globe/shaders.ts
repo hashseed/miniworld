@@ -6,6 +6,8 @@
 // under studio lights (sections 3.6 and 4.3); the land colours are painted
 // directly until textures are approved (section 12).
 
+import { TERRAIN_SAMPLES } from '../content/formats.ts';
+
 export const terrainVertex = /* glsl */ `
 #include <common>
 #include <logdepthbuf_pars_vertex>
@@ -14,6 +16,7 @@ attribute vec2 elev;   // height (m), smoothed sea level at which the sample is 
 attribute vec4 extra;  // lake field, river field, skirt, unused (0..1)
 attribute vec2 flow;   // river flow phase as cosine and sine (-1..1)
 attribute vec4 ice;    // ice thickness at slice A and B (m), aridity at A and B (0..1000)
+attribute vec2 fieldUv; // texel centre of this sample in the tile's field texture
 
 uniform float seaLevel;
 uniform float exaggeration;
@@ -32,12 +35,13 @@ varying float vLake;
 varying float vSkirt;
 varying float vArid;
 varying vec2 vFlow;
+varying vec2 vFieldUv;
 
 void main() {
   vec4 world0 = modelMatrix * vec4(position, 1.0);
   vec3 up = normalize(world0.xyz);
   float h = elev.x;
-  float oceanLevel = elev.y;
+  float oceanLevel = elev.y * 0.1; // stored in decimetres
   float lake = extra.x;
   float iceM = mix(ice.x, ice.y, iceT);
 
@@ -56,8 +60,14 @@ void main() {
   } else {
     water = max(seaWater, lakeWater);
   }
-  // The smoothed coast can leave sea floor on the land side; it stands at sea level.
-  if (!sea && lake <= 0.5) surface = max(surface, seaLevel);
+  // Land rises from the coast in a soft, rounded bevel, like the edge of a
+  // clay slab: the smoothed coast can leave sea floor on the land side, and
+  // land near the coast is eased down to the sea, so there are no cliffs.
+  float ramp = 1.0;
+  if (!sea && lake <= 0.5) {
+    ramp = smoothstep(0.0, 35.0, -water);
+    surface = seaLevel + (max(surface, seaLevel) - seaLevel) * ramp;
+  }
   if (iceM > 1.0) {
     float top = h + iceM;
     if (sea && top < seaLevel + 1.0) {
@@ -68,10 +78,8 @@ void main() {
     }
     water = min(water, -1.0);
   }
-  // The lift ramps in over the first metres of the smoothed coast, so the
-  // cliff follows the smooth coastline rather than the vertex grid.
-  if (lake > 0.5 || surface > seaLevel + 80.0) surface += landLift;
-  else if (!sea) surface += landLift * clamp(-water / 30.0, 0.0, 1.0);
+  if (lake > 0.5) surface += landLift;
+  else if (!sea) surface += landLift * ramp;
   surface -= extra.z * skirtDepth;
 
   float lift = surface * exaggeration * 0.001;
@@ -90,6 +98,7 @@ void main() {
   vSkirt = extra.z;
   vArid = mix(ice.z, ice.w, iceT) * 0.001;
   vFlow = flow;
+  vFieldUv = fieldUv;
   #include <logdepthbuf_vertex>
 }
 `;
@@ -105,6 +114,8 @@ uniform float time;
 uniform vec3 cameraWorld;
 uniform float riverThreshold;
 uniform float waterDetail; // 0 low, 1 medium, 2 high
+uniform float seaLevel;
+uniform sampler2D fields; // ocean level (m), lake field, river field per tile sample
 
 varying vec3 vWorld;
 varying vec3 vUp;
@@ -117,6 +128,7 @@ varying float vLake;
 varying float vSkirt;
 varying float vArid;
 varying vec2 vFlow;
+varying vec2 vFieldUv;
 
 float hash3(vec3 p) {
   p = fract(p * 0.3183099 + 0.1);
@@ -158,10 +170,15 @@ vec3 landColour(vec3 n, vec3 up) {
   // Deserts come from the desert model, which follows their wet and dry phases.
   c = mix(c, steppe, smoothstep(0.05, 0.4, vArid + (v - 0.5) * 0.2) * 0.7);
   c = mix(c, sand, smoothstep(0.45, 0.75, vArid + (v - 0.5) * 0.25));
-  c = mix(c, rock, smoothstep(0.35, 0.6, slope) + smoothstep(2500.0, 3500.0, vHeight) * 0.6);
-  // Never below 1500 m, so lowland snow does not look like ice the data lacks.
-  float snowLine = 4800.0 - smoothstep(20.0, 70.0, coldLat) * 3300.0;
-  c = mix(c, snow, smoothstep(snowLine, snowLine + 400.0, vHeight + v * 300.0));
+  // Mountains turn to rock towards the snow line and carry glacier caps on
+  // their steep tops (section 4.3). The line follows the smoothed heights:
+  // about 4600 m in the tropics, falling to 1000 m towards the poles and in
+  // the ice age. Flat high plateaus such as Tibet stay bare.
+  float snowLine = max(1000.0, 4600.0 - smoothstep(15.0, 60.0, coldLat) * 3800.0);
+  float alpine = smoothstep(snowLine - 1000.0, snowLine - 300.0, vHeight + v * 200.0);
+  c = mix(c, rock, clamp(smoothstep(0.35, 0.6, slope) + alpine * 0.85, 0.0, 1.0));
+  float peak = max(smoothstep(0.07, 0.16, slope), smoothstep(snowLine + 2000.0, snowLine + 2500.0, vHeight));
+  c = mix(c, snow, smoothstep(snowLine, snowLine + 250.0, vHeight + v * 300.0) * peak);
   return c * (0.93 + 0.14 * v);
 }
 
@@ -183,6 +200,41 @@ float waveLayer(vec3 p, float scale, float t) {
 
 const vec3 INK = vec3(0.23, 0.15, 0.11);
 const float ICE_EDGE = 60.0;
+
+const float FIELD_SIZE = ${TERRAIN_SAMPLES}.0;
+
+/** Cubic B-spline weights for a fractional position. */
+vec4 bsplineWeights(float v) {
+  vec4 n = vec4(1.0, 2.0, 3.0, 4.0) - v;
+  vec4 s = n * n * n;
+  float x = s.x;
+  float y = s.y - 4.0 * s.x;
+  float z = s.z - 4.0 * s.y + 6.0 * s.x;
+  return vec4(x, y, z, 6.0 - x - y - z) * (1.0 / 6.0);
+}
+
+/**
+ * The tile's water fields with a cubic B-spline filter from four bilinear
+ * taps, so coasts, lake shores and river banks are smooth curves at every
+ * zoom instead of following the triangles (sections 4.3 and 5.1).
+ */
+vec3 waterFields(vec2 uv) {
+  vec2 p = uv * FIELD_SIZE - 0.5;
+  vec2 f = fract(p);
+  p -= f;
+  vec4 xw = bsplineWeights(f.x);
+  vec4 yw = bsplineWeights(f.y);
+  vec4 c = p.xxyy + vec2(-0.5, 1.5).xyxy;
+  vec4 s = vec4(xw.xz + xw.yw, yw.xz + yw.yw);
+  vec4 o = (c + vec4(xw.yw, yw.yw) / s) / FIELD_SIZE;
+  vec3 s0 = texture2D(fields, o.xz).rgb;
+  vec3 s1 = texture2D(fields, o.yz).rgb;
+  vec3 s2 = texture2D(fields, o.xw).rgb;
+  vec3 s3 = texture2D(fields, o.yw).rgb;
+  float sx = s.x / (s.x + s.y);
+  float sy = s.z / (s.z + s.w);
+  return mix(mix(s3, s2, sx), mix(s1, s0, sx), sy);
+}
 
 /** Cel steps: three flat light bands with narrow soft edges (section 3.6). */
 float cel(float x) {
@@ -225,11 +277,27 @@ void main() {
   // Ice starts at ICE_EDGE metres of interpolated thickness, so its border is a
   // smooth curve rather than the staircase of the vertex grid.
   bool hasIce = vIce > ICE_EDGE;
-  bool isWater = vWater > 0.0 && !hasIce;
-  bool isRiver = !isWater && !hasIce && vRiver > riverThreshold;
-  if (isWater || isRiver) {
+  // The same water signal as the vertex shader, from the smooth fields.
+  vec3 wf = waterFields(vFieldUv);
+  float lakeF = wf.y;
+  float riverF = wf.z;
+  float seaW = seaLevel - wf.x;
+  float lakeW = (lakeF - 0.5) * 80.0;
+  float water = lakeF > 0.5 ? lakeW : seaW > 0.0 ? seaW : max(seaW, lakeW);
+  if (vIce > 1.0) water = min(water, -1.0);
+  bool isWater = water > 0.0 && !hasIce;
+  bool isRiver = !isWater && !hasIce && riverF > riverThreshold;
+  // Arctic pack ice (section 5.2): the sea north of a wobbly edge near 78°N
+  // today, reaching 70°N at the glacial maximum.
+  float lat = degrees(asin(clamp(up.y, -1.0, 1.0)));
+  float packEdge = mix(78.0, 70.0, glacial) + (noise3(vWorld * 0.004) - 0.5) * 4.0;
+  bool isPack = isWater && lakeF <= 0.5 && lat > packEdge;
+  if (isPack) {
+    albedo = mix(vec3(0.93, 0.97, 1.0), vec3(0.78, 0.9, 0.98), smoothstep(1.5, 0.0, lat - packEdge));
+    n = up;
+  } else if (isWater || isRiver) {
     // One glossy sea colour, with no shallows (section 4.4).
-    albedo = vLake > 0.5 || isRiver ? vec3(0.24, 0.62, 0.92) : vec3(0.08, 0.44, 0.86);
+    albedo = (lakeF > 0.5 && seaW <= 0.0) || isRiver ? vec3(0.24, 0.62, 0.92) : vec3(0.08, 0.44, 0.86);
     n = up;
     if (waterDetail > 0.5) {
       float w = sin(dot(vWorld, vec3(3.1, 1.7, 2.3)) + time * 1.3) + sin(dot(vWorld, vec3(-1.9, 2.8, 1.1)) + time * 0.9);
@@ -265,9 +333,10 @@ void main() {
   // The water and ice fields are clamped so the lines keep an even width.
   float ink = inkLine(min(dot(up, viewDir), 0.25), 0.0, 5.0);
   // No coast line across a river mouth.
-  if (vRiver < riverThreshold && !hasIce) ink = max(ink, inkLine(clamp(vWater, -30.0, 30.0), 0.0, 1.6));
+  if (riverF < riverThreshold && !hasIce) ink = max(ink, inkLine(clamp(water, -30.0, 30.0), 0.0, 1.6));
   ink = max(ink, inkLine(clamp(vIce, 0.0, ICE_EDGE * 2.0), ICE_EDGE, 1.6));
-  if (!isWater && !hasIce) ink = max(ink, inkLine(vRiver, riverThreshold, 1.4));
+  if (isWater && lakeF <= 0.5) ink = max(ink, inkLine(clamp(lat - packEdge, -1.0, 1.0), 0.0, 1.6));
+  if (!isWater && !hasIce) ink = max(ink, inkLine(riverF, riverThreshold, 1.4));
   if (vSkirt > 0.5) ink = 0.0;
   colour = mix(colour, INK, ink * 0.85);
   gl_FragColor = vec4(colour, 1.0);

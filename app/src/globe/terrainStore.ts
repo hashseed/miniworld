@@ -9,6 +9,7 @@ import {
   ICE_N,
   ICE_SAMPLES,
   OCEAN_MIN_LEVEL,
+  OCEAN_SCALE,
   TERRAIN_BORDERED,
   TERRAIN_SAMPLES,
   type IceChunk,
@@ -174,7 +175,7 @@ export function sampleTile(key: TileKey, source: TerrainTile | 'deep'): TileSamp
   if (data.level === key.level) {
     for (let k = 0; k < B * B; k++) heights[k] = source.heights[k]!;
     for (let k = 0; k < S * S; k++) {
-      oceanLevel[k] = OCEAN_MIN_LEVEL + source.ocean[k]!;
+      oceanLevel[k] = OCEAN_MIN_LEVEL + source.ocean[k]! / OCEAN_SCALE;
       lake[k] = source.lakes[k]! / 255;
       rivers[k] = source.rivers[k]! / 255;
       flow[k * 2] = (source.flow[k * 2]! - 128) / 127;
@@ -193,7 +194,7 @@ export function sampleTile(key: TileKey, source: TerrainTile | 'deep'): TileSamp
       heights[(j + 1) * B + (i + 1)] = bicubicBordered(source.heights, fi, fj);
       if (i >= 0 && j >= 0 && i <= TILE_N && j <= TILE_N) {
         const s = j * S + i;
-        oceanLevel[s] = OCEAN_MIN_LEVEL + bilinear(source.ocean, S, fi, fj);
+        oceanLevel[s] = OCEAN_MIN_LEVEL + bilinear(source.ocean, S, fi, fj) / OCEAN_SCALE;
         lake[s] = bilinear(source.lakes, S, fi, fj) / 255;
         rivers[s] = bilinear(source.rivers, S, fi, fj) / 255;
         flow[s * 2] = (bilinear(source.flow, S, fi, fj, 2, 0) - 128) / 127;

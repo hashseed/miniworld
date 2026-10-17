@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { OCEAN_MIN_LEVEL, OCEAN_NEVER } from '../../../app/src/content/formats.ts';
+import { OCEAN_MIN_LEVEL, OCEAN_NEVER, OCEAN_SCALE } from '../../../app/src/content/formats.ts';
 import { carveStraits, polarWeight, smoothOcean, type Strait } from './coast.ts';
 import { Grid } from './grid.ts';
 import { oceanConnection } from './ocean.ts';
@@ -39,7 +39,7 @@ describe('smooth coasts', () => {
     const basin = 899 * W + 1950;
     expect(conn.data[basin]).toBe(-100 - OCEAN_MIN_LEVEL);
     const smooth = smoothOcean(conn, [strait]);
-    const level = (i: number) => OCEAN_MIN_LEVEL + smooth[i]!;
+    const level = (i: number) => OCEAN_MIN_LEVEL + smooth[i]! / OCEAN_SCALE;
     expect(level(basin)).toBeLessThanOrEqual(-99);
     // Inside the strait it is sea above the sill.
     expect(level(899 * W + 1902)).toBeLessThanOrEqual(-99);
@@ -58,7 +58,8 @@ describe('smooth coasts', () => {
 
   it('simplifies polar regions only', () => {
     expect(polarWeight(0)).toBe(0);
-    expect(polarWeight(65)).toBe(0); // Bering Strait keeps its detail
+    expect(polarWeight(60)).toBe(0);
+    expect(polarWeight(67)).toBeCloseTo(0.5);
     expect(polarWeight(-55)).toBeCloseTo(0.5);
     expect(polarWeight(-70)).toBe(1);
     expect(polarWeight(80)).toBe(1);

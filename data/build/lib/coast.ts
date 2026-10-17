@@ -3,15 +3,20 @@
 // level crosses the date's sea level, so they are smooth curves like the
 // rivers; named straits are carved so the smoothing never closes them.
 
-import { OCEAN_MIN_LEVEL, OCEAN_NEVER, OCEAN_TOP } from '../../../app/src/content/formats.ts';
+import {
+  OCEAN_MIN_LEVEL,
+  OCEAN_NEVER,
+  OCEAN_SCALE,
+  OCEAN_TOP,
+} from '../../../app/src/content/formats.ts';
 import { Grid, type GridData } from './grid.ts';
 import { blurLine, boxRadius } from './simplify.ts';
 
 const KM_PER_DEG = 111.32;
 
 /** Gaussian sigma (km) of the coast smoothing, and of the coast in polar regions. */
-export const COAST_SIGMA_KM = 8;
-export const POLAR_COAST_SIGMA_KM = 30;
+export const COAST_SIGMA_KM = 20;
+export const POLAR_COAST_SIGMA_KM = 60;
 /** Level (m) given to land that never joins the ocean before smoothing. */
 export const NEVER_LEVEL_M = OCEAN_MIN_LEVEL + OCEAN_TOP;
 
@@ -21,9 +26,9 @@ export const NEVER_LEVEL_M = OCEAN_MIN_LEVEL + OCEAN_TOP;
  */
 export function polarWeight(lat: number): number {
   if (lat <= -60) return 1;
-  if (lat >= 80) return 1;
+  if (lat >= 72) return 1;
   if (lat < -50) return (-50 - lat) / 10;
-  if (lat > 70) return (lat - 70) / 10;
+  if (lat > 62) return (lat - 62) / 10;
   return 0;
 }
 
@@ -206,7 +211,7 @@ export function smoothOcean(
   connection: Grid<Uint8Array>,
   straits: Strait[],
   keep: KeptIsland[] = [],
-): Uint8Array {
+): Uint16Array {
   const { width: w, height: h } = connection;
   const n = w * h;
   const level = new Float32Array(n);
@@ -231,9 +236,10 @@ export function smoothOcean(
       if (v > smooth[i]!) smooth[i] = v;
     });
   }
-  const out = new Uint8Array(n);
+  const out = new Uint16Array(n);
   for (let i = 0; i < n; i++) {
-    out[i] = Math.max(0, Math.min(OCEAN_TOP, Math.round(smooth[i]! - OCEAN_MIN_LEVEL)));
+    const v = Math.max(0, Math.min(OCEAN_TOP, smooth[i]! - OCEAN_MIN_LEVEL));
+    out[i] = Math.round(v * OCEAN_SCALE);
   }
   return out;
 }

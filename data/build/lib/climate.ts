@@ -77,16 +77,77 @@ export class TimeStack {
   }
 }
 
-/** Grounded ice thickness in metres at each point and date (section 5.2). */
+/** Radius (km) over which the polar ice surface is averaged (section 5.2). */
+export const POLAR_ICE_RADIUS_KM = 120;
+/** South of this latitude, land with ice nearby is always ice-covered. */
+export const ANTARCTIC_LAT = -60;
+
+/** Smoothing of the polar ice sheets: the bed under them and how strongly each latitude is smoothed. */
+export interface IceSmoothing {
+  bed: (lat: number, lon: number) => number;
+  weight: (lat: number) => number;
+}
+
+/** Offsets (km east, km north) of the taps of a disc: the centre and two rings. */
+function discTaps(radiusKm: number): [number, number][] {
+  const taps: [number, number][] = [[0, 0]];
+  for (const [ring, count] of [
+    [0.5, 6],
+    [1, 12],
+  ] as const) {
+    for (let k = 0; k < count; k++) {
+      const a = (k / count) * 2 * Math.PI;
+      taps.push([Math.cos(a) * ring * radiusKm, Math.sin(a) * ring * radiusKm]);
+    }
+  }
+  return taps;
+}
+
+/**
+ * Grounded ice thickness in metres at each point and date (section 5.2).
+ * With smoothing, the polar ice sheets get a smooth surface: the bed plus ice
+ * is averaged over a disc and the bed subtracted again, so the relief under
+ * the ice and small ice-free patches do not show through.
+ */
 export function iceThickness(
   ice: TimeStack,
   lats: Float64Array,
   lons: Float64Array,
   yearsBP: number,
+  smoothing?: IceSmoothing,
 ): Uint16Array {
   const out = new Uint16Array(lats.length);
+  const taps = smoothing ? discTaps(POLAR_ICE_RADIUS_KM) : [];
   for (let k = 0; k < lats.length; k++) {
-    const m = ice.sample(lats[k]!, lons[k]!, yearsBP) ?? 0;
+    const lat = lats[k]!;
+    const lon = lons[k]!;
+    let m = ice.sample(lat, lon, yearsBP) ?? 0;
+    const w = smoothing ? smoothing.weight(lat) : 0;
+    if (smoothing && w > 0) {
+      const kmPerLon = Math.max(1, 111.32 * Math.cos((lat * Math.PI) / 180));
+      let iceSum = 0;
+      let surfaceSum = 0;
+      let iceTaps = 0;
+      for (const [east, north] of taps) {
+        const la = Math.max(-90, Math.min(90, lat + north / 111.32));
+        const lo = lon + east / kmPerLon;
+        const t = ice.sample(la, lo, yearsBP) ?? 0;
+        iceSum += t;
+        if (t > 0) {
+          surfaceSum += smoothing.bed(la, lo) + t;
+          iceTaps++;
+        }
+      }
+      const mean = iceSum / taps.length;
+      // Where the disc is mostly ice, the ice keeps a smooth surface; at the
+      // edges the thickness itself is averaged so the border is smooth.
+      const smooth =
+        mean > 300 ? Math.max(mean * 0.25, surfaceSum / iceTaps - smoothing.bed(lat, lon)) : mean;
+      m = m * (1 - w) + smooth * w;
+      // Antarctica's coast is almost all ice: ice reaches the shore wherever
+      // the disc holds any, so no strip of bare land is left around it.
+      if (lat < ANTARCTIC_LAT && iceTaps > 0 && smoothing.bed(lat, lon) > 0) m = Math.max(m, 150);
+    }
     out[k] = Math.round(Math.max(0, Math.min(65535, m)));
   }
   return out;

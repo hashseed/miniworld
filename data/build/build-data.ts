@@ -45,6 +45,7 @@ import { readElevation } from './lib/readers.ts';
 import { enlargeIslands, smoothElevation } from './lib/simplify.ts';
 import {
   blendPolar,
+  polarWeight,
   carveStraits,
   smoothLakes,
   smoothOcean,
@@ -71,8 +72,8 @@ const OUT = join(ROOT, 'app/public/data');
 export const WINDOW_SECONDS = 600;
 const PART_LEVEL = 2;
 /** Simplified map (spec milestone 1, section 4.2). */
-const SMOOTHING_KM = 25;
-const POLAR_SMOOTHING_KM = 80;
+const SMOOTHING_KM = 40;
+const POLAR_SMOOTHING_KM = 150;
 // Only a short list of the rivers history needs most (decided by Yang on
 // 2026-10-17), by their Natural Earth names, including local spellings.
 const AMAZON_BASIN: [number, number, number, number] = [-80, -20, -45, 6];
@@ -312,7 +313,12 @@ const ice = newLayer();
 let iceChunks = 0;
 for (const key of iceTileKeys()) {
   const { lats, lons } = iceTilePoints(key);
-  const samples = iceYears.map((bp) => iceThickness(iceStack, lats, lons, bp));
+  const samples = iceYears.map((bp) =>
+    iceThickness(iceStack, lats, lons, bp, {
+      bed: (lat, lon) => Math.max(0, elevation.bilinear(lat, lon)),
+      weight: polarWeight,
+    }),
+  );
   const dryness = iceYears.map((bp) => aridity(precipitation, lats, lons, bp));
   for (const [w, chunk] of iceChunksForTile(key, iceDays, samples, dryness, windows, cutoffDay)) {
     const path = tilePath(key);

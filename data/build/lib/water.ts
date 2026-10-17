@@ -131,7 +131,9 @@ export interface RiverContext {
 /** Pulse spacing along rivers in km (section 4.3). */
 export const FLOW_PERIOD_KM = 150;
 /** How near (km) a river end must come to the sea at some date to be continued downhill. */
-const MOUTH_SEARCH_KM = 40;
+const MOUTH_SEARCH_KM = 80;
+/** Cells a river runs on past its mouth. */
+const MOUTH_OVERRUN_CELLS = 4;
 
 /**
  * Rasterises the picked rivers as a smooth field: 255 inside a river's core,
@@ -168,18 +170,28 @@ export function rasterizeRivers(
   };
   const isMouth = (i: number) =>
     context !== undefined && (context.ocean[i] === 0 || context.lakes[i]! >= 128);
-  const nearSea = (i: number) => {
-    if (!context) return false;
+  /** The nearest water cell within MOUTH_SEARCH_KM, or -1. */
+  const nearestWater = (i: number): number => {
+    if (!context) return -1;
     const r = (i / w) | 0;
     const c = i - r * w;
     const dr = Math.ceil(MOUTH_SEARCH_KM / (cellDeg * KM_PER_DEG));
+    let best = -1;
+    let bestD = Infinity;
     for (let y = Math.max(0, r - dr); y <= Math.min(h - 1, r + dr); y++)
       for (let x = c - dr * 2; x <= c + dr * 2; x++) {
         const j = y * w + (((x % w) + w) % w);
-        if (context.ocean[j]! <= OCEAN_RANGE || context.lakes[j]! >= 128) return true;
+        if (!(context.ocean[j]! <= OCEAN_RANGE || context.lakes[j]! >= 128)) continue;
+        const kx = (x - c) * Math.cos((rowLatDeg(y) * Math.PI) / 180);
+        const d = kx * kx + (y - r) * (y - r);
+        if (d < bestD) {
+          bestD = d;
+          best = j;
+        }
       }
-    return false;
+    return best;
   };
+  const rowLatDeg = (y: number) => 90 - (y + 0.5) * cellDeg;
   /**
    * The way down to the sea: inland of the flood, the steepest way down the
    * ground; then the path the flood fill came along, which leads to the ocean.
@@ -187,7 +199,7 @@ export function rasterizeRivers(
   const continueDownhill = (end: number[]): number[][] | undefined => {
     if (!context) return undefined;
     let cur = cellOf(end);
-    if (isMouth(cur) || !nearSea(cur)) return undefined;
+    if (isMouth(cur) || nearestWater(cur) < 0) return undefined;
     const path: number[][] = [end];
     for (let step = 0; step < 2000 && !isMouth(cur); step++) {
       let next = context.parents[cur]!;
@@ -202,9 +214,21 @@ export function rasterizeRivers(
             if (context.heights[j]! < context.heights[next < 0 ? cur : next]!) next = j;
           }
       }
-      if (next < 0) break;
+      if (next < 0) {
+        // A flat basin with no way down: head straight for the nearest water.
+        const j = nearestWater(cur);
+        if (j < 0 || j === cur) break;
+        next = j;
+      }
       cur = next;
       path.push(centre(cur));
+    }
+    // Run on a little into the water, so the smoothed shore never cuts the river off.
+    if (path.length > 1 && isMouth(cur)) {
+      const a = path[path.length - 2]!;
+      const b = path[path.length - 1]!;
+      for (let k = 1; k <= MOUTH_OVERRUN_CELLS; k++)
+        path.push([b[0]! + (b[0]! - a[0]!) * k, b[1]! + (b[1]! - a[1]!) * k]);
     }
     return path.length > 1 ? path : undefined;
   };

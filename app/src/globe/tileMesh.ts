@@ -52,6 +52,12 @@ function indexFor(flip: boolean): THREE.BufferAttribute {
 
 export interface TileGeometry {
   geometry: THREE.BufferGeometry;
+  /**
+   * Ocean level (m), lake field and river field per sample, which the
+   * fragment shader samples with a smooth cubic filter so coasts, lakes and
+   * rivers stay smooth curves at every zoom (sections 4.3 and 5.1).
+   */
+  fields: THREE.DataTexture;
   centre: THREE.Vector3;
   /** Bounding sphere radius in km, including relief. */
   radius: number;
@@ -98,6 +104,8 @@ export function buildTileGeometry(
   const extra = new Uint8Array(TILE_VERTS * 4);
   const flow = new Int8Array(TILE_VERTS * 2);
   const ice = new Uint16Array(TILE_VERTS * 4); // ice A, ice B, aridity A, aridity B
+  const fieldUv = new Uint16Array(TILE_VERTS * 2);
+  const fieldData = new Uint16Array(S * S * 4);
 
   const pa = [0, 0, 0];
   const pb = [0, 0, 0];
@@ -142,7 +150,13 @@ export function buildTileGeometry(
       normal[v * 4 + 1] = Math.round((ny / len) * 127);
       normal[v * 4 + 2] = Math.round((nz / len) * 127);
       elev[v * 2] = Math.round(h);
-      elev[v * 2 + 1] = Math.min(10000, Math.round(samples.oceanLevel[v]!));
+      // Decimetres, so flat coasts do not move in whole-metre steps.
+      elev[v * 2 + 1] = Math.max(-30000, Math.min(30000, Math.round(samples.oceanLevel[v]! * 10)));
+      fieldUv[v * 2] = Math.round(((i + 0.5) / S) * 65535);
+      fieldUv[v * 2 + 1] = Math.round(((j + 0.5) / S) * 65535);
+      fieldData[v * 4] = THREE.DataUtils.toHalfFloat(samples.oceanLevel[v]!);
+      fieldData[v * 4 + 1] = THREE.DataUtils.toHalfFloat(Math.min(1, samples.lake[v]!));
+      fieldData[v * 4 + 2] = THREE.DataUtils.toHalfFloat(Math.min(1, samples.rivers[v]!));
       extra[v * 4] = Math.round(Math.min(1, samples.lake[v]!) * 255);
       extra[v * 4 + 1] = Math.round(Math.min(1, samples.rivers[v]!) * 255);
       flow[v * 2] = Math.round(samples.flow[v * 2]! * 127);
@@ -165,6 +179,7 @@ export function buildTileGeometry(
       extra.copyWithin(dst * 4, src * 4, src * 4 + 4);
       extra[dst * 4 + 2] = 255;
       flow.copyWithin(dst * 2, src * 2, src * 2 + 2);
+      fieldUv.copyWithin(dst * 2, src * 2, src * 2 + 2);
     }
 
   const geometry = new THREE.BufferGeometry();
@@ -173,6 +188,7 @@ export function buildTileGeometry(
   geometry.setAttribute('elev', new THREE.BufferAttribute(elev, 2, false));
   geometry.setAttribute('extra', new THREE.BufferAttribute(extra, 4, true));
   geometry.setAttribute('flow', new THREE.BufferAttribute(flow, 2, true));
+  geometry.setAttribute('fieldUv', new THREE.BufferAttribute(fieldUv, 2, true));
   const iceAttr = new THREE.BufferAttribute(ice, 4, false);
   iceAttr.setUsage(THREE.DynamicDrawUsage);
   geometry.setAttribute('ice', iceAttr);
@@ -182,5 +198,11 @@ export function buildTileGeometry(
   const reliefKm = (Math.max(maxH, 0) + 9000) * k;
   const radius = R * tileAngularSize(key.level) * 0.75 + reliefKm;
   geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(), radius);
-  return { geometry, centre, radius, minHeight: minH, maxHeight: maxH };
+  const fields = new THREE.DataTexture(fieldData, S, S, THREE.RGBAFormat, THREE.HalfFloatType);
+  fields.magFilter = THREE.LinearFilter;
+  fields.minFilter = THREE.LinearFilter;
+  fields.wrapS = THREE.ClampToEdgeWrapping;
+  fields.wrapT = THREE.ClampToEdgeWrapping;
+  fields.needsUpdate = true;
+  return { geometry, fields, centre, radius, minHeight: minH, maxHeight: maxH };
 }

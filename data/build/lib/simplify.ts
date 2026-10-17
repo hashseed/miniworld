@@ -93,7 +93,7 @@ export function smoothElevation(g: Grid, sigmaKm: number): Grid {
 }
 
 /** Islands under ISLAND_MIN_KM2 are removed unless kept; those up to ISLAND_MAX_KM2 are enlarged. */
-export const ISLAND_MIN_KM2 = 1000;
+export const ISLAND_MIN_KM2 = 5000;
 export const ISLAND_MAX_KM2 = 60000;
 /** Height (m) the sea floor is set to where a small island is removed. */
 export const REMOVED_ISLAND_DEPTH = -150;

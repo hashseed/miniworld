@@ -28,7 +28,7 @@ import type { TerrainTile } from '../content/formats.ts';
 export const EXAGGERATION = 100;
 /** Every land vertex stands this many metres above its height (section 4.2). */
 export const LAND_LIFT_M = 250;
-export const MAX_RENDER_LEVEL = 12;
+export const MAX_RENDER_LEVEL = 9;
 const MAX_CACHED_MESHES = 700;
 
 interface TileEntry {
@@ -82,6 +82,7 @@ export class Globe {
         cameraWorld: { value: new THREE.Vector3() },
         riverThreshold: { value: 0.5 },
         waterDetail: { value: 1 },
+        fields: { value: null },
       },
     });
   }
@@ -204,6 +205,12 @@ export class Globe {
     const samples = sampleTile(key, source);
     const g = buildTileGeometry(key, samples, EXAGGERATION);
     const mesh = new THREE.Mesh(g.geometry, this.material);
+    // The material is shared; each tile binds its own field texture.
+    mesh.onBeforeRender = () => {
+      this.material.uniforms.fields!.value = g.fields;
+      this.material.uniformsNeedUpdate = true;
+    };
+    mesh.userData.fields = g.fields;
     mesh.position.copy(g.centre);
     mesh.frustumCulled = false;
     mesh.matrixAutoUpdate = false;
@@ -305,6 +312,7 @@ export class Globe {
     for (const e of old.slice(0, this.tiles.size - MAX_CACHED_MESHES)) {
       this.group.remove(e.mesh);
       e.mesh.geometry.dispose();
+      (e.mesh.userData.fields as THREE.DataTexture).dispose();
       this.tiles.delete(tileId(e.key));
     }
   }
