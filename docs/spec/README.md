@@ -9,7 +9,8 @@ This folder is the source of truth for what Miniworld does. Every change to beha
 | [milestone-1.md](milestone-1.md) | Detailed spec for milestone 1, Globe and time |
 | [content-format.md](content-format.md) | How content records are written, validated, indexed and fed into the app |
 | [eras.md](eras.md) | Era and empire ranges shown as coloured bands on the timeline |
-| [events.md](events.md) | The first list of world events and how each appears on the globe |
+| [events.md](events.md) | The first list of world events and how each appears on the globe, and natural disasters, epidemics and famines |
+| [wars.md](wars.md) | Major wars and battles, with the famous people who took part |
 | [people.md](people.md) | The first list of famous people |
 
 The spec is written in English. English and German are equal localisations of the app, developed together; translated strings live in the localisation files, not here. The spec started as a Claude Doc draft written with Yang on 2026-10-17. From now on, changes are made here.
