@@ -89,7 +89,7 @@ History enters the app as a curated database of dated, located records; everythi
 | Settlements | Localised name, coordinates, founding date, population over time, landmarks with build dates | Urban history datasets, Wikidata |
 | Polities | Borders at snapshot dates, localised name, colour, capital | historical-basemaps (open GeoJSON of world borders; GPL-3.0, so it needs Yang's decision under section 13), Wikidata (CC0) |
 | Routes | Trade routes, migrations and voyages with date ranges | Curated |
-| Events | Date or range, place, type, localised title and text, how it is shown | Curated; see [events.md](events.md) |
+| Events | Start and end date, optional peak, place, type, localised title and text, how it is shown over its span | Curated; see [events.md](events.md) |
 | Famous people | Life dates, places over their life, role, look, localised text | Wikidata plus curation; see [people.md](people.md) |
 
 **Culture profiles carry the look.** A profile is what makes Egyptian farmers on the Nile look different from Maya farmers in Yucatán: different houses, clothes, crops and tools doing a similar job. A solid first version needs about 40 profiles; later versions add more and split them by period.
@@ -123,6 +123,8 @@ Every event has a type, and each type has one reusable way of showing itself on 
 | Political change | Borders, flags and capital markers change on the overlay; a crowd gathers at the capital | Coronation of Charlemagne, French Revolution |
 | Religion | A temple, church or mosque is built; its style spreads along routes | Spread of Buddhism, Christianity, Islam |
 
+**Events take time.** Every event has a start date and an end date, which are the same for an event of a single day, and may have a peak: the day, years or phase when it is strongest. The span covers everything the globe shows, not just the headline moment: the warning signs before an eruption, the years of cold after it, the later waves of a plague, the centuries a desert takes to spread. Between start and peak the effect builds up, and between peak and end it fades, at the pace the record gives; a slow climate shift changes the land gradually over centuries, while an earthquake starts at full strength. Changes that outlast the event stay in the world after its end, such as a crater lake, a drowned coastline, ruins or a toppled statue. An event that came back in waves, such as plague or cholera, lists its waves as phases, each with its own dates and places.
+
 **Finding events.** Events in progress near the camera show a small floating marker with an icon and the title. Events far away appear on the timeline and in a list "Happening now". Double-clicking any event flies the camera there and, if needed, moves time to its start.
 
 ## 6. People
@@ -142,7 +144,7 @@ The screen is the globe with a timeline along the bottom; everything else stays 
 ### 7.1 Timeline
 
 - A top lane "World" shows global eras as coloured ranges (Paleolithic, Neolithic, Bronze Age and so on). Below it, one lane per world region shows that region's eras and empires as coloured ranges: Europe and Mediterranean, Middle East and North Africa, Sub-Saharan Africa, South Asia, East Asia, Americas, Oceania. Ranges are defined in [eras.md](eras.md).
-- Events sit on the timeline as small icons by type. Hovering or tapping shows the title and date; double-clicking (double-tapping on phones) flies the camera to the place and moves time there.
+- Events sit on the timeline as small icons by type. An event that lasts longer than it takes to watch for a moment shows as a thin bar from start to end, with its icon at the peak and its phases marked on the bar. Hovering or tapping shows the title and date; double-clicking (double-tapping on phones) flies the camera to the place and moves time there.
 - The timeline zooms from the whole of history down to single years. Its axis follows the same rate curve as the clock, so each period is as wide as its watching time. A toggle "True time scale" switches to the true linear scale, where all of written history is a thin sliver at the end.
 - Dragging the playhead scrubs through time. Controls: pause history, freeze everything, and speed from ×¼ to ×16.
 
@@ -240,7 +242,7 @@ flowchart LR
 
 Content will grow to many thousands of records, hundreds of models and a global terrain set, so the app never downloads it all. It loads a small index up front and streams everything else by place, time and language as the viewer moves.
 
-**What loads at startup.** A versioned manifest plus a light index per language: era ranges for the timeline, every event's id, date, type, position and title, and the list of famous people with life dates. This is enough to draw the full timeline and search, and it stays small because it holds no long texts, borders or geometry. Target: the first view of the globe at 50,000 BCE needs at most about 3 MB on a phone.
+**What loads at startup.** A versioned manifest plus a light index per language: era ranges for the timeline, every event's id, start, peak and end dates, type, position and title, and the list of famous people with life dates. This is enough to draw the full timeline and search, and it stays small because it holds no long texts, borders or geometry. Target: the first view of the globe at 50,000 BCE needs at most about 3 MB on a phone.
 
 **Chunks.** Everything else is split into chunks keyed by three things:
 
