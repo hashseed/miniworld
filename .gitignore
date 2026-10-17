@@ -1,0 +1,9 @@
+node_modules/
+dist/
+app/public/data/
+data/out/
+test-results/
+playwright-report/
+perf-report*.json
+*.log
+.DS_Store

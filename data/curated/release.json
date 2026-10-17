@@ -1,0 +1,5 @@
+{
+  "description": "Release facts for the data build. The content cutoff is what the app calls today (spec milestone 1, section 3.1).",
+  "version": "0.1.0",
+  "cutoffDate": "2026-10-17"
+}

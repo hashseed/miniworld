@@ -1,0 +1,8 @@
+node_modules
+dist
+app/public/data
+data/out
+data/sources
+package-lock.json
+docs
+*.md

@@ -1,0 +1,72 @@
+{
+  "description": "Every source dataset the data build reads. Files are kept under data/sources/<id>/ (Git LFS) and checked against these checksums. Licences must meet spec section 13.",
+  "sources": [
+    {
+      "id": "etopo-2022",
+      "title": "ETOPO 2022 Global Relief Model, 60 arc-second bedrock elevation",
+      "role": "elevation",
+      "licence": "CC0-1.0",
+      "citation": "NOAA National Centers for Environmental Information. 2022: ETOPO 2022 15 Arc-Second Global Relief Model. NOAA National Centers for Environmental Information. https://doi.org/10.25921/fd45-gt74",
+      "url": "https://doi.org/10.25921/fd45-gt74",
+      "download": {
+        "url": "https://www.ngdc.noaa.gov/thredds/fileServer/global/ETOPO2022/60s/60s_bed_elev_gtif/ETOPO_2022_v1_60s_N90W180_bed.tif",
+        "files": [
+          "ETOPO_2022_v1_60s_N90W180_bed.tif"
+        ]
+      },
+      "files": []
+    },
+    {
+      "id": "natural-earth",
+      "title": "Natural Earth 1:10m physical vectors, version 5.1.2",
+      "role": "water",
+      "licence": "LicenseRef-Public-Domain",
+      "citation": "Made with Natural Earth. Free vector and raster map data @ naturalearthdata.com.",
+      "url": "https://www.naturalearthdata.com",
+      "download": {
+        "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/",
+        "files": [
+          "ne_10m_lakes.geojson",
+          "ne_10m_rivers_lake_centerlines.geojson",
+          "ne_10m_land.geojson"
+        ]
+      },
+      "files": [
+        {
+          "path": "ne_10m_lakes.geojson",
+          "sha256": "2d036f53dedec578001c5c30c2959ee7d4eebc1306900fa4367c49929ec8f2d9",
+          "bytes": 5043554
+        },
+        {
+          "path": "ne_10m_rivers_lake_centerlines.geojson",
+          "sha256": "bb854a900ecbd3b408df46d5e16e3e0f974ba55993f9d8b5c26e855273c0905a",
+          "bytes": 7307743
+        },
+        {
+          "path": "ne_10m_land.geojson",
+          "sha256": "1ac90796408bc6ad6911d69448485d3c4dbf2190370080368a09976e1c9f7416",
+          "bytes": 10157965
+        },
+        {
+          "path": "LICENSE.md",
+          "sha256": "2631b5b39b6d1acc56de75235109b5af2dbb4b0ac5a127b6f06185977247fd4b",
+          "bytes": 4636
+        }
+      ]
+    },
+    {
+      "id": "paleomist-1.0",
+      "title": "PaleoMIST 1.0: global ice sheet reconstruction for the past 80,000 years",
+      "role": "ice",
+      "licence": "CC-BY-4.0",
+      "citation": "Gowan, E.J., Zhang, X., Khosravi, S., Rovere, A., Stocchi, P., Hughes, A.L.C., Gyllencreutz, R., Mangerud, J., Svendsen, J.-I., Lohmann, G. (2021): A new global ice sheet reconstruction for the past 80 000 years. Nature Communications 12, 1199. Data: https://doi.org/10.1594/PANGAEA.905800",
+      "url": "https://doi.org/10.1594/PANGAEA.905800",
+      "download": {
+        "url": "https://doi.pangaea.de/10.1594/PANGAEA.905800?format=zip",
+        "archive": "zip",
+        "note": "Keep only the 0.25 degree ice thickness grids for every time step and the dataset's readme and licence."
+      },
+      "files": []
+    }
+  ]
+}

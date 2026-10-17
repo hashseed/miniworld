@@ -1,0 +1,9 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`hash > is stable across runs 1`] = `
+[
+  0,
+  1834104592,
+  4132454,
+]
+`;
