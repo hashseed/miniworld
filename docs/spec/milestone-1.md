@@ -43,7 +43,8 @@ app/              the browser app
   messages/       en.json, de.json
 data/
   sources/        copies of the source datasets used, with their licence texts (Git LFS)
-  curated/        hand-curated records, such as eras
+  curated/        hand-curated records, such as eras (format in content-format.md)
+  schema/         one schema per content kind, shared by the data build and the app
   build/          Node scripts for the offline data build
   assets/         asset manifest and approved assets
 dist/             build output (not committed)
@@ -246,7 +247,7 @@ The camera has one fly-to operation used by bookmarks now and by events and famo
 
 ### 7.4 Era data
 
-`data/curated/eras` holds the ranges of [eras.md](eras.md) as records with: id, lane, start and end date (whole days; approximate flags per end), colour, `en` and `de` labels, and a source. The data build validates them like all content (section 10.8) and writes them into the startup index. Events are not shown on the timeline in this milestone.
+`data/curated/eras` holds the ranges of [eras.md](eras.md) as records in the format of [content-format.md](content-format.md): id, lane, `when` (converted to whole days, with approximate flags per end), colour, a source, and a title in `en` and `de`. The data build validates them like all content (section 10.8) and writes them into the startup index. Events are not shown on the timeline in this milestone.
 
 ## 8. Interface shell
 
