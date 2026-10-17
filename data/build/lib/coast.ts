@@ -9,6 +9,7 @@ import {
   OCEAN_SCALE,
   OCEAN_TOP,
 } from '../../../app/src/content/formats.ts';
+import { distanceKm } from './distance.ts';
 import { Grid, type GridData } from './grid.ts';
 import { blurLine, boxRadius } from './simplify.ts';
 
@@ -462,4 +463,20 @@ export function blendPolar(near: Grid, far: Grid): Grid {
     }
   }
   return new Grid(w, h, out);
+}
+
+/**
+ * Distance in km from today's smoothed coast for every cell, 0 at sea and
+ * capped at 255 (section 4.2): the shader lets land rise only as fast as a
+ * rounded clay edge allows near the sea.
+ */
+export function coastDistance(ocean: Grid<Uint16Array>): Uint8Array {
+  const { width: w, height: h } = ocean;
+  const seaBelow = -OCEAN_MIN_LEVEL * OCEAN_SCALE; // field value of today's sea level
+  const sea = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) sea[i] = ocean.data[i]! < seaBelow ? 1 : 0;
+  const d = distanceKm(sea, w, h);
+  const out = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) out[i] = Math.min(255, Math.round(d[i]!));
+  return out;
 }

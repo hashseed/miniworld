@@ -1,18 +1,13 @@
-// Loaded terrain and ice data, and sampling of any quadtree tile from it
+// Loaded terrain data, and sampling of any quadtree tile from it
 // (spec milestone 1, sections 4.2 and 5.2). Tiles below DATA_MAX_LEVEL are
 // refined from their level-6 ancestor by smooth interpolation.
 
 import {
-  decodeIceChunk,
   decodeTerrainTile,
-  ICE_LEVEL,
-  ICE_N,
-  ICE_SAMPLES,
   OCEAN_MIN_LEVEL,
   OCEAN_SCALE,
   TERRAIN_BORDERED,
   TERRAIN_SAMPLES,
-  type IceChunk,
   type TerrainTile,
 } from '../content/formats.ts';
 import type { ContentLoader } from '../content/loader.ts';
@@ -34,7 +29,6 @@ type Slot<T> = T | 'deep' | 'none' | 'loading';
 export class TerrainStore {
   private loader: ContentLoader;
   private terrain = new Map<string, Slot<TerrainTile>>();
-  private ice = new Map<string, Slot<IceChunk>>();
   private wanted = new Map<string, number>(); // url → priority this frame
   /** Incremented whenever new data arrives, so meshes know to rebuild. */
   version = 0;
@@ -86,31 +80,6 @@ export class TerrainStore {
     return this.terrainTile(key.level > max ? ancestorAt(key, max) : key, priority);
   }
 
-  /** Ice chunk for an ice tile and window; 'none' means no ice there. */
-  iceChunk(key: TileKey, window: number, priority: number): IceChunk | 'none' | undefined {
-    const id = `${tileId(key)}:${window}`;
-    const slot = this.ice.get(id);
-    if (slot === 'loading') return undefined;
-    if (slot === 'none' || slot === 'deep') return 'none';
-    if (slot) return slot;
-    const file = this.loader.lookup('ice', key, String(window));
-    if (file === undefined) return undefined;
-    if (file === 'none' || file === 'deep') {
-      this.ice.set(id, 'none');
-      return 'none';
-    }
-    this.ice.set(id, 'loading');
-    void this.loader.fetchChunk(file, priority).then((buf) => {
-      if (!buf) {
-        this.ice.delete(id);
-        return;
-      }
-      this.ice.set(id, decodeIceChunk(buf));
-      this.version++;
-    });
-    return undefined;
-  }
-
   /** Terrain height in metres at a direction from the finest loaded data tile. */
   heightAt(dir: Vec3): number {
     const { face, u, v } = dirToFaceUv(dir);
@@ -151,6 +120,10 @@ export interface TileSamples {
   rivers: Float32Array;
   /** River flow phase as cosine and sine, −1..1, interleaved. */
   flow: Float32Array;
+  /** Smoothed bed under the ice sheets in metres, (TILE_N + 1)². */
+  bed: Float32Array;
+  /** Distance from today's coast in km, 255 meaning far inland, (TILE_N + 1)². */
+  coast: Float32Array;
 }
 
 /**
@@ -166,10 +139,13 @@ export function sampleTile(key: TileKey, source: TerrainTile | 'deep'): TileSamp
   const lake = new Float32Array(S * S);
   const rivers = new Float32Array(S * S);
   const flow = new Float32Array(S * S * 2);
+  const bed = new Float32Array(S * S);
+  const coast = new Float32Array(S * S);
   if (source === 'deep') {
     heights.fill(DEEP_HEIGHT);
     oceanLevel.fill(OCEAN_MIN_LEVEL);
-    return { heights, oceanLevel, lake, rivers, flow };
+    bed.fill(DEEP_HEIGHT);
+    return { heights, oceanLevel, lake, rivers, flow, bed, coast };
   }
   const data = source.key;
   if (data.level === key.level) {
@@ -180,8 +156,10 @@ export function sampleTile(key: TileKey, source: TerrainTile | 'deep'): TileSamp
       rivers[k] = source.rivers[k]! / 255;
       flow[k * 2] = (source.flow[k * 2]! - 128) / 127;
       flow[k * 2 + 1] = (source.flow[k * 2 + 1]! - 128) / 127;
+      bed[k] = source.bed[k]!;
+      coast[k] = source.coast[k]!;
     }
-    return { heights, oceanLevel, lake, rivers, flow };
+    return { heights, oceanLevel, lake, rivers, flow, bed, coast };
   }
   // Deeper tile: map each sample into the ancestor's grid.
   const scale = 1 << (key.level - data.level);
@@ -199,10 +177,12 @@ export function sampleTile(key: TileKey, source: TerrainTile | 'deep'): TileSamp
         rivers[s] = bilinear(source.rivers, S, fi, fj) / 255;
         flow[s * 2] = (bilinear(source.flow, S, fi, fj, 2, 0) - 128) / 127;
         flow[s * 2 + 1] = (bilinear(source.flow, S, fi, fj, 2, 1) - 128) / 127;
+        bed[s] = bilinear(source.bed, S, fi, fj);
+        coast[s] = bilinear(source.coast, S, fi, fj);
       }
     }
   }
-  return { heights, oceanLevel, lake, rivers, flow };
+  return { heights, oceanLevel, lake, rivers, flow, bed, coast };
 }
 
 function bilinear(
@@ -253,18 +233,4 @@ function bicubicBordered(h: Int16Array, fi: number, fj: number): number {
     h[Math.min(B - 1, Math.max(0, r)) * B + Math.min(B - 1, Math.max(0, c))]!;
   const row = (r: number) => catmullRom(at(x1 - 1, r), at(x1, r), at(x1 + 1, r), at(x1 + 2, r), tx);
   return catmullRom(row(y1 - 1), row(y1), row(y1 + 1), row(y1 + 2), ty);
-}
-
-/** Ice thickness at face coordinates from a chunk's slice, bilinear on the ice grid. */
-export function sampleIce(
-  chunk: IceChunk,
-  sliceIndex: number,
-  u: number,
-  v: number,
-  channel: Uint16Array[] = chunk.thickness,
-): number {
-  const n = 1 << ICE_LEVEL;
-  const fi = (((u + 1) / 2) * n - chunk.key.x) * ICE_N;
-  const fj = (((v + 1) / 2) * n - chunk.key.y) * ICE_N;
-  return bilinear(channel[sliceIndex]!, ICE_SAMPLES, fi, fj);
 }

@@ -33,6 +33,10 @@ export interface TerrainInputs {
   /** River flow phase cosine and sine, 128 ± 127. */
   flowCos: Grid<Uint8Array>;
   flowSin: Grid<Uint8Array>;
+  /** Smoothed bed under the ice sheets, in metres (section 5.2). */
+  bed: (lat: number, lon: number) => number;
+  /** Distance from today's smoothed coast in km, 0..255 (section 4.4). */
+  coast: Grid<Uint8Array>;
 }
 
 export function buildTerrainTile(key: TileKey, inputs: TerrainInputs): TerrainTile {
@@ -43,6 +47,8 @@ export function buildTerrainTile(key: TileKey, inputs: TerrainInputs): TerrainTi
   const lakes = new Uint8Array(TERRAIN_SAMPLES * TERRAIN_SAMPLES);
   const rivers = new Uint8Array(TERRAIN_SAMPLES * TERRAIN_SAMPLES);
   const flow = new Uint8Array(TERRAIN_SAMPLES * TERRAIN_SAMPLES * 2);
+  const bed = new Int16Array(TERRAIN_SAMPLES * TERRAIN_SAMPLES);
+  const coast = new Uint8Array(TERRAIN_SAMPLES * TERRAIN_SAMPLES);
   const oceanGrid = inputs.coarseOcean?.get(key.level) ?? inputs.ocean;
   const dir: Vec3 = [0, 0, 0];
   for (let j = -1; j <= TILE_N + 1; j++) {
@@ -62,11 +68,13 @@ export function buildTerrainTile(key: TileKey, inputs: TerrainInputs): TerrainTi
         rivers[s] = Math.round(inputs.rivers.bilinear(lat, lon));
         flow[s * 2] = Math.round(inputs.flowCos.bilinear(lat, lon));
         flow[s * 2 + 1] = Math.round(inputs.flowSin.bilinear(lat, lon));
+        bed[s] = Math.round(inputs.bed(lat, lon));
+        coast[s] = Math.round(inputs.coast.bilinear(lat, lon));
       }
       heights[(j + 1) * TERRAIN_BORDERED + (i + 1)] = Math.max(DEEP_CLAMP, Math.round(height));
     }
   }
-  return { key, heights, ocean, lakes, rivers, flow };
+  return { key, heights, ocean, lakes, rivers, flow, bed, coast };
 }
 
 /** True when a tile is entirely clamped deep ocean, so it needs no file. */

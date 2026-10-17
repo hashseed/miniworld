@@ -21,6 +21,8 @@ export interface Manifest {
   /** Startup index file per language. */
   index: Record<Language, string>;
   layers: Record<string, LayerManifest>;
+  /** Global climate slices (ice and deserts): their days, ascending, and files. */
+  climate: { days: number[]; files: string[] };
 }
 
 export interface LayerManifest {
@@ -66,7 +68,7 @@ export interface StartupIndex {
   eras: EraRecord[];
   watchTable: { startYear: number; stepYears: number; seconds: number[] };
   seaLevel: { startDay: number; stepDays: number; metres: number[] };
-  /** Days of the ice reconstruction's time slices, ascending. */
+  /** Days of the climate slices (ice and deserts), ascending, as in the manifest. */
   iceSlices: number[];
   regions: { cols: number; rows: number; lanes: string[]; cells: string };
   sources: SourceInfo[];

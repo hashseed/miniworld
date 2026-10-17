@@ -120,6 +120,8 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 1, 1e5);
 const loader = new ContentLoader('data/');
 const globe = new Globe(loader);
+// Climate slices go to the graphics card as they arrive, so scrubbing never waits on an upload.
+globe.climate.onTexture = (texture) => renderer.initTexture(texture);
 const sky = new Sky();
 const clouds = new Clouds();
 scene.add(sky.dome, globe.group, clouds.mesh);

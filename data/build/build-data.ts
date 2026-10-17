@@ -9,7 +9,9 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  encodeIceChunk,
+  ARID_GRID_H,
+  ARID_GRID_W,
+  encodeClimateSlice,
   encodeTerrainTile,
   OCEAN_MIN_LEVEL,
   OCEAN_NEVER,
@@ -28,15 +30,15 @@ import { dayFromContinuousYear } from '../../app/src/time/calendar.ts';
 import { erasForLanguage, validateEras, type CuratedEras } from './lib/eras.ts';
 import { fixtureElevation } from './lib/fixture.ts';
 import { Grid, GridPyramid } from './lib/grid.ts';
+import { climateStepYears, iceGrid, seaLevelCurve, sliceDay } from './lib/ice.ts';
 import {
-  iceChunksForTile,
-  iceStepYears,
-  iceTileKeys,
-  iceTilePoints,
-  seaLevelCurve,
-  sliceDay,
-} from './lib/ice.ts';
-import { aridity, iceThickness, meanSeaLevel, TimeStack } from './lib/climate.ts';
+  aridityGrid,
+  iceThickness,
+  meanSeaLevel,
+  TimeStack,
+  validateHumidPeriods,
+  type HumidPeriod,
+} from './lib/climate.ts';
 import { readExtract } from './lib/extract.ts';
 import { checkLicences, type SourceEntry } from './lib/licence.ts';
 import { floodInlandSeas, INLAND_SEAS, oceanConnection } from './lib/ocean.ts';
@@ -56,6 +58,7 @@ import {
   smoothLakes,
   smoothOcean,
   coarseOcean,
+  coastDistance,
   joinInlandSeas,
   COARSE_MIN_SPACING_KM,
   validateIslands,
@@ -88,7 +91,7 @@ const POLAR_SMOOTHING_KM = 150;
 const AMAZON_BASIN: [number, number, number, number] = [-80, -20, -45, 6];
 const RIVERS: RiverPick[] = [
   ...['Nile', 'Rosetta Branch', 'Damietta Branch'],
-  ...['El Bahr el Abyad', 'Bahr el Jebel', 'Albert Nile', 'Victoria Nile', 'El Bahr el Azraq'],
+  ...['El Bahr el Abyad', 'El Bahr el Azraq'],
   ...['Euphrates', 'Firat', 'Al Furat', 'Tigris', 'Dicle', 'Shatt al Arab'],
   ...['Indus', 'Ganges', 'Huang', 'Yangtze', 'Chang Jiang', 'Mekong'],
   ...['Danube', 'Donau', 'Bratul Chillia', 'Bratul Sulina', 'Bratul Sfintu Gheorghe'],
@@ -99,6 +102,8 @@ RIVERS.push({ name: 'Negro', box: AMAZON_BASIN });
 // The Blue Nile up to Lake Tana.
 RIVERS.push({ name: 'Abay', box: [33, 9, 39, 12.5] });
 const MAX_LAKE_RANK = 4;
+/** Grid spacing (degrees) of the smoothed bed under the ice sheets. */
+const ICE_BED_SPACING_DEG = 0.5;
 const MIN_LAKE_KM2 = 3000;
 
 const args = process.argv.slice(2);
@@ -204,7 +209,11 @@ const keptIslands = JSON.parse(readFileSync(join(ROOT, 'data/curated/islands.jso
 const removedAreas = JSON.parse(
   readFileSync(join(ROOT, 'data/curated/removed-areas.json'), 'utf8'),
 ) as { areas: RemovedArea[] };
+const humid = JSON.parse(readFileSync(join(ROOT, 'data/curated/humid-periods.json'), 'utf8')) as {
+  periods: HumidPeriod[];
+};
 const mapErrors = [
+  ...validateHumidPeriods(humid.periods),
   ...validateStraits(straits.straits),
   ...validateIslands(keptIslands.islands),
   ...validateRemovedAreas(removedAreas.areas),
@@ -223,6 +232,10 @@ log(
     `${islands.removed} small islands removed, ${islands.grown} enlarged`,
 );
 const pyramid = new GridPyramid(elevation);
+// The ice sheets stand on a heavily smoothed bed, the same in the terrain
+// tiles and in the ice thickness, so their surface is smooth (section 5.2).
+const bedGrid = pyramid.forSpacing(ICE_BED_SPACING_DEG);
+const iceBed = (lat: number, lon: number) => Math.max(0, bedGrid.bilinear(lat, lon));
 
 // The ocean mask floods the unsmoothed elevation with the straits carved to
 // their sills, then smooths the result into the coast (section 5.1).
@@ -252,6 +265,7 @@ const lakeCount = rasterizeLakes(
 floodInlandSeas(conn, INLAND_SEAS, (i, level) => (lakeLevel.data[i] = level));
 const lakes = new Grid(conn.width, conn.height, smoothLakes(lakeLevel, NO_LAKE));
 joinInlandSeas(ocean.data, connection, lakes.data);
+const coast = new Grid(conn.width, conn.height, coastDistance(ocean));
 const rivers = new Grid(conn.width, conn.height, new Uint8Array(conn.width * conn.height));
 const riverContext = {
   ocean: connection.data,
@@ -312,6 +326,8 @@ for (const key of allTileKeys(maxLevel)) {
     rivers,
     flowCos,
     flowSin,
+    bed: iceBed,
+    coast,
   });
   const target = place(terrain, key);
   const path = tilePath(key);
@@ -341,31 +357,25 @@ const seaPoints = meanSeaLevel(stack('paleomist-1.0', 'sea_level'), (lat, lon) =
   return v !== OCEAN_NEVER && OCEAN_MIN_LEVEL + v <= 0;
 });
 const seaLevel = seaLevelCurve(seaPoints, TIMELINE_START, cutoffDay);
-const iceYears = iceStepYears(TIMELINE_START);
-const iceDays = iceYears.map(sliceDay); // ascending, as the years descend
-const ice = newLayer();
-let iceChunks = 0;
-for (const key of iceTileKeys()) {
-  const { lats, lons } = iceTilePoints(key);
-  const samples = iceYears.map((bp) =>
-    iceThickness(iceStack, lats, lons, bp, {
-      bed: (lat, lon) => Math.max(0, elevation.bilinear(lat, lon)),
-      weight: polarWeight,
-    }),
-  );
-  const dryness = iceYears.map((bp) => aridity(precipitation, lats, lons, bp));
-  for (const [w, chunk] of iceChunksForTile(key, iceDays, samples, dryness, windows, cutoffDay)) {
-    const path = tilePath(key);
-    place(ice, key).chunks[chunkKey(path, String(w), 'xx')] = output.write(
-      `ice/${path}/${w}`,
-      'bin',
-      encodeIceChunk(chunk),
-    );
-    iceChunks++;
-  }
+// One global climate slice per step of the climate data (section 5.2): the
+// ice cover as a smoothed border distance, and the aridity with the humid
+// periods the data misses (section 4.3).
+const climateYears = climateStepYears(precipitation.yearsBP, TIMELINE_START);
+const iceDays = climateYears.map(sliceDay); // ascending, as the years descend
+const climateFiles: string[] = [];
+for (const bp of climateYears) {
+  const slice = {
+    day: sliceDay(bp),
+    ice: iceGrid((lats, lons) =>
+      iceThickness(iceStack, lats, lons, bp, { bed: iceBed, weight: polarWeight }),
+    ),
+    aridity: aridityGrid(precipitation, humid.periods, ARID_GRID_W, ARID_GRID_H, bp),
+  };
+  climateFiles.push(output.write(`climate/${bp}`, 'bin', encodeClimateSlice(slice)));
 }
+const climateBytes = climateFiles.reduce((n, f) => n + (output.sizes.get(f) ?? 0), 0);
 log(
-  `${iceChunks} ice chunks from ${iceYears.length} steps; lowest sea level ${Math.min(...seaLevel.metres)} m`,
+  `${climateFiles.length} climate slices, ${(climateBytes / 1000).toFixed(0)} KB Brotli; lowest sea level ${Math.min(...seaLevel.metres)} m`,
 );
 
 // --- Index and manifest ---------------------------------------------------------
@@ -415,8 +425,8 @@ const manifest: Manifest = {
   index,
   layers: {
     terrain: finishLayer('terrain', terrain, 0, maxLevel, false),
-    ice: finishLayer('ice', ice, 3, 3, true),
   },
+  climate: { days: iceDays, files: climateFiles },
 };
 output.writeNamed('manifest.json', new TextEncoder().encode(JSON.stringify(manifest)));
 

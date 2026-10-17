@@ -114,22 +114,6 @@
       "source": "Encyclopaedia Britannica, Saint Helena: https://www.britannica.com/place/Saint-Helena-island-South-Atlantic-Ocean"
     },
     {
-      "id": "san-salvador",
-      "name": "San Salvador (Bahamas)",
-      "lat": 24.05,
-      "lon": -74.5,
-      "reason": "Columbus's first landfall, 1492",
-      "source": "Encyclopaedia Britannica, San Salvador: https://www.britannica.com/place/San-Salvador-island-Bahamas"
-    },
-    {
-      "id": "bermuda",
-      "name": "Bermuda",
-      "lat": 32.3,
-      "lon": -64.78,
-      "reason": "English colony from 1612",
-      "source": "Encyclopaedia Britannica, Bermuda: https://www.britannica.com/place/Bermuda"
-    },
-    {
       "id": "rapa-nui",
       "name": "Rapa Nui (Easter Island)",
       "lat": -27.12,
@@ -192,6 +176,22 @@
       "source": "Encyclopaedia Britannica, Kauai: https://www.britannica.com/place/Kauai",
       "lat": 22.05,
       "lon": -159.5
+    },
+    {
+      "id": "galapagos-isabela",
+      "name": "Isabela (Galápagos)",
+      "reason": "Galápagos Islands: Charles Darwin's visit on HMS Beagle, 1835",
+      "source": "Encyclopaedia Britannica, Galapagos Islands: https://www.britannica.com/place/Galapagos-Islands",
+      "lat": -0.6,
+      "lon": -91.2
+    },
+    {
+      "id": "galapagos-san-cristobal",
+      "name": "San Cristóbal (Galápagos)",
+      "reason": "Darwin's first landing in the Galápagos, 1835",
+      "source": "Encyclopaedia Britannica, Galapagos Islands: https://www.britannica.com/place/Galapagos-Islands",
+      "lat": -0.85,
+      "lon": -89.45
     }
   ]
 }

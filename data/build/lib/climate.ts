@@ -3,6 +3,7 @@
 // Beyer, Krapp and Manica 2020 for precipitation. Both are stacks of global
 // grids over time, read from the extracts under data/sources/.
 
+import { ARIDITY_LEVELS } from '../../../app/src/content/formats.ts';
 import type { ExtractData, ExtractHeader } from './extract.ts';
 
 /** A stack of global grids over time, sampled bilinearly in space and linearly in time. */
@@ -147,7 +148,11 @@ export function iceThickness(
       // edges the thickness itself is averaged so the border is smooth.
       const smooth =
         mean > 300 ? Math.max(mean * 0.25, surfaceSum / iceTaps - smoothing.bed(lat, lon)) : mean;
-      m = m * (1 - w) + smooth * w;
+      // Towards the margin the sheet thins to nothing, like a dome, instead
+      // of ending in a wall: by the share of the disc that holds ice.
+      const share = iceTaps / taps.length;
+      const taper = Math.min(1, Math.max(0, (share - 0.2) / 0.7));
+      m = m * (1 - w) + smooth * taper * (3 - 2 * taper) * taper * w;
       // Antarctica's coast is almost all ice: ice reaches the shore wherever
       // the disc holds any, so no strip of bare land is left around it.
       if (lat < ANTARCTIC_LAT && iceTaps > 0 && smoothing.bed(lat, lon) > 0) m = Math.max(m, 150);
@@ -160,23 +165,6 @@ export function iceThickness(
 /** Precipitation (mm a year) for no desert, and for full desert (section 4.3). */
 export const GREEN_MM = 600;
 export const DESERT_MM = 100;
-
-/** Aridity 0..1000 at each point and date from the annual precipitation (section 4.3). */
-export function aridity(
-  precipitation: TimeStack,
-  lats: Float64Array,
-  lons: Float64Array,
-  yearsBP: number,
-): Uint16Array {
-  const out = new Uint16Array(lats.length);
-  for (let k = 0; k < lats.length; k++) {
-    const mm = precipitation.sample(lats[k]!, lons[k]!, yearsBP);
-    if (mm === undefined) continue;
-    const a = (GREEN_MM - mm) / (GREEN_MM - DESERT_MM);
-    out[k] = Math.round(Math.max(0, Math.min(1, a)) * 1000);
-  }
-  return out;
-}
 
 /**
  * Global mean sea level (m) at each layer of the relative sea level stack:
@@ -214,4 +202,117 @@ export function meanSeaLevel(
     points.push([bp, Math.round((sum / total) * 10) / 10]);
   });
   return points;
+}
+
+/** A wet phase the climate data misses, from data/curated/humid-periods.json (section 4.3). */
+export interface HumidPeriod {
+  id: string;
+  name: string;
+  region: { west: number; south: number; east: number; north: number };
+  featherDegrees: number;
+  /** [latitude, minimum precipitation in mm], ascending latitude. */
+  profile: [number, number][];
+  /** [years BP, strength 0..1], descending years. */
+  strength: [number, number][];
+  sources: string[];
+}
+
+function piecewise(points: [number, number][], x: number): number {
+  const p = [...points].sort((a, b) => a[0] - b[0]);
+  if (x <= p[0]![0]) return p[0]![1];
+  if (x >= p[p.length - 1]![0]) return p[p.length - 1]![1];
+  let k = 0;
+  while (p[k + 1]![0] < x) k++;
+  const [x0, y0] = p[k]!;
+  const [x1, y1] = p[k + 1]!;
+  return y0 + ((y1 - y0) * (x - x0)) / (x1 - x0);
+}
+
+/** Minimum precipitation (mm) the humid periods give a point at a date, or 0. */
+export function humidMinimum(
+  periods: HumidPeriod[],
+  lat: number,
+  lon: number,
+  yearsBP: number,
+): number {
+  let best = 0;
+  for (const p of periods) {
+    const s = piecewise(p.strength, yearsBP);
+    if (s <= 0) continue;
+    const { west, south, east, north } = p.region;
+    const out = Math.max(west - lon, lon - east, south - lat, lat - north, 0);
+    const w = 1 - Math.min(1, out / p.featherDegrees);
+    if (w <= 0) continue;
+    best = Math.max(best, piecewise(p.profile, lat) * s * w);
+  }
+  return best;
+}
+
+export function validateHumidPeriods(periods: HumidPeriod[]): string[] {
+  const errors: string[] = [];
+  for (const p of periods) {
+    if (p.sources.length === 0) errors.push(`${p.id}: no source`);
+    if (p.strength.some(([, s]) => s < 0 || s > 1)) errors.push(`${p.id}: strength outside 0..1`);
+    if (p.profile.length < 2 || p.strength.length < 2) errors.push(`${p.id}: too few points`);
+  }
+  return errors;
+}
+
+/**
+ * Aridity 0..255 in ARIDITY_LEVELS steps on a global grid at a date
+ * (section 4.3): from the annual precipitation raised by the humid periods.
+ * Cells without data (the sea of the time, and south of the dataset) take
+ * the nearest land's value, so coasts are not greened by the sea.
+ */
+export function aridityGrid(
+  precipitation: TimeStack,
+  periods: HumidPeriod[],
+  w: number,
+  h: number,
+  yearsBP: number,
+): Uint8Array {
+  const value = new Float32Array(w * h).fill(NaN);
+  for (let r = 0; r < h; r++) {
+    const lat = 90 - ((r + 0.5) * 180) / h;
+    for (let c = 0; c < w; c++) {
+      const lon = -180 + ((c + 0.5) * 360) / w;
+      let mm = precipitation.sample(lat, lon, yearsBP);
+      if (mm === undefined) continue;
+      mm = Math.max(mm, humidMinimum(periods, lat, lon, yearsBP));
+      value[r * w + c] = Math.max(0, Math.min(1, (GREEN_MM - mm) / (GREEN_MM - DESERT_MM)));
+    }
+  }
+  // Spread land values outwards a few cells, then fill the rest with green.
+  for (let pass = 0; pass < 4; pass++) {
+    const next = value.slice();
+    for (let r = 0; r < h; r++)
+      for (let c = 0; c < w; c++) {
+        const i = r * w + c;
+        if (!Number.isNaN(value[i]!)) continue;
+        let sum = 0;
+        let n = 0;
+        for (const [dc, dr] of [
+          [1, 0],
+          [-1, 0],
+          [0, 1],
+          [0, -1],
+        ] as const) {
+          const rr = r + dr;
+          if (rr < 0 || rr >= h) continue;
+          const v = value[rr * w + ((c + dc + w) % w)]!;
+          if (Number.isNaN(v)) continue;
+          sum += v;
+          n++;
+        }
+        if (n > 0) next[i] = sum / n;
+      }
+    value.set(next);
+  }
+  const out = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) {
+    const v = value[i]!;
+    const level = Number.isNaN(v) ? 0 : Math.round(v * (ARIDITY_LEVELS - 1));
+    out[i] = Math.round((level * 255) / (ARIDITY_LEVELS - 1));
+  }
+  return out;
 }
