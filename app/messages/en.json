@@ -54,7 +54,7 @@
   "about.sources": "Where the data comes from",
   "about.licence": "Licence: {licence}",
   "about.simplifications": "What this model simplifies",
-  "about.simplification.climate": "The colours of the land follow a rough climate pattern that changes with the ice age. Real forests, deserts and grasslands were more varied, and the green Sahara is not shown yet.",
+  "about.simplification.climate": "The colours of the land follow a rough climate pattern that changes with the ice age, and the big deserts grow and shrink in a rough model: larger in the ice age, and a green Sahara with lakes from about 9000 to 3500 BCE. Real forests, deserts and grasslands were more varied.",
   "about.simplification.land": "The land is shaped as it is today. In the ice age, the heavy ice pressed the land down, and it slowly rose again afterwards. That is not shown.",
   "about.simplification.lakes": "Lakes that no longer exist, like the huge Lake Agassiz in North America, are not shown. The Black Sea and the Caspian Sea are always shown at today's level.",
   "about.simplification.ice": "The ice sheets are a rough estimate drawn by hand from what scientists know about when the ice ages began and ended and how far the ice reached. The real edges were more ragged.",

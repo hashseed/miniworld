@@ -12,20 +12,31 @@ interface Reference {
   url: string;
 }
 
-export interface IceSheet {
+/** An outline that grows and shrinks around its centre over time. */
+export interface Shape {
   id: string;
   name: { en: string; de: string };
   source: string;
-  /** [latitude, longitude] the sheet shrinks towards. */
+  /** [latitude, longitude] the shape shrinks towards. */
   centre: [number, number];
-  /** Central thickness in metres at size 1. */
-  maxThickness: number;
-  /** Ice only lies where the bedrock is above this height in metres. */
-  minBed: number;
   /** [latitude, longitude] points of the extent at size 1, ordered around the centre. */
   outline: [number, number][];
   /** [years before present, size] control points. */
   size: [number, number][];
+}
+
+export interface IceSheet extends Shape {
+  /** Central thickness in metres at size 1. */
+  maxThickness: number;
+  /** Ice only lies where the bedrock is above this height in metres. */
+  minBed: number;
+}
+
+/** Rough model of the big deserts and their wet and dry phases (section 4.3). */
+export interface DesertModel {
+  description: string;
+  sources: Record<string, Reference>;
+  deserts: Shape[];
 }
 
 export interface IceAgeModel {
@@ -42,6 +53,23 @@ export function sliceDay(yearsBP: number): number {
   return dayFromDate(1950 - yearsBP, 1, 1);
 }
 
+/** Problems with a desert model file; empty when it is valid. */
+export function validateDesertModel(model: DesertModel): string[] {
+  const errors: string[] = [];
+  for (const s of model.deserts) errors.push(...validateShape(s, model.sources));
+  return errors;
+}
+
+function validateShape(s: Shape, sources: Record<string, Reference>): string[] {
+  const errors: string[] = [];
+  if (!sources[s.source]) errors.push(`${s.id}: unknown source ${s.source}`);
+  if (!s.name.en || !s.name.de) errors.push(`${s.id}: needs en and de names`);
+  if (s.outline.length < 3) errors.push(`${s.id}: outline needs at least 3 points`);
+  for (let i = 1; i < s.size.length; i++)
+    if (s.size[i]![0] >= s.size[i - 1]![0]) errors.push(`${s.id}: size years must descend`);
+  return errors;
+}
+
 /** Problems with the model file; empty when it is valid. */
 export function validateIceModel(model: IceAgeModel): string[] {
   const errors: string[] = [];
@@ -52,13 +80,7 @@ export function validateIceModel(model: IceAgeModel): string[] {
   const pts = model.seaLevel.points;
   for (let i = 1; i < pts.length; i++)
     if (pts[i]![0] >= pts[i - 1]![0]) errors.push('sea level: years must descend');
-  for (const s of model.sheets) {
-    known(s.source, s.id);
-    if (!s.name.en || !s.name.de) errors.push(`${s.id}: needs en and de names`);
-    if (s.outline.length < 3) errors.push(`${s.id}: outline needs at least 3 points`);
-    for (let i = 1; i < s.size.length; i++)
-      if (s.size[i]![0] >= s.size[i - 1]![0]) errors.push(`${s.id}: size years must descend`);
-  }
+  for (const s of model.sheets) errors.push(...validateShape(s, model.sources));
   return errors;
 }
 
@@ -120,7 +142,7 @@ export function seaLevelCurve(
 }
 
 /** Size of a sheet at a date, linear between its control points. */
-export function sheetSize(sheet: IceSheet, yearsBP: number): number {
+export function sheetSize(sheet: Shape, yearsBP: number): number {
   const p = sheet.size;
   if (yearsBP >= p[0]![0]) return p[0]![1];
   for (let i = 1; i < p.length; i++) {
@@ -149,8 +171,11 @@ function polar(lat0: number, lon0: number, lat: number, lon: number): [number, n
   return [d, bearing];
 }
 
-/** The outline as a radius per bearing, interpolated linearly between its points. */
-function outlineRadius(sheet: IceSheet): (bearing: number) => number {
+/**
+ * The outline as a radius per bearing, interpolated with a periodic
+ * Catmull-Rom spline between its points so the border is a smooth curve.
+ */
+function outlineRadius(sheet: Shape): (bearing: number) => number {
   const [lat0, lon0] = sheet.centre;
   const pts = sheet.outline
     .map(([lat, lon]) => {
@@ -158,16 +183,94 @@ function outlineRadius(sheet: IceSheet): (bearing: number) => number {
       return { b, d };
     })
     .sort((a, b) => a.b - b.b);
+  const n = pts.length;
+  const at = (i: number) => pts[((i % n) + n) % n]!.d;
   return (bearing: number) => {
     const k = pts.findIndex((p) => p.b > bearing);
-    const hi = k < 0 ? pts[0]! : pts[k]!;
-    const lo = k <= 0 ? pts[pts.length - 1]! : pts[k - 1]!;
+    const i = k <= 0 ? n - 1 : k - 1; // segment from point i to point i + 1
+    const lo = pts[i]!;
+    const hi = pts[(i + 1) % n]!;
     let span = hi.b - lo.b;
     let off = bearing - lo.b;
     if (span <= 0) span += 2 * Math.PI;
     if (off < 0) off += 2 * Math.PI;
-    return lo.d + (hi.d - lo.d) * (off / span);
+    const t = off / span;
+    const p0 = at(i - 1);
+    const p1 = lo.d;
+    const p2 = hi.d;
+    const p3 = at(i + 2);
+    const t2 = t * t;
+    const r =
+      0.5 *
+      (2 * p1 +
+        (p2 - p0) * t +
+        (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
+        (3 * p1 - p0 - 3 * p2 + p3) * t2 * t);
+    return Math.max(r, 0.25 * Math.min(p1, p2));
   };
+}
+
+/**
+ * For each point, its distance from the shape's centre as a fraction of the
+ * outline, with seeded edge noise scaled by noiseScale; Infinity where the
+ * point is far outside or `keep` rejects it.
+ */
+function shapeRho(
+  shape: Shape,
+  lats: Float64Array,
+  lons: Float64Array,
+  seed: number,
+  noiseScale: number,
+  keep: (lat: number, lon: number) => boolean,
+): Float32Array {
+  const radius = outlineRadius(shape);
+  const [lat0, lon0] = shape.centre;
+  const out = new Float32Array(lats.length);
+  for (let i = 0; i < lats.length; i++) {
+    const [d, b] = polar(lat0, lon0, lats[i]!, lons[i]!);
+    const r = d / radius(b);
+    if (r > 1.6 || !keep(lats[i]!, lons[i]!)) {
+      out[i] = Infinity;
+      continue;
+    }
+    // Noise in the shape's own plane so it is continuous across the date line.
+    const x = (d / RAD) * Math.cos(b);
+    const y = (d / RAD) * Math.sin(b);
+    const n =
+      (valueNoise(x / 2.5, y / 2.5, seed) - 0.5) * 0.16 +
+      (valueNoise(x / 0.8, y / 0.8, seed + 101) - 0.5) * 0.06;
+    out[i] = r * (1 + n * noiseScale);
+  }
+  return out;
+}
+
+/** Aridity of the desert model at a set of points: 0 green, 1000 full desert. */
+export class DesertField {
+  private readonly model: DesertModel;
+  private readonly rho: Float32Array[];
+
+  constructor(model: DesertModel, lats: Float64Array, lons: Float64Array) {
+    this.model = model;
+    this.rho = model.deserts.map((d, k) => shapeRho(d, lats, lons, 501 + k, 2, () => true));
+  }
+
+  aridity(yearsBP: number): Uint16Array {
+    const out = new Uint16Array(this.rho[0]?.length ?? 0);
+    this.model.deserts.forEach((desert, k) => {
+      const size = sheetSize(desert, yearsBP);
+      if (size <= 0) return;
+      const rho = this.rho[k]!;
+      for (let i = 0; i < rho.length; i++) {
+        const x = rho[i]! / size;
+        if (x >= 1) continue;
+        // Full desert inside, fading to green over the outer third.
+        const e = Math.min(1, (1 - x) / 0.35);
+        const a = Math.round(1000 * e * e * (3 - 2 * e));
+        if (a > out[i]!) out[i] = a;
+      }
+    });
+    return out;
+  }
 }
 
 /**
@@ -186,27 +289,9 @@ export class IceField {
     bed: (lat: number, lon: number) => number,
   ) {
     this.model = model;
-    this.rho = model.sheets.map((sheet, s) => {
-      const radius = outlineRadius(sheet);
-      const [lat0, lon0] = sheet.centre;
-      const out = new Float32Array(lats.length);
-      for (let i = 0; i < lats.length; i++) {
-        const [d, b] = polar(lat0, lon0, lats[i]!, lons[i]!);
-        const r = d / radius(b);
-        if (r > 1.6 || bed(lats[i]!, lons[i]!) < sheet.minBed) {
-          out[i] = Infinity;
-          continue;
-        }
-        // Noise in the sheet's own plane so it is continuous across the date line.
-        const x = (d / RAD) * Math.cos(b);
-        const y = (d / RAD) * Math.sin(b);
-        const n =
-          (valueNoise(x / 2.5, y / 2.5, 101 + s) - 0.5) * 0.16 +
-          (valueNoise(x / 0.8, y / 0.8, 202 + s) - 0.5) * 0.06;
-        out[i] = r * (1 + n);
-      }
-      return out;
-    });
+    this.rho = model.sheets.map((sheet, s) =>
+      shapeRho(sheet, lats, lons, 101 + s, 1, (lat, lon) => bed(lat, lon) >= sheet.minBed),
+    );
   }
 
   /** Ice thickness in whole metres at every point at a date. */
@@ -276,6 +361,7 @@ export function iceChunksForTile(
   key: TileKey,
   days: number[],
   samples: Uint16Array[],
+  aridity: Uint16Array[],
   windows: number[],
   endDay: number,
 ): Map<number, IceChunk> {
@@ -288,13 +374,15 @@ export function iceChunksForTile(
     first = Math.max(0, first - 1);
     let last = days.findIndex((d) => d >= end);
     if (last < 0) last = days.length - 1;
-    const picked = [];
+    const picked: number[] = [];
     for (let k = first; k <= last; k++) picked.push(k);
-    if (picked.every((k) => samples[k]!.every((t) => t === 0))) continue;
+    const empty = (a: Uint16Array[]) => picked.every((k) => a[k]!.every((t) => t === 0));
+    if (empty(samples) && empty(aridity)) continue;
     result.set(w, {
       key,
       days: picked.map((k) => days[k]!),
       thickness: picked.map((k) => samples[k]!),
+      aridity: picked.map((k) => aridity[k]!),
     });
   }
   return result;

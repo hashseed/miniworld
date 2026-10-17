@@ -1,13 +1,16 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
+  DesertField,
   IceField,
   iceStepYears,
   monotoneCubic,
   seaLevelCurve,
   sheetSize,
   sliceDay,
+  validateDesertModel,
   validateIceModel,
+  type DesertModel,
   type IceAgeModel,
 } from './ice.ts';
 
@@ -80,5 +83,27 @@ describe('monotone cubic', () => {
       expect(y).toBeLessThanOrEqual(0);
       prev = y;
     }
+  });
+});
+
+describe('desert model', () => {
+  const deserts = JSON.parse(
+    readFileSync(new URL('../../curated/deserts.json', import.meta.url), 'utf8'),
+  ) as DesertModel;
+  const aridityAt = (lat: number, lon: number, yearsBP: number) =>
+    new DesertField(deserts, Float64Array.of(lat), Float64Array.of(lon)).aridity(yearsBP)[0]!;
+
+  it('is valid', () => {
+    expect(validateDesertModel(deserts)).toEqual([]);
+  });
+
+  it('has a dry Sahara in the ice age and today, and a green one at 6000 BCE', () => {
+    expect(aridityAt(21, 10, 20000)).toBe(1000);
+    expect(aridityAt(21, 10, 0)).toBe(1000);
+    expect(aridityAt(21, 10, 7950)).toBeLessThan(300);
+  });
+
+  it('reaches further south in the ice age', () => {
+    expect(aridityAt(14.5, 10, 20000)).toBeGreaterThan(aridityAt(14.5, 10, 0));
   });
 });

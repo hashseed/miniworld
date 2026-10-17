@@ -24,6 +24,7 @@ import { erasForLanguage, validateEras, type CuratedEras } from './lib/eras.ts';
 import { fixtureElevation } from './lib/fixture.ts';
 import { Grid, GridPyramid, type GridData } from './lib/grid.ts';
 import {
+  DesertField,
   IceField,
   iceChunksForTile,
   iceStepYears,
@@ -31,7 +32,9 @@ import {
   iceTilePoints,
   seaLevelCurve,
   sliceDay,
+  validateDesertModel,
   validateIceModel,
+  type DesertModel,
   type IceAgeModel,
 } from './lib/ice.ts';
 import { checkLicences, type SourceEntry } from './lib/licence.ts';
@@ -52,8 +55,12 @@ export const WINDOW_SECONDS = 600;
 const PART_LEVEL = 2;
 /** Simplified map (spec milestone 1, section 4.2). */
 const SMOOTHING_KM = 25;
-const MAX_RIVER_RANK = 5;
+// Only the major rivers (decided by Yang on 2026-10-17): Natural Earth scale
+// rank 3 or lower, plus the Tigris and Rhine, which history needs.
+const MAX_RIVER_RANK = 3;
+const EXTRA_RIVERS = new Set(['Tigris', 'Dicle', 'Rhine', 'Rhein', 'Rhin', 'Waal']);
 const MAX_LAKE_RANK = 4;
+const MIN_LAKE_KM2 = 3000;
 
 const args = process.argv.slice(2);
 const useFixture = args.includes('--fixture');
@@ -161,7 +168,13 @@ const lakeLevel = new Grid(
   conn.height,
   new Int16Array(conn.width * conn.height).fill(NO_LAKE),
 );
-const lakes = rasterizeLakes(conn, neFile('ne_10m_lakes.geojson'), lakeLevel.data, MAX_LAKE_RANK);
+const lakes = rasterizeLakes(
+  conn,
+  neFile('ne_10m_lakes.geojson'),
+  lakeLevel.data,
+  MAX_LAKE_RANK,
+  MIN_LAKE_KM2,
+);
 floodInlandSeas(conn, INLAND_SEAS, (i, level) => (lakeLevel.data[i] = level));
 const rivers = new Grid(conn.width, conn.height, new Uint8Array(conn.width * conn.height));
 const riverCount = rasterizeRivers(
@@ -169,6 +182,7 @@ const riverCount = rasterizeRivers(
   neFile('ne_10m_rivers_lake_centerlines.geojson'),
   rivers.data,
   MAX_RIVER_RANK,
+  EXTRA_RIVERS,
 );
 log(`${lakes} lakes, ${riverCount} river lines`);
 
@@ -211,7 +225,10 @@ log(`${tileCount} terrain tiles`);
 const iceModel = JSON.parse(
   readFileSync(join(ROOT, 'data/curated/ice-age.json'), 'utf8'),
 ) as IceAgeModel;
-const iceErrors = validateIceModel(iceModel);
+const desertModel = JSON.parse(
+  readFileSync(join(ROOT, 'data/curated/deserts.json'), 'utf8'),
+) as DesertModel;
+const iceErrors = [...validateIceModel(iceModel), ...validateDesertModel(desertModel)];
 if (iceErrors.length) fail(iceErrors.join('\n'));
 const seaLevel = seaLevelCurve(iceModel, TIMELINE_START, cutoffDay);
 const iceYears = iceStepYears(TIMELINE_START);
@@ -223,7 +240,9 @@ for (const key of iceTileKeys()) {
   const { lats, lons } = iceTilePoints(key);
   const field = new IceField(iceModel, lats, lons, bed);
   const samples = iceYears.map((bp) => field.thickness(bp));
-  for (const [w, chunk] of iceChunksForTile(key, iceDays, samples, windows, cutoffDay)) {
+  const deserts = new DesertField(desertModel, lats, lons);
+  const aridity = iceYears.map((bp) => deserts.aridity(bp));
+  for (const [w, chunk] of iceChunksForTile(key, iceDays, samples, aridity, windows, cutoffDay)) {
     const path = tilePath(key);
     place(ice, key).chunks[chunkKey(path, String(w), 'xx')] = output.write(
       `ice/${path}/${w}`,
@@ -243,11 +262,11 @@ const sources: SourceInfo[] = registry.sources
   .filter((s) => (fixture ? s.id === 'natural-earth' : true))
   .map((s) => ({ id: s.id, title: s.title, licence: s.licence, citation: s.citation, url: s.url }))
   .concat(
-    Object.entries(iceModel.sources).map(([id, r]) => ({
+    Object.entries({ ...iceModel.sources, ...desertModel.sources }).map(([id, r]) => ({
       id,
       title: r.title,
       licence: 'reference',
-      citation: `${r.publisher}: ${r.title} (reference for the rough ice-age model)`,
+      citation: `${r.publisher}: ${r.title} (reference for the rough ice-age and desert models)`,
       url: r.url,
     })),
   );

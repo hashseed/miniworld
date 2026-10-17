@@ -73,14 +73,16 @@ export interface IceChunk {
   days: number[];
   /** Ice thickness in metres per slice, ICE_SAMPLES² each. */
   thickness: Uint16Array[];
+  /** Aridity per slice from 0 (green) to 1000 (full desert), ICE_SAMPLES² each (section 4.3). */
+  aridity: Uint16Array[];
 }
 
-const ICE_MAGIC = 0x3145434d; // "MCE1"
+const ICE_MAGIC = 0x3245434d; // "MCE2", thickness then aridity
 
 export function encodeIceChunk(c: IceChunk): Uint8Array {
   const per = ICE_SAMPLES * ICE_SAMPLES;
   const header = 16 + c.days.length * 4;
-  const buf = new ArrayBuffer(header + c.days.length * per * 2);
+  const buf = new ArrayBuffer(header + c.days.length * per * 4);
   const dv = new DataView(buf);
   dv.setUint32(0, ICE_MAGIC, true);
   dv.setUint8(4, c.key.level);
@@ -90,6 +92,8 @@ export function encodeIceChunk(c: IceChunk): Uint8Array {
   dv.setUint32(12, c.key.y, true);
   c.days.forEach((d, i) => dv.setInt32(16 + i * 4, d, true));
   c.thickness.forEach((t, i) => new Uint16Array(buf, header + i * per * 2, per).set(t));
+  const aridityStart = header + c.days.length * per * 2;
+  c.aridity.forEach((a, i) => new Uint16Array(buf, aridityStart + i * per * 2, per).set(a));
   return new Uint8Array(buf);
 }
 
@@ -107,9 +111,14 @@ export function decodeIceChunk(bytes: ArrayBuffer): IceChunk {
   const header = 16 + count * 4;
   const days: number[] = [];
   const thickness: Uint16Array[] = [];
+  const aridity: Uint16Array[] = [];
+  const aridityStart = header + count * per * 2;
   for (let i = 0; i < count; i++) {
     days.push(dv.getInt32(16 + i * 4, true));
     thickness.push(new Uint16Array(bytes.slice(header + i * per * 2, header + (i + 1) * per * 2)));
+    aridity.push(
+      new Uint16Array(bytes.slice(aridityStart + i * per * 2, aridityStart + (i + 1) * per * 2)),
+    );
   }
-  return { key, days, thickness };
+  return { key, days, thickness, aridity };
 }

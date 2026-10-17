@@ -80,7 +80,7 @@ export class Globe {
         glacial: { value: 0 },
         time: { value: 0 },
         cameraWorld: { value: new THREE.Vector3() },
-        riverThreshold: { value: 2 },
+        riverThreshold: { value: 0.5 },
         waterDetail: { value: 1 },
       },
     });
@@ -104,8 +104,6 @@ export class Globe {
 
     const camPos = camera.position;
     const camDist = camPos.length();
-    const altitude = camDist - EARTH_RADIUS_KM;
-    u.riverThreshold!.value = altitude > 3000 ? 2 : altitude > 600 ? 0.75 : 0.35;
 
     const frustum = new THREE.Frustum().setFromProjectionMatrix(
       new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse),
@@ -277,15 +275,17 @@ export class Globe {
       const ix = Math.min(n - 1, Math.max(0, Math.floor(((u + 1) / 2) * n)));
       const iy = Math.min(n - 1, Math.max(0, Math.floor(((w + 1) / 2) * n)));
       const chunk = chunks.get(`${key.face}-${ICE_LEVEL}-${ix}-${iy}`);
+      const o = v * 4;
       if (!chunk || chunk === 'none') {
-        arr[v * 2] = 0;
-        arr[v * 2 + 1] = 0;
+        arr.fill(0, o, o + 4);
         continue;
       }
       const ia = chunk.days.indexOf(planet.iceA);
       const ib = chunk.days.indexOf(planet.iceB);
-      arr[v * 2] = ia >= 0 ? sampleIce(chunk, ia, u, w) : 0;
-      arr[v * 2 + 1] = ib >= 0 ? sampleIce(chunk, ib, u, w) : arr[v * 2]!;
+      arr[o] = ia >= 0 ? sampleIce(chunk, ia, u, w) : 0;
+      arr[o + 1] = ib >= 0 ? sampleIce(chunk, ib, u, w) : arr[o]!;
+      arr[o + 2] = ia >= 0 ? sampleIce(chunk, ia, u, w, chunk.aridity) : 0;
+      arr[o + 3] = ib >= 0 ? sampleIce(chunk, ib, u, w, chunk.aridity) : arr[o + 2]!;
     }
     attr.needsUpdate = true;
     entry.iceStamp = stamp;

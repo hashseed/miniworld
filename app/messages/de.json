@@ -54,7 +54,7 @@
   "about.sources": "Woher die Daten stammen",
   "about.licence": "Lizenz: {licence}",
   "about.simplifications": "Was dieses Modell vereinfacht",
-  "about.simplification.climate": "Die Farben des Landes folgen einem groben Klimamuster, das sich mit der Eiszeit ändert. Echte Wälder, Wüsten und Grasländer waren vielfältiger, und die grüne Sahara wird noch nicht gezeigt.",
+  "about.simplification.climate": "Die Farben des Landes folgen einem groben Klimamuster, das sich mit der Eiszeit ändert, und die großen Wüsten wachsen und schrumpfen in einem groben Modell: in der Eiszeit größer, und von etwa 9000 bis 3500 v. Chr. eine grüne Sahara mit Seen. Echte Wälder, Wüsten und Grasländer waren vielfältiger.",
   "about.simplification.land": "Das Land hat die Form von heute. In der Eiszeit drückte das schwere Eis das Land nach unten, danach hob es sich langsam wieder. Das wird nicht gezeigt.",
   "about.simplification.lakes": "Seen, die es heute nicht mehr gibt, wie der riesige Agassizsee in Nordamerika, werden nicht gezeigt. Das Schwarze Meer und das Kaspische Meer werden immer mit ihrem heutigen Wasserstand gezeigt.",
   "about.simplification.ice": "Die Eisschilde sind eine grobe, von Hand gezeichnete Schätzung. Sie folgt dem, was Fachleute darüber wissen, wann die Eiszeiten begannen und endeten und wie weit das Eis reichte. Die echten Ränder waren unregelmäßiger.",

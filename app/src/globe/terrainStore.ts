@@ -187,17 +187,39 @@ export function sampleTile(key: TileKey, source: TerrainTile | 'deep'): TileSamp
       const fj = (oy + j / TILE_N / scale) * TILE_N;
       heights[(j + 1) * B + (i + 1)] = bicubicBordered(source.heights, fi, fj);
       if (i >= 0 && j >= 0 && i <= TILE_N && j <= TILE_N) {
-        const ni = Math.min(TILE_N, Math.max(0, Math.round(fi)));
-        const nj = Math.min(TILE_N, Math.max(0, Math.round(fj)));
-        const o = source.ocean[nj * S + ni]!;
+        // Interpolated so coastlines are smooth curves rather than the steps
+        // of the data grid (section 4.2).
         const s = j * S + i;
-        lake[s] = o === OCEAN_LAKE ? 1 : 0;
-        oceanLevel[s] = decodeOcean(o);
+        lake[s] =
+          sampleOcean(source.ocean, fi, fj, (o) => (o === OCEAN_LAKE ? 1 : 0)) >= 0.5 ? 1 : 0;
+        const level = sampleOcean(source.ocean, fi, fj, (o) =>
+          Math.min(decodeOcean(o), OCEAN_MIN_LEVEL + OCEAN_RANGE + 50),
+        );
+        oceanLevel[s] = level > OCEAN_MIN_LEVEL + OCEAN_RANGE ? NEVER_SEA : level;
         rivers[s] = bilinear(source.rivers, S, fi, fj) / 255;
       }
     }
   }
   return { heights, oceanLevel, lake, rivers };
+}
+
+/** Bilinear sample of a value derived from the ocean channel. */
+function sampleOcean(
+  ocean: ArrayLike<number>,
+  fi: number,
+  fj: number,
+  value: (o: number) => number,
+): number {
+  const S = TERRAIN_SAMPLES;
+  const i0 = Math.min(S - 2, Math.max(0, Math.floor(fi)));
+  const j0 = Math.min(S - 2, Math.max(0, Math.floor(fj)));
+  const ti = Math.min(1, Math.max(0, fi - i0));
+  const tj = Math.min(1, Math.max(0, fj - j0));
+  const a = value(ocean[j0 * S + i0]!);
+  const b = value(ocean[j0 * S + i0 + 1]!);
+  const c = value(ocean[(j0 + 1) * S + i0]!);
+  const d = value(ocean[(j0 + 1) * S + i0 + 1]!);
+  return (a * (1 - ti) + b * ti) * (1 - tj) + (c * (1 - ti) + d * ti) * tj;
 }
 
 function decodeOcean(o: number): number {
@@ -248,9 +270,15 @@ function bicubicBordered(h: Int16Array, fi: number, fj: number): number {
 }
 
 /** Ice thickness at face coordinates from a chunk's slice, bilinear on the ice grid. */
-export function sampleIce(chunk: IceChunk, sliceIndex: number, u: number, v: number): number {
+export function sampleIce(
+  chunk: IceChunk,
+  sliceIndex: number,
+  u: number,
+  v: number,
+  channel: Uint16Array[] = chunk.thickness,
+): number {
   const n = 1 << ICE_LEVEL;
   const fi = (((u + 1) / 2) * n - chunk.key.x) * ICE_N;
   const fj = (((v + 1) / 2) * n - chunk.key.y) * ICE_N;
-  return bilinear(chunk.thickness[sliceIndex]!, ICE_SAMPLES, fi, fj);
+  return bilinear(channel[sliceIndex]!, ICE_SAMPLES, fi, fj);
 }

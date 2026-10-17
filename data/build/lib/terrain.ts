@@ -48,7 +48,7 @@ export function buildTerrainTile(key: TileKey, inputs: TerrainInputs): TerrainTi
       if (inner) {
         const s = j * TERRAIN_SAMPLES + i;
         ocean[s] = lake !== NO_LAKE ? OCEAN_LAKE : inputs.ocean.nearest(lat, lon);
-        rivers[s] = inputs.rivers.nearest(lat, lon);
+        rivers[s] = Math.round(inputs.rivers.bilinear(lat, lon));
       }
       heights[(j + 1) * TERRAIN_BORDERED + (i + 1)] = Math.max(DEEP_CLAMP, Math.round(height));
     }

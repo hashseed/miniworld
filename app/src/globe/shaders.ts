@@ -12,7 +12,7 @@ export const terrainVertex = /* glsl */ `
 
 attribute vec2 elev;   // height (m), sea level at which the sample joins the ocean (m)
 attribute vec4 extra;  // lake, river, skirt, unused (0..1)
-attribute vec2 ice;    // ice thickness at slice A and B (m)
+attribute vec4 ice;    // ice thickness at slice A and B (m), aridity at A and B (0..1000)
 
 uniform float seaLevel;
 uniform float exaggeration;
@@ -28,7 +28,8 @@ varying float vIce;
 varying float vHeight;
 varying float vRiver;
 varying float vLake;
-varying vec2 vMask; // water (sea or lake) and ice, 0 or 1, for the ink outlines
+varying float vSkirt;
+varying float vArid;
 
 void main() {
   vec4 world0 = modelMatrix * vec4(position, 1.0);
@@ -75,7 +76,8 @@ void main() {
   vHeight = h;
   vRiver = extra.y;
   vLake = lake;
-  vMask = vec2(water > 0.0 ? 1.0 : 0.0, iceM > 1.0 ? 1.0 : 0.0);
+  vSkirt = extra.z;
+  vArid = mix(ice.z, ice.w, iceT) * 0.001;
   #include <logdepthbuf_vertex>
 }
 `;
@@ -100,7 +102,8 @@ varying float vIce;
 varying float vHeight;
 varying float vRiver;
 varying float vLake;
-varying vec2 vMask;
+varying float vSkirt;
+varying float vArid;
 
 float hash3(vec3 p) {
   p = fract(p * 0.3183099 + 0.1);
@@ -124,7 +127,6 @@ vec3 landColour(vec3 n, vec3 up) {
   float v = noise3(vWorld * 0.012) * 0.7 + noise3(vWorld * 0.05) * 0.3;
   // Colder, drier ice age: climate bands move towards the equator.
   float coldLat = alat + glacial * 12.0;
-  float dryBand = 1.0 - smoothstep(4.0 + glacial * 4.0, 9.0, abs(alat - 24.0));
 
   vec3 grass = vec3(0.47, 0.74, 0.26);
   vec3 forest = vec3(0.21, 0.56, 0.24);
@@ -140,7 +142,9 @@ vec3 landColour(vec3 n, vec3 up) {
   c = mix(c, jungle, (1.0 - smoothstep(8.0, 14.0, alat + glacial * 6.0)) * (1.0 - glacial * 0.5));
   c = mix(c, steppe, smoothstep(56.0, 62.0, coldLat));
   c = mix(c, tundra, smoothstep(62.0, 68.0, coldLat));
-  c = mix(c, sand, clamp(dryBand * (0.75 + glacial * 0.25) + (v - 0.5) * 0.4, 0.0, 1.0));
+  // Deserts come from the desert model, which follows their wet and dry phases.
+  c = mix(c, steppe, smoothstep(0.05, 0.4, vArid + (v - 0.5) * 0.2) * 0.7);
+  c = mix(c, sand, smoothstep(0.45, 0.75, vArid + (v - 0.5) * 0.25));
   c = mix(c, rock, smoothstep(0.35, 0.6, slope) + smoothstep(2500.0, 3500.0, vHeight) * 0.6);
   float snowLine = 4800.0 - smoothstep(20.0, 70.0, coldLat) * 4600.0;
   c = mix(c, snow, smoothstep(snowLine, snowLine + 400.0, vHeight + v * 300.0));
@@ -164,6 +168,7 @@ float waveLayer(vec3 p, float scale, float t) {
 }
 
 const vec3 INK = vec3(0.23, 0.15, 0.11);
+const float ICE_EDGE = 60.0;
 
 /** Cel steps: three flat light bands with narrow soft edges (section 3.6). */
 float cel(float x) {
@@ -176,19 +181,14 @@ float inkLine(float v, float at, float px) {
   return 1.0 - smoothstep(w * 0.5, w, abs(v - at));
 }
 
-/** Cel-shaded studio light: stepped key, sky fill from above, warm bounce from below, rim. */
-vec3 studio(vec3 albedo, vec3 n, vec3 viewDir, float spec, float shininess) {
+/** Cel-shaded studio light: stepped key, sky fill from above, warm bounce from below, rim. No highlights or sun reflections (section 3.6). */
+vec3 studio(vec3 albedo, vec3 n, vec3 viewDir) {
   float wrap = clamp((dot(n, lightDir) + 0.45) / 1.45, 0.0, 1.0);
   float fillT = dot(n, screenUp) * 0.5 + 0.5;
   vec3 fill = mix(vec3(0.42, 0.30, 0.24), vec3(0.30, 0.36, 0.48), fillT);
   vec3 c = albedo * (vec3(1.0, 0.96, 0.9) * (0.25 + 0.6 * cel(wrap)) + fill);
   float rim = smoothstep(0.62, 0.66, 1.0 - clamp(dot(n, viewDir), 0.0, 1.0)) * (1.0 - cel(wrap) * 0.7);
   c += vec3(1.0, 0.95, 0.92) * rim * 0.22;
-  if (spec > 0.0) {
-    vec3 h = normalize(lightDir + viewDir);
-    float s = pow(max(dot(n, h), 0.0), shininess);
-    c += vec3(1.0, 0.98, 0.94) * smoothstep(0.45, 0.5, s) * spec * 0.6;
-  }
   return c;
 }
 
@@ -198,17 +198,21 @@ void main() {
   vec3 viewDir = normalize(cameraWorld - vWorld);
 
   vec3 n = normalize(vNormal);
+  vec3 smoothN = n;
   // The coast cliffs and ice edges are made in the vertex shader, so their
   // slope comes from the screen-space derivative of the surface.
   vec3 dn = normalize(cross(dFdx(vWorld), dFdy(vWorld)));
   if (dot(dn, up) < 0.0) dn = -dn;
-  n = normalize(mix(n, dn, smoothstep(0.25, 0.6, 1.0 - dot(dn, up))));
+  float nearCoast = 1.0 - smoothstep(0.0, 400.0, abs(vWater));
+  if (vSkirt < 0.5)
+    n = normalize(mix(n, dn, smoothstep(0.25, 0.6, 1.0 - dot(dn, up)) * nearCoast));
   vec3 albedo;
-  float spec = 0.0;
-  float shininess = 40.0;
 
-  bool isWater = vWater > 0.0 && vIce <= 1.0;
-  bool isRiver = !isWater && vIce <= 1.0 && vRiver > riverThreshold;
+  // Ice starts at ICE_EDGE metres of interpolated thickness, so its border is a
+  // smooth curve rather than the staircase of the vertex grid.
+  bool hasIce = vIce > ICE_EDGE;
+  bool isWater = vWater > 0.0 && !hasIce;
+  bool isRiver = !isWater && !hasIce && vRiver > riverThreshold;
   if (isWater || isRiver) {
     // One glossy sea colour, with no shallows (section 4.4).
     albedo = vLake > 0.5 || isRiver ? vec3(0.24, 0.62, 0.92) : vec3(0.08, 0.44, 0.86);
@@ -216,10 +220,9 @@ void main() {
     if (waterDetail > 0.5) {
       float w = sin(dot(vWorld, vec3(3.1, 1.7, 2.3)) + time * 1.3) + sin(dot(vWorld, vec3(-1.9, 2.8, 1.1)) + time * 0.9);
       n = normalize(up + (vec3(sin(time + vWorld.x * 2.0), 0.0, cos(time * 0.8 + vWorld.z * 2.0)) * 0.02) * w);
-      spec = 0.8;
     }
-    // Cartoon waves (section 4.4), in world space, at a scale that follows the distance.
-    if (vLake < 0.5 && !isRiver) {
+    // Cartoon waves on the sea and the large lakes (section 4.4), in world space, at a scale that follows the distance.
+    if (!isRiver) {
       float t = waterDetail > 0.5 ? time : 0.0;
       float lod = log2(max(length(cameraWorld - vWorld), 1.0) / 120.0);
       float l0 = floor(lod);
@@ -230,21 +233,21 @@ void main() {
     // Glossy plastic sheen towards the globe's edge.
     float sheen = pow(1.0 - clamp(dot(up, viewDir), 0.0, 1.0), 2.5);
     albedo = mix(albedo, vec3(0.55, 0.82, 1.0), sheen * 0.55);
-    shininess = 36.0;
-  } else if (vIce > 1.0) {
+  } else if (hasIce) {
     float edge = 1.0 - smoothstep(20.0, 400.0, vIce);
     albedo = mix(vec3(0.97, 0.99, 1.0), vec3(0.62, 0.84, 0.97), edge);
-    spec = 0.45;
-    shininess = 24.0;
   } else {
-    albedo = landColour(n, up);
+    albedo = landColour(smoothN, up);
   }
 
-  vec3 colour = studio(albedo, n, viewDir, spec, shininess);
-  // Ink outlines: the globe's silhouette, coastlines and ice edges.
+  vec3 colour = studio(albedo, n, viewDir);
+  // Ink outlines: the globe's silhouette, coastlines, river banks and ice edges.
+  // The water and ice fields are clamped so the lines keep an even width.
   float ink = inkLine(min(dot(up, viewDir), 0.25), 0.0, 5.0);
-  ink = max(ink, inkLine(vMask.x, 0.5, 1.2));
-  ink = max(ink, inkLine(vMask.y, 0.5, 1.2));
+  ink = max(ink, inkLine(clamp(vWater, -30.0, 30.0), 0.0, 1.6));
+  ink = max(ink, inkLine(clamp(vIce, 0.0, ICE_EDGE * 2.0), ICE_EDGE, 1.6));
+  if (!isWater && !hasIce) ink = max(ink, inkLine(vRiver, riverThreshold, 1.4));
+  if (vSkirt > 0.5) ink = 0.0;
   colour = mix(colour, INK, ink * 0.85);
   gl_FragColor = vec4(colour, 1.0);
   #include <colorspace_fragment>

@@ -96,7 +96,7 @@ export function buildTileGeometry(
   const normal = new Int8Array(TILE_VERTS * 4);
   const elev = new Int16Array(TILE_VERTS * 2);
   const extra = new Uint8Array(TILE_VERTS * 4);
-  const ice = new Uint16Array(TILE_VERTS * 2);
+  const ice = new Uint16Array(TILE_VERTS * 4); // ice A, ice B, aridity A, aridity B
 
   const pa = [0, 0, 0];
   const pb = [0, 0, 0];
@@ -168,7 +168,7 @@ export function buildTileGeometry(
   geometry.setAttribute('normal', new THREE.BufferAttribute(normal, 4, true));
   geometry.setAttribute('elev', new THREE.BufferAttribute(elev, 2, false));
   geometry.setAttribute('extra', new THREE.BufferAttribute(extra, 4, true));
-  const iceAttr = new THREE.BufferAttribute(ice, 2, false);
+  const iceAttr = new THREE.BufferAttribute(ice, 4, false);
   iceAttr.setUsage(THREE.DynamicDrawUsage);
   geometry.setAttribute('ice', iceAttr);
   // Winding: the cross product of +i and +j must point outward.
