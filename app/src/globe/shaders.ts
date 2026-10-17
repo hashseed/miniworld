@@ -16,6 +16,7 @@ uniform float seaLevel;
 uniform float exaggeration;
 uniform float iceT;
 uniform float skirtDepth;
+uniform float relief; // 0 in orbit (clean sphere), 1 below about 1,500 km
 
 varying vec3 vWorld;
 varying vec3 vUp;
@@ -57,7 +58,7 @@ void main() {
   }
   surface -= extra.z * skirtDepth;
 
-  float lift = surface * exaggeration * 0.001;
+  float lift = surface * exaggeration * 0.001 * relief;
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
   mv.xyz += normalize(mat3(viewMatrix) * up) * lift;
   gl_Position = projectionMatrix * mv;

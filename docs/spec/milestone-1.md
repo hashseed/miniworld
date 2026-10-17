@@ -152,11 +152,11 @@ Every source must meet the data licence policy in [spec.md](spec.md#13-licences)
 
 ### 4.2 Terrain
 
-- The globe is a unit cube projected onto a sphere, each face split into a quadtree. Every tile is a grid of 65 × 65 vertices with skirts to hide cracks between levels. Tiles are refined by screen-space error: a tile splits when its geometric error would exceed about 2 pixels on screen at the current quality tier (section 11.2).
-- The data build produces one heightmap per tile down to level 9 (tiles of roughly 20 km), plus a normal map for lighting. Deeper levels refine the level 9 data on the GPU by smooth interpolation, so the ground never shows staircases at the closest zoom.
+- The globe is a unit cube projected onto a sphere (with an equal-angle warp so tiles are similar in size), each face split into a quadtree. Every tile is a grid of 65 × 65 vertices with skirts to hide cracks between levels. Tiles are refined by screen-space error: a tile splits when its geometric error, estimated as half its vertex spacing, would exceed the error target of the current quality tier in CSS pixels (section 11.2). A tile splits only once all four children are ready to draw, so the ground never shows holes while loading.
+- The data build produces one heightmap per tile down to level 6 (tiles of roughly 150 km with samples about 2.4 km apart, close to the 1.85 km of the source). A deeper level would add size without adding information. Rendered tiles go down to level 12 (samples about 40 m apart); levels below 6 are refined from their level 6 ancestor by bicubic interpolation when the tile is built, so the ground never shows staircases at the closest zoom. Normals are computed from the heights when a tile is built rather than stored.
 - Heights are stored in whole metres as 16-bit integers with an offset, compressed per tile (section 10.5). The data build clamps the deep ocean floor below −1,000 m, which is never visible and saves space.
 - Elevation is exaggerated by a factor of 12 relative to the Earth's radius, in the vertex shader, so the factor can be tuned without rebuilding data. The factor and the ice exaggeration (section 5.2) are the same so ice and rock line up.
-- At orbit distance the globe stays a clean sphere: relief is faded in only below a camera altitude of about 2,000 km, so mountains do not stick out of the planet's outline.
+- At orbit distance the globe stays a clean sphere: relief fades in between camera altitudes of about 2,500 km and 1,500 km, so mountains do not stick out of the planet's outline.
 
 ### 4.3 Terrain painting
 
@@ -167,7 +167,7 @@ Every source must meet the data licence policy in [spec.md](spec.md#13-licences)
 
 ### 4.4 Water
 
-- The sea is a separate sphere surface at the date's sea level, drawn wherever the ocean mask says the sea reaches (section 5.1). Its colour depends on depth: turquoise over shallow shelves, deep blue over the ocean, so former land bridges read as pale shallows when drowned.
+- The sea is drawn as part of the terrain surface: wherever the ocean mask says the sea reaches at the date's sea level (section 5.1), the vertex shader lifts the surface to the sea level and the fragment shader draws water, with the water depth carried per vertex so the coastline stays crisp between vertices. Its colour depends on depth: turquoise over shallow shelves, deep blue over the ocean, so former land bridges read as pale shallows when drowned.
 - The surface has gentle animated waves and a sun glint, both driven by the life clock, and a light foam line where water meets land. Animation stops when everything is frozen.
 - Water must stay legible on low quality: the low tier drops waves and glint but keeps depth colour and foam.
 
@@ -183,15 +183,15 @@ Everything in this section is a pure function of the date, computed from data, s
 
 ### 5.1 Sea level and coastlines
 
-- **Sea-level curve.** Global mean sea level relative to today, derived by the data build from the PaleoMIST 1.0 reconstruction at each of its 2,500-year time steps from 80,000 years ago to today, and interpolated smoothly (monotone cubic) between steps so the sea never rises in visible jumps. The curve reaches about −120 m around 20,000 years ago. It is stored every 100 years in the startup index (section 10.2) with its source. Using the same reconstruction for sea level and ice keeps coastlines and ice sheets consistent with each other. Finer sea-level curves for the last 20,000 years exist (such as Lambeck et al. 2014), but none found so far has a licence that allows commercial use; one may be added later only if it does.
-- **Ocean mask.** A coastline cannot simply be "everywhere below sea level", because inland basins such as the Caspian Sea and the Dead Sea lie below today's sea level but are not part of the ocean. The data build therefore computes, for every terrain sample, the lowest sea level at which that sample is connected to the open ocean (a flood fill from the ocean outward, in 1 m steps from −130 m to +10 m). A sample is sea at a date when that value is at or below the date's sea level. The value is stored as an extra channel of each terrain tile.
+- **Sea-level curve.** Global mean sea level relative to today, derived by the data build from the ice volume of the PaleoMIST 1.0 reconstruction at each of its 2,500-year time steps from 80,000 years ago to today (the extra ice volume compared with today, times the density ratio of ice to water of 0.917, divided by today's ocean area of 3.618 × 10¹⁴ m²), and interpolated smoothly (monotone cubic) between steps so the sea never rises in visible jumps. The curve reaches about −120 m around 20,000 years ago. It is stored every 100 years in the startup index (section 10.2) with its source. Using the same reconstruction for sea level and ice keeps coastlines and ice sheets consistent with each other. Finer sea-level curves for the last 20,000 years exist (such as Lambeck et al. 2014), but none found so far has a licence that allows commercial use; one may be added later only if it does.
+- **Ocean mask.** A coastline cannot simply be "everywhere below sea level", because inland basins such as the Caspian Sea and the Dead Sea lie below today's sea level but are not part of the ocean. The data build therefore computes, for every terrain sample, the lowest sea level at which that sample is connected to the open ocean (a priority flood fill outward from the deep ocean, seeded from sea floor deeper than 3,000 m, in 1 m steps from −130 m to +10 m, on a grid of about 2 arc-minutes built from the elevation by taking the minimum of each block so narrow straits stay open). The Black Sea and the Caspian Sea are flooded as permanent lakes at today's levels (0 m and −28 m). Natural Earth lakes are flat water at the 20th percentile of the heights along their shore. A sample is sea at a date when that value is at or below the date's sea level. The value is stored as an extra channel of each terrain tile.
 - **Known simplifications**, named in the About panel: the land surface is today's, so the sinking of land under the ice sheets and its later rebound are not shown; past lakes that no longer exist (such as the glacial Lake Agassiz) and the Black Sea before it joined the Mediterranean are not shown in this milestone.
 - **Teaching moments the data must show** (exit criterion 1): Beringia joining Siberia and Alaska, Doggerland joining Britain to the continent, and Sundaland joining Sumatra, Java and Borneo to mainland Asia, each opening as the sea falls and drowning as it rises again. Sahul (Australia joined to New Guinea) shows too.
 
 ### 5.2 Ice sheets
 
 - **Source:** PaleoMIST 1.0 (section 4.1), which gives ice thickness on a global 0.25° grid in 2,500-year steps over the past 80,000 years, so it covers the whole timeline. ICE-6G_C, with finer time steps, was considered but publishes no licence, so it cannot be used.
-- The data build resamples ice thickness into tiles at level 6 (tiles of roughly 150 km) for each time slice and stores them as chunks keyed by tile and time window (section 10.3). Between slices, thickness is interpolated linearly by date.
+- The data build resamples ice thickness into tiles at level 3 (tiles of roughly 1,100 km, 33 × 33 samples about 35 km apart, close to the source's 0.25°) for each time slice and stores them as chunks keyed by tile and time window (section 10.3). Between slices, thickness is interpolated linearly by date.
 - With 2,500-year steps, the ice edge between steps is an interpolation, not a reconstruction. The About panel says so in plain language.
 - **Glacial index.** The ratio of the date's sea level to the lowest sea level of the curve, from 0 (today) to 1 (glacial maximum), drives the climate band in section 4.3.
 - Ice is drawn as a raised, slightly glossy white and blue surface over the terrain, with the same elevation exaggeration as the land, cracked blue edges where it meets the sea, and a soft edge where it ends on land. The Laurentide and Fennoscandian ice sheets must read clearly from orbit at 20,000 BCE and be gone by about 6000 BCE, apart from Greenland and Antarctica, which stay.
@@ -230,7 +230,7 @@ The camera has one fly-to operation used by bookmarks now and by events and famo
 - The timeline is a strip along the bottom of the screen, drawn on a canvas, with HTML controls beside it. It has a date readout, the playhead, a lane "World" and one lane per region in the order of spec section 7.1.
 - Lanes show the era ranges from [eras.md](eras.md). The World lane uses a fixed colour per era; regional ranges use the colour assigned to that polity in `data/curated/eras` (later shared with the border overlay). Overlapping ranges in one lane stack into sub-rows.
 - A range's label is drawn inside it when it fits, otherwise it is shortened with an ellipsis and shown in full on hover or tap, together with its dates. German labels are about a third longer, so layout never assumes English widths.
-- **Desktop:** all lanes are shown; the timeline takes at most about a quarter of the window height.
+- **Desktop:** all lanes are shown when they fit in about 30 % of the window height at a readable row height; in a window too short or narrower than 700 CSS pixels the timeline behaves as on a phone.
 - **Phone:** the World lane plus the lane of the region under the camera's target, with a button to expand to all lanes as a sheet that covers at most two thirds of the screen. The region under the camera is found from a coarse region lookup table built by the data build. Both portrait and landscape work.
 
 ### 7.2 Axis and zoom
@@ -305,7 +305,7 @@ This milestone builds the full delivery path of spec section 10 even though ther
 
 ### 10.1 Manifest
 
-`manifest.json` is the only file fetched without a content hash in its name. It holds the build version, the content cutoff date, the supported languages, the quadtree and time-window definitions, and for every layer the list of chunk keys with their file names. It is fetched network-first on every start and falls back to the cached copy when offline.
+`manifest.json` is the only file fetched without a content hash in its name. It holds the build version, the content cutoff date, the supported languages, the quadtree and time-window definitions, and for every layer the chunk keys with their file names for quadtree levels 0 and 1 plus, for deeper levels, one hashed part file per level 2 tile that lists the chunks below it. Part files are fetched when the camera first needs a tile under them, which keeps the manifest small. Tiles that are entirely deep ocean have no terrain file and are listed as deep. It is fetched network-first on every start and falls back to the cached copy when offline.
 
 ### 10.2 Startup index
 
@@ -313,8 +313,8 @@ One light index per language, fetched with the manifest: the era records with th
 
 ### 10.3 Chunk keys
 
-- **Place:** a cube face and quadtree path, for example `2/0313`, at a level chosen per layer: terrain at every level up to 9, ice at level 6.
-- **Time:** windows of equal watching time, 10 minutes at ×1 each (about 34 windows over the whole timeline, roughly 20,000 years each in the deep past and about 20 years each in the 20th century). Window boundaries come from the watching-time table and are listed in the manifest. Layers that do not change with time, such as terrain, use the single window `all`.
+- **Place:** a cube face and quadtree path, for example `2/0313`, at a level chosen per layer: terrain at every level up to 6, ice at level 3.
+- **Time:** windows of equal watching time, 10 minutes at ×1 each (35 windows over the whole timeline, roughly 20,000 years each in the deep past and about 20 years each in the 20th century). Window boundaries come from the watching-time table and are listed in the manifest. Layers that do not change with time, such as terrain, use the single window `all`.
 - **Language:** `xx` for layers without text, otherwise `en` or `de`.
 
 A chunk's file name is `{layer}/{place}/{window}/{language}.{hash}.{ext}`, where the hash is the first 16 hex characters of the SHA-256 of the file's content.
@@ -329,7 +329,7 @@ In this milestone the shipped layers are `terrain` (place only) and `ice` (place
 
 ### 10.5 Formats
 
-- Terrain tiles: height, ocean-connection level and normals packed into one binary file per tile, compressed with Brotli for transfer.
+- Terrain tiles: 16-bit heights (with a one-sample border for smooth normals and interpolation), the ocean-connection level and lake flag in one byte, and river strength in one byte per sample, packed into one binary file per tile, compressed with Brotli for transfer.
 - Ice chunks: 16-bit thickness grids per tile and time slice, in one binary file per tile and window.
 - Index and manifest: Brotli-compressed JSON.
 - Terrain textures: KTX2 with Basis Universal compression, so phones get GPU-compressed textures.
@@ -345,7 +345,6 @@ The first view of the globe at 50,000 BCE on a phone must need at most about 3 M
 | Terrain tiles for the first view | 1.5 MB |
 | Ice chunks for the first view | 200 KB |
 | Terrain textures (low tier) | 500 KB |
-| Font | 100 KB |
 
 `npm run build` fails when JavaScript and CSS exceed their budget. A browser test loads the first view at a phone size and quality tier with an empty cache and fails when the total transfer exceeds 3 MB.
 
@@ -402,7 +401,7 @@ The stress scene proves the figure-heavy targets before any content exists and s
 
 ## 12. Assets in this milestone
 
-The only shipped assets are the six terrain textures, the water normal map, the ice texture and the interface icons. Each is generated and listed in `data/assets/manifest.json` with: id, file, kind, how it was generated, status (`generated`, `approved`, `rejected`), the date it was reviewed and a note. Until Yang approves an asset, the app uses a flat-coloured stand-in of the same size in development, and the production build fails if an unapproved asset is referenced. The font is an open-licence font chosen for legibility for young readers and covering German characters; its licence is listed with the data sources.
+The only shipped assets are the six terrain textures, the water normal map and the ice texture. The interface icons are simple shapes drawn in code (SVG), and the interface uses the system font, so neither needs an approval or a licence entry. Each is generated and listed in `data/assets/manifest.json` with: id, file, kind, how it was generated, status (`generated`, `approved`, `rejected`), the date it was reviewed and a note. Until Yang approves an asset, the app uses a flat-coloured stand-in of the same size in development, and the production build fails if an unapproved asset is referenced. A dedicated font chosen for young readers may replace the system font in a later milestone; it would then be listed with the data sources.
 
 ## 13. Tests
 
