@@ -39,6 +39,7 @@ The whole of history takes about five and a half hours at normal speed, and abou
 ### 2.2 Speed and pausing
 
 - Speed multipliers apply on top of the curve: ×¼, ×½, ×1, ×2, ×4 and ×16. The UI shows the resulting rate, for example "≈ 20 years/min".
+- Zooming in automatically slows the clock: close to the ground history runs up to eight times slower than from orbit, so changes in one place can be followed, and zooming out speeds it up again. The change is gradual and can be turned off in the settings ([milestone-1.md](milestone-1.md#33-historical-clock-and-rate-curve) section 3.3).
 - *Pause history*: the date stands still, but people keep doing what people of that era and place do. This is the mode for watching a moment closely, such as a day in Rome in 100 CE.
 - *Freeze everything*: the date and every figure freeze mid-step, like a photograph, so you can look around and point things out.
 - Scrubbing: drag the timeline to any date; the world updates live.
@@ -63,7 +64,7 @@ A gentle day and night cycle runs on the life clock, about 4 real minutes per da
 
 The world is the real Earth with accurate continents, coasts, mountains and rivers, but everything people make is drawn as a miniature far larger than true scale. A true-scale person would be invisible from any height that shows a landscape, so the globe uses two scales at once.
 
-- **Geography at true proportions.** Landmasses, coastlines, rivers and lakes sit in their real places. Elevation is exaggerated (about 10 to 20 times) so mountains and valleys read clearly when you are close.
+- **Geography at true proportions.** Landmasses, coastlines, rivers and lakes sit in their real places. Elevation is exaggerated (12 times to start, tunable between about 10 and 20) so mountains and valleys read clearly when you are close.
 - **People and buildings as miniatures.** Figures, houses, ships and monuments are scaled up by a fixed factor so a village reads clearly from a low camera. A settlement is drawn as a representative cluster: a Neolithic village is 5 to 15 huts, Rome at its height a few hundred buildings around its real landmarks. Cluster size follows the real population.
 - **Camera range.** You zoom continuously from a view of the whole planet down to a close-up where a dozen figures fill the screen. Close to the ground the curved horizon gives the Populous: The Beginning look naturally.
 
@@ -74,7 +75,7 @@ The world is the real Earth with accurate continents, coasts, mountains and rive
 - The Sahara is green with lakes and grassland between roughly 9000 and 3500 BCE.
 - Later and smaller changes, such as land reclaimed in the Netherlands or large reservoirs, are added only when they matter to a story.
 
-Geography data comes from public datasets that are preprocessed offline into static map tiles: global elevation including the sea floor (for example NOAA ETOPO) and coastlines, rivers and lakes (for example Natural Earth). Licenses are confirmed before use.
+Geography data comes from public datasets that are preprocessed offline into static map tiles: global elevation including the sea floor (for example NOAA ETOPO) and coastlines, rivers and lakes (for example Natural Earth). Every source must meet the data licence policy in section 13, and a copy of the data used is kept in the repository.
 
 ## 4. Representing history
 
@@ -84,9 +85,9 @@ History enters the app as a curated database of dated, located records; everythi
 | --- | --- | --- |
 | Culture regions | An area, a date range and a culture profile, such as "Roman, Imperial period" or "Han China" | Curated by hand from standard histories |
 | Culture profiles | Architecture set, clothing, tools, vehicles, crops and animals, and an activity mix (farming, fishing, crafts, trade, worship, soldiering) | Curated; the main art cost |
-| Population | People per area over time, which sets how many figures appear | HYDE (History Database of the Global Environment) |
+| Population | People per area over time, which sets how many figures appear | HYDE (History Database of the Global Environment); licence to check against section 13 |
 | Settlements | Localised name, coordinates, founding date, population over time, landmarks with build dates | Urban history datasets, Wikidata |
-| Polities | Borders at snapshot dates, localised name, colour, capital | historical-basemaps (open GeoJSON of world borders), Wikidata |
+| Polities | Borders at snapshot dates, localised name, colour, capital | historical-basemaps (open GeoJSON of world borders; GPL-3.0, so it needs Yang's decision under section 13), Wikidata (CC0) |
 | Routes | Trade routes, migrations and voyages with date ranges | Curated |
 | Events | Date or range, place, type, localised title and text, how it is shown | Curated; see [events.md](events.md) |
 | Famous people | Life dates, places over their life, role, look, localised text | Wikidata plus curation; see [people.md](people.md) |
@@ -224,8 +225,8 @@ flowchart LR
 
 | Device class | Reference | Target |
 | --- | --- | --- |
-| Average desktop or laptop | 4 to 5 year old laptop with integrated graphics | 60 fps, never below 30 fps |
-| Average phone | 3 year old mid-range phone | 30 fps or better |
+| Average desktop or laptop | First Apple silicon MacBook (MacBook Air M1, 2020) | 60 fps, never below 30 fps |
+| Average phone | Google Pixel 9 | 30 fps or better |
 
 - Draw calls per frame: at most about 300 on desktop and 150 on phones; figures, buildings and vegetation are always instanced.
 - Visible animated figures: about 5,000 on desktop and 1,500 on phones before LOD swaps them for simpler marks.
@@ -261,16 +262,27 @@ Card texts and "Learn more" sections load on demand when a card opens. Models an
 
 ## 11. Development environment
 
-Development uses [devenv](https://devenv.sh) so every machine and every Claude session gets the same toolchain.
+Development happens in Yang's devenv Docker container, the local development container that Claude Code controls remotely. The repository does not depend on anything specific to that container beyond Node and npm, so the same commands also work in a cloud session or on another machine.
 
-- `devenv.nix` pins Node and the other tools the project needs.
-- `devenv up` starts the dev server at http://localhost:8800, serving the app with hot reload and the locally built content chunks under the same origin.
-- Scripts for the data build, tests and asset pipeline run inside `devenv shell`.
+- The Node version is pinned in `.nvmrc` and in `engines` in `package.json`; every other tool is a dev dependency installed by `npm ci`, so nothing project-specific is installed globally.
+- `npm run dev` starts the dev server on port 8800 (http://localhost:8800), serving the app with hot reload and the locally built content chunks under the same origin. It listens on all interfaces so the app can be opened from outside the container through its published port.
+- Scripts for the data build, tests and asset pipeline are npm scripts.
 
 ## 12. Development process
 
 The spec comes first, always: every change to behaviour, content or data format is written into this folder before any code is changed, in the same pull request or an earlier one. The rule is recorded in [CLAUDE.md](../../CLAUDE.md).
 
-## 13. Milestones
+## 13. Licences
+
+**Code.** Miniworld is closed source. The code, spec and assets are proprietary, with all rights reserved, as stated in `LICENSE` at the root of the repository; the repository stays private. `package.json` is marked `"private": true` with the licence `UNLICENSED`. Third-party libraries the app includes must have permissive licences (such as MIT, BSD, ISC, Apache-2.0 or Zlib) that allow use in closed-source software; their notices are collected into a third-party notices file shipped with the app.
+
+**Data.** Every dataset used must be freely available and usable commercially, and a copy of the data actually used is kept in the repository under `data/sources/` with its licence text, so the app never depends on a source staying online.
+
+- Allowed without asking: public domain, CC0, CC BY (any version), ODC-BY, and US government works.
+- Needs Yang's decision for each case: share-alike licences (CC BY-SA, ODbL) and copyleft licences (GPL), whose conditions can reach our own derived data.
+- Never used: non-commercial (NC) or no-derivatives (ND) licences, data published without any licence, and data whose terms forbid redistribution.
+- Attribution required by a licence is given in the app's About panel in both languages, and the data build fails when a source's licence is missing or not on the allowed list.
+
+## 14. Milestones
 
 The build order, the scope and exit criteria of each milestone, and the definition of done that applies to all of them are in [milestones.md](milestones.md). The first three milestones prove the globe, the two clocks and morphing figures on a small slice of history; the rest add history era by era, and guided tours come after.

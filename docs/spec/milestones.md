@@ -11,15 +11,17 @@ Milestones are done in order. A milestone is finished when every exit criterion 
 - Golden snapshot tests cover the new dates and places, and the scene for the same date and life-clock time is identical across runs and devices.
 - The performance budget (spec section 9) holds on the reference laptop and phone with the stress scene and the new content.
 - Every content record names its source, and every shipped asset is approved by Yang.
-- The app runs locally with `devenv up` on http://localhost:8800 and works on desktop and phone browsers.
+- The app runs in the devenv dev container with `npm run dev` on http://localhost:8800 and works on desktop and phone browsers.
 
 ## 1. Globe and time
 
 **Goal:** a beautiful, empty Earth you can fly around and travel through time on. Proves the renderer, the clocks, the timeline and content streaming.
 
+Detailed spec: [milestone-1.md](milestone-1.md).
+
 **Scope**
 
-- devenv setup, TypeScript project, CI running lint, typecheck and tests.
+- TypeScript project with npm scripts and pinned Node, CI running lint, typecheck and tests.
 - Globe from elevation and coastline data: cube-sphere quadtree terrain, painted terrain textures, water, exaggerated elevation, curved horizon close up.
 - Camera from orbit to ground with mouse, touch and keyboard controls.
 - Historical clock with the rate curve and speed multipliers; life clock; pause history and freeze everything; day and night.
