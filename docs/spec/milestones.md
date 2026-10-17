@@ -24,7 +24,7 @@ Detailed spec: [milestone-1.md](milestone-1.md).
 - TypeScript project with npm scripts and pinned Node, CI running lint, typecheck and tests.
 - Globe from elevation and coastline data: cube-sphere quadtree terrain, painted terrain textures, water, exaggerated elevation, curved horizon close up.
 - Camera from orbit to ground with mouse, touch and keyboard controls.
-- Historical clock with the rate curve and speed multipliers; life clock; pause history and freeze everything; day and night.
+- Historical clock with the rate curve and speed multipliers; life clock; pause history and freeze everything.
 - Timeline with the World lane and regional lanes from [eras.md](eras.md), zoom, scrubbing and the true time scale toggle.
 - Sea level and ice sheets changing with the date.
 - English and German UI shell with a language switch and per-language date and number formatting.
@@ -160,11 +160,11 @@ Detailed spec: [milestone-1.md](milestone-1.md).
 - Culture profiles for industrial cities, railways, steamships, then the 20th century.
 - Nation-state borders, decolonisation and the Cold War on the overlay.
 - The world wars with front lines; the Holocaust and the atomic bombings presented with care and accuracy.
-- Modern events up to the present from the content lists.
+- Modern events up to the end of the timeline (the dissolution of the Soviet Union in 1991) from the content lists.
 
 **Exit criteria**
 
-- Scrubbing from 1800 to today shows railways spreading, borders changing and cities growing.
+- Scrubbing from 1800 to 1991 shows railways spreading, borders changing and cities growing.
 - All cards on the world wars and the Holocaust are reviewed by Yang for accuracy and tone.
 
 ## 9. Polish

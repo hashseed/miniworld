@@ -11,7 +11,7 @@ The milestone proves the technical foundations every later milestone builds on: 
 | Area | Delivered | Section |
 | --- | --- | --- |
 | Project | TypeScript app, npm scripts, data build, CI | 2 |
-| Time | Whole-day dates, historical clock with rate curve and speeds, life clock, pause and freeze, day and night | 3 |
+| Time | Whole-day dates, historical clock with rate curve and speeds, life clock, pause and freeze, constant lighting | 3 |
 | Globe | Cube-sphere terrain from elevation data, painted textures, water, exaggerated relief, curved horizon | 4 |
 | Planet over time | Sea level and ice sheets that change with the date | 5 |
 | Camera | Orbit-to-ground camera for mouse, touch and keyboard | 6 |
@@ -78,7 +78,7 @@ GitHub Actions runs on every pull request and on `main`: lint, typecheck, unit a
 
 - A date is a whole-day integer: the number of days since 1 January 2000 CE in the proleptic Gregorian calendar, negative before that. 70,000 BCE is about −26.3 million, well inside a 32-bit integer. No floating-point years are used anywhere in world state.
 - Internally years use astronomical numbering (1 BCE is year 0, 2 BCE is year −1). Conversion between day numbers and calendar dates is a pure function in `src/time` with unit tests at known dates, including leap years and the year 0 boundary.
-- The timeline runs from 1 January 70,000 BCE to the content cutoff date stored in the manifest. "Today" always means that cutoff, never the device clock, so the same build shows the same timeline on every day.
+- The timeline runs from 1 January 70,000 BCE to the content cutoff date stored in the manifest, which is 26 December 1991, the dissolution of the Soviet Union (spec section 2.5). The end of the timeline, called "today" in this spec where it means the timeline end, always means that cutoff, never the device clock, so the same build shows the same timeline on every day.
 - The app opens at 1 January 50,000 BCE on first start, and at the last saved date after that.
 
 ### 3.2 Displaying dates
@@ -130,13 +130,11 @@ Pressing the active state's key again returns to playing. While the playhead is 
 
 ### 3.5 Life clock
 
-The life clock is an integer count of milliseconds that advances in real time while not frozen, independent of the historical rate and speed. In this milestone it drives day and night, water animation and the placeholder figures of the stress scene; in milestone 2 it drives what figures do. It is not saved. On start it is set so that it is mid-morning at the camera's longitude, so the first view is always lit.
+The life clock is an integer count of milliseconds that advances in real time while not frozen, independent of the historical rate and speed. In this milestone it drives water animation and the placeholder figures of the stress scene; in milestone 2 it drives what figures do. It is not saved.
 
-### 3.6 Day and night
+### 3.6 Lighting
 
-- One day lasts 4 real minutes of life-clock time (spec section 2.6). The sun circles the Earth over the equator (no seasons and no axial tilt in the lighting), so every place sees the same length of day.
-- The night side is dimmed and slightly blue but always readable: land and coasts stay visible at night, and a soft terminator line moves across the globe.
-- Setting "Always day" lights the whole globe evenly from the camera's direction. It is off by default.
+There is no day and night (decided by Yang on 2026-10-17). The globe is always evenly lit by a light that follows the camera, coming from the upper left of the screen and slightly from behind the viewer, so relief is shaded the same way wherever the viewer looks.
 
 ## 4. The globe
 
@@ -146,7 +144,7 @@ The life clock is an integer count of milliseconds that advances in real time wh
 | --- | --- | --- | --- |
 | Elevation and sea floor | NOAA ETOPO 2022, 60 arc-second bedrock elevation (GeoTIFF), [doi:10.25921/fd45-gt74](https://doi.org/10.25921/fd45-gt74) | CC0 1.0, not subject to copyright in the US | The 60 arc-second bedrock file only |
 | Lakes and rivers | Natural Earth 1:10m physical: lakes, rivers and lake centrelines | Public domain | The used layers only |
-| Ice sheets and sea level | PaleoMIST 1.0 global ice sheet reconstruction for the past 80,000 years (Gowan et al. 2021, Nature Communications), [doi:10.1594/PANGAEA.905800](https://doi.org/10.1594/PANGAEA.905800) | CC BY 4.0 | The 0.25° ice thickness and sea-level grids for every time step, not the full 3.5 GB archive |
+| Ice sheets and sea level | A rough model written for Miniworld from general references (section 5), in `data/curated/ice-age.json` | Our own | The file itself |
 
 Every source must meet the data licence policy in [spec.md](spec.md#13-licences): freely available and usable commercially. `data/sources.json` lists every source with its URL, version, checksum, licence (as an SPDX identifier) and citation. The data build fails when a source used by a layer has no licence entry or its licence is not on the allowed list, and the app's About panel lists every source and its licence in both languages.
 
@@ -155,8 +153,7 @@ Every source must meet the data licence policy in [spec.md](spec.md#13-licences)
 - The globe is a unit cube projected onto a sphere (with an equal-angle warp so tiles are similar in size), each face split into a quadtree. Every tile is a grid of 65 × 65 vertices with skirts to hide cracks between levels. Tiles are refined by screen-space error: a tile splits when its geometric error, estimated as half its vertex spacing, would exceed the error target of the current quality tier in CSS pixels (section 11.2). A tile splits only once all four children are ready to draw, so the ground never shows holes while loading.
 - The data build produces one heightmap per tile down to level 6 (tiles of roughly 150 km with samples about 2.4 km apart, close to the 1.85 km of the source). A deeper level would add size without adding information. Rendered tiles go down to level 12 (samples about 40 m apart); levels below 6 are refined from their level 6 ancestor by bicubic interpolation when the tile is built, so the ground never shows staircases at the closest zoom. Normals are computed from the heights when a tile is built rather than stored.
 - Heights are stored in whole metres as 16-bit integers with an offset, compressed per tile (section 10.5). The data build clamps the deep ocean floor below −1,000 m, which is never visible and saves space.
-- Elevation is exaggerated by a factor of 12 relative to the Earth's radius, in the vertex shader, so the factor can be tuned without rebuilding data. The factor and the ice exaggeration (section 5.2) are the same so ice and rock line up.
-- At orbit distance the globe stays a clean sphere: relief fades in between camera altitudes of about 2,500 km and 1,500 km, so mountains do not stick out of the planet's outline.
+- Elevation is exaggerated by a factor of 100 relative to the Earth's radius (decided by Yang on 2026-10-17, replacing 12), in the vertex shader, so the factor can be tuned without rebuilding data. The factor and the ice exaggeration (section 5.2) are the same so ice and rock line up. Relief is shown at every altitude, including from orbit, so mountain ranges stand out of the planet's outline.
 
 ### 4.3 Terrain painting
 
@@ -167,32 +164,43 @@ Every source must meet the data licence policy in [spec.md](spec.md#13-licences)
 
 ### 4.4 Water
 
-- The sea is drawn as part of the terrain surface: wherever the ocean mask says the sea reaches at the date's sea level (section 5.1), the vertex shader lifts the surface to the sea level and the fragment shader draws water, with the water depth carried per vertex so the coastline stays crisp between vertices. Its colour depends on depth: turquoise over shallow shelves, deep blue over the ocean, so former land bridges read as pale shallows when drowned.
-- The surface has gentle animated waves and a sun glint, both driven by the life clock, and a light foam line where water meets land. Animation stops when everything is frozen.
-- Water must stay legible on low quality: the low tier drops waves and glint but keeps depth colour and foam.
+- The sea is drawn as part of the terrain surface: wherever the ocean mask says the sea reaches at the date's sea level (section 5.1), the vertex shader lifts the surface to the sea level and the fragment shader draws water, with the water depth carried per vertex so the coastline stays crisp between vertices. The sea has one colour at every depth, with no lighter shallows along the coasts (decided by Yang on 2026-10-17). Lakes and rivers use a slightly lighter blue.
+- The surface has gentle animated waves and a light glint, both driven by the life clock. Animation stops when everything is frozen.
+- The low tier drops waves and glint.
 
 ### 4.5 Sky and horizon
 
-- An atmosphere glow surrounds the globe from orbit. Close to the ground the sky fades from blue at the zenith to a pale haze at the horizon, and distant terrain fades into the haze.
+- There is no atmosphere glow around the globe, no haze over distant terrain and no stars (decided by Yang on 2026-10-17). From orbit the globe sits on a dark background.
+- Close to the ground the sky behind the horizon fades from blue at the zenith to a paler blue at the horizon, so a low view does not look like space.
 - The curved horizon comes naturally from the sphere: as the camera comes down it tilts towards the horizon (section 6), giving the look of Populous: The Beginning.
-- Stars are drawn on the night side only when the camera is in orbit.
 
 ## 5. The planet over time
 
 Everything in this section is a pure function of the date, computed from data, so scrubbing to any date shows the coastline and ice for that date at once.
 
+Sea level and ice come from a deliberately rough model in `data/curated/ice-age.json` (decided by Yang on 2026-10-17), not from a reconstruction dataset. The model is written by hand from general references (Encyclopaedia Britannica articles on the Pleistocene, the last ice age, the Last Glacial Maximum and the individual ice sheets), each named in the file. It gets the timing and the rough extent right and makes no claim to more. The main dates it follows:
+
+| Period (approximate) | Ice | Sea level |
+| --- | --- | --- |
+| 70,000 to 60,000 BCE | Large ice sheets (a cold phase of the last ice age, which began about 115,000 years ago) | About −80 to −90 m |
+| 57,000 to 29,000 BCE | Smaller ice sheets (a milder phase) | About −60 to −80 m |
+| 24,000 to 17,000 BCE | Last Glacial Maximum: ice at its largest | About −125 m |
+| 17,000 to 9700 BCE | Fast melting, with the Younger Dryas cold snap about 10,900 to 9700 BCE; the ice age ends about 9700 BCE | Rising to about −55 m |
+| 9700 to 5000 BCE | Scandinavian ice gone by about 8000 BCE, North American ice by about 6000 BCE | Rising to roughly today's level |
+
 ### 5.1 Sea level and coastlines
 
-- **Sea-level curve.** Global mean sea level relative to today, derived by the data build from the ice volume of the PaleoMIST 1.0 reconstruction at each of its 2,500-year time steps from 80,000 years ago to today (the extra ice volume compared with today, times the density ratio of ice to water of 0.917, divided by today's ocean area of 3.618 × 10¹⁴ m²), and interpolated smoothly (monotone cubic) between steps so the sea never rises in visible jumps. The curve reaches about −120 m around 20,000 years ago. It is stored every 100 years in the startup index (section 10.2) with its source. Using the same reconstruction for sea level and ice keeps coastlines and ice sheets consistent with each other. Finer sea-level curves for the last 20,000 years exist (such as Lambeck et al. 2014), but none found so far has a licence that allows commercial use; one may be added later only if it does.
+- **Sea-level curve.** Global mean sea level relative to today, given in the ice-age model as control points (years before present and metres) that follow the table above, and interpolated smoothly (monotone cubic) between them so the sea never rises in visible jumps. It is stored every 100 years in the startup index (section 10.2) with its source.
 - **Ocean mask.** A coastline cannot simply be "everywhere below sea level", because inland basins such as the Caspian Sea and the Dead Sea lie below today's sea level but are not part of the ocean. The data build therefore computes, for every terrain sample, the lowest sea level at which that sample is connected to the open ocean (a priority flood fill outward from the deep ocean, seeded from sea floor deeper than 3,000 m, in 1 m steps from −130 m to +10 m, on a grid of about 2 arc-minutes built from the elevation by taking the minimum of each block so narrow straits stay open). The Black Sea and the Caspian Sea are flooded as permanent lakes at today's levels (0 m and −28 m). Natural Earth lakes are flat water at the 20th percentile of the heights along their shore. A sample is sea at a date when that value is at or below the date's sea level. The value is stored as an extra channel of each terrain tile.
 - **Known simplifications**, named in the About panel: the land surface is today's, so the sinking of land under the ice sheets and its later rebound are not shown; past lakes that no longer exist (such as the glacial Lake Agassiz) and the Black Sea before it joined the Mediterranean are not shown in this milestone.
 - **Teaching moments the data must show** (exit criterion 1): Beringia joining Siberia and Alaska, Doggerland joining Britain to the continent, and Sundaland joining Sumatra, Java and Borneo to mainland Asia, each opening as the sea falls and drowning as it rises again. Sahul (Australia joined to New Guinea) shows too.
 
 ### 5.2 Ice sheets
 
-- **Source:** PaleoMIST 1.0 (section 4.1), which gives ice thickness on a global 0.25° grid in 2,500-year steps over the past 80,000 years, so it covers the whole timeline. ICE-6G_C, with finer time steps, was considered but publishes no licence, so it cannot be used.
-- The data build resamples ice thickness into tiles at level 3 (tiles of roughly 1,100 km, 33 × 33 samples about 35 km apart, close to the source's 0.25°) for each time slice and stores them as chunks keyed by tile and time window (section 10.3). Between slices, thickness is interpolated linearly by date.
-- With 2,500-year steps, the ice edge between steps is an interpolation, not a reconstruction. The About panel says so in plain language.
+- **Model.** Each ice sheet is an outline of its extent at the Last Glacial Maximum (a list of latitude and longitude points around a centre), a maximum thickness at the centre, and its own size over time as control points from 0 (gone) to 1 (the outline) or above. The sheets are the Laurentide and Cordilleran sheets of North America, the Scandinavian, British-Irish and Barents-Kara sheets of northern Eurasia, ice caps over the Alps, Iceland and Patagonia, and the Greenland and Antarctic sheets, which never disappear. Each record has `en` and `de` names and a source.
+- At a date, a sheet covers its outline shrunk towards its centre by its size. Its thickness is a dome, thickest at the centre and thinning to the edge (the Vialov profile, with its outer quarter tapered smoothly to zero so the exaggerated edge slopes rather than standing as a wall), and its central thickness scales with the square root of its size. A little seeded noise breaks up the edge so it does not look drawn with a ruler. Ice only lies where the bedrock is above a per-sheet depth, so it never covers deep ocean. Where sheets overlap, the thicker one counts.
+- The data build evaluates the model every 1,000 years directly at the samples of the ice tiles at level 3 (tiles of roughly 1,100 km, 33 × 33 samples about 35 km apart) and stores them as chunks keyed by tile and time window (section 10.3). Between steps, thickness is interpolated linearly by date.
+- The ice edges are a rough model, not a reconstruction. The About panel says so in plain language.
 - **Glacial index.** The ratio of the date's sea level to the lowest sea level of the curve, from 0 (today) to 1 (glacial maximum), drives the climate band in section 4.3.
 - Ice is drawn as a raised, slightly glossy white and blue surface over the terrain, with the same elevation exaggeration as the land, cracked blue edges where it meets the sea, and a soft edge where it ends on land. The Laurentide and Fennoscandian ice sheets must read clearly from orbit at 20,000 BCE and be gone by about 6000 BCE, apart from Greenland and Antarctica, which stay.
 
@@ -201,7 +209,7 @@ Everything in this section is a pure function of the date, computed from data, s
 ### 6.1 Range and behaviour
 
 - The camera orbits a target point on the globe. Its distance ranges from about three Earth radii (the whole planet with room around it) down to about 2 km above the terrain under the target.
-- Tilt follows altitude: looking straight down from orbit, tilting towards the horizon as the camera comes down, so close to the ground the view is a low angle across the land with the curved horizon visible. The viewer can add or remove tilt within limits; zooming back out returns smoothly to straight down.
+- Tilt follows altitude by default: looking straight down from orbit, tilting towards the horizon as the camera comes down, so close to the ground the view is a low angle across the land with the curved horizon visible. The viewer can tilt to any angle between straight down and nearly level (85°) at every altitude, with the controls below or two tilt buttons under the compass (decided by Yang on 2026-10-17).
 - The camera never goes below the terrain or ice surface and slides up over mountains as it moves.
 - Movement has gentle inertia. Rotation speed scales with altitude so the ground moves at a similar speed on screen at every zoom.
 - North stays up unless the viewer rotates the heading; a compass button resets heading and tilt.
@@ -230,8 +238,7 @@ The camera has one fly-to operation used by bookmarks now and by events and famo
 - The timeline is a strip along the bottom of the screen, drawn on a canvas, with HTML controls beside it. It has a date readout, the playhead, a lane "World" and one lane per region in the order of spec section 7.1.
 - Lanes show the era ranges from [eras.md](eras.md). The World lane uses a fixed colour per era; regional ranges use the colour assigned to that polity in `data/curated/eras` (later shared with the border overlay). Overlapping ranges in one lane stack into sub-rows.
 - A range's label is drawn inside it when it fits, otherwise it is shortened with an ellipsis and shown in full on hover or tap, together with its dates. German labels are about a third longer, so layout never assumes English widths.
-- **Desktop:** all lanes are shown when they fit in about 30 % of the window height at a readable row height; in a window too short or narrower than 700 CSS pixels the timeline behaves as on a phone.
-- **Phone:** the World lane plus the lane of the region under the camera's target, with a button to expand to all lanes as a sheet that covers at most two thirds of the screen. The region under the camera is found from a coarse region lookup table built by the data build. Both portrait and landscape work.
+- **Collapsed (the default on every device):** the timeline shows only the lane of the region the globe is centred on, which changes as the viewer moves the globe (decided by Yang on 2026-10-17). The region comes from a coarse region lookup table built by the data build. A button expands the timeline to the World lane and all regional lanes, taking at most about a third of the window height on desktop and two thirds on phones, and collapses it again. The choice is saved with the settings.
 
 ### 7.2 Axis and zoom
 
@@ -263,7 +270,6 @@ The camera has one fly-to operation used by bookmarks now and by events and famo
 | --- | --- | --- |
 | Language | English, Deutsch | Browser language if German, otherwise English |
 | Quality | Automatic, High, Medium, Low | Automatic (section 11.2) |
-| Always day | On, Off | Off |
 | True time scale | On, Off | Off |
 | Slow down when zoomed in | On, Off | On (section 3.3) |
 | Show performance stats | On, Off | Off |
@@ -436,4 +442,4 @@ Figures other than the stress-scene placeholders, the world query in the Web Wor
 
 ## 16. Decisions
 
-Decided by Yang on 2026-10-17: the reference devices (section 11.1), 12× elevation exaggeration (section 4.2), the toolchain (section 2.1), zooming in slowing the clock (section 3.3), and keeping only freely and commercially usable source data, with copies in the repository (sections 2.2 and 4.1).
+Decided by Yang on 2026-10-17: the reference devices (section 11.1), 100× elevation exaggeration (section 4.2, first 12×), a rough ice-age model instead of reconstruction data (section 5), no day and night, atmosphere or shallow-water colours (sections 3.6, 4.4 and 4.5), free tilt down to nearly level (section 6.1), the timeline collapsed to the region under the globe by default (section 7.1), the timeline ending at the dissolution of the Soviet Union on 26 December 1991 (section 3.1), the toolchain (section 2.1), zooming in slowing the clock (section 3.3), and keeping only freely and commercially usable source data, with copies in the repository (sections 2.2 and 4.1).

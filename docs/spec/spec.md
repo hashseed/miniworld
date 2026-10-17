@@ -2,7 +2,7 @@
 
 ## 1. Vision
 
-Miniworld is a passive, historically accurate diorama of human history on a 3D globe, made for exploring history together with a child. You do not play it; you watch it, travel through time and fly to wherever something is happening. Miniature people live era-typical lives on accurate continents, from the last ice age to the present day.
+Miniworld is a passive, historically accurate diorama of human history on a 3D globe, made for exploring history together with a child. You do not play it; you watch it, travel through time and fly to wherever something is happening. Miniature people live era-typical lives on accurate continents, from the last ice age to the end of the Soviet Union in 1991.
 
 The experience is closer to a living museum model than a game. A parent and child scrub to 79 CE, fly to the Bay of Naples, watch Vesuvius bury Pompeii, then jump to Rome and see the Colosseum being finished a year later.
 
@@ -32,9 +32,9 @@ The historical date decides everything that is true about the world: which cultu
 | 500 BCE to 1500 CE | about 20 years per minute | about 100 min |
 | 1500 to 1800 | about 10 years per minute | about 30 min |
 | 1800 to 1900 | about 5 years per minute | about 20 min |
-| 1900 to today | about 2 years per minute | about 60 min |
+| 1900 to 1991 | about 2 years per minute | about 45 min |
 
-The whole of history takes about five and a half hours at normal speed, and about half of that is the last 2,500 years.
+The whole of history takes about five hours at normal speed, and about half of that is the last 2,500 years.
 
 ### 2.2 Speed and pausing
 
@@ -54,17 +54,17 @@ Each ordinary figure is a persistent individual who stays on screen across centu
 
 ### 2.5 Range and start
 
-The timeline runs from about 70,000 BCE (modern humans leaving Africa) to the present. The app opens at 50,000 BCE, in the middle of the last ice age, with modern humans already spreading out of Africa.
+The timeline runs from about 70,000 BCE (modern humans leaving Africa) to the dissolution of the Soviet Union on 26 December 1991 (decided by Yang on 2026-10-17): the timeline stops there so it does not reach wars that are still going on. The app opens at 50,000 BCE, in the middle of the last ice age, with modern humans already spreading out of Africa.
 
-### 2.6 Day and night
+### 2.6 Lighting
 
-A gentle day and night cycle runs on the life clock, about 4 real minutes per day, with a setting to keep it always day. Seasons are not cycled, since a year passes in seconds at most rates; regional climate and long-term changes such as the ice age are shown instead.
+There is no day and night cycle: the globe is always evenly lit (decided by Yang on 2026-10-17). Seasons are not cycled either, since a year passes in seconds at most rates; regional climate and long-term changes such as the ice age are shown instead.
 
 ## 3. The globe
 
 The world is the real Earth with accurate continents, coasts, mountains and rivers, but everything people make is drawn as a miniature far larger than true scale. A true-scale person would be invisible from any height that shows a landscape, so the globe uses two scales at once.
 
-- **Geography at true proportions.** Landmasses, coastlines, rivers and lakes sit in their real places. Elevation is exaggerated (12 times to start, tunable between about 10 and 20) so mountains and valleys read clearly when you are close.
+- **Geography at true proportions.** Landmasses, coastlines, rivers and lakes sit in their real places. Elevation is exaggerated 100 times (decided by Yang on 2026-10-17, tunable) so mountains and valleys read clearly, even from orbit.
 - **People and buildings as miniatures.** Figures, houses, ships and monuments are scaled up by a fixed factor so a village reads clearly from a low camera. A settlement is drawn as a representative cluster: a Neolithic village is 5 to 15 huts, Rome at its height a few hundred buildings around its real landmarks. Cluster size follows the real population.
 - **Camera range.** You zoom continuously from a view of the whole planet down to a close-up where a dozen figures fill the screen. Close to the ground the curved horizon gives the Populous: The Beginning look naturally.
 
