@@ -4,6 +4,8 @@ The first list of 180 famous people, 20 in each category, spread across the worl
 
 Each person has a stable id, made from the English name in lower case with hyphens, which other records use to link to them and which never changes once published. Wars and battles link to the people who took part in them ([wars.md](wars.md)); the person's card lists those wars and battles, and selecting one flies the camera there.
 
+People still alive at the end of the timeline on 26 December 1991 stay on the globe until it ends. Their card may say in a sentence what they did later, such as Nelson Mandela becoming South Africa's president in 1994.
+
 ## Categories
 
 Every person has exactly one main category: the reason they are remembered, which is what a child should learn first. A person may also have one further category when a second side of their life is just as well known, such as Leonardo da Vinci, who was a painter and also an inventor. The categories are used in three places:

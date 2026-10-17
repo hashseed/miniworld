@@ -2,7 +2,7 @@
 
 ## 1. Vision
 
-Miniworld is a passive, historically accurate diorama of human history on a 3D globe, made for exploring history together with a child. You do not play it; you watch it, travel through time and fly to wherever something is happening. Miniature people live era-typical lives on accurate continents, from the last ice age to the present day.
+Miniworld is a passive, historically accurate diorama of human history on a 3D globe, made for exploring history together with a child. You do not play it; you watch it, travel through time and fly to wherever something is happening. Miniature people live era-typical lives on accurate continents, from the last ice age to the end of the Soviet Union in 1991.
 
 The experience is closer to a living museum model than a game. A parent and child scrub to 79 CE, fly to the Bay of Naples, watch Vesuvius bury Pompeii, then jump to Rome and see the Colosseum being finished a year later.
 
@@ -18,7 +18,7 @@ Principles that decide every design question:
 
 ## 2. Time model
 
-History plays at a varying rate: the deep past rushes by because little visibly changes, and time slows as events grow denser towards today. The little people always move at a natural, watchable pace. These are two different clocks, and keeping them apart is what makes the diorama both accurate and pleasant to watch.
+History plays at a varying rate: the deep past rushes by because little visibly changes, and time slows as events grow denser towards the end of the timeline. The little people always move at a natural, watchable pace. These are two different clocks, and keeping them apart is what makes the diorama both accurate and pleasant to watch.
 
 ### 2.1 Historical clock
 
@@ -32,9 +32,9 @@ The historical date decides everything that is true about the world: which cultu
 | 500 BCE to 1500 CE | about 20 years per minute | about 100 min |
 | 1500 to 1800 | about 10 years per minute | about 30 min |
 | 1800 to 1900 | about 5 years per minute | about 20 min |
-| 1900 to today | about 2 years per minute | about 60 min |
+| 1900 to 1991 | about 2 years per minute | about 45 min |
 
-The whole of history takes about five and a half hours at normal speed, and about half of that is the last 2,500 years.
+The whole of history takes a little over five hours at normal speed, and about half of that is the last 2,500 years.
 
 ### 2.2 Speed and pausing
 
@@ -54,7 +54,7 @@ Each ordinary figure is a persistent individual who stays on screen across centu
 
 ### 2.5 Range and start
 
-The timeline runs from about 70,000 BCE (modern humans leaving Africa) to the present. The app opens at 50,000 BCE, in the middle of the last ice age, with modern humans already spreading out of Africa.
+The timeline runs from about 70,000 BCE (modern humans leaving Africa) to 26 December 1991, the day the Soviet Union was dissolved, which ends the Cold War. That date is the content cutoff, fixed for every build: no event, war, border, building or era on the globe or the timeline goes past it, and an event or war that began before it but mostly happened after it is left out. A card may say in a sentence what happened next, such as Nelson Mandela becoming president in 1994, but the world itself stops at the cutoff. The app opens at 50,000 BCE, in the middle of the last ice age, with modern humans already spreading out of Africa.
 
 ### 2.6 Day and night
 
