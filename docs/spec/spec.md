@@ -58,7 +58,7 @@ The timeline runs from about 70,000 BCE (modern humans leaving Africa) to the di
 
 ### 2.6 Lighting
 
-There is no day and night cycle: the globe is always evenly lit (decided by Yang on 2026-10-17). Seasons are not cycled either, since a year passes in seconds at most rates; regional climate and long-term changes such as the ice age are shown instead.
+There is no day and night cycle: the globe is always evenly lit, like a model under studio lights (decided by Yang on 2026-10-17). Seasons are not cycled either, since a year passes in seconds at most rates; regional climate and long-term changes such as the ice age are shown instead.
 
 ## 3. The globe
 
@@ -180,7 +180,9 @@ With no simulation state to keep, browser local storage holds only small things:
 
 ## 8. Visual style
 
-The target is the look of Warcraft III: stylised, chunky proportions, hand-painted textures and warm lighting, with more geometry than the flat low-poly Populous models. Figures have slightly large heads and hands so roles and tools read from a distance.
+The target is a toy planet (decided by Yang on 2026-10-17, from a reference picture of a stylised miniature globe): the Earth as a handmade model of clay and glossy plastic, with saturated colours, chunky raised continents standing above a glossy blue sea, puffy cartoon clouds floating around it, studio light, cel shading with dark ink outlines, and a soft pastel background. It should feel whimsical and full of character, never clean or clinical. Miniatures have chunky proportions and more geometry than the flat low-poly Populous models, with the warmth of Warcraft III. Figures have slightly large heads and hands so roles and tools read from a distance.
+
+Whimsy never bends the facts: buildings, landmarks, ships and vehicles appear only where and when they really existed, so the toy planet at 50,000 BCE has ice, land and sea but no Eiffel Tower. Decorations that carry no historical claim, such as clouds, fish and whales, may appear at any time.
 
 | Asset | Detail at the closest zoom | Notes |
 | --- | --- | --- |
