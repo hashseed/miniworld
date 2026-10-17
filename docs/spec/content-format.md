@@ -141,6 +141,8 @@ where:
 
 Between waypoints the position is interpolated along the path by date, so where something is at any date is a pure function of the record. Every record also gets an **anchor**, the point the camera flies to: the place or point itself, the centre of an area, or the waypoint for the current date on a path. A record may set `anchor` explicitly when the computed one is a poor choice.
 
+**Coordinates in the event lists.** Every event, war and battle in the editorial lists ([events.md](events.md), the regional lists in [events/](events/) and [wars.md](wars.md)) has a "Coordinates" column holding one point: latitude and longitude in decimal degrees, north and east positive, with at most two decimals (about 1 km), for example `40.75, 14.49`. A bare point is the event's own site: the town, battlefield, building or monument where it happened. When the event covers an area, a route or several places, or its exact site is unknown, the point is a representative one, and a short note in brackets says what it stands for, for example `34.68, 112.45 (capital Luoyang)` or `47.00, 2.00 (centre of the area)`. The usual choices are the capital at that date for a state's political events, the main theatre or decisive battle for a war, the starting point for a voyage, migration or route, and the centre on land for an area. The point is where the timeline's double-click flies to, so the record's anchor must match it: the data build fails when the computed anchor (for a path, its position at the event's start) lies more than 25 km from the listed point and the record does not set `anchor` to it.
+
 ## 5. Fields per kind
 
 Each kind adds only what it needs on top of the envelope.

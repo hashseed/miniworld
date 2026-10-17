@@ -1,75 +1,75 @@
 # Events
 
-The first list of world events, in chronological order, with the title the app shows (in English; every title is localised) and how each appears on the globe (event types are defined in [spec.md](spec.md#5-how-events-appear-in-the-world)). Dates come from general historical knowledge, are approximate where marked "c.", and are checked against sources during the data build. Natural disasters, epidemics and famines are listed separately under [Natural disasters, epidemics and famines](#natural-disasters-epidemics-and-famines), and wars and battles in [wars.md](wars.md); the timeline shows all of them together.
+The first list of world events, in chronological order, with the title the app shows (in English; every title is localised) and how each appears on the globe (event types are defined in [spec.md](spec.md#5-how-events-appear-in-the-world)). Dates come from general historical knowledge, are approximate where marked "c.", and are checked against sources during the data build. Natural disasters, epidemics and famines are listed separately under [Natural disasters, epidemics and famines](#natural-disasters-epidemics-and-famines), and wars and battles in [wars.md](wars.md); the timeline shows all of them together. The "Coordinates" column gives the latitude and longitude the camera flies to, as defined in [content-format.md](content-format.md#4-place) section 4; a note in brackets marks a representative point for an event spread over an area, a route or several places.
 
-| Date | Event | Place | Type | What you see |
-| --- | --- | --- | --- | --- |
-| c. 70,000 BCE | Modern humans leave Africa | East Africa to Arabia | Migration | Small bands spread along coasts over thousands of years |
-| c. 60,000–50,000 BCE | First people reach Australia | Sunda to Sahul | Voyage | Rafts cross narrow straits between islands (date debated) |
-| c. 15,000 BCE | Lascaux cave paintings | Dordogne, France | Invention or idea | Figures paint animals by torchlight in a cave |
-| c. 14,000 BCE | People reach the Americas | Beringia | Migration | Groups cross the land bridge and move south (date debated, possibly earlier) |
-| c. 9500 BCE | Building of Göbekli Tepe | Southeast Anatolia | Construction | Hunter-gatherers raise carved stone pillars in rings |
-| c. 9000 BCE | Farming begins | Fertile Crescent | Invention or idea | First fields of wheat and barley; farming spreads outward over millennia |
-| c. 7400 BCE | Çatalhöyük is settled | Central Anatolia | Founding | A dense town of mudbrick houses entered through the roofs |
-| c. 3300 BCE | Invention of writing | Uruk, Mesopotamia | Invention or idea | Scribes press marks into clay tablets |
-| c. 3100 BCE | Unification of Egypt | Nile valley | Political change | First pharaoh; the Egyptian border appears on the overlay |
-| c. 3000 BCE | Stonehenge begun | Wiltshire, England | Construction | Earthwork first, great stones raised around 2500 BCE |
-| c. 2600 BCE | Mohenjo-daro flourishes | Indus valley | Founding | A planned brick city with drains and a great bath |
-| c. 2560 BCE | Great Pyramid completed | Giza, Egypt | Construction | The pyramid grows over about 20 years with ramps and work crews |
-| c. 1754 BCE | Code of Hammurabi | Babylon | Political change | A stone stele of laws is set up in the city |
-| c. 1200 BCE | Late Bronze Age collapse | Eastern Mediterranean | Destruction | Cities burn and empires shrink over decades, through war, drought, earthquakes and the end of trade |
-| 776 BCE | First Olympic Games | Olympia, Greece | Invention or idea | Runners race in a stadium before crowds |
-| 753 BCE | Founding of Rome | Rome | Founding | A village on the Palatine hill (legendary date) |
-| 447–432 BCE | Building of the Parthenon | Athens | Construction | The temple rises on the Acropolis |
-| 221 BCE | Qin unifies China | China | Political change | One empire on the overlay; wall building and the Terracotta Army begin |
-| c. 130 BCE | The Silk Road opens | China to the Mediterranean | Trade route | Caravans begin moving along the route for centuries |
-| 44 BCE | Assassination of Caesar | Rome | Political change | Crowds gather at the Forum |
-| 27 BCE | Augustus becomes first emperor | Rome | Political change | Republic becomes empire on the timeline |
-| 72–80 | Building of the Colosseum | Rome | Construction | The amphitheatre rises over eight years |
-| 105 | Invention of paper | Luoyang, China | Invention or idea | Workers make paper from plant fibres (traditional date) |
-| 122 | Hadrian's Wall begun | Northern England | Construction | A wall with forts across Britain |
-| 375 | Migration Period begins | Black Sea steppe | Migration | Huns arrive; Germanic peoples move west and south |
-| 395 | Division of the Roman Empire | Mediterranean | Political change | The empire splits into West and East on the overlay |
-| 410 | Sack of Rome | Rome | Destruction | Visigoths enter the city |
-| 476 | End of the Western Roman Empire | Ravenna | Political change | The last western emperor is deposed |
-| 537 | Hagia Sophia completed | Constantinople | Construction | The great domed church is finished |
-| 622 | The Hijra | Mecca to Medina | Religion | Muhammad and his followers move to Medina |
-| 632–750 | Early spread of Islam | Arabia to Spain and Central Asia | Religion | Caliphate grows on the overlay; mosques appear |
-| 793 | Raid on Lindisfarne | Northeast England | Destruction | Viking longships land at a monastery |
-| 800 | Coronation of Charlemagne | Rome | Political change | A crowning ceremony in St Peter's |
-| c. 1000 | Vikings reach North America | Newfoundland | Voyage | Longships cross the North Atlantic to a small camp |
-| c. 1113–1150 | Building of Angkor Wat | Cambodia | Construction | The temple city rises with moats |
-| 1206 | Genghis Khan unites the Mongols | Mongolia | Political change | The Mongol Empire begins to spread on the overlay |
-| 1271–1295 | Travels of Marco Polo | Venice to China | Voyage | A small caravan crosses Asia and returns by sea |
-| 1324 | Pilgrimage of Mansa Musa | Mali to Mecca | Voyage | A huge caravan with gold crosses the Sahara |
-| 1405–1433 | Voyages of Zheng He | China to East Africa | Voyage | Great treasure ships sail the Indian Ocean |
-| c. 1450 | Gutenberg's printing press | Mainz | Invention or idea | A print shop; printed books spread across Europe |
-| 1453 | Fall of Constantinople | Constantinople | Political change | Ottoman siege; the Byzantine Empire ends |
-| 1492 | Columbus reaches the Americas | Caribbean | Voyage | Three ships cross the Atlantic |
-| 1498 | Vasco da Gama reaches India | Around Africa to Calicut | Voyage | Ships sail around the Cape of Good Hope |
-| 1517 | The Reformation begins | Wittenberg | Religion | Luther's theses; new churches spread through northern Europe |
-| 1519–1522 | First circumnavigation | Around the world | Voyage | Magellan's fleet sails around the globe; one ship returns |
-| 1632–1653 | Building of the Taj Mahal | Agra | Construction | The white marble mausoleum rises |
-| 1769 | Watt's steam engine | Britain | Invention or idea | Engines appear in mines and mills |
-| 1776 | US Declaration of Independence | Philadelphia | Political change | A new country on the overlay |
-| 1788 | First Fleet arrives in Australia | Sydney | Founding | Ships land and a colony is founded |
-| 1789 | French Revolution | Paris | Political change | Crowds storm the Bastille |
-| 1825 | First public railway | Stockton to Darlington | Invention or idea | Steam trains appear and railways spread |
-| 1871 | German unification | Versailles | Political change | Germany appears as one state on the overlay |
-| 1884–1885 | Berlin Conference | Berlin | Political change | European colonies divide Africa on the overlay |
-| 1903 | First powered flight | Kitty Hawk, USA | Invention or idea | A small plane flies for a few seconds |
-| 1915–1917 | The Armenian genocide | Eastern Anatolia to the Syrian desert | Destruction | Explained in cards with care and accuracy: the Ottoman government deports the Armenians; about a million die in killings and death marches; Armenian villages disappear from the map |
-| 1941–1945 | The Holocaust | Europe | Destruction | Explained in cards with care and accuracy; Jewish communities disappear from the map |
-| 1945 | Atomic bombings of Hiroshima and Nagasaki | Japan | Destruction | Shown with great care; the cities appear as ruins |
-| 1945 | Founding of the United Nations | San Francisco | Political change | Delegates gather |
-| 1947 | Independence of India | South Asia | Political change | India and Pakistan appear on the overlay |
-| 1949 | Founding of the PRC, West and East Germany | Beijing, Bonn, Berlin | Political change | New states on the overlay |
-| 1961 | Berlin Wall built | Berlin | Construction | A wall divides the city |
-| 1969 | Moon landing | Cape Canaveral | Voyage | A rocket launches into space |
-| 1989 | Fall of the Berlin Wall | Berlin | Political change | Crowds on the wall; it is taken down |
-| 1990 | German reunification | Germany | Political change | Germany becomes one state again on the overlay |
-| 26 December 1991 | Dissolution of the Soviet Union | Eurasia | Political change | Many new states appear on the overlay; the Cold War is over. This is the last day of the timeline |
-| 1991 | The World Wide Web | CERN, Geneva | Invention or idea | A computer lab; screens appear in homes in later decades |
+| Date | Event | Place | Coordinates | Type | What you see |
+| --- | --- | --- | --- | --- | --- |
+| c. 70,000 BCE | Modern humans leave Africa | East Africa to Arabia | 12.60, 43.30 (start of the route, bab-el-mandeb crossing) | Migration | Small bands spread along coasts over thousands of years |
+| c. 60,000–50,000 BCE | First people reach Australia | Sunda to Sahul | -12.50, 132.90 (early site madjedbebe, arrival region) | Voyage | Rafts cross narrow straits between islands (date debated) |
+| c. 15,000 BCE | Lascaux cave paintings | Dordogne, France | 45.05, 1.17 | Invention or idea | Figures paint animals by torchlight in a cave |
+| c. 14,000 BCE | People reach the Americas | Beringia | 65.00, -168.00 (centre of the beringia land bridge) | Migration | Groups cross the land bridge and move south (date debated, possibly earlier) |
+| c. 9500 BCE | Building of Göbekli Tepe | Southeast Anatolia | 37.22, 38.92 | Construction | Hunter-gatherers raise carved stone pillars in rings |
+| c. 9000 BCE | Farming begins | Fertile Crescent | 36.50, 39.50 (centre of the fertile crescent arc) | Invention or idea | First fields of wheat and barley; farming spreads outward over millennia |
+| c. 7400 BCE | Çatalhöyük is settled | Central Anatolia | 37.67, 32.83 | Founding | A dense town of mudbrick houses entered through the roofs |
+| c. 3300 BCE | Invention of writing | Uruk, Mesopotamia | 31.32, 45.64 | Invention or idea | Scribes press marks into clay tablets |
+| c. 3100 BCE | Unification of Egypt | Nile valley | 29.85, 31.25 (early capital memphis) | Political change | First pharaoh; the Egyptian border appears on the overlay |
+| c. 3000 BCE | Stonehenge begun | Wiltshire, England | 51.18, -1.83 | Construction | Earthwork first, great stones raised around 2500 BCE |
+| c. 2600 BCE | Mohenjo-daro flourishes | Indus valley | 27.33, 68.14 | Founding | A planned brick city with drains and a great bath |
+| c. 2560 BCE | Great Pyramid completed | Giza, Egypt | 29.98, 31.13 | Construction | The pyramid grows over about 20 years with ramps and work crews |
+| c. 1754 BCE | Code of Hammurabi | Babylon | 32.54, 44.42 | Political change | A stone stele of laws is set up in the city |
+| c. 1200 BCE | Late Bronze Age collapse | Eastern Mediterranean | 35.60, 35.78 (ugarit, one of the destroyed cities) | Destruction | Cities burn and empires shrink over decades, through war, drought, earthquakes and the end of trade |
+| 776 BCE | First Olympic Games | Olympia, Greece | 37.64, 21.63 | Invention or idea | Runners race in a stadium before crowds |
+| 753 BCE | Founding of Rome | Rome | 41.89, 12.49 | Founding | A village on the Palatine hill (legendary date) |
+| 447–432 BCE | Building of the Parthenon | Athens | 37.97, 23.73 | Construction | The temple rises on the Acropolis |
+| 221 BCE | Qin unifies China | China | 34.38, 108.71 (capital xianyang) | Political change | One empire on the overlay; wall building and the Terracotta Army begin |
+| c. 130 BCE | The Silk Road opens | China to the Mediterranean | 34.30, 108.85 (start of the route at chang'an) | Trade route | Caravans begin moving along the route for centuries |
+| 44 BCE | Assassination of Caesar | Rome | 41.90, 12.48 | Political change | Crowds gather at the Forum |
+| 27 BCE | Augustus becomes first emperor | Rome | 41.89, 12.49 | Political change | Republic becomes empire on the timeline |
+| 72–80 | Building of the Colosseum | Rome | 41.89, 12.49 | Construction | The amphitheatre rises over eight years |
+| 105 | Invention of paper | Luoyang, China | 34.73, 112.62 | Invention or idea | Workers make paper from plant fibres (traditional date) |
+| 122 | Hadrian's Wall begun | Northern England | 55.01, -2.33 (middle of the wall at housesteads) | Construction | A wall with forts across Britain |
+| 375 | Migration Period begins | Black Sea steppe | 47.50, 35.00 (centre of the pontic steppe) | Migration | Huns arrive; Germanic peoples move west and south |
+| 395 | Division of the Roman Empire | Mediterranean | 45.46, 9.19 (court at milan, where theodosius died) | Political change | The empire splits into West and East on the overlay |
+| 410 | Sack of Rome | Rome | 41.89, 12.49 | Destruction | Visigoths enter the city |
+| 476 | End of the Western Roman Empire | Ravenna | 44.42, 12.20 | Political change | The last western emperor is deposed |
+| 537 | Hagia Sophia completed | Constantinople | 41.01, 28.98 | Construction | The great domed church is finished |
+| 622 | The Hijra | Mecca to Medina | 21.42, 39.83 (start of the route at mecca) | Religion | Muhammad and his followers move to Medina |
+| 632–750 | Early spread of Islam | Arabia to Spain and Central Asia | 33.51, 36.31 (caliphate capital damascus) | Religion | Caliphate grows on the overlay; mosques appear |
+| 793 | Raid on Lindisfarne | Northeast England | 55.67, -1.80 | Destruction | Viking longships land at a monastery |
+| 800 | Coronation of Charlemagne | Rome | 41.90, 12.45 | Political change | A crowning ceremony in St Peter's |
+| c. 1000 | Vikings reach North America | Newfoundland | 51.60, -55.53 | Voyage | Longships cross the North Atlantic to a small camp |
+| c. 1113–1150 | Building of Angkor Wat | Cambodia | 13.41, 103.87 | Construction | The temple city rises with moats |
+| 1206 | Genghis Khan unites the Mongols | Mongolia | 48.80, 108.80 (kurultai near the onon river, site uncertain) | Political change | The Mongol Empire begins to spread on the overlay |
+| 1271–1295 | Travels of Marco Polo | Venice to China | 45.44, 12.34 (start of the route at venice) | Voyage | A small caravan crosses Asia and returns by sea |
+| 1324 | Pilgrimage of Mansa Musa | Mali to Mecca | 11.38, -8.38 (start at niani, capital site uncertain) | Voyage | A huge caravan with gold crosses the Sahara |
+| 1405–1433 | Voyages of Zheng He | China to East Africa | 32.06, 118.78 (start of the voyages at nanjing) | Voyage | Great treasure ships sail the Indian Ocean |
+| c. 1450 | Gutenberg's printing press | Mainz | 50.00, 8.27 | Invention or idea | A print shop; printed books spread across Europe |
+| 1453 | Fall of Constantinople | Constantinople | 41.02, 28.93 | Political change | Ottoman siege; the Byzantine Empire ends |
+| 1492 | Columbus reaches the Americas | Caribbean | 24.05, -74.50 (first landfall, san salvador) | Voyage | Three ships cross the Atlantic |
+| 1498 | Vasco da Gama reaches India | Around Africa to Calicut | 11.25, 75.77 (arrival at calicut) | Voyage | Ships sail around the Cape of Good Hope |
+| 1517 | The Reformation begins | Wittenberg | 51.87, 12.65 | Religion | Luther's theses; new churches spread through northern Europe |
+| 1519–1522 | First circumnavigation | Around the world | 37.38, -5.99 (start of the voyage at seville) | Voyage | Magellan's fleet sails around the globe; one ship returns |
+| 1632–1653 | Building of the Taj Mahal | Agra | 27.18, 78.04 | Construction | The white marble mausoleum rises |
+| 1769 | Watt's steam engine | Britain | 55.86, -4.25 (watt's work in glasgow) | Invention or idea | Engines appear in mines and mills |
+| 1776 | US Declaration of Independence | Philadelphia | 39.95, -75.15 | Political change | A new country on the overlay |
+| 1788 | First Fleet arrives in Australia | Sydney | -33.86, 151.21 | Founding | Ships land and a colony is founded |
+| 1789 | French Revolution | Paris | 48.85, 2.37 | Political change | Crowds storm the Bastille |
+| 1825 | First public railway | Stockton to Darlington | 54.52, -1.55 (darlington, on the line) | Invention or idea | Steam trains appear and railways spread |
+| 1871 | German unification | Versailles | 48.80, 2.12 | Political change | Germany appears as one state on the overlay |
+| 1884–1885 | Berlin Conference | Berlin | 52.51, 13.38 | Political change | European colonies divide Africa on the overlay |
+| 1903 | First powered flight | Kitty Hawk, USA | 36.01, -75.67 | Invention or idea | A small plane flies for a few seconds |
+| 1915–1917 | The Armenian genocide | Eastern Anatolia to the Syrian desert | 38.67, 39.22 (harput, eastern anatolia, start of deportations) | Destruction | Explained in cards with care and accuracy: the Ottoman government deports the Armenians; about a million die in killings and death marches; Armenian villages disappear from the map |
+| 1941–1945 | The Holocaust | Europe | 50.03, 19.18 (auschwitz, the largest death camp) | Destruction | Explained in cards with care and accuracy; Jewish communities disappear from the map |
+| 1945 | Atomic bombings of Hiroshima and Nagasaki | Japan | 34.39, 132.45 (hiroshima; nagasaki also bombed) | Destruction | Shown with great care; the cities appear as ruins |
+| 1945 | Founding of the United Nations | San Francisco | 37.78, -122.42 | Political change | Delegates gather |
+| 1947 | Independence of India | South Asia | 28.61, 77.21 (capital new delhi) | Political change | India and Pakistan appear on the overlay |
+| 1949 | Founding of the PRC, West and East Germany | Beijing, Bonn, Berlin | 39.91, 116.39 (beijing; also bonn and berlin) | Political change | New states on the overlay |
+| 1961 | Berlin Wall built | Berlin | 52.52, 13.38 (brandenburg gate, on the wall) | Construction | A wall divides the city |
+| 1969 | Moon landing | Cape Canaveral | 28.61, -80.60 | Voyage | A rocket launches into space |
+| 1989 | Fall of the Berlin Wall | Berlin | 52.52, 13.38 (brandenburg gate, on the wall) | Political change | Crowds on the wall; it is taken down |
+| 1990 | German reunification | Germany | 52.52, 13.38 (ceremony in berlin) | Political change | Germany becomes one state again on the overlay |
+| 26 December 1991 | Dissolution of the Soviet Union | Eurasia | 55.75, 37.62 (capital moscow) | Political change | Many new states appear on the overlay; the Cold War is over. This is the last day of the timeline |
+| 1991 | The World Wide Web | CERN, Geneva | 46.23, 6.05 | Invention or idea | A computer lab; screens appear in homes in later decades |
 
 ## Natural disasters, epidemics and famines
 
@@ -83,52 +83,52 @@ Nature shaped history as much as kings and armies did: ice ages opened land brid
 
 **Time spans.** Each row follows the rule in [spec.md section 5](spec.md#5-how-events-appear-in-the-world): "When" is the whole span the globe shows, including warnings, aftermath and later waves, and "Peak" is the moment or phase of greatest force. A single date means the event fits within one day or a few, and its lasting changes stay in the world afterwards. Spans of prehistoric events are as uncertain as their dates.
 
-| When (start–end) | Peak | Event (en) | Event (de) | Place | Type | What you see over time | Check against |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| c. 37,900 BCE, cold years after | Eruption over a few days | The Phlegraean Fields erupt | Ausbruch der Phlegräischen Felder | Campania, Italy | Natural disaster | Largest eruption in Europe for 200,000 years; ash falls as far as Russia, where Stone Age hunters lived, and summers stay cool for a few years | Giaccio et al. 2017 (Campanian Ignimbrite, 39.85 ka) |
-| c. 24,500–17,000 BCE | c. 20,000 BCE | Last Glacial Maximum | Höhepunkt der letzten Eiszeit | Worldwide | Natural disaster (climate) | Ice sheets grow slowly from the app's start, stand at their largest with the sea 120 m lower and land bridges open, then melt over thousands of years; the ice data sets the pace | PaleoMIST 1.0 (already the ice and sea level source) |
-| c. 16,000–13,500 BCE | Dozens of separate floods, each lasting days | Ice-age floods of Lake Missoula | Eiszeitliche Missoula-Fluten | Northwest North America | Natural disaster | An ice dam forms a lake, breaks, forms again and breaks again; each flood carves the Channeled Scablands deeper | USGS |
-| c. 10,900–9,700 BCE | Cold sets in within decades and ends within decades | The Younger Dryas cold snap | Kälterückfall der Jüngeren Dryaszeit | Northern Hemisphere | Natural disaster (climate) | Warming stops and the ice age briefly returns; ice and tundra spread again for about 1,200 years before farming begins | NOAA paleoclimate |
-| c. 10,000–6000 BCE | Storegga tsunami c. 6200 BCE, one day | Doggerland is drowned | Doggerland versinkt im Meer | North Sea | Natural disaster | The rising sea slowly floods the hunting grounds between Britain and the continent; the Storegga tsunami strikes the last islands; Britain becomes an island for good | Storegga slide studies; PaleoMIST 1.0 |
-| c. 5700–5000 BCE | Eruption over a few days, c. 5700 BCE | Mount Mazama erupts and forms Crater Lake | Ausbruch des Mount Mazama, Entstehung des Crater Lake | Oregon, USA | Natural disaster | The mountain collapses into a crater that fills with rain and snow over several centuries; Klamath stories still remember it | USGS Crater Lake |
-| c. 4000–2500 BCE | Gradual, at different times in different regions | The green Sahara becomes desert | Die grüne Sahara wird zur Wüste | North Africa | Natural disaster (climate) | Lakes and grassland dry out over many centuries; herders move to the Nile, helping Egypt grow | Published African Humid Period studies |
-| c. 2200–1900 BCE | Worst in the first century | Great drought in the Near East and Indus valley | Große Dürre im Nahen Osten und am Indus | Mesopotamia, Egypt, Indus valley | Natural disaster (climate) | Fields dry out over generations; the Akkadian Empire falls, Egypt's Old Kingdom breaks apart and Indus cities slowly empty (role of drought debated) | Published 4.2-kiloyear event studies |
-| c. 1920 BCE | A few days | Great flood on the Yellow River | Große Flut am Gelben Fluss | Jishi Gorge, China | Natural disaster | A landslide dam bursts; possibly the real flood behind the legend of Yu the Great (debated) | Wu et al. 2016 |
-| c. 1600 BCE | Eruption over days to weeks | Eruption of Thera | Ausbruch von Thera | Santorini | Natural disaster | Earthquakes warn the people, who leave; the eruption buries the Minoan town of Akrotiri and leaves a flooded caldera (date debated) | Smithsonian Global Volcanism Program |
-| c. 226 BCE | One day | Earthquake topples the Colossus of Rhodes | Erdbeben stürzt den Koloss von Rhodos | Rhodes, Greece | Natural disaster | The giant bronze statue, one of the Seven Wonders, breaks at the knees and falls; it lies on the ground for about 800 years | Ancient sources (Strabo, Pliny the Elder) |
-| 79 | Eruption over two days | Vesuvius buries Pompeii | Der Vesuv verschüttet Pompeji | Bay of Naples | Natural disaster | Eruption; the town disappears under ash and is found again 1,700 years later (day and month debated) | Smithsonian Global Volcanism Program |
-| 165–c. 190 | 165–180, with a later wave c. 189 | Antonine Plague | Antoninische Pest | Roman Empire | Epidemic or famine | A disease, probably smallpox, spreads along army and trade routes and weakens the empire | Published historical studies |
-| 21 July 365 | A few hours | Crete earthquake and tsunami | Erdbeben und Tsunami von Kreta | Eastern Mediterranean | Natural disaster | A tsunami floods Alexandria; ships are left on rooftops | NOAA NCEI tsunami database; Ammianus Marcellinus |
-| c. 431, then decades | Eruption over a few days | Ilopango erupts | Ausbruch des Ilopango | El Salvador | Natural disaster | Ash buries Maya farmland nearby; people move away to other Maya cities and the land stays empty for decades | Smith et al. 2020 |
-| 536–c. 545 | 536–537, and a second eruption in 540 | Volcanic winter of 536 | Vulkanischer Winter von 536 | Northern Hemisphere | Natural disaster (climate) | A volcanic haze dims the sun for over a year; harvests fail from Europe to China; a cooler period lasts until about 660 | Published ice-core studies |
-| 541–c. 750 | First wave 541–549 | Plague of Justinian | Justinianische Pest | Mediterranean | Epidemic or famine | The first great plague pandemic empties streets in Constantinople and weakens the Byzantine Empire; it returns in waves for two centuries | Published historical studies |
-| 1257–1258 | Eruption in 1257 | Samalas erupts | Ausbruch des Samalas | Lombok, Indonesia | Natural disaster | Largest eruption of the last 2,000 years, found by scientists in ice cores before its volcano was known; the next year is cold in Europe | Lavigne et al. 2013 |
-| c. 1300–1850 | Coldest phases c. 1650–1715 and early 1800s | Little Ice Age | Kleine Eiszeit | Worldwide, strongest in Europe | Natural disaster (climate) | Colder winters over five centuries; frost fairs on the frozen Thames, glaciers grow in the Alps | NOAA paleoclimate |
-| 1315–1322 | 1315–1317 | Great Famine in Europe | Große Hungersnot in Europa | Northern Europe | Epidemic or famine | Years of rain rot the harvests; fields go bare and villages shrink | Published historical studies |
-| July 1342 | A few days, 21–25 July | Magdalene flood | Magdalenenhochwasser | Central Europe | Natural disaster | The worst river flood ever recorded in Central Europe; Rhine, Main and Danube overflow and wash away soil that takes centuries to return | Published historical studies |
-| 1347–1351 | 1348–1349 in most of Europe | The Black Death | Der Schwarze Tod | Europe and the Near East | Epidemic or famine | Plague moves along trade routes from the Black Sea across Europe; streets empty and towns shrink. Smaller outbreaks return for centuries, until Marseille 1720, and are shown as local phases | Published historical studies |
-| 16–17 January 1362 | One night | Saint Marcellus' flood | Zweite Marcellusflut (Grote Mandränke) | North Sea coast | Natural disaster | A storm flood swallows coastal land and the town of Rungholt; the North Frisian coastline changes for good | Published historical studies |
-| 1518–c. 1600 | Smallpox 1520; cocoliztli 1545–1548 and 1576–1580 | Epidemics in the Americas | Seuchen in Amerika | The Americas | Epidemic or famine | Smallpox and other diseases brought by Europeans spread in waves, together with conquest and forced labour, and kill most of the Indigenous population | Published historical studies |
-| 23 January 1556 | A few minutes | Shaanxi earthquake | Erdbeben von Shaanxi | Shaanxi, China | Natural disaster | The deadliest earthquake on record; many people lived in cave homes dug into soft loess | USGS; NOAA NCEI earthquake database |
-| 1600–1603 | Eruption February 1600; famine in Russia 1601–1603 | Huaynaputina erupts | Ausbruch des Huaynaputina | Peru | Natural disaster | The largest eruption in South American history; cold summers cause famine as far away as Russia | Smithsonian Global Volcanism Program |
-| 1 November 1755 | Minutes; fires burn for days | Lisbon earthquake | Erdbeben von Lissabon | Lisbon | Natural disaster | Earthquake, fire and tsunami; over the next decades the city is rebuilt to a plan and scientists start to study earthquakes | NOAA NCEI earthquake database |
-| 1783–1785 | Eruption June 1783–February 1784 | Laki eruption | Ausbruch der Laki-Spalte | Iceland | Natural disaster | A long fissure pours out lava for eight months; a haze spreads over Europe and a famine hits Iceland | Smithsonian Global Volcanism Program |
-| 1815–1816 | Eruption April 1815 | Eruption of Tambora | Ausbruch des Tambora | Indonesia | Natural disaster | Massive eruption; the next year has no summer in Europe and harvests fail | Smithsonian Global Volcanism Program |
-| 1817–1923 | Six waves: 1817–1824, 1829–1837, 1846–1860, 1863–1875, 1881–1896, 1899–1923 | Cholera spreads around the world | Die Cholera breitet sich weltweit aus | From Bengal to the world | Epidemic or famine | Cholera travels along trade routes in waves; cities build clean water supplies and sewers | Published historical studies |
-| 1845–1852 | 1847 | Great Famine in Ireland | Große Hungersnot in Irland | Ireland | Epidemic or famine | A blight destroys the potato harvest year after year; British policy keeps food exports going, and millions die or emigrate | Published historical studies |
-| 1876–1879 | 1877 | Great famines in India, China and Brazil | Große Hungersnöte in Indien, China und Brasilien | India, northern China, Brazil | Epidemic or famine | An El Niño drought, made far worse by colonial and government policy | Published historical studies |
-| 1883–1884 | 26–27 August 1883 | Krakatoa erupts | Ausbruch des Krakatau | Sunda Strait, Indonesia | Natural disaster | The island explodes; the sound is heard 4,800 km away and sunsets turn red around the world for months | Smithsonian Global Volcanism Program |
-| 18–21 April 1906 | Under a minute of shaking; fires for three days | San Francisco earthquake | Erdbeben von San Francisco | California, USA | Natural disaster | The ground shakes and fires burn much of the city; it is rebuilt within years | USGS |
-| 30 June 1908 | A moment | Tunguska event | Tunguska-Ereignis | Siberia, Russia | Natural disaster | A space rock explodes in the air and flattens a huge forest, which lies flat for decades; no town was hit | Published scientific studies |
-| 1918–1920 | Autumn 1918 | Influenza pandemic | Grippepandemie (Spanische Grippe) | Worldwide | Epidemic or famine | The flu spreads in three waves; streets empty in many cities | Published historical studies |
-| 1–3 September 1923 | Minutes; fires for two days | Great Kantō earthquake | Großes Kantō-Erdbeben | Tokyo and Yokohama | Natural disaster | Earthquake and fires; Japan builds stronger houses afterwards | USGS |
-| 1930–1939 | 1934–1936 | Dust Bowl | Dust Bowl in den Great Plains | Great Plains, USA | Natural disaster (climate) | Drought and over-ploughed soil turn farmland into dust storms; families move west | Published historical studies |
-| July–November 1931 | July–August | China floods | Überschwemmungen in China | Yangtze, Huai and Yellow rivers | Natural disaster | The deadliest floods on record cover huge areas of farmland for months | Published historical studies |
-| 31 January–1 February 1953 | One night | North Sea flood | Hollandsturmflut | Netherlands, Britain, Belgium | Natural disaster | A storm flood breaks the dikes; over the next decades the Netherlands builds the Delta Works | Published historical studies |
-| 22–23 May 1960 | About ten minutes | Great Chilean earthquake | Großes Chile-Erdbeben | Valdivia, Chile | Natural disaster | The strongest earthquake ever measured (magnitude 9.5); its tsunami crosses the Pacific and reaches Japan the next day | USGS |
-| 16–17 February 1962 | One night | Hamburg storm flood | Hamburger Sturmflut | Hamburg, Germany | Natural disaster | Dikes break on the Elbe; soldiers and helicopters rescue thousands | Published historical studies |
-| 12–13 November 1970 | One night | Bhola cyclone | Bhola-Zyklon | East Pakistan (Bangladesh) | Natural disaster | The deadliest tropical storm on record; anger at the slow government response helps lead to Bangladesh's independence the next year | Published historical studies |
-| March–May 1980 | 18 May 1980 | Mount St. Helens erupts | Ausbruch des Mount St. Helens | Washington, USA | Natural disaster | Two months of small earthquakes warn scientists, who tell people to leave; then the side of the mountain slides away | USGS |
-| June–December 1991 | Eruption 15 June 1991 | Pinatubo erupts | Ausbruch des Pinatubo | Luzon, Philippines | Natural disaster | Warnings save thousands of lives; the ash haze spreads around the world and begins to cool it (the card says the cooling lasted about two years) | USGS; Smithsonian Global Volcanism Program |
+| When (start–end) | Peak | Event (en) | Event (de) | Place | Coordinates | Type | What you see over time | Check against |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| c. 37,900 BCE, cold years after | Eruption over a few days | The Phlegraean Fields erupt | Ausbruch der Phlegräischen Felder | Campania, Italy | 40.83, 14.14 | Natural disaster | Largest eruption in Europe for 200,000 years; ash falls as far as Russia, where Stone Age hunters lived, and summers stay cool for a few years | Giaccio et al. 2017 (Campanian Ignimbrite, 39.85 ka) |
+| c. 24,500–17,000 BCE | c. 20,000 BCE | Last Glacial Maximum | Höhepunkt der letzten Eiszeit | Worldwide | 62.00, -95.00 (laurentide ice dome, representative) | Natural disaster (climate) | Ice sheets grow slowly from the app's start, stand at their largest with the sea 120 m lower and land bridges open, then melt over thousands of years; the ice data sets the pace | PaleoMIST 1.0 (already the ice and sea level source) |
+| c. 16,000–13,500 BCE | Dozens of separate floods, each lasting days | Ice-age floods of Lake Missoula | Eiszeitliche Missoula-Fluten | Northwest North America | 48.10, -116.30 (ice dam site, floods ran west) | Natural disaster | An ice dam forms a lake, breaks, forms again and breaks again; each flood carves the Channeled Scablands deeper | USGS |
+| c. 10,900–9,700 BCE | Cold sets in within decades and ends within decades | The Younger Dryas cold snap | Kälterückfall der Jüngeren Dryaszeit | Northern Hemisphere | 72.58, -38.46 (greenland ice core record, representative) | Natural disaster (climate) | Warming stops and the ice age briefly returns; ice and tundra spread again for about 1,200 years before farming begins | NOAA paleoclimate |
+| c. 10,000–6000 BCE | Storegga tsunami c. 6200 BCE, one day | Doggerland is drowned | Doggerland versinkt im Meer | North Sea | 54.75, 2.00 (centre of doggerland) | Natural disaster | The rising sea slowly floods the hunting grounds between Britain and the continent; the Storegga tsunami strikes the last islands; Britain becomes an island for good | Storegga slide studies; PaleoMIST 1.0 |
+| c. 5700–5000 BCE | Eruption over a few days, c. 5700 BCE | Mount Mazama erupts and forms Crater Lake | Ausbruch des Mount Mazama, Entstehung des Crater Lake | Oregon, USA | 42.94, -122.10 | Natural disaster | The mountain collapses into a crater that fills with rain and snow over several centuries; Klamath stories still remember it | USGS Crater Lake |
+| c. 4000–2500 BCE | Gradual, at different times in different regions | The green Sahara becomes desert | Die grüne Sahara wird zur Wüste | North Africa | 23.00, 12.00 (centre of the sahara) | Natural disaster (climate) | Lakes and grassland dry out over many centuries; herders move to the Nile, helping Egypt grow | Published African Humid Period studies |
+| c. 2200–1900 BCE | Worst in the first century | Great drought in the Near East and Indus valley | Große Dürre im Nahen Osten und am Indus | Mesopotamia, Egypt, Indus valley | 36.96, 41.51 (tell leilan, representative site) | Natural disaster (climate) | Fields dry out over generations; the Akkadian Empire falls, Egypt's Old Kingdom breaks apart and Indus cities slowly empty (role of drought debated) | Published 4.2-kiloyear event studies |
+| c. 1920 BCE | A few days | Great flood on the Yellow River | Große Flut am Gelben Fluss | Jishi Gorge, China | 35.85, 102.70 | Natural disaster | A landslide dam bursts; possibly the real flood behind the legend of Yu the Great (debated) | Wu et al. 2016 |
+| c. 1600 BCE | Eruption over days to weeks | Eruption of Thera | Ausbruch von Thera | Santorini | 36.40, 25.40 | Natural disaster | Earthquakes warn the people, who leave; the eruption buries the Minoan town of Akrotiri and leaves a flooded caldera (date debated) | Smithsonian Global Volcanism Program |
+| c. 226 BCE | One day | Earthquake topples the Colossus of Rhodes | Erdbeben stürzt den Koloss von Rhodos | Rhodes, Greece | 36.45, 28.23 | Natural disaster | The giant bronze statue, one of the Seven Wonders, breaks at the knees and falls; it lies on the ground for about 800 years | Ancient sources (Strabo, Pliny the Elder) |
+| 79 | Eruption over two days | Vesuvius buries Pompeii | Der Vesuv verschüttet Pompeji | Bay of Naples | 40.75, 14.49 | Natural disaster | Eruption; the town disappears under ash and is found again 1,700 years later (day and month debated) | Smithsonian Global Volcanism Program |
+| 165–c. 190 | 165–180, with a later wave c. 189 | Antonine Plague | Antoninische Pest | Roman Empire | 41.89, 12.49 (capital rome, representative) | Epidemic or famine | A disease, probably smallpox, spreads along army and trade routes and weakens the empire | Published historical studies |
+| 21 July 365 | A few hours | Crete earthquake and tsunami | Erdbeben und Tsunami von Kreta | Eastern Mediterranean | 35.20, 23.40 (epicentre, approximate) | Natural disaster | A tsunami floods Alexandria; ships are left on rooftops | NOAA NCEI tsunami database; Ammianus Marcellinus |
+| c. 431, then decades | Eruption over a few days | Ilopango erupts | Ausbruch des Ilopango | El Salvador | 13.67, -89.05 | Natural disaster | Ash buries Maya farmland nearby; people move away to other Maya cities and the land stays empty for decades | Smith et al. 2020 |
+| 536–c. 545 | 536–537, and a second eruption in 540 | Volcanic winter of 536 | Vulkanischer Winter von 536 | Northern Hemisphere | 41.01, 28.98 (constantinople, where the dimmed sun was recorded) | Natural disaster (climate) | A volcanic haze dims the sun for over a year; harvests fail from Europe to China; a cooler period lasts until about 660 | Published ice-core studies |
+| 541–c. 750 | First wave 541–549 | Plague of Justinian | Justinianische Pest | Mediterranean | 41.01, 28.98 (constantinople, worst-hit capital) | Epidemic or famine | The first great plague pandemic empties streets in Constantinople and weakens the Byzantine Empire; it returns in waves for two centuries | Published historical studies |
+| 1257–1258 | Eruption in 1257 | Samalas erupts | Ausbruch des Samalas | Lombok, Indonesia | -8.41, 116.42 | Natural disaster | Largest eruption of the last 2,000 years, found by scientists in ice cores before its volcano was known; the next year is cold in Europe | Lavigne et al. 2013 |
+| c. 1300–1850 | Coldest phases c. 1650–1715 and early 1800s | Little Ice Age | Kleine Eiszeit | Worldwide, strongest in Europe | 51.51, -0.09 (thames at london, representative) | Natural disaster (climate) | Colder winters over five centuries; frost fairs on the frozen Thames, glaciers grow in the Alps | NOAA paleoclimate |
+| 1315–1322 | 1315–1317 | Great Famine in Europe | Große Hungersnot in Europa | Northern Europe | 52.00, 8.00 (centre of the area) | Epidemic or famine | Years of rain rot the harvests; fields go bare and villages shrink | Published historical studies |
+| July 1342 | A few days, 21–25 July | Magdalene flood | Magdalenenhochwasser | Central Europe | 50.11, 8.68 (frankfurt on the main, representative) | Natural disaster | The worst river flood ever recorded in Central Europe; Rhine, Main and Danube overflow and wash away soil that takes centuries to return | Published historical studies |
+| 1347–1351 | 1348–1349 in most of Europe | The Black Death | Der Schwarze Tod | Europe and the Near East | 45.03, 35.38 (start at caffa) | Epidemic or famine | Plague moves along trade routes from the Black Sea across Europe; streets empty and towns shrink. Smaller outbreaks return for centuries, until Marseille 1720, and are shown as local phases | Published historical studies |
+| 16–17 January 1362 | One night | Saint Marcellus' flood | Zweite Marcellusflut (Grote Mandränke) | North Sea coast | 54.58, 8.70 (rungholt, site approximate) | Natural disaster | A storm flood swallows coastal land and the town of Rungholt; the North Frisian coastline changes for good | Published historical studies |
+| 1518–c. 1600 | Smallpox 1520; cocoliztli 1545–1548 and 1576–1580 | Epidemics in the Americas | Seuchen in Amerika | The Americas | 18.47, -69.89 (start on hispaniola) | Epidemic or famine | Smallpox and other diseases brought by Europeans spread in waves, together with conquest and forced labour, and kill most of the Indigenous population | Published historical studies |
+| 23 January 1556 | A few minutes | Shaanxi earthquake | Erdbeben von Shaanxi | Shaanxi, China | 34.50, 109.70 (epicentre) | Natural disaster | The deadliest earthquake on record; many people lived in cave homes dug into soft loess | USGS; NOAA NCEI earthquake database |
+| 1600–1603 | Eruption February 1600; famine in Russia 1601–1603 | Huaynaputina erupts | Ausbruch des Huaynaputina | Peru | -16.61, -70.85 | Natural disaster | The largest eruption in South American history; cold summers cause famine as far away as Russia | Smithsonian Global Volcanism Program |
+| 1 November 1755 | Minutes; fires burn for days | Lisbon earthquake | Erdbeben von Lissabon | Lisbon | 38.71, -9.14 | Natural disaster | Earthquake, fire and tsunami; over the next decades the city is rebuilt to a plan and scientists start to study earthquakes | NOAA NCEI earthquake database |
+| 1783–1785 | Eruption June 1783–February 1784 | Laki eruption | Ausbruch der Laki-Spalte | Iceland | 64.07, -18.23 | Natural disaster | A long fissure pours out lava for eight months; a haze spreads over Europe and a famine hits Iceland | Smithsonian Global Volcanism Program |
+| 1815–1816 | Eruption April 1815 | Eruption of Tambora | Ausbruch des Tambora | Indonesia | -8.25, 117.99 | Natural disaster | Massive eruption; the next year has no summer in Europe and harvests fail | Smithsonian Global Volcanism Program |
+| 1817–1923 | Six waves: 1817–1824, 1829–1837, 1846–1860, 1863–1875, 1881–1896, 1899–1923 | Cholera spreads around the world | Die Cholera breitet sich weltweit aus | From Bengal to the world | 23.17, 89.21 (start at jessore, bengal) | Epidemic or famine | Cholera travels along trade routes in waves; cities build clean water supplies and sewers | Published historical studies |
+| 1845–1852 | 1847 | Great Famine in Ireland | Große Hungersnot in Irland | Ireland | 53.40, -8.00 (centre of ireland) | Epidemic or famine | A blight destroys the potato harvest year after year; British policy keeps food exports going, and millions die or emigrate | Published historical studies |
+| 1876–1879 | 1877 | Great famines in India, China and Brazil | Große Hungersnöte in Indien, China und Brasilien | India, northern China, Brazil | 13.08, 80.27 (madras, india, one of several regions) | Epidemic or famine | An El Niño drought, made far worse by colonial and government policy | Published historical studies |
+| 1883–1884 | 26–27 August 1883 | Krakatoa erupts | Ausbruch des Krakatau | Sunda Strait, Indonesia | -6.10, 105.42 | Natural disaster | The island explodes; the sound is heard 4,800 km away and sunsets turn red around the world for months | Smithsonian Global Volcanism Program |
+| 18–21 April 1906 | Under a minute of shaking; fires for three days | San Francisco earthquake | Erdbeben von San Francisco | California, USA | 37.78, -122.42 | Natural disaster | The ground shakes and fires burn much of the city; it is rebuilt within years | USGS |
+| 30 June 1908 | A moment | Tunguska event | Tunguska-Ereignis | Siberia, Russia | 60.89, 101.89 | Natural disaster | A space rock explodes in the air and flattens a huge forest, which lies flat for decades; no town was hit | Published scientific studies |
+| 1918–1920 | Autumn 1918 | Influenza pandemic | Grippepandemie (Spanische Grippe) | Worldwide | 39.06, -96.79 (camp funston, early outbreak, representative) | Epidemic or famine | The flu spreads in three waves; streets empty in many cities | Published historical studies |
+| 1–3 September 1923 | Minutes; fires for two days | Great Kantō earthquake | Großes Kantō-Erdbeben | Tokyo and Yokohama | 35.68, 139.76 (tokyo; yokohama also hit) | Natural disaster | Earthquake and fires; Japan builds stronger houses afterwards | USGS |
+| 1930–1939 | 1934–1936 | Dust Bowl | Dust Bowl in den Great Plains | Great Plains, USA | 36.70, -101.50 (heart of the dust bowl) | Natural disaster (climate) | Drought and over-ploughed soil turn farmland into dust storms; families move west | Published historical studies |
+| July–November 1931 | July–August | China floods | Überschwemmungen in China | Yangtze, Huai and Yellow rivers | 30.59, 114.30 (wuhan, representative flooded city) | Natural disaster | The deadliest floods on record cover huge areas of farmland for months | Published historical studies |
+| 31 January–1 February 1953 | One night | North Sea flood | Hollandsturmflut | Netherlands, Britain, Belgium | 51.65, 3.92 (zeeland, worst-hit area) | Natural disaster | A storm flood breaks the dikes; over the next decades the Netherlands builds the Delta Works | Published historical studies |
+| 22–23 May 1960 | About ten minutes | Great Chilean earthquake | Großes Chile-Erdbeben | Valdivia, Chile | -38.14, -73.41 (epicentre; valdivia worst hit) | Natural disaster | The strongest earthquake ever measured (magnitude 9.5); its tsunami crosses the Pacific and reaches Japan the next day | USGS |
+| 16–17 February 1962 | One night | Hamburg storm flood | Hamburger Sturmflut | Hamburg, Germany | 53.50, 10.00 | Natural disaster | Dikes break on the Elbe; soldiers and helicopters rescue thousands | Published historical studies |
+| 12–13 November 1970 | One night | Bhola cyclone | Bhola-Zyklon | East Pakistan (Bangladesh) | 22.68, 90.65 (bhola island, worst-hit coast) | Natural disaster | The deadliest tropical storm on record; anger at the slow government response helps lead to Bangladesh's independence the next year | Published historical studies |
+| March–May 1980 | 18 May 1980 | Mount St. Helens erupts | Ausbruch des Mount St. Helens | Washington, USA | 46.20, -122.19 | Natural disaster | Two months of small earthquakes warn scientists, who tell people to leave; then the side of the mountain slides away | USGS |
+| June–December 1991 | Eruption 15 June 1991 | Pinatubo erupts | Ausbruch des Pinatubo | Luzon, Philippines | 15.14, 120.35 | Natural disaster | Warnings save thousands of lives; the ash haze spreads around the world and begins to cool it (the card says the cooling lasted about two years) | USGS; Smithsonian Global Volcanism Program |
 
 **Considered and left out.** The Toba eruption (about 74,000 years ago) is before the app's start. The Black Sea deluge and Atlantis are contested or legendary and are not shown as events. Helike (373 BCE), Mount Pelée (1902), Messina (1908), Galveston (1900), are important but would crowd the list; they can be added later. Disasters after the end of the timeline on 26 December 1991, such as the Indian Ocean tsunami (2004), the Tōhoku earthquake and Fukushima (2011), the COVID-19 pandemic and the Ahr valley flood (2021), are not shown. Famines caused mainly by people, such as the Holodomor (1932–1933), the Bengal famine (1943) and the Great Chinese Famine (1959–1961), are not natural disasters and belong in the main event list.
