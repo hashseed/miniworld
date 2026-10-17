@@ -287,7 +287,6 @@ Dated events for South Asia (India, Pakistan, Bangladesh, Sri Lanka and Nepal) f
 | `indias-first-nuclear-test` | 1974 | India's first nuclear test | Erster indischer Atomtest | Pokhran, Rajasthan | Invention or idea | An underground test in the desert |
 | `aryabhata-satellite` | 1975 | Aryabhata satellite | Satellit Aryabhata | Bangalore | Voyage | India's first satellite is launched on a Soviet rocket |
 | `emergency` | 1975–1977 | The Emergency | Der Ausnahmezustand | New Delhi | Political change | Indira Gandhi suspends elections and jails opponents; voters remove her in 1977 |
-| `sri-lankan-civil-war` | 1983–2009 | Sri Lankan Civil War | Bürgerkrieg in Sri Lanka | Jaffna | War | Government forces fight the Tamil Tigers; the war ends in 2009 with many civilians killed |
 | `india-wins-cricket-world-cup` | 1983 | India wins the Cricket World Cup | Indien gewinnt die Cricket-Weltmeisterschaft | London to Mumbai | Invention or idea | Crowds celebrate; cricket becomes India's great passion |
 | `assassination-indira-gandhi` | 1984 | Assassination of Indira Gandhi | Ermordung Indira Gandhis | New Delhi | Political change | After the army storms the Golden Temple, her Sikh bodyguards kill her; thousands of Sikhs are killed in riots |
 | `economic-reforms` | 1991 | Economic reforms | Wirtschaftsreformen | New Delhi | Trade route | India opens its economy; software and phone companies grow |

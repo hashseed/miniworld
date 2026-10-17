@@ -298,7 +298,6 @@ These wars and battles of this region are listed in [wars.md](../wars.md) and ar
 | 1853–1856 | `crimean-war` | Crimean War |
 | 1936–1939 | `spanish-civil-war` | Spanish Civil War |
 | 1944 | `normandy-landings` | D-Day landings |
-| 1991–2001 | `yugoslav-wars` | Yugoslav Wars |
 
 ## Known gaps
 
