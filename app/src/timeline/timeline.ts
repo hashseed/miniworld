@@ -56,8 +56,20 @@ export class Timeline {
   private rowH = 16;
   /** Most rows of any lane, reserved while a single lane is shown. */
   private maxLaneRows = 1;
+  /** Height of all shown lanes with the ruler; above the canvas height, the lanes scroll. */
+  private contentH = 0;
+  /** How far the lanes are scrolled up under the fixed ruler, in CSS pixels (section 7.1). */
+  private scrollY = 0;
   private drag:
-    | { kind: 'scrub' | 'pan' | 'tap'; x: number; a0: number; a1: number; moved: boolean }
+    | {
+        kind: 'scrub' | 'pan' | 'tap' | 'scroll';
+        x: number;
+        y: number;
+        a0: number;
+        a1: number;
+        scrollY: number;
+        moved: boolean;
+      }
     | undefined;
   private pinch = new Map<number, number>();
   private pinchStart: { dist: number; a0: number; a1: number; centre: number } | undefined;
@@ -210,10 +222,15 @@ export class Timeline {
 
   setVisibleLanes(lanes: string[] | undefined): void {
     this.visibleLanes = lanes;
+    this.scrollY = 0;
     if (this.index) this.layoutLanes();
   }
 
-  /** Height the timeline needs at the current row height. */
+  /**
+   * Height the timeline takes at most maxHeight: all shown lanes at the
+   * largest row height that fits, or, when even the smallest rows do not fit,
+   * maxHeight with the lanes scrolling under the ruler.
+   */
   desiredHeight(maxHeight: number): number {
     // A single lane (collapsed) reserves room for the lane with the most rows, so
     // switching regions never changes the height.
@@ -224,7 +241,18 @@ export class Timeline {
       MIN_ROW_H,
       Math.min(18, Math.floor((maxHeight - RULER_H - gaps - 4) / Math.max(1, rows))),
     );
-    return RULER_H + rows * this.rowH + gaps + 4;
+    this.contentH = RULER_H + rows * this.rowH + gaps + 4;
+    if (this.lanes.length === 1) return this.contentH;
+    return Math.min(this.contentH, Math.max(RULER_H + 2 * this.rowH, Math.floor(maxHeight)));
+  }
+
+  /** How far the lanes can scroll; 0 when they all fit. */
+  private maxScroll(): number {
+    return Math.max(0, this.contentH - this.height);
+  }
+
+  private scrollTo(y: number): void {
+    this.scrollY = Math.max(0, Math.min(this.maxScroll(), Math.round(y)));
   }
 
   resize(width: number, height: number): void {
@@ -235,6 +263,7 @@ export class Timeline {
     this.canvas.height = Math.round(height * this.dpr);
     this.canvas.style.width = `${width}px`;
     this.canvas.style.height = `${height}px`;
+    this.scrollTo(this.scrollY);
     // Setting the canvas size clears it.
     this.invalidate();
   }
@@ -269,6 +298,7 @@ export class Timeline {
           this.width,
           this.height,
           this.rowH,
+          this.scrollY,
           this.layoutVersion,
           this.i18n.language,
           tip ? `${tip.text}@${tip.x},${tip.y}` : '',
@@ -281,11 +311,20 @@ export class Timeline {
     ctx.fillStyle = 'rgba(255, 251, 243, 0.94)';
     ctx.fillRect(0, 0, this.width, this.height);
     this.drawRuler();
-    let y = RULER_H + 2;
+    // The lanes scroll under the ruler when they do not all fit (section 7.1).
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, RULER_H, this.width, this.height - RULER_H);
+    ctx.clip();
+    let y = RULER_H + 2 - this.scrollY;
     ctx.font = `${Math.max(10, this.rowH - 5)}px "Fredoka Variable", system-ui, sans-serif`;
     ctx.textBaseline = 'middle';
     for (const lane of this.lanes) {
       const h = lane.rows * this.rowH;
+      if (y + h < RULER_H || y > this.height) {
+        y += h + 3;
+        continue;
+      }
       ctx.fillStyle = 'rgba(74, 52, 36, 0.04)';
       ctx.fillRect(0, y, this.width, h);
       for (const { era, row } of lane.eras) {
@@ -320,6 +359,8 @@ export class Timeline {
       ctx.font = `${Math.max(10, this.rowH - 5)}px "Fredoka Variable", system-ui, sans-serif`;
       y += h + 3;
     }
+    ctx.restore();
+    this.drawScrollBar();
     // Playhead.
     const px = this.x(day);
     ctx.fillStyle = '#ff8a3d';
@@ -331,6 +372,19 @@ export class Timeline {
     ctx.fill();
     this.drawTooltip();
     return true;
+  }
+
+  /** A thin bar at the right edge showing which part of the lanes is in view. */
+  private drawScrollBar(): void {
+    const max = this.maxScroll();
+    if (max <= 0) return;
+    const track = this.height - RULER_H - 4;
+    const len = Math.max(16, (track * (this.height - RULER_H)) / (this.contentH - RULER_H));
+    const top = RULER_H + 2 + ((track - len) * this.scrollY) / max;
+    const ctx = this.ctx;
+    ctx.fillStyle = 'rgba(59, 42, 30, 0.4)';
+    roundRect(ctx, this.width - 5, top, 3, len, 1.5);
+    ctx.fill();
   }
 
   private drawRuler(): void {
@@ -397,7 +451,8 @@ export class Timeline {
   }
 
   private eraAt(x: number, y: number): EraRecord | undefined {
-    let top = RULER_H + 2;
+    if (y < RULER_H) return undefined;
+    let top = RULER_H + 2 - this.scrollY;
     for (const lane of this.lanes) {
       const h = lane.rows * this.rowH;
       if (y >= top && y < top + h) {
@@ -443,7 +498,7 @@ export class Timeline {
       const { x, y } = this.local(e);
       const nearPlayhead = Math.abs(x - this.x(this.clock.day)) < 10;
       const kind = nearPlayhead || y < RULER_H ? 'scrub' : 'tap';
-      this.drag = { kind, x, ...this.view, moved: false };
+      this.drag = { kind, x, y, ...this.view, scrollY: this.scrollY, moved: false };
       if (kind === 'scrub') {
         this.clock.beginScrub();
         this.clock.setDay(this.dayAtX(x));
@@ -466,11 +521,24 @@ export class Timeline {
       }
       const d = this.drag;
       if (!d) return;
-      const { x } = this.local(e);
-      if (Math.abs(x - d.x) > 4) d.moved = true;
-      if (d.kind === 'scrub') this.clock.setDay(this.dayAtX(x));
-      else if (d.moved) {
-        d.kind = 'pan';
+      const { x, y } = this.local(e);
+      const dx = Math.abs(x - d.x);
+      const dy = Math.abs(y - d.y);
+      if (d.kind === 'scrub') {
+        if (dx > 4) d.moved = true;
+        this.clock.setDay(this.dayAtX(x));
+        return;
+      }
+      if (d.kind === 'tap') {
+        // A drag that starts up or down scrolls the lanes when they do not all fit;
+        // one that starts sideways pans.
+        if (this.maxScroll() > 0 && dy > 4 && dy > dx) d.kind = 'scroll';
+        else if (dx > 4) d.kind = 'pan';
+        else return;
+        d.moved = true;
+      }
+      if (d.kind === 'scroll') this.scrollTo(d.scrollY - (y - d.y));
+      else {
         const da = ((x - d.x) / this.width) * (d.a1 - d.a0);
         this.view = this.clampView(d.a0 - da, d.a1 - da);
         this.setFollow(false);
@@ -505,6 +573,11 @@ export class Timeline {
       'wheel',
       (e) => {
         e.preventDefault();
+        if (e.shiftKey && this.maxScroll() > 0) {
+          // Browsers turn a Shift-wheel into a sideways scroll.
+          this.scrollTo(this.scrollY + (e.deltaY || e.deltaX));
+          return;
+        }
         const { x } = this.local(e);
         this.zoomBy(Math.exp(e.deltaY * 0.002), x);
         this.setFollow(false);
