@@ -1,3 +1,4 @@
 # Animals that can be cast in vignettes (docs/spec/milestone-2.md section 6.2),
-# with their names in every language.
-woolly-mammoth: { en: Woolly mammoth, de: Wollhaarmammut }
+# with their names in every language. An animal's model is animal-<id>
+# (content-format.md section 1).
+mammoth: { en: Woolly mammoth, de: Wollhaarmammut }

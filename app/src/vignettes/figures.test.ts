@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { buildActor } from './figures.ts';
 
+/** The hunter role's cast rules from vocab/roles.yaml. */
+const HUNTER = { man: true as const, tool: 'spear' };
+
 describe('vignette figures', () => {
   it('uses the approved models for the mammoth hunt cast', () => {
-    const hunter = buildActor('human', 'ice-age-hunter', 'a:hunters-left:0', 0, 'hunter');
-    const child = buildActor('human', 'ice-age-hunter', 'a:family:1', 1, 'gatherer');
-    const mammoth = buildActor('animal', 'woolly-mammoth', 'a:herd:0', 0);
+    const hunter = buildActor('human', 'ice-age-hunter', 'a:hunters-left:0', 0, HUNTER);
+    const child = buildActor('human', 'ice-age-hunter', 'a:family:1', 1, {});
+    const mammoth = buildActor('animal', 'mammoth', 'a:herd:0', 0);
     // Models hang their skeleton under one group; stand-ins do not.
     for (const actor of [hunter, child, mammoth]) expect(actor.root.children).toHaveLength(1);
     expect(hunter.height).toBeGreaterThan(1.5);
@@ -16,8 +19,8 @@ describe('vignette figures', () => {
   });
 
   it('poses the same way for the same clip and time', () => {
-    const a = buildActor('human', 'ice-age-hunter', 'k', 0, 'hunter');
-    const b = buildActor('human', 'ice-age-hunter', 'k', 0, 'hunter');
+    const a = buildActor('human', 'ice-age-hunter', 'k', 0, HUNTER);
+    const b = buildActor('human', 'ice-age-hunter', 'k', 0, HUNTER);
     a.pose('throw', 0.4);
     b.pose('throw', 0.4);
     a.root.updateMatrixWorld(true);
@@ -30,7 +33,7 @@ describe('vignette figures', () => {
   });
 
   it('falls back to a stand-in for a culture without a model', () => {
-    const actor = buildActor('human', 'no-such-culture', 'k', 0, 'hunter');
+    const actor = buildActor('human', 'no-such-culture', 'k', 0, HUNTER);
     expect(actor.root.children.length).toBeGreaterThan(0);
     expect(actor.height).toBeCloseTo(1.75);
   });

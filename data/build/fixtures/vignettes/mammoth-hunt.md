@@ -2,7 +2,7 @@
 id: mammoth-hunt
 kind: vignette
 template: big-game-hunt
-with: { hunters: ice-age-hunter, prey: woolly-mammoth }
+with: { hunters: ice-age-hunter, prey: mammoth }
 when:
   from: c. 43,000 BCE
   to: c. 10,000 BCE
