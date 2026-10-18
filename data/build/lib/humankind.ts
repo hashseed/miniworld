@@ -58,6 +58,11 @@ export interface Habitat {
   habitable(lat: number, lon: number, day: Day): boolean;
   /** How good a camp site is, 0 to 1: near water is better, high or dry ground worse. */
   score(lat: number, lon: number, day: Day): number;
+  /**
+   * Whether no river is drawn at a point. Camps, lodgings and outings stay on dry
+   * ground; bands on the move ford rivers. Without it, all land is dry.
+   */
+  dry?(lat: number, lon: number): boolean;
 }
 
 export interface TreeSettings {
@@ -183,6 +188,9 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   });
   const landAt = (p: { lat: number; lon: number }, day: Day) =>
     habitat.habitable(p.lat, p.lon, day) && habitat.habitable(p.lat, p.lon, day + STEP_DAYS);
+  /** Land with no river on it, for the camp itself: its lodgings, spots and outings. */
+  const dryAt = (p: { lat: number; lon: number }, day: Day) =>
+    landAt(p, day) && (habitat.dry?.(p.lat, p.lon) ?? true);
 
   /** Whether the straight way between two points is land all the way, checked every 25 km. */
   const walkable = (lat0: number, lon0: number, lat1: number, lon1: number, day: Day) => {
@@ -197,11 +205,16 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
 
   /** Whether the people's spots round a hearth would all be on land (section 8.1). */
   const roomy = (lat: number, lon: number, day: Day) => {
-    for (let k = 0; k < 8; k++) {
-      const a = (k / 8) * 2 * Math.PI;
-      if (!landAt(offset(lat, lon, CAMP_ROOM_M * detCos(a), CAMP_ROOM_M * detSin(a)), day))
-        return false;
-    }
+    if (!dryAt({ lat, lon }, day)) return false;
+    // Two rings, close enough that a drawn river cannot slip between their points.
+    for (const [n, m] of [
+      [8, CAMP_ROOM_M / 2],
+      [16, CAMP_ROOM_M],
+    ] as const)
+      for (let k = 0; k < n; k++) {
+        const a = (k / n) * 2 * Math.PI;
+        if (!dryAt(offset(lat, lon, m * detCos(a), m * detSin(a)), day)) return false;
+      }
     return true;
   };
 
@@ -215,7 +228,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     const dry = free.find((k) => {
       const p = slotPoint(camp.id, k);
       const far = { x: p.x * 1.25, z: p.z * 1.25 };
-      return [p, far].every((q) => landAt(offset(camp.lat, camp.lon, q.x, q.z), day));
+      return [p, far].every((q) => dryAt(offset(camp.lat, camp.lon, q.x, q.z), day));
     });
     return dry ?? free[0] ?? taken.size;
   };
@@ -225,13 +238,13 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     Array.from({ length: LODGING_SLOTS }, (_, gap) => {
       const d = gapDirection(camp.id, gap);
       let reach = 0;
-      for (let m = 10; m <= MAX_OUTING_M; m += 5) {
+      for (let m = 10; m <= MAX_OUTING_M; m += 2.5) {
         // Across the lanes of the gap, and a little further than they go, as coasts are drawn smoothed.
         const wet = [-0.17, 0, 0.17].some((turn) => {
           const [c, sn] = [detCos(turn), detSin(turn)];
           const x = (d.x * c - d.z * sn) * m * 1.1;
           const z = (d.x * sn + d.z * c) * m * 1.1;
-          return !landAt(offset(camp.lat, camp.lon, x, z), day);
+          return !dryAt(offset(camp.lat, camp.lon, x, z), day);
         });
         if (wet) break;
         reach = m;

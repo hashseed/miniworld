@@ -39,8 +39,6 @@ const LAYOUT_KM_PER_M = FIGURE_KM_PER_M / OVERSIZE;
 /** An animal is drawn at most this many times an adult's height (section 5.1). */
 const ANIMAL_MAX_ADULTS = 1.6;
 const ADULT_M = 1.75;
-/** Figures lean up to this far (radians) towards the top of the screen when seen from above, like pop-up cut-outs. */
-const MAX_LEAN = 1.15;
 /** Taps within this many pixels of a cast member count as hits. */
 const HIT_PX = 26;
 /** Altitude the camera flies down to on a double-tap: the whole stage in view. */
@@ -130,7 +128,6 @@ export class VignetteLayer {
   private v6 = new THREE.Vector3();
   private v7 = new THREE.Vector3();
   private yAxis = new THREE.Vector3(0, 1, 0);
-  private leanQ = new THREE.Quaternion();
 
   private readonly element: HTMLElement;
 
@@ -301,11 +298,6 @@ export class VignetteLayer {
     const v = this.structures.get(stage.entry.structure);
     if (!v) return;
     const phase = phaseOf(v.template, stage.instance, this.ms);
-    const steep = Math.max(
-      0,
-      this.v7.copy(this.camera!.position).sub(stage.centre).normalize().dot(stage.up),
-    );
-    const lean = MAX_LEAN * steep;
     const poses = posesAt(stage.instance, stage.members, phase);
     for (let i = 0; i < poses.length; i++) {
       const p = poses[i]!;
@@ -321,7 +313,7 @@ export class VignetteLayer {
       const frame = stage.frame;
       const spread = frame ? LAYOUT_KM_PER_M / frame.kmPerM - 1 : 0;
       const [ox, oz] = stage.offsets[i]!;
-      this.stand(stage, actor.root, p.x + ox * spread, p.z + oz * spread, p.dirX, p.dirZ, lean);
+      this.stand(stage, actor.root, p.x + ox * spread, p.z + oz * spread, p.dirX, p.dirZ);
       const sink = p.fade ? 0 : (1 - p.visibility) * actor.height * scale;
       actor.root.position.addScaledVector(this.v2, -sink);
       actor.root.scale.setScalar(scale);
@@ -336,11 +328,10 @@ export class VignetteLayer {
       prop.root.visible = p.visibility > 0;
       if (!prop.root.visible) continue;
       prop.setFade?.(p.visibility);
-      // Props stand flat on the ground: only people and animals lean like pop-up cut-outs.
-      this.stand(stage, prop.root, p.x, p.z, p.dirX, p.dirZ, 0);
+      this.stand(stage, prop.root, p.x, p.z, p.dirX, p.dirZ);
       prop.root.scale.setScalar(FIGURE_KM_PER_M);
     }
-    this.poseSpears(stage, phase, lean);
+    this.poseSpears(stage, phase);
   }
 
   /** An animal is drawn at most ANIMAL_MAX_ADULTS adults tall, so people stay readable. */
@@ -350,8 +341,8 @@ export class VignetteLayer {
 
   /**
    * Stands an object on the ground at a stage point, upright there and facing
-   * along (dirX east, dirZ north), tipped towards the top of the screen by the
-   * lean. Leaves the ground direction in v2 and the lean turn in leanQ.
+   * along (dirX east, dirZ north), whatever the camera does. Leaves the ground
+   * direction in v2.
    */
   private stand(
     stage: Stage,
@@ -360,7 +351,6 @@ export class VignetteLayer {
     z: number,
     dirX: number,
     dirZ: number,
-    lean: number,
   ): void {
     const dir = this.ground(stage, x, z);
     const north = this.v3;
@@ -369,8 +359,6 @@ export class VignetteLayer {
     // Local frame x east, y up, z south; then turn to face along (dirX east, dirZ north).
     root.quaternion.setFromRotationMatrix(this.basis.makeBasis(east, dir, north.negate()));
     root.quaternion.multiply(this.turn.setFromAxisAngle(this.yAxis, Math.atan2(dirZ, dirX)));
-    this.leanAt(dir, lean);
-    root.quaternion.premultiply(this.leanQ);
     // On a landmark, figures stand on its drawn surface (giza.md section 11.6).
     const f = stage.frame;
     const onLandmark = f ? f.surfaceM(x / 100, z / 100) * f.upKmPerM : 0;
@@ -391,21 +379,8 @@ export class VignetteLayer {
       .normalize();
   }
 
-  /** Sets leanQ: the turn that tips "up" at a ground direction towards the top of the screen. */
-  private leanAt(dir: THREE.Vector3, lean: number): void {
-    this.leanQ.identity();
-    if (lean <= 0) return;
-    const screenUp = this.v6.setFromMatrixColumn(this.camera!.matrixWorld, 1);
-    const leanTo = this.v1.copy(screenUp).addScaledVector(dir, -screenUp.dot(dir));
-    if (leanTo.lengthSq() < 1e-8) return;
-    leanTo.normalize();
-    const tipped = this.v5.copy(dir).multiplyScalar(Math.cos(lean));
-    tipped.addScaledVector(leanTo, Math.sin(lean));
-    this.leanQ.setFromUnitVectors(dir, tipped);
-  }
-
   /** Spears in the air arc from hand to target; landed ones ride their target's back. */
-  private poseSpears(stage: Stage, phase: number, lean: number): void {
+  private poseSpears(stage: Stage, phase: number): void {
     const spears = spearsAt(stage.instance, stage.script.spears, phase);
     for (let i = 0; i < spears.length; i++) {
       const sp = spears[i]!;
@@ -457,11 +432,9 @@ export class VignetteLayer {
       const north = this.v3;
       const east = this.v4;
       northEast(dir, north, east);
-      this.leanAt(dir, lean);
       const ahead = this.v5.copy(east).multiplyScalar(f.dirX).addScaledVector(north, f.dirZ);
       const tangent = ahead.multiplyScalar(flatKm).addScaledVector(dir, dh).normalize();
-      const lift = this.v7.copy(dir).multiplyScalar(h).applyQuaternion(this.leanQ);
-      tangent.applyQuaternion(this.leanQ);
+      const lift = this.v7.copy(dir).multiplyScalar(h);
       pivot.quaternion.setFromUnitVectors(this.yAxis, tangent);
       pivot.position
         .copy(dir)

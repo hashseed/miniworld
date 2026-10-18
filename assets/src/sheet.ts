@@ -231,6 +231,7 @@ function clipsSheet(): void {
     run: [0, 0.12, 0.24, 0.36, 0.48],
     carry: [0, 0.29, 0.58, 0.86, 1.15],
     work: [0, 0.22, 0.45, 0.67, 0.9],
+    knap: [0, 0.18, 0.35, 0.52, 1.5],
     point: [0, 0.4, 0.8, 1.2, 1.6],
     throw: [0, 0.3, 0.5, 0.6, 1.4],
     cheer: [0, 0.17, 0.35, 0.52, 0.7],
@@ -239,9 +240,12 @@ function clipsSheet(): void {
   const times = frames[clip]!;
   ground(0, 0, 5, '#c7cfa2');
   times.forEach((t, i) => {
-    const m = buildPerson({ profile: 'ice-age-hunter', kind: 'man' });
+    const m = buildPerson({
+      profile: clip === 'knap' ? 'african-stone-age' : 'ice-age-hunter',
+      kind: 'man',
+    });
     animatePerson(m, clip, t);
-    place(m, (i - 2) * 1.7, 0, Math.PI / 2 - 0.35);
+    place(m, (i - 2) * 1.7, 0, Math.PI / 2 - Number(params.get('turn') ?? 0.35));
   });
   labels.push({ text: `${clip}: ${times.join(', ')} s`, at: new THREE.Vector3(0, -0.15, 1.6) });
   camera.position.set(0, 2.2, 9.5);

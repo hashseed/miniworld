@@ -170,7 +170,7 @@ describe('the camp scene', () => {
     for (const ms of times) {
       const s = treeScene(whole, ms, settings.startDay);
       apart(
-        s.figures.filter((f) => f.clip === 'idle' || f.clip === 'work'),
+        s.figures.filter((f) => f.clip === 'idle' || f.clip === 'work' || f.clip === 'knap'),
         2,
       );
       apart(s.lodgings, 12);
@@ -178,49 +178,67 @@ describe('the camp scene', () => {
   }, 30_000);
 });
 
+/** Every lodging and figure of a tree's scene that stands where `ok` says it may not. */
+function strays(t: typeof tree, ok: (lat: number, lon: number) => boolean) {
+  const whole = {
+    fromDay: settings.startDay,
+    toDay: settings.endDay,
+    figures: t.figures,
+    lodgings: t.lodgings,
+  };
+  const end = msAtDay(settings.endDay, settings.startDay);
+  const km = LAYOUT_KM_PER_M;
+  const okAt = (p: { lat: number; lon: number; x: number; z: number }) =>
+    ok(
+      p.lat + (p.z * km) / 111.195,
+      p.lon + (p.x * km) / (111.195 * Math.cos((p.lat * Math.PI) / 180)),
+    );
+  const where: string[] = [];
+  let seen = 0;
+  for (let ms = 0; ms < end; ms += 99_991) {
+    const s = treeScene(whole, ms, settings.startDay);
+    for (const l of s.lodgings) {
+      seen++;
+      if (!okAt(l)) where.push(`lodging ${l.id} ${ms}`);
+    }
+    for (const f of s.figures) {
+      seen++;
+      // Bands on the move ford rivers; at camp everyone keeps dry.
+      if (f.clip !== 'walk' && !okAt(f))
+        where.push(
+          `figure ${f.id} ${f.clip} ${f.x.toFixed(1)},${f.z.toFixed(1)} at ${f.lat.toFixed(2)},${f.lon.toFixed(2)}`,
+        );
+    }
+  }
+  return { where, seen };
+}
+
 describe('camps by the sea', () => {
   it('keep their lodgings and outings on land', () => {
-    const whole = {
-      fromDay: settings.startDay,
-      toDay: settings.endDay,
-      figures: tree.figures,
-      lodgings: tree.lodgings,
-    };
-    const end = msAtDay(settings.endDay, settings.startDay);
-    const km = LAYOUT_KM_PER_M;
-    const onLandAt = (p: { lat: number; lon: number; x: number; z: number }) =>
-      onLand(
-        p.lat + (p.z * km) / 111.195,
-        p.lon + (p.x * km) / (111.195 * Math.cos((p.lat * Math.PI) / 180)),
-      );
-    const where: string[] = [];
-    let seen = 0;
-    for (let ms = 0; ms < end; ms += 99_991) {
-      const s = treeScene(whole, ms, settings.startDay);
-      for (const l of s.lodgings) {
-        seen++;
-        if (!onLandAt(l)) {
-          where.push(`lodging ${l.id} ${ms}`);
-        }
-      }
-      for (const f of s.figures) {
-        seen++;
-        if (!onLandAt(f)) {
-          where.push(
-            `figure ${f.id} ${f.clip} ${f.x.toFixed(1)},${f.z.toFixed(1)} at ${f.lat.toFixed(2)},${f.lon.toFixed(2)}`,
-          );
-        }
-      }
-    }
+    const { where, seen } = strays(tree, onLand);
     expect(seen).toBeGreaterThan(1000);
     expect(where).toEqual([]);
   }, 30_000);
 });
 
+describe('camps by a river', () => {
+  it('keep their lodgings and outings out of it', () => {
+    // A river about 60 km wide runs north to south across the continent, east of the founder.
+    const inRiver = (_lat: number, lon: number) => lon > 4 && lon < 4.55;
+    const t = buildTree(settings, { ...habitat, dry: (lat, lon) => !inRiver(lat, lon) });
+    expect(checkTree(t, settings, habitat)).toEqual([]);
+    // People still settle on both banks.
+    expect(t.lodgings.some((l) => l.lon / 1e6 > 6)).toBe(true);
+    const { where, seen } = strays(t, (lat, lon) => onLand(lat, lon) && !inRiver(lat, lon));
+    expect(seen).toBeGreaterThan(1000);
+    expect(where).toEqual([]);
+  }, 60_000);
+});
+
 describe('the canonical tree', () => {
   it('keeps its hash, so any change to the rules is seen', () => {
     const hash = createHash('sha256').update(JSON.stringify(tree)).digest('hex').slice(0, 16);
-    expect(hash).toBe('e1385a0d28d75f17');
+    expect(hash).toBe('212ab3a47b21b66e');
   });
 });
 

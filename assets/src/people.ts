@@ -57,6 +57,11 @@ interface ProfileLook {
   ochre?: boolean;
   boots?: boolean;
   tools: Record<Kind, Tool>;
+  /**
+   * A hand axe and a hammerstone for knapping, held in the hands only while
+   * the knap clip plays (humankind.md section 8.1).
+   */
+  knaps?: boolean;
   neanderthal?: boolean;
   /**
    * Egyptian wigs and dress (giza.md section 11.5): a blunt black wig, long
@@ -80,6 +85,7 @@ export const LOOKS: Record<Profile, ProfileLook> = {
     trim: '#8a5f38',
     beads: '#f4ecd8',
     tools: { man: 'bow', woman: 'digging-stick', child: 'none' },
+    knaps: true,
   },
   neanderthal: {
     skin: ['#e2b896', '#d1a07a', '#c48e66', '#b8835a'],
@@ -281,6 +287,14 @@ export function buildPerson(o: PersonOptions): Model {
   // The held tool and the carried load hang on their own bones so clips can hide them.
   bones.push({ name: 'tool', pivot: [-(b.shoulderX + 0.04), wristY, 0.03], parent: 'armLowerR' });
   bones.push({ name: 'load', pivot: [0, b.shoulderY, 0], parent: 'torso' });
+  if (look.knaps) {
+    bones.push({ name: 'knap', pivot: [b.shoulderX + 0.04, wristY, 0.03], parent: 'armLowerL' });
+    bones.push({
+      name: 'hammer',
+      pivot: [-(b.shoulderX + 0.04), wristY, 0.03],
+      parent: 'armLowerR',
+    });
+  }
   const mb = new ModelBuilder(bones);
   const skin = founder ? FOUNDER.skin : pick(look.skin, v);
   const hair = founder ? FOUNDER.hair : pick(look.hair, v * 7 + 3);
@@ -679,8 +693,27 @@ export function buildPerson(o: PersonOptions): Model {
     }
   }
 
+  if (look.knaps) {
+    // A flint hand axe, pointed and flat, in the left hand; a round hammerstone in the right.
+    const k = o.kind === 'child' ? 0.75 : 1;
+    mb.add(
+      blob([sx + 0.04, wrist - 0.05 * k, 0.09 * k], [0.06 * k, 0.11 * k, 0.03 * k], 5),
+      FLINT_LIGHT,
+      'knap',
+    );
+    mb.add(
+      blob([-(sx + 0.04), wrist - 0.02, 0.06 * k], [0.055 * k, 0.05 * k, 0.055 * k], 5),
+      STONE,
+      'hammer',
+    );
+  }
+
   const model = mb.build(founder ? 'first-person' : `${o.profile}-${o.kind}`);
   model.bones.get('load')!.visible = false;
+  for (const name of ['knap', 'hammer']) {
+    const stone = model.bones.get(name);
+    if (stone) stone.visible = false;
+  }
   return model;
 }
 
@@ -778,6 +811,8 @@ function torusRing(
 
 const WOOD = '#8a5a32';
 const FLINT = '#6f7378';
+/** A freshly knapped flint, light enough to see in the hand. */
+const FLINT_LIGHT = '#b9b3a6';
 
 function addTool(mb: ModelBuilder, tool: Tool, hand: Vec3, s: number): void {
   const [x, y, z] = hand;

@@ -29,6 +29,7 @@ const habitat = climateHabitat({
   isSea: (lat, lon, day) => lon < 0 && (day < 500 || lon < -10),
   isLake: (lat, lon) => lat > -1 && lat < 1 && lon > 30 && lon < 31,
   isRiver: (lat, lon) => lon > 20 && lon < 20.1,
+  inRiver: (lat, lon) => lon > 20 && lon < 20.05,
   elevation: (lat, lon) => (lon > 40 ? 4000 : 100),
 });
 

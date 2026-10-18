@@ -15,6 +15,9 @@ import { ROOT, type WriteContext } from './context.ts';
 import type { WorldMap } from './terrain.ts';
 
 /** The tree chunk files, one per time window, null where empty; undefined on the fixture map. */
+/** River field at which the drawn bank begins, so camps keep a little clear of the water. */
+const RIVER_BANK_FIELD = 96;
+
 export type TreeFiles = (string | null)[] | undefined;
 
 export function buildHumankind(ctx: WriteContext, map: WorldMap, climate: Climate): TreeFiles {
@@ -33,6 +36,8 @@ export function buildHumankind(ctx: WriteContext, map: WorldMap, climate: Climat
     },
     isLake: (lat, lon) => lakes.nearest(lat, lon) >= 128,
     isRiver: (lat, lon) => rivers.nearest(lat, lon) > 0,
+    // The globe draws a river where its field passes 128; the bank starts a little before.
+    inRiver: (lat, lon) => rivers.bilinear(lat, lon) >= RIVER_BANK_FIELD,
     elevation: (lat, lon) => elevation.bilinear(lat, lon),
   });
   const cultureAreas = ctx.curated<CultureAreas>('culture-areas.json');
