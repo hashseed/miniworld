@@ -220,6 +220,7 @@ Decided by Yang on 2026-10-18:
 7. The builders clearly look like ancient Egyptians: wigs, broad collars and white linen (section 11.5).
 8. Only three people build at a time, from the ground like a sand castle: no ramp and nobody standing on the pyramid. This replaces decision 3 for the slice; the card still tells of the ramps (section 11.3).
 9. The Sphinx is drawn taller than a person (section 11.2).
+10. The first slice is shelved: its models are approved as assets, but the diorama is taken off the globe (section 12).
 
 ## 11. First slice: the pyramids rise
 
@@ -310,4 +311,14 @@ The height of the ground under a figure on a stage of a building diorama is the 
 | Rising | The drawn height is zero at the start of a build, grows in whole courses, and is complete at its end; the stages are picked by date |
 | Singular | One instance over the whole span; the template's marks are scaled by the part's size; the loop closes at every pyramid's size |
 | Models | Every landmark asset builds within the 20,000-triangle landmark budget, and the Egyptian figures within the figure budget |
-| Browser | At a date in the building of the Great Pyramid, the pyramid and its crew are drawn at Giza; tapping the pyramid opens the landmark card |
+| Browser | At a date in the building of the Great Pyramid, the pyramid and its crew are drawn at Giza; tapping the pyramid opens the landmark card (dropped while the slice is shelved, section 12) |
+
+## 12. Shelved
+
+Decided by Yang on 2026-10-18, after reviewing the slice on devenv: the Old Kingdom Egyptian figures and the Giza models (pyramids and Sphinx at every stage) are approved as assets, but the Giza diorama is taken off the globe completely. Nothing of Giza is drawn at any date, and the startup index has no landmark.
+
+- **Kept.** The approved models in `assets/src/people.ts` and `assets/src/landmarks.ts`, the `old-kingdom-egyptian` culture profile, and the general machinery of the slice: the landmark build and layer, singular vignettes driven by a build, group offsets, props and standing on a landmark (section 11). The `stone-sledge` prop stays unreviewed; nothing uses it.
+- **Moved out of the content.** The landmark record, the three building vignettes, the `pyramid-building` template and their three sources move from `data/curated/` to `data/build/fixtures/giza/`, where the tests of section 11.7 still build them. The data build never reads that folder.
+- **Dropped.** The browser test of section 11.7.
+
+Bringing Giza back means moving the records back into `data/curated/` and restoring the browser test, with whatever changes Yang asks for then.

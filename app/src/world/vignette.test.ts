@@ -6,15 +6,20 @@ import { buildMembers, instancesAt, loopErrors, posesAt } from './vignette.ts';
 
 const CURATED = new URL('../../../data/curated', import.meta.url).pathname;
 const lanes = new Set(['europe', 'mena']);
-const giza = buildLandmarks({ curated: CURATED, lanes, startDay: TIMELINE_START, cutoffDay: 0 });
-const built = buildVignettes({
-  curated: CURATED,
-  lanes,
-  animals: new Set(['woolly-mammoth']),
-  startDay: TIMELINE_START,
-  cutoffDay: 0,
-  landmarkParts: new Map(giza.landmarks.map((l) => [l.structure.id, l.parts])),
-}).vignettes;
+// The Giza records are shelved as a fixture (spec giza.md, section 12).
+const GIZA = new URL('../../../data/build/fixtures/giza', import.meta.url).pathname;
+const giza = buildLandmarks({ curated: GIZA, lanes, startDay: TIMELINE_START, cutoffDay: 0 });
+const built = [CURATED, GIZA].flatMap(
+  (curated) =>
+    buildVignettes({
+      curated,
+      lanes,
+      animals: new Set(['woolly-mammoth']),
+      startDay: TIMELINE_START,
+      cutoffDay: 0,
+      landmarkParts: new Map(giza.landmarks.map((l) => [l.structure.id, l.parts])),
+    }).vignettes,
+);
 const hunt = built.find((v) => v.structure.id === 'mammoth-hunt')!.structure;
 const khufu = built.find((v) => v.structure.id === 'khufu-pyramid-building')!.structure;
 const menkaure = built.find((v) => v.structure.id === 'menkaure-pyramid-building')!.structure;

@@ -7,7 +7,8 @@ import {
 import { partAt } from '../../../app/src/world/landmark.ts';
 import { buildLandmarks, placeOffWater, shiftOffWater } from './landmarks.ts';
 
-const CURATED = new URL('../../curated', import.meta.url).pathname;
+// The Giza records are shelved as a fixture (spec giza.md, section 12).
+const CURATED = new URL('../fixtures/giza', import.meta.url).pathname;
 const bce = (y: number) => dayOfYearStart(astronomicalYear(y, 'BCE'));
 const ce = (y: number) => dayOfYearStart(y);
 

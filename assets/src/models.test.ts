@@ -250,7 +250,7 @@ describe('asset manifest', () => {
     (id) => {
       const entry = entries.get(id);
       expect(['generated', 'approved', 'rejected']).toContain(entry?.status);
-      // Models waiting for review (giza.md section 11.1) are drawn as stand-ins.
+      // The one model left unreviewed (giza.md section 12) is never drawn.
       if (entry?.status !== 'approved') return;
       // A changed model needs Yang's approval again; then `npm run approve-assets -- <id>`.
       expect(geometryHash(MODELS[id]!()), `${id} changed since it was approved`).toBe(
@@ -272,8 +272,6 @@ describe('asset manifest', () => {
 
   it('only models waiting for review are not approved', () => {
     const waiting = Object.keys(MODELS).filter((id) => entries.get(id)?.status !== 'approved');
-    expect(
-      waiting.every((id) => /^(figure-old-kingdom-egyptian-|giza-|stone-sledge)/.test(id)),
-    ).toBe(true);
+    expect(waiting.every((id) => /^stone-sledge$/.test(id))).toBe(true);
   });
 });
