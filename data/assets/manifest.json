@@ -411,6 +411,134 @@
       "note": "Approved by Yang from the review sheets"
     },
     {
+      "id": "animal-elephant",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-asian-elephant",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-giraffe",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-zebra",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-wildebeest",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-lion",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-lioness",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-camel",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-yak",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-brown-bear",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-polar-bear",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-guanaco",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-crocodile",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-penguin",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-parrot",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-kea",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
       "id": "plant-rainforest",
       "file": "app/src/globe/foliageModels.ts",
       "kind": "plant",

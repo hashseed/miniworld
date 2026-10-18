@@ -24,6 +24,7 @@ import { attachKeys } from './input.ts';
 import { FrameLoop } from './loop.ts';
 import { LandmarkLayer } from './landmarks/landmarkLayer.ts';
 import { VignetteLayer } from './vignettes/vignetteLayer.ts';
+import { WildlifeLayer } from './wildlife/wildlifeLayer.ts';
 import { OPENING_DAY, TIMELINE_START } from './time/calendar.ts';
 import { Clock } from './time/clock.ts';
 import { Timeline } from './timeline/timeline.ts';
@@ -143,7 +144,11 @@ const landmarks = new LandmarkLayer(loader, {
   toDrawn: (d) => globe.lens.toDrawn(d),
 });
 vignettes.landmarks = landmarks;
-scene.add(landmarks.group, vignettes.group);
+const wildlife = new WildlifeLayer({
+  surfaceKm: surface.surfaceKm,
+  toDrawn: (d) => globe.lens.toDrawn(d),
+});
+scene.add(landmarks.group, vignettes.group, wildlife.group);
 vignettes.onOpen = (entry) => void openVignette(entry);
 // A tap that misses every cast may land on a landmark, which opens its card the same way.
 vignettes.onMiss = (x, y) => {
@@ -176,6 +181,7 @@ const loop = new FrameLoop(
     clouds,
     vignettes,
     landmarks,
+    wildlife,
     hot,
     stress: STRESS ? new StressRun(scene) : undefined,
     isPhone,
@@ -540,6 +546,7 @@ if (import.meta.env.DEV)
       foliage,
       vignettes,
       landmarks,
+      wildlife,
       controller,
       clock,
       loader,

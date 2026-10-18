@@ -17,7 +17,8 @@ export type Clip =
   | 'throw'
   | 'cheer'
   | 'struggle'
-  | 'fall';
+  | 'fall'
+  | 'fly';
 
 /** Seconds into the throw gesture when the spear leaves the hand. */
 export const THROW_RELEASE = 0.55;
@@ -324,6 +325,43 @@ export function animateAnimal(m: Model, clip: Clip, seconds: number): void {
     rot('tail', 0, 0.25 * Math.sin(p));
     body.position.y = rest.y + Math.abs(Math.cos(p)) * swing * 0.05 * rest.y;
   };
+  // Two-legged walkers (wildlife.md section 6): penguins waddle, kangaroos hop.
+  const biped = m.bones.has('legL');
+  const winged = m.bones.has('wingL');
+  if (clip === 'fly') {
+    // Wings flap up and down, the body rises on each down-stroke and the tail steers.
+    const p = (seconds / 0.45) * TAU;
+    rot('wingL', 0, 0, 0.7 * Math.sin(p));
+    rot('wingR', 0, 0, -0.7 * Math.sin(p));
+    rot('tail', 0.1 * Math.sin(p + 1));
+    rot('head', -0.05 * Math.sin(p));
+    body.position.y = rest.y - 0.08 * rest.y * Math.sin(p);
+    return;
+  }
+  if (biped && (clip === 'walk' || clip === 'run')) {
+    const fast = clip === 'run' ? 0.6 : 1;
+    if (winged) {
+      // Waddle: short steps, the body rocking from foot to foot, flippers out.
+      const p = (seconds / (0.7 * fast)) * TAU;
+      body.rotation.z = 0.14 * Math.sin(p);
+      rot('legL', 0.35 * Math.sin(p));
+      rot('legR', -0.35 * Math.sin(p));
+      rot('wingL', 0, 0, 0.35 + 0.1 * Math.sin(p * 2));
+      rot('wingR', 0, 0, -0.35 - 0.1 * Math.sin(p * 2));
+      body.position.y = rest.y + 0.04 * rest.y * Math.abs(Math.sin(p));
+    } else {
+      // Hop: both legs push off together, the tail swings up as the body flies.
+      const p = (seconds / (0.75 * fast * stride)) * TAU;
+      const air = Math.max(0, Math.sin(p));
+      body.position.y = rest.y * (1 + 0.45 * air);
+      body.rotation.x = 0.2 * air;
+      rot('legL', 0.6 * air);
+      rot('legR', 0.6 * air);
+      rot('tail', -0.4 * air);
+      rot('head', -0.15 * air);
+    }
+    return;
+  }
   switch (clip) {
     case 'walk':
       gait(1.1 * stride, 0.3);

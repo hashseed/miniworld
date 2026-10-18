@@ -327,8 +327,13 @@ varying vec3 vLocal;
 void main() {
   vColour = color;
   vLocal = position;
-  vNormal = normalize(mat3(modelMatrix) * normal);
-  vec4 w = modelMatrix * vec4(position, 1.0);
+  // Instanced models (wildlife.md section 5) carry each part's pose in instanceMatrix.
+  mat4 model = modelMatrix;
+  #ifdef USE_INSTANCING
+  model = modelMatrix * instanceMatrix;
+  #endif
+  vNormal = normalize(mat3(model) * normal);
+  vec4 w = model * vec4(position, 1.0);
   vWorld = w.xyz;
   gl_Position = projectionMatrix * viewMatrix * w;
   #include <logdepthbuf_vertex>
@@ -398,8 +403,13 @@ const inkVertex = /* glsl */ `
 uniform float inkPixels;
 uniform vec2 viewport;
 void main() {
+  #ifdef USE_INSTANCING
+  vec4 clip = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+  vec3 nView = normalize(normalMatrix * mat3(instanceMatrix) * normal);
+  #else
   vec4 clip = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   vec3 nView = normalize(normalMatrix * normal);
+  #endif
   vec2 dir = normalize((projectionMatrix * vec4(nView, 0.0)).xy + 1e-6);
   clip.xy += dir * inkPixels * 2.0 / viewport * clip.w;
   gl_Position = clip;

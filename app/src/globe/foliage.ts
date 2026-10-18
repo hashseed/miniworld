@@ -57,7 +57,7 @@ const CROWN = 1.1;
 /** Where plants never stand (section 4). */
 const MIN_COAST_KM = 2.5;
 /** Drawn radius of the clearing around a vignette stage, so trees never hide a diorama (section 4). */
-const CLEARING_KM = 800;
+export const CLEARING_KM = 800;
 const MAX_WATER_FIELD = 0.42;
 const ICE_CLEARANCE_KM = 25;
 /** River field of the bank band that gets palms in dry land. */
@@ -125,8 +125,8 @@ export class Foliage {
   count = 0;
   /** Set once the first view is ready; until then nothing is loaded or drawn. */
   active = false;
-  /** True directions of the vignette stages standing now; plants keep clear of them. */
-  clearings: Vec3[] = [];
+  /** True directions and drawn radii in km of the clearings standing now: vignette stages and wildlife homes. */
+  clearings: { dir: Vec3; km: number }[] = [];
 
   constructor(globe: Globe, loader: ChunkSource) {
     this.globe = globe;
@@ -198,13 +198,19 @@ export class Foliage {
     });
     // Plants change only with the slices, the sea level and the lens, never with the camera alone.
     const state = `${ka}:${kb}:${t.toFixed(3)}:${planet.seaLevel.toFixed(1)}`;
-    const clear = this.clearings.map((c) => lens.toDrawn(c));
-    const clearKey = clear.map((c) => c.map((x) => x.toFixed(4)).join(',')).join(';');
+    const clear = this.clearings.map((c) => ({
+      at: lens.toDrawn(c.dir),
+      cos: Math.cos(c.km / EARTH_RADIUS_KM),
+    }));
+    const clearKey = clear
+      .map((c) => `${c.at.map((x) => x.toFixed(4)).join(',')}:${c.cos.toFixed(6)}`)
+      .join(';');
     const frameKey = `${state}|${lens.blend}|${visible.map(tileId).join(',')}|${this.placed.size}|${clearKey}`;
-    const clearCos = Math.cos(CLEARING_KM / EARTH_RADIUS_KM);
     const inClearing = (e: number[]) => {
       const len = Math.hypot(e[12]!, e[13]!, e[14]!);
-      return clear.some((c) => (c[0] * e[12]! + c[1] * e[13]! + c[2] * e[14]!) / len > clearCos);
+      return clear.some(
+        ({ at: c, cos }) => (c[0] * e[12]! + c[1] * e[13]! + c[2] * e[14]!) / len > cos,
+      );
     };
     if (frameKey === this.lastKey) return;
     this.lastKey = frameKey;

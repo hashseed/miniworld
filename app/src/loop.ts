@@ -9,7 +9,7 @@ import type { Store } from './core/store.ts';
 import type { StressRun } from './dev/stress.ts';
 import type { CameraController } from './globe/cameraController.ts';
 import type { Clouds } from './globe/clouds.ts';
-import type { Foliage } from './globe/foliage.ts';
+import { CLEARING_KM, type Foliage } from './globe/foliage.ts';
 import type { Globe } from './globe/globe.ts';
 import { MORPH_OMEGA, MORPH_OMEGA_REDUCED } from './globe/lens.ts';
 import { cameraLight, type Sky } from './globe/sky.ts';
@@ -20,6 +20,7 @@ import type { Clock } from './time/clock.ts';
 import type { HotState } from './ui/state.ts';
 import type { LandmarkLayer } from './landmarks/landmarkLayer.ts';
 import type { VignetteLayer } from './vignettes/vignetteLayer.ts';
+import type { WildlifeLayer } from './wildlife/wildlifeLayer.ts';
 
 /** Everything the loop draws and advances. */
 export interface LoopParts {
@@ -35,6 +36,7 @@ export interface LoopParts {
   clouds: Clouds;
   vignettes: VignetteLayer;
   landmarks: LandmarkLayer;
+  wildlife: WildlifeLayer;
   hot: Store<HotState>;
   stress: StressRun | undefined;
   isPhone: boolean;
@@ -111,13 +113,17 @@ export class FrameLoop {
     // Wrapped to an hour so the shader's float keeps millisecond precision.
     u.time!.value = (p.clock.ms % 3_600_000) / 1000;
     p.globe.update(p.camera, innerHeight, this.planet, day);
-    p.foliage.clearings = p.vignettes.clearings();
+    p.foliage.clearings = [
+      ...p.vignettes.clearings().map((dir) => ({ dir, km: CLEARING_KM })),
+      ...p.wildlife.clearings(day),
+    ];
     p.foliage.update(p.camera, this.planet, day, u.lightDir!.value);
     p.sky.update(p.camera);
     p.clouds.update(p.camera, p.clock.ms, u.lightDir!.value);
     p.stress?.update(now, p.globe, this.planet, p.camera, p.clock.ms);
     p.landmarks.update(p.camera, day);
     p.vignettes.update(p.camera, p.clock.ms, p.clock.startDay, u.lightDir!.value);
+    p.wildlife.update(p.camera, day, p.clock.ms);
 
     this.updateStats.push(performance.now() - updateStart);
     p.renderer.info.reset();

@@ -1,0 +1,424 @@
+{
+  "source": "docs/spec/wildlife.md section 3",
+  "groups": [
+    {
+      "species": "african-elephant",
+      "model": "animal-elephant",
+      "home": "Tsavo, Kenya",
+      "lat": -3.0,
+      "lon": 38.5,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "african-elephant",
+      "model": "animal-elephant",
+      "home": "Okavango, Botswana",
+      "lat": -19.3,
+      "lon": 22.9,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "asian-elephant",
+      "model": "animal-asian-elephant",
+      "home": "Kaziranga, Assam, India",
+      "lat": 26.6,
+      "lon": 93.4,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "giraffe",
+      "model": "animal-giraffe",
+      "home": "Marsabit, Kenya",
+      "lat": 3.2,
+      "lon": 38.6,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "giraffe",
+      "model": "animal-giraffe",
+      "home": "Etosha, Namibia",
+      "lat": -18.9,
+      "lon": 16.3,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "plains-zebra",
+      "model": "animal-zebra",
+      "home": "Laikipia, Kenya",
+      "lat": 0.3,
+      "lon": 36.9,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "plains-zebra",
+      "model": "animal-zebra",
+      "home": "Kruger, South Africa",
+      "lat": -24.0,
+      "lon": 31.5,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "blue-wildebeest",
+      "model": "animal-wildebeest",
+      "home": "Serengeti, Tanzania",
+      "lat": -2.3,
+      "lon": 34.8,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "blue-wildebeest",
+      "model": "animal-wildebeest",
+      "home": "Kalahari, Botswana",
+      "lat": -23.0,
+      "lon": 22.5,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "lion",
+      "model": "animal-lion",
+      "home": "Ruaha, Tanzania",
+      "lat": -7.7,
+      "lon": 34.9,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "lion",
+      "model": "animal-lion",
+      "home": "Gir forest, India",
+      "lat": 21.1,
+      "lon": 70.8,
+      "source": "IUCN Red List range map; Gir is the last home of the Asiatic lion"
+    },
+    {
+      "species": "eland",
+      "model": "animal-eland",
+      "home": "Drakensberg, South Africa",
+      "lat": -29.0,
+      "lon": 29.5,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "eland",
+      "model": "animal-eland",
+      "home": "Nyika Plateau, Malawi",
+      "lat": -10.6,
+      "lon": 33.8,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "mountain-gazelle",
+      "model": "animal-gazelle",
+      "home": "Negev",
+      "lat": 30.5,
+      "lon": 34.8,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "dromedary",
+      "model": "animal-camel",
+      "home": "Arabia",
+      "lat": 21.5,
+      "lon": 49.0,
+      "source": "Bulliet, The Camel and the Wheel (1975)"
+    },
+    {
+      "species": "dromedary",
+      "model": "animal-camel",
+      "home": "Sahara, Niger",
+      "lat": 18.0,
+      "lon": 8.0,
+      "spans": [
+        {
+          "from": 200
+        }
+      ],
+      "source": "Bulliet, The Camel and the Wheel (1975): camels spread across the Sahara in the first centuries CE"
+    },
+    {
+      "species": "european-bison",
+      "model": "animal-bison",
+      "home": "Bialowieza, Poland",
+      "lat": 52.7,
+      "lon": 23.9,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "american-bison",
+      "model": "animal-bison",
+      "home": "Great Plains, Nebraska",
+      "lat": 42.0,
+      "lon": -101.0,
+      "spans": [
+        {
+          "to": 1885
+        }
+      ],
+      "source": "US National Park Service, Bison history"
+    },
+    {
+      "species": "american-bison",
+      "model": "animal-bison",
+      "home": "Yellowstone",
+      "lat": 44.6,
+      "lon": -110.5,
+      "spans": [
+        {
+          "from": 1885
+        }
+      ],
+      "source": "US National Park Service, Bison history"
+    },
+    {
+      "species": "wild-horse",
+      "model": "animal-horse",
+      "home": "Mongolian steppe",
+      "lat": 47.0,
+      "lon": 96.0,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "wild-horse",
+      "model": "animal-horse",
+      "home": "Southern Great Plains",
+      "lat": 37.0,
+      "lon": -103.0,
+      "spans": [
+        {
+          "to": -10000
+        },
+        {
+          "from": 1700
+        }
+      ],
+      "source": "Haile et al. 2009, PNAS 106; Smithsonian, history of the horse in North America"
+    },
+    {
+      "species": "reindeer",
+      "model": "animal-reindeer",
+      "home": "Dordogne, France",
+      "lat": 45.0,
+      "lon": 1.0,
+      "spans": [
+        {
+          "to": -10000
+        }
+      ],
+      "source": "Ice-age reindeer bones and cave art of south-west France"
+    },
+    {
+      "species": "reindeer",
+      "model": "animal-reindeer",
+      "home": "Lapland",
+      "lat": 68.0,
+      "lon": 25.0,
+      "spans": [
+        {
+          "from": -8000
+        }
+      ],
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "woolly-mammoth",
+      "model": "animal-mammoth",
+      "home": "Siberia",
+      "lat": 65.0,
+      "lon": 130.0,
+      "spans": [
+        {
+          "to": -10000
+        }
+      ],
+      "source": "Stuart et al. 2004, Nature 431"
+    },
+    {
+      "species": "woolly-mammoth",
+      "model": "animal-mammoth",
+      "home": "Wrangel Island",
+      "lat": 71.2,
+      "lon": -179.5,
+      "spans": [
+        {
+          "from": -10000,
+          "to": -2000
+        }
+      ],
+      "source": "Vartanyan et al. 1993, Nature 362"
+    },
+    {
+      "species": "woolly-rhino",
+      "model": "animal-woolly-rhino",
+      "home": "Siberia",
+      "lat": 62.0,
+      "lon": 100.0,
+      "spans": [
+        {
+          "to": -12000
+        }
+      ],
+      "source": "Lord et al. 2020, Current Biology 30"
+    },
+    {
+      "species": "cave-bear",
+      "model": "animal-cave-bear",
+      "home": "Eastern Alps, Slovenia",
+      "lat": 46.0,
+      "lon": 14.5,
+      "spans": [
+        {
+          "to": -22000
+        }
+      ],
+      "source": "Terlato et al. 2019, Historical Biology 31"
+    },
+    {
+      "species": "brown-bear",
+      "model": "animal-brown-bear",
+      "home": "Carpathians, Romania",
+      "lat": 46.5,
+      "lon": 25.0,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "brown-bear",
+      "model": "animal-brown-bear",
+      "home": "Interior Alaska",
+      "lat": 64.5,
+      "lon": -150.0,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "polar-bear",
+      "model": "animal-polar-bear",
+      "home": "North Slope, Alaska",
+      "lat": 70.8,
+      "lon": -153.0,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "polar-bear",
+      "model": "animal-polar-bear",
+      "home": "Svalbard",
+      "lat": 78.5,
+      "lon": 17.0,
+      "spans": [
+        {
+          "from": -10000
+        }
+      ],
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "grey-wolf",
+      "model": "animal-wolf",
+      "home": "Central Russia",
+      "lat": 55.0,
+      "lon": 40.0,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "grey-wolf",
+      "model": "animal-wolf",
+      "home": "Yukon, Canada",
+      "lat": 64.0,
+      "lon": -139.0,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "wild-yak",
+      "model": "animal-yak",
+      "home": "Tibetan plateau",
+      "lat": 33.0,
+      "lon": 88.0,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "guanaco",
+      "model": "animal-guanaco",
+      "home": "Patagonia",
+      "lat": -48.0,
+      "lon": -69.0,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "guanaco",
+      "model": "animal-guanaco",
+      "home": "Atacama Andes",
+      "lat": -24.0,
+      "lon": -68.0,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "black-caiman",
+      "model": "animal-crocodile",
+      "home": "Amazon near Manaus",
+      "lat": -3.3,
+      "lon": -60.0,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "scarlet-macaw",
+      "model": "animal-parrot",
+      "home": "Western Amazon",
+      "lat": -4.0,
+      "lon": -72.0,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "scarlet-macaw",
+      "model": "animal-parrot",
+      "home": "Eastern Amazon",
+      "lat": -3.0,
+      "lon": -52.0,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "saltwater-crocodile",
+      "model": "animal-crocodile",
+      "home": "Kakadu, Australia",
+      "lat": -12.6,
+      "lon": 132.5,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "grey-kangaroo",
+      "model": "animal-kangaroo",
+      "home": "New South Wales",
+      "lat": -31.0,
+      "lon": 146.0,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "red-kangaroo",
+      "model": "animal-kangaroo",
+      "home": "Western Australia",
+      "lat": -27.0,
+      "lon": 118.0,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "kea",
+      "model": "animal-kea",
+      "home": "Southern Alps, New Zealand",
+      "lat": -43.6,
+      "lon": 170.5,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "emperor-penguin",
+      "model": "animal-penguin",
+      "home": "Cape Crozier, Ross Sea",
+      "lat": -77.5,
+      "lon": 169.0,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "emperor-penguin",
+      "model": "animal-penguin",
+      "home": "Halley Bay, Weddell Sea",
+      "lat": -75.5,
+      "lon": -26.5,
+      "source": "IUCN Red List range map"
+    }
+  ]
+}

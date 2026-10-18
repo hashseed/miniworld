@@ -7,7 +7,8 @@ import { cameraLight } from '../../app/src/globe/sky.ts';
 import { ModelBuilder, blob, lightUniforms, type Model } from './kit.ts';
 import { PROFILES, buildPerson, posePerson, type Kind, type Pose } from './people.ts';
 import { SHELTERS, buildShelter, buildHearth, CAMP_SHELTER } from './shelters.ts';
-import { ANIMALS, buildAnimal } from './animals.ts';
+import { ANIMALS, PREHISTORIC_ANIMALS, buildAnimal } from './animals.ts';
+import { WILD_ANIMALS } from './wildAnimals.ts';
 import {
   BLEND_SECONDS,
   animateAnimal,
@@ -147,9 +148,11 @@ function sheltersSheet(): void {
 }
 
 function animalsSheet(): void {
+  const set = params.get('set') ?? 'large';
+  if (set.startsWith('wild')) return wildSheet(set === 'wild-small');
   // Two sheets, so the small animals are not lost behind the big ones.
-  const large = params.get('set') !== 'small';
-  const ids = ANIMALS.filter(
+  const large = set !== 'small';
+  const ids = PREHISTORIC_ANIMALS.filter(
     (id) =>
       [
         'animal-mammoth',
@@ -175,6 +178,37 @@ function animalsSheet(): void {
   const span = gap * ids.length;
   camera.position.set(0, span * 0.24, span * 0.86);
   camera.lookAt(0, large ? 1.3 : 0.7, 0);
+}
+
+/** The wildlife of wildlife.md section 6: the big ones in two rows, or the small ones. */
+function wildSheet(small: boolean): void {
+  const SMALL = ['animal-penguin', 'animal-parrot', 'animal-kea', 'animal-crocodile'];
+  const ids = WILD_ANIMALS.filter((id) => SMALL.includes(id) === small);
+  const perRow = small ? ids.length : 4;
+  const gap = small ? 2.6 : 5.2;
+  ids.forEach((id, i) => {
+    const row = Math.floor(i / perRow);
+    const col = i % perRow;
+    const x = (col - (perRow - 1) / 2) * gap;
+    const z = -row * 6.5;
+    const m = buildAnimal(id);
+    if (!small) ground(x, z, 2.1, '#b2b874');
+    else ground(x, z, 1.2, '#b2b874');
+    place(m, x, z, 0.9);
+    // Birds are built in flight: lift them clear of the plate.
+    if (id === 'animal-parrot' || id === 'animal-kea') {
+      m.object.position.y = 0.5;
+      animateAnimal(m, 'fly', 0.1);
+    }
+    const height = new THREE.Box3().setFromObject(m.object).max.y;
+    labels.push({ text: id.replace('animal-', ''), at: new THREE.Vector3(x, height + 0.4, z) });
+  });
+  const ref = buildPerson({ profile: 'steppe-beringia-hunter', kind: 'man' });
+  posePerson(ref, 'stand');
+  place(ref, -((perRow + 1) / 2) * gap, 0, 0.6);
+  const span = gap * (perRow + 1);
+  camera.position.set(0, span * (small ? 0.3 : 0.75), span * (small ? 0.75 : 1.05));
+  camera.lookAt(0, 1.2, small ? 0 : -8);
 }
 
 /** One animal or shelter from two sides, framed to its size. */
