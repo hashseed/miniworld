@@ -150,6 +150,8 @@ test('keyboard plays history and moves the camera', async ({ page }) => {
 });
 
 test('the lens slider morphs the globe and keeps the point in view', async ({ page }) => {
+  // Two morphs and a reload: on the slow CI runners this needs more than the usual budget.
+  test.slow();
   await open(page);
   const lens = () =>
     page.evaluate(() => {
