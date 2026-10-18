@@ -1,14 +1,16 @@
-// Draws the wildlife (spec wildlife.md, section 5): every species is a set of
-// instanced meshes, one per moving part of its model with its ink outline.
-// Each frame one copy of the model is posed per animal with the animal clips
-// and its part matrices are copied into the instances. It only draws; where
-// the animals are and what they do comes from world/wildlife.ts.
+// Draws the wildlife (spec wildlife.md, section 5): every species is one
+// instanced mesh, its model's moving parts merged, with its ink outline: two
+// draw calls a species. Each frame one copy of the model is posed per animal
+// with the animal clips and its part matrices are written into a pose texture
+// the shaders read. It only draws; where the animals are and what they do
+// comes from world/wildlife.ts.
 
 import * as THREE from 'three';
 import { drawable } from '../content/assets.ts';
 import { ANIMALS, buildAnimal, type AnimalId } from '../../../assets/src/animals.ts';
 import { animateAnimal, walkPeriod } from '../../../assets/src/clips.ts';
-import { celMaterial, inkMaterial, type Model } from '../../../assets/src/kit.ts';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { posedMaterials, type Model } from '../../../assets/src/kit.ts';
 import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 import { latLonToDir, type Vec3 } from '../geo/cube.ts';
 import {
@@ -35,16 +37,15 @@ const DRAWN_SIZE_M: Record<string, number> = {
 /** Most animals of one species drawn at once. */
 const CAPACITY = 12;
 
-interface Part {
-  /** The part in the posed template, whose world matrix is the part's pose. */
-  source: THREE.Mesh;
-  cel: THREE.InstancedMesh;
-  ink: THREE.InstancedMesh;
-}
-
 interface Species {
   template: Model;
-  parts: Part[];
+  /** The parts in the posed template, whose world matrices are the parts' poses. */
+  parts: THREE.Mesh[];
+  cel: THREE.InstancedMesh;
+  ink: THREE.InstancedMesh;
+  /** Every animal's part matrices: a row per animal, four texels per part. */
+  poses: Float32Array;
+  poseTex: THREE.DataTexture;
   /** Drawn km per model metre. */
   scale: number;
   /** Body length in model metres, for spacing the group. */
@@ -332,22 +333,21 @@ export class WildlifeLayer {
       }
       animateAnimal(s.template, a.clip, seconds);
       s.template.object.updateMatrixWorld(true);
-      for (const p of s.parts) {
-        this.part.multiplyMatrices(this.root, p.source.matrixWorld);
-        p.cel.setMatrixAt(s.count, this.part);
-        p.ink.setMatrixAt(s.count, this.part);
-      }
+      const row = s.count * s.parts.length * 16;
+      s.parts.forEach((p, k) => {
+        this.part.multiplyMatrices(this.root, p.matrixWorld);
+        this.part.toArray(s.poses, row + k * 16);
+      });
       s.count++;
       this.count++;
     });
     for (const s of this.species.values()) {
       if (!s) continue;
-      for (const p of s.parts)
-        for (const m of [p.cel, p.ink]) {
-          m.count = s.count;
-          m.visible = s.count > 0;
-          m.instanceMatrix.needsUpdate = true;
-        }
+      for (const m of [s.cel, s.ink]) {
+        m.count = s.count;
+        m.visible = s.count > 0;
+      }
+      if (s.count > 0) s.poseTex.needsUpdate = true;
     }
   }
 
@@ -362,24 +362,48 @@ export class WildlifeLayer {
       const box = new THREE.Box3().setFromObject(template.object);
       const sizeM = Math.max(box.max.y - box.min.y, (box.max.z - box.min.z) / 2);
       const drawnM = DRAWN_SIZE_M[model] ?? Math.min(MAX_SIZE_M, Math.max(MIN_SIZE_M, sizeM));
-      const parts: Part[] = [];
+      const parts: THREE.Mesh[] = [];
       template.object.traverse((o) => {
         const mesh = o as THREE.Mesh;
         // Ink hulls are children of their coloured mesh and share its geometry.
         if (!mesh.isMesh || (mesh.parent as THREE.Mesh).isMesh) return;
-        const make = (material: THREE.Material) => {
-          const m = new THREE.InstancedMesh(mesh.geometry, material, CAPACITY);
-          m.count = 0;
-          m.visible = false;
-          m.frustumCulled = false;
-          this.group.add(m);
-          return m;
-        };
-        parts.push({ source: mesh, cel: make(celMaterial()), ink: make(inkMaterial()) });
+        parts.push(mesh);
       });
+      // One mesh of all parts, each vertex naming its part for the pose texture.
+      const merged = mergeGeometries(
+        parts.map((mesh, k) => {
+          const g = new THREE.BufferGeometry();
+          for (const name of ['position', 'normal', 'color'])
+            g.setAttribute(name, mesh.geometry.getAttribute(name));
+          const n = mesh.geometry.getAttribute('position').count;
+          g.setAttribute('part', new THREE.BufferAttribute(new Float32Array(n).fill(k), 1));
+          return g;
+        }),
+      );
+      const poses = new Float32Array(CAPACITY * parts.length * 16);
+      const poseTex = new THREE.DataTexture(
+        poses,
+        parts.length * 4,
+        CAPACITY,
+        THREE.RGBAFormat,
+        THREE.FloatType,
+      );
+      const materials = posedMaterials(poseTex);
+      const make = (material: THREE.Material) => {
+        const m = new THREE.InstancedMesh(merged, material, CAPACITY);
+        m.count = 0;
+        m.visible = false;
+        m.frustumCulled = false;
+        this.group.add(m);
+        return m;
+      };
       s = {
         template,
         parts,
+        cel: make(materials.cel),
+        ink: make(materials.ink),
+        poses,
+        poseTex,
         scale: (KM_PER_M * drawnM) / sizeM,
         length: box.max.z - box.min.z,
         height: box.max.y - box.min.y,
