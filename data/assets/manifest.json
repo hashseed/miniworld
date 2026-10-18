@@ -435,9 +435,8 @@
       "file": "assets/src/wildAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "approved",
-      "geometry": "984906a40e15dfc0",
-      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; patches painted on instead of stuck on, waiting for Yang's review",
       "reviewed": "2026-10-18"
     },
     {

@@ -32,7 +32,15 @@ export interface Quad {
    */
   knee?: number;
   /** Patterns painted on the coat (zebra stripes); the parts get extra rings so bands can follow them. */
-  pattern?: { body?: Pattern; chest?: Pattern; neck?: Pattern; head?: Pattern; legs?: Pattern };
+  pattern?: {
+    body?: Pattern;
+    chest?: Pattern;
+    neck?: Pattern;
+    head?: Pattern;
+    legs?: Pattern;
+    /** Segments round the patterned body and chest (default 8 and 7), for patches finer than bands. */
+    segments?: number;
+  };
 }
 
 /** Height of the front knee and of the hock as a share of the top of the leg. */
@@ -88,13 +96,13 @@ export function quadruped(q: Quad, clay = 1): Parts {
   // Body: chest and rump lumps joined by the barrel.
   const pt = q.pattern;
   const barrel = pt?.body
-    ? blob([0, bodyY, 0], [q.girth[0], q.girth[1], q.length * 0.55], 8, 15, 'z')
+    ? blob([0, bodyY, 0], [q.girth[0], q.girth[1], q.length * 0.55], pt.segments ?? 8, 15, 'z')
     : blob([0, bodyY, 0], [q.girth[0], q.girth[1], q.length * 0.55], 8);
   mb.add(barrel, q.coat, 'body', pt?.body);
   const chestAt: Vec3 = [0, bodyY + q.girth[1] * 0.08, front * 0.6];
   const chestRadii: Vec3 = [q.girth[0] * 1.05, q.girth[1] * 1.04, q.length * 0.3];
   mb.add(
-    pt?.body ? blob(chestAt, chestRadii, 7, 8, 'z') : blob(chestAt, chestRadii, 9),
+    pt?.body ? blob(chestAt, chestRadii, pt.segments ?? 7, 8, 'z') : blob(chestAt, chestRadii, 9),
     q.coat,
     'body',
     pt?.chest ?? pt?.body,
