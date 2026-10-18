@@ -11,7 +11,7 @@ import {
   TERRAIN_SAMPLES,
   type TerrainTile,
 } from '../content/formats.ts';
-import type { ContentLoader } from '../content/loader.ts';
+import type { ChunkSource } from '../content/loader.ts';
 import {
   DATA_MAX_LEVEL,
   TILE_N,
@@ -23,14 +23,35 @@ import {
   type Vec3,
 } from '../geo/cube.ts';
 
-type Slot<T> = T | 'deep' | 'none' | 'loading';
+// 'broken': the file arrived but cannot be read; it is not asked for again.
+type Slot<T> = T | 'deep' | 'none' | 'loading' | 'broken';
+
+/** Frames a requested tile may be out of view before its request is cancelled (about 0.5 s, section 10.4). */
+export const CANCEL_AFTER_FRAMES = 30;
+
+interface Pending {
+  file: string;
+  controller: AbortController;
+  /** Frames in a row the tile was not asked for. */
+  unwanted: number;
+}
+
+function decodeOrBroken(buf: ArrayBuffer, file: string): TerrainTile | 'broken' {
+  try {
+    return decodeTerrainTile(buf);
+  } catch (e) {
+    console.error(`${file}: ${(e as Error).message}`);
+    return 'broken';
+  }
+}
 
 export class TerrainStore {
-  private loader: ContentLoader;
+  private loader: ChunkSource;
   private terrain = new Map<string, Slot<TerrainTile>>();
-  private wanted = new Map<string, number>(); // url → priority this frame
+  private wanted = new Map<string, number>(); // tile id → priority this frame
+  private pending = new Map<string, Pending>(); // tile id → its request
 
-  constructor(loader: ContentLoader) {
+  constructor(loader: ChunkSource) {
     this.loader = loader;
   }
 
@@ -42,6 +63,7 @@ export class TerrainStore {
       this.wanted.set(id, priority);
       return undefined;
     }
+    if (slot === 'broken') return undefined;
     if (slot === 'deep') return 'deep';
     if (slot && slot !== 'none') return slot;
     const file = this.loader.lookup('terrain', key, 'all');
@@ -52,12 +74,13 @@ export class TerrainStore {
     }
     this.terrain.set(id, 'loading');
     this.wanted.set(id, priority);
-    void this.loader.fetchChunk(file, priority).then((buf) => {
-      if (!buf) {
-        this.terrain.delete(id);
-        return;
-      }
-      this.terrain.set(id, decodeTerrainTile(buf));
+    const controller = new AbortController();
+    this.pending.set(id, { file, controller, unwanted: 0 });
+    void this.loader.fetchChunk(file, priority, controller.signal).then((buf) => {
+      this.pending.delete(id);
+      // Failed or cancelled: asked for again when next in view; the loader paces retries.
+      if (!buf) this.terrain.delete(id);
+      else this.terrain.set(id, decodeOrBroken(buf, file));
     });
     return undefined;
   }
@@ -93,9 +116,26 @@ export class TerrainStore {
     return 0;
   }
 
-  /** Drops queued requests for tiles that are no longer wanted. */
+  /**
+   * Ends a frame: waiting requests take their tile's priority in this frame,
+   * and requests for tiles out of view for CANCEL_AFTER_FRAMES are cancelled.
+   */
   endFrame(): void {
+    for (const [id, p] of this.pending) {
+      const priority = this.wanted.get(id);
+      if (priority !== undefined) {
+        p.unwanted = 0;
+        this.loader.setPriority(p.file, priority);
+      } else if (++p.unwanted >= CANCEL_AFTER_FRAMES) {
+        p.controller.abort();
+      }
+    }
     this.wanted.clear();
+  }
+
+  /** Tiles whose data is being fetched, for tests and stats. */
+  get loading(): number {
+    return this.pending.size;
   }
 }
 

@@ -302,8 +302,20 @@ const actions: Actions = {
 };
 
 async function switchLanguage(lang: Settings['language']): Promise<void> {
-  // Keep the old strings until the other language's index has arrived.
-  const next = await loader.index(lang);
+  // Keep the old strings until the other language's index has arrived. If it
+  // cannot be loaded, stay in the current language and put the setting back
+  // (section 10.4); switching again tries again.
+  let next: StartupIndex;
+  try {
+    next = await loader.index(lang);
+  } catch {
+    if (ui.value.settings.language === lang && i18n.language !== lang) {
+      const back: Settings = { ...ui.value.settings, language: i18n.language };
+      saveSettings(back);
+      ui.update({ settings: back });
+    }
+    return;
+  }
   i18n.set(lang);
   document.documentElement.lang = lang;
   document.title = i18n.t('app.title');

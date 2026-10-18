@@ -3,7 +3,7 @@
 // (spec milestone 1, sections 4 and 5).
 
 import * as THREE from 'three';
-import type { ContentLoader } from '../content/loader.ts';
+import type { ChunkSource } from '../content/loader.ts';
 import {
   FACE_COUNT,
   TILE_N,
@@ -57,7 +57,7 @@ export class Globe {
   readonly store: TerrainStore;
   /** Ice and deserts for the whole planet, per time step (section 5.2). */
   readonly climate: ClimateStore;
-  private loader: ContentLoader;
+  private loader: ChunkSource;
   private tiles = new Map<string, TileEntry>();
   private frame = 0;
   private buildsThisFrame = 0;
@@ -73,7 +73,7 @@ export class Globe {
   lens = Lens.identity();
   private lensTexture: THREE.DataTexture;
 
-  constructor(loader: ContentLoader) {
+  constructor(loader: ChunkSource) {
     this.loader = loader;
     this.store = new TerrainStore(loader);
     this.climate = new ClimateStore(loader);
