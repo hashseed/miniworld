@@ -13,15 +13,15 @@ describe('clock', () => {
     const c = make();
     c.tick(60000);
     const years = (c.day - OPENING_DAY) / DAYS_PER_YEAR;
-    expect(years).toBeGreaterThan(1950);
-    expect(years).toBeLessThan(2150);
+    expect(years).toBeGreaterThan(460);
+    expect(years).toBeLessThan(540);
     expect(c.lifeMs).toBe(60000);
   });
 
   it('applies speed and zoom factor', () => {
     const a = make();
     const b = make();
-    b.setSpeedIndex(5); // ×16
+    b.setSpeedLog2(4); // ×16
     b.zoomFactor = 1 / 8;
     a.tick(1000);
     b.tick(1000);
@@ -29,33 +29,33 @@ describe('clock', () => {
     expect(b.yearsPerMinute / a.yearsPerMinute).toBeCloseTo(2, 2);
   });
 
-  it('keeps the life clock running when history is paused', () => {
+  it('stops both clocks when paused', () => {
     const c = make();
-    c.setPlayState('historyPaused');
-    c.tick(5000);
-    expect(c.day).toBe(OPENING_DAY);
-    expect(c.lifeMs).toBe(5000);
-  });
-
-  it('stops both clocks when frozen', () => {
-    const c = make();
-    c.toggleFreeze();
+    c.togglePlay();
+    expect(c.playState).toBe('paused');
     c.tick(5000);
     expect(c.day).toBe(OPENING_DAY);
     expect(c.lifeMs).toBe(0);
-    c.toggleFreeze();
+    c.togglePlay();
     expect(c.playState).toBe('playing');
   });
 
-  it('toggles pause history with space', () => {
+  it('runs the life clock in real time whatever the speed', () => {
     const c = make();
-    c.togglePauseHistory();
-    expect(c.playState).toBe('historyPaused');
-    c.togglePauseHistory();
-    expect(c.playState).toBe('playing');
-    c.toggleFreeze();
-    c.togglePauseHistory();
-    expect(c.playState).toBe('historyPaused');
+    c.setSpeedLog2(-6);
+    c.tick(5000);
+    expect(c.lifeMs).toBe(5000);
+    c.setSpeedLog2(6);
+    c.tick(5000);
+    expect(c.lifeMs).toBe(10000);
+  });
+
+  it('keeps the speed between ×1/64 and ×64', () => {
+    const c = make();
+    c.setSpeedLog2(-9);
+    expect(c.speed).toBe(1 / 64);
+    c.setSpeedLog2(9);
+    expect(c.speed).toBe(64);
   });
 
   it('does not advance while scrubbing', () => {
@@ -68,13 +68,13 @@ describe('clock', () => {
     expect(c.playState).toBe('playing');
   });
 
-  it('stops at the end of the timeline and pauses history', () => {
+  it('stops at the end of the timeline and pauses', () => {
     const c = make(END - 10);
     c.tick(60000);
     expect(c.day).toBe(END);
-    expect(c.playState).toBe('historyPaused');
+    expect(c.playState).toBe('paused');
     c.setPlayState('playing');
-    expect(c.playState).toBe('historyPaused');
+    expect(c.playState).toBe('paused');
   });
 
   it('keeps dates whole and within range', () => {

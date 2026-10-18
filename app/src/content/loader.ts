@@ -160,6 +160,11 @@ export class ContentLoader {
     }
   }
 
+  /** Fetches a whole JSON file by name, such as a vignette's structure or text. */
+  json<T>(file: string): Promise<T> {
+    return this.fetchJson<T>(file);
+  }
+
   /** Fetches a whole file at startup, outside the chunk queue. */
   async fetchBytes(file: string): Promise<Uint8Array> {
     const res = await fetch(this.base + file);

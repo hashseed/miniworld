@@ -5,7 +5,7 @@ import '@fontsource-variable/fredoka';
 import * as THREE from 'three';
 import { h, render } from 'preact';
 import { ContentLoader } from './content/loader.ts';
-import type { StartupIndex } from './content/types.ts';
+import type { StartupIndex, VignetteEntry } from './content/types.ts';
 import { Store } from './core/store.ts';
 import { latLonToDir } from './globe/cube.ts';
 import { CameraController } from './globe/cameraController.ts';
@@ -19,34 +19,25 @@ import { formatDateReadout } from './i18n/dates.ts';
 import { I18n } from './i18n/i18n.ts';
 import { detectLanguage } from './i18n/messages.ts';
 import { FrameRenderer } from './perf/frameRenderer.ts';
-import {
-  DynamicResolution,
-  FrameStats,
-  TIERS,
-  TIER_ORDER,
-  pickTier,
-  targetFrameMs,
-} from './perf/quality.ts';
+import { DynamicResolution, FrameStats, QUALITY, targetFrameMs } from './perf/quality.ts';
 import { STRESS_CENTRE, StressScene } from './perf/stressScene.ts';
+import { VignetteLayer } from './vignettes/vignetteLayer.ts';
 import { OPENING_DAY, TIMELINE_START, dayFromDate } from './time/calendar.ts';
 import { Clock } from './time/clock.ts';
-import { zoomFactor } from './time/rateCurve.ts';
+import { snapSpeedLog2, zoomFactor } from './time/rateCurve.ts';
 import { Timeline } from './timeline/timeline.ts';
 import { App } from './ui/App.tsx';
-import type { Actions, UiState } from './ui/state.ts';
+import type { Actions, UiState, VignetteCard } from './ui/state.ts';
 import {
   loadBookmarks,
-  loadPerf,
   loadSettings,
   loadView,
   saveBookmarks,
-  savePerf,
   saveSettings,
   saveView,
   MAX_BOOKMARKS,
   type CameraState,
   type Settings,
-  type Tier,
 } from './ui/storage.ts';
 
 const params = new URLSearchParams(location.search);
@@ -55,7 +46,6 @@ const DEFAULT_CAMERA: CameraState = { lat: 25, lon: 30, altitudeKm: 14000, headi
 const STRESS_DAY = dayFromDate(1, 1, 1);
 const STRESS_PATH_MS = 60000;
 const VIEW_SAVE_MS = 2000;
-const BENCH_MS_PER_TIER = 1000;
 
 const isPhone =
   matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 600;
@@ -65,7 +55,6 @@ const deviceId = `${navigator.userAgent}|${screen.width}x${screen.height}@${devi
 
 const settings = loadSettings({
   language: detectLanguage(navigator.languages ?? [navigator.language]),
-  quality: 'auto',
   timelineExpanded: false,
   trueTimeScale: false,
   slowWhenZoomed: true,
@@ -74,7 +63,6 @@ const settings = loadSettings({
   lensHintSeen: false,
 });
 const savedView = STRESS ? undefined : loadView();
-const savedPerf = loadPerf();
 const i18n = new I18n(settings.language);
 
 const clock = new Clock({
@@ -85,17 +73,14 @@ const clock = new Clock({
 
 const ui = new Store<UiState>({
   ready: false,
-  preparing: false,
   error: undefined,
   day: OPENING_DAY,
-  playState: 'historyPaused',
-  speedIndex: clock.speedIndex,
+  playState: 'paused',
+  speedLog2: clock.speedLog2,
   yearsPerMinute: 0,
   scrubbing: false,
   panel: 'none',
   settings,
-  tier: savedPerf?.device === deviceId ? savedPerf.tier : 'medium',
-  autoTier: savedPerf?.device === deviceId ? savedPerf.tier : 'medium',
   bookmarks: loadBookmarks(),
   follow: true,
   isPhone,
@@ -105,6 +90,7 @@ const ui = new Store<UiState>({
   version: '',
   cutoffDay: 0,
   sources: [],
+  vignette: undefined,
 });
 
 // --- Scene --------------------------------------------------------------------------
@@ -143,6 +129,15 @@ const controller = new CameraController(
   surface,
   savedView?.camera ?? (STRESS ? stressCamera(0) : DEFAULT_CAMERA),
 );
+const vignettes = new VignetteLayer(
+  loader,
+  { surfaceKm: surface.surfaceKm, toDrawn: (d) => globe.lens.toDrawn(d) },
+  canvas,
+);
+scene.add(vignettes.group);
+vignettes.onOpen = (entry) => void openVignette(entry);
+vignettes.onFly = (lat, lon, altitudeKm) =>
+  controller.flyTo({ ...controller.state, lat, lon, altitudeKm });
 controller.reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 // The camera sees the lens through the globe, which swaps in the loaded warp.
 controller.lens = {
@@ -157,21 +152,13 @@ let timeline: Timeline | undefined;
 const dynres = new DynamicResolution(1, targetFrameMs(isPhone));
 const stats = new FrameStats(600);
 
-function activeTier(): Tier {
-  const q = ui.value.settings.quality;
-  return q === 'auto' ? ui.value.autoTier : q;
-}
-
-function applyTier(): void {
-  const tier = activeTier();
-  const t = TIERS[tier];
-  globe.quality = { errorTargetPx: t.errorTargetPx, waterDetail: t.waterDetail };
-  dynres.configure(Math.min(t.renderScaleCap, devicePixelRatio || 1), targetFrameMs(isPhone));
-  dynres.scale = Math.min(t.renderScaleCap, devicePixelRatio || 1);
-  frames.setMode(t.antialias);
+/** Applies the one fixed quality (section 11.2). */
+function applyQuality(): void {
+  const q = QUALITY;
+  globe.quality = { errorTargetPx: q.errorTargetPx, waterDetail: q.waterDetail };
+  dynres.configure(Math.min(q.renderScaleCap, devicePixelRatio || 1), targetFrameMs(isPhone));
+  dynres.scale = Math.min(q.renderScaleCap, devicePixelRatio || 1);
   frames.setSize(innerWidth, innerHeight, dynres.scale);
-  stress?.setAnimatedLimit(t.animatedFigures);
-  if (ui.value.tier !== tier) ui.update({ tier });
 }
 
 function resize(): void {
@@ -249,17 +236,14 @@ const actions: Actions = {
     clock.setPlayState('playing');
     timeline?.setFollow(true);
   },
-  pauseHistory: () =>
-    clock.setPlayState(clock.playState === 'historyPaused' ? 'playing' : 'historyPaused'),
-  freeze: () => clock.setPlayState(clock.playState === 'frozen' ? 'playing' : 'frozen'),
-  setSpeed: (i) => clock.setSpeedIndex(i),
+  pause: () => clock.setPlayState('paused'),
+  setSpeed: (log2, release) => clock.setSpeedLog2(release ? snapSpeedLog2(log2) : log2),
   setPanel: (panel) => ui.update({ panel }),
   setSetting: (key, value) => {
     const next: Settings = { ...ui.value.settings, [key]: value };
     saveSettings(next);
     ui.update({ settings: next });
     if (key === 'language') void switchLanguage(next.language);
-    if (key === 'quality') applyTier();
     if (key === 'trueTimeScale') timeline?.setMode(value ? 'true' : 'watch');
     if (key === 'historyLens') globe.lens.setOn(value as boolean);
   },
@@ -288,16 +272,12 @@ const actions: Actions = {
   deleteBookmark: (id) => setBookmarks(ui.value.bookmarks.filter((b) => b.id !== id)),
   resetCamera: () => controller.resetOrientation(),
   tiltCamera: (degrees) => controller.tiltBy(degrees),
-  zoomTimeline: (factor) => {
-    timeline?.zoomBy(factor);
-  },
   followPlayhead: () => timeline?.setFollow(true),
   toggleLanes: () => {
     actions.setSetting('timelineExpanded', !ui.value.settings.timelineExpanded);
     updateVisibleLanes();
     layoutTimeline();
   },
-  remeasure: () => void benchmark(),
   saveReport: () => {
     const blob = new Blob([JSON.stringify(perfReport(), null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
@@ -330,7 +310,31 @@ async function switchLanguage(lang: Settings['language']): Promise<void> {
   document.title = i18n.t('app.title');
   index = next;
   timeline?.setIndex(next);
+  vignettes.setIndex(next.vignettes);
+  const open = ui.value.vignette && next.vignettes.find((v) => v.id === ui.value.vignette!.id);
+  if (open && ui.value.panel === 'vignette') void openVignette(open);
   ui.update({ sources: next.sources });
+}
+
+/** Opens a vignette's card at once with its title, then fills in the text (milestone 2 section 11). */
+async function openVignette(entry: VignetteEntry): Promise<void> {
+  const card: VignetteCard = {
+    id: entry.id,
+    title: entry.title,
+    fromDay: entry.fromDay,
+    toDay: entry.toDay,
+    fromApproximate: entry.fromApproximate,
+    toApproximate: entry.toApproximate,
+  };
+  ui.update({ panel: 'vignette', vignette: card });
+  const done = (patch: Partial<VignetteCard>) => {
+    if (ui.value.vignette === card) ui.update({ vignette: { ...card, ...patch } });
+  };
+  try {
+    done({ text: await loader.json<NonNullable<VignetteCard['text']>>(entry.text) });
+  } catch {
+    done({ failed: true });
+  }
 }
 
 // --- Keys ---------------------------------------------------------------------------
@@ -352,8 +356,10 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === ' ' || e.code === 'Space') {
     if (target?.tagName === 'BUTTON') return;
     e.preventDefault();
-    if (e.shiftKey) clock.toggleFreeze();
-    else clock.togglePauseHistory();
+    clock.togglePlay();
+  } else if (e.key === '[' || e.key === ']') {
+    e.preventDefault();
+    clock.setSpeedLog2(clock.speedLog2 + (e.key === ']' ? 1 : -1));
   } else if ((e.key === 'Home' || e.key === 'End') && target !== timeline?.canvas) {
     e.preventDefault();
     clock.setDay(e.key === 'Home' ? clock.startDay : clock.endDay);
@@ -369,7 +375,7 @@ function persistView(): void {
     day: clock.day,
     camera: { ...controller.state },
     playState: clock.playState,
-    speedIndex: clock.speedIndex,
+    speedLog2: clock.speedLog2,
   });
 }
 document.addEventListener('visibilitychange', () => {
@@ -404,7 +410,6 @@ function stressCamera(ms: number): CameraState {
 const report = { frames: 0, maxCalls: 0, maxTriangles: 0, done: false };
 function perfReport() {
   return {
-    tier: activeTier(),
     device: deviceId,
     frames: report.frames,
     averageFps: stats.fps,
@@ -419,61 +424,10 @@ function perfReport() {
 
 function ensureStress(): StressScene {
   if (!stress) {
-    stress = new StressScene(TIERS[activeTier()].animatedFigures);
+    stress = new StressScene(QUALITY.animatedFigures);
     scene.add(stress.group);
   }
   return stress;
-}
-
-// --- Benchmark ----------------------------------------------------------------------
-
-async function benchmark(): Promise<void> {
-  ui.update({ preparing: true, panel: 'none' });
-  const keep = stress !== undefined;
-  const s = ensureStress();
-  const savedCam = { ...controller.state };
-  controller.state = {
-    lat: STRESS_CENTRE.lat,
-    lon: STRESS_CENTRE.lon,
-    altitudeKm: 4,
-    heading: 30,
-    tilt: 0,
-  };
-  const measured: Partial<Record<Tier, number>> = {};
-  const budget = targetFrameMs(isPhone) * 1.15;
-  for (const tier of TIER_ORDER) {
-    const t = TIERS[tier];
-    globe.quality = { errorTargetPx: t.errorTargetPx, waterDetail: t.waterDetail };
-    frames.setMode(t.antialias);
-    frames.setSize(innerWidth, innerHeight, Math.min(t.renderScaleCap, devicePixelRatio || 1));
-    s.setAnimatedLimit(t.animatedFigures);
-    const times: number[] = [];
-    let last = performance.now();
-    const start = last;
-    while (performance.now() - start < BENCH_MS_PER_TIER) {
-      await new Promise(requestAnimationFrame);
-      const now = performance.now();
-      times.push(now - last);
-      last = now;
-      controller.update(now - start, now);
-      s.update(camera, clock.lifeMs, now);
-      globe.update(camera, innerHeight, planet, clock.day);
-      frames.render(scene, camera);
-    }
-    times.sort((a, b) => a - b);
-    measured[tier] = times[Math.floor(times.length / 2)] ?? 1000;
-    if (measured[tier]! <= budget) break;
-  }
-  const autoTier = pickTier(measured, budget);
-  savePerf({ tier: autoTier, device: deviceId });
-  controller.state = savedCam;
-  if (!keep) {
-    scene.remove(s.group);
-    s.dispose();
-    stress = undefined;
-  }
-  ui.update({ autoTier, preparing: false });
-  applyTier();
 }
 
 // --- Frame loop ---------------------------------------------------------------------
@@ -515,17 +469,16 @@ function frame(now: number): void {
     stress.place(new THREE.Vector3(...globe.lens.toDrawn(centre)));
     stress.update(camera, clock.lifeMs, now);
   }
+  vignettes.update(camera, clock.day, clock.lifeMs, u.lightDir!.value);
 
   renderer.info.reset();
   frames.render(scene, camera);
-  if (!ui.value.preparing) {
-    stats.push(dt);
-    report.frames++;
-    report.maxCalls = Math.max(report.maxCalls, renderer.info.render.calls);
-    report.maxTriangles = Math.max(report.maxTriangles, renderer.info.render.triangles);
-    if (STRESS && now - stressStart >= STRESS_PATH_MS) report.done = true;
-    if (dynres.frame(dt)) frames.setSize(innerWidth, innerHeight, dynres.scale);
-  }
+  stats.push(dt);
+  report.frames++;
+  report.maxCalls = Math.max(report.maxCalls, renderer.info.render.calls);
+  report.maxTriangles = Math.max(report.maxTriangles, renderer.info.render.triangles);
+  if (STRESS && now - stressStart >= STRESS_PATH_MS) report.done = true;
+  if (dynres.frame(dt)) frames.setSize(innerWidth, innerHeight, dynres.scale);
 
   timeline?.draw();
   if (!ui.value.settings.timelineExpanded) updateVisibleLanes();
@@ -543,7 +496,7 @@ function syncUi(now: number): void {
   const patch: Partial<UiState> = {};
   if (v.day !== clock.day) patch.day = clock.day;
   if (v.playState !== clock.playState) patch.playState = clock.playState;
-  if (v.speedIndex !== clock.speedIndex) patch.speedIndex = clock.speedIndex;
+  if (v.speedLog2 !== clock.speedLog2) patch.speedLog2 = clock.speedLog2;
   if (v.scrubbing !== clock.isScrubbing) patch.scrubbing = clock.isScrubbing;
   const ypm = clock.yearsPerMinute;
   if (Math.abs(ypm - v.yearsPerMinute) > v.yearsPerMinute * 0.02 + 1e-3) patch.yearsPerMinute = ypm;
@@ -578,14 +531,15 @@ async function start(): Promise<void> {
     const grids = decodeLensGrids(lensBytes);
     globe.setLens(new Lens(grids.forward, grids.inverse));
     minSeaLevel = lowestSeaLevel(index.seaLevel);
+    vignettes.setIndex(index.vignettes);
     globe.lowestSeaLevel = minSeaLevel;
     const startDay = STRESS ? STRESS_DAY : (savedView?.day ?? OPENING_DAY);
     clock.configure({
       startDay: manifest.timelineStartDay,
       endDay: manifest.cutoffDay,
       day: startDay,
-      playState: STRESS ? 'playing' : (savedView?.playState ?? 'historyPaused'),
-      speedIndex: savedView?.speedIndex,
+      playState: STRESS ? 'playing' : (savedView?.playState ?? 'paused'),
+      speedLog2: savedView?.speedLog2,
     });
     clock.subscribe(() => syncUi(performance.now()));
     ui.update({
@@ -595,7 +549,7 @@ async function start(): Promise<void> {
       sources: index.sources,
       day: clock.day,
       playState: clock.playState,
-      speedIndex: clock.speedIndex,
+      speedLog2: clock.speedLog2,
     });
     if (timeline) {
       timeline.setIndex(index);
@@ -607,7 +561,7 @@ async function start(): Promise<void> {
       ensureStress();
       stressStart = performance.now();
     }
-    applyTier();
+    applyQuality();
     resize();
     lastFrame = performance.now();
     requestAnimationFrame(frame);
@@ -615,12 +569,6 @@ async function start(): Promise<void> {
     ui.update({ ready: true });
     // Plants load after the first view, outside its data budget (spec foliage.md, section 7).
     foliage.active = true;
-    const needsBench =
-      !STRESS &&
-      ui.value.settings.quality === 'auto' &&
-      savedPerf?.device !== deviceId &&
-      !params.has('nobench');
-    if (needsBench) await benchmark();
   } catch (err) {
     ui.update({ error: err instanceof Error ? err.message : String(err) });
   }
@@ -658,6 +606,7 @@ if (import.meta.env.DEV)
     __miniworld: {
       globe,
       foliage,
+      vignettes,
       controller,
       clock,
       loader,

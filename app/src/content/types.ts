@@ -78,6 +78,24 @@ export interface StartupIndex {
   sources: SourceInfo[];
   events: unknown[];
   people: unknown[];
+  /** Vignette records (spec milestone 2, section 18.4). */
+  vignettes: VignetteEntry[];
+}
+
+export interface VignetteEntry {
+  id: string;
+  fromDay: number;
+  /** Day after the last day of the span. */
+  toDay: number;
+  fromApproximate: boolean;
+  toApproximate: boolean;
+  icon: string;
+  /** Title in the index's language, for the marker's label. */
+  title: string;
+  /** Structure file, the same for every language. */
+  structure: string;
+  /** Text file in the index's language. */
+  text: string;
 }
 
 export function chunkKey(place: string, window: string, language: string): string {

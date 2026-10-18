@@ -2,23 +2,34 @@
 
 import type { SourceInfo } from '../content/types.ts';
 import type { PlayState } from '../time/clock.ts';
-import type { Bookmark, Settings, Tier } from './storage.ts';
+import type { Bookmark, Settings } from './storage.ts';
 
-export type Panel = 'none' | 'settings' | 'bookmarks' | 'about';
+export type Panel = 'none' | 'settings' | 'bookmarks' | 'about' | 'vignette';
+
+/** The vignette card (spec milestone 2, section 11); its text arrives when the card opens. */
+export interface VignetteCard {
+  id: string;
+  title: string;
+  fromDay: number;
+  /** Day after the last day of the span. */
+  toDay: number;
+  fromApproximate: boolean;
+  toApproximate: boolean;
+  text?: { title: string; body: string; learnMore: string };
+  failed?: boolean;
+}
 
 export interface UiState {
   ready: boolean;
-  preparing: boolean;
   error: string | undefined;
   day: number;
   playState: PlayState;
-  speedIndex: number;
+  /** Base-2 logarithm of the speed multiplier, −6 to 6. */
+  speedLog2: number;
   yearsPerMinute: number;
   scrubbing: boolean;
   panel: Panel;
   settings: Settings;
-  tier: Tier;
-  autoTier: Tier;
   bookmarks: Bookmark[];
   follow: boolean;
   isPhone: boolean;
@@ -28,13 +39,14 @@ export interface UiState {
   version: string;
   cutoffDay: number;
   sources: SourceInfo[];
+  vignette: VignetteCard | undefined;
 }
 
 export interface Actions {
   play(): void;
-  pauseHistory(): void;
-  freeze(): void;
-  setSpeed(index: number): void;
+  pause(): void;
+  /** Sets the speed slider; `release` snaps it to ×1 when close. */
+  setSpeed(log2: number, release?: boolean): void;
   setPanel(panel: Panel): void;
   setSetting<K extends keyof Settings>(key: K, value: Settings[K]): void;
   addBookmark(): void;
@@ -44,10 +56,8 @@ export interface Actions {
   resetCamera(): void;
   /** Positive degrees tilt towards the horizon. */
   tiltCamera(degrees: number): void;
-  zoomTimeline(factor: number): void;
   followPlayhead(): void;
   toggleLanes(): void;
-  remeasure(): void;
   /** The "True sizes" button: switches the history lens off or back on. */
   toggleTrueSizes(): void;
   closeLensHint(): void;

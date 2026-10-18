@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { DynamicResolution, FrameStats, pickTier } from './quality.ts';
+import { DynamicResolution, FrameStats, QUALITY } from './quality.ts';
 
-describe('quality tiers', () => {
-  it('picks the highest tier that fits the budget', () => {
-    expect(pickTier({ high: 14, medium: 9, low: 5 }, 16.7)).toBe('high');
-    expect(pickTier({ high: 25, medium: 15, low: 8 }, 16.7)).toBe('medium');
-    expect(pickTier({ high: 60, medium: 45, low: 40 }, 33.3)).toBe('low');
+describe('quality', () => {
+  it('is the one fixed high quality', () => {
+    expect(QUALITY.renderScaleCap).toBe(2);
+    expect(QUALITY.errorTargetPx).toBe(1.5);
+    expect(QUALITY.animatedFigures).toBe(5000);
   });
 });
 

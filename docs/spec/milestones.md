@@ -24,13 +24,13 @@ Detailed spec: [milestone-1.md](milestone-1.md).
 - TypeScript project with npm scripts and pinned Node, CI running lint, typecheck and tests.
 - Globe from elevation and coastline data: cube-sphere quadtree terrain, painted terrain textures, water, exaggerated elevation, curved horizon close up.
 - Camera from orbit to ground with mouse, touch and keyboard controls.
-- Historical clock with the rate curve and speed multipliers; life clock; pause history and freeze everything.
+- Historical clock with the rate curve and a speed slider from ×1/64 to ×64; life clock; play and pause.
 - Timeline with the World lane and regional lanes from [eras.md](eras.md), zoom, scrubbing and the true time scale toggle.
 - Sea level and ice sheets changing with the date.
 - English and German UI shell with a language switch and per-language date and number formatting.
 - Settings, last date, camera and bookmarks in local storage.
 - Content pipeline: manifest, light startup index, chunks by place, time and language, content-hashed files, service worker cache.
-- Performance stress scene with thousands of placeholder figures over a dense area, plus automatic quality tiers and dynamic resolution.
+- Performance stress scene with thousands of placeholder figures over a dense area, plus a fixed quality level and dynamic resolution.
 - History lens ([history-lens.md](history-lens.md)): event-dense regions drawn larger, with a "True sizes" button and an animated morph between the two.
 
 **Exit criteria**
