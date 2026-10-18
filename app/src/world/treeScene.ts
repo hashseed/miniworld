@@ -23,10 +23,14 @@ export const FIGURE_KM_PER_M = 50;
 export const WALK_M_PER_S = 1.2;
 /** Drawn kilometres a figure covers per millisecond of watching. */
 const WALK_KM_PER_MS = (WALK_M_PER_S * FIGURE_KM_PER_M) / 1000;
-/** Lodgings stand this far from the hearth, figures between these distances, in layout metres. */
-const LODGING_RING_M = 7;
-const SPOT_NEAR_M = 2.5;
-const SPOT_FAR_M = 4.5;
+/**
+ * Lodgings stand this far from the hearth, figures between these distances, in layout
+ * metres; lodgings are drawn at figure size, three times the layout, so the ring keeps
+ * them clear of the people at the hearth.
+ */
+const LODGING_RING_M = 14;
+const SPOT_NEAR_M = 3;
+const SPOT_FAR_M = 6;
 /** The camp layout is drawn three times smaller than the figures (milestone 2, section 5.1). */
 export const LAYOUT_KM_PER_M = FIGURE_KM_PER_M / 3;
 /** Figures change between idle and work every 20 to 40 seconds of watching. */
@@ -173,7 +177,9 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     const gone = l.gone === NEVER ? Infinity : at(l.gone);
     if (ms < shown || ms >= gone + FADE_MS) continue;
     const spot = lodgingSpot(l.id);
-    const fade = Math.min(1, (ms - shown) / FADE_MS, ms < gone ? 1 : 1 - (ms - gone) / FADE_MS);
+    // Lodgings standing when the timeline starts are already up.
+    const fadeIn = shown <= 0 ? 1 : (ms - shown) / FADE_MS;
+    const fade = Math.min(1, fadeIn, ms < gone ? 1 : 1 - (ms - gone) / FADE_MS);
     scene.lodgings.push({
       id: l.id,
       kind: l.kind,
@@ -218,7 +224,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       Object.assign(pose, towards(0, 0, east, deg(home.lat) - deg(prev.lat)));
       pose.clip = 'walk';
       pose.clipMs = ms - left;
-    } else if (i === 0 && ms < born + comeOutMs(f.id, home.id)) {
+    } else if (i === 0 && born > 0 && ms < born + comeOutMs(f.id, home.id)) {
       // Coming out of the door of its lodging and walking to its spot.
       const door = lodgingSpot(home.id);
       const t = (ms - born) / comeOutMs(f.id, home.id);
@@ -228,7 +234,8 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       pose.clip = 'walk';
       pose.clipMs = ms - born;
     } else {
-      const arrived = prev ? left + travel : born + comeOutMs(f.id, home.id);
+      // Figures there when the timeline starts are already at their spots.
+      const arrived = prev ? left + travel : born > 0 ? born + comeOutMs(f.id, home.id) : -BLEND_MS;
       Object.assign(pose, activity(f.id, ms));
       // Ease from walking into standing on arrival.
       if (ms - arrived < BLEND_MS)

@@ -48,7 +48,7 @@ const STRESS = params.get('scene') === 'stress';
 const DEFAULT_CAMERA: CameraState = {
   lat: 3.95,
   lon: 36.2,
-  altitudeKm: 2500,
+  altitudeKm: 1500,
   heading: 0,
   tilt: 0,
 };
