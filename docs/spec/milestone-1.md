@@ -11,7 +11,7 @@ The milestone proves the technical foundations every later milestone builds on: 
 | Area | Delivered | Section |
 | --- | --- | --- |
 | Project | TypeScript app, npm scripts, data build, CI | 2 |
-| Time | Whole-day dates, historical clock with rate curve and speeds, life clock, pause and freeze, constant lighting | 3 |
+| Time | Whole-day dates, historical clock with rate curve and speed slider, life clock, play and pause, constant lighting | 3 |
 | Globe | Cube-sphere terrain from elevation data, painted textures, water, exaggerated relief, curved horizon | 4 |
 | Planet over time | Sea level and ice sheets that change with the date | 5 |
 | Camera | Orbit-to-ground camera for mouse, touch and keyboard | 6 |
@@ -102,13 +102,13 @@ The base rate curve is defined by control points (year, years per minute). Betwe
 
 | Year | 60,000 BCE | 12,000 BCE | 6000 BCE | 2000 BCE | 500 BCE | 1000 | 1500 | 1750 | 1880 | 1950 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Years per minute | 2,200 | 1,500 | 220 | 62 | 25 | 18 | 12 | 8.5 | 4 | 1.9 |
+| Years per minute | 520 | 354 | 52 | 14.6 | 5.9 | 4.25 | 2.83 | 2.0 | 0.94 | 0.45 |
 
-With these points the watching time per period at normal speed is within about 15 % of the targets in spec section 2.1, and the whole timeline takes about 5 hours 40 minutes. A unit test computes the watching time per period from the curve and fails when a period is more than 15 % off its target, so later tuning keeps the intended pacing.
+These are the earlier points (2,200 to 1.9 years per minute, about 5 hours 40 minutes in all) divided by 4.235, so the curve keeps its shape. With them the watching time per period at normal speed is within about 15 % of the targets in spec section 2.1, and the whole timeline takes about 24 hours. A unit test computes the watching time per period from the curve and fails when a period is more than 15 % off its target, so later tuning keeps the intended pacing.
 
 **Watching-time axis.** The data build integrates the curve into a table that maps each date to its watching time at ×1 (in seconds since the start of the timeline) and back, sampled every 10 years with linear interpolation between samples. The timeline axis (section 7) and the content time windows (section 10.3) both use this table, so they always agree with the clock.
 
-**Speed.** Multipliers are ×¼, ×½, ×1, ×2, ×4 and ×16, default ×1.
+**Speed.** The multiplier is set with a slider on a logarithmic scale from ×1/64 to ×64, default ×1: the slider position is the base-2 logarithm of the multiplier, from −6 to +6, so each sixth of the track doubles or halves the speed. It moves smoothly and snaps to ×1 when released within a small distance of it. The label next to it shows the multiplier rounded to a power of two while it is a whole power, otherwise to two significant figures, written as a fraction below 1 (×1/8, ×1/64) and as a whole number from 1 (×2, ×64). Keys `[` and `]` halve and double the speed. Changing the speed never changes the date, only how fast it advances.
 
 **Zoom slows the clock.** Zooming in automatically slows history down, so that close up, where a viewer watches a single place, changes happen at a pace that can be followed, and from orbit, where a viewer watches the whole world, history runs at full rate. A zoom factor multiplies the rate on top of the speed multiplier:
 
@@ -117,21 +117,20 @@ With these points the watching time per period at normal speed is within about 1
 - It changes only how fast the date advances. The date itself, and so the world, does not depend on the camera; the life clock and the timeline's watching-time axis (which is drawn for ×1 and the base curve) are unaffected.
 - The setting "Slow down when zoomed in" (on by default) turns it off.
 
-The interface shows the resulting rate, including speed and zoom factor, rounded to two significant figures, for example "≈ 20 years/min" or "≈ 2,000 years/min". At the end of the timeline the clock stops and switches to *pause history*.
+The interface shows the resulting rate, including speed and zoom factor, rounded to two significant figures, for example "≈ 20 years/min" or "≈ 2,000 years/min". At the end of the timeline the clock stops and switches to *paused*.
 
 ### 3.4 Play states
 
 | State | Historical date | Life clock | Entered by |
 | --- | --- | --- | --- |
 | Playing | Advances | Runs | Play button, space when paused |
-| History paused | Stands still | Runs | Pause history button, space |
-| Everything frozen | Stands still | Stops | Freeze button, shift and space |
+| Paused | Stands still | Stops | Pause button, space when playing |
 
-Pressing the active state's key again returns to playing. While the playhead is dragged the date follows the playhead and does not advance on its own; the life clock keeps its state. When the drag ends, the previous state resumes. Opening the settings, a bookmark list or a tooltip never changes the play state.
+There is no state in which the date stands still and the life clock runs (removed by Yang on 2026-10-18). While the playhead is dragged the date follows the playhead and does not advance on its own; the life clock keeps its state. When the drag ends, the previous state resumes. Opening the settings, a bookmark list or a tooltip never changes the play state.
 
 ### 3.5 Life clock
 
-The life clock is an integer count of milliseconds that advances in real time while not frozen, independent of the historical rate and speed. In this milestone it drives water animation and the placeholder figures of the stress scene; in milestone 2 it drives what figures do. It is not saved.
+The life clock is an integer count of milliseconds that advances in real time while playing, independent of the historical rate, the speed and the zoom factor. In this milestone it drives water animation and the placeholder figures of the stress scene; in milestone 2 it drives what figures do. It is not saved.
 
 ### 3.6 Lighting
 
@@ -254,16 +253,16 @@ The camera has one fly-to operation used by bookmarks now and by events and famo
 
 ### 7.1 Layout
 
-- The timeline is a strip along the bottom of the screen, drawn on a canvas, with HTML controls beside it. It has a date readout, the playhead, a lane "World" and one lane per region in the order of spec section 7.1.
+- The timeline is a strip along the bottom of the screen, drawn on a canvas, with its expand button built into its left edge. It has a date readout, the playhead, a lane "World" and one lane per region in the order of spec section 7.1.
 - Lanes show the era ranges from [eras.md](eras.md). The World lane uses a fixed colour per era; regional ranges use the colour assigned to that polity in `data/curated/eras` (later shared with the border overlay). Overlapping ranges in one lane stack into sub-rows.
 - A range's label is drawn inside it when it fits, otherwise it is shortened with an ellipsis and shown in full on hover or tap, together with its dates. German labels are about a third longer, so layout never assumes English widths.
-- **Collapsed (the default on every device):** the timeline shows only the lane of the region the globe is centred on, which changes as the viewer moves the globe (decided by Yang on 2026-10-17). The region comes from a coarse region lookup table built by the data build. A button expands the timeline to the World lane and all regional lanes, taking at most about a third of the window height on desktop and two thirds on phones, and collapses it again. The choice is saved with the settings.
+- **Collapsed (the default on every device):** the timeline shows only the lane of the region the globe is centred on, which changes as the viewer moves the globe (decided by Yang on 2026-10-17). The region comes from a coarse region lookup table built by the data build. A button at the left edge of the timeline, inside its frame (decided by Yang on 2026-10-18), expands it to the World lane and all regional lanes, taking at most about a third of the window height on desktop and two thirds on phones, and collapses it again. The choice is saved with the settings.
 
 ### 7.2 Axis and zoom
 
 - The default axis is the watching-time axis (section 3.3): each period is as wide as its watching time at ×1. The toggle "True time scale" switches to a linear axis in years, where all of written history is a thin sliver at the right end. The switch animates over about half a second and keeps the playhead in place.
-- The timeline zooms from the whole of history down to about a single year across its width: scroll wheel or pinch over the timeline, plus zoom buttons. Tick labels adapt to the zoom (10,000 years, 1,000 years, 100 years, 10 years, 1 year) and are formatted per language.
-- By default the visible window follows the playhead while playing; dragging the timeline background pans it and stops following until the play button or a "follow" button is pressed.
+- The timeline zooms from the whole of history down to about a single year across its width: scroll wheel or pinch over the timeline. There are no zoom buttons (removed by Yang on 2026-10-18). Tick labels adapt to the zoom (10,000 years, 1,000 years, 100 years, 10 years, 1 year) and are formatted per language.
+- By default the visible window follows the playhead while playing; dragging the timeline background pans it and stops following until the play button or a "follow" button is pressed. The follow button sits at the right edge inside the timeline and shows only while the timeline is not following.
 
 ### 7.3 Scrubbing
 
@@ -279,7 +278,7 @@ The camera has one fly-to operation used by bookmarks now and by events and famo
 
 ### 8.1 Screen layout
 
-- The globe fills the screen. Text on buttons, the speed selector, the date ribbon and the timeline cannot be selected, so clicking and dragging never highlights it (decided by Yang on 2026-10-17); text in the About panel and in cards can be selected. The timeline runs along the bottom. Above its left end sit the play controls: play, pause history, freeze everything, the speed selector and the rate readout. The top-right corner holds three buttons: bookmarks, settings and About. The history lens slider ([history-lens.md](history-lens.md) section 1) sits at the bottom right, just above the timeline, in the row of the timeline buttons.
+- The globe fills the screen. Text on buttons, the speed selector, the date ribbon and the timeline cannot be selected, so clicking and dragging never highlights it (decided by Yang on 2026-10-17); text in the About panel and in cards can be selected. The timeline runs along the bottom. Above its left end sit the play controls: one play/pause button, the speed slider with its label and the rate readout. The top-right corner holds three buttons: bookmarks, settings and About. The history lens slider ([history-lens.md](history-lens.md) section 1) sits at the bottom right, at the right end of that row, just above the timeline.
 - The date readout is large and clear above the timeline's playhead area, in the format of section 3.2.
 - All controls are at least 44 by 44 CSS pixels on touch devices, have visible focus outlines, and have accessible names in the current language.
 
@@ -322,7 +321,7 @@ Local storage holds only small things (spec section 7.6). Each key is versioned 
 | `miniworld.bookmarks.v1` | Up to 200 bookmarks: id, name, date, camera | On change |
 | `miniworld.perf.v1` | Result of the first-start benchmark (section 11.2) and the device it was measured on | After the benchmark |
 
-On start, the saved date and camera are restored; a saved play state of *playing* is restored as *history paused*, so the world does not run on while nobody is watching. Saved state never affects what the world looks like at a given date: it only chooses which date and view to show.
+On start, the saved date and camera are restored; a saved play state of *playing* is restored as *paused*, so the world does not run on while nobody is watching. Saved state never affects what the world looks like at a given date: it only chooses which date and view to show.
 
 ## 10. Content pipeline
 
@@ -339,7 +338,7 @@ One light index per language, fetched with the manifest: the era records with th
 ### 10.3 Chunk keys
 
 - **Place:** a cube face and quadtree path, for example `2/0313`, at a level chosen per layer: terrain at every level up to 5. The climate slices are global and keyed by their time step only.
-- **Time:** windows of equal watching time, 10 minutes at ×1 each (35 windows over the whole timeline, roughly 20,000 years each in the deep past and about 20 years each in the 20th century). Window boundaries come from the watching-time table and are listed in the manifest. Layers that do not change with time, such as terrain, use the single window `all`.
+- **Time:** windows of equal watching time, about 41 minutes at ×1 each (35 windows over the whole timeline, roughly 20,000 years each in the deep past and about 20 years each in the 20th century). Window boundaries come from the watching-time table and are listed in the manifest. Layers that do not change with time, such as terrain, use the single window `all`.
 - **Language:** `xx` for layers without text, otherwise `en` or `de`.
 
 A chunk's file name is `{layer}/{place}/{window}/{language}.{hash}.{ext}`, where the hash is the first 16 hex characters of the SHA-256 of the file's content.
@@ -435,7 +434,7 @@ The only shipped assets are the six terrain textures, the water normal map and t
 | --- | --- |
 | Date unit tests | Day-number conversion, year 0, leap years, formatting in both languages |
 | Rate curve test | Watching time per period within 15 % of target (section 3.3); round trip date to watching time and back |
-| Clock tests | Play states, speeds, zoom factor at and between its limits, end of timeline, scrubbing, life clock stops only when frozen |
+| Clock tests | Play states, the speed slider's scale, snapping and limits, zoom factor at and between its limits, end of timeline, scrubbing, life clock stops when paused |
 | Golden tests | For a fixed list of dates (50,000 BCE, 20,000 BCE, 12,000 BCE, 8000 BCE, 6200 BCE, 3000 BCE, today) and places (Bering Strait, North Sea, Java Sea, Torres Strait, Hudson Bay, Baltic, Caspian Sea): sea level, whether each place is sea or land, ice cover, glacial index. Stored results must match exactly; changes must be intended and reviewed |
 | Localisation tests | Same keys in both message files, no empty messages, no viewer-facing literals in components |
 | Data validation | Section 10.8 on the fixture dataset in CI and the full dataset locally |

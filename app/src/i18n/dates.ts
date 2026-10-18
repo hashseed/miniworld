@@ -32,7 +32,7 @@ export function formatYear(astroYear: number, language: Language, approximate = 
 export interface DateDisplayContext {
   /** Effective clock rate in years per minute. */
   yearsPerMinute: number;
-  /** True when history is not advancing (paused or frozen) and not scrubbing. */
+  /** True when history is not advancing (paused) and not scrubbing. */
   stationary: boolean;
 }
 

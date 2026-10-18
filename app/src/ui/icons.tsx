@@ -12,12 +12,6 @@ export const PauseIcon = () => (
   </svg>
 );
 
-export const FreezeIcon = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M11 2h2v20h-2zM2 11h20v2H2zM4.2 5.6l1.4-1.4 14.2 14.2-1.4 1.4zM18.4 4.2l1.4 1.4L5.6 19.8l-1.4-1.4z" />
-  </svg>
-);
-
 export const BookmarkIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M6 3h12v18l-6-4-6 4z" />

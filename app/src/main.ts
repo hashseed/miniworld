@@ -5,7 +5,7 @@ import '@fontsource-variable/fredoka';
 import * as THREE from 'three';
 import { h, render } from 'preact';
 import { ContentLoader } from './content/loader.ts';
-import type { StartupIndex } from './content/types.ts';
+import type { StartupIndex, VignetteEntry } from './content/types.ts';
 import { Store } from './core/store.ts';
 import { latLonToDir } from './globe/cube.ts';
 import { CameraController } from './globe/cameraController.ts';
@@ -27,12 +27,13 @@ import {
   targetFrameMs,
 } from './perf/quality.ts';
 import { STRESS_CENTRE, StressScene } from './perf/stressScene.ts';
+import { VignetteLayer } from './vignettes/vignetteLayer.ts';
 import { OPENING_DAY, TIMELINE_START, dayFromDate } from './time/calendar.ts';
 import { Clock } from './time/clock.ts';
-import { zoomFactor } from './time/rateCurve.ts';
+import { snapSpeedLog2, zoomFactor } from './time/rateCurve.ts';
 import { Timeline } from './timeline/timeline.ts';
 import { App } from './ui/App.tsx';
-import type { Actions, UiState } from './ui/state.ts';
+import type { Actions, UiState, VignetteCard } from './ui/state.ts';
 import {
   loadBookmarks,
   loadPerf,
@@ -87,8 +88,8 @@ const ui = new Store<UiState>({
   preparing: false,
   error: undefined,
   day: OPENING_DAY,
-  playState: 'historyPaused',
-  speedIndex: clock.speedIndex,
+  playState: 'paused',
+  speedLog2: clock.speedLog2,
   yearsPerMinute: 0,
   scrubbing: false,
   panel: 'none',
@@ -104,6 +105,7 @@ const ui = new Store<UiState>({
   version: '',
   cutoffDay: 0,
   sources: [],
+  vignette: undefined,
 });
 
 // --- Scene --------------------------------------------------------------------------
@@ -141,6 +143,15 @@ const controller = new CameraController(
   surface,
   savedView?.camera ?? (STRESS ? stressCamera(0) : DEFAULT_CAMERA),
 );
+const vignettes = new VignetteLayer(
+  loader,
+  { surfaceKm: surface.surfaceKm, toDrawn: (d) => globe.lens.toDrawn(d) },
+  canvas,
+);
+scene.add(vignettes.group);
+vignettes.onOpen = (entry) => void openVignette(entry);
+vignettes.onFly = (lat, lon, altitudeKm) =>
+  controller.flyTo({ ...controller.state, lat, lon, altitudeKm });
 controller.reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 // The camera sees the lens through the globe, which swaps in the loaded warp.
 controller.lens = {
@@ -247,10 +258,8 @@ const actions: Actions = {
     clock.setPlayState('playing');
     timeline?.setFollow(true);
   },
-  pauseHistory: () =>
-    clock.setPlayState(clock.playState === 'historyPaused' ? 'playing' : 'historyPaused'),
-  freeze: () => clock.setPlayState(clock.playState === 'frozen' ? 'playing' : 'frozen'),
-  setSpeed: (i) => clock.setSpeedIndex(i),
+  pause: () => clock.setPlayState('paused'),
+  setSpeed: (log2, release) => clock.setSpeedLog2(release ? snapSpeedLog2(log2) : log2),
   setPanel: (panel) => ui.update({ panel }),
   setSetting: (key, value) => {
     const next: Settings = { ...ui.value.settings, [key]: value };
@@ -285,9 +294,6 @@ const actions: Actions = {
   deleteBookmark: (id) => setBookmarks(ui.value.bookmarks.filter((b) => b.id !== id)),
   resetCamera: () => controller.resetOrientation(),
   tiltCamera: (degrees) => controller.tiltBy(degrees),
-  zoomTimeline: (factor) => {
-    timeline?.zoomBy(factor);
-  },
   followPlayhead: () => timeline?.setFollow(true),
   toggleLanes: () => {
     actions.setSetting('timelineExpanded', !ui.value.settings.timelineExpanded);
@@ -327,7 +333,31 @@ async function switchLanguage(lang: Settings['language']): Promise<void> {
   document.title = i18n.t('app.title');
   index = next;
   timeline?.setIndex(next);
+  vignettes.setIndex(next.vignettes);
+  const open = ui.value.vignette && next.vignettes.find((v) => v.id === ui.value.vignette!.id);
+  if (open && ui.value.panel === 'vignette') void openVignette(open);
   ui.update({ sources: next.sources });
+}
+
+/** Opens a vignette's card at once with its title, then fills in the text (milestone 2 section 11). */
+async function openVignette(entry: VignetteEntry): Promise<void> {
+  const card: VignetteCard = {
+    id: entry.id,
+    title: entry.title,
+    fromDay: entry.fromDay,
+    toDay: entry.toDay,
+    fromApproximate: entry.fromApproximate,
+    toApproximate: entry.toApproximate,
+  };
+  ui.update({ panel: 'vignette', vignette: card });
+  const done = (patch: Partial<VignetteCard>) => {
+    if (ui.value.vignette === card) ui.update({ vignette: { ...card, ...patch } });
+  };
+  try {
+    done({ text: await loader.json<NonNullable<VignetteCard['text']>>(entry.text) });
+  } catch {
+    done({ failed: true });
+  }
 }
 
 // --- Keys ---------------------------------------------------------------------------
@@ -349,8 +379,10 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === ' ' || e.code === 'Space') {
     if (target?.tagName === 'BUTTON') return;
     e.preventDefault();
-    if (e.shiftKey) clock.toggleFreeze();
-    else clock.togglePauseHistory();
+    clock.togglePlay();
+  } else if (e.key === '[' || e.key === ']') {
+    e.preventDefault();
+    clock.setSpeedLog2(clock.speedLog2 + (e.key === ']' ? 1 : -1));
   } else if ((e.key === 'Home' || e.key === 'End') && target !== timeline?.canvas) {
     e.preventDefault();
     clock.setDay(e.key === 'Home' ? clock.startDay : clock.endDay);
@@ -366,7 +398,7 @@ function persistView(): void {
     day: clock.day,
     camera: { ...controller.state },
     playState: clock.playState,
-    speedIndex: clock.speedIndex,
+    speedLog2: clock.speedLog2,
   });
 }
 document.addEventListener('visibilitychange', () => {
@@ -511,6 +543,7 @@ function frame(now: number): void {
     stress.place(new THREE.Vector3(...globe.lens.toDrawn(centre)));
     stress.update(camera, clock.lifeMs, now);
   }
+  vignettes.update(camera, clock.day, clock.lifeMs, u.lightDir!.value);
 
   renderer.info.reset();
   frames.render(scene, camera);
@@ -539,7 +572,7 @@ function syncUi(now: number): void {
   const patch: Partial<UiState> = {};
   if (v.day !== clock.day) patch.day = clock.day;
   if (v.playState !== clock.playState) patch.playState = clock.playState;
-  if (v.speedIndex !== clock.speedIndex) patch.speedIndex = clock.speedIndex;
+  if (v.speedLog2 !== clock.speedLog2) patch.speedLog2 = clock.speedLog2;
   if (v.scrubbing !== clock.isScrubbing) patch.scrubbing = clock.isScrubbing;
   const ypm = clock.yearsPerMinute;
   if (Math.abs(ypm - v.yearsPerMinute) > v.yearsPerMinute * 0.02 + 1e-3) patch.yearsPerMinute = ypm;
@@ -574,14 +607,15 @@ async function start(): Promise<void> {
     const grids = decodeLensGrids(lensBytes);
     globe.setLens(new Lens(grids.forward, grids.inverse));
     minSeaLevel = lowestSeaLevel(index.seaLevel);
+    vignettes.setIndex(index.vignettes);
     globe.lowestSeaLevel = minSeaLevel;
     const startDay = STRESS ? STRESS_DAY : (savedView?.day ?? OPENING_DAY);
     clock.configure({
       startDay: manifest.timelineStartDay,
       endDay: manifest.cutoffDay,
       day: startDay,
-      playState: STRESS ? 'playing' : (savedView?.playState ?? 'historyPaused'),
-      speedIndex: savedView?.speedIndex,
+      playState: STRESS ? 'playing' : (savedView?.playState ?? 'paused'),
+      speedLog2: savedView?.speedLog2,
     });
     clock.subscribe(() => syncUi(performance.now()));
     ui.update({
@@ -591,7 +625,7 @@ async function start(): Promise<void> {
       sources: index.sources,
       day: clock.day,
       playState: clock.playState,
-      speedIndex: clock.speedIndex,
+      speedLog2: clock.speedLog2,
     });
     if (timeline) {
       timeline.setIndex(index);
@@ -651,6 +685,7 @@ if (import.meta.env.DEV)
   Object.assign(globalThis, {
     __miniworld: {
       globe,
+      vignettes,
       controller,
       clock,
       loader,
