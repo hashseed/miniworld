@@ -9,6 +9,7 @@ import {
 } from '../../../app/src/time/calendar.ts';
 import { buildVignettes, compileTemplate, parseDate } from './vignettes.ts';
 
+const RECORDS = new URL('../fixtures/vignettes', import.meta.url).pathname;
 const CURATED = new URL('../../curated', import.meta.url).pathname;
 const TEMPLATE = readFileSync(join(CURATED, 'templates/big-game-hunt.yaml'), 'utf8');
 
@@ -16,6 +17,7 @@ describe('vignette formats', () => {
   it('builds the mammoth hunt without errors', () => {
     const r = buildVignettes({
       curated: CURATED,
+      records: RECORDS,
       lanes: new Set(['europe']),
       animals: new Set(['woolly-mammoth']),
       startDay: TIMELINE_START,
@@ -42,8 +44,8 @@ describe('vignette formats', () => {
   });
 
   it('rejects unknown verbs, marks and groups', () => {
-    const bad = TEMPLATE.replace('{ walk-to: lookout }', '{ fly-to: lookout }')
-      .replace('{ run-to: trap }', '{ run-to: nowhere }')
+    const bad = TEMPLATE.replace('{ walk-to: prey-graze }', '{ fly-to: prey-graze }')
+      .replace('{ run-to: dodge-3 }', '{ run-to: nowhere }')
       .replace('{ throw-at: prey }', '{ throw-at: ghosts }');
     const r = compileTemplate('big-game-hunt.yaml', bad);
     expect(r.errors.join('\n')).toMatch(/unknown action "fly-to"/);
@@ -51,11 +53,34 @@ describe('vignette formats', () => {
     expect(r.errors.join('\n')).toMatch(/throw-at needs a group, got "ghosts"/);
   });
 
+  it('rejects a script played once that does not end with an empty stage', () => {
+    const bad = TEMPLATE.replace(
+      '  - { at: 113, family: vanish, hunters-left: vanish, hunters-right: vanish }\n',
+      '  - { at: 113, family: vanish, hunters-left: vanish }\n',
+    ).replace('  - { at: 100, tent-a: hide, tent-b: hide }\n', '  - { at: 100, tent-a: hide }\n');
+    const r = compileTemplate('big-game-hunt.yaml', bad);
+    expect(r.errors.join('\n')).toMatch(/hunters-right #0 ends on the stage/);
+    expect(r.errors.join('\n')).toMatch(/prop tent-b ends shown/);
+  });
+
   it('rejects a loop that does not close', () => {
-    const bad = TEMPLATE.replace('  - { at: 105, prey: appear }\n', '');
+    const bad = TEMPLATE.replace('once: 118 s', 'loop: 118 s');
     const r = compileTemplate('big-game-hunt.yaml', bad);
     expect(r.errors.join('\n')).toMatch(/prey #0 ends away from its starting mark/);
-    expect(r.errors.join('\n')).toMatch(/prey #0 ends hidden/);
+  });
+
+  it('checks props and their verbs', () => {
+    const r = compileTemplate(
+      'big-game-hunt.yaml',
+      TEMPLATE.replace('  - { at: 18, fire: show }', '  - { at: 18, fire: cheer, family: show }'),
+    );
+    expect(r.errors.join('\n')).toMatch(/fire cannot cheer/);
+    expect(r.errors.join('\n')).toMatch(/family cannot show/);
+    const r2 = compileTemplate(
+      'big-game-hunt.yaml',
+      TEMPLATE.replace('at: tent-a, face: fire', 'at: nowhere, face: fire'),
+    );
+    expect(r2.errors.join('\n')).toMatch(/prop tent-a stands at unknown mark "nowhere"/);
   });
 
   it('rejects an unknown icon or debated value', () => {
@@ -64,7 +89,7 @@ describe('vignette formats', () => {
       cpSync(join(CURATED, 'templates'), join(dir, 'templates'), { recursive: true });
       cpSync(join(CURATED, 'sources.yaml'), join(dir, 'sources.yaml'));
       mkdirSync(join(dir, 'vignettes'));
-      const record = readFileSync(join(CURATED, 'vignettes/mammoth-hunt.md'), 'utf8')
+      const record = readFileSync(join(RECORDS, 'mammoth-hunt.md'), 'utf8')
         .replace('icon: spear', 'icon: rocket')
         .replace('debated: method', 'debated: everything');
       writeFileSync(join(dir, 'vignettes/mammoth-hunt.md'), record);
