@@ -70,7 +70,9 @@ const DARK_HAIR = ['#2a1d17', '#33241b', '#3b2a20'];
 
 export const LOOKS: Record<Profile, ProfileLook> = {
   'african-stone-age': {
-    skin: ['#4f321f', '#5e3b26', '#6b4430', '#7a4e33'],
+    // Warm mid browns: dark enough to be true, light enough that the clay shading shows
+    // faces and limbs from orbit (Yang, 2026-10-18).
+    skin: ['#7e5236', '#8a5a3b', '#966342', '#a06c48'],
     hair: DARK_HAIR,
     top: { man: 'none', woman: 'wrap', child: 'none' },
     bottom: { man: 'apron', woman: 'skirt', child: 'apron' },
@@ -256,7 +258,7 @@ export interface PersonOptions {
 
 /** The first person's fixed look: red-ochre headband (her mark in every era), ochre-dyed hide, two bead strings. */
 const FOUNDER = {
-  skin: '#5e3b26',
+  skin: '#8a5a3b',
   hair: '#2a1d17',
   hide: '#b8643a',
   headband: '#c43f26',

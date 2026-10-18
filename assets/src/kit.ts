@@ -31,6 +31,12 @@ export class ModelBuilder {
     for (const b of bones) this.bones.set(b.name, b);
   }
 
+  /** Adds a bone after construction, for models that pick their bones as they go. */
+  bone(def: BoneDef): this {
+    this.bones.set(def.name, def);
+    return this;
+  }
+
   /** Adds a part in model space to a bone, painted one flat colour. */
   add(geometry: THREE.BufferGeometry, colour: THREE.ColorRepresentation, bone = ROOT): this {
     if (!this.bones.has(bone)) throw new Error(`Unknown bone ${bone}`);

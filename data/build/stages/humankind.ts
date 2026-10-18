@@ -1,6 +1,7 @@
 // Tree of humankind stage of the data build: the tree grows from the first
 // person over the habitable land of each date (spec humankind.md, sections 4
-// and 5) and is written to data/build/tree/tree.json.
+// and 5), written to data/build/tree/tree.json and, for the app, as one chunk
+// per time window (section 8).
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -8,17 +9,20 @@ import { OCEAN_MIN_LEVEL, OCEAN_NEVER } from '../../../app/src/content/formats.t
 import { TIMELINE_START } from '../../../app/src/time/calendar.ts';
 import { humankindSettings, validateCultureAreas, type CultureAreas } from '../lib/cultureAreas.ts';
 import { climateHabitat } from '../lib/habitat.ts';
-import { buildTree, checkTree } from '../lib/humankind.ts';
+import { buildTree, checkTree, treeChunks } from '../lib/humankind.ts';
 import type { Climate } from './climate.ts';
-import { ROOT, type BuildContext } from './context.ts';
+import { ROOT, type WriteContext } from './context.ts';
 import type { WorldMap } from './terrain.ts';
 
-export function buildHumankind(ctx: BuildContext, map: WorldMap, climate: Climate): void {
+/** The tree chunk files, one per time window, null where empty; undefined on the fixture map. */
+export type TreeFiles = (string | null)[] | undefined;
+
+export function buildHumankind(ctx: WriteContext, map: WorldMap, climate: Climate): TreeFiles {
   const { log, fail } = ctx;
   // The fixture map has no Africa.
   if (ctx.fixture) {
     log('tree of humankind skipped on the fixture map');
-    return;
+    return undefined;
   }
   const { connection, lakes, rivers, elevation } = map;
   const habitat = climateHabitat({
@@ -48,5 +52,8 @@ export function buildHumankind(ctx: BuildContext, map: WorldMap, climate: Climat
   log(
     `tree of humankind: ${tree.figures.length} figures, ${tree.lodgings.length} lodgings, ` +
       `${tree.moments.filter((m) => m.kind === 'camp-founded').length + 1} camps founded`,
+  );
+  return treeChunks(tree, ctx.windows, treeSettings.endDay).map((chunk, w) =>
+    chunk ? ctx.output.writeJson(`tree/w${w}`, chunk) : null,
   );
 }

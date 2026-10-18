@@ -29,10 +29,10 @@ async function main(args: string[]): Promise<void> {
   placeLandmarks(ctx, map, content.landmarks);
   const terrain = buildTerrain(ctx, map);
   const climate = buildClimate(ctx, map);
-  buildHumankind(ctx, map, climate);
+  const tree = buildHumankind(ctx, map, climate);
   const lens = buildLensStage(ctx);
   const index = buildContent(ctx, content, climate);
-  writeManifest(ctx, { index, lens, terrain, climate });
+  writeManifest(ctx, { index, lens, terrain, climate, tree });
 
   await output.finish();
   const brotliKb = (files: string[]) =>

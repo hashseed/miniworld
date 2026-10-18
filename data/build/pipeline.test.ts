@@ -34,6 +34,7 @@ describe.skipIf(!built)('built data pipeline', () => {
     for (const f of Object.values(manifest.index)) files.add(f);
     for (const f of manifest.climate.files) files.add(f);
     for (const f of manifest.foliage.files) files.add(f);
+    for (const f of manifest.tree?.files ?? []) if (f) files.add(f);
     for (const layer of Object.values(manifest.layers)) {
       for (const f of Object.values(layer.chunks)) files.add(f);
       for (const f of Object.values(layer.parts)) {

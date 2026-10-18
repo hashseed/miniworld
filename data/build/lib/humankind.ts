@@ -9,19 +9,30 @@ import { detCos, detSin, RAD } from '../../../app/src/core/detmath.ts';
 import { DAYS_PER_YEAR, type Day } from '../../../app/src/time/calendar.ts';
 import {
   NEVER,
+  aliveOn,
   type MomentKind,
   type Tree,
   type TreeFigure,
   type TreeLodging,
 } from '../../../app/src/world/tree.ts';
+import {
+  CAMP_ROOM_M,
+  HEARTH_SPOTS,
+  LAYOUT_KM_PER_M,
+  LODGING_SLOTS,
+  MAX_OUTING_M,
+  gapDirection,
+  slotPoint,
+  type TreeChunk,
+} from '../../../app/src/world/treeScene.ts';
 
 export type Density = 'sparse' | 'low' | 'medium';
 
 /** Camp spacing per density (section 4.1, Proposed); every band is 3 to 5 (Yang, 2026-10-18). */
 export const DENSITIES: Record<Density, { spacingKm: number; band: [number, number] }> = {
-  sparse: { spacingKm: 900, band: [3, 5] },
-  low: { spacingKm: 600, band: [3, 5] },
-  medium: { spacingKm: 400, band: [3, 5] },
+  sparse: { spacingKm: 1350, band: [3, 5] },
+  low: { spacingKm: 900, band: [3, 5] },
+  medium: { spacingKm: 600, band: [3, 5] },
 };
 
 /** Figures a lodging holds, and lodgings a camp may have (section 4.1, Proposed). */
@@ -114,6 +125,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   const allowed = (lat: number, lon: number, day: Day) =>
     s.density(lat, lon, day) !== undefined &&
     habitat.habitable(lat, lon, day) &&
+    // Lodgings go up during the step, so the land must last through it.
+    habitat.habitable(lat, lon, day + STEP_DAYS) &&
     frontOk(lat, lon, day);
 
   const clearOfCamps = (lat: number, lon: number, spacingKm: number, except: Camp | undefined) =>
@@ -135,6 +148,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     inner: number,
     outer: number,
     salt: number,
+    fleeing = false,
   ): { lat: number; lon: number } | undefined => {
     let best: { lat: number; lon: number; score: number } | undefined;
     for (let k = 0; k < 16; k++) {
@@ -150,10 +164,90 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       if (!clearOfCamps(lat, lon, spacing, from.lodgings.length ? from : undefined)) continue;
       if (distanceKm(from.lat, from.lon, lat, lon) < Math.min(spacing, from.spacingKm) * inner)
         continue;
-      const score = habitat.score(lat, lon, day) + 0.1 * hash01(from.id, day, salt, k + 200);
+      // A camp is drawn far larger than life: it needs room for its people on land, unless
+      // it is fleeing the sea, ice or desert, when any safe spot will do but room is better.
+      // The band walks there in a straight line, so it must be land all the way: no sea or lake.
+      const room = roomy(lat, lon, day) && walkable(from.lat, from.lon, lat, lon, day);
+      if (!room && !fleeing) continue;
+      const score =
+        habitat.score(lat, lon, day) + (room ? 1 : 0) + 0.1 * hash01(from.id, day, salt, k + 200);
       if (!best || score > best.score) best = { lat, lon, score };
     }
     return best;
+  };
+
+  /** The point a drawn offset from a camp in layout metres (east, north) falls on. */
+  const offset = (lat: number, lon: number, x: number, z: number) => ({
+    lat: lat + (z * LAYOUT_KM_PER_M) / KM_PER_DEG,
+    lon: lon + (x * LAYOUT_KM_PER_M) / (KM_PER_DEG * detCos(lat * RAD)),
+  });
+  const landAt = (p: { lat: number; lon: number }, day: Day) =>
+    habitat.habitable(p.lat, p.lon, day) && habitat.habitable(p.lat, p.lon, day + STEP_DAYS);
+
+  /** Whether the straight way between two points is land all the way, checked every 25 km. */
+  const walkable = (lat0: number, lon0: number, lat1: number, lon1: number, day: Day) => {
+    const n = Math.ceil(distanceKm(lat0, lon0, lat1, lon1) / 25);
+    for (let k = 1; k < n; k++)
+      if (
+        !landAt({ lat: lat0 + ((lat1 - lat0) * k) / n, lon: lon0 + ((lon1 - lon0) * k) / n }, day)
+      )
+        return false;
+    return true;
+  };
+
+  /** Whether the people's spots round a hearth would all be on land (section 8.1). */
+  const roomy = (lat: number, lon: number, day: Day) => {
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * 2 * Math.PI;
+      if (!landAt(offset(lat, lon, CAMP_ROOM_M * detCos(a), CAMP_ROOM_M * detSin(a)), day))
+        return false;
+    }
+    return true;
+  };
+
+  /**
+   * The lowest place round the hearth that none of the camp's standing lodgings takes,
+   * on land if one is free; places in the water are used only when nothing else is left.
+   */
+  const freeSlot = (camp: Camp, day: Day): number => {
+    const taken = new Set(camp.lodgings.map((l) => tree.lodgings[l]!.slot));
+    const free = Array.from({ length: LODGING_SLOTS }, (_, k) => k).filter((k) => !taken.has(k));
+    const dry = free.find((k) => {
+      const p = slotPoint(camp.id, k);
+      const far = { x: p.x * 1.25, z: p.z * 1.25 };
+      return [p, far].every((q) => landAt(offset(camp.lat, camp.lon, q.x, q.z), day));
+    });
+    return dry ?? free[0] ?? taken.size;
+  };
+
+  /** How far, in layout metres, people can go out through each gap between the lodgings and stay on land. */
+  const reachOf = (camp: Camp, day: Day): number[] =>
+    Array.from({ length: LODGING_SLOTS }, (_, gap) => {
+      const d = gapDirection(camp.id, gap);
+      let reach = 0;
+      for (let m = 10; m <= MAX_OUTING_M; m += 5) {
+        // Across the lanes of the gap, and a little further than they go, as coasts are drawn smoothed.
+        const wet = [-0.17, 0, 0.17].some((turn) => {
+          const [c, sn] = [detCos(turn), detSin(turn)];
+          const x = (d.x * c - d.z * sn) * m * 1.1;
+          const z = (d.x * sn + d.z * c) * m * 1.1;
+          return !landAt(offset(camp.lat, camp.lon, x, z), day);
+        });
+        if (wet) break;
+        reach = m;
+      }
+      return reach;
+    });
+
+  /** The lowest spot at a camp's hearth that none of its people takes, the mover aside. */
+  const freeSpot = (campId: number, mover = NEVER): number => {
+    const taken = new Set<number>();
+    for (const l of camps[campId]!.lodgings)
+      for (const f of residents.get(l) ?? [])
+        if (f !== mover) taken.add(tree.figures[f]!.homes.at(-1)![2]);
+    let spot = 0;
+    while (taken.has(spot)) spot++;
+    return spot;
   };
 
   const newFigure = (parent: number, born: Day, branch: number, lodging: number): TreeFigure => {
@@ -163,7 +257,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       born,
       branch,
       depth: parent === NEVER ? 0 : tree.figures[parent]!.depth + 1,
-      homes: [[born, lodging]],
+      homes: [[born, lodging, freeSpot(tree.lodgings[lodging]!.camp)]],
       lost: NEVER,
     };
     tree.figures.push(f);
@@ -180,6 +274,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       built: day,
       gone: NEVER,
       builder,
+      slot: freeSlot(camp, day),
+      reach: reachOf(camp, day),
       kind: s.lodgingKind,
     };
     tree.lodgings.push(l);
@@ -194,7 +290,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     const list = residents.get(from)!;
     list.splice(list.indexOf(figure), 1);
     residents.get(to)!.push(figure);
-    tree.figures[figure]!.homes.push([day, to]);
+    tree.figures[figure]!.homes.push([day, to, freeSpot(tree.lodgings[to]!.camp, figure)]);
     if (list.length === 0) {
       const old = tree.lodgings[from]!;
       old.gone = day;
@@ -254,7 +350,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
 
       // The land changes under the camp: move before the sea, ice or desert arrive.
       if (!habitat.habitable(camp.lat, camp.lon, day + STEP_DAYS)) {
-        const spot = findSpot(camp, day, 0.5, 3, 1);
+        const spot = findSpot(camp, day, 0.5, 3, 1, true);
         if (spot) {
           relocate(camp, spot.lat, spot.lon, day);
           moment('camp-moved-away', day, people[0]!, camp);
@@ -311,10 +407,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         );
         if (size < 2) continue;
         const group: number[] = [];
-        for (let k = 0; k < size; k++) {
-          const pick = candidates.splice(hash32(camp.id, day, 6, k) % candidates.length, 1)[0]!;
-          group.push(pick);
-        }
+        for (let k = 0; k < size; k++)
+          group.push(candidates.splice(hash32(camp.id, day, 6, k) % candidates.length, 1)[0]!);
         const child = newCamp(spot.lat, spot.lon, day);
         const arrive = day + (hash32(camp.id, day, 8) % STEP_DAYS);
         const l = newLodging(child, group[0]!, arrive);
@@ -346,6 +440,35 @@ export function checkTree(tree: Tree, s: TreeSettings, habitat: Habitat): string
     for (let i = 1; i < f.homes.length; i++)
       if (f.homes[i]![0] < f.homes[i - 1]![0]) problems.push(`figure ${f.id} moves back in time`);
   }
+  // Lodgings and figures each have a place of their own at their camp (section 8.1).
+  const spotOn = (f: TreeFigure, day: Day) => {
+    let at: [Day, number, number] | undefined;
+    for (const h of f.homes) if (h[0] <= day) at = h;
+    return at;
+  };
+  for (const l of tree.lodgings) {
+    if (l.slot >= LODGING_SLOTS) problems.push(`lodging ${l.id} has no place round the hearth`);
+    const clash = tree.lodgings.find(
+      (o) =>
+        o.id < l.id &&
+        o.camp === l.camp &&
+        o.slot === l.slot &&
+        o.built <= l.built &&
+        (o.gone === NEVER || o.gone > l.built),
+    );
+    if (clash) problems.push(`lodgings ${clash.id} and ${l.id} stand in the same place`);
+  }
+  for (const f of tree.figures)
+    for (const [day, lodging, spot] of f.homes) {
+      if (spot >= HEARTH_SPOTS) problems.push(`figure ${f.id} has no spot at the hearth`);
+      const camp = tree.lodgings[lodging]!.camp;
+      for (const o of tree.figures) {
+        if (o.id === f.id || !aliveOn(o, day) || o.born > day) continue;
+        const at = spotOn(o, day);
+        if (at && at[2] === spot && tree.lodgings[at[1]]!.camp === camp)
+          problems.push(`figures ${o.id} and ${f.id} share a spot on day ${day}`);
+      }
+    }
   for (const l of tree.lodgings) {
     const lat = l.lat / 1e6;
     const lon = l.lon / 1e6;
@@ -355,4 +478,36 @@ export function checkTree(tree: Tree, s: TreeSettings, habitat: Habitat): string
       problems.push(`lodging ${l.id} stands outside every culture area`);
   }
   return problems;
+}
+
+/**
+ * Splits the tree into one chunk per time window (section 8), or undefined
+ * for a window after the tree ends. The tree is built only up to its end day,
+ * so its figures and lodgings are taken away then.
+ */
+export function treeChunks(tree: Tree, windows: Day[], endDay: Day): (TreeChunk | undefined)[] {
+  return windows.map((from, w) => {
+    if (from >= endDay) return undefined;
+    const to = Math.min(windows[w + 1] ?? endDay, endDay);
+    const until = (d: Day) => (d === NEVER || d > endDay ? endDay : d);
+    const lodgings = new Map<number, TreeLodging>();
+    const add = (id: number) => {
+      const l = tree.lodgings[id]!;
+      if (!lodgings.has(id)) lodgings.set(id, { ...l, gone: until(l.gone) });
+    };
+    // A lodging taken down shortly before the window still fades out in it.
+    for (const l of tree.lodgings)
+      if (l.built < to && until(l.gone) + DAYS_PER_YEAR > from) add(l.id);
+    const figures: TreeFigure[] = [];
+    for (const f of tree.figures) {
+      if (f.born >= to || until(f.lost) <= from) continue;
+      // The home at the window's start and the one before it (for a walk under way), and later ones.
+      let first = 0;
+      while (first + 1 < f.homes.length && f.homes[first + 1]![0] <= from) first++;
+      const homes = f.homes.slice(Math.max(0, first - 1)).filter(([d]) => d < to);
+      for (const [, l] of homes) add(l);
+      figures.push({ ...f, homes, lost: until(f.lost) });
+    }
+    return { fromDay: from, toDay: to, figures, lodgings: [...lodgings.values()] };
+  });
 }
