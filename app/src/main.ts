@@ -18,14 +18,7 @@ import { formatDateReadout } from './i18n/dates.ts';
 import { I18n } from './i18n/i18n.ts';
 import { detectLanguage } from './i18n/messages.ts';
 import { FrameRenderer } from './perf/frameRenderer.ts';
-import {
-  DynamicResolution,
-  FrameStats,
-  TIERS,
-  TIER_ORDER,
-  pickTier,
-  targetFrameMs,
-} from './perf/quality.ts';
+import { DynamicResolution, FrameStats, QUALITY, targetFrameMs } from './perf/quality.ts';
 import { STRESS_CENTRE, StressScene } from './perf/stressScene.ts';
 import { VignetteLayer } from './vignettes/vignetteLayer.ts';
 import { OPENING_DAY, TIMELINE_START, dayFromDate } from './time/calendar.ts';
@@ -36,17 +29,14 @@ import { App } from './ui/App.tsx';
 import type { Actions, UiState, VignetteCard } from './ui/state.ts';
 import {
   loadBookmarks,
-  loadPerf,
   loadSettings,
   loadView,
   saveBookmarks,
-  savePerf,
   saveSettings,
   saveView,
   MAX_BOOKMARKS,
   type CameraState,
   type Settings,
-  type Tier,
 } from './ui/storage.ts';
 
 const params = new URLSearchParams(location.search);
@@ -55,7 +45,6 @@ const DEFAULT_CAMERA: CameraState = { lat: 25, lon: 30, altitudeKm: 14000, headi
 const STRESS_DAY = dayFromDate(1, 1, 1);
 const STRESS_PATH_MS = 60000;
 const VIEW_SAVE_MS = 2000;
-const BENCH_MS_PER_TIER = 1000;
 
 const isPhone =
   matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 600;
@@ -65,7 +54,6 @@ const deviceId = `${navigator.userAgent}|${screen.width}x${screen.height}@${devi
 
 const settings = loadSettings({
   language: detectLanguage(navigator.languages ?? [navigator.language]),
-  quality: 'auto',
   timelineExpanded: false,
   trueTimeScale: false,
   slowWhenZoomed: true,
@@ -74,7 +62,6 @@ const settings = loadSettings({
   lensHintSeen: false,
 });
 const savedView = STRESS ? undefined : loadView();
-const savedPerf = loadPerf();
 const i18n = new I18n(settings.language);
 
 const clock = new Clock({
@@ -85,7 +72,6 @@ const clock = new Clock({
 
 const ui = new Store<UiState>({
   ready: false,
-  preparing: false,
   error: undefined,
   day: OPENING_DAY,
   playState: 'paused',
@@ -94,8 +80,6 @@ const ui = new Store<UiState>({
   scrubbing: false,
   panel: 'none',
   settings,
-  tier: savedPerf?.device === deviceId ? savedPerf.tier : 'medium',
-  autoTier: savedPerf?.device === deviceId ? savedPerf.tier : 'medium',
   bookmarks: loadBookmarks(),
   follow: true,
   isPhone,
@@ -166,21 +150,13 @@ let timeline: Timeline | undefined;
 const dynres = new DynamicResolution(1, targetFrameMs(isPhone));
 const stats = new FrameStats(600);
 
-function activeTier(): Tier {
-  const q = ui.value.settings.quality;
-  return q === 'auto' ? ui.value.autoTier : q;
-}
-
-function applyTier(): void {
-  const tier = activeTier();
-  const t = TIERS[tier];
-  globe.quality = { errorTargetPx: t.errorTargetPx, waterDetail: t.waterDetail };
-  dynres.configure(Math.min(t.renderScaleCap, devicePixelRatio || 1), targetFrameMs(isPhone));
-  dynres.scale = Math.min(t.renderScaleCap, devicePixelRatio || 1);
-  frames.setMode(t.antialias);
+/** Applies the one fixed quality (section 11.2). */
+function applyQuality(): void {
+  const q = QUALITY;
+  globe.quality = { errorTargetPx: q.errorTargetPx, waterDetail: q.waterDetail };
+  dynres.configure(Math.min(q.renderScaleCap, devicePixelRatio || 1), targetFrameMs(isPhone));
+  dynres.scale = Math.min(q.renderScaleCap, devicePixelRatio || 1);
   frames.setSize(innerWidth, innerHeight, dynres.scale);
-  stress?.setAnimatedLimit(t.animatedFigures);
-  if (ui.value.tier !== tier) ui.update({ tier });
 }
 
 function resize(): void {
@@ -266,7 +242,6 @@ const actions: Actions = {
     saveSettings(next);
     ui.update({ settings: next });
     if (key === 'language') void switchLanguage(next.language);
-    if (key === 'quality') applyTier();
     if (key === 'trueTimeScale') timeline?.setMode(value ? 'true' : 'watch');
     if (key === 'lensStrength') globe.lens.setStrength((value as number) / 100);
   },
@@ -300,7 +275,6 @@ const actions: Actions = {
     updateVisibleLanes();
     layoutTimeline();
   },
-  remeasure: () => void benchmark(),
   saveReport: () => {
     const blob = new Blob([JSON.stringify(perfReport(), null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
@@ -433,7 +407,6 @@ function stressCamera(ms: number): CameraState {
 const report = { frames: 0, maxCalls: 0, maxTriangles: 0, done: false };
 function perfReport() {
   return {
-    tier: activeTier(),
     device: deviceId,
     frames: report.frames,
     averageFps: stats.fps,
@@ -448,61 +421,10 @@ function perfReport() {
 
 function ensureStress(): StressScene {
   if (!stress) {
-    stress = new StressScene(TIERS[activeTier()].animatedFigures);
+    stress = new StressScene(QUALITY.animatedFigures);
     scene.add(stress.group);
   }
   return stress;
-}
-
-// --- Benchmark ----------------------------------------------------------------------
-
-async function benchmark(): Promise<void> {
-  ui.update({ preparing: true, panel: 'none' });
-  const keep = stress !== undefined;
-  const s = ensureStress();
-  const savedCam = { ...controller.state };
-  controller.state = {
-    lat: STRESS_CENTRE.lat,
-    lon: STRESS_CENTRE.lon,
-    altitudeKm: 4,
-    heading: 30,
-    tilt: 0,
-  };
-  const measured: Partial<Record<Tier, number>> = {};
-  const budget = targetFrameMs(isPhone) * 1.15;
-  for (const tier of TIER_ORDER) {
-    const t = TIERS[tier];
-    globe.quality = { errorTargetPx: t.errorTargetPx, waterDetail: t.waterDetail };
-    frames.setMode(t.antialias);
-    frames.setSize(innerWidth, innerHeight, Math.min(t.renderScaleCap, devicePixelRatio || 1));
-    s.setAnimatedLimit(t.animatedFigures);
-    const times: number[] = [];
-    let last = performance.now();
-    const start = last;
-    while (performance.now() - start < BENCH_MS_PER_TIER) {
-      await new Promise(requestAnimationFrame);
-      const now = performance.now();
-      times.push(now - last);
-      last = now;
-      controller.update(now - start, now);
-      s.update(camera, clock.lifeMs, now);
-      globe.update(camera, innerHeight, planet, clock.day);
-      frames.render(scene, camera);
-    }
-    times.sort((a, b) => a - b);
-    measured[tier] = times[Math.floor(times.length / 2)] ?? 1000;
-    if (measured[tier]! <= budget) break;
-  }
-  const autoTier = pickTier(measured, budget);
-  savePerf({ tier: autoTier, device: deviceId });
-  controller.state = savedCam;
-  if (!keep) {
-    scene.remove(s.group);
-    s.dispose();
-    stress = undefined;
-  }
-  ui.update({ autoTier, preparing: false });
-  applyTier();
 }
 
 // --- Frame loop ---------------------------------------------------------------------
@@ -547,14 +469,12 @@ function frame(now: number): void {
 
   renderer.info.reset();
   frames.render(scene, camera);
-  if (!ui.value.preparing) {
-    stats.push(dt);
-    report.frames++;
-    report.maxCalls = Math.max(report.maxCalls, renderer.info.render.calls);
-    report.maxTriangles = Math.max(report.maxTriangles, renderer.info.render.triangles);
-    if (STRESS && now - stressStart >= STRESS_PATH_MS) report.done = true;
-    if (dynres.frame(dt)) frames.setSize(innerWidth, innerHeight, dynres.scale);
-  }
+  stats.push(dt);
+  report.frames++;
+  report.maxCalls = Math.max(report.maxCalls, renderer.info.render.calls);
+  report.maxTriangles = Math.max(report.maxTriangles, renderer.info.render.triangles);
+  if (STRESS && now - stressStart >= STRESS_PATH_MS) report.done = true;
+  if (dynres.frame(dt)) frames.setSize(innerWidth, innerHeight, dynres.scale);
 
   timeline?.draw();
   if (!ui.value.settings.timelineExpanded) updateVisibleLanes();
@@ -637,18 +557,12 @@ async function start(): Promise<void> {
       ensureStress();
       stressStart = performance.now();
     }
-    applyTier();
+    applyQuality();
     resize();
     lastFrame = performance.now();
     requestAnimationFrame(frame);
     await firstView();
     ui.update({ ready: true });
-    const needsBench =
-      !STRESS &&
-      ui.value.settings.quality === 'auto' &&
-      savedPerf?.device !== deviceId &&
-      !params.has('nobench');
-    if (needsBench) await benchmark();
   } catch (err) {
     ui.update({ error: err instanceof Error ? err.message : String(err) });
   }

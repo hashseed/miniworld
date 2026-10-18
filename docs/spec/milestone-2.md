@@ -29,7 +29,7 @@ Decided by Yang on 2026-10-17: no population model is needed for this milestone 
 
 ### 2.1 The worker and the scene
 
-The world query runs in a Web Worker (`app/src/world/`). It receives the date, the life clock, the play state and the view (camera position, the visible quadtree tiles and the quality tier) and returns a **scene**: the camps, figures, vignette instances, landmarks, migration groups and markers in and near the view, each with a stable id. The renderer and the interface only draw the scene; they never decide anything about the world.
+The world query runs in a Web Worker (`app/src/world/`). It receives the date, the life clock, the play state and the view (camera position, the visible quadtree tiles) and returns a **scene**: the camps, figures, vignette instances, landmarks, migration groups and markers in and near the view, each with a stable id. The renderer and the interface only draw the scene; they never decide anything about the world.
 
 The pure functions of `app/src/time`, `app/src/core` and the date-dependent parts of `app/src/globe` (sea level, ocean mask, ice, aridity) move into the worker unchanged ([milestone-1.md](milestone-1.md#22-repository-layout) section 2.2), so the world query knows where land, sea, ice and desert are at the date.
 
@@ -124,7 +124,7 @@ Ordinary figures live in their camp. Each figure's id is the hash of its camp an
 | 80 to 300 km | Coloured marks, one per figure, moving along their segments |
 | Above 300 km | Camps only, as hearth smoke |
 
-The tier limits on animated figures (milestone 1 section 11.2) cap the first level; figures beyond the limit fall back to the next level, nearest kept first.
+The limit on animated figures (milestone 1 section 11.2) caps the first level; figures beyond the limit fall back to the next level, nearest kept first.
 
 ## 6. Vignettes
 
@@ -477,10 +477,10 @@ Decided by Yang on 2026-10-18: the mammoth hunt (`mammoth-hunt` in [dioramas.md]
 | Data build | Parses, validates and compiles them into the vignette layer of section 18.4 | Unchanged |
 | Player | Pure functions in `app/src/world/` (section 18.5), called on the main thread | Called from the world query in the Web Worker (section 2) |
 | Sites | A curated list of candidate points (section 6.6) | Camps of the hunting cultures (section 3.2) |
-| Figures and animals | Flat-coloured, cel-shaded stand-ins built from simple shapes, posed on the main thread | Approved assets, rig and GPU clips (sections 5 and 13) |
+| Figures and animals | The approved clay models of section 13.3, built and posed every frame on the main thread with the pure clip functions; a cast member whose model is not approved is drawn as a flat-coloured stand-in | Baked clips on the GPU (sections 5 and 13) |
 | Size and card | The cast keeps its minimum size on screen up to orbit (section 5.1); tapping it opens the record's card in English or German; double-tapping flies down to the stage | Unchanged |
 
-Stand-ins are allowed because no asset is approved yet (section 13.2): they are drawn at the right size in plain colours and are replaced by approved assets later without changing any data.
+Each cast member gets its model from its culture and role, without any change to the data: a `hunter` is a man of the culture's profile carrying a spear; the members of any other role are, in turn, a woman, a child and a man; an animal gets the model of its animal id (`woolly-mammoth` is `animal-mammoth`). The variant comes from the hash of the member's key, so every hunt looks the same at the same moment. Only models whose status in `data/assets/manifest.json` is `approved` are used; any other cast member is drawn as a flat-coloured stand-in of the same size (section 13.2). The models share the globe's studio light and logarithmic depth.
 
 ### 18.2 File formats
 
@@ -529,7 +529,7 @@ The player uses only integer and `+ − × ÷` arithmetic plus `Math.sqrt` (sect
 
 ### 18.6 The mammoth hunt
 
-- **Cast:** two scouts and two flanks of three hunters each (`ice-age-hunter`), three family members at the camp, one mammoth to be hunted and two more of its herd. Stand-ins: hunters in brown and ochre fur with spears, the mammoths dark reddish brown with tusks and a high domed head, at the miniature factor of section 5.1.
+- **Cast:** two scouts and two flanks of three hunters each (`ice-age-hunter`), three family members at the camp, one mammoth to be hunted and two more of its herd. Drawn with the approved `ice-age-hunter` figures (hunters with spears; the family a woman, a child and a man) and `animal-mammoth`, sized as section 5.1 says.
 - **Script (120 s loop):** the family works at the camp throughout; the scouts walk to a lookout and point at the herd; the two flanks creep wide around the herd; at the signal the hunters run in, the rest of the herd runs to the edge of the stage and the hunted mammoth runs into a boggy hollow; spears are thrown and it falls; the hunters cut the meat and carry it back to the camp; the herd wanders back and a new mammoth appears among them, so the loop closes.
 - **Sites, from c. 43,000 to c. 10,000 BCE, one period per 1,000 years, two instances per period:** Geißenklösterle (Swabian Jura), Krems-Wachtberg, Dolní Věstonice, Předmostí, Kostenki, Sungir, Yana in Siberia from c. 30,000 BCE and Mal'ta near Lake Baikal from c. 22,000 BCE. The card says that how often people killed mammoths, rather than collecting the bones of dead ones, is debated.
 
@@ -541,4 +541,5 @@ The player uses only integer and `+ − × ÷` arithmetic plus `Math.sqrt` (sect
 | Loop | The hunt's loop closes; a broken copy of the template fails the check |
 | Golden poses | Instances at four fixed days and member poses at life clock 0, 37,000 and 3,600,000 ms, stored as a readable snapshot |
 | Expected answers | No instance before 43,000 BCE or after 10,000 BCE; no Siberian site before its own start date; two different sites per period; the pose at *t* equals the pose at *t* plus the loop length |
+| Figures | Hunters, family and mammoths get the approved models at a plausible height, the same clip and time give the same pose, and a culture without an approved model falls back to a stand-in |
 | Browser | At a fixed date the hunt is drawn from orbit with its hunters at least 22 pixels tall; tapping a hunter opens the card; double-clicking it flies down to the hunt and the hunters move while history plays; pausing stops them |

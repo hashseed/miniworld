@@ -1,58 +1,28 @@
-// Quality tiers and dynamic resolution (spec milestone 1, sections 11.2 and 11.3).
+// The one fixed quality and dynamic resolution (spec milestone 1, sections
+// 11.2 and 11.3).
 
-import type { Tier } from '../ui/storage.ts';
-
-export interface TierSettings {
+export interface QualitySettings {
   renderScaleCap: number;
   errorTargetPx: number;
   waterDetail: number; // 0 foam only, 1 waves and foam, 2 waves, glint and foam
-  antialias: 'msaa' | 'fxaa' | 'none';
   animatedFigures: number;
 }
 
-export const TIERS: Record<Tier, TierSettings> = {
-  high: {
-    renderScaleCap: 2,
-    errorTargetPx: 1.5,
-    waterDetail: 2,
-    antialias: 'msaa',
-    animatedFigures: 5000,
-  },
-  medium: {
-    renderScaleCap: 1.5,
-    errorTargetPx: 2.5,
-    waterDetail: 1,
-    antialias: 'fxaa',
-    animatedFigures: 3000,
-  },
-  low: {
-    renderScaleCap: 1,
-    errorTargetPx: 4,
-    waterDetail: 0,
-    antialias: 'none',
-    animatedFigures: 1500,
-  },
+export const QUALITY: QualitySettings = {
+  renderScaleCap: 2,
+  errorTargetPx: 1.5,
+  waterDetail: 2,
+  animatedFigures: 5000,
 };
-
-export const TIER_ORDER: Tier[] = ['high', 'medium', 'low'];
 
 /** Target frame time: 60 fps on desktop, 30 fps on phones. */
 export function targetFrameMs(isPhone: boolean): number {
   return isPhone ? 1000 / 30 : 1000 / 60;
 }
 
-/** Picks the highest tier whose measured frame time fits the budget. */
-export function pickTier(measured: Partial<Record<Tier, number>>, budgetMs: number): Tier {
-  for (const tier of TIER_ORDER) {
-    const ms = measured[tier];
-    if (ms !== undefined && ms <= budgetMs) return tier;
-  }
-  return 'low';
-}
-
 /**
  * Lowers the render scale in steps of 10 % when frames are slow for half a
- * second, down to half the tier's cap, and raises it again after 3 seconds
+ * second, down to half the cap, and raises it again after 3 seconds
  * of comfortable frames.
  */
 export class DynamicResolution {
