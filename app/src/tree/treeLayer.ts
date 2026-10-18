@@ -14,6 +14,7 @@ import {
   CAMP_CLEARING_KM,
   FIGURE_KM_PER_M,
   LAYOUT_KM_PER_M,
+  TEMPO,
   treeScene,
   type Placed,
   type TreeChunk,
@@ -93,9 +94,11 @@ export class TreeLayer {
       }
       if (!this.place(actor.root, f, true)) continue;
       actor.root.scale.setScalar(FIGURE_KM_PER_M);
+      // Clips play TEMPO times faster, matching the faster pace on the ground.
+      const sec = (clipMs: number) => (clipMs * TEMPO) / 1000;
       if (f.from)
-        actor.blend(f.from.clip, f.from.clipMs / 1000, f.clip, f.clipMs / 1000, f.from.weight);
-      else actor.pose(f.clip, f.clipMs / 1000);
+        actor.blend(f.from.clip, sec(f.from.clipMs), f.clip, sec(f.clipMs), f.from.weight);
+      else actor.pose(f.clip, sec(f.clipMs));
     }
     this.prune(this.figures, seen);
 

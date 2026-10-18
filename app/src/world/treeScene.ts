@@ -20,6 +20,11 @@ export interface TreeChunk {
 
 /** Drawn kilometres per life-size metre of a figure (milestone 2, section 5.1). */
 export const FIGURE_KM_PER_M = 50;
+/**
+ * Figures act this many times faster than life: their clips play faster and they cover
+ * ground faster, so the feet still do not slide (Yang, 2026-10-18: livelier camps).
+ */
+export const TEMPO = 3;
 /** A figure's walking pace in life-size metres per second, matching the walk clip's stride. */
 export const WALK_M_PER_S = 1.2;
 /** Running and carrying paces, matching those clips' strides at the same leg length. */
@@ -28,12 +33,12 @@ const CARRY_M_PER_S = 0.87;
 /** The camp layout is drawn three times smaller than the figures (milestone 2, section 5.1). */
 export const LAYOUT_KM_PER_M = FIGURE_KM_PER_M / 3;
 /** Drawn kilometres a figure covers per millisecond of watching. */
-const WALK_KM_PER_MS = (WALK_M_PER_S * FIGURE_KM_PER_M) / 1000;
+const WALK_KM_PER_MS = (TEMPO * WALK_M_PER_S * FIGURE_KM_PER_M) / 1000;
 /** Layout metres covered per millisecond of watching, by clip. */
 const PACE: Record<'walk' | 'run' | 'carry', number> = {
-  walk: (WALK_M_PER_S * 3) / 1000,
-  run: (RUN_M_PER_S * 3) / 1000,
-  carry: (CARRY_M_PER_S * 3) / 1000,
+  walk: (WALK_M_PER_S * 3 * TEMPO) / 1000,
+  run: (RUN_M_PER_S * 3 * TEMPO) / 1000,
+  carry: (CARRY_M_PER_S * 3 * TEMPO) / 1000,
 };
 /**
  * Lodgings stand this far from the hearth, in layout metres; lodgings are drawn at
@@ -52,21 +57,21 @@ const INNER_ORDER = [0, 4, 2, 6, 1, 5, 3, 7];
 const OUTER_ORDER = [0, 6, 3, 9, 1, 7, 4, 10, 2, 8, 5, 11];
 /** Paths keep this far from the middle of the hearth, in layout metres, so nobody walks through the fire. */
 const FIRE_CLEAR_M = 3;
-/** Figures change between idle and work every 20 to 40 seconds of watching. */
-const ACTIVITY_MIN_MS = 20_000;
-const ACTIVITY_SPREAD_MS = 20_000;
+/** Figures change between idle and work every 20 to 40 seconds of life, sped up by TEMPO. */
+const ACTIVITY_MIN_MS = 20_000 / TEMPO;
+const ACTIVITY_SPREAD_MS = Math.round(20_000 / TEMPO);
 /** Each figure plans its day in turns of this long: an outing, a stroll or a rest. */
-const TURN_MS = 60_000;
+const TURN_MS = 60_000 / TEMPO;
 /** How long gatherers pick, hunters butcher and strollers look about at the far end. */
-const GATHER_MS = 9000;
-const BUTCHER_MS = 4000;
-const LOOK_MS = 4000;
+const GATHER_MS = 9000 / TEMPO;
+const BUTCHER_MS = Math.round(4000 / TEMPO);
+const LOOK_MS = Math.round(4000 / TEMPO);
 /** Clip changes ease over this long (milestone 2, section 5.3). */
 export const BLEND_MS = 350;
-/** The band takes this long to build a new lodging, about three years of history. */
-export const BUILD_MS = 8000;
+/** The band takes this long to build a new lodging, about a year of history. */
+export const BUILD_MS = Math.round(8000 / TEMPO);
 /** And this long to take one down before it leaves. */
-export const TAKE_DOWN_MS = 5000;
+export const TAKE_DOWN_MS = Math.round(5000 / TEMPO);
 /** Builders stand this far from the middle of the lodging they build, in layout metres. */
 const BUILD_RING_M = 7;
 /**

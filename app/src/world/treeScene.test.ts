@@ -94,7 +94,7 @@ describe('the tree scene', () => {
 
   it('walks the band to its new camp and puts up the hut when they arrive', () => {
     const left = ms(moveDay);
-    const mid = treeScene(chunk, left + 2000, d0);
+    const mid = treeScene(chunk, left + 1000, d0);
     for (const f of mid.figures) {
       expect(f.clip).toBe('walk');
       expect(f.lon).toBeGreaterThan(36);
@@ -109,8 +109,8 @@ describe('the tree scene', () => {
 
   it('has the band build the hut together before they go to their spots', () => {
     const left = ms(moveDay);
-    // Arrival after about 5.5 seconds; then 8 seconds of building.
-    const building = treeScene(chunk, left + 8000, d0);
+    // Arrival after about 1.9 seconds; then about 2.7 seconds of building.
+    const building = treeScene(chunk, left + 3000, d0);
     const hut = lodgingSpot(chunk.lodgings[1]!);
     for (const f of building.figures) {
       expect(f.clip).toBe('work');
@@ -122,11 +122,11 @@ describe('the tree scene', () => {
     const rising = building.lodgings[0]!;
     expect(rising.built).toBeGreaterThan(0);
     expect(rising.built).toBeLessThan(1);
-    const later = treeScene(chunk, left + 6000 + BUILD_MS, d0);
+    const later = treeScene(chunk, left + 2000 + BUILD_MS, d0);
     expect(later.lodgings[0]!.built).toBe(1);
     // The hut never shrinks while it goes up.
     let last = 0;
-    for (let t = 5000; t < 15_000; t += 250) {
+    for (let t = 1500; t < 6000; t += 100) {
       const l = treeScene(chunk, left + t, d0).lodgings[0];
       if (!l) continue;
       expect(l.built).toBeGreaterThanOrEqual(last);
@@ -135,12 +135,12 @@ describe('the tree scene', () => {
   });
 
   it('walks at the pace of the walk clip', () => {
-    // 333 km at 60 km per second of watching.
+    // 333 km at 180 km per second of watching.
     const left = ms(moveDay);
     const walking = (t: number) =>
       treeScene(chunk, left + t, d0).figures.every((f) => f.clip === 'walk');
-    expect(walking(5000)).toBe(true);
-    expect(walking(6000)).toBe(false);
+    expect(walking(1600)).toBe(true);
+    expect(walking(2300)).toBe(false);
   });
 
   it('eases between clips', () => {
