@@ -1,0 +1,364 @@
+{
+  "assets": [
+    {
+      "id": "figure-african-stone-age-man",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "figure-african-stone-age-woman",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "figure-african-stone-age-child",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "figure-neanderthal-man",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "figure-neanderthal-woman",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "figure-neanderthal-child",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "figure-coastal-asia-hunter-man",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "figure-coastal-asia-hunter-woman",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "figure-coastal-asia-hunter-child",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "figure-first-australians-man",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "figure-first-australians-woman",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "figure-first-australians-child",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "figure-ice-age-hunter-man",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "figure-ice-age-hunter-woman",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "figure-ice-age-hunter-child",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "figure-steppe-beringia-hunter-man",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "figure-steppe-beringia-hunter-woman",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "figure-steppe-beringia-hunter-child",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "figure-natufian-man",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "figure-natufian-woman",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "figure-natufian-child",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "shelter-hide-tent",
+      "file": "assets/src/shelters.ts",
+      "kind": "shelter",
+      "generated": "Modelling script",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "shelter-mammoth-bone-hut",
+      "file": "assets/src/shelters.ts",
+      "kind": "shelter",
+      "generated": "Modelling script",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "shelter-windbreak",
+      "file": "assets/src/shelters.ts",
+      "kind": "shelter",
+      "generated": "Modelling script",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "shelter-grass-hut",
+      "file": "assets/src/shelters.ts",
+      "kind": "shelter",
+      "generated": "Modelling script",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "shelter-lean-to",
+      "file": "assets/src/shelters.ts",
+      "kind": "shelter",
+      "generated": "Modelling script",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "shelter-bark",
+      "file": "assets/src/shelters.ts",
+      "kind": "shelter",
+      "generated": "Modelling script",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "shelter-natufian-house",
+      "file": "assets/src/shelters.ts",
+      "kind": "shelter",
+      "generated": "Modelling script",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "prop-drying-rack",
+      "file": "assets/src/shelters.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "prop-hearth",
+      "file": "assets/src/shelters.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "animal-mammoth",
+      "file": "assets/src/animals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "animal-woolly-rhino",
+      "file": "assets/src/animals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "animal-bison",
+      "file": "assets/src/animals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "animal-horse",
+      "file": "assets/src/animals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "animal-reindeer",
+      "file": "assets/src/animals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "animal-cave-bear",
+      "file": "assets/src/animals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "animal-wolf",
+      "file": "assets/src/animals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "animal-eland",
+      "file": "assets/src/animals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "animal-gazelle",
+      "file": "assets/src/animals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "animal-kangaroo",
+      "file": "assets/src/animals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the review sheets"
+    }
+  ]
+}
