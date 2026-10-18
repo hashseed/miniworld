@@ -102,7 +102,7 @@ export class Globe {
     this.material = new THREE.ShaderMaterial({
       vertexShader: terrainVertex,
       fragmentShader: terrainFragment,
-      side: THREE.DoubleSide,
+      side: THREE.FrontSide,
       uniforms: {
         seaLevel: { value: 0 },
         exaggeration: { value: EXAGGERATION },
@@ -132,14 +132,14 @@ export class Globe {
     this.seaMaterial = new THREE.ShaderMaterial({
       vertexShader: terrainVertex,
       fragmentShader: terrainFragment,
-      side: THREE.DoubleSide,
+      side: THREE.FrontSide,
       uniforms: this.material.uniforms,
       defines: { SEA_SURFACE: 1 },
     });
     this.seaIceMaterial = new THREE.ShaderMaterial({
       vertexShader: terrainVertex,
       fragmentShader: terrainFragment,
-      side: THREE.DoubleSide,
+      side: THREE.FrontSide,
       uniforms: this.material.uniforms,
       defines: { SEA_SURFACE: 1, SEA_ICE: 1 },
     });

@@ -97,19 +97,27 @@ const ui = new Store<UiState>({
 
 const canvas = document.getElementById('globe') as HTMLCanvasElement;
 canvas.tabIndex = 0;
+// A reversed float depth buffer where the graphics card supports it, else a
+// logarithmic one (section 11.7). Preview only: ?gpu=old restores the old drawing.
+const GPU_OLD = params.get('gpu') === 'old';
+const reversedDepth = !GPU_OLD && supportsClipControl();
 const renderer = new THREE.WebGLRenderer({
   canvas,
   antialias: false,
-  logarithmicDepthBuffer: true,
+  logarithmicDepthBuffer: !reversedDepth,
+  reversedDepthBuffer: reversedDepth,
   powerPreference: 'high-performance',
 });
 renderer.info.autoReset = false;
 renderer.setClearColor(0xfbe3d4);
-const frames = new FrameRenderer(renderer);
+const frames = new FrameRenderer(renderer, isPhone && !GPU_OLD ? 2 : 4, reversedDepth);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 1, 1e5);
 const loader = new ContentLoader('data/');
 const globe = new Globe(loader);
+if (GPU_OLD)
+  for (const m of [globe.material, globe.seaMaterial, globe.seaIceMaterial])
+    m.side = THREE.DoubleSide;
 // Climate slices go to the graphics card as they arrive, so scrubbing never waits on an upload.
 globe.climate.onTexture = (texture) => renderer.initTexture(texture);
 const sky = new Sky();
@@ -548,3 +556,11 @@ if (import.meta.env.DEV)
       timeline: () => timeline,
     },
   });
+
+/** Whether WebGL 2 offers clip control, which a reversed depth buffer needs. */
+function supportsClipControl(): boolean {
+  const gl = document.createElement('canvas').getContext('webgl2');
+  const ok = !!gl?.getExtension('EXT_clip_control');
+  gl?.getExtension('WEBGL_lose_context')?.loseContext();
+  return ok;
+}

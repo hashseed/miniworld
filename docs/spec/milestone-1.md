@@ -444,7 +444,7 @@ There is one fixed quality and no quality setting (decided by Yang on 2026-10-18
 | Terrain error target | 1.5 px |
 | Terrain texture resolution | Full |
 | Water | Animated wave pattern |
-| Anti-aliasing | MSAA 4× |
+| Anti-aliasing | MSAA 4×; 2× on phones, whose screens are dense enough that the difference hardly shows |
 | Animated figures (stress scene) | 5,000 |
 
 When a device cannot keep up, dynamic resolution (section 11.3) lowers the render scale.
@@ -477,6 +477,10 @@ Building a terrain tile (resampling a finer tile from its data tile, its normals
 ### 11.6 Steady frames
 
 Garbage collection pauses show as stutter, most of all on phones, so the code that runs every frame allocates nothing it could reuse: the tile selection, the camera and the clouds work in scratch vectors and matrices kept beside their code. The tile selection walks a tree of tile nodes that hold what never changes about a tile (its key, id, centre and corner directions, deepest level and data tile); children not walked into for 600 frames are forgotten, so the tree stays small. Every cache is bounded (section 4.2), and the saved view (section 9) is written only when it has changed.
+
+### 11.7 Depth and overdraw
+
+The globe is drawn from a few hundred metres to tens of thousands of kilometres away. Where the graphics card offers clip control (`EXT_clip_control`), the depth buffer is reversed and 32-bit float, which keeps that whole range precise without the fragment shaders writing depth, so the card can reject hidden pixels before shading them; elsewhere a logarithmic depth buffer is used, as before. Terrain and sea surfaces are drawn front side only: the globe is closed, so their back faces are always hidden. The terrain shader still leaves out the pixels the flat sea draws (section 4.4).
 
 ## 12. Assets in this milestone
 
