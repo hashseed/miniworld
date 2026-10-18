@@ -469,7 +469,7 @@ function frame(now: number): void {
     stress.place(new THREE.Vector3(...globe.lens.toDrawn(centre)));
     stress.update(camera, clock.lifeMs, now);
   }
-  vignettes.update(camera, clock.day, clock.lifeMs, u.lightDir!.value);
+  vignettes.update(camera, clock.day, clock.vignetteMs, u.lightDir!.value);
 
   renderer.info.reset();
   frames.render(scene, camera);

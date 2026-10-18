@@ -61,22 +61,29 @@ test('the mammoth hunt is visible from orbit, flies down and moves while playing
   await page.goto('/');
   await expect(page.locator('.overlay')).toHaveCount(0, { timeout: 60_000 });
 
-  // A fixed day around 30,000 BCE, looking at Europe from orbit.
-  await page.evaluate(() => {
-    const m = (
-      globalThis as unknown as {
-        __miniworld: {
-          vignettes: { debug(): Debug };
-          clock: { setDay(day: number): void };
-          controller: { state: object };
-        };
-      }
-    ).__miniworld;
-    const entry = m.vignettes.debug().entries.find((e) => e.id === 'mammoth-hunt')!;
-    m.clock.setDay(entry.fromDay + Math.floor((entry.toDay - entry.fromDay) * 0.4));
-    m.controller.state = { ...m.controller.state, lat: 50, lon: 25, altitudeKm: 6000 };
-  });
-  await expect.poll(async () => (await hunt(page)).stages.length).toBe(2);
+  // A fixed day around 30,000 BCE, a fifth into a period whose hunt is in
+  // Europe, so the band has pitched camp; looking at Europe from orbit.
+  const setDay = (k: number) =>
+    page.evaluate((k) => {
+      const m = (
+        globalThis as unknown as {
+          __miniworld: {
+            vignettes: { debug(): Debug };
+            clock: { setDay(day: number): void };
+            controller: { state: object };
+          };
+        }
+      ).__miniworld;
+      const entry = m.vignettes.debug().entries.find((e) => e.id === 'mammoth-hunt')!;
+      const period = 365242;
+      m.clock.setDay(entry.fromDay + (13 + k) * period + Math.floor(period * 0.2));
+      m.controller.state = { ...m.controller.state, lat: 50, lon: 25, altitudeKm: 6000 };
+    }, k);
+  for (let k = 0; ; k++) {
+    await setDay(k);
+    await expect.poll(async () => (await hunt(page)).stages.length).toBe(1);
+    if ((await hunt(page)).stages[0]!.lon < 45) break;
+  }
   // A stage left of the card, which opens on the right on desktop.
   const { width, height } = page.viewportSize()!;
   const clear = (s: Debug['stages'][number]) =>

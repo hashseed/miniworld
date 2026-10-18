@@ -1,6 +1,6 @@
 // The vignette player (spec milestone 2, sections 6 and 18.5): pure functions
-// from a compiled vignette, the day and the life clock to instances and the
-// poses of their cast. No state, no engine-dependent maths: only integers,
+// from a compiled vignette, the day and the vignette clock to instances and the
+// poses of their cast, props and spears. No state, no engine-dependent maths: only integers,
 // + − × ÷ and Math.sqrt, so every device computes the same scene.
 
 import { hash32, hashString } from '../core/hash.ts';
@@ -14,12 +14,16 @@ export type Verb =
   | 'point'
   | 'throw-at'
   | 'cheer'
+  | 'struggle'
   | 'fall'
   | 'cut-up'
-  | 'appear';
+  | 'appear'
+  | 'vanish'
+  | 'show'
+  | 'hide';
 
 export type Clip =
-  'idle' | 'walk' | 'run' | 'carry' | 'work' | 'point' | 'throw' | 'cheer' | 'fall';
+  'idle' | 'walk' | 'run' | 'carry' | 'work' | 'point' | 'throw' | 'cheer' | 'struggle' | 'fall';
 
 /** Every verb the player understands, with what its object names. */
 export const VERBS: Record<Verb, 'none' | 'mark' | 'group' | 'optional-group'> = {
@@ -31,10 +35,17 @@ export const VERBS: Record<Verb, 'none' | 'mark' | 'group' | 'optional-group'> =
   point: 'optional-group',
   'throw-at': 'group',
   cheer: 'optional-group',
+  struggle: 'none',
   fall: 'none',
   'cut-up': 'none',
   appear: 'none',
+  vanish: 'none',
+  show: 'none',
+  hide: 'none',
 };
+
+/** The verbs of props; every other verb is for cast groups. */
+export const PROP_VERBS: ReadonlySet<Verb> = new Set<Verb>(['show', 'hide']);
 
 /** Stage speeds in centimetres per second, three times life (section 18.3). */
 const SPEED_CM_S: Partial<Record<Verb, number>> = {
@@ -53,6 +64,12 @@ const FALL_MS = 3000;
 /** How long a fallen animal takes to be cut up and sink away. */
 const CUT_MS = 12000;
 const APPEAR_MS = 2000;
+/** How long a prop takes to be put up or taken down. */
+const PROP_MS = 6000;
+/** A thrown spear leaves the hand this long into the throw (THROW_RELEASE). */
+const RELEASE_MS = 550;
+/** How long a spear flies before it lands. */
+export const FLIGHT_MS = 700;
 /** Length of a point or a throw before the member stands idle again. */
 const GESTURE_MS = 3000;
 /** A member closer than this to its target does not walk there first. */
@@ -80,13 +97,28 @@ export interface CompiledGroup {
   actions: CompiledAction[];
 }
 
+export interface CompiledProp {
+  name: string;
+  /** A culture's camp shelter, or an asset by id. */
+  kind: 'shelter' | 'asset';
+  /** The culture (after the record's parameters are filled in) or asset id. */
+  look: string;
+  at: string;
+  /** A mark the prop's front turns to. */
+  face?: string;
+  actions: CompiledAction[];
+}
+
 export interface CompiledTemplate {
   id: string;
+  /** Script length; with once, played once over each instance's shown span. */
   loopMs: number;
+  once: boolean;
   radiusCm: number;
   /** Mark positions in whole centimetres: x forward, z to the left. */
   marks: Record<string, [number, number]>;
   groups: CompiledGroup[];
+  props: CompiledProp[];
 }
 
 export interface CompiledSite {
@@ -252,12 +284,14 @@ function rest(t: number, x: number, z: number, clip: Clip, vis: number): Segment
 /** Builds every member's segments over one loop (section 18.5). */
 export function buildMembers(t: CompiledTemplate): Member[] {
   const members: Member[] = [];
+  // A script played once starts with an empty stage (section 6.5).
+  const startVis = t.once ? 0 : 1;
   for (const g of t.groups) {
     const start = t.marks[g.at]!;
     for (let i = 0; i < g.count; i++) {
       const [ox, oz] = formationOffset(g, i);
       const home: [number, number] = [start[0] + ox, start[1] + oz];
-      const segs: Segment[] = [rest(0, home[0], home[1], 'idle', 1)];
+      const segs: Segment[] = [rest(0, home[0], home[1], 'idle', startVis)];
       for (let k = 0; k < g.actions.length; k++) {
         const a = g.actions[k]!;
         // Cut the timeline at the action: drop what was planned after it.
@@ -311,6 +345,10 @@ export function buildMembers(t: CompiledTemplate): Member[] {
           });
         } else if (a.verb === 'appear') {
           segs.push({ ...rest(a.atMs, home[0], home[1], 'idle', 1), vis0: 0, visMs: APPEAR_MS });
+        } else if (a.verb === 'vanish') {
+          segs.push({ ...rest(a.atMs, x, z, 'idle', 0), vis0: vis, visMs: APPEAR_MS });
+        } else if (a.verb === 'struggle') {
+          segs.push(rest(a.atMs, x, z, 'struggle', vis));
         } else {
           const clip: Clip =
             a.verb === 'point'
@@ -398,20 +436,28 @@ export interface Pose {
   visibility: number;
 }
 
-/** The loop phase of an instance at a life-clock time, in whole milliseconds. */
-export function phaseOf(t: CompiledTemplate, instance: Instance, lifeMs: number): number {
-  const p = (lifeMs + instance.offsetMs) % t.loopMs;
+/**
+ * The phase of an instance in whole milliseconds of its script (section 6.5):
+ * a script played once maps the shown span onto its length; a loop repeats on
+ * the vignette clock.
+ */
+export function phaseOf(
+  t: CompiledTemplate,
+  instance: Instance,
+  day: number,
+  vignetteMs: number,
+): number {
+  if (t.once) {
+    const span = instance.toDay - instance.fromDay;
+    const p = Math.floor(((day - instance.fromDay) * t.loopMs) / span);
+    return p < 0 ? 0 : p >= t.loopMs ? t.loopMs - 1 : p;
+  }
+  const p = (vignetteMs + instance.offsetMs) % t.loopMs;
   return p < 0 ? p + t.loopMs : p;
 }
 
-/** Every cast member's pose for an instance at a life-clock time (section 18.5). */
-export function posesAt(
-  t: CompiledTemplate,
-  members: Member[],
-  instance: Instance,
-  lifeMs: number,
-): Pose[] {
-  const phase = phaseOf(t, instance, lifeMs);
+/** Every cast member's pose for an instance at a phase (section 18.5). */
+export function posesAt(instance: Instance, members: Member[], phase: number): Pose[] {
   const [c, s] = instance.orient;
   return members.map((m) => {
     const { seg, index } = segmentAt(m.segments, phase);
@@ -434,11 +480,174 @@ export function posesAt(
   });
 }
 
+// --- Props ----------------------------------------------------------------------
+
+export interface PropTrack {
+  name: string;
+  kind: 'shelter' | 'asset';
+  look: string;
+  x: number;
+  z: number;
+  dx: number;
+  dz: number;
+  /** Visibility only; props stand still. */
+  segments: Segment[];
+}
+
+/** Builds every prop's place, heading and visibility over the script. */
+export function buildProps(t: CompiledTemplate): PropTrack[] {
+  return t.props.map((p) => {
+    const [x, z] = t.marks[p.at]!;
+    let dx = 1;
+    let dz = 0;
+    const f = p.face ? t.marks[p.face] : undefined;
+    if (f) {
+      const d = Math.sqrt((f[0] - x) * (f[0] - x) + (f[1] - z) * (f[1] - z));
+      if (d > 0) {
+        dx = (f[0] - x) / d;
+        dz = (f[1] - z) / d;
+      }
+    }
+    const segs: Segment[] = [rest(0, x, z, 'idle', t.once ? 0 : 1)];
+    for (const a of p.actions) {
+      const last = segs[segs.length - 1]!;
+      const vis = visAt(last, a.atMs);
+      last.t1 = a.atMs;
+      const to = a.verb === 'show' ? 1 : 0;
+      segs.push({ ...rest(a.atMs, x, z, 'idle', to), vis0: vis, visMs: PROP_MS });
+    }
+    segs[segs.length - 1]!.t1 = t.loopMs;
+    return { name: p.name, kind: p.kind, look: p.look, x, z, dx, dz, segments: segs };
+  });
+}
+
+export interface PropPose {
+  name: string;
+  kind: 'shelter' | 'asset';
+  look: string;
+  x: number;
+  z: number;
+  dirX: number;
+  dirZ: number;
+  visibility: number;
+}
+
+/** Every prop's pose for an instance at a phase. */
+export function propPosesAt(instance: Instance, props: PropTrack[], phase: number): PropPose[] {
+  const [c, s] = instance.orient;
+  return props.map((p) => ({
+    name: p.name,
+    kind: p.kind,
+    look: p.look,
+    x: Math.round(c * p.x - s * p.z),
+    z: Math.round(s * p.x + c * p.z),
+    dirX: c * p.dx - s * p.dz,
+    dirZ: s * p.dx + c * p.dz,
+    visibility: visAt(segmentAt(p.segments, phase).seg, phase),
+  }));
+}
+
+// --- Spears -----------------------------------------------------------------------
+
+/** One thrown spear (section 18.3): its flight and the target it sticks in. */
+export interface Spear {
+  /** Indexes into the member list. */
+  thrower: number;
+  target: number;
+  releaseMs: number;
+  landMs: number;
+  /** When the target has gone (sunk away), and the spear with it. */
+  goneMs: number;
+  x0: number;
+  z0: number;
+  x1: number;
+  z1: number;
+  /** Where along the target's back it sticks, 0 to 999. */
+  spot: number;
+}
+
+/** Every spear thrown in the script, from the throw-at gestures. */
+export function buildSpears(t: CompiledTemplate, members: Member[]): Spear[] {
+  const spears: Spear[] = [];
+  members.forEach((m, mi) => {
+    m.segments.forEach((s, k) => {
+      if (s.clip !== 'throw' || !s.face) return;
+      const target = members.findIndex((o) => o.group === s.face);
+      if (target < 0) return;
+      const releaseMs = s.t0 + RELEASE_MS;
+      const landMs = releaseMs + FLIGHT_MS;
+      const tsegs = members[target]!.segments;
+      const [x1, z1] = positionAt(tsegs, landMs);
+      const gone = tsegs.find((g) => g.t0 >= landMs && g.vis1 === 0);
+      spears.push({
+        thrower: mi,
+        target,
+        releaseMs,
+        landMs,
+        goneMs: gone ? gone.t0 + gone.visMs : t.loopMs,
+        x0: s.x0,
+        z0: s.z0,
+        x1,
+        z1,
+        spot: hash32(hashString(m.group), m.index, k) % 1000,
+      });
+    });
+  });
+  return spears.filter((sp) => sp.landMs < t.loopMs);
+}
+
+export interface SpearPose {
+  /** In flight: stage position in centimetres and how far along, 0 to 1. */
+  flying?: { x: number; z: number; dirX: number; dirZ: number; f: number };
+  /** Landed: the member it sticks in and where along its back. */
+  stuck?: { target: number; spot: number };
+}
+
+/** Each spear at a phase: in the air, stuck in its target, or still in the hand (neither). */
+export function spearsAt(instance: Instance, spears: Spear[], phase: number): SpearPose[] {
+  const [c, s] = instance.orient;
+  const out: SpearPose[] = [];
+  for (const sp of spears) {
+    if (phase < sp.releaseMs || phase >= sp.goneMs) {
+      out.push({});
+      continue;
+    }
+    if (phase >= sp.landMs) {
+      out.push({ stuck: { target: sp.target, spot: sp.spot } });
+      continue;
+    }
+    const f = (phase - sp.releaseMs) / FLIGHT_MS;
+    const x = sp.x0 + (sp.x1 - sp.x0) * f;
+    const z = sp.z0 + (sp.z1 - sp.z0) * f;
+    const dx = sp.x1 - sp.x0;
+    const dz = sp.z1 - sp.z0;
+    const d = Math.sqrt(dx * dx + dz * dz) || 1;
+    out.push({
+      flying: {
+        x: Math.round(c * x - s * z),
+        z: Math.round(s * x + c * z),
+        dirX: (c * dx - s * dz) / d,
+        dirZ: (s * dx + c * dz) / d,
+        f,
+      },
+    });
+  }
+  return out;
+}
+
 // --- Validation -------------------------------------------------------------------
 
-/** Lists every member that does not end its loop where and as it started (section 6.5). */
+/**
+ * Lists every member or prop that does not end its loop where and as it
+ * started, or, in a script played once, does not end hidden (section 6.5).
+ */
 export function loopErrors(t: CompiledTemplate): string[] {
   const errors: string[] = [];
+  for (const p of buildProps(t)) {
+    const end = visAt(segmentAt(p.segments, t.loopMs).seg, t.loopMs);
+    if (end !== p.segments[0]!.vis0)
+      errors.push(`${t.id}: prop ${p.name} ends ${end ? 'shown' : 'hidden'}`);
+  }
   for (const m of buildMembers(t)) {
     const first = m.segments[0]!;
     const segs = m.segments;
@@ -450,9 +659,11 @@ export function loopErrors(t: CompiledTemplate): string[] {
     );
     const name = `${t.id}: ${m.group} #${m.index}`;
     if (lastMove > t.loopMs) errors.push(`${name} is still moving when the loop ends`);
-    if (Math.abs(ex - first.x0) > 1 || Math.abs(ez - first.z0) > 1)
+    // A script played once may end anywhere, as long as the member has left.
+    if (!t.once && (Math.abs(ex - first.x0) > 1 || Math.abs(ez - first.z0) > 1))
       errors.push(`${name} ends away from its starting mark`);
-    if (visAt(end, t.loopMs) !== first.vis0) errors.push(`${name} ends hidden`);
+    if (visAt(end, t.loopMs) !== first.vis0)
+      errors.push(`${name} ends ${first.vis0 ? 'hidden' : 'on the stage'}`);
   }
   return errors;
 }

@@ -7,7 +7,14 @@ import manifest from '../../../data/assets/manifest.json';
 import { ANIMALS, buildAnimal, type AnimalId } from '../../../assets/src/animals.ts';
 import { animateAnimal, animatePerson } from '../../../assets/src/clips.ts';
 import { lightUniforms, type Model } from '../../../assets/src/kit.ts';
-import { buildPerson, PROFILES, type Kind, type Profile } from '../../../assets/src/people.ts';
+import {
+  buildPerson,
+  buildSpear,
+  PROFILES,
+  type Kind,
+  type Profile,
+} from '../../../assets/src/people.ts';
+import { buildHearth, buildShelter, CAMP_SHELTER } from '../../../assets/src/shelters.ts';
 import { hashString } from '../core/hash.ts';
 import type { Clip } from '../world/vignette.ts';
 import { buildStandIn, type StandIn } from './standIns.ts';
@@ -58,7 +65,20 @@ export function buildActor(
     const id = animalModel(look);
     if (id && approved.has(id)) {
       const model = buildAnimal(id);
-      return wrap(model, (clip, s) => animateAnimal(model, clip, s));
+      const actor = wrap(model, (clip, s) => animateAnimal(model, clip, s));
+      const body = model.bones.get('body');
+      if (body) {
+        // The body's extent in its own space, without legs, head or tail.
+        const box = new THREE.Box3();
+        for (const child of body.children)
+          if ((child as THREE.Mesh).isMesh) {
+            const g = (child as THREE.Mesh).geometry;
+            g.computeBoundingBox();
+            box.union(g.boundingBox!);
+          }
+        if (!box.isEmpty()) actor.back = { bone: body, box };
+      }
+      return actor;
     }
   } else if ((PROFILES as readonly string[]).includes(look)) {
     const profile = look as Profile;
@@ -88,4 +108,23 @@ export function lightModels(
   lightUniforms.screenUp.value.set(e[4]!, e[5]!, e[6]!);
   lightUniforms.viewport.value.set(canvas.width, canvas.height);
   lightUniforms.inkPixels.value = (1.6 * canvas.width) / Math.max(1, canvas.clientWidth);
+}
+
+/**
+ * Builds a stage prop (section 18.2): a culture's camp shelter or an asset by
+ * id, facing +X like the stage, or undefined when it has no approved model.
+ */
+export function buildProp(kind: 'shelter' | 'asset', look: string): StandIn | undefined {
+  let model: Model | undefined;
+  if (kind === 'shelter') {
+    const id = CAMP_SHELTER[look as Profile];
+    if (id && approved.has(id)) model = buildShelter(id);
+  } else if (look === 'prop-hearth' && approved.has(look)) model = buildHearth();
+  if (!model) return undefined;
+  return wrap(model, () => {});
+}
+
+/** A thrown spear, shaft along +Y with the tip up, at life size. */
+export function buildSpearObject(): THREE.Object3D {
+  return buildSpear().object;
 }

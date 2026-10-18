@@ -1,6 +1,7 @@
 // The two clocks (spec section 2 and milestone 1, sections 3.3 to 3.5).
 // The historical clock advances the date by the base rate × speed × zoom
-// factor; the life clock runs in real time while playing. Paused stops both.
+// factor; the life clock runs in real time while playing, and the vignette
+// clock at real time × speed. Paused stops all three.
 
 import { DAYS_PER_YEAR, continuousYear, type Day } from './calendar.ts';
 import { baseRate, clampSpeedLog2 } from './rateCurve.ts';
@@ -28,6 +29,7 @@ export class Clock {
 
   private dayAccumulator: number;
   private lifeAccumulator: number;
+  private vignetteAccumulator = 0;
   private scrubbing = false;
   private listeners = new Set<() => void>();
 
@@ -61,6 +63,11 @@ export class Clock {
     return Math.floor(this.lifeAccumulator);
   }
 
+  /** Vignette-clock time in whole milliseconds: real time × speed (milestone 1, section 3.5). */
+  get vignetteMs(): number {
+    return Math.floor(this.vignetteAccumulator);
+  }
+
   get speed(): number {
     return 2 ** this.speedLog2;
   }
@@ -79,6 +86,7 @@ export class Clock {
     if (realMs <= 0) return;
     if (this.playState !== 'playing') return;
     this.lifeAccumulator += realMs;
+    this.vignetteAccumulator += realMs * this.speed;
     if (this.scrubbing) return;
     const before = this.day;
     // Small steps keep the integration accurate where the rate changes fast.

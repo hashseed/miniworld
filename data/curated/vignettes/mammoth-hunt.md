@@ -8,7 +8,7 @@ when:
   to: c. 10,000 BCE
 repeat:
   per: 1000 years
-  count: 2
+  count: 1
   sites:
     points:
       - { name: Geißenklösterle, at: [48.40, 9.77] }
@@ -32,7 +32,7 @@ sources:
 
 # Mammoth hunt
 
-In the ice age, bands of hunters lived on the cold grasslands of Europe and Siberia. Sometimes they hunted the woolly mammoth, the biggest animal around. They worked together: scouts watched the herd, two groups crept around it, and then they chased one mammoth into soft, boggy ground where it could not run away, and brought it down with spears. One mammoth gave meat for many weeks, a thick hide, and bones and tusks for tools, and even for building huts.
+In the ice age, bands of hunters lived on the cold grasslands of Europe and Siberia. Sometimes they hunted the woolly mammoth, the biggest animal around. A band would put up its tents of hides near a herd. Then the hunters worked together: they crept around the mammoths, chased one of them and brought it down with many throws of their spears. They cut it up and carried the meat back to the camp fire. One mammoth gave meat for many weeks, a thick hide, and bones and tusks for tools, and even for building huts. When the band moved on, it took its tents along.
 
 ### Learn more
 
@@ -42,7 +42,7 @@ Archaeologists still argue about how often people really killed mammoths, and ho
 
 # Mammutjagd
 
-In der Eiszeit lebten Gruppen von Jägern in den kalten Graslandschaften Europas und Sibiriens. Manchmal jagten sie das Wollhaarmammut, das größte Tier weit und breit. Dabei arbeiteten sie zusammen: Späher beobachteten die Herde, zwei Gruppen schlichen sich von den Seiten heran, und dann trieben sie ein Mammut in weichen, sumpfigen Boden, wo es nicht weglaufen konnte, und erlegten es mit Speeren. Ein Mammut lieferte Fleisch für viele Wochen, ein dickes Fell und Knochen und Stoßzähne für Werkzeuge und sogar für den Bau von Hütten.
+In der Eiszeit lebten Gruppen von Jägern in den kalten Graslandschaften Europas und Sibiriens. Manchmal jagten sie das Wollhaarmammut, das größte Tier weit und breit. Eine Gruppe baute ihre Zelte aus Fellen in der Nähe einer Herde auf. Dann arbeiteten die Jäger zusammen: Sie schlichen sich um die Mammuts herum, jagten eines von ihnen und erlegten es mit vielen Speerwürfen. Sie zerlegten es und trugen das Fleisch zum Lagerfeuer. Ein Mammut lieferte Fleisch für viele Wochen, ein dickes Fell und Knochen und Stoßzähne für Werkzeuge und sogar für den Bau von Hütten. Wenn die Gruppe weiterzog, nahm sie ihre Zelte mit.
 
 ### Mehr erfahren
 

@@ -132,6 +132,8 @@ There is no state in which the date stands still and the life clock runs (remove
 
 The life clock is an integer count of milliseconds that advances in real time while playing, independent of the historical rate, the speed and the zoom factor. In this milestone it drives water animation and the placeholder figures of the stress scene; in milestone 2 it drives what figures do. It is not saved.
 
+The **vignette clock** is a second integer count of milliseconds that advances by real time × the speed while playing, independent of the historical rate and the zoom factor, so looping vignettes slow down and speed up with the speed slider (decided by Yang on 2026-10-18: "slowing time down should also slow down dioramas. speeding up vice versa"; milestone 2 section 6.5). It is not saved either.
+
 ### 3.6 Lighting
 
 There is no day and night (decided by Yang on 2026-10-17). Everything is cel shaded (decided by Yang on 2026-10-17): light falls in three flat bands with narrow soft edges instead of smooth gradients, there are no highlights or reflections of the light (decided by Yang on 2026-10-17), and dark ink outlines trace the globe's silhouette, the coastlines, the ice edges and every cloud. The globe is lit like a toy under studio lights (spec section 8): a key light that follows the camera, coming from the upper left of the screen and slightly from behind the viewer, so relief is shaded the same way wherever the viewer looks; soft wrap-around shading so the dark side of every slope stays warm and readable; a cool sky-coloured fill from above and a warm bounce from below; and a soft bright rim along edges facing away from the light.
@@ -433,7 +435,7 @@ The only shipped assets are the six terrain textures, the water normal map and t
 | --- | --- |
 | Date unit tests | Day-number conversion, year 0, leap years, formatting in both languages |
 | Rate curve test | Watching time per period within 15 % of target (section 3.3); round trip date to watching time and back |
-| Clock tests | Play states, the speed slider's scale, snapping and limits, zoom factor at and between its limits, end of timeline, scrubbing, life clock stops when paused |
+| Clock tests | Play states, the speed slider's scale, snapping and limits, zoom factor at and between its limits, end of timeline, scrubbing, life clock stops when paused; the vignette clock advances at real time × speed and stops when paused |
 | Golden tests | For a fixed list of dates (50,000 BCE, 20,000 BCE, 12,000 BCE, 8000 BCE, 6200 BCE, 3000 BCE, today) and places (Bering Strait, North Sea, Java Sea, Torres Strait, Hudson Bay, Baltic, Caspian Sea): sea level, whether each place is sea or land, ice cover, glacial index. Stored results must match exactly; changes must be intended and reviewed |
 | Localisation tests | Same keys in both message files, no empty messages, no viewer-facing literals in components |
 | Data validation | Section 10.8 on the fixture dataset in CI and the full dataset locally |
