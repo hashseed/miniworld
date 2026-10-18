@@ -24,6 +24,7 @@ import { attachKeys } from './input.ts';
 import { FrameLoop } from './loop.ts';
 import { LandmarkLayer } from './landmarks/landmarkLayer.ts';
 import { VignetteLayer } from './vignettes/vignetteLayer.ts';
+import { WildlifeLayer } from './wildlife/wildlifeLayer.ts';
 import { OPENING_DAY, TIMELINE_START } from './time/calendar.ts';
 import { TreeLayer } from './tree/treeLayer.ts';
 import { Clock } from './time/clock.ts';
@@ -41,6 +42,7 @@ import {
   type Settings,
 } from './ui/storage.ts';
 import type { CameraState } from './core/camera.ts';
+import { groupSpanAt, WILD_GROUPS } from './world/wildlife.ts';
 
 const params = new URLSearchParams(location.search);
 const STRESS = params.get('scene') === 'stress';
@@ -151,16 +153,23 @@ const landmarks = new LandmarkLayer(loader, {
   toDrawn: (d) => globe.lens.toDrawn(d),
 });
 vignettes.landmarks = landmarks;
+const wildlife = new WildlifeLayer({
+  surfaceKm: surface.surfaceKm,
+  toDrawn: (d) => globe.lens.toDrawn(d),
+  widthAt: (d) => globe.lens.widthAt(d),
+});
 const tree = new TreeLayer(loader, {
   surfaceKm: surface.surfaceKm,
   toDrawn: (d) => globe.lens.toDrawn(d),
 });
-scene.add(landmarks.group, vignettes.group, tree.group);
+scene.add(landmarks.group, vignettes.group, wildlife.group, tree.group);
 vignettes.onOpen = (entry) => void openVignette(entry);
-// A tap that misses every cast may land on a landmark, which opens its card the same way.
+// A tap that misses every cast may land on a landmark, then on an animal, which open their cards the same way.
 vignettes.onMiss = (x, y) => {
   const entry = landmarks.hit(x, y);
-  if (entry) void openVignette(entry);
+  if (entry) return void openVignette(entry);
+  const group = wildlife.hit(x, y);
+  if (group !== undefined) void openAnimal(group);
 };
 vignettes.onFly = (lat, lon, altitudeKm) =>
   controller.flyTo({ ...controller.state, lat, lon, altitudeKm });
@@ -188,6 +197,7 @@ const loop = new FrameLoop(
     clouds,
     vignettes,
     landmarks,
+    wildlife,
     tree,
     hot,
     stress: STRESS ? new StressRun(scene) : undefined,
@@ -389,7 +399,43 @@ async function switchLanguage(lang: Settings['language']): Promise<void> {
     ui.value.vignette &&
     [...next.vignettes, ...next.landmarks].find((v) => v.id === ui.value.vignette!.id);
   if (open && ui.value.panel === 'vignette') void openVignette(open);
+  if (ui.value.panel === 'vignette' && ui.value.vignette?.animal && openAnimalGroup !== undefined)
+    void openAnimal(openAnimalGroup);
   ui.update({ sources: next.sources });
+}
+
+/** The group whose animal card is open, so a language change can reopen it. */
+let openAnimalGroup: number | undefined;
+
+/**
+ * Opens the card of a tapped animal's species at once with its title and its
+ * group's span, then fills in the text (wildlife.md section 8).
+ */
+async function openAnimal(group: number): Promise<void> {
+  const g = WILD_GROUPS[group];
+  const entry = g && index?.animals.find((a) => a.id === g.species);
+  if (!g || !entry) return;
+  openAnimalGroup = group;
+  const span = groupSpanAt(g, clock.day);
+  // Years before 1500 are approximate (section 8).
+  const card: VignetteCard = {
+    id: `animal:${entry.id}`,
+    title: entry.title,
+    fromDay: span?.from?.day ?? 0,
+    toDay: (span?.to?.day ?? 0) + 1,
+    fromApproximate: (span?.from?.year ?? 1500) < 1500,
+    toApproximate: (span?.to?.year ?? 1500) < 1500,
+    animal: { from: span?.from !== undefined, to: span?.to !== undefined },
+  };
+  ui.update({ panel: 'vignette', vignette: card });
+  const done = (patch: Partial<VignetteCard>) => {
+    if (ui.value.vignette === card) ui.update({ vignette: { ...card, ...patch } });
+  };
+  try {
+    done({ text: await loader.json<NonNullable<VignetteCard['text']>>(entry.text) });
+  } catch {
+    done({ failed: true });
+  }
 }
 
 /** Opens a vignette's card at once with its title, then fills in the text (milestone 2 section 11). */
@@ -475,6 +521,7 @@ async function start(): Promise<void> {
     minSeaLevel = lowestSeaLevel(index.seaLevel);
     vignettes.setIndex(index.vignettes);
     landmarks.setIndex(index.landmarks);
+    wildlife.setMasks(index.wildlife);
     globe.lowestSeaLevel = minSeaLevel;
     clock.configure({
       startDay: manifest.timelineStartDay,
@@ -554,6 +601,7 @@ if (import.meta.env.DEV)
       foliage,
       vignettes,
       landmarks,
+      wildlife,
       tree,
       controller,
       clock,

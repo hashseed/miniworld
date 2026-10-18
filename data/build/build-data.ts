@@ -14,7 +14,7 @@ import { createContext, ROOT, type WriteContext } from './stages/context.ts';
 import { buildHumankind } from './stages/humankind.ts';
 import { buildLensStage } from './stages/lens.ts';
 import { writeManifest } from './stages/manifest.ts';
-import { buildMap, buildTerrain, placeLandmarks } from './stages/terrain.ts';
+import { buildMap, buildTerrain, buildWildlifeMasks, placeLandmarks } from './stages/terrain.ts';
 
 const OUT = join(ROOT, 'app/public/data');
 
@@ -27,11 +27,12 @@ async function main(args: string[]): Promise<void> {
 
   const map = buildMap(ctx);
   placeLandmarks(ctx, map, content.landmarks);
+  const wildlife = buildWildlifeMasks(ctx, map);
   const terrain = buildTerrain(ctx, map);
   const climate = buildClimate(ctx, map);
   const tree = buildHumankind(ctx, map, climate);
   const lens = buildLensStage(ctx);
-  const index = buildContent(ctx, content, climate);
+  const index = buildContent(ctx, content, climate, wildlife);
   writeManifest(ctx, { index, lens, terrain, climate, tree });
 
   await output.finish();

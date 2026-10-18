@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import manifest from '../../data/assets/manifest.json';
-import { ANIMALS, buildAnimal } from './animals.ts';
+import { ANIMALS, PREHISTORIC_ANIMALS, buildAnimal } from './animals.ts';
 import { MODELS, geometryHash } from './approval.ts';
 import {
   BLEND_SECONDS,
@@ -126,12 +126,13 @@ describe('shelters and animals', () => {
     expect(m.bones.get('head')!.getWorldPosition(new THREE.Vector3()).z).toBeGreaterThan(0);
   });
 
-  it('the mammoth is the biggest animal and about twice as tall as a man', () => {
+  it('the mammoth is the biggest prehistoric animal and about twice as tall as a man', () => {
     const man = bounds(
       buildPerson({ profile: 'steppe-beringia-hunter', kind: 'man', tool: 'none' }),
     ).max.y;
     const mammoth = bounds(buildAnimal('animal-mammoth')).max.y;
-    for (const id of ANIMALS) expect(bounds(buildAnimal(id)).max.y).toBeLessThanOrEqual(mammoth);
+    for (const id of PREHISTORIC_ANIMALS)
+      expect(bounds(buildAnimal(id)).max.y).toBeLessThanOrEqual(mammoth);
     expect(mammoth / man).toBeGreaterThan(1.7);
     expect(mammoth / man).toBeLessThan(2.6);
   });

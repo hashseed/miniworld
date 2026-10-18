@@ -137,7 +137,7 @@ export class Foliage {
   count = 0;
   /** Set once the first view is ready; until then nothing is loaded or drawn. */
   active = false;
-  /** Places plants make way for now: vignette stages and camps; they shrink away by `amount`. */
+  /** Places plants make way for now: vignette stages, camps and wildlife; they shrink away by `amount`. */
   clearings: Clearing[] = [];
 
   constructor(globe: Globe, loader: ChunkSource) {
@@ -211,12 +211,19 @@ export class Foliage {
     // Plants change only with the slices, the sea level and the lens, never with the camera alone.
     const state = `${ka}:${kb}:${t.toFixed(3)}:${planet.seaLevel.toFixed(1)}`;
     // Amounts in twentieths, so plants shrink and grow back smoothly without a rebuild every frame.
-    const clear = this.clearings.map((c) => ({
-      at: lens.toDrawn(c.dir),
-      cos: Math.cos(c.km / EARTH_RADIUS_KM),
-      amount: Math.round(c.amount * 20) / 20,
-      felling: !!c.felling,
-    }));
+    // Only clearings that reach the side of the globe in view.
+    const clear = this.clearings
+      .map((c) => ({ c, at: lens.toDrawn(c.dir) }))
+      .filter(({ c, at }) => {
+        const dot = at[0] * camDir.x + at[1] * camDir.y + at[2] * camDir.z;
+        return Math.acos(Math.max(-1, Math.min(1, dot))) < horizon + c.km / EARTH_RADIUS_KM;
+      })
+      .map(({ c, at }) => ({
+        at,
+        cos: Math.cos(c.km / EARTH_RADIUS_KM),
+        amount: Math.round(c.amount * 20) / 20,
+        felling: !!c.felling,
+      }));
     const clearKey = clear
       .map((c) => `${c.at.map((x) => x.toFixed(4)).join(',')}:${c.cos}:${c.amount}:${c.felling}`)
       .join(';');

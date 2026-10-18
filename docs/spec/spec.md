@@ -199,7 +199,7 @@ Whimsy never bends the facts: buildings, landmarks, ships and vehicles appear on
 | Figure | About 500 to 1,000 triangles, flat cel-shaded colour regions | One shared skeleton for all humans; clothing, headgear and tools swap per culture profile |
 | Building | About 1,000 to 4,000 triangles | Modular kits per architecture style so a city can be assembled from parts |
 | Landmark | Up to about 20,000 triangles | Pyramids, Colosseum, Hagia Sophia and other unique buildings |
-| Animals, ships, vehicles | 300 to 3,000 triangles | Reused across cultures with texture variants |
+| Animals, ships, vehicles | 300 to 3,000 triangles | Reused across cultures with texture variants; small groups of wild animals on every continent ([wildlife.md](wildlife.md)) |
 | Trees and bushes | Up to about 400 triangles | Eight clay plant kinds placed from the climate data, few and large: about 15 trees across Iberia ([foliage.md](foliage.md)) |
 | Terrain | Splat-mapped painted tiles (grass, soil, sand, rock, snow, fields) | Fields, roads and town ground painted from data |
 
