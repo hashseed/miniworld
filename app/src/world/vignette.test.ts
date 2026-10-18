@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { TIMELINE_START, astronomicalYear, dayOfYearStart } from '../time/calendar.ts';
+import { buildLandmarks } from '../../../data/build/lib/landmarks.ts';
 import { msAtDay } from '../time/rate.ts';
 import { buildVignettes } from '../../../data/build/lib/vignettes.ts';
 import {
@@ -18,14 +19,28 @@ import {
 
 const RECORDS = new URL('../../../data/build/fixtures/vignettes', import.meta.url).pathname;
 const CURATED = new URL('../../../data/curated', import.meta.url).pathname;
+const lanes = new Set(['europe', 'mena']);
 const hunt = buildVignettes({
   curated: CURATED,
   records: RECORDS,
-  lanes: new Set(['europe']),
+  lanes,
   animals: new Set(['woolly-mammoth']),
   startDay: TIMELINE_START,
   cutoffDay: 0,
 }).vignettes.find((v) => v.structure.id === 'mammoth-hunt')!.structure;
+// The Giza records are shelved as a fixture (spec giza.md, section 12).
+const GIZA = new URL('../../../data/build/fixtures/giza', import.meta.url).pathname;
+const giza = buildLandmarks({ curated: GIZA, lanes, startDay: TIMELINE_START, cutoffDay: 0 });
+const pyramids = buildVignettes({
+  curated: GIZA,
+  lanes,
+  animals: new Set(),
+  startDay: TIMELINE_START,
+  cutoffDay: 0,
+  landmarkParts: new Map(giza.landmarks.map((l) => [l.structure.id, l.parts])),
+}).vignettes;
+const khufu = pyramids.find((v) => v.structure.id === 'khufu-pyramid-building')!.structure;
+const menkaure = pyramids.find((v) => v.structure.id === 'menkaure-pyramid-building')!.structure;
 const bce = (y: number) => dayOfYearStart(astronomicalYear(y, 'BCE'));
 const T = hunt.template;
 /** The hunt of the 1,000-year period that contains a year. */
@@ -175,5 +190,46 @@ describe('vignette player', () => {
       }
     }
     expect(summary.join('\n')).toMatchSnapshot();
+  });
+
+  it('stands a singular vignette once from the start of its span, facing east', () => {
+    const at = (ms: number) => instancesAt(khufu, ms, TIMELINE_START);
+    const start = msOf(khufu.fromDay);
+    expect(at(start - 1)).toEqual([]);
+    const first = at(start);
+    expect(first).toHaveLength(1);
+    expect(first[0]!.fromDay).toBe(khufu.fromDay);
+    expect(first[0]!.toDay).toBe(khufu.toDay);
+    expect(first[0]!.startMs).toBe(start);
+    expect(first[0]!.orient).toEqual([1, 0]);
+    // About 30 years pass in 72 seconds, less than one loop, so it plays one whole loop.
+    expect(first[0]!.endMs - start).toBe(khufu.template.loopMs);
+    expect(at(start + khufu.template.loopMs - 1)).toEqual(first);
+    expect(at(start + khufu.template.loopMs)).toEqual([]);
+  });
+
+  it('scales the building stage to each pyramid and closes the loop at every size', () => {
+    const k = menkaure.template.marks['foot-west']![1] / khufu.template.marks['foot-west']![1];
+    expect(k).toBeCloseTo(103.4 / 230.3, 2);
+    for (const v of [khufu, menkaure]) {
+      expect(loopErrors(v.template)).toEqual([]);
+      const inst = instancesAt(v, msOf(v.fromDay), TIMELINE_START)[0]!;
+      const members = buildMembers(v.template);
+      const at = (ms: number) =>
+        posesAt(inst, members, phaseOf(v.template, inst, inst.startMs + ms));
+      expect(at(5000)).toEqual(at(5000 + v.template.loopMs));
+    }
+  });
+
+  it('carries blocks to the foot of the pyramid and sets them there, never climbing it', () => {
+    const inst = instancesAt(khufu, msOf(khufu.fromDay), TIMELINE_START)[0]!;
+    const members = buildMembers(khufu.template);
+    const at = (s: number) =>
+      posesAt(inst, members, s * 1000).find((p) => p.group === 'carrier-west')!;
+    expect(at(10).clip).toBe('carry');
+    expect(at(10).z).toBeGreaterThan(at(1).z);
+    expect(at(55).clip).toBe('work');
+    // The foot of the pyramid lies outside its base: half of 230.3 m south of the centre.
+    for (let t = 0; t < 120; t += 5) expect(at(t).z).toBeLessThan(-11515);
   });
 });

@@ -6,16 +6,35 @@ import type { CameraState } from '../core/camera.ts';
 import { dirToLatLon, latLonToDir, type Vec3 } from '../geo/cube.ts';
 import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 
-export const MIN_DISTANCE_KM = 2;
+/** Closest zoom: the Iberian Peninsula about fills the screen (section 6.1). */
+export const MIN_DISTANCE_KM = 1300;
+/** Farthest zoom on a wide screen; narrow screens may go further so the whole globe fits. */
 export const MAX_DISTANCE_KM = EARTH_RADIUS_KM * 2.6;
+/** Tilt from straight down at the closest zoom, and the distance where it reaches zero. */
+const CLOSE_TILT = 40;
+const FLAT_TILT_KM = 6000;
 const MIN_CLEARANCE_KM = 0.4;
 /** Steepest view from straight down; near 90° looks along the ground to the horizon. */
 export const MAX_TILT = 85;
 
 /** Tilt (degrees from straight down) that follows the distance to the target. */
 export function autoTilt(distanceKm: number): number {
-  const t = THREE.MathUtils.clamp(Math.log(distanceKm / 4) / Math.log(2500 / 4), 0, 1);
-  return 68 * Math.pow(1 - t, 1.3);
+  const t = THREE.MathUtils.clamp(
+    Math.log(distanceKm / MIN_DISTANCE_KM) / Math.log(FLAT_TILT_KM / MIN_DISTANCE_KM),
+    0,
+    1,
+  );
+  return CLOSE_TILT * Math.pow(1 - t, 1.3);
+}
+
+/**
+ * Farthest camera distance (km from the target) at which the whole globe
+ * still fits on the screen with a small margin, at least MAX_DISTANCE_KM.
+ */
+export function maxDistanceKm(fovDeg: number, aspect: number): number {
+  const half = THREE.MathUtils.degToRad(fovDeg / 2);
+  const narrow = Math.min(half, Math.atan(Math.tan(half) * aspect));
+  return Math.max(MAX_DISTANCE_KM, (EARTH_RADIUS_KM * 1.08) / Math.sin(narrow) - EARTH_RADIUS_KM);
 }
 
 interface Flight {
@@ -84,6 +103,10 @@ export class CameraController {
     return this.easedAltitude;
   }
 
+  private get maxDistance(): number {
+    return maxDistanceKm(this.camera.fov, this.camera.aspect);
+  }
+
   flyTo(target: CameraState, now = performance.now()): void {
     const from = { ...this.state };
     const a = new THREE.Vector3(...latLonToDir(from.lat, from.lon));
@@ -92,7 +115,7 @@ export class CameraController {
     const duration = this.reducedMotion
       ? 250
       : THREE.MathUtils.clamp(1000 + angle * 900, 1000, 3000);
-    const peak = Math.min(MAX_DISTANCE_KM, angle * EARTH_RADIUS_KM * 0.9);
+    const peak = Math.min(this.maxDistance, angle * EARTH_RADIUS_KM * 0.9);
     this.flight = {
       from,
       to: { ...target, heading: normaliseHeading(target.heading, from.heading) },
@@ -147,7 +170,7 @@ export class CameraController {
     }
     s.lat = THREE.MathUtils.clamp(s.lat, -89.5, 89.5);
     s.lon = ((((s.lon + 180) % 360) + 360) % 360) - 180;
-    s.altitudeKm = THREE.MathUtils.clamp(s.altitudeKm, MIN_DISTANCE_KM, MAX_DISTANCE_KM);
+    s.altitudeKm = THREE.MathUtils.clamp(s.altitudeKm, MIN_DISTANCE_KM, this.maxDistance);
     const auto = autoTilt(s.altitudeKm);
     s.tilt = THREE.MathUtils.clamp(s.tilt, -auto, MAX_TILT - auto);
     this.place(dt);
@@ -241,7 +264,7 @@ export class CameraController {
     this.state.altitudeKm = THREE.MathUtils.clamp(
       this.state.altitudeKm * factor,
       MIN_DISTANCE_KM,
-      MAX_DISTANCE_KM,
+      this.maxDistance,
     );
   }
 

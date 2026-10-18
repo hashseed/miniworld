@@ -18,6 +18,7 @@ import { DynamicResolution, FrameStats, targetFrameMs } from './perf/quality.ts'
 import { planetAt, type PlanetState } from './planet/state.ts';
 import type { Clock } from './time/clock.ts';
 import type { HotState } from './ui/state.ts';
+import type { LandmarkLayer } from './landmarks/landmarkLayer.ts';
 import type { VignetteLayer } from './vignettes/vignetteLayer.ts';
 
 /** Everything the loop draws and advances. */
@@ -33,6 +34,7 @@ export interface LoopParts {
   sky: Sky;
   clouds: Clouds;
   vignettes: VignetteLayer;
+  landmarks: LandmarkLayer;
   hot: Store<HotState>;
   stress: StressRun | undefined;
   isPhone: boolean;
@@ -109,6 +111,7 @@ export class FrameLoop {
     p.sky.update(p.camera);
     p.clouds.update(p.camera, p.clock.ms, u.lightDir!.value);
     p.stress?.update(now, p.globe, this.planet, p.camera, p.clock.ms);
+    p.landmarks.update(p.camera, day);
     p.vignettes.update(p.camera, p.clock.ms, p.clock.startDay, u.lightDir!.value);
 
     p.renderer.info.reset();
