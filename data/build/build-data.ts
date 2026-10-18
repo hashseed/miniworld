@@ -55,7 +55,7 @@ import {
 import { readExtract } from './lib/extract.ts';
 import { foliageGrid } from './lib/foliage.ts';
 import { climateHabitat } from './lib/habitat.ts';
-import { buildTree, checkTree } from './lib/humankind.ts';
+import { buildTree, checkTree, treeChunks } from './lib/humankind.ts';
 import { humankindSettings, validateCultureAreas, type CultureAreas } from './lib/cultureAreas.ts';
 import { checkLicences, type SourceEntry } from './lib/licence.ts';
 import { floodInlandSeas, INLAND_SEAS, oceanConnection } from './lib/ocean.ts';
@@ -507,6 +507,7 @@ log(
 
 // The tree grows from the first person over the habitable land of each date
 // (spec humankind.md, sections 4 and 5). The fixture map has no Africa.
+let treeFiles: (string | null)[] | undefined;
 if (fixture) log('tree of humankind skipped on the fixture map');
 else {
   const habitat = climateHabitat({
@@ -534,6 +535,9 @@ else {
   writeFileSync(
     join(ROOT, 'data/build/tree/tree.json'),
     JSON.stringify({ startDay: treeSettings.startDay, endDay: treeSettings.endDay, tree }),
+  );
+  treeFiles = treeChunks(tree, windows, treeSettings.endDay).map((chunk, w) =>
+    chunk ? output.writeJson(`tree/w${w}`, chunk) : null,
   );
   log(
     `tree of humankind: ${tree.figures.length} figures, ${tree.lodgings.length} lodgings, ` +
@@ -705,6 +709,7 @@ const manifest: Manifest = {
     terrain: finishLayer('terrain', terrain, 0, maxLevel, false),
   },
   climate: { days: iceDays, files: climateFiles },
+  ...(treeFiles ? { tree: { files: treeFiles } } : {}),
   foliage: { days: iceDays, files: foliageFiles },
 };
 output.writeNamed('manifest.json', new TextEncoder().encode(JSON.stringify(manifest)));

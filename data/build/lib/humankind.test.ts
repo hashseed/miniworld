@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto';
+import { msAtDay } from '../../../app/src/time/rate.ts';
+import { treeScene } from '../../../app/src/world/treeScene.ts';
 import { describe, expect, it } from 'vitest';
 import { DAYS_PER_YEAR, TIMELINE_START } from '../../../app/src/time/calendar.ts';
 import { NEVER, aliveOn, homeOn, lineage } from '../../../app/src/world/tree.ts';
@@ -8,6 +10,7 @@ import {
   MAX_LODGINGS,
   buildTree,
   checkTree,
+  treeChunks,
   distanceKm,
   type Habitat,
   type TreeSettings,
@@ -139,5 +142,29 @@ describe('the canonical tree', () => {
   it('keeps its hash, so any change to the rules is seen', () => {
     const hash = createHash('sha256').update(JSON.stringify(tree)).digest('hex').slice(0, 16);
     expect(hash).toBe('7ee1b529804fcdcc');
+  });
+});
+
+describe('tree chunks', () => {
+  it('show the same scene as the whole tree, window by window', () => {
+    const windows = [0, 1_000, 3_000, 7_000, 12_000].map((y) => settings.startDay + years(y));
+    const chunks = treeChunks(tree, windows, settings.endDay);
+    expect(chunks.at(-1)).toBeUndefined();
+    const whole = {
+      fromDay: settings.startDay,
+      toDay: settings.endDay,
+      figures: tree.figures,
+      lodgings: tree.lodgings,
+    };
+    for (let w = 0; w < 4; w++) {
+      const chunk = chunks[w]!;
+      for (let k = 0; k < 5; k++) {
+        const day = chunk.fromDay + Math.floor(((chunk.toDay - chunk.fromDay) * k) / 5);
+        const ms = msAtDay(day, settings.startDay) + 1000;
+        expect(treeScene(chunk, ms, settings.startDay)).toEqual(
+          treeScene(whole, ms, settings.startDay),
+        );
+      }
+    }
   });
 });

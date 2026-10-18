@@ -27,6 +27,8 @@ export interface Manifest {
   climate: { days: number[]; files: string[] };
   /** Global foliage slices (spec foliage.md): the same days as the climate slices, and files. */
   foliage: { days: number[]; files: string[] };
+  /** Tree of humankind chunks (spec humankind.md, section 8): one file per time window, null where empty; absent on the fixture map. */
+  tree?: { files: (string | null)[] };
 }
 
 export interface LayerManifest {

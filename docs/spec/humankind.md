@@ -109,7 +109,7 @@ The build steps through time in steps of 25 years of history (**Proposed**; one 
 
 1. **Emergence.** A camp below its target lets one new figure come out of one of its lodgings that has room, at most one per lodging every 50 years (**Proposed**). Its parent is a figure living in that lodging, chosen by hash. In the world the new figure steps out of the doorway and joins the camp's work; nobody pops into view (spec section 5).
 2. **A new lodging.** When every lodging of a camp is full and the camp has fewer lodgings than its band size allows, a figure of the camp builds another lodging beside the hearth.
-3. **Budding.** When a camp is at its full size and there is free habitable land within reach, two or three of its figures (chosen by hash, never the root, and always leaving at least one behind) walk off together and found a new camp at the best free spot at least one camp spacing away and at most two spacings away (**Proposed**). Spots are scored as in milestone 2 section 3.2: near a river, lake or coast is better, steep or high ground worse. The first of them to arrive is the builder. If the new camp starts a branch (section 3.3), the branch is recorded.
+3. **Budding.** When a camp is at its full size and there is free habitable land within reach, two or three of its figures (chosen by hash, never the root, and always leaving at least one behind) walk off together and found a new camp (decided by Yang on 2026-10-18: small groups, to avoid crowding) at the best free spot at least one camp spacing away and at most two spacings away (**Proposed**). Spots are scored as in milestone 2 section 3.2: near a river, lake or coast is better, steep or high ground worse. The first of them to arrive is the builder. If the new camp starts a branch (section 3.3), the branch is recorded.
 4. **No growth beyond the target.** A camp at its target only works and moves; it never sheds figures to reach a lower target.
 
 ### 4.4 Moving, and losing people
@@ -171,6 +171,16 @@ A view of the tree for viewers, such as a "Family tree of humankind" button, may
 ## 8. Performance
 
 Nothing about the tree is simulated in the app. The world query loads the tree chunks for the tiles and time window in view and keeps the figures whose `born` is before the clock time and whose `lost` is after it, which is a lookup over a short sorted list per chunk. The figure limits and levels of detail of spec section 9 and milestone 2 section 5.5 are unchanged. Tree chunks are world data like culture areas: the query shows a tile's ordinary figures once its chunk has arrived and never guesses them, so loading changes when figures are drawn, never who they are.
+
+While the tree is small (only Africa, a few hundred figures), its chunks are split by time window only, one file per window of the timeline axis, each holding the lodgings standing and the figures alive in it; the split by tile follows when the tree spreads beyond Africa.
+
+### 8.1 Drawing a camp
+
+A camp is drawn like a vignette stage (milestone 2 section 5.1), at the same scales: figures 50 km per metre, the layout 3 times smaller. The hearth stands at the camp's point; each lodging stands on a ring around it at an angle chosen by the hash of its id, with its door towards the hearth; each figure has its own spot near the hearth, also by hash, and changes between `idle` and `work` every 20 to 40 seconds of watching, easing from one clip to the next (milestone 2 section 5.3). All of it is a pure function of the clock time:
+
+- **Coming out.** A new figure appears in the door of its lodging when it is born and walks to its spot.
+- **Walking.** When a figure's home moves to a lodging somewhere else (the camp moves, or a group buds off), it walks there from the moment of the move, at the pace its stride gives at its drawn size so its feet do not slide, about 5 to 10 seconds of watching for a move of a few hundred kilometres. A new lodging appears when its builder arrives, and an old one is taken down (fades out) when its last figure leaves.
+- **Facing the camera.** Figures lean towards the camera like pop-up cut-outs and keep their size at every zoom, as on stages.
 
 ## 9. Open questions for Yang
 

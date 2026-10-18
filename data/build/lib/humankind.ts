@@ -14,6 +14,7 @@ import {
   type TreeFigure,
   type TreeLodging,
 } from '../../../app/src/world/tree.ts';
+import type { TreeChunk } from '../../../app/src/world/treeScene.ts';
 
 export type Density = 'sparse' | 'low' | 'medium';
 
@@ -114,6 +115,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   const allowed = (lat: number, lon: number, day: Day) =>
     s.density(lat, lon, day) !== undefined &&
     habitat.habitable(lat, lon, day) &&
+    // Lodgings go up during the step, so the land must last through it.
+    habitat.habitable(lat, lon, day + STEP_DAYS) &&
     frontOk(lat, lon, day);
 
   const clearOfCamps = (lat: number, lon: number, spacingKm: number, except: Camp | undefined) =>
@@ -311,10 +314,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         );
         if (size < 2) continue;
         const group: number[] = [];
-        for (let k = 0; k < size; k++) {
-          const pick = candidates.splice(hash32(camp.id, day, 6, k) % candidates.length, 1)[0]!;
-          group.push(pick);
-        }
+        for (let k = 0; k < size; k++)
+          group.push(candidates.splice(hash32(camp.id, day, 6, k) % candidates.length, 1)[0]!);
         const child = newCamp(spot.lat, spot.lon, day);
         const arrive = day + (hash32(camp.id, day, 8) % STEP_DAYS);
         const l = newLodging(child, group[0]!, arrive);
@@ -355,4 +356,36 @@ export function checkTree(tree: Tree, s: TreeSettings, habitat: Habitat): string
       problems.push(`lodging ${l.id} stands outside every culture area`);
   }
   return problems;
+}
+
+/**
+ * Splits the tree into one chunk per time window (section 8), or undefined
+ * for a window after the tree ends. The tree is built only up to its end day,
+ * so its figures and lodgings are taken away then.
+ */
+export function treeChunks(tree: Tree, windows: Day[], endDay: Day): (TreeChunk | undefined)[] {
+  return windows.map((from, w) => {
+    if (from >= endDay) return undefined;
+    const to = Math.min(windows[w + 1] ?? endDay, endDay);
+    const until = (d: Day) => (d === NEVER || d > endDay ? endDay : d);
+    const lodgings = new Map<number, TreeLodging>();
+    const add = (id: number) => {
+      const l = tree.lodgings[id]!;
+      if (!lodgings.has(id)) lodgings.set(id, { ...l, gone: until(l.gone) });
+    };
+    // A lodging taken down shortly before the window still fades out in it.
+    for (const l of tree.lodgings)
+      if (l.built < to && until(l.gone) + DAYS_PER_YEAR > from) add(l.id);
+    const figures: TreeFigure[] = [];
+    for (const f of tree.figures) {
+      if (f.born >= to || until(f.lost) <= from) continue;
+      // The home at the window's start and the one before it (for a walk under way), and later ones.
+      let first = 0;
+      while (first + 1 < f.homes.length && f.homes[first + 1]![0] <= from) first++;
+      const homes = f.homes.slice(Math.max(0, first - 1)).filter(([d]) => d < to);
+      for (const [, l] of homes) add(l);
+      figures.push({ ...f, homes, lost: until(f.lost) });
+    }
+    return { fromDay: from, toDay: to, figures, lodgings: [...lodgings.values()] };
+  });
 }

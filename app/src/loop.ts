@@ -19,6 +19,7 @@ import { planetAt, type PlanetState } from './planet/state.ts';
 import type { Clock } from './time/clock.ts';
 import type { HotState } from './ui/state.ts';
 import type { LandmarkLayer } from './landmarks/landmarkLayer.ts';
+import type { TreeLayer } from './tree/treeLayer.ts';
 import type { VignetteLayer } from './vignettes/vignetteLayer.ts';
 
 /** Everything the loop draws and advances. */
@@ -35,6 +36,7 @@ export interface LoopParts {
   clouds: Clouds;
   vignettes: VignetteLayer;
   landmarks: LandmarkLayer;
+  tree: TreeLayer;
   hot: Store<HotState>;
   stress: StressRun | undefined;
   isPhone: boolean;
@@ -111,13 +113,14 @@ export class FrameLoop {
     // Wrapped to an hour so the shader's float keeps millisecond precision.
     u.time!.value = (p.clock.ms % 3_600_000) / 1000;
     p.globe.update(p.camera, innerHeight, this.planet, day);
-    p.foliage.clearings = p.vignettes.clearings();
+    p.foliage.clearings = [...p.vignettes.clearings(), ...p.tree.clearings()];
     p.foliage.update(p.camera, this.planet, day, u.lightDir!.value);
     p.sky.update(p.camera);
     p.clouds.update(p.camera, p.clock.ms, u.lightDir!.value);
     p.stress?.update(now, p.globe, this.planet, p.camera, p.clock.ms);
     p.landmarks.update(p.camera, day);
     p.vignettes.update(p.camera, p.clock.ms, p.clock.startDay, u.lightDir!.value);
+    p.tree.update(p.camera, p.clock.ms, p.clock.startDay);
 
     this.updateStats.push(performance.now() - updateStart);
     p.renderer.info.reset();
