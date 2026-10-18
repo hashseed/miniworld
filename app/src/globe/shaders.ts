@@ -523,3 +523,50 @@ void main() {
   #include <colorspace_fragment>
 }
 `;
+
+/** Plants (spec foliage.md, section 5): instanced clay shapes with vertex colours, no outlines. */
+export const foliageVertex = /* glsl */ `
+#include <common>
+#include <logdepthbuf_pars_vertex>
+varying vec3 vNormalW;
+varying vec3 vWorld;
+varying vec3 vColor;
+void main() {
+  vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0);
+  vWorld = w.xyz;
+  vNormalW = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);
+  vColor = color;
+#ifdef USE_INSTANCING_COLOR
+  vColor *= instanceColor;
+#endif
+  gl_Position = projectionMatrix * viewMatrix * w;
+  #include <logdepthbuf_vertex>
+}
+`;
+
+export const foliageFragment = /* glsl */ `
+#include <common>
+#include <logdepthbuf_pars_fragment>
+uniform vec3 lightDir;
+uniform vec3 screenUp;
+uniform vec3 cameraWorld;
+varying vec3 vNormalW;
+varying vec3 vWorld;
+varying vec3 vColor;
+float cel(float x) {
+  return 0.5 * (smoothstep(0.27, 0.31, x) + smoothstep(0.6, 0.64, x));
+}
+void main() {
+  #include <logdepthbuf_fragment>
+  // Thin parts such as palm fronds are seen from both sides.
+  vec3 n = normalize(vNormalW) * (gl_FrontFacing ? 1.0 : -1.0);
+  vec3 viewDir = normalize(cameraWorld - vWorld);
+  float wrap = clamp((dot(n, lightDir) + 0.45) / 1.45, 0.0, 1.0);
+  vec3 fill = mix(vec3(0.42, 0.30, 0.24), vec3(0.30, 0.36, 0.48), dot(n, screenUp) * 0.5 + 0.5);
+  vec3 c = vColor * (vec3(1.0, 0.96, 0.9) * (0.25 + 0.6 * cel(wrap)) + fill);
+  float rim = smoothstep(0.62, 0.66, 1.0 - clamp(dot(n, viewDir), 0.0, 1.0)) * (1.0 - cel(wrap) * 0.7);
+  c += vec3(1.0, 0.95, 0.92) * rim * 0.18;
+  gl_FragColor = vec4(c, 1.0);
+  #include <colorspace_fragment>
+}
+`;

@@ -25,6 +25,8 @@ export interface Manifest {
   layers: Record<string, LayerManifest>;
   /** Global climate slices (ice and deserts): their days, ascending, and files. */
   climate: { days: number[]; files: string[] };
+  /** Global foliage slices (spec foliage.md): the same days as the climate slices, and files. */
+  foliage: { days: number[]; files: string[] };
 }
 
 export interface LayerManifest {

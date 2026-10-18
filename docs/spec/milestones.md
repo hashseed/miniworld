@@ -56,6 +56,7 @@ Detailed spec: [milestone-2.md](milestone-2.md).
 - Where people live from culture areas and migrations, with a hand-set density per area; no population model.
 - Vignettes: small staged stories that loop on the life clock, built from templates, in three forms: repeated, singular and long, and short but stretched so they can be watched.
 - Landmarks with construction stages, visible from orbit, starting with Göbekli Tepe.
+- Foliage ([foliage.md](foliage.md)): a few big trees and bushes from the climate data, readable from orbit; built ahead of the rest of the milestone (2026-10-18).
 - Cutaways and scene markers for small scenes, starting with the painters of Lascaux.
 - The Out of Africa migration and the settlement of Sahul, Europe, Asia and the Americas as migration events.
 - The part of the event system these need: event records, timeline icons and double-click fly-to.

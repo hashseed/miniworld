@@ -10,6 +10,7 @@ import { Store } from './core/store.ts';
 import { latLonToDir } from './globe/cube.ts';
 import { CameraController } from './globe/cameraController.ts';
 import { Globe } from './globe/globe.ts';
+import { Foliage } from './globe/foliage.ts';
 import { Lens, MORPH_OMEGA, MORPH_OMEGA_REDUCED, decodeLensGrids } from './globe/lens.ts';
 import { lowestSeaLevel, planetAt, type PlanetState } from './globe/planet.ts';
 import { Clouds } from './globe/clouds.ts';
@@ -113,7 +114,8 @@ const globe = new Globe(loader);
 globe.climate.onTexture = (texture) => renderer.initTexture(texture);
 const sky = new Sky();
 const clouds = new Clouds();
-scene.add(sky.dome, globe.group, clouds.mesh);
+const foliage = new Foliage(globe, loader);
+scene.add(sky.dome, globe.group, clouds.mesh, foliage.group);
 
 let index: StartupIndex | undefined;
 let minSeaLevel = -130;
@@ -456,6 +458,7 @@ function frame(now: number): void {
   u.screenUp!.value.set(e[4]!, e[5]!, e[6]!);
   u.time!.value = clock.lifeMs / 1000;
   globe.update(camera, innerHeight, planet, clock.day);
+  foliage.update(camera, planet, clock.day, u.lightDir!.value);
   sky.update(camera);
   clouds.update(camera, clock.lifeMs, u.lightDir!.value);
   if (stress) {
@@ -563,6 +566,10 @@ async function start(): Promise<void> {
     requestAnimationFrame(frame);
     await firstView();
     ui.update({ ready: true });
+    // The first view's data budget counts what was requested before this mark.
+    performance.mark('miniworld:first-view');
+    // Plants load after the first view, outside its data budget (spec foliage.md, section 7).
+    foliage.active = true;
   } catch (err) {
     ui.update({ error: err instanceof Error ? err.message : String(err) });
   }
@@ -599,6 +606,7 @@ if (import.meta.env.DEV)
   Object.assign(globalThis, {
     __miniworld: {
       globe,
+      foliage,
       vignettes,
       controller,
       clock,

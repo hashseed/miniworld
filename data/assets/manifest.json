@@ -359,6 +359,78 @@
       "status": "approved",
       "reviewed": "2026-10-18",
       "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "plant-rainforest",
+      "file": "app/src/globe/foliageModels.ts",
+      "kind": "plant",
+      "generated": "Modelling script, plantGeometry",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the foliage previews (\"commit this\"), with the remodel he asked for (arched palm fronds, same triangle count)"
+    },
+    {
+      "id": "plant-broadleaf",
+      "file": "app/src/globe/foliageModels.ts",
+      "kind": "plant",
+      "generated": "Modelling script, plantGeometry",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the foliage previews (\"commit this\"), with the remodel he asked for (arched palm fronds, same triangle count)"
+    },
+    {
+      "id": "plant-conifer",
+      "file": "app/src/globe/foliageModels.ts",
+      "kind": "plant",
+      "generated": "Modelling script, plantGeometry",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the foliage previews (\"commit this\"), with the remodel he asked for (arched palm fronds, same triangle count)"
+    },
+    {
+      "id": "plant-acacia",
+      "file": "app/src/globe/foliageModels.ts",
+      "kind": "plant",
+      "generated": "Modelling script, plantGeometry",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the foliage previews (\"commit this\"), with the remodel he asked for (arched palm fronds, same triangle count)"
+    },
+    {
+      "id": "plant-palm",
+      "file": "app/src/globe/foliageModels.ts",
+      "kind": "plant",
+      "generated": "Modelling script, plantGeometry",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the foliage previews (\"commit this\"), with the remodel he asked for (arched palm fronds, same triangle count)"
+    },
+    {
+      "id": "plant-olive",
+      "file": "app/src/globe/foliageModels.ts",
+      "kind": "plant",
+      "generated": "Modelling script, plantGeometry",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the foliage previews (\"commit this\"), with the remodel he asked for (arched palm fronds, same triangle count)"
+    },
+    {
+      "id": "plant-cypress",
+      "file": "app/src/globe/foliageModels.ts",
+      "kind": "plant",
+      "generated": "Modelling script, plantGeometry",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the foliage previews (\"commit this\"), with the remodel he asked for (arched palm fronds, same triangle count)"
+    },
+    {
+      "id": "plant-bush",
+      "file": "app/src/globe/foliageModels.ts",
+      "kind": "plant",
+      "generated": "Modelling script, plantGeometry",
+      "status": "approved",
+      "reviewed": "2026-10-18",
+      "note": "Approved by Yang from the foliage previews (\"commit this\"), with the remodel he asked for (arched palm fronds, same triangle count)"
     }
   ]
 }
