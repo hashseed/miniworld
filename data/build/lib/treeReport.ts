@@ -196,9 +196,28 @@ export function treeMapSvg(
     const t = Math.min(1, Math.max(0, (day - startDay) / (endDay - startDay)));
     return `hsl(${Math.round(10 + 40 * t)} 75% ${Math.round(30 + 40 * t)}%)`;
   };
-  for (const [camp, parent] of parentCamps(tree)) {
-    const a = first.get(camp)!;
-    const b = first.get(parent)!;
+  // Each camp's wanderings, from spot to spot as the band moves on.
+  const tracks = new Map<number, [number, number][]>();
+  for (const l of tree.lodgings) {
+    const track = tracks.get(l.camp) ?? [];
+    const last = track.at(-1);
+    if (!last || last[0] !== l.lon || last[1] !== l.lat) track.push([l.lon, l.lat]);
+    tracks.set(l.camp, track);
+  }
+  for (const track of tracks.values())
+    if (track.length > 1)
+      parts.push(
+        `<polyline points="${track.map(([lon, lat]) => `${x(lon / 1e6)},${y(lat / 1e6)}`).join(' ')}" fill="none" stroke="#8a7a5a" stroke-width="1" stroke-opacity="0.6"/>`,
+      );
+  // A line from where the founding group set out to the camp it founded.
+  for (const m of tree.moments) {
+    if (m.kind !== 'camp-founded') continue;
+    const homes = tree.figures[m.figure]!.homes;
+    const i = homes.findIndex(([d, l]) => d === m.day && tree.lodgings[l]!.camp === m.camp);
+    if (i < 1) continue;
+    const from = tree.lodgings[homes[i - 1]![1]]!;
+    const a = first.get(m.camp)!;
+    const b = { lat: from.lat / 1e6, lon: from.lon / 1e6 };
     parts.push(
       `<line x1="${x(b.lon)}" y1="${y(b.lat)}" x2="${x(a.lon)}" y2="${y(a.lat)}" stroke="${colour(a.day)}" stroke-width="2"/>`,
     );
@@ -210,7 +229,7 @@ export function treeMapSvg(
   const root = first.get(0)!;
   parts.push(
     `<circle cx="${x(root.lon)}" cy="${y(root.lat)}" r="9" fill="none" stroke="#c43f26" stroke-width="3"/>`,
-    `<text x="12" y="28" font-family="sans-serif" font-size="20">Camps of the tree of humankind, ${yearOf(startDay)} (dark) to ${yearOf(endDay)} (light)</text>`,
+    `<text x="12" y="28" font-family="sans-serif" font-size="20">Camps of the tree of humankind, ${yearOf(startDay)} (dark) to ${yearOf(endDay)} (light); grey: moves</text>`,
     '</svg>',
   );
   return parts.join('\n');

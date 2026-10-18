@@ -138,6 +138,6 @@ describe('the tree of humankind', () => {
 describe('the canonical tree', () => {
   it('keeps its hash, so any change to the rules is seen', () => {
     const hash = createHash('sha256').update(JSON.stringify(tree)).digest('hex').slice(0, 16);
-    expect(hash).toBe('1e7e84b1da9f94d4');
+    expect(hash).toBe('7ee1b529804fcdcc');
   });
 });

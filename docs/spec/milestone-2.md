@@ -62,13 +62,13 @@ The data build checks that every culture area at every snapshot is consistent wi
 
 ### 3.2 Camps
 
-People live in camps. Camps are founded by the tree of humankind ([humankind.md](humankind.md#4-how-the-tree-grows) section 4), which replaces the camp cells and fades of earlier drafts: a camp stands at least one camp spacing from the next (section 3.3), at a spot scored for being near a river, lake or coast and away from steep or high ground, so camps cluster along water as they did. At the end of each **residence window** (1,000 years before 10,000 BCE, **Proposed**) a band takes down its shelters, walks to a new spot nearby and builds them again; it never fades out and back in.
+People live in camps. Camps are founded by the tree of humankind ([humankind.md](humankind.md#4-how-the-tree-grows) section 4), which replaces the camp cells and fades of earlier drafts: a camp stands at least one camp spacing from the next (section 3.3), at a spot scored for being near a river, lake or coast and away from steep or high ground, so camps cluster along water as they did. At the end of each **residence window** (100 years before 10,000 BCE, about 4 minutes of watching at regular speed, staggered by hash so camps do not all move at once; decided by Yang on 2026-10-18: these are nomads) a band takes down its shelters, walks to a new spot nearby and builds them again; it never fades out and back in.
 
 A camp has a hearth, two to five shelters from the culture's architecture set, work spots (knapping stone, drying rack, hide frame, wood pile) and a ring of paths, laid out from the camp's hash. From orbit each camp shows as a small puff of hearth smoke, so inhabited land reads at a glance.
 
 ### 3.3 Density
 
-Each culture area per period carries a `density` of `sparse`, `low` or `medium`, which sets the spacing between camps (**Proposed**: about 900, 600 and 400 km, [humankind.md](humankind.md#41-targets) section 4.1) and the band size shown in a camp (**Proposed**: 6 to 10, 8 to 14 and 10 to 18 figures). These are visual densities, not population counts: the card for a camp says that a band was usually 20 to 50 people and that the whole world then held perhaps a few million. No population data is used in later milestones either; settlements carry size classes, and population estimates only check the tree ([humankind.md](humankind.md#61-checking-against-population-estimates) section 6.1).
+Each culture area per period carries a `density` of `sparse`, `low` or `medium`, which sets the spacing between camps (**Proposed**: about 900, 600 and 400 km, [humankind.md](humankind.md#41-targets) section 4.1). Every camp shows a band of 3 to 5 figures, whatever the density (decided by Yang on 2026-10-18). These are visual densities, not population counts: the card for a camp says that a band was usually 20 to 50 people and that the whole world then held perhaps a few million. No population data is used in later milestones either; settlements carry size classes, and population estimates only check the tree ([humankind.md](humankind.md#61-checking-against-population-estimates) section 6.1).
 
 ## 4. Culture profiles of this milestone
 

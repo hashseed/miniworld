@@ -17,11 +17,11 @@ import {
 
 export type Density = 'sparse' | 'low' | 'medium';
 
-/** Camp spacing and band sizes per density (section 4.1, Proposed). */
+/** Camp spacing per density (section 4.1, Proposed); every band is 3 to 5 (Yang, 2026-10-18). */
 export const DENSITIES: Record<Density, { spacingKm: number; band: [number, number] }> = {
-  sparse: { spacingKm: 900, band: [6, 10] },
-  low: { spacingKm: 600, band: [8, 14] },
-  medium: { spacingKm: 400, band: [10, 18] },
+  sparse: { spacingKm: 900, band: [3, 5] },
+  low: { spacingKm: 600, band: [3, 5] },
+  medium: { spacingKm: 400, band: [3, 5] },
 };
 
 /** Figures a lodging holds, and lodgings a camp may have (section 4.1, Proposed). */
@@ -34,7 +34,7 @@ export const STEP_DAYS = years(25);
 /** At most one figure comes out of a lodging in this time (section 4.3). */
 export const EMERGE_DAYS = years(50);
 /** A band moves its camp at the end of each residence window (section 4.4). */
-export const RESIDENCE_DAYS = years(1000);
+export const RESIDENCE_DAYS = years(100);
 /** A full camp waits this long between sending out groups. */
 export const BUD_DAYS = years(100);
 /** ...and this long after finding no free land. */
@@ -302,9 +302,13 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
           continue;
         }
         camp.nextBud = day + BUD_DAYS;
-        // The first person stays at home, and the camp keeps most of its band.
+        // Two or three walk off; the first person stays at home, and nobody leaves a camp empty.
         const candidates = people.filter((f) => f !== 0);
-        const size = Math.min(candidates.length - 2, 2 + (hash32(camp.id, day, 5) % 3));
+        const size = Math.min(
+          candidates.length,
+          people.length - 1,
+          2 + (hash32(camp.id, day, 5) % 2),
+        );
         if (size < 2) continue;
         const group: number[] = [];
         for (let k = 0; k < size; k++) {
