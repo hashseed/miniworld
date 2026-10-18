@@ -11,6 +11,7 @@ import { latLonToDir, type Vec3 } from '../globe/cube.ts';
 import { EARTH_RADIUS_KM } from '../globe/tileMesh.ts';
 import {
   buildMembers,
+  formationOffset,
   instancesAt,
   phaseOf,
   posesAt,
@@ -55,6 +56,8 @@ interface Stage {
   instance: Instance;
   entry: VignetteEntry;
   members: Member[];
+  /** Each member's formation offset in centimetres, spread apart on a landmark's stage. */
+  offsets: [number, number][];
   /** Holds the actors, each placed in world coordinates on the globe. */
   cast: THREE.Group;
   actors: StandIn[];
@@ -211,6 +214,12 @@ export class VignetteLayer {
       north: new THREE.Vector3(),
       centre: new THREE.Vector3(),
       progress: v.progress,
+      offsets: members.map((m) =>
+        formationOffset(
+          v.template.groups.find((g) => g.name === m.group)!,
+          m.index,
+        ),
+      ),
     };
     this.place(stage);
     return stage;
@@ -273,8 +282,14 @@ export class VignetteLayer {
       const actor = stage.actors[i]!;
       actor.root.visible = p.visibility > 0;
       if (!actor.root.visible) continue;
-      const eastKm = (p.x / 100) * layoutKmPerM;
-      const northKm = (p.z / 100) * layoutKmPerM;
+      // On a landmark the layout is not enlarged with the figures, so a group's
+      // members are spread by their figure size instead and do not merge into a blob.
+      const spread = frame ? figureKmPerM / layoutKmPerM - 1 : 0;
+      const [ox, oz] = stage.offsets[i]!;
+      const xM = (p.x + ox * spread) / 100;
+      const zM = (p.z + oz * spread) / 100;
+      const eastKm = xM * layoutKmPerM;
+      const northKm = zM * layoutKmPerM;
       dir
         .copy(stage.up)
         .multiplyScalar(EARTH_RADIUS_KM)
@@ -301,7 +316,7 @@ export class VignetteLayer {
       // Big animals shrink towards ANIMAL_MAX_ADULTS as the cast grows, so people stay readable.
       const cap = Math.min(1, (ANIMAL_MAX_ADULTS * ADULT_M) / actor.height);
       // On a landmark, figures stand on its drawn surface (giza.md section 11.5).
-      const onLandmark = frame ? frame.surfaceM(p.x / 100, p.z / 100) * layoutKmPerM : 0;
+      const onLandmark = frame ? frame.surfaceM(xM, zM) * layoutKmPerM : 0;
       const ground = this.surface.surfaceKm([dir.x, dir.y, dir.z]) + onLandmark;
       actor.root.position.copy(dir).multiplyScalar(EARTH_RADIUS_KM + ground);
       // The minimum size holds for each figure at its own distance, not only at the stage centre.
