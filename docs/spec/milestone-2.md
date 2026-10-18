@@ -226,7 +226,7 @@ Beats use only actions from `vocab/actions.yaml`, so every vignette is made of t
 - Each action has a movement rule (to a mark, along a path, in place) and one or more clips (section 5.3); groups spread around their target in a formation given by a hash of figure index.
 - Props have their own actions: `sail-to`, `move-to`, `burn` (cartoon smoke and orange flame shapes), `rise` and `fall` (for things being raised or toppled), `show` and `hide`.
 - `clash` and `fall` follow spec section 4: armed figures meet in a short stylised scuffle, and a figure that falls sinks down and fades out, with no blood. An animal hunted in a vignette falls the same way.
-- A new action is a vocabulary entry, its movement rule and its clips, added together.
+- A new action is a vocabulary entry, its movement rule and its clips, added together. The actions later milestones need are listed in [dioramas.md](dioramas.md#3-additions-to-the-action-vocabulary) section 3.
 
 ### 6.5 Looping and the clocks
 
@@ -242,7 +242,8 @@ A repeated vignette's span is cut into periods of `repeat.per` (for example 10 y
 
 - `places`: place records, by id or tag (such as every coastal settlement standing at that date);
 - `camps`: the camps of a culture in the area (for hunts, fishing and other everyday stories of hunter-gatherers); the camp's band becomes the cast where the template's roles match;
-- `points`: hashed points in the area that meet the template's mark rules.
+- `points`: hashed points in the area that meet the template's mark rules;
+- `routes`: route records, for ships, caravans, trains and aircraft; each instance travels one route, with small stages at its two ends ([dioramas.md](dioramas.md#1-rules) section 1).
 
 A site is only used when every mark of the template lands on what it needs at the date (water, coast or land); otherwise the hash moves on to the next candidate, so the result stays deterministic. Instances do not overlap at one site.
 
