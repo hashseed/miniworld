@@ -38,6 +38,14 @@ export interface CompiledLandmark {
   /** Where the group is drawn, moved off rivers, lakes and sea (giza.md section 2). */
   drawnLat: number;
   drawnLon: number;
+  /**
+   * The fixed drawn size (giza.md section 11.2): drawn kilometres per
+   * life-size metre across the ground and upwards, and the share of the true
+   * distances at which the parts stand from the landmark's point.
+   */
+  kmPerM: number;
+  upKmPerM: number;
+  spacing: number;
   parts: CompiledPart[];
 }
 

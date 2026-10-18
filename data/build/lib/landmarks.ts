@@ -14,11 +14,7 @@ import {
   type LandmarkAssetId,
 } from '../../../assets/src/landmarks.ts';
 import type { Language } from '../../../app/src/i18n/messages.ts';
-import {
-  MINIATURE,
-  type CompiledLandmark,
-  type CompiledPart,
-} from '../../../app/src/world/landmark.ts';
+import { type CompiledLandmark, type CompiledPart } from '../../../app/src/world/landmark.ts';
 import {
   Errors,
   ICONS,
@@ -42,6 +38,8 @@ const RECORD_FIELDS = [
   'icon',
   'beacon',
   'debated',
+  'size',
+  'spacing',
   'parts',
   'build',
   'sources',
@@ -51,7 +49,12 @@ const RECORD_FIELDS = [
 const KM_PER_DEG = 111.32;
 /** Step of the move off the water, in km (giza.md section 11.2). */
 const SHIFT_STEP_KM = 1;
-const MAX_SHIFT_KM = 300;
+const MAX_SHIFT_KM = 600;
+/** Footprint samples are this far apart, in km. */
+const SAMPLE_KM = 5;
+
+/** A rectangle of the drawn footprint in km east and north of the drawn point: [west, east, south, north]. */
+export type Rect = [number, number, number, number];
 
 export interface BuiltLandmark {
   structure: CompiledLandmark;
@@ -60,8 +63,8 @@ export interface BuiltLandmark {
   fromApproximate: boolean;
   /** Parts a singular vignette can build. */
   parts: Map<string, LandmarkPartInfo>;
-  /** Radius of the group's footprint at the miniature factor, in km. */
-  footprintKm: number;
+  /** The group's drawn footprint, every part at its biggest with its ramp. */
+  footprint: Rect[];
 }
 
 /** Moves a built landmark's drawn point off the water (giza.md section 2). */
@@ -70,7 +73,7 @@ export function placeOffWater(
   wet: (lat: number, lon: number) => boolean,
 ): number {
   const s = l.structure;
-  const drawn = shiftOffWater(s.lat / 1e6, s.lon / 1e6, l.footprintKm, wet);
+  const drawn = shiftOffWater(s.lat / 1e6, s.lon / 1e6, l.footprint, wet);
   s.drawnLat = Math.round(drawn.lat * 1e6);
   s.drawnLon = Math.round(drawn.lon * 1e6);
   return drawn.shiftedKm;
@@ -83,36 +86,45 @@ export interface LandmarkInputs {
   cutoffDay: number;
 }
 
-/** Base in metres and footprint radius in metres (with the ramp) of a landmark asset. */
-export function assetSize(id: LandmarkAssetId): { baseM: number; radiusM: number } {
+/**
+ * Base in metres of a landmark asset, and its drawn footprint in km around
+ * the part's centre at the landmark's scale: a pyramid's base with its ramp
+ * to the south, drawn across at kmPerM; the Sphinx drawn evenly at upKmPerM
+ * (giza.md section 11.2).
+ */
+export function assetSize(
+  id: LandmarkAssetId,
+  kmPerM: number,
+  upKmPerM: number,
+): { baseM: number; rect: Rect } {
   const a = LANDMARK_ASSETS[id] as { pyramid?: keyof typeof PYRAMIDS };
   if (a.pyramid) {
     const p = PYRAMIDS[a.pyramid];
-    return { baseM: p.base, radiusM: p.base / 2 + RAMP_REACH * p.height };
+    const b = (p.base / 2) * kmPerM;
+    return { baseM: p.base, rect: [-b, b, -b - RAMP_REACH * p.height * kmPerM, b] };
   }
-  return { baseM: SPHINX_LENGTH, radiusM: SPHINX_LENGTH / 2 };
+  const r = (SPHINX_LENGTH / 2) * upKmPerM;
+  return { baseM: SPHINX_LENGTH, rect: [-r, r, -r, r] };
 }
 
 /**
  * Moves a group west in steps of SHIFT_STEP_KM until no point of its
- * footprint (a disc of radiusKm around the drawn point) is wet. Returns the
+ * footprint (rectangles in km around the drawn point) is wet. Returns the
  * drawn point in degrees.
  */
 export function shiftOffWater(
   lat: number,
   lon: number,
-  radiusKm: number,
+  footprint: Rect[],
   wet: (lat: number, lon: number) => boolean,
 ): { lat: number; lon: number; shiftedKm: number } {
   const kmPerDegLon = KM_PER_DEG * Math.cos((lat * Math.PI) / 180);
   const samples: [number, number][] = [[0, 0]];
-  const step = Math.max(1, radiusKm / 8);
-  for (let r = step; r <= radiusKm + 1e-9; r += step) {
-    const n = Math.max(8, Math.round((2 * Math.PI * r) / step));
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * 2 * Math.PI;
-      samples.push([r * Math.cos(a), r * Math.sin(a)]);
-    }
+  for (const [w, e, s, n] of footprint) {
+    const ne = Math.max(1, Math.ceil((e - w) / SAMPLE_KM));
+    const nn = Math.max(1, Math.ceil((n - s) / SAMPLE_KM));
+    for (let i = 0; i <= ne; i++)
+      for (let j = 0; j <= nn; j++) samples.push([w + ((e - w) * i) / ne, s + ((n - s) * j) / nn]);
   }
   for (let km = 0; km <= MAX_SHIFT_KM; km += SHIFT_STEP_KM) {
     const clon = lon - km / kmPerDegLon;
@@ -120,6 +132,12 @@ export function shiftOffWater(
       return { lat, lon: clon, shiftedKm: km };
   }
   return { lat, lon, shiftedKm: 0 };
+}
+
+/** A length in km, written like `180 km`. */
+function km(v: unknown): number | undefined {
+  const m = typeof v === 'string' ? /^(\d+(?:\.\d+)?) km$/.exec(v) : null;
+  return m ? Number(m[1]) : undefined;
 }
 
 export function buildLandmarks(inp: LandmarkInputs): {
@@ -197,8 +215,21 @@ function compileLandmark(
     : [str(y.region) ?? ''];
   for (const r of regions) if (!inp.lanes.has(r)) e.add(`unknown region "${r}"`);
 
+  // The fixed drawn size: one part's base across and height up (giza.md section 11.2).
+  const size = isMap(y.size) ? y.size : undefined;
+  if (!size) e.add('size needs part, across and high');
+  else unknownFields(e, 'size', size, ['part', 'across', 'high']);
+  const across = km(size?.across);
+  const high = km(size?.high);
+  if (size && (!across || !high)) e.add('size needs across and high in km, like "180 km"');
+  const spacing = num(y.spacing) ?? 1;
+  if (!(spacing > 0 && spacing <= 1)) e.add('spacing must be above 0 and at most 1');
+  let kmPerM = 0;
+  let upKmPerM = 0;
+
   const parts: CompiledPart[] = [];
-  const sizes = new Map<string, { baseM: number; radiusM: number }>();
+  const sizes = new Map<string, { baseM: number; rect: Rect }>();
+  const firstAssets = new Map<string, LandmarkAssetId>();
   if (!isMap(y.parts) || Object.keys(y.parts).length === 0)
     e.add('parts must name at least one part');
   else
@@ -232,9 +263,20 @@ function compileLandmark(
       // Offsets in true metres; the layer draws them at the landmark's scale.
       const north = (at[0] - where[0]) * KM_PER_DEG * 1000;
       const east = (at[1] - where[1]) * KM_PER_DEG * 1000 * Math.cos((where[0] * Math.PI) / 180);
-      sizes.set(name, assetSize(stages[0]!.asset as LandmarkAssetId));
+      firstAssets.set(name, stages[0]!.asset as LandmarkAssetId);
       parts.push({ name, east: Math.round(east * 100), north: Math.round(north * 100), stages });
     }
+
+  if (size && across && high) {
+    const fit = firstAssets.get(str(size.part) ?? '');
+    const pyramid = fit && (LANDMARK_ASSETS[fit] as { pyramid?: keyof typeof PYRAMIDS }).pyramid;
+    if (!pyramid) e.add(`size names "${str(size.part)}", which is not a pyramid part`);
+    else {
+      kmPerM = across / PYRAMIDS[pyramid].base;
+      upKmPerM = high / PYRAMIDS[pyramid].height;
+      for (const [name, asset] of firstAssets) sizes.set(name, assetSize(asset, kmPerM, upKmPerM));
+    }
+  }
 
   if (y.build !== undefined && !Array.isArray(y.build)) e.add('build must be a list');
   if (Array.isArray(y.build))
@@ -273,12 +315,13 @@ function compileLandmark(
   const text = parseText(e, body);
   if (e.list.length || !from || !to || !where || !text) return undefined;
 
-  // The footprint at the miniature factor, around the landmark's point.
-  let radiusKm = 0;
-  for (const p of parts) {
-    const off = Math.hypot(p.east, p.north) / 100;
-    radiusKm = Math.max(radiusKm, ((off + sizes.get(p.name)!.radiusM) * MINIATURE) / 1000);
-  }
+  // The footprint at the drawn size, every part where it stands.
+  const footprint = parts.map((p): Rect => {
+    const [w, ea, so, no] = sizes.get(p.name)!.rect;
+    const de = (p.east / 100) * spacing * kmPerM;
+    const dn = (p.north / 100) * spacing * kmPerM;
+    return [w + de, ea + de, so + dn, no + dn];
+  });
   const lat = Math.round(where[0] * 1e6);
   const lon = Math.round(where[1] * 1e6);
   return {
@@ -292,12 +335,15 @@ function compileLandmark(
       lon,
       drawnLat: lat,
       drawnLon: lon,
+      kmPerM,
+      upKmPerM,
+      spacing,
       parts,
     },
     text,
     regions,
     fromApproximate: from.approximate,
     parts: new Map(parts.map((p) => [p.name, { baseM: sizes.get(p.name)!.baseM, lat, lon }])),
-    footprintKm: radiusKm,
+    footprint,
   };
 }

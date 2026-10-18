@@ -41,7 +41,7 @@ const SPEED_CM_S: Partial<Record<Verb, number>> = {
   'walk-to': 140,
   'run-to': 450,
   'carry-to': 130,
-  haul: 100,
+  haul: 300,
   'work-at': 140,
 };
 const MOVE_CLIP: Partial<Record<Verb, Clip>> = {

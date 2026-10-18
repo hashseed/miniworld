@@ -8,7 +8,13 @@ import { ANIMALS, buildAnimal, type AnimalId } from '../../../assets/src/animals
 import { animateAnimal, animatePerson } from '../../../assets/src/clips.ts';
 import { lightUniforms, type Model } from '../../../assets/src/kit.ts';
 import { buildProp, PROPS, type PropId } from '../../../assets/src/landmarks.ts';
-import { buildPerson, PROFILES, type Kind, type Profile } from '../../../assets/src/people.ts';
+import {
+  buildPerson,
+  PROFILES,
+  type Kind,
+  type Profile,
+  type Tool,
+} from '../../../assets/src/people.ts';
 import { hashString } from '../core/hash.ts';
 import type { Clip } from '../world/vignette.ts';
 import { buildStandIn, type StandIn } from './standIns.ts';
@@ -23,6 +29,8 @@ const approved = new Set(
 const FAMILY: Kind[] = ['woman', 'child', 'man'];
 /** Roles always played by a man of the profile (the building crews of giza.md section 11). */
 const MEN = new Set(['hunter', 'worker', 'overseer', 'scribe']);
+/** Tools held by roles instead of the profile's own. */
+const ROLE_TOOLS: Record<string, Tool> = { hunter: 'spear', overseer: 'staff', scribe: 'palette' };
 
 /** Content animal ids that differ from the model ids. */
 const ANIMAL_MODELS: Record<string, AnimalId> = { 'woolly-mammoth': 'animal-mammoth' };
@@ -76,8 +84,8 @@ export function buildActor(
         profile,
         kind: person,
         variant: hashString(key) % 997,
-        // Hunters carry the spear they throw.
-        tool: role === 'hunter' ? 'spear' : undefined,
+        // Hunters carry the spear they throw; overseers a staff, scribes a palette.
+        tool: role ? ROLE_TOOLS[role] : undefined,
       });
       return wrap(model, (clip, s) => animatePerson(model, clip, s));
     }

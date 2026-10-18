@@ -316,7 +316,7 @@ export class VignetteLayer {
       // Big animals shrink towards ANIMAL_MAX_ADULTS as the cast grows, so people stay readable.
       const cap = Math.min(1, (ANIMAL_MAX_ADULTS * ADULT_M) / actor.height);
       // On a landmark, figures stand on its drawn surface (giza.md section 11.5).
-      const onLandmark = frame ? frame.surfaceM(xM, zM) * layoutKmPerM : 0;
+      const onLandmark = frame ? frame.surfaceM(xM, zM) * frame.upKmPerM : 0;
       const ground = this.surface.surfaceKm([dir.x, dir.y, dir.z]) + onLandmark;
       actor.root.position.copy(dir).multiplyScalar(EARTH_RADIUS_KM + ground);
       // The minimum size holds for each figure at its own distance, not only at the stage centre.

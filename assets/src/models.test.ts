@@ -12,6 +12,7 @@ import {
   LANDMARK_ASSETS,
   PROPS,
   PYRAMIDS,
+  RAMP_REACH,
   buildLandmarkAsset,
   buildProp,
   buildPyramid,
@@ -228,7 +229,7 @@ describe('landmarks', () => {
     const { base, height } = PYRAMIDS.khufu;
     expect(pyramidSurface('khufu', shape, 0, 0)).toBeCloseTo(shape.core);
     // Halfway up the ramp, south of the base, the ramp carries them above the ground.
-    const foot = -(base / 2 + height);
+    const foot = -(base / 2 + RAMP_REACH * height);
     const meet = -(base / 2) * (1 - shape.ramp / height);
     expect(pyramidSurface('khufu', shape, 0, (foot + meet) / 2)).toBeCloseTo(shape.ramp / 2, 0);
     expect(pyramidSurface('khufu', shape, 0, foot - 1)).toBe(0);

@@ -89,18 +89,31 @@ describe('landmark records', () => {
 
 describe('placement off the water', () => {
   it('does not move a group on dry land', () => {
-    expect(shiftOffWater(30, 31, 50, () => false)).toEqual({ lat: 30, lon: 31, shiftedKm: 0 });
+    expect(shiftOffWater(30, 31, [[-50, 50, -50, 50]], () => false)).toEqual({
+      lat: 30,
+      lon: 31,
+      shiftedKm: 0,
+    });
   });
 
   it('moves the group west of a river running north across it', () => {
     // A river 30 km wide along longitude 31.1.
     const wet = (_lat: number, lon: number) => Math.abs(lon - 31.1) * 96 < 15;
-    const r = shiftOffWater(29.98, 31.13, 60, wet);
+    const r = shiftOffWater(29.98, 31.13, [[-60, 60, -60, 60]], wet);
     expect(r.shiftedKm).toBeGreaterThan(70);
     expect(r.lon).toBeLessThan(31.13);
     expect(r.lat).toBe(29.98);
     // Its whole footprint is now dry: its east edge lies west of the river bank.
     expect((31.1 - r.lon) * 96.4).toBeGreaterThan(60 + 15 - 1);
+  });
+
+  it('includes every part and the ramps in the footprint', () => {
+    const l = giza();
+    const south = Math.min(...l.footprint.map((r) => r[2]));
+    const north = Math.max(...l.footprint.map((r) => r[3]));
+    // The Great Pyramid's ramp alone reaches more than 400 km south of its base.
+    expect(north - south).toBeGreaterThan(500);
+    expect(l.footprint).toHaveLength(4);
   });
 
   it('keeps the true point for flying and the card', () => {

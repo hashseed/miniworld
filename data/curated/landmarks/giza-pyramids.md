@@ -7,6 +7,8 @@ region: mena
 icon: pyramid
 beacon: wonder
 debated: numbers
+size: { part: khufu, across: 180 km, high: 270 km }
+spacing: 0.6
 parts:
   khufu:
     at: [29.9792, 31.1342]

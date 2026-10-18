@@ -1,7 +1,7 @@
 // Draws landmarks on the globe (spec milestone 2, section 8, and giza.md
 // section 11): every part of a landmark at the model of its stage on the
-// current day, rising with the date while it is built, at the miniature
-// factor close up and growing as a beacon from orbit. It also tells the
+// current day, rising with the date while it is built, at one fixed drawn
+// size at every zoom, like the trees and the vignettes. It also tells the
 // vignette layer where each part stands and how high its surface is, so the
 // building crews stand on what is drawn.
 
@@ -25,14 +25,8 @@ import type { ContentLoader } from '../content/loader.ts';
 import type { VignetteEntry } from '../content/types.ts';
 import { latLonToDir } from '../globe/cube.ts';
 import { EARTH_RADIUS_KM } from '../globe/tileMesh.ts';
-import { MINIATURE, partAt, type CompiledLandmark } from '../world/landmark.ts';
+import { partAt, type CompiledLandmark } from '../world/landmark.ts';
 import type { SurfaceSource } from '../vignettes/vignetteLayer.ts';
-
-const M_TO_KM = MINIATURE / 1000;
-/** A beacon's biggest part keeps at least this many CSS pixels on screen (milestone 2, section 8). */
-const BEACON_MIN_PX = 32;
-/** ... growing up to this many times its miniature size. */
-const BEACON_MAX_GROWTH = 40;
 /** Taps within this share of a part's drawn base count as hits. */
 const HIT_SHARE = 0.6;
 
@@ -48,8 +42,10 @@ export interface PartFrame {
   up: THREE.Vector3;
   east: THREE.Vector3;
   north: THREE.Vector3;
-  /** Drawn kilometres per life-size metre. */
+  /** Drawn kilometres per life-size metre across the ground. */
   kmPerM: number;
+  /** ... and upwards. */
+  upKmPerM: number;
   /** Height in metres of the part's drawn surface over a point x east, z north of its centre, in metres. */
   surfaceM(x: number, z: number): number;
 }
@@ -106,7 +102,6 @@ export class LandmarkLayer {
 
   update(camera: THREE.PerspectiveCamera, day: number): void {
     this.camera = camera;
-    const pxAtKm = (camera.projectionMatrix.elements[5]! * innerHeight) / 2;
     const wanted = new Set<string>();
     for (const entry of this.entries) {
       if (day < entry.fromDay || day >= entry.toDay) continue;
@@ -119,17 +114,6 @@ export class LandmarkLayer {
       const up = new THREE.Vector3(
         ...this.surface.toDrawn(latLonToDir(l.drawnLat / 1e6, l.drawnLon / 1e6)),
       ).normalize();
-      const ground = this.surface.surfaceKm([up.x, up.y, up.z]);
-      const anchor = up.clone().multiplyScalar(EARTH_RADIUS_KM + ground);
-      const distance = anchor.distanceTo(camera.position);
-      const kmPerPx = distance / pxAtKm;
-      let biggest = 0;
-      for (const p of l.parts) {
-        const s = partAt(p, day);
-        if (s) biggest = Math.max(biggest, assetBase(s.asset as LandmarkAssetId));
-      }
-      const beacon = l.beacon && biggest > 0 ? (BEACON_MIN_PX * kmPerPx) / biggest : 0;
-      const kmPerM = Math.min(Math.max(M_TO_KM, beacon), M_TO_KM * BEACON_MAX_GROWTH);
       const north0 = new THREE.Vector3(0, 1, 0).addScaledVector(up, -up.y).normalize();
       const east0 = new THREE.Vector3().crossVectors(north0, up).normalize();
       for (const p of l.parts) {
@@ -158,7 +142,8 @@ export class LandmarkLayer {
               up: new THREE.Vector3(),
               east: new THREE.Vector3(),
               north: new THREE.Vector3(),
-              kmPerM,
+              kmPerM: l.kmPerM,
+              upKmPerM: l.upKmPerM,
               surfaceM: () => 0,
             },
           };
@@ -167,14 +152,14 @@ export class LandmarkLayer {
             part.pyramid && part.shape ? pyramidSurface(part.pyramid, part.shape, x, z) : 0;
           this.drawn.set(id, d);
         }
-        // The part's own point, at the group's scale, upright on the globe there.
+        // The part's own point, at the group's spacing, upright on the globe there.
         const f = d.frame;
-        f.kmPerM = kmPerM;
+        const spread = l.spacing * l.kmPerM;
         f.up
           .copy(up)
           .multiplyScalar(EARTH_RADIUS_KM)
-          .addScaledVector(east0, (p.east / 100) * kmPerM)
-          .addScaledVector(north0, (p.north / 100) * kmPerM)
+          .addScaledVector(east0, (p.east / 100) * spread)
+          .addScaledVector(north0, (p.north / 100) * spread)
           .normalize();
         f.north.set(0, 1, 0).addScaledVector(f.up, -f.up.y).normalize();
         f.east.crossVectors(f.north, f.up).normalize();
@@ -185,7 +170,9 @@ export class LandmarkLayer {
         o.quaternion.setFromRotationMatrix(
           this.basis.makeBasis(f.east, f.up, this.v1.copy(f.north).negate()),
         );
-        o.scale.setScalar(kmPerM);
+        // Pyramids are drawn steeper than life; other parts keep their shape (giza.md section 11.2).
+        if (d.pyramid) o.scale.set(l.kmPerM, l.upKmPerM, l.kmPerM);
+        else o.scale.setScalar(l.upKmPerM);
         o.visible = this.v1.copy(camera.position).sub(f.centre).dot(f.up) > 0;
       }
     }
@@ -207,7 +194,7 @@ export class LandmarkLayer {
     for (const [id, d] of this.drawn) {
       if (!d.model.object.visible) continue;
       // Aim at the middle of the part, not its foot.
-      p.copy(d.frame.centre).addScaledVector(d.frame.up, d.baseM * 0.25 * d.frame.kmPerM);
+      p.copy(d.frame.centre).addScaledVector(d.frame.up, d.baseM * 0.25 * d.frame.upKmPerM);
       const distance = p.distanceTo(camera.position);
       p.project(camera);
       if (p.z >= 1) continue;
@@ -228,7 +215,7 @@ export class LandmarkLayer {
       if (camera && d.model.object.visible) {
         const p = d.frame.centre
           .clone()
-          .addScaledVector(d.frame.up, d.baseM * 0.25 * d.frame.kmPerM)
+          .addScaledVector(d.frame.up, d.baseM * 0.25 * d.frame.upKmPerM)
           .project(camera);
         if (p.z < 1) screen = [((p.x + 1) / 2) * innerWidth, ((1 - p.y) / 2) * innerHeight];
       }

@@ -44,10 +44,12 @@ export type Tool =
   | 'fishing-spear'
   | 'needle'
   | 'grinding-stone'
+  | 'staff'
+  | 'palette'
   | 'none';
 
-type Top = 'none' | 'wrap' | 'drape' | 'cloak' | 'tunic' | 'parka';
-type Bottom = 'apron' | 'skirt' | 'leg-wraps' | 'trousers' | 'kilt';
+type Top = 'none' | 'wrap' | 'drape' | 'cloak' | 'tunic' | 'parka' | 'sheath';
+type Bottom = 'apron' | 'skirt' | 'leg-wraps' | 'trousers' | 'kilt' | 'sheath';
 
 interface ProfileLook {
   skin: string[];
@@ -63,6 +65,12 @@ interface ProfileLook {
   boots?: boolean;
   tools: Record<Kind, Tool>;
   neanderthal?: boolean;
+  /**
+   * Egyptian wigs and dress (giza.md section 11.5): a blunt black wig, long
+   * with lappets for women, the sidelock of youth for children, a broad
+   * collar of two colours, a pleated kilt front and no beards.
+   */
+  egyptian?: { collar: [string, string]; tab: string; band: string };
 }
 
 const DARK_HAIR = ['#2a1d17', '#33241b', '#3b2a20'];
@@ -143,12 +151,13 @@ export const LOOKS: Record<Profile, ProfileLook> = {
   // for the men, linen dresses for the women, short black hair.
   'old-kingdom-egyptian': {
     skin: ['#7a4e33', '#8d5a3b', '#94603f', '#a8714c'],
-    hair: ['#1d1410', '#2a1d17'],
-    top: { man: 'none', woman: 'tunic', child: 'none' },
-    bottom: { man: 'kilt', woman: 'skirt', child: 'kilt' },
-    hide: ['#f1ead8', '#e8dfc8', '#f5efe0'],
+    hair: ['#141010', '#1a1412'],
+    top: { man: 'none', woman: 'sheath', child: 'none' },
+    bottom: { man: 'kilt', woman: 'sheath', child: 'kilt' },
+    hide: ['#fbf8ef', '#f4efe2', '#fffdf6'],
     trim: '#cdb98e',
     tools: { man: 'none', woman: 'basket', child: 'none' },
+    egyptian: { collar: ['#2a9db0', '#e0aa2e'], tab: '#e9d9a8', band: '#2a9db0' },
   },
 };
 
@@ -279,7 +288,7 @@ export function buildPerson(o: PersonOptions): Model {
 
   // Hips and torso.
   const bareTorso = top === 'none' || top === 'wrap';
-  const torsoColour = bareTorso ? skin : top === 'cloak' ? skin : hide;
+  const torsoColour = bareTorso || top === 'cloak' ? skin : hide;
   const [cx, cy, cz] = b.chest;
   const chestY = b.hipY + (b.shoulderY - b.hipY) * 0.6;
   mb.add(blob([0, chestY, 0], [cx, cy, cz], 7), torsoColour, 'torso');
@@ -326,6 +335,8 @@ export function buildPerson(o: PersonOptions): Model {
     );
     // Fur ruff round the face, leaving the face open.
     mb.add(torusRing([0, headY, hr * 0.62], hr * 0.95, hr * 0.26), look.trim, 'head');
+  } else if (look.egyptian) {
+    addWig(mb, o.kind, headY, hr, hair, skin, look.egyptian.band);
   } else {
     const long =
       o.kind === 'woman' ||
@@ -515,6 +526,30 @@ export function buildPerson(o: PersonOptions): Model {
       'torso',
     );
   }
+  if (bottom === 'sheath') {
+    // A white linen dress from under the arms to the ankles, on two straps.
+    mb.add(
+      lathe(
+        [
+          [cx * 1.06, chestY + 0.08],
+          [cx * 1.1, waist],
+          [cx * 1.12, b.hipY - 0.1],
+          [cx * 1.02, ankle + 0.16],
+        ],
+        [0, 0, 0],
+        8,
+        [1, 1, cz / cx + 0.12],
+      ),
+      hide,
+      'hips',
+    );
+    for (const s of [1, -1])
+      mb.add(
+        limb([s * cx * 0.5, chestY + 0.06, cz * 0.6], [s * cx * 0.5, b.shoulderY + 0.02, 0], 0.025),
+        hide,
+        'torso',
+      );
+  }
   if (bottom === 'apron' || bottom === 'skirt' || bottom === 'kilt') {
     const low =
       bottom === 'apron' ? b.hipY - 0.18 : bottom === 'kilt' ? b.kneeY + 0.1 : b.kneeY + 0.04;
@@ -533,6 +568,41 @@ export function buildPerson(o: PersonOptions): Model {
       'hips',
     );
     mb.add(torusRing([0, waist + 0.02, 0], cx * 0.94, 0.025, 'y', cz / cx), dark, 'hips');
+    if (bottom === 'kilt' && look.egyptian) {
+      // The pleated front panel of the kilt.
+      mb.add(
+        blob(
+          [0, (waist + b.kneeY + 0.1) / 2, cz * 1.15],
+          [cx * 0.42, (waist - b.kneeY) * 0.42, 0.03],
+          5,
+        ),
+        look.egyptian.tab,
+        'hips',
+      );
+    }
+  }
+  if (look.egyptian && o.kind !== 'child') {
+    // The broad collar: a band of blue beads between gold, on the shoulders.
+    const [inner, outer] = look.egyptian.collar; // blue, gold
+    const y = b.shoulderY + 0.03;
+    const band = (r0: number, r1: number, colour: string) =>
+      mb.add(
+        lathe(
+          [
+            [cx * r0, y + 0.03 - r0 * 0.15],
+            [cx * r1, y - r1 * 0.22],
+            [cx * r1, y - r1 * 0.22 - 0.04],
+          ],
+          [0, 0, 0],
+          8,
+          [1, 1, (cz / cx) * 1.05],
+        ),
+        colour,
+        'torso',
+      );
+    band(0.4, 0.82, outer);
+    band(0.8, 1.04, inner);
+    band(1.02, 1.12, outer);
   }
   if (look.beads) {
     mb.add(torusRing([0, b.shoulderY + 0.02, 0.01], cx * 0.55, 0.022, 'y', 1), look.beads, 'torso');
@@ -567,6 +637,62 @@ export function buildPerson(o: PersonOptions): Model {
   const model = mb.build(`${o.profile}-${o.kind}`);
   model.bones.get('load')!.visible = false;
   return model;
+}
+
+/**
+ * An Egyptian wig (giza.md section 11.5): a blunt black bob for men, a long
+ * wig with two lappets over the shoulders and a coloured band for women, and
+ * the shaved head with the sidelock of youth for children. The face stays open.
+ */
+function addWig(
+  mb: ModelBuilder,
+  kind: Kind,
+  headY: number,
+  hr: number,
+  hair: string,
+  skin: string,
+  band: string,
+): void {
+  if (kind === 'child') {
+    mb.add(
+      blob([0, headY + hr * 0.2, -hr * 0.06], [hr * 1.02, hr * 0.84, hr * 0.98], 7),
+      shade(skin, -0.12),
+      'head',
+    );
+    mb.add(
+      blob([hr * 0.95, headY - hr * 0.45, hr * 0.05], [hr * 0.24, hr * 0.7, hr * 0.24], 5),
+      hair,
+      'head',
+    );
+    return;
+  }
+  // Crown with a straight fringe over the eyes.
+  mb.add(blob([0, headY + hr * 0.5, -hr * 0.1], [hr * 1.18, hr * 0.62, hr * 1.1], 7), hair, 'head');
+  if (kind === 'man') {
+    // Square sides and back down to the jaw.
+    mb.add(
+      blob([0, headY - hr * 0.1, -hr * 0.3], [hr * 1.32, hr * 0.92, hr * 0.92], 7),
+      hair,
+      'head',
+    );
+    return;
+  }
+  mb.add(
+    blob([0, headY - hr * 0.55, -hr * 0.32], [hr * 1.3, hr * 1.4, hr * 0.86], 7),
+    hair,
+    'head',
+  );
+  for (const s of [1, -1])
+    mb.add(
+      blob([s * hr * 0.92, headY - hr * 1.15, hr * 0.28], [hr * 0.32, hr * 0.8, hr * 0.3], 5),
+      hair,
+      'head',
+    );
+  mb.add(
+    torusRing([0, headY + hr * 0.42, -hr * 0.05], hr * 1.16, hr * 0.1, 'y', 0.94),
+    band,
+    'head',
+  );
 }
 
 /** A band around an axis: belts, cuffs, bead strings, fur trims. A bulging open tube, cheaper than a torus. */
@@ -717,6 +843,20 @@ function addTool(mb: ModelBuilder, tool: Tool, hand: Vec3, s: number): void {
       break;
     case 'grinding-stone':
       mb.add(blob([x, y - 0.02, z + 0.1], [0.08, 0.05, 0.11], 6), '#8e8579', bone);
+      break;
+    case 'staff':
+      // An overseer's long staff, taller than he is.
+      mb.add(rod(at(-0.8), at(1.2), 0.026 * s), '#6e4526', bone);
+      mb.add(blob(at(1.2), [0.045 * s, 0.05 * s, 0.045 * s], 5), '#e0aa2e', bone);
+      break;
+    case 'palette':
+      // A scribe's palette with its red and black inks, held flat.
+      mb.add(blob([x, y + 0.02, z + 0.12], [0.05, 0.02, 0.17], 5), '#d8c49a', bone);
+      for (const [dz, c] of [
+        [0.08, '#b23a2a'],
+        [0.15, '#1d1410'],
+      ] as const)
+        mb.add(blob([x, y + 0.04, z + dz + 0.06], [0.022, 0.012, 0.022], 4), c, bone);
       break;
     case 'none':
       break;
