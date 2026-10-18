@@ -19,8 +19,6 @@ const KM_PER_M = 75;
 /** An animal's size (the larger of its height and half its length) is drawn between these, in metres (section 1). */
 const MIN_SIZE_M = 1.8;
 const MAX_SIZE_M = 4;
-/** Lean towards the top of the screen when seen from above, as for figures. */
-const MAX_LEAN = 1.15;
 /** Most animals of one species drawn at once. */
 const CAPACITY = 12;
 
@@ -57,8 +55,6 @@ export class WildlifeLayer {
   private right = new THREE.Vector3();
   private pos = new THREE.Vector3();
   private q = new THREE.Quaternion();
-  private leanQ = new THREE.Quaternion();
-  private v1 = new THREE.Vector3();
   private v2 = new THREE.Vector3();
   private scaleV = new THREE.Vector3();
 
@@ -87,7 +83,6 @@ export class WildlifeLayer {
   update(camera: THREE.Camera, day: number, ms: number): void {
     for (const s of this.species.values()) if (s) s.count = 0;
     const camPos = camera.position;
-    const screenUp = this.v1.setFromMatrixColumn(camera.matrixWorld, 1);
     this.count = 0;
     for (const a of wildlifeAt(day, ms / 1000)) {
       const s = this.speciesOf(a.model);
@@ -116,13 +111,9 @@ export class WildlifeLayer {
         .multiplyScalar(a.heading[0])
         .addScaledVector(this.north, a.heading[1])
         .normalize();
+      // Upright on the ground, whatever the camera does (Yang, 2026-10-18).
       const r = this.right.crossVectors(up, f);
       this.q.setFromRotationMatrix(this.basis.makeBasis(r, up, f));
-      if (a.liftKm === 0) {
-        const steep = Math.max(0, this.v2.normalize().dot(up));
-        this.leanAt(up, screenUp, MAX_LEAN * steep);
-        this.q.premultiply(this.leanQ);
-      }
       const size = s.scale * a.grow;
       this.root.compose(this.pos, this.q, this.scaleV.set(size, size, size));
 
@@ -151,17 +142,6 @@ export class WildlifeLayer {
           m.instanceMatrix.needsUpdate = true;
         }
     }
-  }
-
-  /** Sets leanQ: the turn that tips "up" towards the top of the screen. */
-  private leanAt(up: THREE.Vector3, screenUp: THREE.Vector3, lean: number): void {
-    this.leanQ.identity();
-    if (lean <= 0) return;
-    const to = this.v2.copy(screenUp).addScaledVector(up, -screenUp.dot(up));
-    if (to.lengthSq() < 1e-8) return;
-    to.normalize();
-    const tipped = to.multiplyScalar(Math.sin(lean)).addScaledVector(up, Math.cos(lean));
-    this.leanQ.setFromUnitVectors(up, tipped);
   }
 
   /** The instanced meshes of a species, built the first time it is seen; null without an approved model. */
