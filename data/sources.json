@@ -10,9 +10,7 @@
       "url": "https://doi.org/10.25921/fd45-gt74",
       "download": {
         "url": "https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO2022/data/60s/60s_bed_elev_gtif/ETOPO_2022_v1_60s_N90W180_bed.tif",
-        "files": [
-          "ETOPO_2022_v1_60s_N90W180_bed.tif"
-        ],
+        "files": ["ETOPO_2022_v1_60s_N90W180_bed.tif"],
         "sha256": {
           "ETOPO_2022_v1_60s_N90W180_bed.tif": "a2cc72f8a4292dee928f439069457cdefc1fba319876807c626edce40258ba7a"
         }
@@ -130,9 +128,7 @@
       "url": "https://doi.org/10.6084/m9.figshare.12293345",
       "download": {
         "url": "https://ndownloader.figshare.com/files/22659026",
-        "files": [
-          "LateQuaternary_Environment.nc"
-        ],
+        "files": ["LateQuaternary_Environment.nc"],
         "sha256": {
           "LateQuaternary_Environment.nc": "7312280854bab9e95f8721c80050c0889b29ad3087a00bd264e7500d33d19857"
         }
