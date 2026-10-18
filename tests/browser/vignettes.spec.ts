@@ -12,7 +12,15 @@ const en = JSON.parse(readFileSync(`${root}/app/messages/en.json`, 'utf8')) as R
 
 interface Debug {
   entries: { id: string; fromDay: number; toDay: number }[];
-  stages: { id: string; lat: number; lon: number; marker?: [number, number]; cast: number[] }[];
+  stages: {
+    id: string;
+    lat: number;
+    lon: number;
+    actor?: [number, number];
+    heightPx?: number;
+    phase?: number;
+    cast: number[];
+  }[];
 }
 
 function hunt(page: Page) {
@@ -35,14 +43,19 @@ test.beforeEach(async ({ page }) => {
       localStorage.clear();
       localStorage.setItem(
         'miniworld.settings.v1',
-        JSON.stringify({ language: 'en', quality: 'low', slowWhenZoomed: false }),
+        JSON.stringify({
+          language: 'en',
+          quality: 'low',
+          slowWhenZoomed: false,
+          lensHintSeen: true,
+        }),
       );
       sessionStorage.setItem('miniworld.test.started', '1');
     }
   });
 });
 
-test('the mammoth hunt shows a marker, flies down and moves with the life clock', async ({
+test('the mammoth hunt is visible from orbit, flies down and moves while playing', async ({
   page,
 }) => {
   await page.goto('/?nobench');
@@ -64,11 +77,15 @@ test('the mammoth hunt shows a marker, flies down and moves with the life clock'
     m.controller.state = { ...m.controller.state, lat: 50, lon: 25, altitudeKm: 6000 };
   });
   await expect.poll(async () => (await hunt(page)).stages.length).toBe(2);
-  await expect.poll(async () => (await hunt(page)).stages.some((s) => s.marker)).toBe(true);
+  // Section 5.1: from orbit the figures are still at least 22 pixels tall.
+  // A stage left of the card, which opens on the right on desktop.
+  const clear = (s: Debug['stages'][number]) => !!s.actor && s.actor[0] > 100 && s.actor[0] < 800;
+  await expect.poll(async () => (await hunt(page)).stages.some(clear)).toBe(true);
+  const target = (await hunt(page)).stages.find(clear)!;
+  expect(target.heightPx!).toBeGreaterThanOrEqual(21.5);
 
-  // Tapping the marker opens the card; double-clicking it flies down to the stage.
-  const target = (await hunt(page)).stages.find((s) => s.marker)!;
-  const [x, y] = target.marker!;
+  // Tapping a hunter opens the card; double-clicking flies down to the stage.
+  const [x, y] = target.actor!;
   await page.mouse.click(x, y);
   await expect(page.getByRole('dialog', { name: 'Mammoth hunt' })).toBeVisible();
   await expect(page.getByText(en['vignette.learnMore']!)).toBeVisible();
@@ -96,15 +113,15 @@ test('the mammoth hunt shows a marker, flies down and moves with the life clock'
       },
       [state, speedLog2] as const,
     );
-  const cast = async () => (await hunt(page)).stages.find((s) => s.id === target.id)!.cast;
+  const cast = async () => (await hunt(page)).stages.find((s) => s.id === target.id)!.phase;
   const a = await cast();
   await clock('playing', -6);
-  await expect.poll(async () => JSON.stringify(await cast())).not.toBe(JSON.stringify(a));
+  await expect.poll(cast).not.toBe(a);
 
   // Paused: they stand still.
   await clock('paused', -6);
   await page.waitForTimeout(300);
   const b = await cast();
   await page.waitForTimeout(1500);
-  expect(await cast()).toEqual(b);
+  expect(await cast()).toBe(b);
 });

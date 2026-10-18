@@ -94,6 +94,13 @@ Figures follow the toy-planet style of spec section 8: chunky, rounded clay-like
 
 People and everything they make are drawn at a fixed **miniature factor**: **Proposed** 90, so a person of 1.7 m stands about 150 m tall on the globe, and the dozen figures of a close view fill the screen from the camera's lowest altitude of about 2 km (milestone 1 section 6.1). Stages, camps and landmarks are authored at life size and scaled by the same factor, so it can be tuned in one place.
 
+**Seen from afar** (decided by Yang on 2026-10-18: everything visible from orbit and alive, not to scale). Vignettes grow as the camera rises, so their cast can be seen moving at every altitude, up to orbit:
+
+- **Figures** are never shorter than **Proposed** 22 CSS pixels on screen for an adult. Animals keep their true proportion close up; as the cast grows, big animals are drawn at most **Proposed** 1.6 times an adult's height, so people stay readable next to a mammoth.
+- **The stage layout** (where marks are and how far figures walk) grows with the figures, so figures are never drawn more than **Proposed** 6 times larger relative to their stage than in life. A stage of 80 m radius is then about 170 pixels across its radius from any altitude where it has grown, and its groups (camp, lookout, herd) stay apart.
+
+Close up, both are at the miniature factor; they start growing about 7 km from the camera. From afar a vignette is a diorama, not a scale model. Figures stand on the ground at their own position, following the curve of the globe. The more they are enlarged and the more steeply the camera looks down, the further they lean over their feet towards the top of the screen, up to about 65 degrees, like the cut-outs of a pop-up book, so even from straight above they are seen from the side. Speeds follow the layout, so figures cover the same share of their stage in the same time at every altitude. This is drawing only: the player, its positions and its timing are unchanged.
+
 ### 5.2 Rig and parts
 
 - One shared skeleton for all humans, with per-profile body proportions (Neanderthals stockier, children smaller) applied as bone scales.
@@ -257,7 +264,7 @@ Some events lasted a few days, which at the timeline's normal speed would pass i
 
 ### 6.8 Finding vignettes
 
-Every vignette instance in the view shows a **scene marker** when the camera is too far away to see the cast clearly (section 7.2). Double-clicking a vignette's linked event flies the camera to its stage and moves time into its shown span.
+Every vignette instance in the view can be seen from any altitude, because its cast keeps a minimum size on screen (section 5.1); tapping its cast opens its card and double-tapping flies down to it. Double-clicking a vignette's linked event flies the camera to its stage and moves time into its shown span.
 
 ### 6.9 Validation
 
@@ -275,7 +282,7 @@ Inside, the scene uses its own warm palette for torchlight, painted into the set
 
 ### 7.2 Scene markers
 
-From further away, a vignette shows as a floating **scene marker**: a round badge with the icon of its template (paintbrush, spear, ship, pillar) on a short stalk above its stage. Markers keep a minimum size of about 28 CSS pixels on screen, fade out once the cast is large enough to see, and are drawn in one batch. Tapping a marker opens the vignette's card; double-tapping flies down to it. At orbit, markers are thinned out by importance so they never crowd the view: linked events first, then singular vignettes, then repeated ones.
+From further away, a cutaway shows as a floating **scene marker**: a round badge with the icon of its template (paintbrush, pillar) on a short stalk above its site. Vignettes need no marker, since their cast stays visible (section 5.1). Markers keep a minimum size of about 28 CSS pixels on screen, fade out once the cast is large enough to see, and are drawn in one batch. Tapping a marker opens the vignette's card; double-tapping flies down to it. At orbit, markers are thinned out by importance so they never crowd the view: linked events first, then singular vignettes, then repeated ones.
 
 ## 8. Landmarks
 
@@ -421,7 +428,7 @@ Decided by Yang on 2026-10-18: the mammoth hunt (`mammoth-hunt` in [dioramas.md]
 | Player | Pure functions in `app/src/world/` (section 18.5), called on the main thread | Called from the world query in the Web Worker (section 2) |
 | Sites | A curated list of candidate points (section 6.6) | Camps of the hunting cultures (section 3.2) |
 | Figures and animals | Flat-coloured, cel-shaded stand-ins built from simple shapes, posed on the main thread | Approved assets, rig and GPU clips (sections 5 and 13) |
-| Scene marker and card | A marker badge from orbit (section 7.2); tapping it opens the record's card in English or German; double-tapping flies down to the stage | Unchanged |
+| Size and card | The cast keeps its minimum size on screen up to orbit (section 5.1); tapping it opens the record's card in English or German; double-tapping flies down to the stage | Unchanged |
 
 Stand-ins are allowed because no asset is approved yet (section 13.2): they are drawn at the right size in plain colours and are replaced by approved assets later without changing any data.
 
@@ -484,4 +491,4 @@ The player uses only integer and `+ − × ÷` arithmetic plus `Math.sqrt` (sect
 | Loop | The hunt's loop closes; a broken copy of the template fails the check |
 | Golden poses | Instances at four fixed days and member poses at life clock 0, 37,000 and 3,600,000 ms, stored as a readable snapshot |
 | Expected answers | No instance before 43,000 BCE or after 10,000 BCE; no Siberian site before its own start date; two different sites per period; the pose at *t* equals the pose at *t* plus the loop length |
-| Browser | At a fixed date the marker is visible from orbit; double-clicking it flies down to the hunt and the hunters move while history plays; pausing stops them |
+| Browser | At a fixed date the hunt is drawn from orbit with its hunters at least 22 pixels tall; tapping a hunter opens the card; double-clicking it flies down to the hunt and the hunters move while history plays; pausing stops them |
