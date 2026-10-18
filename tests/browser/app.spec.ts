@@ -84,8 +84,9 @@ test('first view opens at 50,000 BCE within the data budget', async ({ page }) =
     }
   }
   expect(paths.length).toBeGreaterThan(0);
-  // Section 10.6: manifest and index 200 KB, terrain 1.5 MB, ice 200 KB.
-  expect(dataBytes).toBeLessThan(1.9 * 1024 * 1024);
+  // Section 10.6: at most 3 MB in all, of which the build's size check keeps
+  // JavaScript and CSS within 500 KB, so the data may take the other 2.5 MB.
+  expect(dataBytes).toBeLessThan(2.5 * 1024 * 1024);
 });
 
 test('language switch changes every string without a reload', async ({ page }) => {

@@ -31,7 +31,9 @@ export default defineConfig({
     { name: 'desktop', use: { viewport: { width: 1280, height: 800 } }, testIgnore: /perf\.spec/ },
     {
       name: 'phone',
-      use: { ...devices['Pixel 7'], browserName: 'chromium' },
+      // Pixel ratio 1: CI renders in software, and the phone's 2.6 would draw
+      // about four times the pixels at the render scale cap of 2 (spec milestone 1, section 2.4).
+      use: { ...devices['Pixel 7'], deviceScaleFactor: 1, browserName: 'chromium' },
       testIgnore: /perf\.spec/,
     },
     { name: 'perf', use: { viewport: { width: 1280, height: 800 } }, testMatch: /perf\.spec/ },
