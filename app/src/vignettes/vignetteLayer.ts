@@ -95,6 +95,8 @@ export class VignetteLayer {
   private requested = new Set<string>();
   private scripts = new Map<string, Script>();
   private stages = new Map<string, Stage>();
+  /** Instances standing this frame, reused from frame to frame. */
+  private wanted = new Set<string>();
   private light = new THREE.DirectionalLight(0xffffff, 2.2);
   private ambient = new THREE.AmbientLight(0xffffff, 0.9);
   private camera: THREE.PerspectiveCamera | undefined;
@@ -149,7 +151,8 @@ export class VignetteLayer {
     this.light.target.position.set(0, 0, 0);
     if (this.element instanceof HTMLCanvasElement) lightModels(lightDir, camera, this.element);
 
-    const wanted = new Set<string>();
+    const wanted = this.wanted;
+    wanted.clear();
     for (const entry of this.entries) {
       if (day < entry.fromDay || day >= entry.toDay) continue;
       const v = this.structures.get(entry.structure);

@@ -91,14 +91,7 @@ export class Clouds {
     if (!this.mesh.visible || lifeMs === this.lastLifeMs) return;
     this.lastLifeMs = lifeMs;
 
-    const centre = new THREE.Vector3();
-    const east = new THREE.Vector3();
-    const north = new THREE.Vector3();
-    const up = new THREE.Vector3();
-    const pos = new THREE.Vector3();
-    const scale = new THREE.Vector3();
-    const q = new THREE.Quaternion();
-    const basis = new THREE.Matrix4();
+    const { centre, east, north, up, pos, scale, q, basis } = SCRATCH;
     let current = -1;
     this.puffs.forEach((puff, i) => {
       if (puff.cloud !== current) {
@@ -125,3 +118,15 @@ export class Clouds {
     this.mesh.instanceMatrix.needsUpdate = true;
   }
 }
+
+/** Scratch objects for placing the puffs, which runs every frame. */
+const SCRATCH = {
+  centre: new THREE.Vector3(),
+  east: new THREE.Vector3(),
+  north: new THREE.Vector3(),
+  up: new THREE.Vector3(),
+  pos: new THREE.Vector3(),
+  scale: new THREE.Vector3(),
+  q: new THREE.Quaternion(),
+  basis: new THREE.Matrix4(),
+};

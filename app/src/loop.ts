@@ -53,6 +53,9 @@ export interface PerfReport {
   averageFps: number;
   averageFrameMs: number;
   p99FrameMs: number;
+  /** Main-thread time spent updating a frame before drawing it. */
+  averageUpdateMs: number;
+  p99UpdateMs: number;
   maxDrawCalls: number;
   maxTriangles: number;
   done: boolean;
@@ -67,6 +70,7 @@ export class FrameLoop {
   private parts: LoopParts;
   private inputs: () => LoopInputs;
   private stats = new FrameStats(600);
+  private updateStats = new FrameStats(600);
   private report = { frames: 0, maxCalls: 0, maxTriangles: 0, done: false };
   private lastFrame = 0;
   private lastStats = 0;
@@ -89,6 +93,7 @@ export class FrameLoop {
     const dt = Math.min(250, now - this.lastFrame);
     this.lastFrame = now;
     if (!input.index) return void requestAnimationFrame(this.frame);
+    const updateStart = performance.now();
 
     p.stress?.steer(now, p.controller);
     // The lens morph runs on frame time, never on either clock (history-lens.md, section 4.1).
@@ -114,6 +119,7 @@ export class FrameLoop {
     p.stress?.update(now, p.globe, this.planet, p.camera, p.clock.lifeMs);
     p.vignettes.update(p.camera, day, p.clock.vignetteMs, u.lightDir!.value);
 
+    this.updateStats.push(performance.now() - updateStart);
     p.renderer.info.reset();
     p.frames.render(p.scene, p.camera);
     this.stats.push(dt);
@@ -162,6 +168,8 @@ export class FrameLoop {
       averageFps: this.stats.fps,
       averageFrameMs: this.stats.average,
       p99FrameMs: this.stats.percentile(99),
+      averageUpdateMs: this.updateStats.average,
+      p99UpdateMs: this.updateStats.percentile(99),
       maxDrawCalls: this.report.maxCalls,
       maxTriangles: this.report.maxTriangles,
       done: this.report.done,
