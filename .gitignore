@@ -9,3 +9,4 @@ perf-report*.json
 .DS_Store
 app/.vite/
 coverage/
+.env.local
