@@ -51,7 +51,7 @@ describe('vignette formats', () => {
   });
 
   it('rejects a loop that does not close', () => {
-    const bad = TEMPLATE.replace('  - { at: 105, prey: appear }\n', '');
+    const bad = TEMPLATE.replace('  - { at: 55, prey: appear }\n', '');
     const r = compileTemplate('big-game-hunt.yaml', bad);
     expect(r.errors.join('\n')).toMatch(/prey #0 ends away from its starting mark/);
     expect(r.errors.join('\n')).toMatch(/prey #0 ends hidden/);

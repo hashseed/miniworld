@@ -97,7 +97,7 @@ People and everything they make are drawn at a fixed **miniature factor**: **Pro
 **Fixed size, like the trees** (decided by Yang on 2026-10-18: everything visible from orbit and alive, not to scale; and "mammoths and humans should not scale based on zoom level. they behave like trees in terms of zoom sizing"). For vignettes this replaces the miniature factor: like the trees of [foliage.md](foliage.md), a vignette keeps one drawn size at every zoom.
 
 - **Figures** are drawn at **Proposed** 50 km per life-size metre, so an adult stands about 90 km tall, about half as tall as a tree. Big animals are drawn at most **Proposed** 1.6 times an adult's height, so people stay readable next to a mammoth (about 140 km tall).
-- **The stage layout** (where marks are and how far figures walk) is drawn at **Proposed** one sixth of the figures' factor, about 8 km per metre, so figures are 6 times larger relative to their stage than in life. A stage of 80 m radius then spans about 670 km, and its groups (camp, lookout, herd) stay apart.
+- **The stage layout** (where marks are and how far figures walk) is drawn at **Proposed** one third of the figures' factor, about 17 km per metre, so figures are 3 times larger relative to their stage than in life. Templates are authored for this: a stage of 40 m radius spans about 670 km, and marks, formations and speeds (section 18.3) leave room for the enlarged figures, so no two figures overlap.
 
 From orbit an adult is then about 15 pixels tall on a desktop screen; close to the ground a figure towers over the scene, as a tree does. A vignette is a diorama, not a scale model. Figures stand on the ground at their own position, following the curve of the globe. The more steeply the camera looks down, the further they lean over their feet towards the top of the screen, up to about 65 degrees, like the cut-outs of a pop-up book, so even from straight above they are seen from the side. Double-tapping a cast flies the camera to about 2,000 km above its stage, so the whole stage is in view. This is drawing only: the player, its positions and its timing are unchanged.
 
@@ -228,11 +228,11 @@ The Viking raid is the worked example for this spec; it ships with the Viking Ag
 
 Beats use only actions from `vocab/actions.yaml`, so every vignette is made of the same small set of well-tested pieces:
 
-`walk-to`, `run-to`, `flee-to`, `follow`, `surround`, `wait`, `work-at`, `take-from`, `carry-to`, `give-to`, `talk`, `point`, `cheer`, `kneel`, `sit`, `ride`, `board`, `sail-to`, `paddle-to`, `haul`, `lift`, `throw-at`, `clash`, `fall`, `paint`, `hold-torch`, `appear`, `vanish`.
+`walk-to`, `run-to`, `flee-to`, `follow`, `surround`, `wait`, `work-at`, `take-from`, `carry-to`, `give-to`, `talk`, `point`, `cheer`, `kneel`, `sit`, `ride`, `board`, `sail-to`, `paddle-to`, `haul`, `lift`, `throw-at`, `clash`, `fall`, `cut-up`, `paint`, `hold-torch`, `appear`, `vanish`.
 
 - Each action has a movement rule (to a mark, along a path, in place) and one or more clips (section 5.3); groups spread around their target in a formation given by a hash of figure index.
 - Props have their own actions: `sail-to`, `move-to`, `burn` (cartoon smoke and orange flame shapes), `rise` and `fall` (for things being raised or toppled), `show` and `hide`.
-- `clash` and `fall` follow spec section 4: armed figures meet in a short stylised scuffle, and a figure that falls sinks down and fades out, with no blood. An animal hunted in a vignette falls the same way.
+- `clash` and `fall` follow spec section 4: armed figures meet in a short stylised scuffle, and a figure that falls sinks down and fades out, with no blood. An animal hunted in a vignette falls onto its side and stays down (decided by Yang on 2026-10-18: "the mammoth falls and is dissected"); then `cut-up`: the hunters crouch around it and cut it up, and it sinks into the ground over several seconds while they carry the meat away, with no blood and nothing shown inside.
 - A new action is a vocabulary entry, its movement rule and its clips, added together. The actions later milestones need are listed in [dioramas.md](dioramas.md#3-additions-to-the-action-vocabulary) section 3.
 
 ### 6.5 Looping and the clocks
@@ -414,7 +414,7 @@ The first models are the people, shelters and animals of the seven culture profi
 | `animal-gazelle` | Mountain gazelle | The Levant |
 | `animal-kangaroo` | Grey kangaroo | Sahul |
 
-**Clips.** Until the asset build bakes animation textures (section 5.3), each clip is a pure function of the clip and the seconds since it started, in `assets/src/clips.ts`, which vignettes may call every frame and the bake will sample. The first set is what the mammoth hunt needs: idle, walk, run, carry (a hide-wrapped bundle of meat across the shoulders), work (crouched, cutting), point, throw (the spear leaves the hand 0.55 s into a 3 s gesture) and cheer for people; idle, walk, run and fall for animals, where the animal rolls onto its side and sinks a little over 3 s, with nothing more shown.
+**Clips.** Until the asset build bakes animation textures (section 5.3), each clip is a pure function of the clip and the seconds since it started, in `assets/src/clips.ts`, which vignettes may call every frame and the bake will sample. The first set is what the mammoth hunt needs: idle, walk, run, carry (a hide-wrapped bundle of meat across the shoulders), work (crouched, cutting), point, throw (the spear leaves the hand 0.55 s into a 3 s gesture) and cheer for people; idle, walk, run and fall for animals, where the animal rolls onto its side and sinks a little over 3 s and then lies still, with nothing more shown.
 
 **Review sheets.** `npm run asset-sheets` serves `app/asset-sheet.html` with the dev server and saves one image per sheet with Playwright: each profile's man, woman and child beside its shelter and hearth; a turnaround of one figure; all shelters; all animals with a figure for scale. The sheets go to Yang for review (section 13.2) and every model is listed in `data/assets/manifest.json` with status `generated` until approved.
 
@@ -505,13 +505,14 @@ The player understands these verbs from section 6.4 and the additions in [dioram
 | Verb | Movement | Clip |
 | --- | --- | --- |
 | `wait` | Stays | idle |
-| `walk-to`, `run-to`, `carry-to` | To a mark at 1.4, 4.5 or 1.3 m/s at life size, then idle | walk, run or carry, then idle |
+| `walk-to`, `run-to`, `carry-to` | To a mark at 4, 12 or 3.5 m/s on the stage, then idle; three times the speeds of life, as the figures are three times larger than their stage (section 5.1), so their steps match the ground they cover | walk, run or carry, then idle |
 | `work-at` | Walks to a mark if not there, then works | walk, then crouch-work |
 | `point`, `throw-at`, `cheer` | Stays, facing the target group if one is named | point or throw for 3 seconds, then idle; cheer until the next beat |
-| `fall` | Sinks into the ground and disappears over 3 seconds | fall |
+| `fall` | A person sinks into the ground and disappears over 3 seconds; an animal rolls onto its side and stays down | fall |
+| `cut-up` | A fallen animal is cut up: it sinks into the ground and disappears over 12 seconds | fall, held |
 | `appear` | Reappears at its starting mark, rising from the ground over 2 seconds | idle |
 
-Members of a group stand in a formation around their target: member *i* of *n* gets an offset of up to 1.5 m × √*n* chosen by the hash of the group name and *i*. A moving group faces its direction of travel; a waiting group keeps its last heading.
+Members of a group stand in a formation around their target: a grid ⌈√*n*⌉ members wide across the stage's z axis, 2.5 m apart for people and 14 m for animals, centred on the mark, so members of a group never overlap. Each group has marks of its own, and a test checks that no two members ever overlap (section 18.7). A moving group faces its direction of travel; a waiting group keeps its last heading.
 
 ### 18.4 The vignette layer
 
@@ -522,7 +523,7 @@ The data build writes one structure file per vignette record, content-hashed: th
 The player is three pure functions of their inputs, with no state:
 
 - **Instances.** For a record and a day: the period number is ⌊(day − from) / period⌋; for each of `count` slots, the hash of the record id, the period and the slot picks a site among the candidates valid at the period's start, never the same site twice in one period. An instance is shown for its whole period (its shown span), which at the rate of the deep past is about 2 minutes at ×1, as section 6.7 asks. Each instance gets an id, a phase offset (the hash of its id, modulo the loop) and an orientation, one of eight compass directions chosen by hash.
-- **Pose.** For an instance and a life-clock time: phase = (life clock + offset) modulo the loop, then for every cast member its stage position in centimetres, heading as a direction (two numbers, never an angle), clip, time into the clip, and a visibility between 0 and 1 (for `fall` and `appear`).
+- **Pose.** For an instance and a life-clock time: phase = (life clock + offset) modulo the loop, then for every cast member its stage position in centimetres, heading as a direction (two numbers, never an angle), clip, time into the clip, and a visibility between 0 and 1 (for `fall`, `cut-up` and `appear`).
 - **Loop check.** Runs a template through one loop and lists every group that does not end where it started (section 6.5); the data build fails on any.
 
 The player uses only integer and `+ − × ÷` arithmetic plus `Math.sqrt` (section 2.3), and the lint rule forbidding engine-dependent maths applies to `app/src/world/`. Loading never changes it: the instances and poses are the same whether or not a structure file has arrived; an instance whose file has not arrived is simply not drawn yet.
@@ -530,7 +531,7 @@ The player uses only integer and `+ − × ÷` arithmetic plus `Math.sqrt` (sect
 ### 18.6 The mammoth hunt
 
 - **Cast:** two scouts and two flanks of three hunters each (`ice-age-hunter`), three family members at the camp, one mammoth to be hunted and two more of its herd. Drawn with the approved `ice-age-hunter` figures (hunters with spears; the family a woman, a child and a man) and `animal-mammoth`, sized as section 5.1 says.
-- **Script (120 s loop):** the family works at the camp throughout; the scouts walk to a lookout and point at the herd; the two flanks creep wide around the herd; at the signal the hunters run in, the rest of the herd runs to the edge of the stage and the hunted mammoth runs into a boggy hollow; spears are thrown and it falls; the hunters cut the meat and carry it back to the camp; the herd wanders back and a new mammoth appears among them, so the loop closes.
+- **Script (60 s loop, decided by Yang on 2026-10-18: "it should happen a lot quicker … engaging and exciting"):** the family works at the camp throughout and cheers when the meat arrives; the scouts walk to a lookout and point at the herd; the two flanks creep wide around the herd; at the scouts' signal the hunters charge, the rest of the herd stampedes to the edge of the stage and the hunted mammoth runs, swerves and is driven into a boggy hollow; two volleys of spears fly and it falls; the hunters cheer, then crouch around it and cut it up while it sinks away; they carry the meat back to the camp; the herd wanders back and a new mammoth appears beside it, so the loop closes.
 - **Sites, from c. 43,000 to c. 10,000 BCE, one period per 1,000 years, two instances per period:** Geißenklösterle (Swabian Jura), Krems-Wachtberg, Dolní Věstonice, Předmostí, Kostenki, Sungir, Yana in Siberia from c. 30,000 BCE and Mal'ta near Lake Baikal from c. 22,000 BCE. The card says that how often people killed mammoths, rather than collecting the bones of dead ones, is debated.
 
 ### 18.7 Tests
@@ -539,6 +540,7 @@ The player uses only integer and `+ − × ÷` arithmetic plus `Math.sqrt` (sect
 | --- | --- |
 | Formats | The template and record parse; unknown verbs, marks, groups and parameters, missing languages and dates outside the timeline fail with a clear message |
 | Loop | The hunt's loop closes; a broken copy of the template fails the check |
+| No overlap | Sampled every 100 ms over the loop, no two visible members of the hunt are closer on the stage than their enlarged bodies allow: 2 m between people, 9 m between a person and a mammoth, 12 m between mammoths |
 | Golden poses | Instances at four fixed days and member poses at life clock 0, 37,000 and 3,600,000 ms, stored as a readable snapshot |
 | Expected answers | No instance before 43,000 BCE or after 10,000 BCE; no Siberian site before its own start date; two different sites per period; the pose at *t* equals the pose at *t* plus the loop length |
 | Figures | Hunters, family and mammoths get the approved models at a plausible height, the same clip and time give the same pose, and a culture without an approved model falls back to a stand-in |

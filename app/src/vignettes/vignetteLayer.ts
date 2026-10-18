@@ -24,7 +24,7 @@ import type { StandIn } from './standIns.ts';
 /** Drawn kilometres per life-size metre of a figure, at every zoom (section 5.1). */
 const FIGURE_KM_PER_M = 50;
 /** Figures are drawn this many times larger than the stage layout (section 5.1). */
-const OVERSIZE = 6;
+const OVERSIZE = 3;
 /** Drawn kilometres per life-size metre of the stage layout. */
 const LAYOUT_KM_PER_M = FIGURE_KM_PER_M / OVERSIZE;
 /** An animal is drawn at most this many times an adult's height (section 5.1). */
@@ -106,6 +106,11 @@ export class VignetteLayer {
       const entry = entries.find((e) => e.id === stage.entry.id);
       if (entry) stage.entry = entry;
     }
+  }
+
+  /** True directions of the stages standing now, for the foliage's clearings. */
+  clearings(): Vec3[] {
+    return [...this.stages.values()].map((s) => s.trueDir);
   }
 
   /** Number of stages on the current day, for tests and stats. */
