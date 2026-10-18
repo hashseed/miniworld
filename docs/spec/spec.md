@@ -37,7 +37,7 @@ The **clock** is the position on the timeline, counted in milliseconds of watchi
 | 1800 to 1900 | 4 min |
 | 1900 to 1991 | about 3 min 40 s |
 
-The whole timeline takes about 48 hours at regular speed, and about 34 h 40 min from the opening date of 50,000 BCE (accepted by Yang on 2026-10-18, replacing the earlier rate curve of about 24 hours that slowed down towards the present). The recent centuries pass quickly at regular speed; snail mode is how they are watched closely (section 2.2).
+The whole timeline takes about 48 hours at regular speed, about 34 h 40 min of it from 50,000 BCE (accepted by Yang on 2026-10-18, replacing the earlier rate curve of about 24 hours that slowed down towards the present). The recent centuries pass quickly at regular speed; snail mode is how they are watched closely (section 2.2).
 
 **Later: time jumps.** To keep the long quiet stretches interesting, later versions may jump over parts of the timeline. A jump moves the clock; it never changes what the world looks like at a given clock time.
 
@@ -54,11 +54,11 @@ Earlier versions ran everyday activity on a second clock in real time, independe
 
 ### 2.4 People morph instead of dying of age
 
-Each ordinary figure is a persistent individual who stays on screen across centuries. When an era changes in its region, figures gradually take on the roles, clothes and tools of the next era over a transition window of decades, so a hunter becomes a herder, then a farmer, then a bronze smith. Figures are only lost to war, famine, plague and disasters, matching the historical record for that place and time. When the real population grows, new figures appear from houses and settlements. One figure stands for many real people, and the ratio grows as you zoom out.
+Each ordinary figure is a persistent individual who stays on screen across centuries. When an era changes in its region, figures gradually take on the roles, clothes and tools of the next era over a transition window of decades, so a hunter becomes a herder, then a farmer, then a bronze smith. Figures are only lost to war, famine, plague and disasters, matching the historical record for that place and time. When the real population grows, new figures step out of the lodgings people live in: tents and huts at first, later houses, forts and palaces. Every ordinary figure has a parent figure it came out of, so all of them form one family tree that goes back to a single first person at Lake Turkana in Kenya at the start of the timeline (asked for by Yang on 2026-10-18). The tree is computed by the data build from the historical data, and the app only looks it up; the design is in [humankind.md](humankind.md). One figure stands for many real people, and the ratio grows as you zoom out; the first person stands for the first people of Africa.
 
 ### 2.5 Range and start
 
-The timeline runs from about 70,000 BCE (modern humans leaving Africa) to 26 December 1991, the day the Soviet Union was dissolved, which ends the Cold War (decided by Yang on 2026-10-17). That date is the content cutoff, fixed for every build: no event, war, border, building or era on the globe or the timeline goes past it, and an event or war that began before it but mostly happened after it is left out. A card may say in a sentence what happened next, such as Nelson Mandela becoming president in 1994, but the world itself stops at the cutoff. The app opens at 50,000 BCE, in the middle of the last ice age, with modern humans already spreading out of Africa.
+The timeline runs from 70,000 BCE to 26 December 1991, the day the Soviet Union was dissolved, which ends the Cold War (decided by Yang on 2026-10-17). That date is the content cutoff, fixed for every build: no event, war, border, building or era on the globe or the timeline goes past it, and an event or war that began before it but mostly happened after it is left out. A card may say in a sentence what happened next, such as Nelson Mandela becoming president in 1994, but the world itself stops at the cutoff. The app opens at the start of the timeline, 70,000 BCE, on the first person at Lake Turkana in Kenya, who builds a hut and hunts; her family fills Africa by about 62,000 BCE and leaves it from about 60,000 BCE ([humankind.md](humankind.md#7-changes-to-the-rest-of-the-spec) section 7; decided by Yang on 2026-10-18).
 
 ### 2.6 Lighting
 
@@ -90,7 +90,7 @@ History enters the app as a curated database of dated, located records; everythi
 | --- | --- | --- |
 | Culture regions | An area, a date range and a culture profile, such as "Roman, Imperial period" or "Han China" | Curated by hand from standard histories |
 | Culture profiles | Architecture set, clothing, tools, vehicles, crops and animals, and an activity mix (farming, fishing, crafts, trade, worship, soldiering) | Curated; the main art cost |
-| Population | People per area over time, which sets how many figures appear | HYDE (History Database of the Global Environment) from 10,000 BCE, licence to check against section 13; before that, a hand-set density per culture area ([milestone-2.md](milestone-2.md#3-where-people-live) section 3) |
+| Population | How many figures live where: a hand-set density per culture area ([milestone-2.md](milestone-2.md#3-where-people-live) section 3) and a size class per settlement; no population data goes into the world (decided by Yang on 2026-10-18) | Curated; published population estimates are used only to check the tree of humankind ([humankind.md](humankind.md#61-checking-against-population-estimates) section 6.1) |
 | Settlements | Localised name, coordinates, founding date, population over time, landmarks with build dates | Urban history datasets, Wikidata |
 | Polities | Borders at snapshot dates, localised name, colour, capital | historical-basemaps (open GeoJSON of world borders; GPL-3.0, so it needs Yang's decision under section 13), Wikidata (CC0) |
 | Routes | Trade routes, migrations and voyages with date ranges | Curated |
@@ -257,7 +257,7 @@ flowchart LR
 
 Content will grow to many thousands of records, hundreds of models and a global terrain set, so the app never downloads it all. It loads a small index up front and streams everything else by place, time and language as the viewer moves.
 
-**What loads at startup.** A versioned manifest plus a light index per language: era ranges for the timeline, every event's id, start, peak and end dates, type, position and title, and the list of famous people with life dates. This is enough to draw the full timeline and search, and it stays small because it holds no long texts, borders or geometry. Target: the first view of the globe at 50,000 BCE needs at most about 3 MB on a phone.
+**What loads at startup.** A versioned manifest plus a light index per language: era ranges for the timeline, every event's id, start, peak and end dates, type, position and title, and the list of famous people with life dates. This is enough to draw the full timeline and search, and it stays small because it holds no long texts, borders or geometry. Target: the first view of the globe, at Lake Turkana at 70,000 BCE, needs at most about 3 MB on a phone.
 
 **Chunks.** Everything else is split into chunks keyed by three things:
 

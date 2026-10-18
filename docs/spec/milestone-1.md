@@ -111,7 +111,7 @@ The browser tests read three settings from the environment: `MINIWORLD_PORT` (de
 - A date is a whole-day integer: the number of days since 1 January 2000 CE in the proleptic Gregorian calendar, negative before that. 70,000 BCE is about −26.3 million, well inside a 32-bit integer. No floating-point years are used anywhere in world state.
 - Internally years use astronomical numbering (1 BCE is year 0, 2 BCE is year −1). Conversion between day numbers and calendar dates is a pure function in `src/time` with unit tests at known dates, including leap years and the year 0 boundary.
 - The timeline runs from 1 January 70,000 BCE to the content cutoff date stored in the manifest, which is 26 December 1991, the dissolution of the Soviet Union (spec section 2.5). The end of the timeline, called "today" in this spec where it means the timeline end, always means that cutoff, never the device clock, so the same build shows the same timeline on every day.
-- The app opens at 1 January 50,000 BCE on first start, and at the last saved date after that.
+- The app opens at 1 January 50,000 BCE on first start, and at the last saved date after that. From milestone 2 it opens at the start of the timeline, 1 January 70,000 BCE, on the first person at Lake Turkana ([humankind.md](humankind.md#7-changes-to-the-rest-of-the-spec) section 7).
 
 ### 3.2 Displaying dates
 
