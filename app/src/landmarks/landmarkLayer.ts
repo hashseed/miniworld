@@ -6,7 +6,7 @@
 // building crews stand on what is drawn.
 
 import * as THREE from 'three';
-import manifest from '../../../data/assets/manifest.json';
+import { drawable } from '../content/assets.ts';
 import {
   LANDMARK_ASSETS,
   PYRAMIDS,
@@ -23,18 +23,12 @@ import {
 import type { Model } from '../../../assets/src/kit.ts';
 import type { ContentLoader } from '../content/loader.ts';
 import type { VignetteEntry } from '../content/types.ts';
-import { latLonToDir } from '../globe/cube.ts';
-import { EARTH_RADIUS_KM } from '../globe/tileMesh.ts';
+import { latLonToDir } from '../geo/cube.ts';
+import { EARTH_RADIUS_KM } from '../geo/earth.ts';
 import { partAt, type CompiledLandmark } from '../world/landmark.ts';
 import type { SurfaceSource } from '../vignettes/vignetteLayer.ts';
 /** Taps within this share of a part's drawn base count as hits. */
 const HIT_SHARE = 0.6;
-
-const approved = new Set(
-  (manifest as { assets: { id: string; status: string }[] }).assets
-    .filter((a) => a.status === 'approved')
-    .map((a) => a.id),
-);
 
 /** Where a landmark part stands this frame, for the vignettes that build it. */
 export interface PartFrame {
@@ -129,7 +123,7 @@ export class LandmarkLayer {
         if (!d || d.key !== key) {
           if (d) this.dispose(d);
           const model = shape ? buildPyramid(a.pyramid!, shape) : buildLandmarkAsset(asset);
-          if (!approved.has(asset)) standIn(model);
+          if (!drawable.has(asset)) standIn(model);
           this.group.add(model.object);
           d = {
             key,

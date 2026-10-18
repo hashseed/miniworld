@@ -71,7 +71,7 @@ Desert, barren land, the colder tundra classes and land ice have no plants. Shar
 - Plants follow the toy-planet style of spec section 8: chunky rounded clay shapes made of a few balls and cones, flat cel-shaded colours in three bands lit like the terrain, with no outlines (decided by Yang on 2026-10-18).
 - Colours are rich and saturated, like the ground: bright greens for broadleaf, deep greens for rainforest, blue-green for conifers, olive for acacia and grey-green for the Mediterranean trees. Each tree has a small hashed variation of size and shade so forests do not look stamped.
 - Each model has up to about 400 triangles (crown balls with 80 faces each), since there are few trees and each is large on screen. A simpler far model (balls with 20 faces) may be added if the budget needs it.
-- **Later:** trees may sway very gently on the life clock, standing still when everything is frozen.
+- **Later:** trees may sway very gently on the life clock, standing still while history is paused.
 
 ## 6. The ground under the plants
 
@@ -90,7 +90,7 @@ With few, fixed trees, foliage is cheap. The terrain is also being simplified (Y
 - All plants are instanced: one draw call per kind, 8 draw calls in all.
 - Placement runs once per level-4 tile and date step and is cached; the camera moving never recomputes it.
 - Foliage starts loading only once the first view is ready (its foliage slices and the level-4 terrain tiles it places plants on, about 600 KB for a whole hemisphere), so it stays outside the first view's data budget (milestone 1, section 10.6) and the plants appear a moment after the globe.
-- Proposed limit: 400,000 foliage triangles per frame on high, 200,000 on low (the low tier would use the simpler far model).
+- Proposed limit: 400,000 foliage triangles per frame (there is one fixed quality, milestone 1 section 11.2).
 
 Measurements of the built foliage with the history lens on (headless Chromium, 1280 × 800, terrain as merged on 2026-10-18; the whole frame's triangles):
 

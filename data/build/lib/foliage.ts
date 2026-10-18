@@ -3,6 +3,7 @@
 // turning dry classes into savanna, and a tree density that thins trees near
 // the ice sheets and in cold or dry climates.
 
+import { EARTH_RADIUS_KM } from '../../../app/src/geo/earth.ts';
 import { FOLIAGE_GRID_H, FOLIAGE_GRID_W } from '../../../app/src/content/formats.ts';
 import { BUSH, DRY_CLASSES, HUMID_SAVANNA, recipeOf } from '../../../app/src/globe/foliageKinds.ts';
 import { humidMinimum, type HumidPeriod, type TimeStack } from './climate.ts';
@@ -28,7 +29,7 @@ const DRY_FROM = 250;
 const DRY_NONE = 100;
 /** Steps the stored tree density is rounded to. */
 const DENSITY_STEPS = 8;
-const CELL_KM = 6371 * ((0.5 * Math.PI) / 180);
+const CELL_KM = EARTH_RADIUS_KM * ((0.5 * Math.PI) / 180);
 
 export interface FoliageInputs {
   biome: { header: ExtractHeader; data: ExtractData };

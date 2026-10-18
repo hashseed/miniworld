@@ -3,7 +3,8 @@
 // computed world (section 10.7).
 
 import type { Language } from '../i18n/messages.ts';
-import { ancestorAt, tilePath, type TileKey } from '../globe/cube.ts';
+import { ancestorAt, tilePath, type TileKey } from '../geo/cube.ts';
+import { PART_LEVEL } from './formats.ts';
 import {
   chunkKey,
   type LayerManifest,
@@ -13,7 +14,6 @@ import {
 } from './types.ts';
 
 const MAX_CONCURRENT = 6;
-const PART_LEVEL = 2;
 
 export type ChunkState = 'missing' | 'deep' | 'loading' | 'ready' | 'none';
 

@@ -64,12 +64,8 @@ export const SPHINX_LENGTH = 73;
 const TIERS = 24;
 /** Share of the build in which the core rises; after it the casing is laid from the top down. */
 export const CORE_SHARE = 0.85;
-/**
- * The ramp foot lies this many pyramid heights beyond the edge of the base,
- * so the ramp climbs at about 30 degrees on the steepened drawn pyramid
- * (giza.md section 11.2).
- */
-export const RAMP_REACH = 4;
+/** The ramp foot lies this many pyramid heights beyond the edge of the base, so it climbs at about 27 degrees. */
+export const RAMP_REACH = 2;
 /** Width of the ramp as a share of the base: wide enough for the enlarged haulers. */
 const RAMP_WIDTH = 0.25;
 

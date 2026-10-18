@@ -5,6 +5,7 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { valueNoise3 } from '../../app/src/core/hash.ts';
 
 export type Vec3 = [number, number, number];
 
@@ -91,41 +92,10 @@ export interface Model {
   bones: Map<string, THREE.Object3D>;
 }
 
+/** Grey stone, shared by tools, hearths and walls. */
+export const STONE = '#9a958c';
+
 // --- Claymation: hand-pressed lumps (Yang, 2026-10-18: "lean into claymation"). ---
-
-/** Integer lattice hash in [0, 1); deterministic, no Math.random. */
-function lattice(x: number, y: number, z: number, seed: number): number {
-  let h =
-    Math.imul(x, 0x8da6b343) ^
-    Math.imul(y, 0xd8163841) ^
-    Math.imul(z, 0xcb1ab31f) ^
-    Math.imul(seed, 0x165667b1);
-  h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d);
-  h = Math.imul(h ^ (h >>> 12), 0x297a2d39);
-  return ((h ^ (h >>> 15)) >>> 0) / 4294967296;
-}
-
-/** Smooth 3D value noise in [-1, 1]. */
-export function valueNoise(x: number, y: number, z: number, seed = 0): number {
-  const xi = Math.floor(x),
-    yi = Math.floor(y),
-    zi = Math.floor(z);
-  const f = (t: number) => t * t * (3 - 2 * t);
-  const u = f(x - xi),
-    v = f(y - yi),
-    w = f(z - zi);
-  const l = (a: number, b: number, t: number) => a + (b - a) * t;
-  const c = (dx: number, dy: number, dz: number) => lattice(xi + dx, yi + dy, zi + dz, seed);
-  return (
-    l(
-      l(l(c(0, 0, 0), c(1, 0, 0), u), l(c(0, 1, 0), c(1, 1, 0), u), v),
-      l(l(c(0, 0, 1), c(1, 0, 1), u), l(c(0, 1, 1), c(1, 1, 1), u), v),
-      w,
-    ) *
-      2 -
-    1
-  );
-}
 
 /**
  * Pushes vertices in and out along their normals by a smooth noise of their
@@ -150,8 +120,8 @@ function clayWobble(g: THREE.BufferGeometry, clay: number, seed: number): void {
       z = pos.getZ(i);
     const d =
       amp *
-      (valueNoise(x * freq, y * freq, z * freq, seed) +
-        0.5 * valueNoise(x * freq * 2.3, y * freq * 2.3, z * freq * 2.3, seed + 99));
+      (valueNoise3(x * freq, y * freq, z * freq, seed) +
+        0.5 * valueNoise3(x * freq * 2.3, y * freq * 2.3, z * freq * 2.3, seed + 99));
     pos.setXYZ(i, x + nor.getX(i) * d, y + nor.getY(i) * d, z + nor.getZ(i) * d);
   }
 }

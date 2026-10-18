@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import manifest from '../../data/assets/manifest.json';
 import { ANIMALS, buildAnimal } from './animals.ts';
+import { MODELS, geometryHash } from './approval.ts';
 import { THROW_RELEASE, animateAnimal, animatePerson, type Clip } from './clips.ts';
 import type { Model } from './kit.ts';
 import {
@@ -25,8 +26,6 @@ import { SHELTERS, buildHearth, buildShelter } from './shelters.ts';
 
 const KINDS: Kind[] = ['man', 'woman', 'child'];
 const people = PROFILES.flatMap((profile) => KINDS.map((kind) => ({ profile, kind })));
-/** Profiles added after the prehistoric set, still waiting for Yang's review. */
-const NEW_PROFILES = new Set(['old-kingdom-egyptian']);
 
 /** Every vertex position of a model, in bone order, as one array. */
 function positions(m: Model): number[] {
@@ -249,28 +248,39 @@ describe('landmarks', () => {
 });
 
 describe('asset manifest', () => {
-  const entries = new Map(manifest.assets.map((a) => [a.id, a.status]));
-  const ids = [
-    ...people
-      .filter(({ profile }) => !NEW_PROFILES.has(profile))
-      .map(({ profile, kind }) => `figure-${profile}-${kind}`),
-    ...SHELTERS,
-    'prop-hearth',
-    ...ANIMALS,
-  ];
-  const listed = [
-    ...people
-      .filter(({ profile }) => NEW_PROFILES.has(profile))
-      .map(({ profile, kind }) => `figure-${profile}-${kind}`),
-    ...Object.keys(LANDMARK_ASSETS),
-    ...PROPS,
-  ];
+  const entries = new Map(
+    manifest.assets.map((a) => [a.id, a as { status: string; geometry?: string }]),
+  );
 
-  it.each(ids)('%s is listed and approved', (id) => {
-    expect(entries.get(id)).toBe('approved');
+  it.each(Object.keys(MODELS))(
+    '%s is listed, and if approved, with the geometry it has now',
+    (id) => {
+      const entry = entries.get(id);
+      expect(['generated', 'approved', 'rejected']).toContain(entry?.status);
+      // Models waiting for review (giza.md section 11.1) are drawn as stand-ins.
+      if (entry?.status !== 'approved') return;
+      // A changed model needs Yang's approval again; then `npm run approve-assets -- <id>`.
+      expect(geometryHash(MODELS[id]!()), `${id} changed since it was approved`).toBe(
+        entry?.geometry,
+      );
+    },
+  );
+
+  it('hashes the geometry, not the last bits of the arithmetic', () => {
+    const a = buildHearth().object;
+    const b = buildHearth().object;
+    const mesh = b.getObjectByProperty('isMesh', true) as THREE.Mesh;
+    const pos = mesh.geometry.getAttribute('position');
+    pos.setX(0, pos.getX(0) + 1e-7);
+    expect(geometryHash(b)).toBe(geometryHash(a));
+    pos.setX(0, pos.getX(0) + 0.01);
+    expect(geometryHash(b)).not.toBe(geometryHash(a));
   });
 
-  it.each(listed)('%s is listed with a review status', (id) => {
-    expect(['generated', 'approved', 'rejected']).toContain(entries.get(id));
+  it('only models waiting for review are not approved', () => {
+    const waiting = Object.keys(MODELS).filter((id) => entries.get(id)?.status !== 'approved');
+    expect(
+      waiting.every((id) => /^(figure-old-kingdom-egyptian-|giza-|stone-sledge)/.test(id)),
+    ).toBe(true);
   });
 });

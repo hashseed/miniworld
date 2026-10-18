@@ -5,6 +5,7 @@ import {
   type Model,
   type Vec3,
   ModelBuilder,
+  STONE,
   blob,
   cone,
   horn,
@@ -41,7 +42,6 @@ export const CAMP_SHELTER: Partial<Record<Profile, ShelterId>> = {
 const POLE = '#7a5030';
 const HIDE = '#b58b5c';
 const BONE = '#ece2cc';
-const STONE = '#9a958c';
 const THATCH = '#cdb26a';
 const DOOR = '#3a2a20';
 

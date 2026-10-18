@@ -3,7 +3,7 @@
 // that model is approved in the asset manifest, and a stand-in otherwise.
 
 import * as THREE from 'three';
-import manifest from '../../../data/assets/manifest.json';
+import { drawable } from '../content/assets.ts';
 import { ANIMALS, buildAnimal, type AnimalId } from '../../../assets/src/animals.ts';
 import { animateAnimal, animatePerson } from '../../../assets/src/clips.ts';
 import { lightUniforms, type Model } from '../../../assets/src/kit.ts';
@@ -18,12 +18,6 @@ import {
 import { hashString } from '../core/hash.ts';
 import type { Clip } from '../world/vignette.ts';
 import { buildStandIn, type StandIn } from './standIns.ts';
-
-const approved = new Set(
-  (manifest as { assets: { id: string; status: string }[] }).assets
-    .filter((a) => a.status === 'approved')
-    .map((a) => a.id),
-);
 
 /** The family at a camp: a woman, a child and a man, then repeating. */
 const FAMILY: Kind[] = ['woman', 'child', 'man'];
@@ -66,20 +60,20 @@ export function buildActor(
   role?: string,
 ): StandIn {
   if (kind === 'prop') {
-    if ((PROPS as readonly string[]).includes(look) && approved.has(look)) {
+    if ((PROPS as readonly string[]).includes(look) && drawable.has(look)) {
       const model = buildProp(look as PropId);
       return wrap(model, () => {});
     }
   } else if (kind === 'animal') {
     const id = animalModel(look);
-    if (id && approved.has(id)) {
+    if (id && drawable.has(id)) {
       const model = buildAnimal(id);
       return wrap(model, (clip, s) => animateAnimal(model, clip, s));
     }
   } else if ((PROFILES as readonly string[]).includes(look)) {
     const profile = look as Profile;
     const person: Kind = role && MEN.has(role) ? 'man' : FAMILY[index % FAMILY.length]!;
-    if (approved.has(`figure-${profile}-${person}`)) {
+    if (drawable.has(`figure-${profile}-${person}`)) {
       const model = buildPerson({
         profile,
         kind: person,

@@ -121,11 +121,11 @@ describe('vignette player', () => {
       const lifeMs = s * 1000 - inst.offsetMs + khufu.template.loopMs;
       return posesAt(khufu.template, members, inst, lifeMs).find((p) => p.group === 'sledge')!;
     };
-    expect(at(200).z).toBeGreaterThan(at(100).z);
-    expect(at(335).x).toBe(0);
-    expect(at(335).z).toBe(0);
-    expect(at(345).visibility).toBe(0);
-    expect(at(599).visibility).toBe(1);
+    expect(at(150).z).toBeGreaterThan(at(80).z);
+    expect(at(170).x).toBe(0);
+    expect(at(170).z).toBe(0);
+    expect(at(180).visibility).toBe(0);
+    expect(at(319).visibility).toBe(1);
     const hauler = posesAt(khufu.template, members, inst, 100_000 - inst.offsetMs).find(
       (p) => p.group === 'haulers',
     )!;

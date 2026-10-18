@@ -1,6 +1,7 @@
 // Saved state in local storage (spec milestone 1, section 9). Every value is
 // versioned and validated; anything unreadable is replaced by defaults.
 
+import type { CameraState } from '../core/camera.ts';
 import type { Language } from '../i18n/messages.ts';
 import type { PlayState } from '../time/clock.ts';
 
@@ -18,14 +19,6 @@ export interface Settings {
   lensStrength: number;
   /** The first-start hint about the lens was closed. */
   lensHintSeen: boolean;
-}
-
-export interface CameraState {
-  lat: number;
-  lon: number;
-  altitudeKm: number;
-  heading: number;
-  tilt: number;
 }
 
 export interface ViewState {

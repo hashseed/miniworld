@@ -2,7 +2,7 @@
 
 This is the detailed spec for the second milestone in [milestones.md](milestones.md#2-first-people). It refines [spec.md](spec.md) for what milestone 2 builds; where the two disagree, fix whichever is wrong in the same pull request. Decisions marked **Proposed** are defaults chosen so work can start and are open for Yang to change; the open questions are in section 17.
 
-**Goal:** the first living humans, and the systems that let small stories play out on the globe. A viewer opens the app at 50,000 BCE and sees camps of people at work in Africa, along the coasts of Asia, in Sahul and in Europe, where Neanderthals still live. Families walk out of Africa along the coasts. On the steppe a band of hunters stalks a mammoth, over and over while history is paused. Zooming in on Lascaux opens the hill like a dollhouse, and painters are at work inside by torchlight. At about 9500 BCE the stone rings of Göbekli Tepe rise in southeastern Anatolia. Tapping any figure explains what it is doing, in English or German.
+**Goal:** the first living humans, and the systems that let small stories play out on the globe. A viewer opens the app at 50,000 BCE and sees camps of people at work in Africa, along the coasts of Asia, in Sahul and in Europe, where Neanderthals still live. Families walk out of Africa along the coasts. On the steppe a band of hunters stalks a mammoth, over and over for as long as its era lasts. Zooming in on Lascaux opens the hill like a dollhouse, and painters are at work inside by torchlight. At about 9500 BCE the stone rings of Göbekli Tepe rise in southeastern Anatolia. Tapping any figure explains what it is doing, in English or German.
 
 The milestone proves the world query in its Web Worker, figures driven by the life clock, cross-device determinism, and four systems every later milestone reuses: **vignettes** (small staged stories that loop), **landmarks** (recognisable buildings that rise over their real years), **migrations**, and **cutaways** for things too small to see from above.
 
@@ -35,7 +35,7 @@ The pure functions of `app/src/time`, `app/src/core` and the date-dependent part
 
 ### 2.2 Motion as segments
 
-Figures and props move every frame, but the worker does not run every frame. For every moving thing it returns **segments**: a start and end on the life clock, a start and end position, a heading, and an animation clip with its start offset. The renderer interpolates positions and plays clips on the GPU from the life clock. The worker returns segments covering at least the next 10 seconds of life clock and is asked again when the earliest segment set runs out, when the date crosses a time-window boundary, or when the view changes tiles. When everything is frozen nothing is recomputed and the renderer holds the frozen life clock, so every figure stops mid-step.
+Figures and props move every frame, but the worker does not run every frame. For every moving thing it returns **segments**: a start and end on the life clock, a start and end position, a heading, and an animation clip with its start offset. The renderer interpolates positions and plays clips on the GPU from the life clock. The worker returns segments covering at least the next 10 seconds of life clock and is asked again when the earliest segment set runs out, when the date crosses a time-window boundary, or when the view changes tiles. When history is paused nothing is recomputed and the renderer holds the stopped life clock, so every figure stops mid-step.
 
 ### 2.3 Determinism rules
 
@@ -369,6 +369,8 @@ All dates are checked against sources when the records are written, and the rows
 
 Every asset is listed in `data/assets/manifest.json` with its status (milestone 1 section 12). Until approved, the app draws a flat-coloured stand-in of the same size, and the production build fails if an unapproved asset is referenced.
 
+**Approval by content.** A model is code, so its approval is tied to the geometry Yang saw: the manifest entry of every approved model also records `geometry`, a hash of what the script builds by default (variant 0 with its default tool): the vertex positions, vertex colours and indices of every part and each part's placement, rounded to 0.1 mm and colours to 0.001, so the hash does not depend on the last bits of floating-point maths. The model tests fail when a model no longer matches its hash, so a model that changes needs approving again. After Yang approves it, `npm run approve-assets -- <id>...` records the new hash, the status `approved` and the review date. The plant models of [foliage.md](foliage.md) are approved the same way.
+
 ### 13.3 The prehistoric model set
 
 The first models are the people, shelters and animals of the seven culture profiles of section 4. Each is a modelling script in `assets/src/` that returns the model at life size in metres, facing +Z with its feet on y = 0, so the miniature factor (section 5.1) is applied in one place. Colours are flat vertex-colour regions, lit by the same cel-shaded studio light as the globe (milestone 1 section 3.6) and outlined in ink by an inverted hull.
@@ -435,8 +437,8 @@ The budget of spec section 9 holds with this milestone's content. Two new scenes
 | Golden scenes | For a fixed list of cases (date, life clock, view): the scene's camps, figure ids, roles, tasks, segment end points and vignette phases, stored as a readable summary and a hash of the canonical serialisation. Cases: East Africa and the Bab-el-Mandeb at 50,000 BCE; the Danube at 40,000 BCE; Sahul at 45,000 BCE; Beringia and the Great Plains at 30,000 and 12,000 BCE; Lascaux at 15,000 BCE; Göbekli Tepe at 9200 BCE; each at life clock 0, 37,000 ms and 3,600,000 ms |
 | Expected answers | No people in the Americas at 30,000 BCE; no Neanderthals after 38,000 BCE; Sahul inhabited at 45,000 BCE; no camp on sea, ice or deep desert at any golden case; a repeated vignette is identical at life clock t and t plus its loop length on the same day |
 | Cross-browser | The golden scenes computed in Chromium, Firefox and WebKit through Playwright, in the worker, must match the stored results exactly |
-| Browser tests | Pausing history keeps figures and vignettes moving; freezing stops them; tapping a figure opens its card in both languages; double-clicking the Göbekli Tepe event flies there and shows the building site |
-| Models | Every model of section 13.3 is built the same way every time, stays within its triangle budget (people 1,050, animals 1,200, shelters 1,000), stands on the ground at a believable height and faces +Z; clips give the same pose for the same time whatever came before; the spear leaves the hand at the release time; the falling animal stays on the ground; every model is listed in the asset manifest |
+| Browser tests | Pausing history stops figures and vignettes mid-step; tapping a figure opens its card in both languages; double-clicking the Göbekli Tepe event flies there and shows the building site |
+| Models | Every model of section 13.3 is built the same way every time, stays within its triangle budget (people 1,050, animals 1,200, shelters 1,000), stands on the ground at a believable height and faces +Z; clips give the same pose for the same time whatever came before; the spear leaves the hand at the release time; the falling animal stays on the ground; every model is listed in the asset manifest, and every approved one with the geometry hash it was approved with; only models still waiting for review (such as those of [giza.md](giza.md) section 11.1, drawn as stand-ins) are not approved |
 | Performance check | Draw calls and triangles of the two new scenes (section 14) |
 
 ## 16. Exit criteria and how they are checked
@@ -496,7 +498,7 @@ Each cast member gets its model from its culture and role, without any change to
 | `cast` | Map of group name to `{ culture: $param, role, count, at }` or `{ animal: $param, count, at }` |
 | `beats` | List of `{ at: <seconds>, <group>: <action> }`; an action is a bare verb (`point`) or `{ <verb>: <mark or group> }` |
 
-**Vignette record** (`data/curated/vignettes/<id>.md`): the envelope of [content-format.md](content-format.md#2-the-record-envelope) section 2 with `kind: vignette`, plus `template`, `with` (the template's parameters), and for a repeated vignette `repeat: { per: <years> years, count, sites: { points: [...] } }`. Each candidate point is `{ name, at: [lat, lon] }` with optional `from` and `to`. Dates are written as in the spec lists, such as `c. 43,000 BCE`. The text has the fixed headings `## en` and `## de`, each with a `#` title, the card text and an optional `### Learn more` (German `### Mehr erfahren`).
+**Vignette record** (`data/curated/vignettes/<id>.md`): the envelope of [content-format.md](content-format.md#2-the-record-envelope) section 2 with `kind: vignette`, plus `template`, `with` (the template's parameters), and for a repeated vignette `repeat: { per: <years> years, count, sites: { points: [...] } }`. Each candidate point is `{ name, at: [lat, lon] }` with optional `from` and `to`. `icon` names the scene-marker icon (section 7.2; the slice draws only `spear`), and the build fails on any other. Until `vocab/regions.yaml` exists, the `region` ids are the timeline's lane ids from the era data (milestone 1, section 7.4). Dates are written as in the spec lists, such as `c. 43,000 BCE`. The text has the fixed headings `## en` and `## de`, each with a `#` title, the card text and an optional `### Learn more` (German `### Mehr erfahren`).
 
 ### 18.3 Verbs of the slice
 
@@ -516,7 +518,7 @@ Members of a group stand in a formation around their target: a grid ⌈√*n*⌉
 
 ### 18.4 The vignette layer
 
-The data build writes one structure file per vignette record, content-hashed: the compiled template (marks in whole centimetres, beats in whole milliseconds, each group's action list) and the record's dates as whole days, its period in whole days, its candidate sites in whole microdegrees, and the scene-marker icon. It writes one text file per record and language with the title, card text and "Learn more". The startup index gains a `vignettes` list with each record's id, span and icon and the names of its structure and text files, about 100 bytes per record; the structure file is fetched when the date first comes within the span, and the text file when the card opens.
+The data build writes one structure file per vignette record, content-hashed: the compiled template (marks in whole centimetres, beats in whole milliseconds, each group's action list) and the record's dates as whole days, its period in whole days, its candidate sites in whole microdegrees, and the scene-marker icon. It writes one text file per record and language with the title, card text and "Learn more". The startup index gains a `vignettes` list with each record's id, span (with whether each end is approximate), icon and title in the index's language (for the marker's label) and the names of its structure and text files, about 150 bytes per record; the structure file is fetched when the date first comes within the span, and the text file when the card opens.
 
 ### 18.5 The player
 

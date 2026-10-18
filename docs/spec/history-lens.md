@@ -86,7 +86,7 @@ Changing the strength morphs the globe instead of swapping it, so the viewer see
 - **Timing.** The blend follows the slider like a critically damped spring: it starts and ends gently, never overshoots, and a jump from 0% to 100% settles in about 1 second. With "reduce motion" set in the operating system it settles in about 0.25 seconds. Moving the slider again during a morph, or dragging it, changes the target without a jump, so the globe follows the hand smoothly.
 - **Camera.** The camera keeps the same true point in the middle of the screen and the same height above the ground, so the region in view grows or shrinks around that point. A fly-to that runs during a morph keeps flying to its true target.
 - **No flicker.** The morph moves the existing terrain in the vertex shader; tiles are not rebuilt and nothing is loaded for it. Tile detail follows the blended drawn size, and a finer tile is shown only once its mesh exists, as everywhere else.
-- **Clocks and world.** The morph runs on the frame time of the screen, not on the historical clock or the life clock, so it also plays when everything is frozen and changes neither clock. It changes only how the world is drawn, never the world.
+- **Clocks and world.** The morph runs on the frame time of the screen, not on the historical clock or the life clock, so it also plays while history is paused and changes neither clock. It changes only how the world is drawn, never the world.
 - **Start.** When the app opens, the globe is drawn straight in the saved state, with no morph.
 
 ## 5. Settings and tests

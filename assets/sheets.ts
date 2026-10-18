@@ -4,18 +4,10 @@
 import { chromium } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { PROFILES } from '../app/src/world/cultures.ts';
 
 const out = process.argv[2] ?? 'assets/sheets';
 const base = process.env.SHEET_URL ?? 'http://localhost:8800/asset-sheet.html';
-const profiles = [
-  'african-stone-age',
-  'neanderthal',
-  'coastal-asia-hunter',
-  'first-australians',
-  'ice-age-hunter',
-  'steppe-beringia-hunter',
-  'natufian',
-];
 const sheets: [string, string][] = [
   ['people', 'sheet=people'],
   ...['idle', 'walk', 'run', 'carry', 'work', 'point', 'throw', 'cheer'].map(
@@ -30,7 +22,7 @@ const sheets: [string, string][] = [
   ),
   ['turnaround-ice-age-hunter', 'sheet=turnaround&profile=ice-age-hunter'],
   ['turnaround-neanderthal', 'sheet=turnaround&profile=neanderthal'],
-  ...profiles.map((p): [string, string] => [`camp-${p}`, `sheet=camp&profile=${p}`]),
+  ...PROFILES.map((p): [string, string] => [`camp-${p}`, `sheet=camp&profile=${p}`]),
 ];
 
 mkdirSync(out, { recursive: true });

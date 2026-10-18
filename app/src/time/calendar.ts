@@ -45,10 +45,6 @@ export function dateFromDay(dayNumber: Day): CalendarDate {
   return { year, month, day };
 }
 
-export function yearOfDay(dayNumber: Day): number {
-  return dateFromDay(dayNumber).year;
-}
-
 /** Converts a display year with era (e.g. 50,000 BCE) to an astronomical year. */
 export function astronomicalYear(year: number, era: 'BCE' | 'CE'): number {
   return era === 'BCE' ? 1 - year : year;

@@ -49,7 +49,7 @@ Two extensions of the landmark format, both **Proposed** and to be written into 
 
 **Placement.** The pyramids stand on the desert edge on the west bank of the Nile, about 8 km from the river today and close to the floodplain in the Old Kingdom. The globe draws the Nile as a wide, smooth ribbon (spec section 6), so the true points may fall inside the drawn river or its green band. The landmark is therefore anchored to its true point and, if the drawn river or its banks cover any part's footprint, the whole group is shifted west, as one piece, to the nearest desert land that is clear of them (decided by Yang on 2026-10-18). The shift is computed once in the data build from the terrain, which is time-independent, so it is deterministic.
 
-**Size.** Like the trees and the vignettes (milestone-2 section 5.1), the landmark keeps one drawn size at every zoom. Decided by Yang on 2026-10-18: the Great Pyramid is only about 3 people high and just a bit larger than a mammoth, and about three widths of the drawn Nile across, so it is drawn about 270 km high on a base of about 180 km, steeper than the real one (about 70 degrees instead of 52), with its crew clearly visible on it (section 11.2). The relative sizes of the three pyramids stay true to each other (Khufu and Khafre almost equal, Menkaure clearly smaller), because that is how children recognise the group.
+**Size.** Like the trees and the vignettes (milestone-2 section 5.1), the landmark keeps one drawn size at every zoom. Decided by Yang on 2026-10-18: the Great Pyramid is about three widths of the drawn Nile across with its true slope of about 52 degrees, so it is drawn on a base of about 180 km and about 115 km high, a little taller than a person, with its crew clearly visible on it (section 11.2). A first try at 270 km high and 70 degrees was too tall. The relative sizes of the three pyramids stay true to each other (Khufu and Khafre almost equal, Menkaure clearly smaller), because that is how children recognise the group.
 
 **Model.** One clay model per part and stage, cel-shaded in the house style, together within the landmark budget of about 20,000 triangles (spec section 8). The pyramids are smooth, pale and slightly rounded at the edges like modelling clay; the stepped core shows in the construction stages and after the casing is stripped. The pyramidion (capstone) on top is pale stone; whether it was covered in metal is unknown, so it is not drawn gilded.
 
@@ -97,7 +97,7 @@ A new template for the building of a pyramid, used here three times and later fo
 - **Cast:** a hauling crew of eight to ten, a water carrier, quarry workers, masons at the top, an overseer, a scribe, and bakers and brewers at the town.
 - **Verbs:** `haul`, `lift`, `carry-to`, `work-at`, `walk-to`, `point`, `cheer`, `talk`, and the prop actions `sail-to`, `move-to`, `rise` and `fall`, all in milestone-2 section 6.4. No new verbs are needed.
 
-The beats are the record scripts in section 4.2. The loop closes because the sledge returns empty down the ramp and a new block is cut in the quarry while the boat sails off and returns full. **Proposed** loop length: 600 s, so a crew can haul a block up the whole ramp and walk back (section 11.3).
+The beats are the record scripts in section 4.2. The loop closes because the sledge returns empty down the ramp and a new block is cut in the quarry while the boat sails off and returns full. **Proposed** loop length: 320 s, so the crew can haul a block up the whole ramp and walk back (section 11.3).
 
 How the blocks were raised is not fully known: archaeologists have found remains of ramps at Giza and at Hatnub, and debate whether they were straight, zigzag or wound around the pyramid. The diorama shows one straight supply ramp, which is simple to read, and the card says that the exact way is still debated (decided by Yang on 2026-10-18).
 
@@ -216,7 +216,8 @@ Decided by Yang on 2026-10-18:
 3. One straight supply ramp in the building dioramas, with the card saying the method is debated (section 4.1).
 4. The gap at Giza from c. 2180 to c. 1550 BCE stays open for now; the farming dioramas of the Nile valley that carry the region then are worked out in detail later.
 5. The Great Pyramid is finished c. 2560 BCE, as in events/egypt.md; the sources settle the exact date and Khufu's reign when the records are written (section 6).
-6. The pyramids are drawn at one fixed size: the Great Pyramid about 3 people high, a bit larger than a mammoth, and about three widths of the drawn Nile across, so steeper than in life; the pyramids stand close together (section 11.2).
+6. The pyramids are drawn at one fixed size: the Great Pyramid about three widths of the drawn Nile across, at its true slope; the pyramids stand close together (section 11.2).
+8. Only two or three people build at a time: two haulers and a mason, all actually hauling and setting stone (section 11.3).
 7. The builders clearly look like ancient Egyptians: wigs, broad collars and white linen (section 11.5).
 
 ## 11. First slice: the pyramids rise
@@ -231,10 +232,10 @@ Asked for by Yang on 2026-10-18: the Giza landmark and its three building dioram
 | Models | Script-built clay models in `assets/src/landmarks.ts`: a pyramid that can be drawn at any point of its construction, complete, half stripped, stepped or gashed, and the Sphinx with or without sand and nose; a stone sledge with its block | Boats, ramps of other shapes, the workers' town |
 | Data build | Validates the landmark record, shifts the group west off the drawn Nile (section 2), and writes a structure file and a text file per language; the startup index gains a `landmarks` list | Unchanged |
 | Landmark layer | Draws every part at the date's stage, rising with the date during its build, at one fixed drawn size at every zoom (section 11.2); tapping a part opens the landmark card | Unchanged |
-| Building dioramas | `khufu-pyramid-building`, `khafre-pyramid-building` and `menkaure-pyramid-building` on the `pyramid-building` template, with the haulers, their sledge, quarry workers, masons, a water carrier, a scribe and an overseer | The boat from Tura or Aswan, the Sphinx carvers and the bakers of section 4 |
+| Building dioramas | `khufu-pyramid-building`, `khafre-pyramid-building` and `menkaure-pyramid-building` on the `pyramid-building` template, with two haulers, their sledge and a mason | The quarry workers, water carrier, scribe and overseer, the boat from Tura or Aswan, the Sphinx carvers and the bakers of section 4 |
 | Figures | The cast is the `old-kingdom-egyptian` culture profile (section 11.5), built like the prehistoric figures and shown once Yang approves them; until then, stand-ins | Unchanged |
 
-The models are new assets: they are drawn in their clay look only once Yang approves them in `data/assets/manifest.json` (spec section 13). Until then each is drawn as a flat-coloured stand-in of the same shape, like the stand-in figures of milestone-2 section 18.1.
+The models are new assets: they are drawn in their clay look only once Yang approves them in `data/assets/manifest.json` (spec section 13). Until then each is drawn as a flat-coloured stand-in of the same shape, like the stand-in figures of milestone-2 section 18.1. A preview build on devenv started with `VITE_PREVIEW_ASSETS=1` also draws the models with status `generated`, so Yang can review them in place; such a build is never shipped.
 
 ### 11.2 The landmark record
 
@@ -247,7 +248,7 @@ where: { point: [29.9792, 31.1342] }
 region: mena
 icon: pyramid
 beacon: wonder
-size: { part: khufu, across: 180 km, high: 270 km }
+size: { part: khufu, across: 180 km, high: 115 km }
 spacing: 0.6
 parts:
   khufu:
@@ -265,9 +266,9 @@ sources: [...]
 ```
 
 - A part is drawn from its first stage's date. The stage whose span contains a `build` entry is drawn **rising**: at a fraction *f* of the build span the stepped core stands to *f* / 0.85 of the full height, in whole courses of the model; from *f* = 0.85 the core is complete and the white casing is laid from the top down while the ramp shrinks, until the stage's finished asset stands at the end of the span.
-- **Fixed size** (decided by Yang on 2026-10-18). `size` names a pyramid part and how big it is drawn: `across` its base and `high` its apex, in km. That gives the landmark two factors, drawn km per life-size metre across the ground (180 km over 230.3 m, about 0.78) and upwards (270 km over 146.6 m, about 1.84), used for every pyramid of the group at every zoom, like the trees. The pyramids are therefore steeper than in life, at about 70 degrees, while keeping their true sizes relative to each other. The Sphinx and other parts that are not pyramids keep their shape and are drawn evenly at the upward factor (the Sphinx about 135 km long).
+- **Fixed size** (decided by Yang on 2026-10-18). `size` names a pyramid part and how big it is drawn: `across` its base and `high` its apex, in km. That gives the landmark two factors, drawn km per life-size metre across the ground (180 km over 230.3 m, about 0.78) and upwards (115 km over 146.6 m, also about 0.78), used for every pyramid of the group at every zoom, like the trees. With equal factors the pyramids keep their true slope and their true sizes relative to each other; the two factors stay so a record could exaggerate height. The Sphinx and other parts that are not pyramids keep their shape and are drawn evenly at the upward factor (the Sphinx about 57 km long).
 - **Spacing.** The parts' positions are kept as offsets from the landmark's point in metres, and drawn at the across factor times `spacing` (0.6 at Giza), so the pyramids stand close together with narrow gaps rather than at their true distances.
-- **Ramp.** The building ramp runs straight south from the base for 4 pyramid heights, so on the steepened pyramid it climbs at about 30 degrees, and is a quarter of the base wide, so the enlarged haulers fit on it.
+- **Ramp.** The building ramp runs straight south from the base for 2 pyramid heights, so it climbs at about 27 degrees, and is a quarter of the base wide, so the enlarged haulers fit on it.
 - The data build moves the group's drawn point west, in steps of 1 km and at most 600 km, until no point of the group's footprint (every part's base with its ramp at the drawn size and spacing) lies on a river, a lake or the sea of today (section 2); dry land below sea level, such as the Qattara Depression, counts as land, and if no shift is fully dry the one with the least water wins. The true point stays the one used for flying to the landmark and for its card.
 
 ### 11.3 The `pyramid-building` template
@@ -278,9 +279,9 @@ The template of section 4.1 in the format of milestone-2 section 18.2, with thre
 - **The `haul` verb.** Moves to a mark at 3 m/s on the stage with the haul clip, three times the hauling speed of life like the other stage speeds (milestone-2 section 18.3): leaning forward, both arms pulling a rope. A prop that is hauled moves the same way.
 - **Fit.** `stage.fit` (such as `230 m`, the base of the Great Pyramid) is the size the marks are written for. A record whose `progress` names a landmark part has every mark scaled by the part's base over the fit, so one template serves pyramids of every size.
 
-Its marks lie around the pyramid's centre, with +x east and +z north: `ramp-foot` 700 m south of the centre where the ramp starts, `quarry` south-east of it, `top` at the centre, and `scribe` beside the ramp foot; the stage radius is 800 m. Figures standing on the pyramid or the ramp are lifted onto their surface (section 11.6).
+Its marks lie around the pyramid's centre, with +x east and +z north: `ramp-foot` 408 m south of the centre where the ramp starts, `quarry` south-east of it and `top` at the centre; the stage radius is 500 m. Figures standing on the pyramid or the ramp are lifted onto their surface (section 11.6).
 
-Script (600 s, because the ramp of the Great Pyramid is long even at diorama speed): the quarry workers cut stone all loop long; the haulers pull the sledge with its block from the quarry to the ramp foot, with the water carrier beside them, and on up the ramp to the top; there the block sinks into place among the masons and the haulers cheer; they walk back down the ramp to the quarry, where the next loaded sledge appears; the overseer points at the haulers and cheers, and the scribe writes.
+Script (320 s; decided by Yang on 2026-10-18, only two or three people build): two haulers pull the sledge with its block from the quarry to the ramp foot and on up the ramp to the top, where a mason works; the block sinks into place, and the haulers and the mason cheer; the mason goes back to work while the haulers walk back down the ramp to the quarry, where the next loaded sledge appears.
 
 ### 11.4 Singular vignettes
 
