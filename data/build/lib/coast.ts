@@ -15,7 +15,7 @@ import { Grid, type GridData } from './grid.ts';
 import { blurLine, boxRadius } from './simplify.ts';
 
 /** Gaussian sigma (km) of the coast smoothing, and of the coast in polar regions. */
-export const COAST_SIGMA_KM = 20;
+export const COAST_SIGMA_KM = 28;
 export const POLAR_COAST_SIGMA_KM = 60;
 /** Gaussian sigma (km) of Antarctica's coast, which is simplified even more. */
 export const ANTARCTIC_COAST_SIGMA_KM = 120;
@@ -28,7 +28,7 @@ export function antarcticWeight(lat: number): number {
  * Distance (km) every coast grows seaward before the smoothing, so narrow
  * peninsulas and islands survive the blur and come out slightly larger.
  */
-export const COAST_GROW_KM = 16;
+export const COAST_GROW_KM = 34;
 /** Level (m) given to land that never joins the ocean before smoothing. */
 export const NEVER_LEVEL_M = OCEAN_MIN_LEVEL + OCEAN_TOP;
 
@@ -165,6 +165,8 @@ export interface Strait {
   sill: number;
   /** [lon, lat] points from one sea to the other. */
   line: [number, number][];
+  /** Half-width of the always-open core in km, for narrow seas wider than a strait. */
+  coreKm?: number;
 }
 
 export function validateStraits(straits: Strait[]): string[] {
@@ -176,6 +178,8 @@ export function validateStraits(straits: Strait[]): string[] {
     if (!s.source) errors.push(`strait ${s.id}: no source`);
     if (!(s.sill < 0)) errors.push(`strait ${s.id}: sill must be below 0`);
     if (s.line.length < 2) errors.push(`strait ${s.id}: needs at least two points`);
+    if (s.coreKm !== undefined && !(s.coreKm > 0 && s.coreKm <= 60))
+      errors.push(`strait ${s.id}: bad core width`);
   }
   return errors;
 }
@@ -300,8 +304,9 @@ export function smoothOcean(
     ANTARCTIC_COAST_SIGMA_KM,
   );
   for (const s of straits) {
-    forCellsNearLine(connection, s.line, STRAIT_CORE_KM + STRAIT_BANK_KM, (i, d) => {
-      const t = Math.max(0, d - STRAIT_CORE_KM) / STRAIT_BANK_KM;
+    const core = s.coreKm ?? STRAIT_CORE_KM;
+    forCellsNearLine(connection, s.line, core + STRAIT_BANK_KM, (i, d) => {
+      const t = Math.max(0, d - core) / STRAIT_BANK_KM;
       const v = s.sill + (NEVER_LEVEL_M - s.sill) * t;
       if (v < smooth[i]!) smooth[i] = v;
     });
@@ -349,8 +354,8 @@ export function coarseOcean(
     h,
     spacingKm * COARSE_SIGMA,
   );
-  const core = Math.max(STRAIT_CORE_KM, spacingKm / 2);
   for (const s of straits) {
+    const core = Math.max(s.coreKm ?? STRAIT_CORE_KM, spacingKm / 2);
     forCellsNearLine(ocean, s.line, core + spacingKm / 2, (i, d) => {
       const t = Math.max(0, d - core) / (spacingKm / 2);
       const v = s.sill + (NEVER_LEVEL_M - s.sill) * t;

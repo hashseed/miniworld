@@ -127,8 +127,8 @@
     "Baltic": {
       "sea": true,
       "ice": true,
-      "iceKm": 187.93,
-      "groundM": 884.13
+      "iceKm": 233.81,
+      "groundM": 979
     },
     "Caspian Sea": {
       "sea": false,
@@ -153,7 +153,7 @@
       "groundM": -27.8
     },
     "Java Sea": {
-      "sea": true,
+      "sea": false,
       "ice": false,
       "iceKm": -128,
       "groundM": -27.8
@@ -167,8 +167,8 @@
     "Hudson Bay": {
       "sea": true,
       "ice": true,
-      "iceKm": 768,
-      "groundM": 1394.41
+      "iceKm": 892,
+      "groundM": 1416.15
     },
     "Baltic": {
       "sea": true,
@@ -213,8 +213,8 @@
     "Hudson Bay": {
       "sea": true,
       "ice": true,
-      "iceKm": 701.62,
-      "groundM": 1377.5
+      "iceKm": 892,
+      "groundM": 1416.15
     },
     "Baltic": {
       "sea": true,
@@ -251,7 +251,7 @@
       "groundM": -4.3
     },
     "Torres Strait": {
-      "sea": true,
+      "sea": false,
       "ice": false,
       "iceKm": -128,
       "groundM": -4.3

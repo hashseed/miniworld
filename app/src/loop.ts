@@ -19,6 +19,7 @@ import { planetAt, type PlanetState } from './planet/state.ts';
 import type { Clock } from './time/clock.ts';
 import { zoomFactor } from './time/rateCurve.ts';
 import type { HotState } from './ui/state.ts';
+import type { LandmarkLayer } from './landmarks/landmarkLayer.ts';
 import type { VignetteLayer } from './vignettes/vignetteLayer.ts';
 
 /** Everything the loop draws and advances. */
@@ -34,6 +35,7 @@ export interface LoopParts {
   sky: Sky;
   clouds: Clouds;
   vignettes: VignetteLayer;
+  landmarks: LandmarkLayer;
   hot: Store<HotState>;
   stress: StressRun | undefined;
   isPhone: boolean;
@@ -117,6 +119,7 @@ export class FrameLoop {
     p.sky.update(p.camera);
     p.clouds.update(p.camera, p.clock.lifeMs, u.lightDir!.value);
     p.stress?.update(now, p.globe, this.planet, p.camera, p.clock.lifeMs);
+    p.landmarks.update(p.camera, day);
     p.vignettes.update(p.camera, day, p.clock.vignetteMs, u.lightDir!.value);
 
     this.updateStats.push(performance.now() - updateStart);

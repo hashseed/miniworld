@@ -29,7 +29,7 @@ import { TerrainStore } from './terrainStore.ts';
 import type { TerrainTile } from '../content/formats.ts';
 
 export const EXAGGERATION = 100;
-export const MAX_RENDER_LEVEL = 9;
+export const MAX_RENDER_LEVEL = 5;
 /** Meshes kept beyond those touched this frame; touched meshes are never evicted. */
 const MAX_CACHED_MESHES = 1500;
 
@@ -120,6 +120,7 @@ export class Globe {
         glacial: { value: 0 },
         time: { value: 0 },
         cameraWorld: { value: new THREE.Vector3() },
+        limbInk: { value: 1 },
         riverThreshold: { value: 0.5 },
         fields: { value: null },
         lensGrid: { value: null },
@@ -188,6 +189,18 @@ export class Globe {
     u.climateT!.value = climate.t;
     u.glacial!.value = planet.glacialIndex;
     u.cameraWorld!.value.copy(camera.position);
+    // No ink along the globe's outline in low views, where it would cut
+    // across the mountains standing above the horizon (section 4.5).
+    const lookDown = camera
+      .getWorldDirection(_lookDir)
+      .dot(_camDir.copy(camera.position).normalize().negate());
+    u.limbInk!.value =
+      1 -
+      THREE.MathUtils.smoothstep(
+        Math.acos(THREE.MathUtils.clamp(lookDown, -1, 1)),
+        LIMB_INK_TILT[0],
+        LIMB_INK_TILT[1],
+      );
     u.lensBlend!.value = this.lens.blend;
 
     const camPos = camera.position;
@@ -260,8 +273,11 @@ export class Globe {
     }
     if (!inside) return;
     const dist = Math.max(0.5, centre.distanceTo(view.camPos) - extent);
-    // Geometric error of the vertex grid, estimated as half its sample spacing.
-    const errorKm = (0.5 * EARTH_RADIUS_KM * tileAngularSize(key.level) * width) / TILE_N;
+    // Geometric error of the vertex grid, estimated as half its sample
+    // spacing at the lens as built, so moving the lens slider does not
+    // re-pick tiles and reload them while it morphs.
+    const errorKm =
+      (0.5 * EARTH_RADIUS_KM * tileAngularSize(key.level) * lens.builtWidthAt(trueCentre)) / TILE_N;
     const errorPx = (errorKm / dist) * view.pxPerRad;
     const priority = dist + key.level;
 
@@ -430,6 +446,8 @@ function angleBetween(a: Vec3, b: Vec3): number {
  * much that finer tiles would add triangles without detail (section 4.2).
  */
 const POLAR_MAX_LEVEL = 4;
+/** View angles from straight down (radians) over which the outline ink fades out. */
+const LIMB_INK_TILT = [THREE.MathUtils.degToRad(42), THREE.MathUtils.degToRad(58)] as const;
 function maxLevelAt(d: Vec3): number {
   const { lat } = dirToLatLon(d);
   return lat > 74 || lat < -62 ? POLAR_MAX_LEVEL : MAX_RENDER_LEVEL;
@@ -487,6 +505,7 @@ function tileNode(key: TileKey): TileNode {
 const _frustum = new THREE.Frustum();
 const _viewProjection = new THREE.Matrix4();
 const _camDir = new THREE.Vector3();
+const _lookDir = new THREE.Vector3();
 const _centre = new THREE.Vector3();
 const _axis = new THREE.Vector3();
 const _sphere = new THREE.Sphere();

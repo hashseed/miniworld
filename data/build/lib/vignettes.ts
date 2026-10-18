@@ -6,6 +6,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { parse } from 'yaml';
+import { PROPS } from '../../../assets/src/landmarks.ts';
 import { LANGUAGES, type Language } from '../../../app/src/i18n/messages.ts';
 import { DAYS_PER_YEAR, astronomicalYear, dayOfYearStart } from '../../../app/src/time/calendar.ts';
 import {
@@ -23,9 +24,10 @@ import { PROFILES } from '../../../app/src/world/cultures.ts';
 
 const CULTURES = new Set<string>(PROFILES);
 /** Scene-marker icons the app can draw (section 7.2). */
-const ICONS = new Set(['spear']);
+export const ICONS = new Set(['spear', 'pyramid']);
 /** What historians may dispute about a record (content-format section 2). */
 const DEBATED = new Set(['date', 'place', 'cause', 'numbers', 'method']);
+type ParamKind = 'culture' | 'animal' | 'prop';
 const LEARN_MORE: Record<Language, string> = { en: 'Learn more', de: 'Mehr erfahren' };
 
 export interface VignetteText {
@@ -42,9 +44,9 @@ export interface BuiltVignette {
   toApproximate: boolean;
 }
 
-type Yaml = string | Yaml[] | { [key: string]: Yaml };
+export type Yaml = string | Yaml[] | { [key: string]: Yaml };
 
-class Errors {
+export class Errors {
   list: string[] = [];
   private where: string;
   constructor(where: string) {
@@ -55,20 +57,20 @@ class Errors {
   }
 }
 
-function isMap(v: Yaml | undefined): v is { [key: string]: Yaml } {
+export function isMap(v: Yaml | undefined): v is { [key: string]: Yaml } {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
-function str(v: Yaml | undefined): string | undefined {
+export function str(v: Yaml | undefined): string | undefined {
   return typeof v === 'string' ? v : undefined;
 }
 
-function num(v: Yaml | undefined): number | undefined {
+export function num(v: Yaml | undefined): number | undefined {
   if (typeof v !== 'string' || !/^-?\d+(\.\d+)?$/.test(v)) return undefined;
   return Number(v);
 }
 
-function unknownFields(e: Errors, what: string, v: Yaml, allowed: string[]): void {
+export function unknownFields(e: Errors, what: string, v: Yaml, allowed: string[]): void {
   if (!isMap(v)) return;
   for (const k of Object.keys(v))
     if (!allowed.includes(k)) e.add(`${what} has unknown field "${k}"`);
@@ -98,7 +100,8 @@ export function parseDate(
   if (typeof v !== 'string') return undefined;
   const s = v.trim();
   if (s === 'start') return { first: startDay, end: startDay, approximate: false };
-  if (s === 'today') return { first: cutoffDay, end: cutoffDay, approximate: false };
+  // The last day of the timeline is included, so what stands 'to today' is still there on it.
+  if (s === 'today') return { first: cutoffDay, end: cutoffDay + 1, approximate: false };
   const m = /^(c\.\s*)?(\d{1,3}(?:,\d{3})*|\d+)(\s+BCE)?$/.exec(s);
   if (!m) return undefined;
   const year = Number(m[2]!.replace(/,/g, ''));
@@ -112,9 +115,9 @@ export function parseDate(
 export function compileTemplate(
   file: string,
   text: string,
-): { template?: CompiledTemplate; params: Record<string, 'culture' | 'animal'>; errors: string[] } {
+): { template?: CompiledTemplate; params: Record<string, ParamKind>; errors: string[] } {
   const e = new Errors(`templates/${basename(file)}`);
-  const params: Record<string, 'culture' | 'animal'> = {};
+  const params: Record<string, ParamKind> = {};
   let y: Yaml;
   try {
     y = parse(text, { schema: 'failsafe' }) as Yaml;
@@ -131,7 +134,7 @@ export function compileTemplate(
   if (id !== basename(file, '.yaml')) e.add(`id "${id}" must equal the file name`);
   if (isMap(y.params))
     for (const [k, v] of Object.entries(y.params)) {
-      if (v === 'culture' || v === 'animal') params[k] = v;
+      if (v === 'culture' || v === 'animal' || v === 'prop') params[k] = v;
       else e.add(`parameter ${k} has unknown kind "${String(v)}"`);
     }
   else e.add('params must be a map');
@@ -141,9 +144,11 @@ export function compileTemplate(
   if (once && y.loop !== undefined) e.add('a template has either once or loop, not both');
   else if (!loopS) e.add('once or loop must be like "120 s"');
   const stage = isMap(y.stage) ? y.stage : {};
-  unknownFields(e, 'stage', stage, ['radius', 'marks', 'props']);
+  unknownFields(e, 'stage', stage, ['radius', 'marks', 'fit', 'props']);
   const radiusM = quantity(stage.radius, 'm');
   if (!radiusM) e.add('stage.radius must be like "80 m"');
+  const fitM = stage.fit === undefined ? undefined : quantity(stage.fit, 'm');
+  if (stage.fit !== undefined && !fitM) e.add('stage.fit must be like "230 m"');
   const marks: Record<string, [number, number]> = {};
   if (isMap(stage.marks))
     for (const [k, v] of Object.entries(stage.marks)) {
@@ -196,21 +201,39 @@ export function compileTemplate(
         e.add(`cast ${name} must be a map`);
         continue;
       }
-      unknownFields(e, `cast ${name}`, v, ['culture', 'animal', 'role', 'count', 'at']);
+      unknownFields(e, `cast ${name}`, v, [
+        'culture',
+        'animal',
+        'prop',
+        'role',
+        'count',
+        'at',
+        'offset',
+      ]);
       const kind =
-        v.culture !== undefined ? 'human' : v.animal !== undefined ? 'animal' : undefined;
-      const ref = str(kind === 'human' ? v.culture : v.animal);
+        v.culture !== undefined
+          ? 'human'
+          : v.animal !== undefined
+            ? 'animal'
+            : v.prop !== undefined
+              ? 'prop'
+              : undefined;
+      const paramKind: ParamKind | undefined = kind === 'human' ? 'culture' : kind;
+      const ref = str(kind === 'human' ? v.culture : kind === 'animal' ? v.animal : v.prop);
       if (!kind || !ref?.startsWith('$'))
-        e.add(`cast ${name} needs culture: $param or animal: $param`);
-      else if (params[ref.slice(1)] !== (kind === 'human' ? 'culture' : 'animal'))
-        e.add(
-          `cast ${name} uses ${ref}, which is not a ${kind === 'human' ? 'culture' : 'animal'} parameter`,
-        );
+        e.add(`cast ${name} needs culture: $param, animal: $param or prop: $param`);
+      else if (params[ref.slice(1)] !== paramKind)
+        e.add(`cast ${name} uses ${ref}, which is not a ${paramKind} parameter`);
       const count = num(v.count);
       if (!count || !Number.isInteger(count) || count < 1)
         e.add(`cast ${name} needs a whole count of at least 1`);
       const at = str(v.at);
       if (!at || !marks[at]) e.add(`cast ${name} starts at unknown mark "${at}"`);
+      // A fixed offset from the group's marks, such as haulers ahead of their sledge.
+      const ox = Array.isArray(v.offset) ? num(v.offset[0]) : undefined;
+      const oz = Array.isArray(v.offset) ? num(v.offset[1]) : undefined;
+      if (v.offset !== undefined && (ox === undefined || oz === undefined))
+        e.add(`cast ${name}: offset must be [x, z] in metres`);
       groups.push({
         name,
         kind: kind ?? 'human',
@@ -218,6 +241,9 @@ export function compileTemplate(
         role: str(v.role),
         count: count ?? 1,
         at: at ?? '',
+        ...(ox !== undefined && oz !== undefined && (ox || oz)
+          ? { offsetCm: [Math.round(ox * 100), Math.round(oz * 100)] as [number, number] }
+          : {}),
         actions: [],
       });
     }
@@ -285,6 +311,7 @@ export function compileTemplate(
     groups,
     props,
   };
+  if (fitM) template.fitCm = Math.round(fitM * 100);
   for (const msg of loopErrors(template)) e.add(msg);
   return { template, params, errors: e.list };
 }
@@ -298,6 +325,7 @@ const RECORD_FIELDS = [
   'with',
   'when',
   'repeat',
+  'progress',
   'region',
   'icon',
   'debated',
@@ -306,7 +334,7 @@ const RECORD_FIELDS = [
 ];
 
 /** Splits the language sections of a record (content-format section 2). */
-function parseText(e: Errors, body: string): Record<Language, VignetteText> | undefined {
+export function parseText(e: Errors, body: string): Record<Language, VignetteText> | undefined {
   const out = {} as Record<Language, VignetteText>;
   const parts = body.split(/^## (\w+)\s*$/m);
   const seen = new Set<string>();
@@ -348,6 +376,16 @@ export interface VignetteInputs {
   animals: Set<string>;
   startDay: number;
   cutoffDay: number;
+  /** Landmark parts a singular vignette can build, by landmark and part (giza.md section 11.4). */
+  landmarkParts?: Map<string, Map<string, LandmarkPartInfo>>;
+}
+
+export interface LandmarkPartInfo {
+  /** Base of the part's model in metres, which a template's fit is scaled to. */
+  baseM: number;
+  /** The landmark's true point in whole microdegrees. */
+  lat: number;
+  lon: number;
 }
 
 export function buildVignettes(inp: VignetteInputs): {
@@ -357,7 +395,7 @@ export function buildVignettes(inp: VignetteInputs): {
   const errors: string[] = [];
   const templates = new Map<
     string,
-    { template: CompiledTemplate; params: Record<string, 'culture' | 'animal'> }
+    { template: CompiledTemplate; params: Record<string, ParamKind> }
   >();
   const tdir = join(inp.curated, 'templates');
   if (existsSync(tdir))
@@ -408,10 +446,7 @@ function compileRecord(
   file: string,
   y: { [key: string]: Yaml },
   body: string,
-  templates: Map<
-    string,
-    { template: CompiledTemplate; params: Record<string, 'culture' | 'animal'> }
-  >,
+  templates: Map<string, { template: CompiledTemplate; params: Record<string, ParamKind> }>,
   sources: Yaml,
   inp: VignetteInputs,
 ): BuiltVignette | undefined {
@@ -431,6 +466,8 @@ function compileRecord(
       if (!v) e.add(`parameter ${p} is not filled`);
       else if (kind === 'culture' && !CULTURES.has(v)) e.add(`unknown culture "${v}"`);
       else if (kind === 'animal' && !inp.animals.has(v)) e.add(`unknown animal "${v}"`);
+      else if (kind === 'prop' && !(PROPS as readonly string[]).includes(v))
+        e.add(`unknown prop "${v}"`);
       else filled[p] = v;
     }
     for (const k of Object.keys(withMap))
@@ -448,15 +485,26 @@ function compileRecord(
   }
 
   const repeat = isMap(y.repeat) ? y.repeat : undefined;
-  if (!repeat) e.add('repeat is required (only repeated vignettes exist yet)');
-  const perYears = quantity(repeat?.per, 'years');
-  if (!perYears) e.add('repeat.per must be like "1000 years"');
-  const count = num(repeat?.count);
+  const progress = isMap(y.progress) ? y.progress : undefined;
+  if (!repeat === !progress)
+    e.add('a vignette needs either repeat (repeated) or progress (singular), not both');
+  const perYears = repeat ? quantity(repeat.per, 'years') : undefined;
+  if (repeat && !perYears) e.add('repeat.per must be like "1000 years"');
+  const count = repeat ? num(repeat.count) : 1;
   if (!count || !Number.isInteger(count) || count < 1)
     e.add('repeat.count must be a whole number of at least 1');
   const points = isMap(repeat?.sites) ? repeat.sites.points : undefined;
   const sites: CompiledVignette['sites'] = [];
-  if (!Array.isArray(points) || points.length === 0)
+  let part: LandmarkPartInfo | undefined;
+  if (progress) {
+    unknownFields(e, 'progress', progress, ['landmark', 'part']);
+    const landmark = str(progress.landmark) ?? '';
+    const partName = str(progress.part) ?? '';
+    part = inp.landmarkParts?.get(landmark)?.get(partName);
+    if (!part) e.add(`progress names unknown landmark part "${landmark}/${partName}"`);
+    else sites.push({ name: landmark, lat: part.lat, lon: part.lon });
+    if (t && !t.template.fitCm) e.add('a singular vignette needs a template with stage.fit');
+  } else if (!Array.isArray(points) || points.length === 0)
     e.add('repeat.sites.points must list candidate points');
   else
     for (const p of points) {
@@ -515,17 +563,34 @@ function compileRecord(
       p.kind === 'shelter' ? { ...p, look: filled[p.look.slice(1)]! } : p,
     ),
   };
+  if (part && template.fitCm) {
+    // Scale the stage to the part it builds, so one template serves every size.
+    const k = (part.baseM * 100) / template.fitCm;
+    template.marks = Object.fromEntries(
+      Object.entries(template.marks).map(([name, [x, z]]) => [
+        name,
+        [Math.round(x * k), Math.round(z * k)] as [number, number],
+      ]),
+    );
+    template.radiusCm = Math.round(template.radiusCm * k);
+    template.fitCm = Math.round(part.baseM * 100);
+    for (const msg of loopErrors(template)) e.add(msg);
+    if (e.list.length) return undefined;
+  }
+  const structure: CompiledVignette = {
+    id: id!,
+    fromDay: from.first,
+    toDay: to.end,
+    periodDays: perYears ? Math.round(perYears * DAYS_PER_YEAR) : to.end - from.first,
+    count: count!,
+    sites,
+    icon,
+    template,
+  };
+  if (progress)
+    structure.progress = { landmark: str(progress.landmark)!, part: str(progress.part)! };
   return {
-    structure: {
-      id: id!,
-      fromDay: from.first,
-      toDay: to.end,
-      periodDays: Math.round(perYears! * DAYS_PER_YEAR),
-      count: count!,
-      sites,
-      icon,
-      template,
-    },
+    structure,
     text,
     regions,
     fromApproximate: from.approximate,

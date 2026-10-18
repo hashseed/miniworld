@@ -18,6 +18,7 @@ import {
   encodeTerrainTile,
   OCEAN_MIN_LEVEL,
   OCEAN_NEVER,
+  OCEAN_SCALE,
   PART_LEVEL,
 } from '../../app/src/content/formats.ts';
 import {
@@ -26,12 +27,19 @@ import {
   type StartupIndex,
   type SourceInfo,
 } from '../../app/src/content/types.ts';
-import { ancestorAt, tilePath, TILE_N, type TileKey } from '../../app/src/geo/cube.ts';
+import {
+  ancestorAt,
+  DATA_MAX_LEVEL,
+  tilePath,
+  TILE_N,
+  type TileKey,
+} from '../../app/src/geo/cube.ts';
 import { LANGUAGES, type Language } from '../../app/src/i18n/messages.ts';
 import { TIMELINE_START, continuousYear, dayFromDate } from '../../app/src/time/calendar.ts';
 import { buildWatchTable, yearAtSeconds, totalSeconds } from '../../app/src/time/watchTable.ts';
 import { dayFromContinuousYear } from '../../app/src/time/calendar.ts';
 import { erasForLanguage, validateEras, type CuratedEras } from './lib/eras.ts';
+import { buildLandmarks, placeOffWater } from './lib/landmarks.ts';
 import { buildVignettes } from './lib/vignettes.ts';
 import { fixtureElevation } from './lib/fixture.ts';
 import { Grid, GridPyramid } from './lib/grid.ts';
@@ -76,6 +84,7 @@ import {
   type Strait,
 } from './lib/coast.ts';
 import { regionGrid } from './lib/regions.ts';
+import { allowPeaksAtCoast, famousRelief, validateMountains, type Mountain } from './lib/relief.ts';
 import { allTileKeys, buildTerrainTile, isDeepTile } from './lib/terrain.ts';
 import {
   NO_LAKE,
@@ -92,8 +101,10 @@ const OUT = join(ROOT, 'app/public/data');
 /** Watching seconds per content time window (spec milestone 1, section 10.3). */
 export const WINDOW_SECONDS = 2460;
 /** Simplified map (spec milestone 1, section 4.2). */
-const SMOOTHING_KM = 40;
+const SMOOTHING_KM = 80;
 const POLAR_SMOOTHING_KM = 150;
+/** Smoothing of the listed mountain ranges, which keep more of their shape. */
+const RANGE_SMOOTHING_KM = 25;
 // Only a short list of the rivers history needs most (decided by Yang on
 // 2026-10-17), by their Natural Earth names, including local spellings.
 const AMAZON_BASIN: [number, number, number, number] = [-80, -20, -45, 6];
@@ -117,7 +128,7 @@ const MIN_LAKE_KM2 = 3000;
 const args = process.argv.slice(2);
 const useFixture = args.includes('--fixture');
 const maxLevelArg = args.indexOf('--max-level');
-const maxLevel = maxLevelArg >= 0 ? Number(args[maxLevelArg + 1]) : 6;
+const maxLevel = maxLevelArg >= 0 ? Number(args[maxLevelArg + 1]) : DATA_MAX_LEVEL;
 
 function fail(message: string): never {
   console.error(`build-data: ${message}`);
@@ -201,14 +212,28 @@ const animals = new Set(
     }) ?? {}) as Record<string, unknown>,
   ),
 );
+const landmarkBuild = buildLandmarks({
+  curated: join(ROOT, 'data/curated'),
+  lanes: new Set(eras.lanes.map((l) => l.id)),
+  startDay: TIMELINE_START,
+  cutoffDay,
+});
+if (landmarkBuild.errors.length) fail(landmarkBuild.errors.join('\n'));
 const vignetteBuild = buildVignettes({
   curated: join(ROOT, 'data/curated'),
   lanes: new Set(eras.lanes.map((l) => l.id)),
   animals,
   startDay: TIMELINE_START,
   cutoffDay,
+  landmarkParts: new Map(landmarkBuild.landmarks.map((l) => [l.structure.id, l.parts])),
 });
 if (vignetteBuild.errors.length) fail(vignetteBuild.errors.join('\n'));
+for (const l of landmarkBuild.landmarks)
+  for (const p of l.structure.parts)
+    if (p.build && !vignetteBuild.vignettes.some((v) => v.structure.id === p.build!.vignette))
+      fail(
+        `landmarks/${l.structure.id}.md: build of ${p.name} names unknown vignette "${p.build.vignette}"`,
+      );
 
 // --- Elevation, ocean mask, lakes and rivers -------------------------------
 
@@ -235,6 +260,9 @@ const keptIslands = JSON.parse(readFileSync(join(ROOT, 'data/curated/islands.jso
 const removedAreas = JSON.parse(
   readFileSync(join(ROOT, 'data/curated/removed-areas.json'), 'utf8'),
 ) as { areas: RemovedArea[] };
+const mountains = JSON.parse(readFileSync(join(ROOT, 'data/curated/mountains.json'), 'utf8')) as {
+  mountains: Mountain[];
+};
 const humid = JSON.parse(readFileSync(join(ROOT, 'data/curated/humid-periods.json'), 'utf8')) as {
   periods: HumidPeriod[];
 };
@@ -243,26 +271,13 @@ const mapErrors = [
   ...validateStraits(straits.straits),
   ...validateIslands(keptIslands.islands),
   ...validateRemovedAreas(removedAreas.areas),
+  ...validateMountains(mountains.mountains),
 ];
 if (mapErrors.length) fail(mapErrors.join('\n'));
 
 // Islands are edited on today's coastline before anything else (section 4.2).
 removeAreas(source, removedAreas.areas, keptIslands.islands);
 const islands = enlargeIslands(source, keptIslands.islands);
-const elevation = blendPolar(
-  smoothElevation(source, SMOOTHING_KM),
-  smoothElevation(source, POLAR_SMOOTHING_KM),
-);
-log(
-  `elevation grid ${elevation.width} × ${elevation.height}, smoothed ${SMOOTHING_KM} km, ` +
-    `${islands.removed} small islands removed, ${islands.grown} enlarged`,
-);
-const pyramid = new GridPyramid(elevation);
-// The ice sheets stand on a heavily smoothed bed, the same in the terrain
-// tiles and in the ice thickness, so their surface is smooth (section 5.2).
-const bedGrid = pyramid.forSpacing(ICE_BED_SPACING_DEG);
-const iceBed = (lat: number, lon: number) => Math.max(0, bedGrid.bilinear(lat, lon));
-
 // The ocean mask floods the unsmoothed elevation with the straits carved to
 // their sills, then smooths the result into the coast (section 5.1).
 const conn = new Grid(source.width, source.height, Int16Array.from(source.data));
@@ -275,6 +290,40 @@ const ocean = new Grid(
   smoothOcean(connection, straits.straits, keptIslands.islands),
 );
 log(`ocean mask grid ${conn.width} × ${conn.height}, ${straits.straits.length} straits`);
+
+// Ground below sea level that is never drawn as sea is raised to sea level
+// before smoothing, so it never shows as a steep, jagged pit: dry land that
+// never joins the ocean (such as the Jordan rift with the Dead Sea, or the
+// Qattara Depression), and the ends of narrow gulfs that the smoothed coast
+// closes even today (such as the head of the Gulf of Suez) (section 4.2).
+const landSource = new Grid(source.width, source.height, Int16Array.from(source.data));
+for (let i = 0; i < landSource.data.length; i++) {
+  const neverSea =
+    connection.data[i] === OCEAN_NEVER || OCEAN_MIN_LEVEL + ocean.data[i]! / OCEAN_SCALE > 0;
+  if (neverSea && landSource.data[i]! < 0) landSource.data[i] = 0;
+}
+const elevation = blendPolar(
+  smoothElevation(landSource, SMOOTHING_KM),
+  smoothElevation(landSource, POLAR_SMOOTHING_KM),
+);
+// The listed mountain ranges and peaks keep their shape (section 4.2).
+const relief = famousRelief(
+  elevation,
+  smoothElevation(landSource, RANGE_SMOOTHING_KM),
+  mountains.mountains,
+);
+log(
+  `elevation grid ${elevation.width} × ${elevation.height}, smoothed ${SMOOTHING_KM} km, ` +
+    `${mountains.mountains.length} famous mountains, ` +
+    `${islands.removed} small islands removed, ${islands.grown} enlarged`,
+);
+const pyramid = new GridPyramid(relief);
+// The ice sheets stand on a heavily smoothed bed, the same in the terrain
+// tiles and in the ice thickness, so their surface is smooth (section 5.2).
+// It leaves out the listed mountains, so their snow caps (section 5.2) stand
+// out from it.
+const bedGrid = new GridPyramid(elevation).forSpacing(ICE_BED_SPACING_DEG);
+const iceBed = (lat: number, lon: number) => Math.max(0, bedGrid.bilinear(lat, lon));
 
 const lakeLevel = new Grid(
   conn.width,
@@ -292,6 +341,7 @@ floodInlandSeas(conn, INLAND_SEAS, (i, level) => (lakeLevel.data[i] = level));
 const lakes = new Grid(conn.width, conn.height, smoothLakes(lakeLevel, NO_LAKE));
 joinInlandSeas(ocean.data, connection, lakes.data);
 const coast = new Grid(conn.width, conn.height, coastDistance(ocean));
+allowPeaksAtCoast(coast, mountains.mountains);
 const rivers = new Grid(conn.width, conn.height, new Uint8Array(conn.width * conn.height));
 const riverContext = {
   ocean: connection.data,
@@ -310,6 +360,16 @@ const flow = riverFlow(conn, rivers.data, riverContext);
 const flowCos = new Grid(conn.width, conn.height, flow.cos);
 const flowSin = new Grid(conn.width, conn.height, flow.sin);
 log(`${lakeCount} lakes, ${riverCount} river lines`);
+
+// Landmarks stand on dry land beside the drawn rivers (giza.md section 2). The
+// sea is where the ocean reaches at today's level, so dry depressions such as
+// Qattara count as land.
+const wet = (lat: number, lon: number) =>
+  rivers.bilinear(lat, lon) > 127 ||
+  lakes.bilinear(lat, lon) > 127 ||
+  connection.nearest(lat, lon) <= -OCEAN_MIN_LEVEL;
+for (const l of landmarkBuild.landmarks)
+  log(`landmark ${l.structure.id} moved ${placeOffWater(l, wet)} km west off the water`);
 
 // --- Terrain tiles ----------------------------------------------------------
 
@@ -383,6 +443,16 @@ const seaPoints = meanSeaLevel(stack('paleomist-1.0', 'sea_level'), (lat, lon) =
   return v !== OCEAN_NEVER && OCEAN_MIN_LEVEL + v <= 0;
 });
 const seaLevel = seaLevelCurve(seaPoints, TIMELINE_START, cutoffDay);
+const seaLevelAt = (day: number) =>
+  seaLevel.metres[
+    Math.max(
+      0,
+      Math.min(
+        seaLevel.metres.length - 1,
+        Math.round((day - seaLevel.startDay) / seaLevel.stepDays),
+      ),
+    )
+  ]!;
 // One global climate slice per step of the climate data (section 5.2): the
 // ice cover as a smoothed border distance, and the aridity with the humid
 // periods the data misses (section 4.3).
@@ -392,8 +462,12 @@ const climateFiles: string[] = [];
 for (const bp of climateYears) {
   const slice = {
     day: sliceDay(bp),
-    ice: iceGrid((lats, lons) =>
-      iceThickness(iceStack, lats, lons, bp, { bed: iceBed, weight: polarWeight }),
+    ice: iceGrid(
+      (lats, lons) => iceThickness(iceStack, lats, lons, bp, { bed: iceBed, weight: polarWeight }),
+      (lat, lon) => {
+        const v = connection.nearest(lat, lon);
+        return v !== OCEAN_NEVER && OCEAN_MIN_LEVEL + v <= seaLevelAt(sliceDay(bp));
+      },
     ),
     aridity: aridityGrid(precipitation, humid.periods, ARID_GRID_W, ARID_GRID_H, bp),
   };
@@ -513,6 +587,17 @@ const vignetteFiles = vignetteBuild.vignettes.map((v) => ({
   ) as Record<Language, string>,
 }));
 log(`${vignetteFiles.length} vignettes`);
+const landmarkFiles = landmarkBuild.landmarks.map((l) => ({
+  l,
+  structure: output.writeJson(`landmarks/${l.structure.id}`, l.structure),
+  text: Object.fromEntries(
+    LANGUAGES.map((lang) => [
+      lang,
+      output.writeJson(`landmarks/${l.structure.id}-${lang}`, l.text[lang]),
+    ]),
+  ) as Record<Language, string>,
+}));
+log(`${landmarkFiles.length} landmarks`);
 
 const index = {} as Record<Language, string>;
 for (const language of LANGUAGES) {
@@ -534,6 +619,17 @@ for (const language of LANGUAGES) {
       toApproximate: v.toApproximate,
       icon: v.structure.icon,
       title: v.text[language].title,
+      structure,
+      text: text[language],
+    })),
+    landmarks: landmarkFiles.map(({ l, structure, text }) => ({
+      id: l.structure.id,
+      fromDay: l.structure.fromDay,
+      toDay: l.structure.toDay,
+      fromApproximate: l.fromApproximate,
+      toApproximate: false,
+      icon: l.structure.icon,
+      title: l.text[language].title,
       structure,
       text: text[language],
     })),

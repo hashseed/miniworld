@@ -3,30 +3,30 @@
 // that model is approved in the asset manifest, and a stand-in otherwise.
 
 import * as THREE from 'three';
-import manifest from '../../../data/assets/manifest.json';
+import { drawable } from '../content/assets.ts';
 import { ANIMALS, buildAnimal, type AnimalId } from '../../../assets/src/animals.ts';
 import { animateAnimal, animatePerson } from '../../../assets/src/clips.ts';
 import { lightUniforms, type Model } from '../../../assets/src/kit.ts';
+import { buildProp as buildCastProp, PROPS, type PropId } from '../../../assets/src/landmarks.ts';
 import {
   buildPerson,
   buildSpear,
   PROFILES,
   type Kind,
   type Profile,
+  type Tool,
 } from '../../../assets/src/people.ts';
 import { buildHearth, buildShelter, CAMP_SHELTER } from '../../../assets/src/shelters.ts';
 import { hashString } from '../core/hash.ts';
 import type { Clip } from '../world/vignette.ts';
 import { buildStandIn, type StandIn } from './standIns.ts';
 
-const approved = new Set(
-  (manifest as { assets: { id: string; status: string }[] }).assets
-    .filter((a) => a.status === 'approved')
-    .map((a) => a.id),
-);
-
 /** The family at a camp: a woman, a child and a man, then repeating. */
 const FAMILY: Kind[] = ['woman', 'child', 'man'];
+/** Roles always played by a man of the profile (the building crews of giza.md section 11). */
+const MEN = new Set(['hunter', 'worker', 'overseer', 'scribe']);
+/** Tools held by roles instead of the profile's own. */
+const ROLE_TOOLS: Record<string, Tool> = { hunter: 'spear', overseer: 'staff', scribe: 'palette' };
 
 /** Content animal ids that differ from the model ids. */
 const ANIMAL_MODELS: Record<string, AnimalId> = { 'woolly-mammoth': 'animal-mammoth' };
@@ -84,15 +84,20 @@ function fader(object: THREE.Object3D): (fade: number) => void {
 
 /** Builds the drawn actor for a cast member. */
 export function buildActor(
-  kind: 'human' | 'animal',
+  kind: 'human' | 'animal' | 'prop',
   look: string,
   key: string,
   index: number,
   role?: string,
 ): StandIn {
-  if (kind === 'animal') {
+  if (kind === 'prop') {
+    if ((PROPS as readonly string[]).includes(look) && drawable.has(look)) {
+      const model = buildCastProp(look as PropId);
+      return wrap(model, () => {});
+    }
+  } else if (kind === 'animal') {
     const id = animalModel(look);
-    if (id && approved.has(id)) {
+    if (id && drawable.has(id)) {
       const model = buildAnimal(id);
       const actor = wrap(model, (clip, s) => animateAnimal(model, clip, s));
       const body = model.bones.get('body');
@@ -111,14 +116,14 @@ export function buildActor(
     }
   } else if ((PROFILES as readonly string[]).includes(look)) {
     const profile = look as Profile;
-    const person: Kind = role === 'hunter' ? 'man' : FAMILY[index % FAMILY.length]!;
-    if (approved.has(`figure-${profile}-${person}`)) {
+    const person: Kind = role && MEN.has(role) ? 'man' : FAMILY[index % FAMILY.length]!;
+    if (drawable.has(`figure-${profile}-${person}`)) {
       const model = buildPerson({
         profile,
         kind: person,
         variant: hashString(key) % 997,
-        // Hunters carry the spear they throw.
-        tool: role === 'hunter' ? 'spear' : undefined,
+        // Hunters carry the spear they throw; overseers a staff, scribes a palette.
+        tool: role ? ROLE_TOOLS[role] : undefined,
       });
       return wrap(model, (clip, s) => animatePerson(model, clip, s));
     }
@@ -147,8 +152,8 @@ export function buildProp(kind: 'shelter' | 'asset', look: string): StandIn | un
   let model: Model | undefined;
   if (kind === 'shelter') {
     const id = CAMP_SHELTER[look as Profile];
-    if (id && approved.has(id)) model = buildShelter(id);
-  } else if (look === 'prop-hearth' && approved.has(look)) model = buildHearth();
+    if (id && drawable.has(id)) model = buildShelter(id);
+  } else if (look === 'prop-hearth' && drawable.has(look)) model = buildHearth();
   if (!model) return undefined;
   return wrap(model, () => {});
 }
