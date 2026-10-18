@@ -1,8 +1,11 @@
 // Keeps the staging checkout on the latest main and its dev server on port
 // 8800 running (spec section 11).
 //
-// Usage, from the staging checkout, left running in the background:
-//   nohup npm run staging > ../staging.log 2>&1 &
+// Usage, from the staging checkout:
+//   npm run staging              starts it in the background, logging to ../staging.log
+//   npm run staging -- --stop    stops it and its dev server
+//   npm run staging -- --foreground
+//                                runs it in this terminal
 //
 // About once a minute (MINIWORLD_STAGING_INTERVAL seconds) it fetches main,
 // fast-forwards the checkout to it, runs npm ci only when package-lock.json
@@ -13,7 +16,7 @@
 // changes the port, for testing this script only.
 
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, openSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createConnection } from 'node:net';
 import { join, resolve } from 'node:path';
 
@@ -174,7 +177,10 @@ let handedOver = false;
 function handOver(): void {
   handedOver = true;
   log(`${SELF} changed; handing over to the new version`);
-  const child = spawn(process.execPath, [join(ROOT, SELF)], { cwd: ROOT, stdio: 'inherit' });
+  const child = spawn(process.execPath, [join(ROOT, SELF), '--foreground', '--handed-over'], {
+    cwd: ROOT,
+    stdio: 'inherit',
+  });
   for (const s of ['SIGINT', 'SIGTERM'] as const) process.on(s, () => child.kill(s));
   child.once('exit', (code) => process.exit(code ?? 0));
 }
@@ -215,7 +221,55 @@ async function round(): Promise<void> {
   }
 }
 
+const PID_FILE = join(ROOT, git(['rev-parse', '--git-dir']).out || '.git', 'miniworld-staging.pid');
+const LOG_FILE = resolve(ROOT, '..', 'staging.log');
+
+/** The pid of the running watcher, or undefined. */
+function runningPid(): number | undefined {
+  try {
+    const pid = Number(readFileSync(PID_FILE, 'utf8'));
+    process.kill(pid, 0);
+    return pid;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Starts the watcher in the background, so no nohup or & is needed. */
+function startInBackground(): void {
+  const pid = runningPid();
+  if (pid) {
+    console.log(`staging: already running (pid ${pid}), log in ${LOG_FILE}`);
+    return;
+  }
+  const out = openSync(LOG_FILE, 'a');
+  const child = spawn(process.execPath, [join(ROOT, SELF), '--foreground'], {
+    cwd: ROOT,
+    detached: true,
+    stdio: ['ignore', out, out],
+  });
+  child.unref();
+  console.log(`staging: started (pid ${child.pid}), log in ${LOG_FILE}`);
+}
+
+function stopRunning(): void {
+  const pid = runningPid();
+  if (!pid) {
+    console.log('staging: not running');
+    return;
+  }
+  process.kill(pid, 'SIGTERM');
+  console.log(`staging: stopped (pid ${pid})`);
+}
+
 async function main(): Promise<void> {
+  // A version that took over from an older one leaves the pid file to it.
+  if (!process.argv.includes('--handed-over')) {
+    writeFileSync(PID_FILE, String(process.pid));
+    process.on('exit', () => {
+      if (runningPid() === process.pid) rmSync(PID_FILE, { force: true });
+    });
+  }
   for (const s of ['SIGINT', 'SIGTERM'] as const)
     process.on(s, () => {
       if (handedOver) return;
@@ -233,4 +287,6 @@ async function main(): Promise<void> {
   }
 }
 
-await main();
+if (process.argv.includes('--stop')) stopRunning();
+else if (process.argv.includes('--foreground')) await main();
+else startInBackground();
