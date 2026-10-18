@@ -79,10 +79,15 @@ test('the mammoth hunt is visible from orbit, flies down and moves while playing
       m.clock.setDay(entry.fromDay + (13 + k) * period + Math.floor(period * 0.2));
       m.controller.state = { ...m.controller.state, lat: 50, lon: 25, altitudeKm: 6000 };
     }, k);
-  for (let k = 0; ; k++) {
+  // Setting the day again on each try, in case the app is still restoring its own state.
+  const lonAt = async (k: number) => {
     await setDay(k);
-    await expect.poll(async () => (await hunt(page)).stages.length).toBe(1);
-    if ((await hunt(page)).stages[0]!.lon < 45) break;
+    return (await hunt(page)).stages[0]?.lon;
+  };
+  for (let k = 0; ; k++) {
+    let lon: number | undefined;
+    await expect.poll(async () => (lon = await lonAt(k))).toBeDefined();
+    if (lon! < 45) break;
   }
   // Look at it from orbit with the stage left of the centre, clear of the card.
   const site = (await hunt(page)).stages[0]!;
