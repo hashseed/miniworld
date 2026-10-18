@@ -97,7 +97,7 @@ A new template for the building of a pyramid, used here three times and later fo
 - **Cast:** a hauling crew of eight to ten, a water carrier, quarry workers, masons at the top, an overseer, a scribe, and bakers and brewers at the town.
 - **Verbs:** `haul`, `lift`, `carry-to`, `work-at`, `walk-to`, `point`, `cheer`, `talk`, and the prop actions `sail-to`, `move-to`, `rise` and `fall`, all in milestone-2 section 6.4. No new verbs are needed.
 
-The beats are the record scripts in section 4.2. The loop closes because the sledge returns empty down the ramp and a new block is cut in the quarry while the boat sails off and returns full. **Proposed** loop length: 120 s, like the mammoth hunt.
+The beats are the record scripts in section 4.2. The loop closes because the sledge returns empty down the ramp and a new block is cut in the quarry while the boat sails off and returns full. **Proposed** loop length: 600 s, so a crew can haul a block up the whole ramp and walk back (section 11.3).
 
 How the blocks were raised is not fully known: archaeologists have found remains of ramps at Giza and at Hatnub, and debate whether they were straight, zigzag or wound around the pyramid. The diorama shows one straight supply ramp, which is simple to read, and the card says that the exact way is still debated (decided by Yang on 2026-10-18).
 
@@ -216,3 +216,81 @@ Decided by Yang on 2026-10-18:
 3. One straight supply ramp in the building dioramas, with the card saying the method is debated (section 4.1).
 4. The gap at Giza from c. 2180 to c. 1550 BCE stays open for now; the farming dioramas of the Nile valley that carry the region then are worked out in detail later.
 5. The Great Pyramid is finished c. 2560 BCE, as in events/egypt.md; the sources settle the exact date and Khufu's reign when the records are written (section 6).
+
+## 11. First slice: the pyramids rise
+
+Asked for by Yang on 2026-10-18: the Giza landmark and its three building dioramas are built ahead of milestone 4, on top of the mammoth-hunt slice ([milestone-2.md](milestone-2.md#18-first-slice-the-mammoth-hunt) section 18), as the worked example of a landmark and of a singular vignette that a landmark's construction drives. Everything not listed here stays as specified above and is built with milestone 4.
+
+### 11.1 What the slice builds
+
+| Part | In the slice | Later |
+| --- | --- | --- |
+| Landmark record | `data/curated/landmarks/giza-pyramids.md` with the parts `khufu`, `khafre`, `menkaure` and `sphinx` and their stages from section 3 | The parts `queens`, `temples` and `mastabas` |
+| Models | Script-built clay models in `assets/src/landmarks.ts`: a pyramid that can be drawn at any point of its construction, complete, half stripped, stepped or gashed, and the Sphinx with or without sand and nose; a stone sledge with its block | Boats, ramps of other shapes, the workers' town |
+| Data build | Validates the landmark record, shifts the group west off the drawn Nile (section 2), and writes a structure file and a text file per language; the startup index gains a `landmarks` list | Unchanged |
+| Landmark layer | Draws every part at the date's stage, rising with the date during its build, at the miniature factor and as a beacon from orbit; tapping a part opens the landmark card | Unchanged |
+| Building dioramas | `khufu-pyramid-building`, `khafre-pyramid-building` and `menkaure-pyramid-building` on the `pyramid-building` template, with the haulers, their sledge, quarry workers, masons, a water carrier, a scribe and an overseer | The boat from Tura or Aswan, the Sphinx carvers and the bakers of section 4 |
+| Figures | The cast is the `old-kingdom-egyptian` culture profile: men in white linen kilts, women in linen dresses, built like the prehistoric figures and shown once Yang approves them; until then, stand-ins | Unchanged |
+
+The models are new assets: they are drawn in their clay look only once Yang approves them in `data/assets/manifest.json` (spec section 13). Until then each is drawn as a flat-coloured stand-in of the same shape, like the stand-in figures of milestone-2 section 18.1.
+
+### 11.2 The landmark record
+
+```markdown
+---
+id: giza-pyramids
+kind: landmark
+when: { from: c. 2589 BCE, to: today }
+where: { point: [29.9792, 31.1342] }
+region: middle-east-north-africa
+icon: pyramid
+beacon: wonder
+parts:
+  khufu:
+    at: [29.9792, 31.1342]
+    stages:
+      - { from: c. 2589 BCE, asset: giza-khufu }
+      - { from: c. 1303, asset: giza-khufu-stripping }
+      - { from: c. 1400, asset: giza-khufu-stepped }
+  ...
+build:
+  - { part: khufu, from: c. 2589 BCE, to: c. 2560 BCE, vignette: khufu-pyramid-building }
+  ...
+sources: [...]
+---
+```
+
+- A part is drawn from its first stage's date. The stage whose span contains a `build` entry is drawn **rising**: at a fraction *f* of the build span the stepped core stands to *f* / 0.85 of the full height, in whole courses of the model; from *f* = 0.85 the core is complete and the white casing is laid from the top down while the ramp shrinks, until the stage's finished asset stands at the end of the span.
+- The parts' positions are kept as offsets from the landmark's point in metres, and drawn at the landmark's scale, so the group grows as one piece as the camera rises.
+- The data build moves the group's drawn point west, in steps of 1 km, until no part's footprint (its base with the ramp, at the miniature factor) lies on a river, a lake or the sea (section 2). The true point stays the one used for flying to the landmark and for its card.
+
+### 11.3 The `pyramid-building` template
+
+The template of section 4.1 in the format of milestone-2 section 18.2, with three additions:
+
+- **Props in the cast.** A cast group may be `{ prop: $param, count, at }` with a parameter of kind `prop`. Props move with `haul` and `walk-to` like figures, have no clips, and are drawn from their asset. The hauled block on its sledge is such a prop.
+- **The `haul` verb.** Moves to a mark at 1 m/s at life size with the haul clip: leaning forward, both arms pulling a rope. A prop that is hauled moves the same way.
+- **Fit.** `stage.fit` (such as `230 m`, the base of the Great Pyramid) is the size the marks are written for. A record whose `progress` names a landmark part has every mark scaled by the part's base over the fit, so one template serves pyramids of every size.
+
+Its marks lie around the pyramid's centre, with +x east and +z north: `quarry` south-east of the pyramid, `ramp-foot` on the south side where the ramp starts, `top` at the centre, and `scribe` and `water` beside the ramp foot. Figures standing on the pyramid or the ramp are lifted onto their surface (section 11.5).
+
+Script (600 s, because the ramp of the Great Pyramid is long even at diorama speed): the quarry workers cut stone all loop long; the haulers pull the sledge with its block from the quarry to the ramp foot, with the water carrier beside them, and on up the ramp to the top; there the block sinks into place among the masons and the haulers cheer; they walk back down the ramp to the quarry, where the next loaded sledge appears; the overseer points at the haulers and cheers, and the scribe writes.
+
+### 11.4 Singular vignettes
+
+A vignette record with `progress: { landmark, part }` and no `repeat` is **singular**: it has one instance over its whole span, standing at the drawn centre of that part, oriented with +x to the east, with a phase offset from the hash of its id (milestone-2 section 6.5). Its stage is laid out at the landmark's scale, so the crews stay on the pyramid as it grows into a beacon.
+
+### 11.5 Standing on the landmark
+
+The height of the ground under a figure on a stage of a building diorama is the higher of the terrain and the landmark's surface at its stage position: the pyramid's stepped core or casing at its current height, with a flat top, and the ramp, a straight wedge rising from the ramp foot to the top of the rising core. Both are simple shapes computed from the same numbers as the model, so the figures stand on what is drawn.
+
+### 11.6 Tests
+
+| Test | Checks |
+| --- | --- |
+| Format | The landmark record parses; unknown parts, assets and vignettes, stages out of order and builds outside the record's span fail with a clear message |
+| Placement | The shift is zero away from water and moves the group west of a river laid across it |
+| Rising | The drawn height is zero at the start of a build, grows in whole courses, and is complete at its end; the stages are picked by date |
+| Singular | One instance over the whole span; the template's marks are scaled by the part's size; the loop closes at every pyramid's size |
+| Models | Every landmark asset builds within the 20,000-triangle landmark budget, and the Egyptian figures within the figure budget |
+| Browser | At a date in the building of the Great Pyramid, the pyramid and its crew are drawn at Giza; tapping the pyramid opens the landmark card |

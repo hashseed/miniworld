@@ -18,11 +18,11 @@ import {
   type Instance,
   type Member,
 } from '../world/vignette.ts';
+import { MINIATURE } from '../world/landmark.ts';
+import type { PartFrame } from '../landmarks/landmarkLayer.ts';
 import { buildActor, lightModels } from './figures.ts';
 import type { StandIn } from './standIns.ts';
 
-/** People and everything they make are drawn 90 times life size (section 5.1). */
-const MINIATURE = 90;
 /** Life-size metres to drawn kilometres at the miniature factor. */
 const M_TO_KM = MINIATURE / 1000;
 /** Smallest on-screen height of an adult figure, in CSS pixels (section 5.1). */
@@ -38,6 +38,11 @@ const MAX_LEAN = 1.15;
 const HIT_PX = 26;
 /** Altitude the camera flies down to on a double-tap: the whole stage in view. */
 const FLY_ALTITUDE_KM = 12;
+
+/** Where the landmark parts stand that singular vignettes build (giza.md section 11.4). */
+export interface PartFrames {
+  frame(landmark: string, part: string): PartFrame | undefined;
+}
 
 export interface SurfaceSource {
   /** Drawn surface height in km over a drawn direction. */
@@ -60,6 +65,8 @@ interface Stage {
   north: THREE.Vector3;
   /** World position of the stage centre, on the ground. */
   centre: THREE.Vector3;
+  /** The landmark part a singular vignette stands on. */
+  progress?: { landmark: string; part: string };
 }
 
 export class VignetteLayer {
@@ -68,6 +75,10 @@ export class VignetteLayer {
   onOpen: (entry: VignetteEntry) => void = () => {};
   /** Called when the cast is double-tapped, with the stage's position. */
   onFly: (lat: number, lon: number, altitudeKm: number) => void = () => {};
+  /** Called when a tap hits no cast, so other layers can take it. */
+  onMiss: (clientX: number, clientY: number) => void = () => {};
+  /** Landmark parts, for vignettes that build them. */
+  landmarks: PartFrames | undefined;
 
   private loader: ContentLoader;
   private surface: SurfaceSource;
@@ -150,17 +161,18 @@ export class VignetteLayer {
     // CSS pixels per kilometre at one kilometre's distance.
     const pxAtKm = (camera.projectionMatrix.elements[5]! * innerHeight) / 2;
     for (const stage of this.stages.values()) {
-      this.place(stage);
+      const frame = this.place(stage);
       const toCam = this.v1.copy(camera.position).sub(stage.centre);
       const distance = toCam.length();
-      const facing = toCam.dot(stage.up) > 0;
+      const facing = toCam.dot(stage.up) > 0 && (!stage.progress || !!frame);
       stage.cast.visible = facing;
       if (!facing) continue;
       // Section 5.1: figures and layout keep their minimum sizes on screen.
       const kmPerPx = distance / pxAtKm;
       const figureKmPerM = Math.max(M_TO_KM, (FIGURE_MIN_PX * kmPerPx) / ADULT_M);
-      const layoutKmPerM = Math.max(M_TO_KM, figureKmPerM / MAX_OVERSIZE);
-      this.pose(stage, lifeMs, figureKmPerM, layoutKmPerM, pxAtKm);
+      // A stage on a landmark is laid out at the landmark's scale (giza.md section 11.4).
+      const layoutKmPerM = frame ? frame.kmPerM : Math.max(M_TO_KM, figureKmPerM / MAX_OVERSIZE);
+      this.pose(stage, lifeMs, figureKmPerM, layoutKmPerM, pxAtKm, frame);
     }
   }
 
@@ -198,6 +210,7 @@ export class VignetteLayer {
       east: new THREE.Vector3(),
       north: new THREE.Vector3(),
       centre: new THREE.Vector3(),
+      progress: v.progress,
     };
     this.place(stage);
     return stage;
@@ -208,13 +221,24 @@ export class VignetteLayer {
    * The lens and the terrain can change from frame to frame (finer tiles
    * arrive, the lens morphs), so this runs every frame.
    */
-  private place(stage: Stage): void {
+  private place(stage: Stage): PartFrame | undefined {
     const { up, east, north } = stage;
+    if (stage.progress) {
+      const frame = this.landmarks?.frame(stage.progress.landmark, stage.progress.part);
+      if (frame) {
+        up.copy(frame.up);
+        east.copy(frame.east);
+        north.copy(frame.north);
+        stage.centre.copy(frame.centre);
+      }
+      return frame;
+    }
     up.set(...this.surface.toDrawn(stage.trueDir)).normalize();
     north.set(0, 1, 0).addScaledVector(up, -up.y).normalize();
     east.crossVectors(north, up).normalize();
     const ground = this.surface.surfaceKm([up.x, up.y, up.z]);
     stage.centre.copy(up).multiplyScalar(EARTH_RADIUS_KM + ground);
+    return undefined;
   }
 
   /**
@@ -228,6 +252,7 @@ export class VignetteLayer {
     figureKmPerM: number,
     layoutKmPerM: number,
     pxAtKm: number,
+    frame?: PartFrame,
   ): void {
     const v = this.structures.get(stage.entry.structure);
     if (!v) return;
@@ -275,7 +300,9 @@ export class VignetteLayer {
       }
       // Big animals shrink towards ANIMAL_MAX_ADULTS as the cast grows, so people stay readable.
       const cap = Math.min(1, (ANIMAL_MAX_ADULTS * ADULT_M) / actor.height);
-      const ground = this.surface.surfaceKm([dir.x, dir.y, dir.z]);
+      // On a landmark, figures stand on its drawn surface (giza.md section 11.5).
+      const onLandmark = frame ? frame.surfaceM(p.x / 100, p.z / 100) * layoutKmPerM : 0;
+      const ground = this.surface.surfaceKm([dir.x, dir.y, dir.z]) + onLandmark;
       actor.root.position.copy(dir).multiplyScalar(EARTH_RADIUS_KM + ground);
       // The minimum size holds for each figure at its own distance, not only at the stage centre.
       const own = (FIGURE_MIN_PX * actor.root.position.distanceTo(this.camera!.position)) / pxAtKm;
@@ -382,6 +409,7 @@ export class VignetteLayer {
       if (performance.now() - d.t > 500) return;
       const stage = this.hit(e.clientX, e.clientY);
       if (stage) this.onOpen(stage.entry);
+      else this.onMiss(e.clientX, e.clientY);
     });
     // Capture before the camera's own double-click zoom, so a double-tap on the cast flies to its stage.
     window.addEventListener(

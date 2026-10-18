@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import type { Model } from './kit.ts';
 
 export type Clip =
-  'idle' | 'walk' | 'run' | 'carry' | 'work' | 'point' | 'throw' | 'cheer' | 'fall';
+  'idle' | 'walk' | 'run' | 'carry' | 'haul' | 'work' | 'point' | 'throw' | 'cheer' | 'fall';
 
 /** Seconds into the throw gesture when the spear leaves the hand. */
 export const THROW_RELEASE = 0.55;
@@ -36,7 +36,10 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
   const lift = (dy: number) => (bone('hips').position.y += dy);
   const t = seconds;
   bone('tool').visible =
-    clip !== 'carry' && clip !== 'work' && !(clip === 'throw' && t >= THROW_RELEASE);
+    clip !== 'carry' &&
+    clip !== 'haul' &&
+    clip !== 'work' &&
+    !(clip === 'throw' && t >= THROW_RELEASE);
   bone('load').visible = clip === 'carry';
 
   const legs = (phase: number, swing: number, bend: number) => {
@@ -91,6 +94,19 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
       rot('armUpperR', -3.3, 0, -0.45);
       rot('armLowerL', -1.6);
       rot('armLowerR', -1.6);
+      break;
+    }
+    case 'haul': {
+      // Pulling a rope over the shoulder: leaning into it with short, heavy steps.
+      const p = t / 1.6;
+      const s = Math.sin(p * TAU);
+      legs(p, 0.3, 0.45);
+      rot('torso', 0.45 + 0.04 * s);
+      rot('head', -0.3);
+      rot('armUpperL', -1.0 + 0.08 * s, 0, 0.15);
+      rot('armUpperR', -1.0 - 0.08 * s, 0, -0.15);
+      rot('armLowerL', -0.6);
+      rot('armLowerR', -0.6);
       break;
     }
     case 'work': {

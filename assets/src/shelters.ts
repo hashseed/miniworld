@@ -27,7 +27,8 @@ export const SHELTERS = [
 ] as const;
 export type ShelterId = (typeof SHELTERS)[number];
 
-export const CAMP_SHELTER: Record<Profile, ShelterId> = {
+/** The shelter of each hunter-gatherer profile's camp; later profiles live in towns. */
+export const CAMP_SHELTER: Partial<Record<Profile, ShelterId>> = {
   'african-stone-age': 'shelter-grass-hut',
   neanderthal: 'shelter-windbreak',
   'coastal-asia-hunter': 'shelter-lean-to',

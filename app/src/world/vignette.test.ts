@@ -1,16 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { TIMELINE_START, astronomicalYear, dayOfYearStart } from '../time/calendar.ts';
+import { buildLandmarks } from '../../../data/build/lib/landmarks.ts';
 import { buildVignettes } from '../../../data/build/lib/vignettes.ts';
 import { buildMembers, instancesAt, loopErrors, posesAt } from './vignette.ts';
 
 const CURATED = new URL('../../../data/curated', import.meta.url).pathname;
-const hunt = buildVignettes({
+const lanes = new Set(['europe', 'mena']);
+const giza = buildLandmarks({ curated: CURATED, lanes, startDay: TIMELINE_START, cutoffDay: 0 });
+const built = buildVignettes({
   curated: CURATED,
-  lanes: new Set(['europe']),
+  lanes,
   animals: new Set(['woolly-mammoth']),
   startDay: TIMELINE_START,
   cutoffDay: 0,
-}).vignettes.find((v) => v.structure.id === 'mammoth-hunt')!.structure;
+  landmarkParts: new Map(giza.landmarks.map((l) => [l.structure.id, l.parts])),
+}).vignettes;
+const hunt = built.find((v) => v.structure.id === 'mammoth-hunt')!.structure;
+const khufu = built.find((v) => v.structure.id === 'khufu-pyramid-building')!.structure;
+const menkaure = built.find((v) => v.structure.id === 'menkaure-pyramid-building')!.structure;
 const bce = (y: number) => dayOfYearStart(astronomicalYear(y, 'BCE'));
 
 describe('vignette player', () => {
@@ -57,5 +64,48 @@ describe('vignette player', () => {
       }
     }
     expect(summary.join('\n')).toMatchSnapshot();
+  });
+
+  it('stands a singular vignette once over its whole span, facing east', () => {
+    expect(instancesAt(khufu, khufu.fromDay - 1)).toEqual([]);
+    expect(instancesAt(khufu, khufu.toDay)).toEqual([]);
+    const first = instancesAt(khufu, khufu.fromDay);
+    const last = instancesAt(khufu, khufu.toDay - 1);
+    expect(first).toHaveLength(1);
+    expect(last).toEqual(first);
+    expect(first[0]!.fromDay).toBe(khufu.fromDay);
+    expect(first[0]!.toDay).toBe(khufu.toDay);
+    expect(first[0]!.orient).toEqual([1, 0]);
+  });
+
+  it('scales the building stage to each pyramid and closes the loop at every size', () => {
+    const k = menkaure.template.marks['ramp-foot']![1] / khufu.template.marks['ramp-foot']![1];
+    expect(k).toBeCloseTo(103.4 / 230.3, 2);
+    for (const v of [khufu, menkaure]) {
+      expect(loopErrors(v.template)).toEqual([]);
+      const inst = instancesAt(v, v.fromDay)[0]!;
+      const members = buildMembers(v.template);
+      expect(posesAt(v.template, members, inst, 5000)).toEqual(
+        posesAt(v.template, members, inst, 5000 + v.template.loopMs),
+      );
+    }
+  });
+
+  it('hauls the sledge up to the top, where the block sinks into place', () => {
+    const inst = instancesAt(khufu, khufu.fromDay)[0]!;
+    const members = buildMembers(khufu.template);
+    const at = (s: number) => {
+      const lifeMs = s * 1000 - inst.offsetMs + khufu.template.loopMs;
+      return posesAt(khufu.template, members, inst, lifeMs).find((p) => p.group === 'sledge')!;
+    };
+    expect(at(200).z).toBeGreaterThan(at(100).z);
+    expect(at(335).x).toBe(0);
+    expect(at(335).z).toBe(0);
+    expect(at(345).visibility).toBe(0);
+    expect(at(599).visibility).toBe(1);
+    const hauler = posesAt(khufu.template, members, inst, 100_000 - inst.offsetMs).find(
+      (p) => p.group === 'haulers',
+    )!;
+    expect(hauler.clip).toBe('haul');
   });
 });

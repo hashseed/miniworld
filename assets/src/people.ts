@@ -27,6 +27,7 @@ export const PROFILES = [
   'ice-age-hunter',
   'steppe-beringia-hunter',
   'natufian',
+  'old-kingdom-egyptian',
 ] as const;
 export type Profile = (typeof PROFILES)[number];
 export type Kind = 'man' | 'woman' | 'child';
@@ -137,6 +138,17 @@ export const LOOKS: Record<Profile, ProfileLook> = {
     trim: '#7b5434',
     headband: '#f2ead8',
     tools: { man: 'sickle', woman: 'grinding-stone', child: 'basket' },
+  },
+  // Pyramid builders of the Old Kingdom (giza.md section 11): white linen kilts
+  // for the men, linen dresses for the women, short black hair.
+  'old-kingdom-egyptian': {
+    skin: ['#7a4e33', '#8d5a3b', '#94603f', '#a8714c'],
+    hair: ['#1d1410', '#2a1d17'],
+    top: { man: 'none', woman: 'tunic', child: 'none' },
+    bottom: { man: 'kilt', woman: 'skirt', child: 'kilt' },
+    hide: ['#f1ead8', '#e8dfc8', '#f5efe0'],
+    trim: '#cdb98e',
+    tools: { man: 'none', woman: 'basket', child: 'none' },
   },
 };
 

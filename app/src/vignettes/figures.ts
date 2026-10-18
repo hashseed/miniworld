@@ -7,6 +7,7 @@ import manifest from '../../../data/assets/manifest.json';
 import { ANIMALS, buildAnimal, type AnimalId } from '../../../assets/src/animals.ts';
 import { animateAnimal, animatePerson } from '../../../assets/src/clips.ts';
 import { lightUniforms, type Model } from '../../../assets/src/kit.ts';
+import { buildProp, PROPS, type PropId } from '../../../assets/src/landmarks.ts';
 import { buildPerson, PROFILES, type Kind, type Profile } from '../../../assets/src/people.ts';
 import { hashString } from '../core/hash.ts';
 import type { Clip } from '../world/vignette.ts';
@@ -20,6 +21,8 @@ const approved = new Set(
 
 /** The family at a camp: a woman, a child and a man, then repeating. */
 const FAMILY: Kind[] = ['woman', 'child', 'man'];
+/** Roles always played by a man of the profile (the building crews of giza.md section 11). */
+const MEN = new Set(['hunter', 'worker', 'overseer', 'scribe']);
 
 /** Content animal ids that differ from the model ids. */
 const ANIMAL_MODELS: Record<string, AnimalId> = { 'woolly-mammoth': 'animal-mammoth' };
@@ -48,13 +51,18 @@ function wrap(model: Model, pose: (clip: Clip, seconds: number) => void): StandI
 
 /** Builds the drawn actor for a cast member. */
 export function buildActor(
-  kind: 'human' | 'animal',
+  kind: 'human' | 'animal' | 'prop',
   look: string,
   key: string,
   index: number,
   role?: string,
 ): StandIn {
-  if (kind === 'animal') {
+  if (kind === 'prop') {
+    if ((PROPS as readonly string[]).includes(look) && approved.has(look)) {
+      const model = buildProp(look as PropId);
+      return wrap(model, () => {});
+    }
+  } else if (kind === 'animal') {
     const id = animalModel(look);
     if (id && approved.has(id)) {
       const model = buildAnimal(id);
@@ -62,7 +70,7 @@ export function buildActor(
     }
   } else if ((PROFILES as readonly string[]).includes(look)) {
     const profile = look as Profile;
-    const person: Kind = role === 'hunter' ? 'man' : FAMILY[index % FAMILY.length]!;
+    const person: Kind = role && MEN.has(role) ? 'man' : FAMILY[index % FAMILY.length]!;
     if (approved.has(`figure-${profile}-${person}`)) {
       const model = buildPerson({
         profile,

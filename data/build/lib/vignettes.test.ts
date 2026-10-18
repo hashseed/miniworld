@@ -6,6 +6,7 @@ import {
   astronomicalYear,
   dayOfYearStart,
 } from '../../../app/src/time/calendar.ts';
+import { buildLandmarks } from './landmarks.ts';
 import { buildVignettes, compileTemplate, parseDate } from './vignettes.ts';
 
 const CURATED = new URL('../../curated', import.meta.url).pathname;
@@ -13,12 +14,20 @@ const TEMPLATE = readFileSync(join(CURATED, 'templates/big-game-hunt.yaml'), 'ut
 
 describe('vignette formats', () => {
   it('builds the mammoth hunt without errors', () => {
+    const lanes = new Set(['europe', 'mena']);
+    const landmarks = buildLandmarks({
+      curated: CURATED,
+      lanes,
+      startDay: TIMELINE_START,
+      cutoffDay: 0,
+    });
     const r = buildVignettes({
       curated: CURATED,
-      lanes: new Set(['europe']),
+      lanes,
       animals: new Set(['woolly-mammoth']),
       startDay: TIMELINE_START,
       cutoffDay: 0,
+      landmarkParts: new Map(landmarks.landmarks.map((l) => [l.structure.id, l.parts])),
     });
     expect(r.errors).toEqual([]);
     const v = r.vignettes.find((x) => x.structure.id === 'mammoth-hunt')!;

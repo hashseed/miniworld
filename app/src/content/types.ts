@@ -80,6 +80,8 @@ export interface StartupIndex {
   people: unknown[];
   /** Vignette records (spec milestone 2, section 18.4). */
   vignettes: VignetteEntry[];
+  /** Landmark records (giza.md section 11), in the same form. */
+  landmarks: VignetteEntry[];
 }
 
 export interface VignetteEntry {

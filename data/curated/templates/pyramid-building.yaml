@@ -1,0 +1,45 @@
+# A crew hauls a block on a sledge from the quarry up a straight ramp to the
+# top of a rising pyramid, where it is set in place, and walks back down
+# (docs/spec/giza.md sections 4.1 and 11.3). Marks are written for the Great
+# Pyramid (stage.fit) and scaled to the pyramid each record builds; +x east,
+# +z north, the ramp on the south side.
+id: pyramid-building
+params: { builders: culture, stone: prop }
+loop: 600 s
+stage:
+  radius: 300 m
+  fit: 230 m
+  marks:
+    quarry: [60, -280]
+    ramp-foot: [0, -262]
+    top: [0, 0]
+    scribe: [-25, -270]
+cast:
+  quarry-workers: { culture: $builders, role: worker, count: 3, at: quarry }
+  haulers: { culture: $builders, role: worker, count: 8, at: quarry }
+  water-carrier: { culture: $builders, role: worker, count: 1, at: quarry }
+  sledge: { prop: $stone, count: 1, at: quarry }
+  masons: { culture: $builders, role: worker, count: 3, at: top }
+  overseer: { culture: $builders, role: overseer, count: 1, at: scribe }
+  scribe: { culture: $builders, role: scribe, count: 1, at: scribe }
+beats:
+  - {
+      at: 0,
+      quarry-workers: { work-at: quarry },
+      masons: { work-at: top },
+      scribe: { work-at: scribe },
+    }
+  - {
+      at: 0,
+      haulers: { haul: ramp-foot },
+      sledge: { haul: ramp-foot },
+      water-carrier: { haul: ramp-foot },
+    }
+  - { at: 70, haulers: { haul: top }, sledge: { haul: top }, water-carrier: { haul: top } }
+  - { at: 80, overseer: { point: haulers } }
+  - { at: 340, sledge: fall, haulers: { cheer: masons }, water-carrier: wait }
+  - { at: 345, overseer: { cheer: haulers } }
+  - { at: 350, haulers: { walk-to: ramp-foot }, water-carrier: { walk-to: ramp-foot } }
+  - { at: 360, overseer: wait }
+  - { at: 540, haulers: { walk-to: quarry }, water-carrier: { walk-to: quarry } }
+  - { at: 590, sledge: appear }

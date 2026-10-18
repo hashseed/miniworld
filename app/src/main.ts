@@ -21,6 +21,7 @@ import { detectLanguage } from './i18n/messages.ts';
 import { FrameRenderer } from './perf/frameRenderer.ts';
 import { DynamicResolution, FrameStats, QUALITY, targetFrameMs } from './perf/quality.ts';
 import { STRESS_CENTRE, StressScene } from './perf/stressScene.ts';
+import { LandmarkLayer } from './landmarks/landmarkLayer.ts';
 import { VignetteLayer } from './vignettes/vignetteLayer.ts';
 import { OPENING_DAY, TIMELINE_START, dayFromDate } from './time/calendar.ts';
 import { Clock } from './time/clock.ts';
@@ -134,8 +135,18 @@ const vignettes = new VignetteLayer(
   { surfaceKm: surface.surfaceKm, toDrawn: (d) => globe.lens.toDrawn(d) },
   canvas,
 );
-scene.add(vignettes.group);
+const landmarks = new LandmarkLayer(loader, {
+  surfaceKm: surface.surfaceKm,
+  toDrawn: (d) => globe.lens.toDrawn(d),
+});
+vignettes.landmarks = landmarks;
+scene.add(landmarks.group, vignettes.group);
 vignettes.onOpen = (entry) => void openVignette(entry);
+// A tap that misses every cast may land on a landmark, which opens its card the same way.
+vignettes.onMiss = (x, y) => {
+  const entry = landmarks.hit(x, y);
+  if (entry) void openVignette(entry);
+};
 vignettes.onFly = (lat, lon, altitudeKm) =>
   controller.flyTo({ ...controller.state, lat, lon, altitudeKm });
 controller.reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -310,7 +321,10 @@ async function switchLanguage(lang: Settings['language']): Promise<void> {
   index = next;
   timeline?.setIndex(next);
   vignettes.setIndex(next.vignettes);
-  const open = ui.value.vignette && next.vignettes.find((v) => v.id === ui.value.vignette!.id);
+  landmarks.setIndex(next.landmarks);
+  const open =
+    ui.value.vignette &&
+    [...next.vignettes, ...next.landmarks].find((v) => v.id === ui.value.vignette!.id);
   if (open && ui.value.panel === 'vignette') void openVignette(open);
   ui.update({ sources: next.sources });
 }
@@ -468,6 +482,7 @@ function frame(now: number): void {
     stress.place(new THREE.Vector3(...globe.lens.toDrawn(centre)));
     stress.update(camera, clock.lifeMs, now);
   }
+  landmarks.update(camera, clock.day);
   vignettes.update(camera, clock.day, clock.lifeMs, u.lightDir!.value);
 
   renderer.info.reset();
@@ -531,6 +546,7 @@ async function start(): Promise<void> {
     globe.setLens(new Lens(grids.forward, grids.inverse));
     minSeaLevel = lowestSeaLevel(index.seaLevel);
     vignettes.setIndex(index.vignettes);
+    landmarks.setIndex(index.landmarks);
     globe.lowestSeaLevel = minSeaLevel;
     const startDay = STRESS ? STRESS_DAY : (savedView?.day ?? OPENING_DAY);
     clock.configure({
@@ -608,6 +624,7 @@ if (import.meta.env.DEV)
       globe,
       foliage,
       vignettes,
+      landmarks,
       controller,
       clock,
       loader,
