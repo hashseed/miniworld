@@ -10,6 +10,7 @@ export type Verb =
   | 'walk-to'
   | 'run-to'
   | 'carry-to'
+  | 'haul'
   | 'work-at'
   | 'point'
   | 'throw-at'
@@ -23,7 +24,17 @@ export type Verb =
   | 'hide';
 
 export type Clip =
-  'idle' | 'walk' | 'run' | 'carry' | 'work' | 'point' | 'throw' | 'cheer' | 'struggle' | 'fall';
+  | 'idle'
+  | 'walk'
+  | 'run'
+  | 'carry'
+  | 'haul'
+  | 'work'
+  | 'point'
+  | 'throw'
+  | 'cheer'
+  | 'struggle'
+  | 'fall';
 
 /** Every verb the player understands, with what its object names. */
 export const VERBS: Record<Verb, 'none' | 'mark' | 'group' | 'optional-group'> = {
@@ -31,6 +42,7 @@ export const VERBS: Record<Verb, 'none' | 'mark' | 'group' | 'optional-group'> =
   'walk-to': 'mark',
   'run-to': 'mark',
   'carry-to': 'mark',
+  haul: 'mark',
   'work-at': 'mark',
   point: 'optional-group',
   'throw-at': 'group',
@@ -52,12 +64,14 @@ const SPEED_CM_S: Partial<Record<Verb, number>> = {
   'walk-to': 400,
   'run-to': 1200,
   'carry-to': 350,
+  haul: 300,
   'work-at': 400,
 };
 const MOVE_CLIP: Partial<Record<Verb, Clip>> = {
   'walk-to': 'walk',
   'run-to': 'run',
   'carry-to': 'carry',
+  haul: 'haul',
   'work-at': 'walk',
 };
 const FALL_MS = 3000;
@@ -75,7 +89,7 @@ const GESTURE_MS = 3000;
 /** A member closer than this to its target does not walk there first. */
 const NEAR_CM = 50;
 /** Closest two members of a group come: one step (section 18.3). */
-const SPACING_CM = { human: 250, animal: 1400 };
+const SPACING_CM = { human: 250, animal: 1400, prop: 300 };
 /** Grid cells are this many steps apart; spots wander 0.3 steps within them. */
 const CELL_STEPS = 1.6;
 
@@ -86,14 +100,19 @@ export interface CompiledAction {
   object?: string;
 }
 
+/** A cast member is a person, an animal or a prop that is moved about (giza.md section 11.3). */
+export type CastKind = 'human' | 'animal' | 'prop';
+
 export interface CompiledGroup {
   name: string;
-  kind: 'human' | 'animal';
-  /** The culture or animal id, after the record's parameters are filled in. */
+  kind: CastKind;
+  /** The culture, animal or prop asset id, after the record's parameters are filled in. */
   look: string;
   role?: string;
   count: number;
   at: string;
+  /** Where the group stands relative to its marks, in centimetres, like a formation (giza.md section 11.3). */
+  offsetCm?: [number, number];
   actions: CompiledAction[];
 }
 
@@ -115,6 +134,8 @@ export interface CompiledTemplate {
   loopMs: number;
   once: boolean;
   radiusCm: number;
+  /** The landmark size the marks are written for (giza.md section 11.3), if any. */
+  fitCm?: number;
   /** Mark positions in whole centimetres: x forward, z to the left. */
   marks: Record<string, [number, number]>;
   groups: CompiledGroup[];
@@ -140,6 +161,8 @@ export interface CompiledVignette {
   sites: CompiledSite[];
   icon: string;
   template: CompiledTemplate;
+  /** For a singular vignette: the landmark part it builds, at whose centre it stands (giza.md section 11.4). */
+  progress?: { landmark: string; part: string };
 }
 
 export interface Instance {
@@ -188,7 +211,8 @@ export function instancesAt(v: CompiledVignette, day: number): Instance[] {
       fromDay,
       toDay,
       offsetMs: h % v.template.loopMs,
-      orient: ORIENTATIONS[hash32(h, 11) % 8]!,
+      // A stage on a landmark keeps the landmark's frame: +x east.
+      orient: v.progress ? ORIENTATIONS[0]! : ORIENTATIONS[hash32(h, 11) % 8]!,
     });
   }
   return out;
@@ -223,7 +247,7 @@ export interface Segment {
 export interface Member {
   group: string;
   index: number;
-  kind: 'human' | 'animal';
+  kind: CastKind;
   look: string;
   role?: string;
   segments: Segment[];
@@ -244,12 +268,13 @@ export function formationOffset(group: CompiledGroup, i: number, beat = 0): [num
   const inRow = row === rows - 1 ? group.count - row * cols : cols;
   const col = i - row * cols;
   const step = SPACING_CM[group.kind];
+  const [ox, oz] = group.offsetCm ?? [0, 0];
   const h = hashString(group.name);
   const jitter = (k: number) =>
     group.count === 1 ? 0 : ((hash32(h, i, beat, k) % 601) / 1000 - 0.3) * step;
   return [
-    Math.round((row - (rows - 1) / 2) * step * CELL_STEPS + jitter(1)),
-    Math.round((col - (inRow - 1) / 2) * step * CELL_STEPS + jitter(2)),
+    ox + Math.round((row - (rows - 1) / 2) * step * CELL_STEPS + jitter(1)),
+    oz + Math.round((col - (inRow - 1) / 2) * step * CELL_STEPS + jitter(2)),
   ];
 }
 
@@ -427,7 +452,7 @@ function facingAt(segs: Segment[], index: number): [number, number] {
 export interface Pose {
   group: string;
   index: number;
-  kind: 'human' | 'animal';
+  kind: CastKind;
   look: string;
   role?: string;
   /** Position in whole centimetres: x east, z north of the stage centre. */

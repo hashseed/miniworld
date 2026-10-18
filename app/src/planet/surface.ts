@@ -20,8 +20,21 @@ export const ICE_HIDE_KM = 120;
  * enough to leave mountains alone (section 4.2).
  */
 export const COAST_BEACH_KM = 2;
-export const COAST_SLOPE = 12; // m per km at the coast
-export const COAST_CURVE = 0.15; // extra m per km²
+export const COAST_SLOPE = 6; // m per km at the coast
+export const COAST_CURVE = 0.08; // extra m per km²
+
+/** Highest rise in metres the cap allows at d km from the coast. */
+export function coastCap(dKm: number): number {
+  const d = Math.max(0, dKm - COAST_BEACH_KM);
+  return d * (COAST_SLOPE + COAST_CURVE * d);
+}
+
+/** Distance from the coast in km at which the cap allows a rise of riseM metres. */
+export function coastKmForRise(riseM: number): number {
+  const s = COAST_SLOPE;
+  const c = COAST_CURVE;
+  return COAST_BEACH_KM + (-s + Math.sqrt(s * s + 4 * c * Math.max(0, riseM))) / (2 * c);
+}
 /** The lake field marks a lake where it passes this value (section 5.1). */
 export const LAKE_FIELD = 0.5;
 

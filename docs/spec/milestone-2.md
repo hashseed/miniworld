@@ -31,7 +31,7 @@ Decided by Yang on 2026-10-17: no population model is needed for this milestone 
 
 The world query runs in a Web Worker (`app/src/world/`). It receives the clock, the play state and the view (camera position, the visible quadtree tiles) and returns a **scene**: the camps, figures, vignette instances, landmarks, migration groups and markers in and near the view, each with a stable id. The renderer and the interface only draw the scene; they never decide anything about the world.
 
-The pure functions of `app/src/time`, `app/src/core` and the date-dependent parts of `app/src/globe` (sea level, ocean mask, ice, aridity) move into the worker unchanged ([milestone-1.md](milestone-1.md#22-repository-layout) section 2.2), so the world query knows where land, sea, ice and desert are at the date.
+The pure functions of `app/src/time`, `app/src/core` and `app/src/planet` (sea level, ocean mask, ice, ground height) move into the worker unchanged ([milestone-1.md](milestone-1.md#22-repository-layout) section 2.2), so the world query knows where land, sea, ice and desert are at the date. It is a separate worker from the terrain workers of milestone 1 (section 11.5), which only build meshes and textures.
 
 ### 2.2 Motion as segments
 
@@ -448,7 +448,7 @@ The budget of spec section 9 holds with this milestone's content. Two new scenes
 | Expected answers | No people in the Americas at 30,000 BCE; no Neanderthals after 38,000 BCE; Sahul inhabited at 45,000 BCE; no camp on sea, ice or deep desert at any golden case; a repeated vignette instance shows the same pose at clock time t and t plus its loop length while both lie in its shown span, and starts at its first beat |
 | Cross-browser | The golden scenes computed in Chromium, Firefox and WebKit through Playwright, in the worker, must match the stored results exactly |
 | Browser tests | Pausing history stops figures and vignettes mid-step; tapping a figure opens its card in both languages; double-clicking the Göbekli Tepe event flies there and shows the building site |
-| Models | Every model of section 13.3 is built the same way every time, stays within its triangle budget (people 1,050, animals 1,200, shelters 1,000), stands on the ground at a believable height and faces +Z; clips give the same pose for the same time whatever came before; the spear leaves the hand at the release time; the falling animal stays on the ground; every model is listed in the asset manifest as approved, with the geometry hash it was approved with |
+| Models | Every model of section 13.3 is built the same way every time, stays within its triangle budget (people 1,050, animals 1,200, shelters 1,000), stands on the ground at a believable height and faces +Z; clips give the same pose for the same time whatever came before; the spear leaves the hand at the release time; the falling animal stays on the ground; every model is listed in the asset manifest, and every approved one with the geometry hash it was approved with; only models still waiting for review (such as the unused `stone-sledge` of [giza.md](giza.md) section 12) are not approved |
 | Performance check | Draw calls and triangles of the two new scenes (section 14) |
 
 ## 16. Exit criteria and how they are checked

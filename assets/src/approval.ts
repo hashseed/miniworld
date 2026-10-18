@@ -7,6 +7,13 @@ import * as THREE from 'three';
 import { plantGeometry } from '../../app/src/globe/foliageModels.ts';
 import { KINDS as PLANT_KINDS } from '../../app/src/globe/foliageKinds.ts';
 import { ANIMALS, buildAnimal } from './animals.ts';
+import {
+  LANDMARK_ASSETS,
+  PROPS,
+  buildLandmarkAsset,
+  buildProp,
+  type LandmarkAssetId,
+} from './landmarks.ts';
 import { PROFILES, buildPerson, type Kind } from './people.ts';
 import { SHELTERS, buildHearth, buildShelter } from './shelters.ts';
 
@@ -23,6 +30,11 @@ export const MODELS: Record<string, () => THREE.Object3D> = Object.fromEntries([
   ...SHELTERS.map((id) => [id, () => buildShelter(id).object]),
   ['prop-hearth', () => buildHearth().object],
   ...ANIMALS.map((id) => [id, () => buildAnimal(id).object]),
+  ...Object.keys(LANDMARK_ASSETS).map((id) => [
+    id,
+    () => buildLandmarkAsset(id as LandmarkAssetId).object,
+  ]),
+  ...PROPS.map((id) => [id, () => buildProp(id).object]),
   ...PLANT_KINDS.map((kind, i) => [
     `plant-${kind}`,
     () => new THREE.Mesh(plantGeometry(i), new THREE.MeshBasicMaterial()),

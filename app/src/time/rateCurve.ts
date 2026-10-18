@@ -74,8 +74,8 @@ export function speedLabel(log2: number): { fraction: boolean; value: number } {
   return { fraction: false, value: Number(speed.toPrecision(2)) };
 }
 
-export const ZOOM_FULL_RATE_ALTITUDE_KM = 1000;
-export const ZOOM_SLOWEST_ALTITUDE_KM = 10;
+export const ZOOM_FULL_RATE_ALTITUDE_KM = 8000;
+export const ZOOM_SLOWEST_ALTITUDE_KM = 1000;
 export const ZOOM_SLOWEST_FACTOR = 1 / 8;
 
 /** Factor by which zooming in slows history (spec milestone 1, section 3.3). */

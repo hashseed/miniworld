@@ -1,5 +1,5 @@
 {
-  "description": "Straits the coast smoothing must keep open (spec milestone 1, section 5.1). Each line runs from one sea to the other through the strait; sill is the depth in metres of the shallowest point on the deepest way through, approximate.",
+  "description": "Straits the coast smoothing must keep open (spec milestone 1, section 5.1). Each line runs from one sea to the other through the strait, or from the open sea to the head of a narrow gulf the smoothing would close (the Gulfs of Suez and Aqaba); sill is the depth in metres of the shallowest point on the deepest way through, approximate; coreKm widens the always-open core for a narrow sea such as the Sea of Marmara.",
   "straits": [
     {
       "id": "gibraltar",
@@ -29,6 +29,21 @@
         [27.2, 40.6]
       ],
       "source": "Encyclopaedia Britannica, Dardanelles: https://www.britannica.com/place/Dardanelles"
+    },
+    {
+      "id": "marmara",
+      "name": "Sea of Marmara",
+      "sill": -65,
+      "coreKm": 25,
+      "line": [
+        [27.2, 40.6],
+        [27.6, 40.68],
+        [28.0, 40.74],
+        [28.5, 40.8],
+        [28.85, 40.85],
+        [29.0, 40.95]
+      ],
+      "source": "Encyclopaedia Britannica, Sea of Marmara: https://www.britannica.com/place/Sea-of-Marmara"
     },
     {
       "id": "bosporus",
@@ -319,6 +334,31 @@
         [9.9, 42.0]
       ],
       "source": "Encyclopaedia Britannica, Corsica: https://www.britannica.com/place/Corsica-island-France; the channel to Tuscany is several hundred metres deep, so Corsica was never joined to Italy"
+    },
+    {
+      "id": "gulf-of-suez",
+      "name": "Gulf of Suez",
+      "sill": -50,
+      "line": [
+        [34.0, 27.45],
+        [33.6, 28.05],
+        [33.15, 28.65],
+        [32.8, 29.25],
+        [32.57, 29.9]
+      ],
+      "source": "Encyclopaedia Britannica, Gulf of Suez: https://www.britannica.com/place/Gulf-of-Suez"
+    },
+    {
+      "id": "gulf-of-aqaba",
+      "name": "Gulf of Aqaba",
+      "sill": -250,
+      "line": [
+        [34.4, 27.75],
+        [34.5, 28.3],
+        [34.7, 28.85],
+        [34.95, 29.45]
+      ],
+      "source": "Encyclopaedia Britannica, Gulf of Aqaba: https://www.britannica.com/place/Gulf-of-Aqaba"
     }
   ]
 }

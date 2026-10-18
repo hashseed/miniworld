@@ -22,7 +22,7 @@ id: giza-pyramids
 kind: landmark
 when: { from: c. 2589 BCE, to: today }
 where: { point: [29.9792, 31.1342] }
-region: middle-east-north-africa
+region: mena
 debated: numbers                       # size of the work force
 parts:
   khufu:     { at: [29.9792, 31.1342], stages: [...] }
@@ -49,7 +49,7 @@ Two extensions of the landmark format, both **Proposed** and to be written into 
 
 **Placement.** The pyramids stand on the desert edge on the west bank of the Nile, about 8 km from the river today and close to the floodplain in the Old Kingdom. The globe draws the Nile as a wide, smooth ribbon (spec section 6), so the true points may fall inside the drawn river or its green band. The landmark is therefore anchored to its true point and, if the drawn river or its banks cover any part's footprint, the whole group is shifted west, as one piece, to the nearest desert land that is clear of them (decided by Yang on 2026-10-18). The shift is computed once in the data build from the terrain, which is time-independent, so it is deterministic.
 
-**Size.** Landmarks follow the same miniature scale as other buildings and, as `beacon: wonder`, keep a minimum on-screen size up to orbit (milestone-2 section 8). In keeping with Yang's decision of 2026-10-18 that dioramas are not to scale but much larger and alive from orbit, the building crews and the later visitors keep the minimum figure size of milestone-2 section 5.1, so from orbit the viewer sees three clay pyramids with tiny crowds moving around them. The relative sizes of the three pyramids stay true to each other (Khufu and Khafre almost equal, Menkaure clearly smaller), because that is how children recognise the group.
+**Size.** Like the trees and the vignettes (milestone-2 section 5.1), the landmark keeps one drawn size at every zoom. Decided by Yang on 2026-10-18: the Great Pyramid is about three widths of the drawn Nile across with its true slope of about 52 degrees, so it is drawn on a base of about 180 km and about 115 km high, a little taller than a person, with its crew clearly visible on it (section 11.2). A first try at 270 km high and 70 degrees was too tall. The relative sizes of the three pyramids stay true to each other (Khufu and Khafre almost equal, Menkaure clearly smaller), because that is how children recognise the group.
 
 **Model.** One clay model per part and stage, cel-shaded in the house style, together within the landmark budget of about 20,000 triangles (spec section 8). The pyramids are smooth, pale and slightly rounded at the edges like modelling clay; the stepped core shows in the construction stages and after the casing is stripped. The pyramidion (capstone) on top is pale stone; whether it was covered in metal is unknown, so it is not drawn gilded.
 
@@ -97,7 +97,7 @@ A new template for the building of a pyramid, used here three times and later fo
 - **Cast:** a hauling crew of eight to ten, a water carrier, quarry workers, masons at the top, an overseer, a scribe, and bakers and brewers at the town.
 - **Verbs:** `haul`, `lift`, `carry-to`, `work-at`, `walk-to`, `point`, `cheer`, `talk`, and the prop actions `sail-to`, `move-to`, `rise` and `fall`, all in milestone-2 section 6.4. No new verbs are needed.
 
-The beats are the record scripts in section 4.2. The loop closes because the sledge returns empty down the ramp and a new block is cut in the quarry while the boat sails off and returns full. **Proposed** loop length: 120 s, like the mammoth hunt.
+The beats are the record scripts in section 4.2. The loop closes because the sledge returns empty down the ramp and a new block is cut in the quarry while the boat sails off and returns full. **Proposed** loop length: 320 s, so the crew can haul a block up the whole ramp and walk back (section 11.3).
 
 How the blocks were raised is not fully known: archaeologists have found remains of ramps at Giza and at Hatnub, and debate whether they were straight, zigzag or wound around the pyramid. The diorama shows one straight supply ramp, which is simple to read, and the card says that the exact way is still debated (decided by Yang on 2026-10-18).
 
@@ -216,3 +216,109 @@ Decided by Yang on 2026-10-18:
 3. One straight supply ramp in the building dioramas, with the card saying the method is debated (section 4.1).
 4. The gap at Giza from c. 2180 to c. 1550 BCE stays open for now; the farming dioramas of the Nile valley that carry the region then are worked out in detail later.
 5. The Great Pyramid is finished c. 2560 BCE, as in events/egypt.md; the sources settle the exact date and Khufu's reign when the records are written (section 6).
+6. The pyramids are drawn at one fixed size: the Great Pyramid about three widths of the drawn Nile across, at its true slope; the pyramids stand close together (section 11.2).
+7. The builders clearly look like ancient Egyptians: wigs, broad collars and white linen (section 11.5).
+8. Only three people build at a time, from the ground like a sand castle: no ramp and nobody standing on the pyramid. This replaces decision 3 for the slice; the card still tells of the ramps (section 11.3).
+9. The Sphinx is drawn taller than a person (section 11.2).
+10. The first slice is shelved: its models are approved as assets, but the diorama is taken off the globe (section 12).
+
+## 11. First slice: the pyramids rise
+
+Asked for by Yang on 2026-10-18: the Giza landmark and its three building dioramas are built ahead of milestone 4, on top of the mammoth-hunt slice ([milestone-2.md](milestone-2.md#18-first-slice-the-mammoth-hunt) section 18), as the worked example of a landmark and of a singular vignette that a landmark's construction drives. Everything not listed here stays as specified above and is built with milestone 4.
+
+### 11.1 What the slice builds
+
+| Part | In the slice | Later |
+| --- | --- | --- |
+| Landmark record | `data/curated/landmarks/giza-pyramids.md` with the parts `khufu`, `khafre`, `menkaure` and `sphinx` and their stages from section 3 | The parts `queens`, `temples` and `mastabas` |
+| Models | Script-built clay models in `assets/src/landmarks.ts`: a pyramid that can be drawn at any point of its construction, complete, half stripped, stepped or gashed, and the Sphinx with or without sand and nose | Ramps, sledges, boats, the workers' town |
+| Data build | Validates the landmark record, shifts the group west off the drawn Nile (section 2), and writes a structure file and a text file per language; the startup index gains a `landmarks` list | Unchanged |
+| Landmark layer | Draws every part at the date's stage, rising with the date during its build, at one fixed drawn size at every zoom (section 11.2); tapping a part opens the landmark card | Unchanged |
+| Building dioramas | `khufu-pyramid-building`, `khafre-pyramid-building` and `menkaure-pyramid-building` on the `pyramid-building` template, with a stonecutter and two carriers | Haulers with sledges, the water carrier, scribe and overseer, the boat from Tura or Aswan, the Sphinx carvers and the bakers of section 4 |
+| Figures | The cast is the `old-kingdom-egyptian` culture profile (section 11.5), built like the prehistoric figures and shown once Yang approves them; until then, stand-ins | Unchanged |
+
+The models are new assets: they are drawn in their clay look only once Yang approves them in `data/assets/manifest.json` (spec section 13). Until then each is drawn as a flat-coloured stand-in of the same shape, like the stand-in figures of milestone-2 section 18.1. A preview build on devenv started with `VITE_PREVIEW_ASSETS=1` also draws the models with status `generated`, so Yang can review them in place; such a build is never shipped.
+
+### 11.2 The landmark record
+
+```markdown
+---
+id: giza-pyramids
+kind: landmark
+when: { from: c. 2589 BCE, to: today }
+where: { point: [29.9792, 31.1342] }
+region: mena
+icon: pyramid
+beacon: wonder
+size: { part: khufu, across: 180 km, high: 115 km }
+spacing: 0.7
+parts:
+  khufu:
+    at: [29.9792, 31.1342]
+    stages:
+      - { from: c. 2589 BCE, asset: giza-khufu }
+      - { from: c. 1303, asset: giza-khufu-stripping }
+      - { from: c. 1400, asset: giza-khufu-stepped }
+  ...
+build:
+  - { part: khufu, from: c. 2589 BCE, to: c. 2560 BCE, vignette: khufu-pyramid-building }
+  ...
+sources: [...]
+---
+```
+
+- A part is drawn from its first stage's date. The stage whose span contains a `build` entry is drawn **rising**: at a fraction *f* of the build span the stepped core stands to *f* / 0.85 of the full height, in whole courses of the model; from *f* = 0.85 the core is complete and the white casing is laid from the top down, until the stage's finished asset stands at the end of the span.
+- **Fixed size** (decided by Yang on 2026-10-18). `size` names a pyramid part and how big it is drawn: `across` its base and `high` its apex, in km. That gives the landmark two factors, drawn km per life-size metre across the ground (180 km over 230.3 m, about 0.78) and upwards (115 km over 146.6 m, also about 0.78), used for every pyramid of the group at every zoom, like the trees. With equal factors the pyramids keep their true slope and their true sizes relative to each other; the two factors stay so a record could exaggerate height. The Sphinx and other parts that are not pyramids keep their shape and are drawn evenly at the upward factor times the part's own `scale` (decided by Yang on 2026-10-18: the Sphinx must be taller than a person, so `scale: 6` draws it about 95 km high). Its model has chunky toy proportions, 46 m long for its 20 m height instead of the real 73 m, so it is about 215 km long and does not crowd the pyramids.
+- **Spacing.** The parts' positions are kept as offsets from the landmark's point in metres, and drawn at the across factor times `spacing` (0.7 at Giza), so the pyramids stand close together with narrow gaps rather than at their true distances.
+- **Open end.** `to: today` includes the last day of the timeline, so the landmark is still drawn when history ends.
+- The data build moves the group's drawn point west, in steps of 1 km and at most 600 km, until no point of the group's footprint (every part's base at the drawn size and spacing, with 160 m south of each pyramid for its crew) lies on a river, a lake or the sea of today (section 2); dry land below sea level, such as the Qattara Depression, counts as land, and if no shift is fully dry the one with the least water wins. The true point stays the one used for flying to the landmark and for its card.
+
+### 11.3 The `pyramid-building` template
+
+The template of section 4.1 in the format of milestone-2 section 18.2, built like a sand castle (decided by Yang on 2026-10-18): the crew works from the ground beside the pyramid, and nobody stands on it. Two additions:
+
+- **Fit.** `stage.fit` (such as `230 m`, the base of the Great Pyramid) is the size the marks are written for. A record whose `progress` names a landmark part has every mark scaled by the part's base over the fit, so one template serves pyramids of every size.
+- **Offset.** A cast group may have `offset: [x, z]` in metres: it stands that far from its marks, like a formation offset, drawn at the figures' size.
+
+Its marks lie around the pyramid's centre, with +x east and +z north: `quarry` south-east of the pyramid, `pile-west` and `pile-east` south of it, and `foot-west` and `foot-east` just outside the middle of its south face; the stage radius is 300 m.
+
+Script (120 s): a stonecutter works at the quarry all loop long; two carriers each carry a limestone block on the shoulder from their stone pile to the foot of the pyramid, crouch and set it there, cheer each other, and walk back to the pile for the next. Each carrier has marks of its own, so they never overlap.
+
+The landmark's cast vocabulary also allows props: a cast group may be `{ prop: $param, count, at }` with a parameter of kind `prop`, moved with `haul` (3 m/s on the stage, with the haul clip, leaning forward and pulling a rope) or `walk-to`, and drawn from its asset. Props stand flat on the ground and do not lean towards the camera like the figures (milestone-2 section 5.1). The slice's template uses none.
+
+### 11.4 Singular vignettes
+
+A vignette record with `progress: { landmark, part }` and no `repeat` is **singular**: it has one instance over its whole span, standing at the drawn centre of that part, oriented with +x to the east, with a phase offset from the hash of its id (milestone-2 section 6.5). Its stage is laid out at the landmark's across factor, so the marks stay around the pyramid, while the figures keep their own fixed size (milestone-2 section 5.1); members of a group are spread by their figure size, so a crew does not merge into one blob.
+
+### 11.5 The Egyptian builders
+
+Decided by Yang on 2026-10-18: the people must clearly look like ancient Egyptians. The `old-kingdom-egyptian` profile has brown skin and, as in Old Kingdom tomb paintings and statues (Gay Robins, *The Art of Ancient Egypt*, 1997):
+
+- **Men:** a blunt black bob wig to the jaw, a broad collar of blue beads between gold bands, a short, flared white linen kilt with a pleated front panel, bare chest, no beard. A carrier carries a limestone block on the shoulder. The overseer carries a long staff, the scribe his palette with red and black ink.
+- **Women:** a long black wig with two locks over the shoulders and a blue band, the broad collar, and a white linen sheath dress on two straps, flared below the knee so the legs stay inside it when walking.
+- **Children:** a shaved head with the sidelock of youth, and a small kilt.
+
+### 11.6 Standing on the landmark
+
+The height of the ground under a figure on a stage of a building diorama is the higher of the terrain and the landmark's surface at its stage position, drawn at the upward factor: the pyramid's stepped core or casing at its current height, with a flat top, computed from the same numbers as the model. The crew works beside the pyramid, so it normally stands on the terrain.
+
+### 11.7 Tests
+
+| Test | Checks |
+| --- | --- |
+| Format | The landmark record parses; unknown parts, assets and vignettes, stages out of order and builds outside the record's span fail with a clear message |
+| Placement | The shift is zero away from water and moves the group west of a river laid across it; the footprint covers every part and its crew at the drawn size |
+| Rising | The drawn height is zero at the start of a build, grows in whole courses, and is complete at its end; the stages are picked by date |
+| Singular | One instance over the whole span; the template's marks are scaled by the part's size; the loop closes at every pyramid's size |
+| Models | Every landmark asset builds within the 20,000-triangle landmark budget, and the Egyptian figures within the figure budget |
+| Browser | At a date in the building of the Great Pyramid, the pyramid and its crew are drawn at Giza; tapping the pyramid opens the landmark card (dropped while the slice is shelved, section 12) |
+
+## 12. Shelved
+
+Decided by Yang on 2026-10-18, after reviewing the slice on devenv: the Old Kingdom Egyptian figures and the Giza models (pyramids and Sphinx at every stage) are approved as assets, but the Giza diorama is taken off the globe completely. Nothing of Giza is drawn at any date, and the startup index has no landmark.
+
+- **Kept.** The approved models in `assets/src/people.ts` and `assets/src/landmarks.ts`, the `old-kingdom-egyptian` culture profile, and the general machinery of the slice: the landmark build and layer, singular vignettes driven by a build, group offsets, props and standing on a landmark (section 11). The `stone-sledge` prop stays unreviewed; nothing uses it.
+- **Moved out of the content.** The landmark record, the three building vignettes, the `pyramid-building` template and their three sources move from `data/curated/` to `data/build/fixtures/giza/`, where the tests of section 11.7 still build them. The data build never reads that folder.
+- **Dropped.** The browser test of section 11.7.
+
+Bringing Giza back means moving the records back into `data/curated/` and restoring the browser test, with whatever changes Yang asks for then.

@@ -22,13 +22,14 @@ import { PlanetQuery } from '../planet/query.ts';
 import type { PlanetState } from '../planet/state.ts';
 import { LAND_LIFT_M } from '../planet/surface.ts';
 import { terrainFragment, terrainVertex } from './shaders.ts';
-import { buildTileGeometry, indexFor } from './tileMesh.ts';
+import { startTerrainWorkers, type TerrainWorkers } from './terrainWorkers.ts';
+import { indexFor, tileGeometry } from './tileMesh.ts';
 import { EARTH_RADIUS_KM } from '../geo/earth.ts';
-import { sampleTile, TerrainStore } from './terrainStore.ts';
+import { TerrainStore } from './terrainStore.ts';
 import type { TerrainTile } from '../content/formats.ts';
 
 export const EXAGGERATION = 100;
-export const MAX_RENDER_LEVEL = 9;
+export const MAX_RENDER_LEVEL = 5;
 /** Meshes kept beyond those touched this frame; touched meshes are never evicted. */
 const MAX_CACHED_MESHES = 1500;
 
@@ -61,6 +62,8 @@ export class Globe {
   readonly store: TerrainStore;
   /** Ice and deserts for the whole planet, per time step (section 5.2). */
   readonly climate: ClimateStore;
+  /** Builds tiles and climate textures off the main thread (section 11.5). */
+  private workers: TerrainWorkers;
   /** Sea, ice and ground height at a place, from the loaded data (section 5). */
   readonly query: PlanetQuery;
   private loader: ChunkSource;
@@ -70,6 +73,11 @@ export class Globe {
   quality: GlobeQuality = { errorTargetPx: 2.5 };
   /** Tiles drawn last frame. */
   drawnTiles = 0;
+
+  /** Tile and climate builds waiting or running in the terrain workers. */
+  get pendingBuilds(): number {
+    return this.workers.pending;
+  }
   /** Lowest sea level of the timeline (m); below it a place is sea at every date. */
   lowestSeaLevel = -130;
   /** The date of the last update, for surface queries. */
@@ -82,7 +90,8 @@ export class Globe {
   constructor(loader: ChunkSource) {
     this.loader = loader;
     this.store = new TerrainStore(loader);
-    this.climate = new ClimateStore(loader);
+    this.workers = startTerrainWorkers();
+    this.climate = new ClimateStore(loader, this.workers);
     this.query = new PlanetQuery(this.store, this.climate);
     this.material = new THREE.ShaderMaterial({
       vertexShader: terrainVertex,
@@ -105,6 +114,7 @@ export class Globe {
         glacial: { value: 0 },
         time: { value: 0 },
         cameraWorld: { value: new THREE.Vector3() },
+        limbInk: { value: 1 },
         riverThreshold: { value: 0.5 },
         fields: { value: null },
         lensGrid: { value: null },
@@ -173,6 +183,18 @@ export class Globe {
     u.climateT!.value = climate.t;
     u.glacial!.value = planet.glacialIndex;
     u.cameraWorld!.value.copy(camera.position);
+    // No ink along the globe's outline in low views, where it would cut
+    // across the mountains standing above the horizon (section 4.5).
+    const lookDown = camera
+      .getWorldDirection(new THREE.Vector3())
+      .dot(camera.position.clone().normalize().negate());
+    u.limbInk!.value =
+      1 -
+      THREE.MathUtils.smoothstep(
+        Math.acos(THREE.MathUtils.clamp(lookDown, -1, 1)),
+        LIMB_INK_TILT[0],
+        LIMB_INK_TILT[1],
+      );
     const lens = this.lens;
     u.lensBlend!.value = lens.blend;
     const corner: Vec3 = [0, 0, 0];
@@ -232,8 +254,12 @@ export class Globe {
       }
       if (!inside) return;
       const dist = Math.max(0.5, centre.distanceTo(camPos) - extent);
-      // Geometric error of the vertex grid, estimated as half its sample spacing.
-      const errorKm = (0.5 * EARTH_RADIUS_KM * tileAngularSize(key.level) * width) / TILE_N;
+      // Geometric error of the vertex grid, estimated as half its sample
+      // spacing at the lens as built, so moving the lens slider does not
+      // re-pick tiles and reload them while it morphs.
+      const errorKm =
+        (0.5 * EARTH_RADIUS_KM * tileAngularSize(key.level) * lens.builtWidthAt(trueCentre)) /
+        TILE_N;
       const errorPx = (errorKm / dist) * pxPerRad;
       const priority = dist + key.level;
 
@@ -268,6 +294,7 @@ export class Globe {
     for (const e of selected) e.mesh.visible = true;
     this.drawnTiles = selected.length;
     this.store.endFrame();
+    this.workers.endFrame();
     this.evict();
   }
 
@@ -294,10 +321,12 @@ export class Globe {
       return existing;
     }
     if (!source) return undefined;
+    // Meshes made per frame are capped, since each is uploaded to the graphics card.
     if (this.buildsThisFrame >= 12 && key.level > 1) return undefined;
+    const arrays = this.workers.tile(id, key, source, EXAGGERATION, this.lowestSeaLevel, priority);
+    if (!arrays) return undefined;
     this.buildsThisFrame++;
-    const samples = sampleTile(key, source);
-    const g = buildTileGeometry(key, samples, EXAGGERATION, this.lowestSeaLevel);
+    const g = tileGeometry(arrays);
     // A tile that is sea at every date is its flat sea surface alone, which
     // also carries ice over the sea; polar tiles use a coarser grid; a tile
     // that is never sea needs no sea surface (section 4.2).
@@ -318,7 +347,7 @@ export class Globe {
       // the tile's placement and visibility.
       const seaGeometry = new THREE.BufferGeometry();
       for (const [name, attr] of Object.entries(g.geometry.attributes))
-        seaGeometry.setAttribute(name, attr);
+        seaGeometry.setAttribute(name, attr as THREE.BufferAttribute);
       seaGeometry.setIndex(indexFor(g.flip, SEA_STEP));
       const sea = new THREE.Mesh(seaGeometry, this.seaMaterial);
       sea.onBeforeRender = () => {
@@ -388,6 +417,8 @@ function angleBetween(a: Vec3, b: Vec3): number {
  * much that finer tiles would add triangles without detail (section 4.2).
  */
 const POLAR_MAX_LEVEL = 4;
+/** View angles from straight down (radians) over which the outline ink fades out. */
+const LIMB_INK_TILT = [THREE.MathUtils.degToRad(42), THREE.MathUtils.degToRad(58)] as const;
 function maxLevelAt(d: Vec3): number {
   const { lat } = dirToLatLon(d);
   return lat > 74 || lat < -62 ? POLAR_MAX_LEVEL : MAX_RENDER_LEVEL;

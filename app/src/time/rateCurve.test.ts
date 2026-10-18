@@ -52,18 +52,18 @@ describe('rate curve', () => {
 describe('zoom factor', () => {
   it('is 1 from orbit and 1/8 close to the ground', () => {
     expect(zoomFactor(20000)).toBe(1);
-    expect(zoomFactor(1000)).toBe(1);
-    expect(zoomFactor(10)).toBe(1 / 8);
-    expect(zoomFactor(2)).toBe(1 / 8);
+    expect(zoomFactor(8000)).toBe(1);
+    expect(zoomFactor(1000)).toBe(1 / 8);
+    expect(zoomFactor(500)).toBe(1 / 8);
   });
 
   it('changes gradually in between', () => {
-    expect(zoomFactor(100)).toBeCloseTo(Math.sqrt(1 / 8), 10);
-    let prev = zoomFactor(10);
-    for (let a = 10; a <= 1000; a *= 1.01) {
+    expect(zoomFactor(Math.sqrt(8000 * 1000))).toBeCloseTo(Math.sqrt(1 / 8), 10);
+    let prev = zoomFactor(1000);
+    for (let a = 1000; a <= 8000; a *= 1.01) {
       const f = zoomFactor(a);
       expect(f).toBeGreaterThanOrEqual(prev);
-      expect(f / prev).toBeLessThan(1.01);
+      expect(f / prev).toBeLessThan(1.0101);
       prev = f;
     }
   });

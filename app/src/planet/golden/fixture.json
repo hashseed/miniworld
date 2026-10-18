@@ -6,7 +6,7 @@
       "sea": false,
       "ice": false,
       "iceKm": -128,
-      "groundM": -43.2
+      "groundM": -40.81
     },
     "North Sea": {
       "sea": true,
@@ -52,7 +52,7 @@
       "sea": false,
       "ice": false,
       "iceKm": -128,
-      "groundM": -112.9
+      "groundM": -110.51
     },
     "North Sea": {
       "sea": false,
@@ -98,7 +98,7 @@
       "sea": false,
       "ice": false,
       "iceKm": -128,
-      "groundM": -69.7
+      "groundM": -67.31
     },
     "North Sea": {
       "sea": false,
@@ -127,8 +127,8 @@
     "Baltic": {
       "sea": true,
       "ice": true,
-      "iceKm": 187.93,
-      "groundM": 884.13
+      "iceKm": 233.81,
+      "groundM": 979
     },
     "Caspian Sea": {
       "sea": false,
@@ -141,10 +141,10 @@
     "seaLevel": -28.2,
     "glacialIndex": 0.24,
     "Bering Strait": {
-      "sea": true,
+      "sea": false,
       "ice": false,
       "iceKm": -128,
-      "groundM": -28.2
+      "groundM": -25.81
     },
     "North Sea": {
       "sea": true,
@@ -159,7 +159,7 @@
       "groundM": -28.2
     },
     "Torres Strait": {
-      "sea": true,
+      "sea": false,
       "ice": false,
       "iceKm": -128,
       "groundM": -28.2
@@ -167,8 +167,8 @@
     "Hudson Bay": {
       "sea": false,
       "ice": true,
-      "iceKm": 768,
-      "groundM": 1394.41
+      "iceKm": 892,
+      "groundM": 1416.15
     },
     "Baltic": {
       "sea": true,
@@ -213,8 +213,8 @@
     "Hudson Bay": {
       "sea": true,
       "ice": true,
-      "iceKm": 701.62,
-      "groundM": 1377.5
+      "iceKm": 892,
+      "groundM": 1416.15
     },
     "Baltic": {
       "sea": true,

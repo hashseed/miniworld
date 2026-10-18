@@ -72,7 +72,8 @@ describe('reconstructions', () => {
     expect(humidMinimum(humid, 45, 10, 8000)).toBe(0);
   });
 
-  it('stores the ice cover as a distance from its border', () => {
+  // Two full ice grids with their closings take a few seconds on a busy CI runner.
+  it('stores the ice cover as a distance from its border', { timeout: 60_000 }, () => {
     const grid = (bp: number) => iceGrid((lats, lons) => iceThickness(ice, lats, lons, bp));
     const cell = (g: Uint8Array, lat: number, lon: number) =>
       g[

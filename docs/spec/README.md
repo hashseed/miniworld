@@ -12,7 +12,7 @@ This folder is the source of truth for what Miniworld does. Every change to beha
 | [humankind.md](humankind.md) | The tree of humankind: one first person at Lake Turkana, people stepping out of lodgings, the tree the data build computes and how to inspect it (proposed) |
 | [foliage.md](foliage.md) | Trees and bushes over the land, from the climate data, readable from orbit (proposed) |
 | [dioramas.md](dioramas.md) | Recurring dioramas (repeated vignettes) for every region and era, with their templates and scripts |
-| [giza.md](giza.md) | The pyramids of Giza: the landmark, its building dioramas and the dioramas around it across the ages (proposed) |
+| [giza.md](giza.md) | The pyramids of Giza: the landmark, its building dioramas and the dioramas around it across the ages (proposed; first slice shelved, models approved) |
 | [content-format.md](content-format.md) | How content records are written, validated, indexed and fed into the app |
 | [eras.md](eras.md) | Era and empire ranges shown as coloured bands on the timeline |
 | [events.md](events.md) | The first list of world events and how each appears on the globe, and natural disasters, epidemics and famines |
