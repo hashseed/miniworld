@@ -18,7 +18,8 @@ import {
   type Instance,
   type Member,
 } from '../world/vignette.ts';
-import { buildStandIn, type StandIn } from './standIns.ts';
+import { buildActor, lightModels } from './figures.ts';
+import type { StandIn } from './standIns.ts';
 
 /** People and everything they make are drawn 90 times life size (section 5.1). */
 const MINIATURE = 90;
@@ -91,10 +92,13 @@ export class VignetteLayer {
   private v7 = new THREE.Vector3();
   private yAxis = new THREE.Vector3(0, 1, 0);
 
+  private readonly element: HTMLElement;
+
   constructor(loader: ContentLoader, surface: SurfaceSource, element: HTMLElement) {
     this.loader = loader;
     this.surface = surface;
     this.group.add(this.light, this.light.target, this.ambient);
+    this.element = element;
     this.attach(element);
   }
 
@@ -121,6 +125,7 @@ export class VignetteLayer {
     this.lifeMs = lifeMs;
     this.light.position.copy(lightDir);
     this.light.target.position.set(0, 0, 0);
+    if (this.element instanceof HTMLCanvasElement) lightModels(lightDir, camera, this.element);
 
     const wanted = new Set<string>();
     for (const entry of this.entries) {
@@ -176,7 +181,8 @@ export class VignetteLayer {
     }
     const cast = new THREE.Group();
     const actors = members.map((m) => {
-      const actor = buildStandIn(m.kind, m.look, `${instance.id}:${m.group}:${m.index}`, m.role);
+      const key = `${instance.id}:${m.group}:${m.index}`;
+      const actor = buildActor(m.kind, m.look, key, m.index, m.role);
       cast.add(actor.root);
       return actor;
     });

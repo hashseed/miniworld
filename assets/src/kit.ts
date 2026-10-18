@@ -332,7 +332,11 @@ export const lightUniforms = {
   viewport: { value: new THREE.Vector2(1280, 800) },
 };
 
+// The log-depth chunks match the globe's logarithmic depth buffer in the app;
+// they are empty where the renderer has none, as in the review sheets.
 const celVertex = /* glsl */ `
+#include <common>
+#include <logdepthbuf_pars_vertex>
 varying vec3 vColour;
 varying vec3 vNormal;
 varying vec3 vWorld;
@@ -344,10 +348,13 @@ void main() {
   vec4 w = modelMatrix * vec4(position, 1.0);
   vWorld = w.xyz;
   gl_Position = projectionMatrix * viewMatrix * w;
+  #include <logdepthbuf_vertex>
 }
 `;
 
 const celFragment = /* glsl */ `
+#include <common>
+#include <logdepthbuf_pars_fragment>
 uniform vec3 lightDir;
 uniform vec3 screenUp;
 uniform float clayScale;
@@ -377,6 +384,7 @@ float noise3(vec3 x) {
 }
 
 void main() {
+  #include <logdepthbuf_fragment>
   vec3 n = normalize(vNormal);
   vec3 viewDir = normalize(cameraPosition - vWorld);
   if (!gl_FrontFacing) n = -n;
@@ -400,6 +408,8 @@ void main() {
 // Inverted hull: back faces pushed out along the normal by a fixed number of
 // pixels, so the outline keeps its width at every zoom like the globe's ink.
 const inkVertex = /* glsl */ `
+#include <common>
+#include <logdepthbuf_pars_vertex>
 uniform float inkPixels;
 uniform vec2 viewport;
 void main() {
@@ -408,11 +418,15 @@ void main() {
   vec2 dir = normalize((projectionMatrix * vec4(nView, 0.0)).xy + 1e-6);
   clip.xy += dir * inkPixels * 2.0 / viewport * clip.w;
   gl_Position = clip;
+  #include <logdepthbuf_vertex>
 }
 `;
 
 const inkFragment = /* glsl */ `
+#include <common>
+#include <logdepthbuf_pars_fragment>
 void main() {
+  #include <logdepthbuf_fragment>
   gl_FragColor = vec4(vec3(0.23, 0.15, 0.11), 1.0);
   #include <colorspace_fragment>
 }
