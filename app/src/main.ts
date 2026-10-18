@@ -27,7 +27,7 @@ import { Clock } from './time/clock.ts';
 import { snapSpeedLog2, zoomFactor } from './time/rateCurve.ts';
 import { Timeline } from './timeline/timeline.ts';
 import { App } from './ui/App.tsx';
-import type { Actions, UiState, VignetteCard } from './ui/state.ts';
+import type { Actions, HotState, UiState, VignetteCard } from './ui/state.ts';
 import {
   loadBookmarks,
   loadSettings,
@@ -71,21 +71,23 @@ const clock = new Clock({
   day: OPENING_DAY,
 });
 
-const ui = new Store<UiState>({
-  ready: false,
-  error: undefined,
+const hot = new Store<HotState>({
   day: OPENING_DAY,
   playState: 'paused',
   speedLog2: clock.speedLog2,
   yearsPerMinute: 0,
   scrubbing: false,
+  stats: { fps: 0, avg: 0, p99: 0, calls: 0, triangles: 0, scale: 1 },
+});
+const ui = new Store<UiState>({
+  ready: false,
+  error: undefined,
   panel: 'none',
   settings,
   bookmarks: loadBookmarks(),
   follow: true,
   isPhone,
   stressScene: STRESS,
-  stats: { fps: 0, avg: 0, p99: 0, calls: 0, triangles: 0, scale: 1 },
   fixture: false,
   version: '',
   cutoffDay: 0,
@@ -503,15 +505,15 @@ function frame(now: number): void {
 
 let lastStats = 0;
 function syncUi(now: number): void {
-  const v = ui.value;
-  const patch: Partial<UiState> = {};
+  const v = hot.value;
+  const patch: Partial<HotState> = {};
   if (v.day !== clock.day) patch.day = clock.day;
   if (v.playState !== clock.playState) patch.playState = clock.playState;
   if (v.speedLog2 !== clock.speedLog2) patch.speedLog2 = clock.speedLog2;
   if (v.scrubbing !== clock.isScrubbing) patch.scrubbing = clock.isScrubbing;
   const ypm = clock.yearsPerMinute;
   if (Math.abs(ypm - v.yearsPerMinute) > v.yearsPerMinute * 0.02 + 1e-3) patch.yearsPerMinute = ypm;
-  if ((v.settings.showStats || STRESS) && now - lastStats > 500) {
+  if ((ui.value.settings.showStats || STRESS) && now - lastStats > 500) {
     lastStats = now;
     patch.stats = {
       fps: stats.fps,
@@ -522,7 +524,7 @@ function syncUi(now: number): void {
       scale: dynres.scale,
     };
   }
-  if (Object.keys(patch).length) ui.update(patch);
+  if (Object.keys(patch).length) hot.update(patch);
 }
 
 // --- Start --------------------------------------------------------------------------
@@ -530,7 +532,7 @@ function syncUi(now: number): void {
 async function start(): Promise<void> {
   document.documentElement.lang = i18n.language;
   document.title = i18n.t('app.title');
-  render(h(App, { store: ui, i18n, actions }), document.getElementById('ui')!);
+  render(h(App, { store: ui, hot, i18n, actions }), document.getElementById('ui')!);
   try {
     const manifest = await loader.init();
     // The lens grids load with the startup index; the first frame needs both.
@@ -558,10 +560,8 @@ async function start(): Promise<void> {
       version: manifest.version,
       cutoffDay: manifest.cutoffDay,
       sources: index.sources,
-      day: clock.day,
-      playState: clock.playState,
-      speedLog2: clock.speedLog2,
     });
+    hot.update({ day: clock.day, playState: clock.playState, speedLog2: clock.speedLog2 });
     if (timeline) {
       timeline.setIndex(index);
       timeline.setMode(ui.value.settings.trueTimeScale ? 'true' : 'watch', false);
@@ -625,6 +625,7 @@ if (import.meta.env.DEV)
       loader,
       renderer,
       ui,
+      hot,
       scene,
       sky,
       camera,
