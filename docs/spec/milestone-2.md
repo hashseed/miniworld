@@ -334,6 +334,8 @@ The stage dates in this example are illustrative; the record's dates are set fro
 
 ## 9. Migrations
 
+How people spread out of Africa and adapt to each region is designed in [peopling.md](peopling.md) (proposed): its arrival map replaces the front below, the tree's budding bands replace the walking families, and its crossings set where rafts go; the text below stays until that plan is decided.
+
 A migration is an event of type Migration (or Voyage for sea crossings) whose `where` is a dated path (content-format section 4), possibly branching into several paths, and whose effect is to extend a culture area (section 3.1).
 
 - **The front.** At any date the front is the interpolated position along each path. Land behind the front and inside the culture's next area snapshot is inhabited.
