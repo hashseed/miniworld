@@ -30,6 +30,10 @@ type Slot<T> = T | 'deep' | 'none' | 'loading' | 'broken';
 
 /** Frames a requested tile may be out of view before its request is cancelled (about 0.5 s, section 10.4). */
 export const CANCEL_AFTER_FRAMES = 30;
+/** Loaded data tiles deeper than KEEP_LEVEL that are kept; the least recently used go first (section 4.2). */
+export const MAX_DATA_TILES = 2048;
+/** Data tiles at this level and coarser are always kept: the planet query falls back to them. */
+const KEEP_LEVEL = 2;
 
 interface Pending {
   file: string;
@@ -52,14 +56,15 @@ export class TerrainStore implements TerrainSource {
   private terrain = new Map<string, Slot<TerrainTile>>();
   private wanted = new Map<string, number>(); // tile id → priority this frame
   private pending = new Map<string, Pending>(); // tile id → its request
+  /** Loaded tiles deeper than KEEP_LEVEL, least recently used first. */
+  private recent = new Map<string, true>();
 
   constructor(loader: ChunkSource) {
     this.loader = loader;
   }
 
   /** Data tile (level ≤ 6) for a key, requesting it if needed. */
-  terrainTile(key: TileKey, priority: number): TerrainTile | 'deep' | undefined {
-    const id = tileId(key);
+  terrainTile(key: TileKey, priority: number, id = tileId(key)): TerrainTile | 'deep' | undefined {
     const slot = this.terrain.get(id);
     if (slot === 'loading') {
       this.wanted.set(id, priority);
@@ -67,7 +72,13 @@ export class TerrainStore implements TerrainSource {
     }
     if (slot === 'broken') return undefined;
     if (slot === 'deep') return 'deep';
-    if (slot && slot !== 'none') return slot;
+    if (slot && slot !== 'none') {
+      if (key.level > KEEP_LEVEL) {
+        this.recent.delete(id);
+        this.recent.set(id, true);
+      }
+      return slot;
+    }
     const file = this.loader.lookup('terrain', key, 'all');
     if (file === undefined) return undefined; // part index still loading
     if (file === 'deep' || file === 'none') {
@@ -81,8 +92,10 @@ export class TerrainStore implements TerrainSource {
     void this.loader.fetchChunk(file, priority, controller.signal).then((buf) => {
       this.pending.delete(id);
       // Failed or cancelled: asked for again when next in view; the loader paces retries.
-      if (!buf) this.terrain.delete(id);
-      else this.terrain.set(id, decodeOrBroken(buf, file));
+      if (!buf) return void this.terrain.delete(id);
+      const tile = decodeOrBroken(buf, file);
+      this.terrain.set(id, tile);
+      if (tile !== 'broken' && key.level > KEEP_LEVEL) this.recent.set(id, true);
     });
     return undefined;
   }
@@ -95,10 +108,15 @@ export class TerrainStore implements TerrainSource {
     );
   }
 
+  /** The key of the data tile a render tile is sampled from. */
+  dataKeyFor(key: TileKey): TileKey {
+    const max = this.dataMaxLevel;
+    return key.level > max ? ancestorAt(key, max) : key;
+  }
+
   /** The data tile a render tile is sampled from, if loaded. */
   sourceFor(key: TileKey, priority: number): TerrainTile | 'deep' | undefined {
-    const max = this.dataMaxLevel;
-    return this.terrainTile(key.level > max ? ancestorAt(key, max) : key, priority);
+    return this.terrainTile(this.dataKeyFor(key), priority);
   }
 
   /** The finest loaded data tile holding a direction, for the planet query. */
@@ -114,7 +132,8 @@ export class TerrainStore implements TerrainSource {
 
   /**
    * Ends a frame: waiting requests take their tile's priority in this frame,
-   * and requests for tiles out of view for CANCEL_AFTER_FRAMES are cancelled.
+   * requests for tiles out of view for CANCEL_AFTER_FRAMES are cancelled, and
+   * the least recently used data tiles beyond MAX_DATA_TILES are dropped.
    */
   endFrame(): void {
     for (const [id, p] of this.pending) {
@@ -127,6 +146,16 @@ export class TerrainStore implements TerrainSource {
       }
     }
     this.wanted.clear();
+    for (const id of this.recent.keys()) {
+      if (this.recent.size <= MAX_DATA_TILES) break;
+      this.recent.delete(id);
+      this.terrain.delete(id);
+    }
+  }
+
+  /** Loaded data tiles deeper than the always-kept levels, for tests. */
+  get cached(): number {
+    return this.recent.size;
   }
 
   /** Tiles whose data is being fetched, for tests and stats. */

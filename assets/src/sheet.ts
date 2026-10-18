@@ -8,7 +8,14 @@ import { ModelBuilder, blob, lightUniforms, type Model } from './kit.ts';
 import { PROFILES, buildPerson, posePerson, type Kind, type Pose } from './people.ts';
 import { SHELTERS, buildShelter, buildHearth, CAMP_SHELTER } from './shelters.ts';
 import { ANIMALS, buildAnimal } from './animals.ts';
-import { animateAnimal, animatePerson, type Clip } from './clips.ts';
+import {
+  BLEND_SECONDS,
+  animateAnimal,
+  animatePerson,
+  blendPerson,
+  gaitSpeed,
+  type Clip,
+} from './clips.ts';
 
 const params = new URLSearchParams(location.search);
 const sheetName = params.get('sheet') ?? 'people';
@@ -23,6 +30,8 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.1, 500);
 const labels: { text: string; at: THREE.Vector3 }[] = [];
 let triangles = 0;
+/** Set by sheets that move: poses the scene at a time in seconds (`window.setFrame`). */
+let update: ((seconds: number) => void) | undefined;
 
 function place(m: Model, x: number, z: number, turn = 0): Model {
   m.object.position.set(x, 0, z);
@@ -235,7 +244,92 @@ function clipsAnimalSheet(): void {
   camera.lookAt(0, 0, 0.5);
 }
 
+/** The first person (spec humankind.md section 2.1): a turnaround beside an ordinary woman. */
+function founderSheet(): void {
+  ground(0, 0, 3.6, GROUND['african-stone-age']);
+  for (let a = 0; a < 4; a++) {
+    const m = buildPerson({ profile: 'african-stone-age', kind: 'woman', founder: true });
+    posePerson(m, 'stand');
+    place(m, -2.4 + a * 1.15, 0, (a * Math.PI) / 2);
+  }
+  const plain = buildPerson({ profile: 'african-stone-age', kind: 'woman' });
+  posePerson(plain, 'stand');
+  place(plain, 2.6, 0, 0);
+  labels.push({
+    text: 'first person: front, left, back, right; an ordinary woman',
+    at: new THREE.Vector3(0, -0.1, 2.2),
+  });
+  camera.position.set(0, 2.0, 8.5);
+  camera.lookAt(0, 0.9, 0);
+}
+
+/** The first person's camp at Lake Turkana: grass hut, hearth, and her hunting an eland. */
+function founderCampSheet(): void {
+  ground(0, 0, 5.5, GROUND['african-stone-age']);
+  place(buildShelter('shelter-grass-hut'), -2.0, -1.2, 0.5);
+  place(buildHearth(), -0.4, 0.8);
+  const hunter = buildPerson({ profile: 'african-stone-age', kind: 'woman', founder: true });
+  posePerson(hunter, 'throw');
+  place(hunter, 1.2, 1.0, 1.1);
+  place(buildAnimal('animal-eland'), 3.6, -0.8, -1.9);
+  labels.push({ text: 'her first camp at Lake Turkana', at: new THREE.Vector3(0, -0.3, 4.6) });
+  camera.position.set(2, 6, 12);
+  camera.lookAt(0.4, 0.6, 0);
+}
+
+/**
+ * The first person moving, for checking that her motion is fluid: she walks
+ * in, throws her spear, walks on, crouches to work and stands. Each change of
+ * clip is eased over BLEND_SECONDS. Frames come from `window.setFrame(t)`.
+ */
+function founderMotionSheet(): void {
+  ground(0, 0, 10, GROUND['african-stone-age']);
+  place(buildShelter('shelter-grass-hut'), 1.6, -3.4, 0.5);
+  place(buildHearth(), -0.6, -1.2);
+  const her = buildPerson({ profile: 'african-stone-age', kind: 'woman', founder: true });
+  place(her, -7, 0, Math.PI / 2);
+  // Clip and start time; she moves at the clip's gait speed, so her standing foot stays put.
+  const plan: [Clip, number][] = [
+    ['walk', 0],
+    ['work', 5],
+    ['idle', 8.5],
+    ['walk', 10],
+    ['throw', 12.5],
+  ];
+  const speed = (u: number) => {
+    let k = 0;
+    while (k + 1 < plan.length && plan[k + 1]![1] <= u) k++;
+    const v = gaitSpeed(her, plan[k]![0]);
+    if (k === 0) return v;
+    const w = Math.min(1, (u - plan[k]![1]) / BLEND_SECONDS);
+    const eased = w * w * (3 - 2 * w);
+    return gaitSpeed(her, plan[k - 1]![0]) * (1 - eased) + v * eased;
+  };
+  update = (t) => {
+    let i = 0;
+    while (i + 1 < plan.length && plan[i + 1]![1] <= t) i++;
+    const [clip, start] = plan[i]!;
+    const into = t - start;
+    if (i > 0 && into < BLEND_SECONDS) {
+      const [prev, prevStart] = plan[i - 1]!;
+      blendPerson(her, prev, t - prevStart, clip, into, into / BLEND_SECONDS);
+    } else animatePerson(her, clip, into);
+    let x = -7;
+    const dt = 1 / 240;
+    for (let u = 0; u < t; u += dt) x += speed(u) * Math.min(dt, t - u);
+    her.object.position.x = x;
+    // The camera follows her slowly.
+    camera.position.set(x * 0.7, 2.1, 8);
+    camera.lookAt(x * 0.7, 0.85, 0);
+    camera.updateMatrixWorld();
+  };
+  update(0);
+}
+
 const sheets: Record<string, () => void> = {
+  'founder-motion': founderMotionSheet,
+  founder: founderSheet,
+  'founder-camp': founderCampSheet,
   clips: clipsSheet,
   'clips-animal': clipsAnimalSheet,
   single: singleSheet,
@@ -257,6 +351,13 @@ lightUniforms.viewport.value.set(
 );
 lightUniforms.inkPixels.value = 1.6 * renderer.getPixelRatio();
 renderer.render(scene, camera);
+if (update) {
+  const step = update;
+  (window as unknown as { setFrame: (t: number) => void }).setFrame = (t) => {
+    step(t);
+    renderer.render(scene, camera);
+  };
+}
 
 for (const l of labels) {
   const p = l.at.clone().project(camera);

@@ -75,27 +75,32 @@ export class DynamicResolution {
 
 /** Rolling frame statistics for the overlay and the performance report. */
 export class FrameStats {
-  private samples: number[] = [];
-  private max: number;
+  /** The last frames' times, as a ring of the newest `max`. */
+  private samples: Float64Array;
+  private count = 0;
+  private next = 0;
 
   constructor(max = 600) {
-    this.max = max;
+    this.samples = new Float64Array(max);
   }
 
   push(ms: number): void {
-    this.samples.push(ms);
-    if (this.samples.length > this.max) this.samples.shift();
+    this.samples[this.next] = ms;
+    this.next = (this.next + 1) % this.samples.length;
+    this.count = Math.min(this.count + 1, this.samples.length);
   }
 
   get average(): number {
-    if (!this.samples.length) return 0;
-    return this.samples.reduce((a, b) => a + b, 0) / this.samples.length;
+    if (!this.count) return 0;
+    let sum = 0;
+    for (let k = 0; k < this.count; k++) sum += this.samples[k]!;
+    return sum / this.count;
   }
 
   percentile(p: number): number {
-    if (!this.samples.length) return 0;
-    const sorted = [...this.samples].sort((a, b) => a - b);
-    return sorted[Math.min(sorted.length - 1, Math.floor((p / 100) * sorted.length))]!;
+    if (!this.count) return 0;
+    const sorted = this.samples.slice(0, this.count).sort();
+    return sorted[Math.min(this.count - 1, Math.floor((p / 100) * this.count))]!;
   }
 
   get fps(): number {
@@ -104,6 +109,7 @@ export class FrameStats {
   }
 
   reset(): void {
-    this.samples = [];
+    this.count = 0;
+    this.next = 0;
   }
 }

@@ -139,9 +139,9 @@ in exact integer arithmetic (the product stays below 2⁵³ for the whole timeli
 
 | Mode | Factor | Rate shown | Icon |
 | --- | --- | --- | --- |
-| Snail | ×1/8 | ≈ 3 years/min | A snail |
-| Regular | ×1 (default) | 25 years/min | A single play arrow |
-| Fast forward | ×16 | 400 years/min | A double arrow |
+| Snail | ×1/8 | ≈ 3 years/min | A turtle |
+| Regular | ×1 (default) | 25 years/min | A walking person |
+| Fast forward | ×16 | 400 years/min | A galloping horse |
 
 The mode only changes how fast the clock advances, never the clock time itself, so changing it never changes the date or what is on screen. Figures and vignettes run on the clock, so they move faster in fast forward and in slow motion in snail mode. Keys `[` and `]` step to the slower and the faster mode. At the end of the timeline the clock stops and switches to *paused*.
 
@@ -179,7 +179,7 @@ Every source must meet the data licence policy in [spec.md](spec.md#13-licences)
 
 ### 4.2 Terrain
 
-- The globe is a unit cube projected onto a sphere (with an equal-angle warp so tiles are similar in size), each face split into a quadtree. Every tile is a grid of 33 × 33 vertices with skirts to hide cracks between levels (decided by Yang on 2026-10-17, first 65 × 65: the map is deliberately simple, and the terrain should stay at about 800,000 triangles or fewer on screen). Tiles are refined by screen-space error: a tile splits when its geometric error, estimated as half its vertex spacing, would exceed the terrain error target in CSS pixels (section 11.2). A tile splits only once all four children are ready to draw, so the ground never shows holes while loading. The tile meshes are kept in a cache of about 1,500; every mesh the current frame draws or checks (the drawn tiles, their parents and the children waiting to be drawn) is kept, and only meshes the frame did not touch are evicted, oldest first, so a full cache never makes tiles flicker between levels. When a coarser tile is wanted but not built yet, its finer children keep being drawn until it is.
+- The globe is a unit cube projected onto a sphere (with an equal-angle warp so tiles are similar in size), each face split into a quadtree. Every tile is a grid of 33 × 33 vertices with skirts to hide cracks between levels (decided by Yang on 2026-10-17, first 65 × 65: the map is deliberately simple, and the terrain should stay at about 800,000 triangles or fewer on screen). Tiles are refined by screen-space error: a tile splits when its geometric error, estimated as half its vertex spacing, would exceed the terrain error target in CSS pixels (section 11.2). A tile splits only once all four children are ready to draw, so the ground never shows holes while loading. The tile meshes are kept in a cache of about 1,500; every mesh the current frame draws or checks (the drawn tiles, their parents and the children waiting to be drawn) is kept, and only meshes the frame did not touch are evicted, oldest first, so a full cache never makes tiles flicker between levels. When a coarser tile is wanted but not built yet, its finer children keep being drawn until it is. The meshes are kept in order of last use, so evicting stops at the first mesh the frame touched instead of sorting the whole cache. Downloaded data tiles are kept in the same way: levels 0 to 2 always (the planet query falls back to them, section 5), and up to 2,048 deeper tiles, the least recently used dropped first and downloaded again when next needed.
 - **Cheaper tiles where there is little to draw** (decided by Yang on 2026-10-18: Antarctica seen from above needed about 700,000 triangles and 520 draw calls, most of them for the empty Southern Ocean around it). A tile that is sea at every date (its smoothed coast level below the lowest sea level of the timeline at every sample, with no lake or river) is drawn as its flat sea surface alone, on an 8 × 8 grid with skirts, which also carries any ice lying over the sea; it costs one draw call and about 200 triangles. Tiles in the polar regions (north of 74°N and south of 62°S), whose relief is smoothed away (section 4.2), use every second vertex (16 × 16 cells). A tile that is land at every date (its coast level above +10 m at every sample) draws no sea surface. Neighbouring tiles with different grids are joined by their skirts.
 - The data build produces one heightmap per tile down to level 5 (tiles of roughly 300 km with samples about 10 km apart). The map is smoothed far more than that (section 4.2), so a deeper level would add size without adding information. Rendered tiles stop at level 5 too (decided by Yang on 2026-10-18: "using so many triangles for a simple coast seems unnecessary"; first level 9), since the smoothed map has nothing finer to show. Normals are exact: the vertex shader carries the gradient of the heights through every step that shapes the surface (the coast cap below and the ice of section 5.2), so the shading is smooth and never shows the blocky stripes that normals from screen-space derivatives gave.
 - Heights are stored in whole metres as 16-bit integers with an offset, compressed per tile (section 10.5). The data build clamps the deep ocean floor below −1,000 m, which is never visible and saves space.
@@ -317,7 +317,7 @@ The camera has one fly-to operation used by bookmarks now and by events and famo
 ### 8.1 Screen layout
 
 - The globe fills the screen. Text on buttons, the speed selector, the date ribbon and the timeline cannot be selected, so clicking and dragging never highlights it (decided by Yang on 2026-10-17); text in the About panel and in cards can be selected. The timeline runs along the bottom. Above its left end sit the play controls: one play/pause button, the speed modes and the rate readout. The top-right corner holds three buttons: bookmarks, settings and About. The history lens button ([history-lens.md](history-lens.md) section 1) sits at the bottom right, at the right end of that row, just above the timeline.
-- Sliders fold away behind icon buttons, so the screen stays calm (decided by Yang on 2026-10-18). The three speed-mode buttons (section 3.3) fold away behind the play/pause button, and the history lens slider behind a magnifying-glass button. Pointing at a button shows a short explanation of what it does, and the speed modes or the slider slide out beside it while the pointer is over the button or them, and fold away when the pointer leaves. On touch screens, where nothing can be pointed at, tapping the button opens them (the play/pause button also plays or pauses), and tapping anywhere else folds them away again. They also open while they have keyboard focus. While folded, the play/pause button shows a small snail or double arrow when the mode is not regular. The play/pause explanation is "Play history; the buttons beside it set the speed" ("Geschichte abspielen; die Knöpfe daneben stellen die Geschwindigkeit ein"), or "Pause history; …" ("Geschichte anhalten; …") while playing. The speed modes are named "Snail", "Regular" and "Fast forward" ("Schnecke", "Normal", "Vorspulen").
+- Sliders fold away behind icon buttons, so the screen stays calm (decided by Yang on 2026-10-18). The three speed-mode buttons (section 3.3) fold away behind the play/pause button, and the history lens slider behind a magnifying-glass button. Pointing at a button shows a short explanation of what it does, and the slider slides out beside its button while the pointer is over the button or the slider. The speed modes pop up above the play/pause button as a column of bare buttons as wide as it, with no box around them, fast forward at the top and snail nearest the button, so they never cover the date beside it (Yang, 2026-10-18; icons by Yang the same day: turtle, walking person, galloping horse). Both fold away when the pointer leaves. On touch screens, where nothing can be pointed at, tapping the button opens them (the play/pause button also plays or pauses), and tapping anywhere else folds them away again. They also open while they have keyboard focus. While folded, the play/pause button shows a small turtle or horse when the mode is not regular. The play/pause explanation is "Play history; the buttons above it set the speed" ("Geschichte abspielen; die Knöpfe darüber stellen die Geschwindigkeit ein"), or "Pause history; …" ("Geschichte anhalten; …") while playing. The speed modes are named "Slow", "Regular" and "Fast" ("Langsam", "Normal", "Schnell").
 - The date readout is large and clear above the timeline's playhead area, in the format of section 3.2.
 - All controls are at least 44 by 44 CSS pixels on touch devices, have visible focus outlines, and have accessible names in the current language.
 
@@ -355,7 +355,7 @@ Local storage holds only small things (spec section 7.6). Each key is versioned 
 | Key | Holds | Written |
 | --- | --- | --- |
 | `miniworld.settings.v1` | The settings of section 8.2 | On change |
-| `miniworld.view.v2` | Last clock time (whole milliseconds), camera target, distance, tilt and heading, play state and speed mode | At most once every 2 seconds, and when the page is hidden |
+| `miniworld.view.v2` | Last clock time (whole milliseconds), camera target, distance, tilt and heading, play state and speed mode | At most once every 2 seconds, and when the page is hidden; only when it has changed |
 | `miniworld.bookmarks.v2` | Up to 200 bookmarks: id, name, clock time, camera; version 1 bookmarks are converted from their day to the clock time at which that day begins | On change |
 
 On start, the saved clock time and camera are restored; a saved play state of *playing* is restored as *paused*, so the world does not run on while nobody is watching. Saved state never affects what the world looks like at a given clock time: it only chooses which moment and view to show.
@@ -444,7 +444,7 @@ There is one fixed quality and no quality setting (decided by Yang on 2026-10-18
 | Terrain error target | 1.5 px |
 | Terrain texture resolution | Full |
 | Water | Animated wave pattern |
-| Anti-aliasing | MSAA 4× |
+| Anti-aliasing | MSAA 4×; 2× on phones, whose screens are dense enough that the difference hardly shows |
 | Animated figures (stress scene) | 5,000 |
 
 When a device cannot keep up, dynamic resolution (section 11.3) lowers the render scale.
@@ -463,7 +463,7 @@ The stress scene proves the figure-heavy targets before any content exists and s
 - Placeholder figures are a simple humanoid of about 700 triangles on one shared skeleton, with three baked animations (walk, work, idle) played from an animation texture on the GPU, drawn with instancing: the technique real figures will use in milestone 2. They are coloured by a hash of their index, and their positions and animations come from a seeded hash of index and clock slot, never from `Math.random`.
 - The placeholders are generated in code as plain shapes, not shipped assets, so they need no approval; they never appear outside the stress scene.
 - A stats overlay (also available in the normal app from the settings) shows frame time with its average and 99th percentile, draw calls, triangles and render scale.
-- `npm run perf` runs the camera path in Chromium and writes a report: average fps, 99th percentile frame time, maximum draw calls and triangles per frame. On a reference device the same report is produced from a button in the overlay, so results can be recorded from a real phone. CI runs the scene headless and fails only when draw calls or triangles exceed the budget, since its frame times mean nothing.
+- `npm run perf` runs the camera path in Chromium and writes a report: average fps, 99th percentile frame time, the average and 99th percentile time the main thread spends updating a frame before drawing it, and maximum draw calls and triangles per frame. On a reference device the same report is produced from a button in the overlay, so results can be recorded from a real phone. CI runs the scene headless and fails only when draw calls or triangles exceed the budget, since its frame times mean nothing.
 
 ### 11.5 Terrain work off the main thread
 
@@ -473,6 +473,14 @@ Building a terrain tile (resampling a finer tile from its data tile, its normals
 - **Order.** Requests wait on the main thread and the most urgent tile (nearest the camera, coarser first) is posted next whenever a worker has fewer than two requests in hand; a tile that leaves the view before it is posted is dropped.
 - **No change to the world.** A tile or slice that is still being built is drawn from its coarser parent or the nearest loaded slice, exactly as while it is still downloading (section 10.7); the arrays a worker returns are the same as those built on the main thread. Where Web Workers are not available (unit tests in Node), the same functions run on the main thread.
 - The planet query (section 5) stays on the main thread too, because the camera and the figures ask it for the ground every frame; the world query of milestone 2 runs its own copy in its worker.
+
+### 11.6 Steady frames
+
+Garbage collection pauses show as stutter, most of all on phones, so the code that runs every frame allocates nothing it could reuse: the tile selection, the camera and the clouds work in scratch vectors and matrices kept beside their code. The tile selection walks a tree of tile nodes that hold what never changes about a tile (its key, id, centre and corner directions, deepest level and data tile); children not walked into for 600 frames are forgotten, so the tree stays small. Every cache is bounded (section 4.2), and the saved view (section 9) is written only when it has changed.
+
+### 11.7 Depth and overdraw
+
+The globe is drawn from a few hundred metres to tens of thousands of kilometres away. Where the graphics card offers clip control (`EXT_clip_control`), the depth buffer is reversed and 32-bit float, which keeps that whole range precise without the fragment shaders writing depth, so the card can reject hidden pixels before shading them; elsewhere a logarithmic depth buffer is used, as before. Terrain and sea surfaces are drawn front side only: the globe is closed, so their back faces are always hidden. The terrain shader still leaves out the pixels the flat sea draws (section 4.4).
 
 ## 12. Assets in this milestone
 
