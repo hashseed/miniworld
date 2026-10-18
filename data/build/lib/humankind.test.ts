@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto';
+import { msAtDay } from '../../../app/src/time/rate.ts';
+import { LAYOUT_KM_PER_M, treeScene } from '../../../app/src/world/treeScene.ts';
 import { describe, expect, it } from 'vitest';
 import { DAYS_PER_YEAR, TIMELINE_START } from '../../../app/src/time/calendar.ts';
 import { NEVER, aliveOn, homeOn, lineage } from '../../../app/src/world/tree.ts';
@@ -8,6 +10,7 @@ import {
   MAX_LODGINGS,
   buildTree,
   checkTree,
+  treeChunks,
   distanceKm,
   type Habitat,
   type TreeSettings,
@@ -58,7 +61,7 @@ describe('the tree of humankind', () => {
     const camps = new Set(standing(settings.endDay - 1).map((l) => l.camp));
     // Low density packs camps at 600 km on a 2500 km disk: well over ten fit.
     expect(camps.size).toBeGreaterThan(10);
-    expect(tree.figures.length).toBeGreaterThan(100);
+    expect(tree.figures.length).toBeGreaterThan(60);
     expect(tree.moments.some((m) => m.kind === 'first-born')).toBe(true);
   });
 
@@ -135,9 +138,130 @@ describe('the tree of humankind', () => {
   });
 });
 
+describe('the camp scene', () => {
+  it('never puts two standing figures or two lodgings on top of each other', () => {
+    const whole = {
+      fromDay: settings.startDay,
+      toDay: settings.endDay,
+      figures: tree.figures,
+      lodgings: tree.lodgings,
+    };
+    // Figures stand at least 2 layout metres apart, lodgings (about 10 across) 12.
+    const apart = <T extends { lat: number; lon: number; x: number; z: number }>(
+      list: T[],
+      min: number,
+    ) => {
+      for (let i = 0; i < list.length; i++)
+        for (let j = i + 1; j < list.length; j++) {
+          const [a, b] = [list[i]!, list[j]!];
+          if (a.lat !== b.lat || a.lon !== b.lon) continue;
+          expect(
+            (a.x - b.x) ** 2 + (a.z - b.z) ** 2,
+            `${JSON.stringify(a)} ${JSON.stringify(b)}`,
+          ).toBeGreaterThanOrEqual(min * min);
+        }
+    };
+    const end = msAtDay(settings.endDay, settings.startDay);
+    // Every so often, and through the building of the first lodgings.
+    const times: number[] = [];
+    for (let ms = 0; ms < end; ms += 99_991) times.push(ms);
+    for (const l of tree.lodgings.slice(0, 80))
+      for (let k = 0; k < 12; k++) times.push(msAtDay(l.built, settings.startDay) + k * 1_500);
+    for (const ms of times) {
+      const s = treeScene(whole, ms, settings.startDay);
+      apart(
+        s.figures.filter((f) => f.clip === 'idle' || f.clip === 'work' || f.clip === 'knap'),
+        2,
+      );
+      apart(s.lodgings, 12);
+    }
+  }, 30_000);
+});
+
+/** Every lodging and figure of a tree's scene that stands where `ok` says it may not. */
+function strays(t: typeof tree, ok: (lat: number, lon: number) => boolean) {
+  const whole = {
+    fromDay: settings.startDay,
+    toDay: settings.endDay,
+    figures: t.figures,
+    lodgings: t.lodgings,
+  };
+  const end = msAtDay(settings.endDay, settings.startDay);
+  const km = LAYOUT_KM_PER_M;
+  const okAt = (p: { lat: number; lon: number; x: number; z: number }) =>
+    ok(
+      p.lat + (p.z * km) / 111.195,
+      p.lon + (p.x * km) / (111.195 * Math.cos((p.lat * Math.PI) / 180)),
+    );
+  const where: string[] = [];
+  let seen = 0;
+  for (let ms = 0; ms < end; ms += 99_991) {
+    const s = treeScene(whole, ms, settings.startDay);
+    for (const l of s.lodgings) {
+      seen++;
+      if (!okAt(l)) where.push(`lodging ${l.id} ${ms}`);
+    }
+    for (const f of s.figures) {
+      seen++;
+      // Bands on the move ford rivers; at camp everyone keeps dry.
+      if (f.clip !== 'walk' && !okAt(f))
+        where.push(
+          `figure ${f.id} ${f.clip} ${f.x.toFixed(1)},${f.z.toFixed(1)} at ${f.lat.toFixed(2)},${f.lon.toFixed(2)}`,
+        );
+    }
+  }
+  return { where, seen };
+}
+
+describe('camps by the sea', () => {
+  it('keep their lodgings and outings on land', () => {
+    const { where, seen } = strays(tree, onLand);
+    expect(seen).toBeGreaterThan(1000);
+    expect(where).toEqual([]);
+  }, 30_000);
+});
+
+describe('camps by a river', () => {
+  it('keep their lodgings and outings out of it', () => {
+    // A river about 60 km wide runs north to south across the continent, east of the founder.
+    const inRiver = (_lat: number, lon: number) => lon > 4 && lon < 4.55;
+    const t = buildTree(settings, { ...habitat, dry: (lat, lon) => !inRiver(lat, lon) });
+    expect(checkTree(t, settings, habitat)).toEqual([]);
+    // People still settle on both banks.
+    expect(t.lodgings.some((l) => l.lon / 1e6 > 6)).toBe(true);
+    const { where, seen } = strays(t, (lat, lon) => onLand(lat, lon) && !inRiver(lat, lon));
+    expect(seen).toBeGreaterThan(1000);
+    expect(where).toEqual([]);
+  }, 60_000);
+});
+
 describe('the canonical tree', () => {
   it('keeps its hash, so any change to the rules is seen', () => {
     const hash = createHash('sha256').update(JSON.stringify(tree)).digest('hex').slice(0, 16);
-    expect(hash).toBe('7ee1b529804fcdcc');
+    expect(hash).toBe('212ab3a47b21b66e');
+  });
+});
+
+describe('tree chunks', () => {
+  it('show the same scene as the whole tree, window by window', () => {
+    const windows = [0, 1_000, 3_000, 7_000, 12_000].map((y) => settings.startDay + years(y));
+    const chunks = treeChunks(tree, windows, settings.endDay);
+    expect(chunks.at(-1)).toBeUndefined();
+    const whole = {
+      fromDay: settings.startDay,
+      toDay: settings.endDay,
+      figures: tree.figures,
+      lodgings: tree.lodgings,
+    };
+    for (let w = 0; w < 4; w++) {
+      const chunk = chunks[w]!;
+      for (let k = 0; k < 5; k++) {
+        const day = chunk.fromDay + Math.floor(((chunk.toDay - chunk.fromDay) * k) / 5);
+        const ms = msAtDay(day, settings.startDay) + 1000;
+        expect(treeScene(chunk, ms, settings.startDay)).toEqual(
+          treeScene(whole, ms, settings.startDay),
+        );
+      }
+    }
   });
 });

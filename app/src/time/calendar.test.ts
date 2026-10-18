@@ -36,7 +36,7 @@ describe('calendar', () => {
 
   it('places the timeline start and opening day', () => {
     expect(dateFromDay(TIMELINE_START)).toEqual({ year: -69999, month: 1, day: 1 });
-    expect(dateFromDay(OPENING_DAY)).toEqual({ year: -49999, month: 1, day: 1 });
+    expect(dateFromDay(OPENING_DAY)).toEqual({ year: -69999, month: 1, day: 1 });
     expect(TIMELINE_START).toBeGreaterThan(-(2 ** 31));
     expect(Math.round(TIMELINE_START / 1e5) / 10).toBe(-26.3);
   });

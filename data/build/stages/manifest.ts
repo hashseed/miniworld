@@ -7,6 +7,7 @@ import { LANGUAGES, type Language } from '../../../app/src/i18n/messages.ts';
 import { TIMELINE_START } from '../../../app/src/time/calendar.ts';
 import type { Climate } from './climate.ts';
 import type { WriteContext } from './context.ts';
+import type { TreeFiles } from './humankind.ts';
 import type { LayerOut } from './terrain.ts';
 
 function finishLayer(
@@ -31,9 +32,10 @@ export function writeManifest(
     lens: Manifest['lens'];
     terrain: LayerOut;
     climate: Climate;
+    tree: TreeFiles;
   },
 ): Manifest {
-  const { index, climate } = parts;
+  const { index, climate, tree } = parts;
   const manifest: Manifest = {
     version: ctx.release.version,
     buildId: createHash('sha256').update(JSON.stringify(index)).digest('hex').slice(0, 12),
@@ -49,6 +51,7 @@ export function writeManifest(
     },
     climate: { days: climate.iceDays, files: climate.climateFiles },
     foliage: { days: climate.iceDays, files: climate.foliageFiles },
+    ...(tree ? { tree: { files: tree } } : {}),
   };
   ctx.output.writeNamed('manifest.json', new TextEncoder().encode(JSON.stringify(manifest)));
   return manifest;

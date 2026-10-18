@@ -57,7 +57,7 @@ const CROWN = 1.1;
 /** Where plants never stand (section 4). */
 const MIN_COAST_KM = 2.5;
 /** Drawn radius of the clearing around a vignette stage, so trees never hide a diorama (section 4). */
-const CLEARING_KM = 800;
+export const CLEARING_KM = 800;
 const MAX_WATER_FIELD = 0.42;
 const ICE_CLEARANCE_KM = 25;
 /** River field of the bank band that gets palms in dry land. */
@@ -105,6 +105,18 @@ export function treeLine(lat: number): number {
   return 3800 - Math.max(0, Math.abs(lat) - 25) * 75;
 }
 
+/**
+ * A place plants make way for: a direction, a radius in drawn kilometres and how far
+ * they have gone, 0 to 1. While `felling`, trees tip over as the amount rises; otherwise
+ * they shrink away, or grow back as it falls.
+ */
+export interface Clearing {
+  dir: Vec3;
+  km: number;
+  amount: number;
+  felling?: boolean;
+}
+
 export class Foliage {
   readonly group = new THREE.Group();
   readonly material: THREE.ShaderMaterial;
@@ -125,8 +137,8 @@ export class Foliage {
   count = 0;
   /** Set once the first view is ready; until then nothing is loaded or drawn. */
   active = false;
-  /** True directions of the vignette stages standing now; plants keep clear of them. */
-  clearings: Vec3[] = [];
+  /** Places plants make way for now: vignette stages, camps and wildlife; they shrink away by `amount`. */
+  clearings: Clearing[] = [];
 
   constructor(globe: Globe, loader: ChunkSource) {
     this.globe = globe;
@@ -198,14 +210,34 @@ export class Foliage {
     });
     // Plants change only with the slices, the sea level and the lens, never with the camera alone.
     const state = `${ka}:${kb}:${t.toFixed(3)}:${planet.seaLevel.toFixed(1)}`;
-    const clear = this.clearings.map((c) => lens.toDrawn(c));
-    const clearKey = clear.map((c) => c.map((x) => x.toFixed(4)).join(',')).join(';');
+    // Amounts in twentieths, so plants shrink and grow back smoothly without a rebuild every frame.
+    // Only clearings that reach the side of the globe in view.
+    const clear = this.clearings
+      .map((c) => ({ c, at: lens.toDrawn(c.dir) }))
+      .filter(({ c, at }) => {
+        const dot = at[0] * camDir.x + at[1] * camDir.y + at[2] * camDir.z;
+        return Math.acos(Math.max(-1, Math.min(1, dot))) < horizon + c.km / EARTH_RADIUS_KM;
+      })
+      .map(({ c, at }) => ({
+        at,
+        cos: Math.cos(c.km / EARTH_RADIUS_KM),
+        amount: Math.round(c.amount * 20) / 20,
+        felling: !!c.felling,
+      }));
+    const clearKey = clear
+      .map((c) => `${c.at.map((x) => x.toFixed(4)).join(',')}:${c.cos}:${c.amount}:${c.felling}`)
+      .join(';');
     const frameKey = `${state}|${lens.blend}|${visible.map(tileId).join(',')}|${this.placed.size}|${clearKey}`;
-    const clearCos = Math.cos(CLEARING_KM / EARTH_RADIUS_KM);
-    const inClearing = (e: number[]) => {
+    /** The clearing a plant at a matrix's position gives way to most, if any. */
+    const clearing = (e: number[]) => {
       const len = Math.hypot(e[12]!, e[13]!, e[14]!);
-      return clear.some((c) => (c[0] * e[12]! + c[1] * e[13]! + c[2] * e[14]!) / len > clearCos);
+      let most: (typeof clear)[number] | undefined;
+      for (const c of clear)
+        if ((c.at[0] * e[12]! + c.at[1] * e[13]! + c.at[2] * e[14]!) / len > c.cos)
+          if (!most || c.amount > most.amount) most = c;
+      return most;
     };
+    const shrink = new THREE.Matrix4();
     if (frameKey === this.lastKey) return;
     this.lastKey = frameKey;
 
@@ -223,7 +255,15 @@ export class Foliage {
       for (const p of plants) {
         const n = counts[p.kind]!;
         if (n >= CAPACITY || !this.matrixOf(p, m)) continue;
-        if (clear.length > 0 && inClearing(m.elements)) continue;
+        const c = clear.length > 0 ? clearing(m.elements) : undefined;
+        if (c && c.amount >= 1) continue;
+        // Felled trees tip over about their foot; others shrink away or grow back.
+        if (c && c.amount > 0)
+          m.multiply(
+            c.felling
+              ? shrink.makeRotationX(c.amount * c.amount * 1.5)
+              : shrink.makeScale(1 - c.amount, 1 - c.amount, 1 - c.amount),
+          );
         const mesh = this.meshes[p.kind]!;
         mesh.setMatrixAt(n, m);
         mesh.setColorAt(n, tint.setScalar(p.tint));

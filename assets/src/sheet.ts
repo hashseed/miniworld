@@ -6,8 +6,17 @@ import * as THREE from 'three';
 import { cameraLight } from '../../app/src/globe/sky.ts';
 import { ModelBuilder, blob, lightUniforms, type Model } from './kit.ts';
 import { PROFILES, buildPerson, posePerson, type Kind, type Pose } from './people.ts';
-import { SHELTERS, buildShelter, buildHearth, CAMP_SHELTER } from './shelters.ts';
-import { ANIMALS, buildAnimal } from './animals.ts';
+import {
+  SHELTERS,
+  buildShelter,
+  buildHearth,
+  buildSteps,
+  CAMP_SHELTER,
+  setBuilt,
+} from './shelters.ts';
+import { ANIMALS, PREHISTORIC_ANIMALS, buildAnimal, type AnimalId } from './animals.ts';
+import { WILD_ANIMALS } from './wildAnimals.ts';
+import { EXTINCT_ANIMALS } from './extinctAnimals.ts';
 import {
   BLEND_SECONDS,
   animateAnimal,
@@ -147,9 +156,12 @@ function sheltersSheet(): void {
 }
 
 function animalsSheet(): void {
+  const set = params.get('set') ?? 'large';
+  if (set === 'extinct') return wildSheet(false, EXTINCT_ANIMALS);
+  if (set.startsWith('wild')) return wildSheet(set === 'wild-small');
   // Two sheets, so the small animals are not lost behind the big ones.
-  const large = params.get('set') !== 'small';
-  const ids = ANIMALS.filter(
+  const large = set !== 'small';
+  const ids = PREHISTORIC_ANIMALS.filter(
     (id) =>
       [
         'animal-mammoth',
@@ -177,6 +189,37 @@ function animalsSheet(): void {
   camera.lookAt(0, large ? 1.3 : 0.7, 0);
 }
 
+/** The wildlife of wildlife.md section 6: the big ones in rows, or the small ones; or the extinct megafauna. */
+function wildSheet(small: boolean, set: readonly AnimalId[] = WILD_ANIMALS): void {
+  const SMALL = ['animal-penguin', 'animal-parrot', 'animal-kea', 'animal-crocodile'];
+  const ids = set.filter((id) => SMALL.includes(id) === small);
+  const perRow = small ? ids.length : 4;
+  const gap = small ? 2.6 : 5.2;
+  ids.forEach((id, i) => {
+    const row = Math.floor(i / perRow);
+    const col = i % perRow;
+    const x = (col - (perRow - 1) / 2) * gap;
+    const z = -row * 6.5;
+    const m = buildAnimal(id);
+    if (!small) ground(x, z, 2.1, '#b2b874');
+    else ground(x, z, 1.2, '#b2b874');
+    place(m, x, z, 0.9);
+    // Birds are built in flight: lift them clear of the plate.
+    if (id === 'animal-parrot' || id === 'animal-kea' || id === 'animal-haast-eagle') {
+      m.object.position.y = 0.5;
+      animateAnimal(m, 'fly', 0.1);
+    }
+    const height = new THREE.Box3().setFromObject(m.object).max.y;
+    labels.push({ text: id.replace('animal-', ''), at: new THREE.Vector3(x, height + 0.4, z) });
+  });
+  const ref = buildPerson({ profile: 'steppe-beringia-hunter', kind: 'man' });
+  posePerson(ref, 'stand');
+  place(ref, -((perRow + 1) / 2) * gap, 0, 0.6);
+  const span = gap * (perRow + 1);
+  camera.position.set(0, span * (small ? 0.3 : 0.75), span * (small ? 0.75 : 1.05));
+  camera.lookAt(0, 1.2, small ? 0 : -8);
+}
+
 /** One animal or shelter from two sides, framed to its size. */
 function singleSheet(): void {
   const id = params.get('id') ?? 'animal-mammoth';
@@ -198,6 +241,24 @@ function singleSheet(): void {
   camera.lookAt(0, size.y * 0.4, 0);
 }
 
+/** A shelter going up, step by step, from the frame to the finished shelter. */
+function buildSheet(): void {
+  const id = (params.get('id') ?? 'shelter-grass-hut') as (typeof SHELTERS)[number];
+  const stages = [0.25, 0.5, 0.75, 1];
+  stages.forEach((built, i) => {
+    const x = (i - (stages.length - 1) / 2) * 3.4;
+    ground(x, 0, 1.6, GROUND['african-stone-age']);
+    const m = place(buildShelter(id), x, 0, 0.3);
+    setBuilt(buildSteps(m), built);
+    labels.push({ text: `${Math.round(built * 100)}%`, at: new THREE.Vector3(x, 2.3, 0) });
+  });
+  const ref = buildPerson({ profile: 'african-stone-age', kind: 'woman' });
+  posePerson(ref, 'stand');
+  place(ref, 6.6, 0.4, -0.4);
+  camera.position.set(0, 5.5, 13);
+  camera.lookAt(0, 0.6, 0);
+}
+
 /** Frames of one clip side by side, seen from the side, for reviewing motion on a still image. */
 function clipsSheet(): void {
   const frames: Record<string, number[]> = {
@@ -206,6 +267,7 @@ function clipsSheet(): void {
     run: [0, 0.12, 0.24, 0.36, 0.48],
     carry: [0, 0.29, 0.58, 0.86, 1.15],
     work: [0, 0.22, 0.45, 0.67, 0.9],
+    knap: [0, 0.18, 0.35, 0.52, 1.5],
     point: [0, 0.4, 0.8, 1.2, 1.6],
     throw: [0, 0.3, 0.5, 0.6, 1.4],
     cheer: [0, 0.17, 0.35, 0.52, 0.7],
@@ -214,9 +276,12 @@ function clipsSheet(): void {
   const times = frames[clip]!;
   ground(0, 0, 5, '#c7cfa2');
   times.forEach((t, i) => {
-    const m = buildPerson({ profile: 'ice-age-hunter', kind: 'man' });
+    const m = buildPerson({
+      profile: clip === 'knap' ? 'african-stone-age' : 'ice-age-hunter',
+      kind: 'man',
+    });
     animatePerson(m, clip, t);
-    place(m, (i - 2) * 1.7, 0, Math.PI / 2 - 0.35);
+    place(m, (i - 2) * 1.7, 0, Math.PI / 2 - Number(params.get('turn') ?? 0.35));
   });
   labels.push({ text: `${clip}: ${times.join(', ')} s`, at: new THREE.Vector3(0, -0.15, 1.6) });
   camera.position.set(0, 2.2, 9.5);
@@ -333,6 +398,7 @@ const sheets: Record<string, () => void> = {
   clips: clipsSheet,
   'clips-animal': clipsAnimalSheet,
   single: singleSheet,
+  build: buildSheet,
   people: peopleSheet,
   turnaround: turnaroundSheet,
   camp: campSheet,

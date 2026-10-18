@@ -7,7 +7,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { brotliDecompressSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
-import type { Manifest, PartFile } from '../../app/src/content/types.ts';
+import type { Manifest, PartFile, StartupIndex } from '../../app/src/content/types.ts';
 import { contentHash } from './lib/output.ts';
 
 const DATA = join(import.meta.dirname, '../../app/public/data');
@@ -31,9 +31,16 @@ describe.skipIf(!built)('built data pipeline', () => {
   /** Every file the manifest names, directly or through a layer's part files. */
   function referenced(): Set<string> {
     const files = new Set<string>([manifest.lens.file]);
-    for (const f of Object.values(manifest.index)) files.add(f);
+    for (const f of Object.values(manifest.index)) {
+      files.add(f);
+      // Card texts and structures are named by the startup index.
+      const index = json<StartupIndex>(f);
+      for (const e of [...index.vignettes, ...index.landmarks]) files.add(e.structure).add(e.text);
+      for (const a of index.animals) files.add(a.text);
+    }
     for (const f of manifest.climate.files) files.add(f);
     for (const f of manifest.foliage.files) files.add(f);
+    for (const f of manifest.tree?.files ?? []) if (f) files.add(f);
     for (const layer of Object.values(manifest.layers)) {
       for (const f of Object.values(layer.chunks)) files.add(f);
       for (const f of Object.values(layer.parts)) {

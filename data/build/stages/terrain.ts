@@ -15,6 +15,8 @@ import { ancestorAt, tilePath, TILE_N, type TileKey } from '../../../app/src/geo
 import { fixtureElevation } from '../lib/fixture.ts';
 import { Grid, GridPyramid } from '../lib/grid.ts';
 import { placeOffWater } from '../lib/landmarks.ts';
+import { openShare, wildMasks } from '../lib/wildlife.ts';
+import { WILD_GROUPS } from '../../../app/src/world/wildlife.ts';
 import {
   floodInlandSeas,
   oceanConnection,
@@ -238,6 +240,26 @@ export function placeLandmarks(ctx: BuildContext, map: WorldMap, landmarks: Cont
     connection.nearest(lat, lon) <= -OCEAN_MIN_LEVEL;
   for (const l of landmarks)
     ctx.log(`landmark ${l.structure.id} moved ${placeOffWater(l, wet)} km west off the water`);
+}
+
+/**
+ * The ground mask of every wildlife group, in the order of wildlife.json:
+ * open lowland, or open sea for sea animals (wildlife.md section 4).
+ */
+export function buildWildlifeMasks(ctx: BuildContext, map: WorldMap): string[] {
+  const { connection, lakes, heights } = map;
+  const relief = heights.levels[0]!;
+  const masks = wildMasks(WILD_GROUPS, {
+    height: (lat, lon) => relief.bilinear(lat, lon),
+    wet: (lat, lon) =>
+      lakes.bilinear(lat, lon) > 127 || connection.nearest(lat, lon) <= -OCEAN_MIN_LEVEL,
+  });
+  WILD_GROUPS.forEach((g, i) =>
+    ctx.log(
+      `wildlife ${g.species} at ${g.home}: ${Math.round(openShare(g, masks[i]!) * 100)}% open`,
+    ),
+  );
+  return masks;
 }
 
 /** A layer's chunks before its part files are written (section 10.1). */

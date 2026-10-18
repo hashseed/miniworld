@@ -22,6 +22,7 @@ data/curated/
   cultures/     roman-imperial.md ...          culture profiles
   landmarks/    gobekli-tepe.md, great-pyramid.md ...
   vignettes/    viking-raids-britain.md ...    small looping stories
+  animals/      lion.md, thylacine.md ...      wildlife species cards
   templates/    coastal-raid.yaml ...          vignette stages and scripts (no text)
   geo/          areas and paths as GeoJSON, referenced by id
   sources.yaml  bibliography of content sources (books, papers, databases)
@@ -83,10 +84,10 @@ Der Vesuv bricht aus und begräbt die Stadt Pompeji unter Asche. ...
 | Field | Required | Meaning |
 | --- | --- | --- |
 | `id` | yes | Stable lowercase slug, unique within its kind, equal to the file name. Never reused; a renamed record keeps its old id in `aliases`, so bookmarks, links and later guided tours never break. |
-| `kind` | yes | `event`, `person`, `era`, `place`, `polity`, `route`, `culture`, `landmark` or `vignette`; must match the folder. |
-| `when` | yes, except culture | Time span (section 3). |
+| `kind` | yes | `event`, `person`, `era`, `place`, `polity`, `route`, `culture`, `landmark`, `vignette` or `animal`; must match the folder. |
+| `when` | yes, except culture and animal | Time span (section 3). |
 | `where` | yes for events, people, places, routes, landmarks and vignettes | Place (section 4). |
-| `region` | yes, except culture and era (an era's `lane` places it) | One or more region ids from `vocab/regions.yaml` (the timeline's regional lanes); used for the timeline, the phone lane filter and the coverage report. |
+| `region` | yes, except culture, animal and era (an era's `lane` places it) | One or more region ids from `vocab/regions.yaml` (the timeline's regional lanes); used for the timeline, the phone lane filter and the coverage report. |
 | `sources` | yes | One or more references into `sources.yaml`, each with an optional note such as a page or letter number. |
 | `debated` | no | What historians dispute: `date`, `place`, `cause`, `numbers` or `method` (how something was done, such as whether people killed mammoths or collected the bones of dead ones). The data build fails on any other value. The card says so in plain words. |
 | `tags`, `links` | no | Tag ids, and links to other records by kind and id. |
@@ -167,6 +168,7 @@ Each kind adds only what it needs on top of the envelope.
 | `route` | `path`, `mode` (caravan, ship, march), `active` span |
 | `culture` | `area` and `density` per period, architecture set, clothing, tools, vehicles, crops, animals, roles (from `vocab/roles.yaml`) and activity mix, all as asset or vocabulary ids; the body adds a `### Activities` (`### Tätigkeiten`) section with one line per activity id, the sentence a figure card shows, written without pronouns |
 | `landmark` | `stages` (model asset per date: construction, later changes, ruins), `build` (construction span and its vignette), optional `beacon` ([milestone-2.md](milestone-2.md#8-landmarks) section 8) |
+| `animal` | none: a species' card ([wildlife.md](wildlife.md#8-animal-cards) section 8); its id is the `species` of its groups in `wildlife.json`, and it has no `when`, `where` or `region`, since the groups give them |
 | `vignette` | `template`, `with` (the template's parameters), and `repeat`, `progress`, `stretch` or `cutaway` as needed ([milestone-2.md](milestone-2.md#6-vignettes) section 6) |
 
 **Templates** are the one kind of curated data that is not a record: a vignette template holds a stage, cast, props and a script but no viewer text, so it is a plain YAML file in `templates/` with an id equal to its file name, validated by its own schema ([milestone-2.md](milestone-2.md#62-templates-and-records) section 6.2). `vocab/roles.yaml` gives every role an `en` label and German labels in the feminine and masculine form, so figure cards match the figure, and the role's cast rules (section 1).

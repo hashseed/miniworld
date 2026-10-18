@@ -18,7 +18,9 @@ import {
   type CuratedEra,
   type CuratedEras,
 } from '../lib/eras.ts';
+import { buildAnimals } from '../lib/animals.ts';
 import { buildLandmarks } from '../lib/landmarks.ts';
+import { WILD_GROUPS } from '../../../app/src/world/wildlife.ts';
 import { regionGrid } from '../lib/regions.ts';
 import { buildVignettes } from '../lib/vignettes.ts';
 import { readVocab, type Vocab } from '../lib/vocab.ts';
@@ -30,6 +32,7 @@ export interface Content {
   regions: string[];
   landmarks: ReturnType<typeof buildLandmarks>['landmarks'];
   vignettes: ReturnType<typeof buildVignettes>['vignettes'];
+  animals: ReturnType<typeof buildAnimals>['animals'];
 }
 
 /** Reads and validates the curated content; fails the build on any error. */
@@ -94,6 +97,11 @@ export function validateContent(ctx: BuildContext): Content {
     cutoffDay,
   });
   if (landmarkBuild.errors.length) fail(landmarkBuild.errors.join('\n'));
+  const animalBuild = buildAnimals({
+    curated: join(ROOT, 'data/curated'),
+    species: new Set(WILD_GROUPS.map((g) => g.species)),
+  });
+  if (animalBuild.errors.length) fail(animalBuild.errors.join('\n'));
   const vignetteBuild = buildVignettes({
     curated: join(ROOT, 'data/curated'),
     lanes: new Set(regions),
@@ -109,7 +117,13 @@ export function validateContent(ctx: BuildContext): Content {
         fail(
           `landmarks/${l.structure.id}.md: build of ${p.name} names unknown vignette "${p.build.vignette}"`,
         );
-  return { eras, regions, landmarks: landmarkBuild.landmarks, vignettes: vignetteBuild.vignettes };
+  return {
+    eras,
+    regions,
+    landmarks: landmarkBuild.landmarks,
+    vignettes: vignetteBuild.vignettes,
+    animals: animalBuild.animals,
+  };
 }
 
 /** Writes the vignettes, landmarks and the startup index per language; returns the index files. */
@@ -117,6 +131,7 @@ export function buildContent(
   ctx: WriteContext,
   content: Content,
   climate: { seaLevel: StartupIndex['seaLevel']; iceDays: number[] },
+  wildlife: string[],
 ): Record<Language, string> {
   const { output, log } = ctx;
   const sources: SourceInfo[] = ctx.registry
@@ -149,6 +164,13 @@ export function buildContent(
   }));
   log(`${landmarkFiles.length} landmarks`);
   log(`${content.eras.eras.length} eras in ${content.eras.lanes.length} lanes`);
+  const animalFiles = content.animals.map((a) => ({
+    a,
+    text: Object.fromEntries(
+      LANGUAGES.map((lang) => [lang, output.writeJson(`animals/${a.id}-${lang}`, a.text[lang])]),
+    ) as Record<Language, string>,
+  }));
+  log(`${animalFiles.length} animal cards`);
 
   const grid = regionGrid(content.regions);
   const index = {} as Record<Language, string>;
@@ -183,6 +205,12 @@ export function buildContent(
         icon: l.structure.icon,
         title: l.text[language].title,
         structure,
+        text: text[language],
+      })),
+      wildlife,
+      animals: animalFiles.map(({ a, text }) => ({
+        id: a.id,
+        title: a.text[language].title,
         text: text[language],
       })),
     };

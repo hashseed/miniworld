@@ -11,7 +11,7 @@ const d0 = TIMELINE_START;
 // The first person (0) in camp 0; her child (1) founds camp 1 with a lodging there.
 const tree: Tree = {
   figures: [
-    { id: 0, parent: NEVER, born: d0, branch: 0, depth: 0, homes: [[d0, 0]], lost: NEVER },
+    { id: 0, parent: NEVER, born: d0, branch: 0, depth: 0, homes: [[d0, 0, 0]], lost: NEVER },
     {
       id: 1,
       parent: 0,
@@ -19,8 +19,8 @@ const tree: Tree = {
       branch: 0,
       depth: 1,
       homes: [
-        [d0 + 100, 0],
-        [d0 + 500, 1],
+        [d0 + 100, 0, 1],
+        [d0 + 500, 1, 0],
       ],
       lost: NEVER,
     },
@@ -34,6 +34,8 @@ const tree: Tree = {
       built: d0,
       gone: NEVER,
       builder: 0,
+      slot: 0,
+      reach: [80, 80, 80, 80, 80],
       kind: 'hut',
     },
     {
@@ -44,6 +46,8 @@ const tree: Tree = {
       built: d0 + 500,
       gone: NEVER,
       builder: 1,
+      slot: 0,
+      reach: [80, 80, 80, 80, 80],
       kind: 'hut',
     },
   ],

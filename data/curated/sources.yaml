@@ -90,3 +90,193 @@ kirch-2017:
   author: Patrick Vinton Kirch
   publisher: University of California Press
   year: 2017
+iucn-red-list:
+  title: The IUCN Red List of Threatened Species
+  author: International Union for Conservation of Nature
+  publisher: https://www.iucnredlist.org
+  year: 2024
+blue-wildebeest-sinclair-1979:
+  title: 'Serengeti: Dynamics of an Ecosystem'
+  author: A. R. E. Sinclair and M. Norton-Griffiths (editors)
+  publisher: University of Chicago Press
+  year: 1979
+eland-lewis-williams-1981:
+  title: 'Believing and Seeing: Symbolic Meanings in Southern San Rock Paintings'
+  author: J. David Lewis-Williams
+  publisher: Academic Press
+  year: 1981
+mountain-gazelle-bar-yosef-1998:
+  title: 'The Natufian culture in the Levant, threshold to the origins of agriculture'
+  author: Ofer Bar-Yosef
+  publisher: Evolutionary Anthropology 6, 159–177
+  year: 1998
+dromedary-bulliet-1975:
+  title: The Camel and the Wheel
+  author: Richard W. Bulliet
+  publisher: Harvard University Press
+  year: 1975
+dromedary-almathen-2016:
+  title: Ancient and modern DNA reveal dynamics of domestication and cross-continental dispersal of the dromedary
+  author: Faisal Almathen and others
+  publisher: Proceedings of the National Academy of Sciences 113, 6707–6712
+  year: 2016
+european-bison-krasinska-2013:
+  title: 'European Bison: The Nature Monograph'
+  author: Małgorzata Krasińska and Zbigniew A. Krasiński
+  publisher: Springer
+  year: 2013
+american-bison-hornaday-1889:
+  title: The Extermination of the American Bison
+  author: William T. Hornaday
+  publisher: Report of the U.S. National Museum for 1887, Smithsonian Institution
+  year: 1889
+wild-horse-haile-2009:
+  title: Ancient DNA reveals late survival of mammoth and horse in interior Alaska
+  author: James Haile and others
+  publisher: Proceedings of the National Academy of Sciences 106, 22352–22357
+  year: 2009
+wild-horse-gaunitz-2018:
+  title: Ancient genomes revisit the ancestry of domestic and Przewalski's horses
+  author: Charleen Gaunitz and others
+  publisher: Science 360, 111–114
+  year: 2018
+woolly-mammoth-stuart-2004:
+  title: Pleistocene to Holocene extinction dynamics in giant deer and woolly mammoth
+  author: Anthony J. Stuart and others
+  publisher: Nature 431, 684–689
+  year: 2004
+woolly-mammoth-vartanyan-1993:
+  title: Holocene dwarf mammoths from Wrangel Island in the Siberian Arctic
+  author: S. L. Vartanyan, V. E. Garutt and A. V. Sher
+  publisher: Nature 362, 337–340
+  year: 1993
+woolly-rhino-lord-2020:
+  title: Pre-extinction demographic stability and genomic signatures of adaptation in the woolly rhinoceros
+  author: Edana Lord and others
+  publisher: Current Biology 30, 3871–3879
+  year: 2020
+cave-bear-terlato-2019:
+  title: Chronological and isotopic data support a revision for the timing of cave bear extinction in Mediterranean Europe
+  author: Gabriele Terlato and others
+  publisher: Historical Biology 31, 474–484
+  year: 2019
+qiu-2015-wild-yak:
+  title: Yak whole-genome resequencing reveals domestication signatures and prehistoric population expansions
+  author: Qiang Qiu and others
+  publisher: Nature Communications 6, 10283
+  year: 2015
+britannica-black-caiman:
+  title: black caiman
+  author: The Editors of Encyclopaedia Britannica
+  publisher: Encyclopaedia Britannica, https://www.britannica.com/animal/black-caiman
+  year: 2024
+britannica-amur-tiger:
+  title: Siberian tiger
+  author: The Editors of Encyclopaedia Britannica
+  publisher: Encyclopaedia Britannica, https://www.britannica.com/animal/Siberian-tiger
+  year: 2024
+ntca-2022-bengal-tiger:
+  title: 'Status of Tigers, Co-predators and Prey in India 2022'
+  author: Qamar Qureshi, Yadvendradev V. Jhala, S. P. Yadav and Amit Mallick
+  publisher: National Tiger Conservation Authority and Wildlife Institute of India
+  year: 2023
+watson-2015-scarlet-macaw:
+  title: Early procurement of scarlet macaws and the emergence of social complexity in Chaco Canyon, NM
+  author: Adam S. Watson and others
+  publisher: Proceedings of the National Academy of Sciences 112 (27), 8238–8243
+  year: 2015
+nzgeo-kea:
+  title: Gruesome bounty
+  author: New Zealand Geographic
+  publisher: New Zealand Geographic, https://www.nzgeo.com/stories/gruesome-bounty/
+  year: 2024
+cherry-garrard-1922-emperor-penguin:
+  title: The Worst Journey in the World
+  author: Apsley Cherry-Garrard
+  publisher: Constable
+  year: 1922
+noaa-humpback-whale:
+  title: Humpback Whale
+  author: NOAA Fisheries
+  publisher: https://www.fisheries.noaa.gov/species/humpback-whale
+  year: 2024
+stellers-sea-cow-britannica:
+  title: Sea cow
+  author: The Editors of Encyclopaedia Britannica
+  publisher: Encyclopaedia Britannica, https://www.britannica.com/animal/sea-cow
+  year: 2024
+giant-deer-stuart-2004:
+  title: Pleistocene to Holocene extinction dynamics in giant deer and woolly mammoth
+  author: Anthony J. Stuart, Pavel A. Kosintsev, Thomas F. G. Higham and Adrian M. Lister
+  publisher: Nature 431, 684–689
+  year: 2004
+aurochs-britannica:
+  title: Aurochs
+  author: The Editors of Encyclopaedia Britannica
+  publisher: Encyclopaedia Britannica, https://www.britannica.com/animal/aurochs
+  year: 2024
+cave-lion-stuart-lister-2011:
+  title: Extinction chronology of the cave lion Panthera spelaea
+  author: Anthony J. Stuart and Adrian M. Lister
+  publisher: Quaternary Science Reviews 30, 2329–2340
+  year: 2011
+smilodon-britannica:
+  title: Sabre-toothed cat
+  author: The Editors of Encyclopaedia Britannica
+  publisher: Encyclopaedia Britannica, https://www.britannica.com/animal/saber-toothed-cat
+  year: 2024
+american-mastodon-britannica:
+  title: American mastodon
+  author: The Editors of Encyclopaedia Britannica
+  publisher: Encyclopaedia Britannica, https://www.britannica.com/animal/American-mastodon
+  year: 2024
+columbian-mammoth-britannica:
+  title: Mammoth
+  author: The Editors of Encyclopaedia Britannica
+  publisher: Encyclopaedia Britannica, https://www.britannica.com/animal/mammoth-extinct-mammal
+  year: 2024
+megatherium-britannica:
+  title: Giant ground sloth
+  author: The Editors of Encyclopaedia Britannica
+  publisher: Encyclopaedia Britannica, https://www.britannica.com/animal/giant-ground-sloth
+  year: 2024
+glyptodon-britannica:
+  title: Glyptodon
+  author: The Editors of Encyclopaedia Britannica
+  publisher: Encyclopaedia Britannica, https://www.britannica.com/animal/Glyptodon
+  year: 2024
+diprotodon-roberts-2001:
+  title: 'New ages for the last Australian megafauna: continent-wide extinction about 46,000 years ago'
+  author: Richard G. Roberts and others
+  publisher: Science 292, 1888–1892
+  year: 2001
+moa-perry-2014:
+  title: A high-precision chronology for the rapid extinction of New Zealand moa (Aves, Dinornithiformes)
+  author: George L. W. Perry, Andrew B. Wheeler, Jamie R. Wood and Janet M. Wilmshurst
+  publisher: Quaternary Science Reviews 105, 126–135
+  year: 2014
+haasts-eagle-bunce-2005:
+  title: "Ancient DNA provides new insights into the evolutionary history of New Zealand's extinct giant eagle"
+  author: Michael Bunce and others
+  publisher: PLoS Biology 3 (1), e9
+  year: 2005
+elephant-bird-hansford-2018:
+  title: Early Holocene human presence in Madagascar evidenced by exploitation of avian megafauna
+  author: James Hansford and others
+  publisher: Science Advances 4, eaat6925
+  year: 2018
+elephant-bird-mitchell-2014:
+  title: Ancient DNA reveals elephant birds and kiwi are sister taxa and clarifies ratite bird evolution
+  author: Kieren J. Mitchell and others
+  publisher: Science 344, 898–900
+  year: 2014
+quagga-britannica:
+  title: Quagga
+  author: The Editors of Encyclopaedia Britannica
+  publisher: Encyclopaedia Britannica, https://www.britannica.com/animal/quagga
+  year: 2024
+thylacine-britannica:
+  title: Thylacine
+  author: The Editors of Encyclopaedia Britannica
+  publisher: Encyclopaedia Britannica, https://www.britannica.com/animal/thylacine
+  year: 2024

@@ -37,6 +37,7 @@ export type Clip =
   | 'carry'
   | 'haul'
   | 'work'
+  | 'knap'
   | 'point'
   | 'throw'
   | 'cheer'

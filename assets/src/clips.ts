@@ -13,11 +13,14 @@ export type Clip =
   | 'carry'
   | 'haul'
   | 'work'
+  | 'knap'
   | 'point'
   | 'throw'
   | 'cheer'
   | 'struggle'
-  | 'fall';
+  | 'fall'
+  | 'fly'
+  | 'swim';
 
 /** Seconds into the throw gesture when the spear leaves the hand. */
 export const THROW_RELEASE = 0.55;
@@ -66,6 +69,24 @@ const smooth = (t: number) => {
 };
 const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 
+/** Seconds of one wing beat of the fly clip. */
+const FLAP_SECONDS = 0.6;
+/** One beat of a swimming tail, in seconds. */
+const SWIM_SECONDS = 1.6;
+
+/**
+ * Seconds of one stride of an animal's walk clip: a four-legged walk, a
+ * penguin's waddle or a kangaroo's hop. A walk that lasts a whole number of
+ * strides ends with the legs back at rest.
+ */
+export function walkPeriod(m: Model): number {
+  const rest = m.bones.get('body')!.userData.rest as THREE.Vector3;
+  const stride = Math.sqrt(rest.y);
+  if (!m.bones.has('legL')) return 1.1 * stride;
+  if (m.bones.has('wingL')) return 0.7;
+  return m.bones.has('tail') ? 0.75 * stride : 0.9 * stride;
+}
+
 /** Poses a person built by buildPerson for a clip at a time in seconds. */
 export function animatePerson(m: Model, clip: Clip, seconds: number): void {
   reset(m);
@@ -77,8 +98,14 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
     clip !== 'carry' &&
     clip !== 'haul' &&
     clip !== 'work' &&
+    clip !== 'knap' &&
     !(clip === 'throw' && t >= THROW_RELEASE);
   bone('load').visible = clip === 'carry';
+  // Knapping stones, on the models of cultures that knap.
+  for (const name of ['knap', 'hammer']) {
+    const stone = m.bones.get(name);
+    if (stone) stone.visible = clip === 'knap';
+  }
 
   const hipRest = (bone('hips').userData.rest as THREE.Vector3).y;
   // A planted gait (Yang, 2026-10-18: fluid movements). While a foot is on the
@@ -195,6 +222,25 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
       rot('armLowerR', -0.5 + 0.2 * s);
       rot('armUpperL', -0.8, 0, 0.2);
       rot('armLowerL', -0.4);
+      break;
+    }
+    case 'knap': {
+      // Kneeling, a hand axe held on the knee, struck with quick blows of a
+      // hammerstone; now and then a look at the edge.
+      const u = t / 0.7 - Math.floor(t / 0.7);
+      const raise = (0.5 - 0.5 * Math.cos(TAU * u)) ** 2;
+      const look = Math.max(0, Math.sin((t / 6) * TAU)) ** 4;
+      lift(-0.38 * (bone('hips').userData.rest as THREE.Vector3).y);
+      rot('legUpperL', -1.45);
+      rot('legLowerL', 1.5);
+      rot('legUpperR', -0.35);
+      rot('legLowerR', 2.2);
+      rot('torso', 0.45 - 0.15 * look);
+      rot('head', -0.35 + 0.1 * look);
+      rot('armUpperL', -0.75 - 0.35 * look, 0, -0.4);
+      rot('armLowerL', -0.9 - 0.3 * look);
+      rot('armUpperR', -0.75 - 0.5 * raise * (1 - look), 0, 0.4);
+      rot('armLowerR', -0.9 - 0.5 * raise * (1 - look));
       break;
     }
     case 'point': {
@@ -324,9 +370,65 @@ export function animateAnimal(m: Model, clip: Clip, seconds: number): void {
     rot('tail', 0, 0.25 * Math.sin(p));
     body.position.y = rest.y + Math.abs(Math.cos(p)) * swing * 0.05 * rest.y;
   };
+  // Two-legged walkers (wildlife.md section 6): penguins and dodos waddle,
+  // kangaroos hop, wingless birds such as moas stride.
+  const biped = m.bones.has('legL');
+  const winged = m.bones.has('wingL');
+  if (clip === 'swim') {
+    // Sea animals: the tail beats up and down, the body rocks against it, fins steer.
+    const p = (seconds / SWIM_SECONDS) * TAU;
+    rot('tail', 0.35 * Math.sin(p));
+    body.rotation.x = -0.06 * Math.sin(p - 0.8);
+    if (m.bones.has('finL')) {
+      rot('finL', 0, 0, 0.15 * Math.sin(p + 0.5));
+      rot('finR', 0, 0, -0.15 * Math.sin(p + 0.5));
+    }
+    return;
+  }
+  if (clip === 'fly') {
+    // Wings flap well up and down, the body rises on each down-stroke and the tail steers.
+    const p = (seconds / FLAP_SECONDS) * TAU;
+    rot('wingL', 0, 0, 0.25 + 0.85 * Math.sin(p));
+    rot('wingR', 0, 0, -0.25 - 0.85 * Math.sin(p));
+    rot('tail', 0.1 * Math.sin(p + 1));
+    rot('head', -0.05 * Math.sin(p));
+    body.position.y = rest.y - 0.08 * rest.y * Math.sin(p);
+    return;
+  }
+  if (biped && (clip === 'walk' || clip === 'run')) {
+    const fast = clip === 'run' ? 0.6 : 1;
+    if (winged) {
+      // Waddle: short steps, the body rocking from foot to foot, flippers out.
+      const p = (seconds / (walkPeriod(m) * fast)) * TAU;
+      body.rotation.z = 0.14 * Math.sin(p);
+      rot('legL', 0.35 * Math.sin(p));
+      rot('legR', -0.35 * Math.sin(p));
+      rot('wingL', 0, 0, 0.35 + 0.1 * Math.sin(p * 2));
+      rot('wingR', 0, 0, -0.35 - 0.1 * Math.sin(p * 2));
+      body.position.y = rest.y + 0.04 * rest.y * Math.abs(Math.sin(p));
+    } else if (!m.bones.has('tail')) {
+      // Stride: long steps from leg to leg, the body bobbing and the neck nodding.
+      const p = (seconds / (walkPeriod(m) * fast)) * TAU;
+      rot('legL', 0.45 * Math.sin(p));
+      rot('legR', -0.45 * Math.sin(p));
+      rot('head', 0.08 * Math.sin(p * 2));
+      body.position.y = rest.y + 0.03 * rest.y * Math.abs(Math.sin(p));
+    } else {
+      // Hop: both legs push off together, the tail swings up as the body flies.
+      const p = (seconds / (walkPeriod(m) * fast)) * TAU;
+      const air = Math.max(0, Math.sin(p));
+      body.position.y = rest.y * (1 + 0.45 * air);
+      body.rotation.x = 0.2 * air;
+      rot('legL', 0.6 * air);
+      rot('legR', 0.6 * air);
+      rot('tail', -0.4 * air);
+      rot('head', -0.15 * air);
+    }
+    return;
+  }
   switch (clip) {
     case 'walk':
-      gait(1.1 * stride, 0.3);
+      gait(walkPeriod(m), 0.3);
       break;
     case 'run':
       gait(0.55 * stride, 0.55);
