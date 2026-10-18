@@ -157,23 +157,23 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
   }
 }
 
-/** Bounds of a bone and everything under it, in its own space at rest; cached on the bone. */
-function restBounds(bone: THREE.Object3D): THREE.Box3 {
-  const cached = bone.userData.restBounds as THREE.Box3 | undefined;
-  if (cached) return cached;
-  const box = new THREE.Box3();
-  bone.updateMatrixWorld(true);
-  const toBone = bone.matrixWorld.clone().invert();
-  bone.traverse((o) => {
+/** The lowest vertex of a model in its own space, as posed. */
+function lowestPoint(m: Model): number {
+  m.object.updateMatrixWorld(true);
+  const toModel = m.object.matrixWorld.clone().invert();
+  const matrix = new THREE.Matrix4();
+  const v = new THREE.Vector3();
+  let lowest = Infinity;
+  m.object.traverse((o) => {
     const mesh = o as THREE.Mesh;
-    if (!mesh.isMesh) return;
-    mesh.geometry.computeBoundingBox();
-    box.union(
-      mesh.geometry.boundingBox!.clone().applyMatrix4(toBone.clone().multiply(mesh.matrixWorld)),
-    );
+    // Ink hulls share their parent's geometry, so only the coloured meshes are read.
+    if (!mesh.isMesh || (mesh.parent as THREE.Mesh).isMesh) return;
+    matrix.multiplyMatrices(toModel, mesh.matrixWorld);
+    const pos = mesh.geometry.getAttribute('position');
+    for (let i = 0; i < pos.count; i++)
+      lowest = Math.min(lowest, v.fromBufferAttribute(pos, i).applyMatrix4(matrix).y);
   });
-  bone.userData.restBounds = box;
-  return box;
+  return lowest;
 }
 
 /** Poses an animal built by buildAnimal. Times scale with its size, so a mammoth strides slower than a wolf. */
@@ -206,16 +206,11 @@ export function animateAnimal(m: Model, clip: Clip, seconds: number): void {
       // Rolls onto its side while sinking over 3 s; nothing more is shown.
       const f = smooth(seconds / 3);
       const angle = f * (Math.PI / 2) * 0.92;
-      const box = restBounds(body);
       body.rotation.z = angle;
-      for (const name of ['legFL', 'legFR', 'legBL', 'legBR']) rot(name, 0, 0, -0.3 * f);
+      for (const name of ['legFL', 'legFR', 'legBL', 'legBR']) rot(name, 0, 0, 0.3 * f);
       // Keep its lowest point on the ground as it rolls, then sink a little.
-      let lowest = Infinity;
-      for (const x of [box.min.x, box.max.x]) {
-        for (const y of [box.min.y, box.max.y])
-          lowest = Math.min(lowest, x * Math.sin(angle) + y * Math.cos(angle));
-      }
-      body.position.y = -lowest - f * 0.12 * rest.y;
+      body.position.y = rest.y;
+      body.position.y += -lowestPoint(m) - f * 0.12 * rest.y;
       break;
     }
     default: {

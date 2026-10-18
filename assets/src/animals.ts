@@ -137,7 +137,12 @@ function quadruped(q: Quad, clay = 1): Parts {
   ] as const) {
     const lx = x * q.girth[0] * 0.55;
     const leg = q.leg * 1.4; // chunky toy legs
-    mb.add(limb([lx, legTop, z], [lx, 0.08, z], leg, leg * 0.75, 5), legColour, bone);
+    // End the leg one cap radius up, so its rounded end rests on the ground.
+    mb.add(
+      limb([lx, legTop, z], [lx, Math.max(0.08, leg * 0.75), z], leg, leg * 0.75, 5),
+      legColour,
+      bone,
+    );
     mb.add(
       blob([lx, 0.06, z + leg * 0.2], [leg * 0.85, 0.07, leg * 1.0], 5),
       q.hoof ?? shade(legColour, -0.35),
