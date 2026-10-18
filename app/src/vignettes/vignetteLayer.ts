@@ -9,6 +9,7 @@ import type { ContentLoader } from '../content/loader.ts';
 import type { VignetteEntry } from '../content/types.ts';
 import { latLonToDir, type Vec3 } from '../geo/cube.ts';
 import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
+import { dayAtMs } from '../time/rate.ts';
 import {
   buildMembers,
   formationOffset,
@@ -115,8 +116,7 @@ export class VignetteLayer {
   private light = new THREE.DirectionalLight(0xffffff, 2.2);
   private ambient = new THREE.AmbientLight(0xffffff, 0.9);
   private camera: THREE.PerspectiveCamera | undefined;
-  private day = 0;
-  private vignetteMs = 0;
+  private ms = 0;
   private down: { x: number; y: number; t: number } | undefined;
   private basis = new THREE.Matrix4();
   private turn = new THREE.Quaternion();
@@ -153,28 +153,30 @@ export class VignetteLayer {
     return [...this.stages.values()].map((s) => s.trueDir);
   }
 
+  /** Places the stages shown at a clock time; `startDay` is the timeline's first day. */
   update(
     camera: THREE.PerspectiveCamera,
-    day: number,
-    vignetteMs: number,
+    ms: number,
+    startDay: number,
     lightDir: THREE.Vector3,
   ): void {
     this.camera = camera;
-    this.day = day;
-    this.vignetteMs = vignetteMs;
+    this.ms = ms;
+    const day = dayAtMs(ms, startDay);
     this.light.position.copy(lightDir);
     this.light.target.position.set(0, 0, 0);
     if (this.element instanceof HTMLCanvasElement) lightModels(lightDir, camera, this.element);
 
     const wanted = new Set<string>();
     for (const entry of this.entries) {
-      if (day < entry.fromDay || day >= entry.toDay) continue;
+      if (day < entry.fromDay) continue;
       const v = this.structures.get(entry.structure);
       if (!v) {
-        this.request(entry);
+        // An instance may run a little past the span; only a span under way needs its file.
+        if (day < entry.toDay) this.request(entry);
         continue;
       }
-      for (const instance of instancesAt(v, day)) {
+      for (const instance of instancesAt(v, ms, startDay)) {
         wanted.add(instance.id);
         if (!this.stages.has(instance.id))
           this.stages.set(instance.id, this.makeStage(entry, v, instance));
@@ -295,7 +297,7 @@ export class VignetteLayer {
   private pose(stage: Stage): void {
     const v = this.structures.get(stage.entry.structure);
     if (!v) return;
-    const phase = phaseOf(v.template, stage.instance, this.day, this.vignetteMs);
+    const phase = phaseOf(v.template, stage.instance, this.ms);
     const steep = Math.max(
       0,
       this.v7.copy(this.camera!.position).sub(stage.centre).normalize().dot(stage.up),
@@ -517,7 +519,7 @@ export class VignetteLayer {
           heightKm,
           phase: (() => {
             const v = this.structures.get(stage.entry.structure);
-            return v ? phaseOf(v.template, stage.instance, this.day, this.vignetteMs) : undefined;
+            return v ? phaseOf(v.template, stage.instance, this.ms) : undefined;
           })(),
           cast: stage.actors.flatMap((a) => [
             a.root.position.x,

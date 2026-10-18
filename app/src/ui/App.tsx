@@ -5,8 +5,9 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Store } from '../core/store.ts';
-import { dateFromDay } from '../time/calendar.ts';
-import { MAX_SPEED_LOG2, MIN_SPEED_LOG2, speedLabel } from '../time/rateCurve.ts';
+import { TIMELINE_START, dateFromDay } from '../time/calendar.ts';
+import { dayAtMs } from '../time/rate.ts';
+import { SPEED_MODES, type SpeedMode } from '../time/speed.ts';
 import { formatDateReadout, formatFullDate, formatYear, roundRate } from '../i18n/dates.ts';
 import { LANGUAGES, type Language } from '../i18n/messages.ts';
 import { LANGUAGE_NAMES, type I18n } from '../i18n/i18n.ts';
@@ -17,6 +18,7 @@ import {
   BookmarkIcon,
   CloseIcon,
   CompassIcon,
+  FastForwardIcon,
   TiltFlatterIcon,
   TiltSteeperIcon,
   FollowIcon,
@@ -26,6 +28,7 @@ import {
   LensIcon,
   PauseIcon,
   PlayIcon,
+  SnailIcon,
 } from './icons.tsx';
 
 interface Props {
@@ -142,7 +145,7 @@ export function App({ store, hot, i18n, actions }: Props) {
 
 type T = I18n['t'];
 
-/** Play button, speed slider, date and rate: the parts that change while history plays. */
+/** Play button, speed modes, date and rate: the parts that change while history plays. */
 function PlayControls({
   hot,
   i18n,
@@ -158,10 +161,6 @@ function PlayControls({
   const stationary = s.playState !== 'playing' && !s.scrubbing;
   const dateText = formatDateReadout(s.day, lang, { yearsPerMinute: s.yearsPerMinute, stationary });
   const stateText = s.playState === 'playing' ? t('controls.playing') : t('controls.paused');
-  const label = speedLabel(s.speedLog2);
-  const speedText = t(label.fraction ? 'controls.speedFraction' : 'controls.speedValue', {
-    speed: i18n.number(label.value),
-  });
   return (
     <>
       <Fold
@@ -178,6 +177,7 @@ function PlayControls({
               }}
             >
               <PauseIcon />
+              <SpeedBadge mode={s.speedMode} />
             </button>
           ) : (
             <button
@@ -190,23 +190,27 @@ function PlayControls({
               }}
             >
               <PlayIcon />
+              <SpeedBadge mode={s.speedMode} />
             </button>
           )
         }
       >
-        <input
-          type="range"
-          min={MIN_SPEED_LOG2}
-          max={MAX_SPEED_LOG2}
-          step="any"
-          value={s.speedLog2}
-          aria-label={t('controls.speed')}
-          aria-valuetext={speedText}
-          data-testid="speed"
-          onInput={(e) => actions.setSpeed(Number((e.target as HTMLInputElement).value))}
-          onChange={(e) => actions.setSpeed(Number((e.target as HTMLInputElement).value), true)}
-        />
-        <output>{speedText}</output>
+        <div class="speed-modes" role="radiogroup" aria-label={t('controls.speed')}>
+          {SPEED_MODES.map((mode) => (
+            <button
+              key={mode}
+              class="btn speed-mode"
+              role="radio"
+              aria-checked={s.speedMode === mode}
+              aria-label={t(`controls.speed.${mode}`)}
+              title={t(`controls.speed.${mode}`)}
+              data-testid={`speed-${mode}`}
+              onClick={() => actions.setSpeed(mode)}
+            >
+              <SpeedIcon mode={mode} />
+            </button>
+          ))}
+        </div>
       </Fold>
       <span class="date" aria-live="off" data-testid="date">
         {dateText}
@@ -217,6 +221,23 @@ function PlayControls({
           : stateText}
       </span>
     </>
+  );
+}
+
+const SPEED_ICONS = { snail: SnailIcon, regular: PlayIcon, fast: FastForwardIcon };
+
+function SpeedIcon({ mode }: { mode: SpeedMode }) {
+  const Icon = SPEED_ICONS[mode];
+  return <Icon />;
+}
+
+/** While folded, the play button shows a small snail or double arrow when not regular. */
+function SpeedBadge({ mode }: { mode: SpeedMode }) {
+  if (mode === 'regular') return null;
+  return (
+    <span class="speed-badge" data-testid="speed-badge">
+      <SpeedIcon mode={mode} />
+    </span>
   );
 }
 
@@ -431,11 +452,6 @@ function SettingsPanel({ s, t, actions }: { s: UiState; t: T; actions: Actions }
         onChange={(v) => set('trueTimeScale', v)}
       />
       <Toggle
-        label={t('settings.slowWhenZoomed')}
-        value={s.settings.slowWhenZoomed}
-        onChange={(v) => set('slowWhenZoomed', v)}
-      />
-      <Toggle
         label={t('settings.showStats')}
         value={s.settings.showStats}
         onChange={(v) => set('showStats', v)}
@@ -495,7 +511,10 @@ function BookmarksPanel({
             <button
               class="btn name"
               aria-label={t('bookmarks.go', { name: b.name })}
-              title={formatDateReadout(b.day, lang, { yearsPerMinute: 0, stationary: true })}
+              title={formatDateReadout(dayAtMs(b.ms, TIMELINE_START), lang, {
+                yearsPerMinute: 0,
+                stationary: true,
+              })}
               onClick={() => actions.goToBookmark(b.id)}
             >
               {b.name}

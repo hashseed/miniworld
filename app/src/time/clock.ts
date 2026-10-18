@@ -1,116 +1,100 @@
-// The two clocks (spec section 2 and milestone 1, sections 3.3 to 3.5).
-// The historical clock advances the date by the base rate × speed × zoom
-// factor; the life clock runs in real time while playing, and the vignette
-// clock at real time × speed. Paused stops all three.
+// The clock (spec section 2 and milestone 1, sections 3.3 to 3.5): one count of
+// milliseconds of watching time since the start of the timeline drives
+// everything on screen. It advances by real time × the speed mode's factor
+// while playing; the date follows from it at 25 years per minute.
 
-import { DAYS_PER_YEAR, continuousYear, type Day } from './calendar.ts';
-import { baseRate, clampSpeedLog2 } from './rateCurve.ts';
+import type { Day } from './calendar.ts';
+import { dayAtMs, msAtDay } from './rate.ts';
+import { SPEED_FACTOR, stepSpeed, yearsPerMinute, type SpeedMode } from './speed.ts';
 
 export type PlayState = 'playing' | 'paused';
 
 export interface ClockOptions {
   startDay: Day;
   endDay: Day;
-  day: Day;
-  lifeMs?: number;
+  /** Clock time in whole milliseconds; wins over `day`. */
+  ms?: number;
+  day?: Day;
   playState?: PlayState;
-  /** Base-2 logarithm of the speed multiplier, −6 to 6. */
-  speedLog2?: number;
+  speedMode?: SpeedMode;
 }
 
 export class Clock {
   startDay: Day;
   endDay: Day;
   playState: PlayState;
-  /** Base-2 logarithm of the speed multiplier, −6 to 6. */
-  speedLog2: number;
-  /** Multiplier from the camera altitude; 1 when the setting is off. */
-  zoomFactor = 1;
+  speedMode: SpeedMode;
 
-  private dayAccumulator: number;
-  private lifeAccumulator: number;
-  private vignetteAccumulator = 0;
+  private accumulator = 0;
   private scrubbing = false;
   private listeners = new Set<() => void>();
 
   constructor(options: ClockOptions) {
     this.startDay = options.startDay;
     this.endDay = options.endDay;
-    this.dayAccumulator = clamp(options.day, this.startDay, this.endDay);
-    this.lifeAccumulator = options.lifeMs ?? 0;
     this.playState = options.playState ?? 'paused';
-    this.speedLog2 = clampSpeedLog2(options.speedLog2 ?? 0);
+    this.speedMode = options.speedMode ?? 'regular';
+    this.accumulator = this.clampMs(this.initialMs(options));
   }
 
   /** Sets the range and the restored state once the manifest is known. */
   configure(options: ClockOptions): void {
     this.startDay = options.startDay;
     this.endDay = options.endDay;
-    this.dayAccumulator = clamp(options.day, this.startDay, this.endDay);
-    if (options.lifeMs !== undefined) this.lifeAccumulator = options.lifeMs;
+    this.accumulator = this.clampMs(this.initialMs(options));
     if (options.playState !== undefined) this.playState = options.playState;
-    if (options.speedLog2 !== undefined) this.speedLog2 = clampSpeedLog2(options.speedLog2);
+    if (options.speedMode !== undefined) this.speedMode = options.speedMode;
     this.emit();
   }
 
-  /** The current date as a whole day; the only value that reaches world state. */
+  /** Clock time in whole milliseconds; the only time that reaches the world. */
+  get ms(): number {
+    return Math.floor(this.accumulator);
+  }
+
+  /** The current date as a whole day. */
   get day(): Day {
-    return Math.floor(this.dayAccumulator);
+    return dayAtMs(this.ms, this.startDay);
   }
 
-  /** Life-clock time in whole milliseconds. */
-  get lifeMs(): number {
-    return Math.floor(this.lifeAccumulator);
-  }
-
-  /** Vignette-clock time in whole milliseconds: real time × speed (milestone 1, section 3.5). */
-  get vignetteMs(): number {
-    return Math.floor(this.vignetteAccumulator);
-  }
-
-  get speed(): number {
-    return 2 ** this.speedLog2;
+  /** Clock time at the end of the timeline. */
+  get endMs(): number {
+    return msAtDay(this.endDay, this.startDay);
   }
 
   get isScrubbing(): boolean {
     return this.scrubbing;
   }
 
-  /** Effective rate in years per minute, including speed and zoom factor. */
+  /** History's rate in years per minute at the current speed mode. */
   get yearsPerMinute(): number {
-    return baseRate(continuousYear(this.dayAccumulator)) * this.speed * this.zoomFactor;
+    return yearsPerMinute(this.speedMode);
   }
 
-  /** Advances both clocks by a real-time interval. */
+  /** Advances the clock by a real-time interval. */
   tick(realMs: number): void {
-    if (realMs <= 0) return;
-    if (this.playState !== 'playing') return;
-    this.lifeAccumulator += realMs;
-    this.vignetteAccumulator += realMs * this.speed;
-    if (this.scrubbing) return;
+    if (realMs <= 0 || this.playState !== 'playing' || this.scrubbing) return;
     const before = this.day;
-    // Small steps keep the integration accurate where the rate changes fast.
-    let remaining = realMs;
-    while (remaining > 0) {
-      const step = Math.min(remaining, 250);
-      const daysPerMs = (this.yearsPerMinute * DAYS_PER_YEAR) / 60000;
-      this.dayAccumulator += daysPerMs * step;
-      remaining -= step;
-    }
-    if (this.dayAccumulator >= this.endDay) {
-      this.dayAccumulator = this.endDay;
+    this.accumulator += realMs * SPEED_FACTOR[this.speedMode];
+    if (this.accumulator >= this.endMs) {
+      this.accumulator = this.endMs;
       this.playState = 'paused';
     }
     if (this.day !== before || this.playState !== 'playing') this.emit();
   }
 
+  /** Jumps to the start of a day. */
   setDay(day: number): void {
-    this.dayAccumulator = clamp(Math.floor(day), this.startDay, this.endDay);
+    this.setMs(msAtDay(Math.floor(day), this.startDay));
+  }
+
+  setMs(ms: number): void {
+    this.accumulator = this.clampMs(Math.floor(ms));
     this.emit();
   }
 
   setPlayState(state: PlayState): void {
-    if (state === 'playing' && this.day >= this.endDay) state = 'paused';
+    if (state === 'playing' && this.ms >= this.endMs) state = 'paused';
     if (this.playState === state) return;
     this.playState = state;
     this.emit();
@@ -121,11 +105,15 @@ export class Clock {
     this.setPlayState(this.playState === 'playing' ? 'paused' : 'playing');
   }
 
-  setSpeedLog2(log2: number): void {
-    const v = clampSpeedLog2(log2);
-    if (v === this.speedLog2) return;
-    this.speedLog2 = v;
+  setSpeedMode(mode: SpeedMode): void {
+    if (mode === this.speedMode) return;
+    this.speedMode = mode;
     this.emit();
+  }
+
+  /** [ and ]: the next slower or faster mode. */
+  stepSpeed(dir: -1 | 1): void {
+    this.setSpeedMode(stepSpeed(this.speedMode, dir));
   }
 
   beginScrub(): void {
@@ -143,11 +131,17 @@ export class Clock {
     return () => this.listeners.delete(listener);
   }
 
+  private initialMs(o: ClockOptions): number {
+    if (o.ms !== undefined) return Math.floor(o.ms);
+    return msAtDay(o.day ?? o.startDay, o.startDay);
+  }
+
+  private clampMs(ms: number): number {
+    const end = msAtDay(this.endDay, this.startDay);
+    return ms < 0 ? 0 : ms > end ? end : ms;
+  }
+
   private emit(): void {
     for (const l of this.listeners) l();
   }
-}
-
-function clamp(v: number, lo: number, hi: number): number {
-  return v < lo ? lo : v > hi ? hi : v;
 }

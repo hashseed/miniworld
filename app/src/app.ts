@@ -26,7 +26,6 @@ import { LandmarkLayer } from './landmarks/landmarkLayer.ts';
 import { VignetteLayer } from './vignettes/vignetteLayer.ts';
 import { OPENING_DAY, TIMELINE_START } from './time/calendar.ts';
 import { Clock } from './time/clock.ts';
-import { snapSpeedLog2 } from './time/rateCurve.ts';
 import { Timeline } from './timeline/timeline.ts';
 import { App } from './ui/App.tsx';
 import type { Actions, HotState, UiState, VignetteCard } from './ui/state.ts';
@@ -57,7 +56,6 @@ const settings = loadSettings({
   language: detectLanguage(navigator.languages ?? [navigator.language]),
   timelineExpanded: false,
   trueTimeScale: false,
-  slowWhenZoomed: true,
   showStats: false,
   lensStrength: 100,
   lensHintSeen: false,
@@ -74,8 +72,8 @@ const clock = new Clock({
 const hot = new Store<HotState>({
   day: OPENING_DAY,
   playState: 'paused',
-  speedLog2: clock.speedLog2,
-  yearsPerMinute: 0,
+  speedMode: clock.speedMode,
+  yearsPerMinute: clock.yearsPerMinute,
   scrubbing: false,
   stats: { fps: 0, avg: 0, p99: 0, calls: 0, triangles: 0, scale: 1 },
 });
@@ -181,7 +179,6 @@ const loop = new FrameLoop(
   () => ({
     index,
     minSeaLevel,
-    slowWhenZoomed: ui.value.settings.slowWhenZoomed,
     showStats: ui.value.settings.showStats,
   }),
 );
@@ -274,14 +271,14 @@ const actions: Actions = {
     timeline?.setFollow(true);
   },
   pause: () => clock.setPlayState('paused'),
-  setSpeed: (log2, release) => clock.setSpeedLog2(release ? snapSpeedLog2(log2) : log2),
+  setSpeed: (mode) => clock.setSpeedMode(mode),
   setPanel: (panel) => ui.update({ panel }),
   setSetting: (key, value) => {
     const next: Settings = { ...ui.value.settings, [key]: value };
     saveSettings(next);
     ui.update({ settings: next });
     if (key === 'language') void switchLanguage(next.language);
-    if (key === 'trueTimeScale') timeline?.setMode(value ? 'true' : 'watch');
+    if (key === 'trueTimeScale') timeline?.setMode(value ? 'true' : 'log');
     if (key === 'lensStrength') globe.lens.setStrength((value as number) / 100);
   },
   closeLensHint: () => actions.setSetting('lensHintSeen', true),
@@ -290,13 +287,13 @@ const actions: Actions = {
       yearsPerMinute: 0,
       stationary: true,
     });
-    const b = { id: newId(), name, day: clock.day, camera: { ...controller.state } };
+    const b = { id: newId(), name, ms: clock.ms, camera: { ...controller.state } };
     setBookmarks([b, ...ui.value.bookmarks].slice(0, MAX_BOOKMARKS));
   },
   goToBookmark: (id) => {
     const b = ui.value.bookmarks.find((x) => x.id === id);
     if (!b) return;
-    clock.setDay(b.day);
+    clock.setMs(b.ms);
     controller.flyTo(b.camera);
     if (isPhone) ui.update({ panel: 'none' });
   },
@@ -330,7 +327,7 @@ const actions: Actions = {
     timeline.onLayout = () => layoutTimeline();
     if (index) {
       timeline.setIndex(index);
-      timeline.setMode(ui.value.settings.trueTimeScale ? 'true' : 'watch', false);
+      timeline.setMode(ui.value.settings.trueTimeScale ? 'true' : 'log', false);
     }
     lastRegion = undefined;
     updateVisibleLanes();
@@ -424,10 +421,10 @@ loop.afterFrame = (now) => {
 function persistView(): void {
   if (STRESS || !index) return;
   saveView({
-    day: clock.day,
+    ms: clock.ms,
     camera: { ...controller.state },
     playState: clock.playState,
-    speedLog2: clock.speedLog2,
+    speedMode: clock.speedMode,
   });
 }
 document.addEventListener('visibilitychange', () => {
@@ -455,13 +452,13 @@ async function start(): Promise<void> {
     vignettes.setIndex(index.vignettes);
     landmarks.setIndex(index.landmarks);
     globe.lowestSeaLevel = minSeaLevel;
-    const startDay = STRESS ? STRESS_DAY : (savedView?.day ?? OPENING_DAY);
     clock.configure({
       startDay: manifest.timelineStartDay,
       endDay: manifest.cutoffDay,
-      day: startDay,
+      ms: STRESS ? undefined : savedView?.ms,
+      day: STRESS ? STRESS_DAY : OPENING_DAY,
       playState: STRESS ? 'playing' : (savedView?.playState ?? 'paused'),
-      speedLog2: savedView?.speedLog2,
+      speedMode: STRESS ? 'regular' : savedView?.speedMode,
     });
     clock.subscribe(() => loop.syncUi(performance.now()));
     ui.update({
@@ -470,10 +467,15 @@ async function start(): Promise<void> {
       cutoffDay: manifest.cutoffDay,
       sources: index.sources,
     });
-    hot.update({ day: clock.day, playState: clock.playState, speedLog2: clock.speedLog2 });
+    hot.update({
+      day: clock.day,
+      playState: clock.playState,
+      speedMode: clock.speedMode,
+      yearsPerMinute: clock.yearsPerMinute,
+    });
     if (timeline) {
       timeline.setIndex(index);
-      timeline.setMode(ui.value.settings.trueTimeScale ? 'true' : 'watch', false);
+      timeline.setMode(ui.value.settings.trueTimeScale ? 'true' : 'log', false);
       updateVisibleLanes();
       layoutTimeline();
     }

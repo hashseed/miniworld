@@ -1,75 +1,64 @@
 import { describe, expect, it } from 'vitest';
 import { DAYS_PER_YEAR, OPENING_DAY, TIMELINE_START, dayFromDate } from './calendar.ts';
 import { Clock } from './clock.ts';
+import { msAtDay } from './rate.ts';
 
-const END = dayFromDate(2026, 1, 1);
+const END = dayFromDate(1991, 12, 26);
 
 function make(day = OPENING_DAY) {
   return new Clock({ startDay: TIMELINE_START, endDay: END, day, playState: 'playing' });
 }
 
 describe('clock', () => {
-  it('advances at the base rate when playing', () => {
+  it('advances 25 years per minute in regular mode', () => {
     const c = make();
     c.tick(60000);
-    const years = (c.day - OPENING_DAY) / DAYS_PER_YEAR;
-    expect(years).toBeGreaterThan(460);
-    expect(years).toBeLessThan(540);
-    expect(c.lifeMs).toBe(60000);
+    expect((c.day - OPENING_DAY) / DAYS_PER_YEAR).toBeCloseTo(25, 2);
+    expect(c.ms).toBe(msAtDay(OPENING_DAY, TIMELINE_START) + 60000);
+    expect(c.yearsPerMinute).toBe(25);
   });
 
-  it('applies speed and zoom factor', () => {
+  it('runs at the same rate in every era', () => {
     const a = make();
-    const b = make();
-    b.setSpeedLog2(4); // ×16
-    b.zoomFactor = 1 / 8;
-    a.tick(1000);
-    b.tick(1000);
-    expect((b.day - OPENING_DAY) / (a.day - OPENING_DAY)).toBeCloseTo(2, 1);
-    expect(b.yearsPerMinute / a.yearsPerMinute).toBeCloseTo(2, 2);
+    const b = make(dayFromDate(1914, 1, 1));
+    a.tick(2400);
+    b.tick(2400);
+    expect(a.day - OPENING_DAY).toBe(b.day - dayFromDate(1914, 1, 1));
   });
 
-  it('stops both clocks when paused', () => {
+  it('applies the speed modes', () => {
+    const c = make();
+    c.setSpeedMode('snail');
+    const m0 = c.ms;
+    c.tick(8000);
+    expect(c.ms - m0).toBe(1000);
+    c.setSpeedMode('fast');
+    c.tick(1000);
+    expect(c.ms - m0).toBe(17000);
+    expect(c.yearsPerMinute).toBe(400);
+  });
+
+  it('steps through the modes with [ and ], staying at the ends', () => {
+    const c = make();
+    c.stepSpeed(-1);
+    expect(c.speedMode).toBe('snail');
+    c.stepSpeed(-1);
+    expect(c.speedMode).toBe('snail');
+    c.stepSpeed(1);
+    c.stepSpeed(1);
+    c.stepSpeed(1);
+    expect(c.speedMode).toBe('fast');
+  });
+
+  it('stops when paused', () => {
     const c = make();
     c.togglePlay();
     expect(c.playState).toBe('paused');
+    const ms = c.ms;
     c.tick(5000);
-    expect(c.day).toBe(OPENING_DAY);
-    expect(c.lifeMs).toBe(0);
-    expect(c.vignetteMs).toBe(0);
+    expect(c.ms).toBe(ms);
     c.togglePlay();
     expect(c.playState).toBe('playing');
-  });
-
-  it('runs the life clock in real time whatever the speed', () => {
-    const c = make();
-    c.setSpeedLog2(-6);
-    c.tick(5000);
-    expect(c.lifeMs).toBe(5000);
-    c.setSpeedLog2(6);
-    c.tick(5000);
-    expect(c.lifeMs).toBe(10000);
-  });
-
-  it('runs the vignette clock at real time × speed', () => {
-    const c = make();
-    c.setSpeedLog2(-2);
-    c.tick(4000);
-    expect(c.vignetteMs).toBe(1000);
-    c.setSpeedLog2(3);
-    c.tick(1000);
-    expect(c.vignetteMs).toBe(9000);
-    c.zoomFactor = 1 / 8;
-    c.tick(1000);
-    expect(c.vignetteMs).toBe(17000);
-  });
-
-  it('keeps the speed between ×1/64 and ×64', () => {
-    const c = make();
-    c.setSpeedLog2(-9);
-    expect(c.speed).toBe(1 / 64);
-    c.setSpeedLog2(9);
-    expect(c.speed).toBe(64);
   });
 
   it('does not advance while scrubbing', () => {
@@ -91,11 +80,19 @@ describe('clock', () => {
     expect(c.playState).toBe('paused');
   });
 
-  it('keeps dates whole and within range', () => {
+  it('keeps the clock whole and within range', () => {
     const c = make();
     c.setDay(TIMELINE_START - 1000.7);
+    expect(c.ms).toBe(0);
     expect(c.day).toBe(TIMELINE_START);
     c.tick(123.4);
-    expect(Number.isInteger(c.day)).toBe(true);
+    expect(Number.isInteger(c.ms)).toBe(true);
+    c.setMs(1e12);
+    expect(c.day).toBe(END);
+  });
+
+  it('restores a saved clock time over a day', () => {
+    const c = new Clock({ startDay: TIMELINE_START, endDay: END, ms: 123456789 });
+    expect(c.ms).toBe(123456789);
   });
 });
