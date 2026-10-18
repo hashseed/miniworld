@@ -5,7 +5,7 @@ import { continuousYear, dayFromDate } from '../time/calendar.ts';
 import { Clock } from '../time/clock.ts';
 import { Timeline } from './timeline.ts';
 
-type Listener = (e: Partial<PointerEvent>) => void;
+type Listener = (e: Partial<PointerEvent & WheelEvent>) => void;
 
 /** Enough of a canvas for the timeline: it records the text drawn and the listeners. */
 function fakeCanvas() {
@@ -28,7 +28,7 @@ function fakeCanvas() {
     addEventListener: (type: string, l: Listener) =>
       listeners.set(type, [...(listeners.get(type) ?? []), l]),
   };
-  const fire = (type: string, e: Partial<PointerEvent>) => {
+  const fire = (type: string, e: Partial<PointerEvent & WheelEvent>) => {
     for (const l of listeners.get(type) ?? []) l({ pointerId: 1, pointerType: 'mouse', ...e });
   };
   return { canvas: canvas as unknown as HTMLCanvasElement, texts, fire };
@@ -84,7 +84,38 @@ describe('timeline', () => {
     expect(timeline.desiredHeight(1000)).toBe(22 + 2 * 18 + 3 + 4);
     // Short of room, rows shrink to their minimum.
     timeline.setVisibleLanes(undefined);
-    expect(timeline.desiredHeight(60)).toBe(22 + 3 * 11 + 6 + 4);
+    expect(timeline.desiredHeight(65)).toBe(22 + 3 * 11 + 6 + 4);
+    // With even less, the timeline keeps to its room and the lanes scroll.
+    expect(timeline.desiredHeight(50)).toBe(50);
+  });
+
+  it('scrolls the lanes under the ruler when they do not fit', () => {
+    const { timeline, texts, fire } = setup();
+    timeline.resize(1000, timeline.desiredHeight(50));
+    // Rows are 11 px now; lane 1 (Europe) starts below the visible part.
+    const europeY = 24 + 2 * 11 + 3 + 5;
+    const hover = (x: number, y: number) => {
+      fire('pointermove', { clientX: x, clientY: y });
+      texts.length = 0;
+      timeline.draw();
+      const last = texts[texts.length - 1]!;
+      return /\d/.test(last) ? last : undefined;
+    };
+    expect(hover(950, europeY - 20)).toBeUndefined();
+    // A vertical drag scrolls by as much as the pointer moved, no further than the end.
+    fire('pointerdown', { clientX: 950, clientY: 45 });
+    fire('pointermove', { clientX: 951, clientY: 25 });
+    fire('pointerup', { clientX: 951, clientY: 25 });
+    expect(hover(950, europeY - 20)).toContain('Era D');
+    // The ruler stays where it is: a press on it still scrubs.
+    expect(hover(200, 5)).toBeUndefined();
+    // Shift and the wheel scroll back to the top.
+    fire('wheel', { clientX: 500, clientY: 40, deltaY: -100, shiftKey: true, preventDefault() {} });
+    expect(hover(200, 24 + 5)).toContain('Era A');
+    // Collapsing to one lane starts at the top again.
+    timeline.setVisibleLanes(['europe']);
+    timeline.resize(1000, timeline.desiredHeight(1000));
+    expect(hover(950, 24 + 9)).toContain('Era D');
   });
 
   it('finds the era under the pointer by lane, row and date', () => {

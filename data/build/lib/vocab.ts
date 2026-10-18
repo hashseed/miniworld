@@ -9,6 +9,8 @@ import {
   ActionsSchema,
   AnimalsSchema,
   IconsSchema,
+  LanesSchema,
+  RegionsSchema,
   RolesSchema,
   type Action,
   type Labels,
@@ -20,6 +22,9 @@ export interface Vocab {
   roles: Record<string, Role>;
   animals: Record<string, Labels>;
   icons: Record<string, Labels>;
+  /** Shape only; the era build checks that lanes and regions match (eras.ts). */
+  regions: Record<string, Labels>;
+  lanes: z.infer<typeof LanesSchema>;
 }
 
 /** Parses one vocabulary file; adds every problem to errors, named by file and entry. */
@@ -59,6 +64,8 @@ export function readVocab(dir: string): Vocab {
     roles: read('roles.yaml', RolesSchema),
     animals: read('animals.yaml', AnimalsSchema),
     icons: read('icons.yaml', IconsSchema),
+    regions: read('regions.yaml', RegionsSchema),
+    lanes: read('lanes.yaml', LanesSchema),
   };
   if (errors.length) throw new Error(errors.join('\n'));
   return vocab as Vocab;
