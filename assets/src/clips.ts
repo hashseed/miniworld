@@ -67,6 +67,21 @@ const smooth = (t: number) => {
 };
 const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 
+/** Seconds of one wing beat of the fly clip. */
+const FLAP_SECONDS = 0.6;
+
+/**
+ * Seconds of one stride of an animal's walk clip: a four-legged walk, a
+ * penguin's waddle or a kangaroo's hop. A walk that lasts a whole number of
+ * strides ends with the legs back at rest.
+ */
+export function walkPeriod(m: Model): number {
+  const rest = m.bones.get('body')!.userData.rest as THREE.Vector3;
+  const stride = Math.sqrt(rest.y);
+  if (!m.bones.has('legL')) return 1.1 * stride;
+  return m.bones.has('wingL') ? 0.7 : 0.75 * stride;
+}
+
 /** Poses a person built by buildPerson for a clip at a time in seconds. */
 export function animatePerson(m: Model, clip: Clip, seconds: number): void {
   reset(m);
@@ -329,10 +344,10 @@ export function animateAnimal(m: Model, clip: Clip, seconds: number): void {
   const biped = m.bones.has('legL');
   const winged = m.bones.has('wingL');
   if (clip === 'fly') {
-    // Wings flap up and down, the body rises on each down-stroke and the tail steers.
-    const p = (seconds / 0.45) * TAU;
-    rot('wingL', 0, 0, 0.7 * Math.sin(p));
-    rot('wingR', 0, 0, -0.7 * Math.sin(p));
+    // Wings flap well up and down, the body rises on each down-stroke and the tail steers.
+    const p = (seconds / FLAP_SECONDS) * TAU;
+    rot('wingL', 0, 0, 0.25 + 0.85 * Math.sin(p));
+    rot('wingR', 0, 0, -0.25 - 0.85 * Math.sin(p));
     rot('tail', 0.1 * Math.sin(p + 1));
     rot('head', -0.05 * Math.sin(p));
     body.position.y = rest.y - 0.08 * rest.y * Math.sin(p);
@@ -342,7 +357,7 @@ export function animateAnimal(m: Model, clip: Clip, seconds: number): void {
     const fast = clip === 'run' ? 0.6 : 1;
     if (winged) {
       // Waddle: short steps, the body rocking from foot to foot, flippers out.
-      const p = (seconds / (0.7 * fast)) * TAU;
+      const p = (seconds / (walkPeriod(m) * fast)) * TAU;
       body.rotation.z = 0.14 * Math.sin(p);
       rot('legL', 0.35 * Math.sin(p));
       rot('legR', -0.35 * Math.sin(p));
@@ -351,7 +366,7 @@ export function animateAnimal(m: Model, clip: Clip, seconds: number): void {
       body.position.y = rest.y + 0.04 * rest.y * Math.abs(Math.sin(p));
     } else {
       // Hop: both legs push off together, the tail swings up as the body flies.
-      const p = (seconds / (0.75 * fast * stride)) * TAU;
+      const p = (seconds / (walkPeriod(m) * fast)) * TAU;
       const air = Math.max(0, Math.sin(p));
       body.position.y = rest.y * (1 + 0.45 * air);
       body.rotation.x = 0.2 * air;
@@ -364,7 +379,7 @@ export function animateAnimal(m: Model, clip: Clip, seconds: number): void {
   }
   switch (clip) {
     case 'walk':
-      gait(1.1 * stride, 0.3);
+      gait(walkPeriod(m), 0.3);
       break;
     case 'run':
       gait(0.55 * stride, 0.55);

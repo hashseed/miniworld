@@ -13,6 +13,8 @@ export interface Quad {
   /** Half thickness of the body (x, y). */
   girth: [number, number];
   leg: number;
+  /** How far the legs stand out to the sides, as a share of the body's half width (default 0.55). */
+  legSpread?: number;
   /** Neck from the chest: forward and up, as a share of the shoulder height. */
   neck: [number, number];
   head: Vec3;
@@ -36,6 +38,7 @@ export function quadruped(q: Quad, clay = 1): Parts {
   const front = q.length / 2;
   const back = -q.length / 2;
   const legTop = q.shoulder - q.girth[1] * 0.9;
+  const spread = q.girth[0] * (q.legSpread ?? 0.55);
   const bodyY = q.shoulder - q.girth[1] * 0.75;
   const headAt = new THREE.Vector3(
     0,
@@ -46,10 +49,10 @@ export function quadruped(q: Quad, clay = 1): Parts {
     [
       { name: 'body', pivot: [0, bodyY, 0] },
       { name: 'head', pivot: [0, bodyY + q.girth[1] * 0.4, front * 0.85], parent: 'body' },
-      { name: 'legFL', pivot: [q.girth[0] * 0.55, legTop, front * 0.72], parent: 'body' },
-      { name: 'legFR', pivot: [-q.girth[0] * 0.55, legTop, front * 0.72], parent: 'body' },
-      { name: 'legBL', pivot: [q.girth[0] * 0.55, legTop, back * 0.72], parent: 'body' },
-      { name: 'legBR', pivot: [-q.girth[0] * 0.55, legTop, back * 0.72], parent: 'body' },
+      { name: 'legFL', pivot: [spread, legTop, front * 0.72], parent: 'body' },
+      { name: 'legFR', pivot: [-spread, legTop, front * 0.72], parent: 'body' },
+      { name: 'legBL', pivot: [spread, legTop, back * 0.72], parent: 'body' },
+      { name: 'legBR', pivot: [-spread, legTop, back * 0.72], parent: 'body' },
       { name: 'tail', pivot: [0, bodyY + q.girth[1] * 0.4, back * 1.02], parent: 'body' },
     ],
     clay,
@@ -112,7 +115,7 @@ export function quadruped(q: Quad, clay = 1): Parts {
     ['legBL', 1, back * 0.72],
     ['legBR', -1, back * 0.72],
   ] as const) {
-    const lx = x * q.girth[0] * 0.55;
+    const lx = x * spread;
     const leg = q.leg * 1.4; // chunky toy legs
     // End the leg one cap radius up, so its rounded end rests on the ground.
     mb.add(

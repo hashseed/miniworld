@@ -45,8 +45,10 @@ export interface WildAnimal {
   /** Formation offset from the group's spot in body lengths (east, north); the layer scales it. */
   offset: [number, number];
   clip: WildClip;
-  /** Seconds into the clip. */
+  /** Seconds into the clip; for a walk, the eased time into it, so steps slow as the walk eases. */
   seconds: number;
+  /** Length of the current walk in seconds, so the layer can end it on a whole stride; 0 otherwise. */
+  walkS: number;
   /** 0 to 1 while the group grows in or shrinks away at the ends of its spans (section 2). */
   grow: number;
   /** Height above the ground in drawn km, for birds in flight. */
@@ -66,7 +68,7 @@ const FLIGHT_LIFT_KM = 150;
 const FLIGHT_KM_S = 45;
 const BIRDS = new Set(['animal-parrot', 'animal-kea']);
 /** Trees keep this far beyond a group's roaming area (section 5). */
-const CLEARING_MARGIN_KM = 150;
+const CLEARING_MARGIN_KM = 225;
 
 const groupSeed = (g: WildGroup, index: number) => hashString(`${g.species}:${index}`);
 
@@ -133,6 +135,30 @@ function spot(seed: number, k: number, roam: number): [number, number] {
   return [r * c, r * s];
 }
 
+type P2 = [number, number];
+
+/** A point on the Catmull-Rom curve from p1 to p2 at u in [0, 1]. */
+function catmullRom(p0: P2, p1: P2, p2: P2, p3: P2, u: number): P2 {
+  const at = (i: 0 | 1) =>
+    0.5 *
+    (2 * p1[i] +
+      (p2[i] - p0[i]) * u +
+      (2 * p0[i] - 5 * p1[i] + 4 * p2[i] - p3[i]) * u * u +
+      (-p0[i] + 3 * p1[i] - 3 * p2[i] + p3[i]) * u * u * u);
+  return [at(0), at(1)];
+}
+
+/** The direction of the Catmull-Rom curve at u; continuous from one segment to the next. */
+function catmullRomTangent(p0: P2, p1: P2, p2: P2, p3: P2, u: number): P2 {
+  const at = (i: 0 | 1) =>
+    0.5 *
+    (p2[i] -
+      p0[i] +
+      2 * (2 * p0[i] - 5 * p1[i] + 4 * p2[i] - p3[i]) * u +
+      3 * (-p0[i] + 3 * p1[i] - 3 * p2[i] + p3[i]) * u * u);
+  return [at(0), at(1)];
+}
+
 /** Every animal shown on a day at a clock time in seconds. */
 export function wildlifeAt(day: number, seconds: number, groups = WILD_GROUPS): WildAnimal[] {
   const out: WildAnimal[] = [];
@@ -160,6 +186,7 @@ export function wildlifeAt(day: number, seconds: number, groups = WILD_GROUPS): 
           offset: [0, 0],
           clip: 'fly',
           seconds: seconds + i * 0.13,
+          walkS: 0,
           grow,
           liftKm: FLIGHT_LIFT_KM * (1 + 0.15 * bob),
         });
@@ -167,31 +194,36 @@ export function wildlifeAt(day: number, seconds: number, groups = WILD_GROUPS): 
       return;
     }
 
-    // Rounds of grazing, then a walk to the next spot (section 4).
+    // Rounds of grazing, then a smooth walk to the next spot along a curve
+    // through the spots, easing in and out (section 4).
     const crocodile = g.model === 'animal-crocodile';
     const roam = roamOf(g);
     const period = (crocodile ? 18 : 10) + 6 * hash01(seed, 4);
     const t = seconds + period * hash01(seed, 5);
     const k = Math.floor(t / period);
     const inRound = t - k * period;
-    const [ax, ay] = spot(seed, k, roam);
-    const [bx, by] = spot(seed, k + 1, roam);
-    const [px, py] = spot(seed, k - 1, roam);
-    const walkS = Math.min(
-      period - 3,
-      Math.max(2, Math.sqrt((bx - ax) ** 2 + (by - ay) ** 2) / WALK_KM_S),
-    );
+    const p0 = spot(seed, k - 1, roam);
+    const p1 = spot(seed, k, roam);
+    const p2 = spot(seed, k + 1, roam);
+    const p3 = spot(seed, k + 2, roam);
+    const chord = Math.sqrt((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2);
+    const walkS = Math.min(period * (crocodile ? 0.4 : 0.75), Math.max(3, chord / WALK_KM_S));
     const walking = inRound > period - walkS;
     const f = walking ? (inRound - (period - walkS)) / walkS : 0;
-    const x = ax + (bx - ax) * f;
-    const y = ay + (by - ay) * f;
-    // Facing the way it walks, or the way it last walked while grazing.
-    const [hx, hy] = walking ? [bx - ax, by - ay] : [ax - px, ay - py];
+    const u = f * f * (3 - 2 * f);
+    const [x, y] = catmullRom(p0, p1, p2, p3, u);
+    // Facing along the curve; between walks the tangent there, so the group never snaps round.
+    const [hx, hy] = catmullRomTangent(p0, p1, p2, p3, u);
     const hl = Math.sqrt(hx * hx + hy * hy) || 1;
+    const fx = hx / hl;
+    const fy = hy / hl;
     for (let i = 0; i < size; i++) {
-      // The first member leads; the others stand about 1.5 body lengths around it.
-      const [c, s] = cosSinTurn(hash01(seed, 10 + i));
+      // The first member leads; the others follow about 1.5 body lengths behind
+      // and to the side, in the group's own frame, so the group turns as one.
+      const [c, sn] = cosSinTurn(0.25 + 0.5 * hash01(seed, 10 + i));
       const dist = i === 0 ? 0 : 1.3 + 0.5 * hash01(seed, 20 + i);
+      const side = dist * sn;
+      const ahead = dist * c - (i === 0 ? 0 : 0.6);
       out.push({
         key: `${gi}:${i}`,
         model: model(i),
@@ -199,10 +231,11 @@ export function wildlifeAt(day: number, seconds: number, groups = WILD_GROUPS): 
         lon: g.lon,
         eastKm: x,
         northKm: y,
-        heading: [hx / hl, hy / hl],
-        offset: [dist * c, dist * s],
+        heading: [fx, fy],
+        offset: [fy * side + fx * ahead, -fx * side + fy * ahead],
         clip: walking ? 'walk' : 'idle',
-        seconds: seconds + hash01(seed, 30 + i) * 0.8,
+        seconds: walking ? u * walkS : seconds + hash01(seed, 30 + i) * 0.8,
+        walkS: walking ? walkS : 0,
         grow,
         liftKm: 0,
       });

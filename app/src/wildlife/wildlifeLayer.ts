@@ -7,15 +7,15 @@
 import * as THREE from 'three';
 import { drawable } from '../content/assets.ts';
 import { ANIMALS, buildAnimal, type AnimalId } from '../../../assets/src/animals.ts';
-import { animateAnimal } from '../../../assets/src/clips.ts';
+import { animateAnimal, walkPeriod } from '../../../assets/src/clips.ts';
 import { celMaterial, inkMaterial, type Model } from '../../../assets/src/kit.ts';
 import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 import { latLonToDir, type Vec3 } from '../geo/cube.ts';
 import { wildClearings, wildlifeAt, type WildAnimal } from '../world/wildlife.ts';
 import type { SurfaceSource } from '../vignettes/vignetteLayer.ts';
 
-/** Drawn kilometres per life-size metre, as for the figures (milestone 2, section 5.1). */
-const KM_PER_M = 50;
+/** Drawn kilometres per life-size metre: half as large again as the figures (section 1). */
+const KM_PER_M = 75;
 /** An animal's size (the larger of its height and half its length) is drawn between these, in metres (section 1). */
 const MIN_SIZE_M = 1.8;
 const MAX_SIZE_M = 4;
@@ -126,7 +126,13 @@ export class WildlifeLayer {
       const size = s.scale * a.grow;
       this.root.compose(this.pos, this.q, this.scaleV.set(size, size, size));
 
-      animateAnimal(s.template, a.clip, a.seconds);
+      // A walk lasts a whole number of strides, so the legs come to rest as it ends.
+      let seconds = a.seconds;
+      if (a.walkS > 0) {
+        const stride = walkPeriod(s.template);
+        seconds *= Math.max(1, Math.round(a.walkS / stride)) * (stride / a.walkS);
+      }
+      animateAnimal(s.template, a.clip, seconds);
       s.template.object.updateMatrixWorld(true);
       for (const p of s.parts) {
         this.part.multiplyMatrices(this.root, p.source.matrixWorld);

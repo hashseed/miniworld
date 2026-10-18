@@ -119,7 +119,8 @@ function elephant(id: WildAnimalId, african: boolean): Model {
     length: african ? 3.2 : 2.9,
     girth: african ? [1.05, 1.15] : [0.95, 1.05],
     leg: african ? 0.34 : 0.31,
-    neck: [0.12, -0.08],
+    legSpread: 0.36,
+    neck: [0.24, -0.06],
     head: [0.62, 0.72, 0.62],
     headDrop: 0.15,
     coat,
@@ -129,9 +130,10 @@ function elephant(id: WildAnimalId, african: boolean): Model {
   if (african) {
     // Huge fan ears, the African elephant's mark.
     for (const s of [1, -1]) {
-      const ear = blob([0, 0, 0], [0.1, 0.95, 0.75], 8);
-      ear.rotateY(s * 0.35);
-      ear.translate(s * 0.78, headAt.y - 0.1, headAt.z - 0.45);
+      // Hinged at the side of the head, hanging back over the neck.
+      const ear = blob([0, 0, 0], [0.1, 0.85, 0.7], 8);
+      ear.rotateY(s * 0.3);
+      ear.translate(s * 0.62, headAt.y - 0.05, headAt.z - 0.42);
       mb.add(ear, shade(coat, -0.08), 'head');
     }
   } else {
@@ -142,7 +144,7 @@ function elephant(id: WildAnimalId, african: boolean): Model {
         coat,
         'head',
       );
-    ears(p, [0.62, 0.0, -0.3], [0.08, 0.45, 0.32], shade(coat, -0.08));
+    ears(p, [0.56, 0.0, -0.2], [0.08, 0.45, 0.32], shade(coat, -0.08));
   }
   // Trunk hanging nearly to the ground, curling forward at the tip.
   mb.add(
@@ -218,12 +220,20 @@ function giraffe(): Model {
     const z = front * 0.9 + (headAt.z - front * 0.9) * t;
     for (const s of [1, -1]) mb.add(blob([s * 0.15, y, z], [0.07, 0.13, 0.1], 5), patch, 'head');
   }
-  // Dark mane along the back of the neck.
-  mb.add(
-    limb([0, bodyY + 0.6, front * 0.55], [0, headAt.y + 0.05, headAt.z - 0.35], 0.06, 0.04, 4),
-    patch,
-    'head',
-  );
+  // Dark mane along the back of the thick neck, sunk a little into it.
+  const na: Vec3 = [0, bodyY + 0.35, front * 0.9];
+  const nb: Vec3 = [0, headAt.y - 0.35, headAt.z - 0.25];
+  const dy = nb[1] - na[1];
+  const dz = nb[2] - na[2];
+  const len = Math.sqrt(dy * dy + dz * dz);
+  // Unit vector across the neck towards its back, and the neck radius there.
+  const [by, bz] = [dz / len, -dy / len];
+  const onBack = (t: number, r: number): Vec3 => [
+    0,
+    na[1] + dy * t + by * r * 0.8,
+    na[2] + dz * t + bz * r * 0.8,
+  ];
+  mb.add(limb(onBack(0.1, 0.27), onBack(1.05, 0.15), 0.075, 0.055, 4), patch, 'head');
   // Ossicones and ears.
   for (const s of [1, -1]) {
     mb.add(
@@ -469,7 +479,7 @@ function bear(id: WildAnimalId, polar: boolean): Model {
     girth: polar ? [0.52, 0.55] : [0.55, 0.58],
     leg: polar ? 0.18 : 0.18,
     neck: polar ? [0.38, -0.02] : [0.18, -0.08],
-    head: polar ? [0.22, 0.22, 0.36] : [0.28, 0.28, 0.34],
+    head: polar ? [0.25, 0.25, 0.3] : [0.31, 0.3, 0.29],
     headDrop: polar ? 0.15 : 0.1,
     coat,
     hoof: polar ? '#d8d0bd' : '#3a2a20',
@@ -477,17 +487,23 @@ function bear(id: WildAnimalId, polar: boolean): Model {
   const { mb, headAt, bodyY, back } = p;
   if (!polar) mb.add(blob([0, 1.18, 0.45], [0.46, 0.32, 0.5], 8), coat, 'body'); // hump
   const muzzle = polar ? '#e6dfcd' : '#a07a55';
+  // A short round muzzle on a round face, with round ears.
   mb.add(
-    blob([0, headAt.y - 0.07, headAt.z + (polar ? 0.33 : 0.32)], [0.13, 0.12, 0.16], 6),
+    blob([0, headAt.y - 0.08, headAt.z + (polar ? 0.27 : 0.25)], [0.13, 0.11, 0.11], 6),
     muzzle,
     'head',
   );
   mb.add(
-    blob([0, headAt.y - 0.02, headAt.z + (polar ? 0.48 : 0.46)], [0.06, 0.05, 0.04], 5),
+    blob([0, headAt.y - 0.03, headAt.z + (polar ? 0.37 : 0.35)], [0.06, 0.05, 0.04], 5),
     '#1d1410',
     'head',
   );
-  ears(p, [polar ? 0.14 : 0.2, polar ? 0.17 : 0.25, -0.1], [0.08, 0.08, 0.05], coat);
+  mb.add(
+    blob([0, headAt.y - 0.08, headAt.z - 0.02], [polar ? 0.27 : 0.33, 0.22, 0.24], 7),
+    coat,
+    'head',
+  ); // full cheeks
+  ears(p, [polar ? 0.17 : 0.22, polar ? 0.2 : 0.25, -0.06], [0.09, 0.09, 0.06], coat);
   mb.add(blob([0, bodyY + 0.2, back * 1.02], [0.09, 0.08, 0.08], 5), coat, 'tail');
   return mb.build(id);
 }

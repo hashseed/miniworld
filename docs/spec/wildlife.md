@@ -7,7 +7,7 @@ Status: asked for by Yang on 2026-10-18 ("let's add typical animals to all conti
 ## 1. What the viewer sees
 
 - A few **groups of 2 or 3 animals** of one species, at most **2 groups per species** in the whole world at any date. Each group stays in its home area: it grazes or rests for a while, then walks a short way to a new spot, again and again. Birds fly slow loops over their home.
-- Animals are clay models like the people (milestone 2, section 13.3), drawn **not to scale, at one size at every zoom**, like trees and figures (milestone 2, section 5.1): 50 km per life-size metre. Their drawn size (the larger of the height and half the length) is kept between about 1.8 m and 4 m of life size (90 to 200 km on the globe), so a penguin or a parrot is still seen from orbit and a giraffe does not tower over everything. Seen from above they lean towards the top of the screen like the figures, so they are always seen from the side.
+- Animals are clay models like the people (milestone 2, section 13.3), drawn **not to scale, at one size at every zoom**, like trees and figures (milestone 2, section 5.1), but half as large again as the figures so they are easy to spot (Yang, 2026-10-18: "make the animals 50% larger"): 75 km per life-size metre. Their drawn size (the larger of the height and half the length) is kept between about 1.8 m and 4 m of life size (135 to 300 km on the globe), so a penguin or a parrot is still seen from orbit and a giraffe does not tower over everything. Seen from above they lean towards the top of the screen like the figures, so they are always seen from the side.
 - Animals are only scenery: they cannot be tapped and have no cards or names on screen in this first version (section 7), so they need no localised text.
 - **Hunting later.** Elands and wildebeest are included because hunting dioramas will use them (Yang, 2026-10-18). The wildlife groups are separate from vignette casts: a hunt is a vignette with its own animals.
 
@@ -83,9 +83,9 @@ The groups are a curated data file, `data/curated/wildlife.json`, with the speci
 All of it is a pure function of the group, its member index and the clock (spec section 2, one clock), with seeded hashes and no `Math.random`. Pausing freezes the animals; scrubbing moves them to where they are at that moment.
 
 - **Size of a group.** 2 or 3 members, chosen by the hash of the group.
-- **Grazing and walking.** A group's time is cut into rounds of about 10 to 16 seconds of the clock at regular speed: it stands and grazes (idle clip) for most of the round, then walks (walk clip) to its next spot. Spots are hashed points within the group's roaming radius around its home, about 150 km of the true globe (crocodiles about 80 km: they mostly bask), so groups never meet: homes are at least about 350 km apart. The group walks at about the speed its walk clip suggests, so feet do not slide much.
-- **Formation.** Members stand at fixed hashed offsets around the group's point, about one and a half body lengths apart, and face the same way; each plays its clip a little out of step with the others.
-- **Birds** (macaws and keas) fly loops of about 160 km radius around their home at about 150 km above the ground, flapping, each a little behind the one before.
+- **Grazing and walking, in fluid motion** (Yang, 2026-10-18). A group's time is cut into rounds of about 10 to 16 seconds of the clock at regular speed: it stands and grazes (idle clip) for a part of the round, then walks (walk clip) to its next spot. The path runs along a smooth curve through the spots (a Catmull-Rom spline), so the group turns gradually and never snaps round, and the walk eases in and out: the animals speed up from standing, slow down before they stop, and their steps slow with them, ending on a whole stride so the legs come to rest. Spots are hashed points within the group's roaming radius around its home, about 150 km of the true globe (crocodiles about 80 km: they mostly bask), so groups never meet: homes are at least about 350 km apart. The group walks at about the speed its walk clip suggests, so feet do not slide much.
+- **Formation.** The first member leads; the others follow at fixed hashed places behind and beside it, about one and a half body lengths away in the group's own frame, so the group turns as one; all face the same way.
+- **Birds** (macaws and keas) fly loops of about 160 km radius around their home at about 150 km above the ground, flapping their wings in big strokes (one beat every 0.6 seconds), each a little behind the one before.
 - **Penguins** waddle, **kangaroos** hop, everything else walks on four legs.
 
 ## 5. Drawing and performance
@@ -95,8 +95,10 @@ Yang asked for small counts, and the Pixel 9 must keep 30 fps.
 - About 45 groups and 100 animals exist over the whole timeline; at one date about 35 groups and 85 animals, of which at most about half are on the visible side of the globe.
 - **Instanced.** Each species is drawn as instanced meshes, one per moving part of its model (body, head, legs, tail, wings), each with its ink outline, so a species in view costs about 10 to 14 draw calls however many of its animals are seen, and a species with nothing in view costs none. Each frame the app poses one copy of the model per animal with the clips of milestone 2 and copies its part matrices into the instances. The model shaders accept instance matrices for this.
 - Animals on the far side of the globe are skipped.
-- **Trees make room.** Each group keeps a clearing of trees around its home as wide as its roaming area plus about 150 km (foliage.md section 4), so the animals are not hidden in a forest of 200 km trees.
+- **Trees make room.** Each group keeps a clearing of trees around its home as wide as its roaming area plus about 225 km (foliage.md section 4), so the animals are not hidden in a forest of 200 km trees.
 - **Proposed** limit: 70,000 wildlife triangles per frame, about 60 animals at up to 1,200 triangles each.
+
+Yang's review of the first models (2026-10-18) asked for the giraffe's mane on its neck, the elephant's ears on its head and its legs closer together, and rounder bear faces; these are in.
 
 ## 6. Models
 
@@ -104,17 +106,17 @@ New clay models in `assets/src/animals.ts`, built like the existing animals, at 
 
 | Id | Animal | Look |
 | --- | --- | --- |
-| `animal-elephant` | African bush elephant | Grey, huge flapping ears, trunk, short tusks |
+| `animal-elephant` | African bush elephant | Grey, huge ears on the sides of the head, trunk, short tusks, legs close under the body |
 | `animal-asian-elephant` | Asian elephant | Darker grey, small ears, domed twin-bumped head, no visible tusks |
-| `animal-giraffe` | Giraffe | Tall neck and legs, tan with brown patches, ossicones |
+| `animal-giraffe` | Giraffe | Tall neck and legs, tan with brown patches, ossicones, a short dark mane along the back of the neck |
 | `animal-zebra` | Plains zebra | Horse body in white with black stripes, upright striped mane |
 | `animal-wildebeest` | Blue wildebeest | Grey-blue, heavy front, dark mane and beard, curved horns |
 | `animal-lion` | Lion | Tawny cat with a big dark mane; the first member of a lion group |
 | `animal-lioness` | Lioness | Tawny cat without a mane; the other members of a lion group |
 | `animal-camel` | Dromedary | Sandy, one hump, long curved neck |
 | `animal-yak` | Wild yak | Black-brown, long shaggy skirt of hair, wide horns |
-| `animal-brown-bear` | Brown bear | Brown, shoulder hump, round ears |
-| `animal-polar-bear` | Polar bear | Creamy white, long neck, black nose |
+| `animal-brown-bear` | Brown bear | Brown, shoulder hump, round face with full cheeks and a short muzzle, round ears |
+| `animal-polar-bear` | Polar bear | Creamy white, long neck, round face, black nose |
 | `animal-guanaco` | Guanaco | Llama shape, tan back, white belly, grey face |
 | `animal-crocodile` | Crocodile | Long low olive body, snout, sprawling legs, ridged tail |
 | `animal-penguin` | Emperor penguin | Upright, black back, white front, yellow neck patch, flippers |
