@@ -159,6 +159,252 @@ test('keyboard plays history and moves the camera', async ({ page }) => {
   await page.keyboard.up('ArrowUp');
 });
 
+// Camera controls (spec milestone 1, section 6.2). Each gesture is checked by
+// the direction it moves the camera, never by how far: frames are slow and
+// uneven on software rendering, and inertia and flights run on frame time.
+
+interface CameraView {
+  lat: number;
+  lon: number;
+  altitudeKm: number;
+  heading: number;
+  tilt: number;
+}
+
+function cameraOf(page: Page): Promise<CameraView> {
+  return page.evaluate(() => ({
+    ...(globalThis as unknown as { __miniworld: { controller: { state: CameraView } } }).__miniworld
+      .controller.state,
+  }));
+}
+
+/** Opens the app with the lens hint already closed, so nothing covers the globe. */
+async function openForCamera(page: Page): Promise<{ x: number; y: number }> {
+  await page.addInitScript(() => {
+    const key = 'miniworld.settings.v1';
+    const s = JSON.parse(localStorage.getItem(key) ?? '{}') as Record<string, unknown>;
+    localStorage.setItem(key, JSON.stringify({ ...s, lensHintSeen: true }));
+  });
+  await open(page);
+  const size = page.viewportSize()!;
+  // The middle of the globe's part of the screen, above the bottom controls.
+  return { x: size.width / 2, y: size.height * 0.4 };
+}
+
+/**
+ * Waits until the camera has come to rest: it moves by less than a small
+ * amount over a few frames (inertia fades out but never quite reaches zero).
+ */
+async function stillCamera(page: Page): Promise<CameraView> {
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          new Promise<boolean>((resolve) => {
+            const state = () => ({
+              ...(globalThis as unknown as { __miniworld: { controller: { state: CameraView } } })
+                .__miniworld.controller.state,
+            });
+            const a = state();
+            let frames = 0;
+            const next = () => {
+              if (++frames < 3) return void requestAnimationFrame(next);
+              const b = state();
+              resolve(
+                Math.abs(b.lat - a.lat) < 0.01 &&
+                  Math.abs(b.lon - a.lon) < 0.01 &&
+                  Math.abs(b.altitudeKm - a.altitudeKm) < 1 &&
+                  Math.abs(b.heading - a.heading) < 0.01 &&
+                  Math.abs(b.tilt - a.tilt) < 0.01,
+              );
+            };
+            requestAnimationFrame(next);
+          }),
+      ),
+    )
+    .toBe(true);
+  return cameraOf(page);
+}
+
+test('mouse moves, zooms, tilts and turns the camera', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'mouse input is tested at desktop size');
+  test.slow();
+  const c = await openForCamera(page);
+  const globe = page.locator('#globe');
+
+  // Left drag down pulls the globe down, so the camera moves north (heading 0).
+  let before = await cameraOf(page);
+  await page.mouse.move(c.x, c.y);
+  await page.mouse.down();
+  await page.mouse.move(c.x, c.y + 120, { steps: 6 });
+  await page.mouse.up();
+  await expect.poll(async () => (await cameraOf(page)).lat).toBeGreaterThan(before.lat + 1);
+  // The movement carries on gently after release, then stops.
+  before = await stillCamera(page);
+
+  // The scroll wheel zooms in.
+  await page.mouse.wheel(0, -400);
+  await expect
+    .poll(async () => (await cameraOf(page)).altitudeKm)
+    .toBeLessThan(before.altitudeKm * 0.8);
+  before = await cameraOf(page);
+
+  // Right drag up tilts towards the horizon; right drag sideways turns the heading.
+  await page.mouse.move(c.x, c.y);
+  await page.mouse.down({ button: 'right' });
+  await page.mouse.move(c.x, c.y - 100, { steps: 5 });
+  await page.mouse.up({ button: 'right' });
+  await expect.poll(async () => (await cameraOf(page)).tilt).toBeGreaterThan(before.tilt + 5);
+  before = await cameraOf(page);
+  await page.mouse.down({ button: 'right' });
+  await page.mouse.move(c.x + 100, c.y - 100, { steps: 5 });
+  await page.mouse.up({ button: 'right' });
+  await expect
+    .poll(async () => (await cameraOf(page)).heading)
+    .toBeGreaterThan(before.heading + 10);
+  // Dragging and the wheel never scroll or zoom the page itself.
+  expect(await page.evaluate(() => [scrollX, scrollY, visualViewport?.scale])).toEqual([0, 0, 1]);
+
+  // The compass button turns north up and the view straight down again.
+  await page.getByRole('button', { name: en['camera.reset'] }).click();
+  await expect.poll(async () => (await cameraOf(page)).heading).toBeCloseTo(0, 3);
+  expect((await cameraOf(page)).tilt).toBeCloseTo(0, 3);
+
+  // A double-click zooms in to the point clicked: above the middle is further north.
+  before = await stillCamera(page);
+  await globe.dblclick({ position: { x: c.x, y: c.y - 60 } });
+  await expect
+    .poll(async () => (await cameraOf(page)).altitudeKm)
+    .toBeCloseTo(Math.max(1300, before.altitudeKm / 3), 0);
+  expect((await cameraOf(page)).lat).toBeGreaterThan(before.lat);
+});
+
+test('touch moves, zooms, tilts and turns the camera', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'touch input is tested at phone size');
+  test.slow();
+  const c = await openForCamera(page);
+  const cdp = await page.context().newCDPSession(page);
+  type Point = { x: number; y: number };
+  /** Moves one or two fingers from their start points to their end points. */
+  const gesture = async (from: Point[], to: Point[], steps = 6) => {
+    const at = (k: number) =>
+      from.map((p, id) => ({
+        id,
+        x: p.x + ((to[id]!.x - p.x) * k) / steps,
+        y: p.y + ((to[id]!.y - p.y) * k) / steps,
+      }));
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: at(0) });
+    for (let k = 1; k <= steps; k++)
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: at(k) });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  };
+
+  // A one-finger drag down pulls the globe down, so the camera moves north.
+  let before = await cameraOf(page);
+  await gesture([c], [{ x: c.x, y: c.y + 120 }]);
+  await expect.poll(async () => (await cameraOf(page)).lat).toBeGreaterThan(before.lat + 1);
+  before = await stillCamera(page);
+
+  // Spreading two fingers zooms in.
+  await gesture(
+    [
+      { x: c.x - 40, y: c.y },
+      { x: c.x + 40, y: c.y },
+    ],
+    [
+      { x: c.x - 120, y: c.y },
+      { x: c.x + 120, y: c.y },
+    ],
+  );
+  await expect
+    .poll(async () => (await cameraOf(page)).altitudeKm)
+    .toBeLessThan(before.altitudeKm * 0.6);
+  before = await stillCamera(page);
+
+  // Two fingers dragged up tilt towards the horizon.
+  await gesture(
+    [
+      { x: c.x - 60, y: c.y + 60 },
+      { x: c.x + 60, y: c.y + 60 },
+    ],
+    [
+      { x: c.x - 60, y: c.y - 40 },
+      { x: c.x + 60, y: c.y - 40 },
+    ],
+  );
+  await expect.poll(async () => (await cameraOf(page)).tilt).toBeGreaterThan(before.tilt + 5);
+  before = await stillCamera(page);
+
+  // Twisting two fingers turns the heading.
+  await gesture(
+    [
+      { x: c.x - 80, y: c.y },
+      { x: c.x + 80, y: c.y },
+    ],
+    [
+      { x: c.x - 70, y: c.y - 40 },
+      { x: c.x + 70, y: c.y + 40 },
+    ],
+  );
+  await expect
+    .poll(async () => Math.abs((await cameraOf(page)).heading - before.heading))
+    .toBeGreaterThan(10);
+  // No gesture scrolled or zoomed the page.
+  expect(await page.evaluate(() => [scrollX, scrollY, visualViewport?.scale])).toEqual([0, 0, 1]);
+
+  // The compass button turns north up and the view straight down again.
+  await page.getByRole('button', { name: en['camera.reset'] }).tap();
+  await expect.poll(async () => (await cameraOf(page)).heading).toBeCloseTo(0, 3);
+  expect((await cameraOf(page)).tilt).toBeCloseTo(0, 3);
+
+  // A double-tap zooms in to the point tapped.
+  before = await stillCamera(page);
+  // The taps carry their own times, 150 ms apart: the slow test browser would
+  // otherwise take longer than a double-tap allows to deliver the second one.
+  const t0 = Date.now() / 1000;
+  const touch = { x: c.x, y: c.y - 60, id: 0 };
+  for (const [type, t] of [
+    ['touchStart', 0],
+    ['touchEnd', 0.05],
+    ['touchStart', 0.15],
+    ['touchEnd', 0.2],
+  ] as const)
+    await cdp.send('Input.dispatchTouchEvent', {
+      type,
+      touchPoints: type === 'touchStart' ? [touch] : [],
+      timestamp: t0 + t,
+    });
+  await expect
+    .poll(async () => (await cameraOf(page)).altitudeKm)
+    .toBeCloseTo(Math.max(1300, before.altitudeKm / 3), 0);
+  expect((await cameraOf(page)).lat).toBeGreaterThan(before.lat);
+});
+
+test('keyboard zooms, tilts, turns and resets the camera', async ({ page }) => {
+  await openForCamera(page);
+  await page.locator('#globe').focus();
+  /** Holds a key until the camera has moved, then lets go. */
+  const hold = async (key: string, moved: (c: CameraView) => boolean) => {
+    await page.keyboard.down(key);
+    await expect.poll(async () => moved(await cameraOf(page))).toBe(true);
+    await page.keyboard.up(key);
+    return stillCamera(page);
+  };
+  let before = await cameraOf(page);
+  before = await hold('+', (c) => c.altitudeKm < before.altitudeKm * 0.9);
+  before = await hold('e', (c) => c.altitudeKm > before.altitudeKm * 1.05);
+  before = await hold('q', (c) => c.altitudeKm < before.altitudeKm * 0.9);
+  before = await hold('-', (c) => c.altitudeKm > before.altitudeKm * 1.05);
+  before = await hold('PageUp', (c) => c.tilt > before.tilt + 3);
+  before = await hold('PageDown', (c) => c.tilt < before.tilt - 1);
+  before = await hold('.', (c) => c.heading > before.heading + 5);
+  before = await hold(',', (c) => c.heading < before.heading - 2);
+  before = await hold('d', (c) => c.lon > before.lon);
+  await page.keyboard.press('n');
+  await expect.poll(async () => (await cameraOf(page)).heading).toBeCloseTo(0, 3);
+  expect((await cameraOf(page)).tilt).toBeCloseTo(0, 3);
+});
+
 test('the lens slider morphs the globe and keeps the point in view', async ({ page }) => {
   // Two morphs and a reload: on the slow CI runners this needs more than the usual budget.
   test.slow();
