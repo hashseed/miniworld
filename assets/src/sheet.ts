@@ -20,6 +20,7 @@ import { EXTINCT_ANIMALS } from './extinctAnimals.ts';
 import {
   BLEND_SECONDS,
   animateAnimal,
+  walkPeriod,
   animatePerson,
   blendPerson,
   gaitSpeed,
@@ -290,20 +291,23 @@ function clipsSheet(): void {
 
 function clipsAnimalSheet(): void {
   const id = (params.get('id') ?? 'animal-mammoth') as (typeof ANIMALS)[number];
+  // The walk as a strip of six frames over one stride, so the knees can be reviewed.
+  const step = walkPeriod(buildAnimal(id)) / 6;
   const rows: [Clip, number[]][] = [
-    ['walk', [0, 0.4, 0.8, 1.2]],
+    ['walk', [0, 1, 2, 3, 4, 5].map((k) => Math.round(k * step * 100) / 100)],
     ['run', [0, 0.2, 0.4, 0.6]],
     ['fall', [0, 1.0, 2.0, 3.0]],
   ];
-  ground(0, 0, 14, '#c7cfa2');
+  ground(0, 0, 16, '#c7cfa2');
   rows.forEach(([clip, times], r) => {
     const z = (r - 1) * 6.5;
+    const gap = times.length > 4 ? 4.4 : 6;
     times.forEach((t, i) => {
       const m = buildAnimal(id);
       animateAnimal(m, clip, t);
-      place(m, (i - 1.5) * 6 + 2, z, Math.PI / 2);
+      place(m, (i - (times.length - 1) / 2) * gap + 2, z, Math.PI / 2);
     });
-    labels.push({ text: `${clip} (${times.join(', ')} s)`, at: new THREE.Vector3(-11.5, 0.5, z) });
+    labels.push({ text: `${clip} (${times.join(', ')} s)`, at: new THREE.Vector3(-13, 0.5, z) });
   });
   camera.position.set(0, 26, 24);
   camera.lookAt(0, 0, 0.5);

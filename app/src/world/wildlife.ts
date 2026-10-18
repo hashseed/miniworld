@@ -26,6 +26,8 @@ export interface WildGroup {
   spans?: WildSpan[];
   /** Roaming radius in km where the default does not fit, such as on a small island (section 4). */
   roamKm?: number;
+  /** Number of animals where the default of 2 or 3 does not fit, such as one alone on a small island (section 4). */
+  size?: number;
   source: string;
 }
 
@@ -276,8 +278,9 @@ export function groupSpanAt(
   };
 }
 
-/** Number of members of a group: 2 or 3 (section 4). */
+/** Number of members of a group: 2 or 3, unless the data file sets it (section 4). */
 export function groupSize(g: WildGroup, index: number): number {
+  if (g.size !== undefined) return g.size;
   return hash01(groupSeed(g, index), 1) < 0.5 ? 2 : 3;
 }
 
@@ -391,9 +394,12 @@ function groupPlaces(
   return { offsets, places };
 }
 
-/** The model of the i-th animal of a group: a lion's pride has lionesses. */
+/** The model of the i-th animal of a group: a lion's pride has lionesses, a silverback leads females. */
 function modelOf(g: WildGroup, i: number): string {
-  return g.model === 'animal-lion' && i > 0 ? 'animal-lioness' : g.model;
+  if (i === 0) return g.model;
+  if (g.model === 'animal-lion') return 'animal-lioness';
+  if (g.model === 'animal-gorilla') return 'animal-gorilla-female';
+  return g.model;
 }
 
 /** Whether a group flies (birds), over any ground (section 4). */
@@ -588,6 +594,110 @@ function fallbackSpot(
 
 type P2 = [number, number];
 
+/** Whether the ground between a and b (ends excluded) is open, sampled at a third of a cell. */
+function clear(mask: WildMask, roam: number, a: P2, b: P2): boolean {
+  if (!mask) return true;
+  const cell = (2 * (roam + WILD_MASK_MARGIN_KM)) / WILD_MASK_N;
+  const d = Math.sqrt((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2);
+  const n = Math.ceil(d / (cell / 3));
+  for (let k = 1; k < n; k++) {
+    const f = k / n;
+    if (!open(mask, roam, a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f)) return false;
+  }
+  return true;
+}
+
+const routes = new WeakMap<Uint8Array, Map<string, P2[]>>();
+
+/**
+ * A walk from a to b around closed ground (lakes, sea, mountains) through
+ * the open cells of the mask, as a polyline from a to b with as few corners
+ * as stay on open ground (section 4). The straight line when there is no way round.
+ */
+function route(mask: Uint8Array, roam: number, a: P2, b: P2): P2[] {
+  const key = `${roam}:${a[0].toFixed(3)},${a[1].toFixed(3)}:${b[0].toFixed(3)},${b[1].toFixed(3)}`;
+  let cache = routes.get(mask);
+  if (!cache) routes.set(mask, (cache = new Map()));
+  const hit = cache.get(key);
+  if (hit) return hit;
+  if (cache.size > 2000) cache.clear();
+  const N = WILD_MASK_N;
+  const half = roam + WILD_MASK_MARGIN_KM;
+  const cell = (2 * half) / N;
+  const cellOf = (p: P2) => {
+    const i = Math.min(N - 1, Math.max(0, Math.floor((p[0] + half) / cell)));
+    const j = Math.min(N - 1, Math.max(0, Math.floor((p[1] + half) / cell)));
+    return j * N + i;
+  };
+  const from = cellOf(a);
+  const to = cellOf(b);
+  const free = (q: number) => q === from || q === to || mask[q] === 1;
+  // Breadth-first over the cells, diagonals only where both sides are open.
+  const prev = new Int32Array(N * N).fill(-1);
+  prev[from] = from;
+  const queue = [from];
+  for (let h = 0; h < queue.length && prev[to]! < 0; h++) {
+    const q = queue[h]!;
+    const i = q % N;
+    const j = (q - i) / N;
+    for (let dj = -1; dj <= 1; dj++)
+      for (let di = -1; di <= 1; di++) {
+        const x = i + di;
+        const y = j + dj;
+        if ((di === 0 && dj === 0) || x < 0 || y < 0 || x >= N || y >= N) continue;
+        const r = y * N + x;
+        if (prev[r]! >= 0 || !free(r)) continue;
+        if (di !== 0 && dj !== 0 && !(free(j * N + x) && free(y * N + i))) continue;
+        prev[r] = q;
+        queue.push(r);
+      }
+  }
+  let path: P2[] = [a, b];
+  if (prev[to]! >= 0) {
+    const cells: P2[] = [];
+    for (let q = prev[to]!; q !== from; q = prev[q]!) {
+      const i = q % N;
+      cells.push([-half + (i + 0.5) * cell, -half + ((q - i) / N + 0.5) * cell]);
+    }
+    const pts: P2[] = [a, ...cells.reverse(), b];
+    // Pull the string tight: from each corner, straight to the farthest one in clear sight.
+    path = [a];
+    for (let k = 0; k < pts.length - 1;) {
+      let m = pts.length - 1;
+      while (m > k + 1 && !clear(mask, roam, pts[k]!, pts[m]!)) m--;
+      path.push(pts[m]!);
+      k = m;
+    }
+  }
+  cache.set(key, path);
+  return path;
+}
+
+/** The point and direction at a share u of the way along a polyline, and its length. */
+function alongPath(path: readonly P2[], u: number): { at: P2; dir: P2; length: number } {
+  let length = 0;
+  for (let k = 1; k < path.length; k++)
+    length += Math.sqrt(
+      (path[k]![0] - path[k - 1]![0]) ** 2 + (path[k]![1] - path[k - 1]![1]) ** 2,
+    );
+  let left = u * length;
+  for (let k = 1; k < path.length; k++) {
+    const a = path[k - 1]!;
+    const b = path[k]!;
+    const d = Math.sqrt((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2);
+    if (left <= d || k === path.length - 1) {
+      const f = d > 0 ? Math.min(1, left / d) : 1;
+      return {
+        at: [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f],
+        dir: [b[0] - a[0], b[1] - a[1]],
+        length,
+      };
+    }
+    left -= d;
+  }
+  return { at: path[path.length - 1]!, dir: [0, 0], length };
+}
+
 /** A point on the Catmull-Rom curve from p1 to p2 at u in [0, 1]. */
 function catmullRom(p0: P2, p1: P2, p2: P2, p3: P2, u: number): P2 {
   const at = (i: 0 | 1) =>
@@ -709,7 +819,20 @@ export function wildlifeAt(
       const p1 = own(k);
       const p2 = own(k + 1);
       const p3 = own(k + 2);
-      const chord = Math.sqrt((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2);
+      // A walk whose curve would cross closed ground (a lake, a bay) goes
+      // round it instead, through open cells (Yang, 2026-10-18: "animals
+      // still walk across lakes").
+      const curveOpen =
+        !mask ||
+        (clear(mask, roam, p1, p2) &&
+          [0.25, 0.5, 0.75].every((v) => {
+            const [cx, cy] = catmullRom(p0, p1, p2, p3, v);
+            return open(mask, roam, cx, cy);
+          }));
+      const path = curveOpen ? undefined : route(mask!, roam, p1, p2);
+      const chord = path
+        ? alongPath(path, 1).length
+        : Math.sqrt((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2);
       const walkS = Math.min(
         period * (crocodile ? 0.4 : 0.75),
         Math.max(3, chord / (WALK_KM_S * pace)),
@@ -717,10 +840,11 @@ export function wildlifeAt(
       const walking = inRound > period - walkS;
       const f = walking ? (inRound - (period - walkS)) / walkS : 0;
       const u = f * f * (3 - 2 * f);
-      let [x, y] = catmullRom(p0, p1, p2, p3, u);
+      const along = path && walking ? alongPath(path, u) : undefined;
+      let [x, y] = along ? along.at : catmullRom(p0, p1, p2, p3, u);
       const fit = fits.get(k)! + (fits.get(k + 1)! - fits.get(k)!) * u;
       // Facing along its own curve; between walks the tangent there, so it never snaps round.
-      let [hx, hy] = catmullRomTangent(p0, p1, p2, p3, u);
+      let [hx, hy] = along ? along.dir : catmullRomTangent(p0, p1, p2, p3, u);
       // Round a camp its walk comes near: out to the edge of the keep-out circle, turning
       // along it as it nears the edge (section 4).
       const ownHalf = reachKm(model(i), g) / 2;

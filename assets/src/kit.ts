@@ -14,6 +14,8 @@ export interface BoneDef {
   name: string;
   pivot: Vec3;
   parent?: string;
+  /** How far a knee or hock bone bends while its foot is lifted, in radians; the sign is its direction. */
+  flex?: number;
 }
 
 const ROOT = 'root';
@@ -103,6 +105,7 @@ export class ModelBuilder {
       o.position.copy(world(def)).sub(parentDef ? world(parentDef) : new THREE.Vector3());
       parent.add(o);
       o.userData.rest = o.position.clone();
+      if (def.flex !== undefined) o.userData.flex = def.flex;
       nodes.set(bname, o);
       return o;
     };
@@ -370,6 +373,24 @@ void screenDoor() {
 }
 `;
 
+// A model merged into one mesh (wildlife.md section 5): each vertex names its
+// part, and row gl_InstanceID of the pose texture holds every part's matrix
+// of that instance, four texels (columns) per part.
+const poseChunk = /* glsl */ `
+#ifdef USE_POSE
+uniform highp sampler2D poseTex;
+attribute float part;
+mat4 pose() {
+  int x = int(part + 0.5) * 4;
+  return mat4(
+    texelFetch(poseTex, ivec2(x, gl_InstanceID), 0),
+    texelFetch(poseTex, ivec2(x + 1, gl_InstanceID), 0),
+    texelFetch(poseTex, ivec2(x + 2, gl_InstanceID), 0),
+    texelFetch(poseTex, ivec2(x + 3, gl_InstanceID), 0));
+}
+#endif
+`;
+
 // The log-depth chunks match the globe's logarithmic depth buffer in the app;
 // they are empty where the renderer has none, as in the review sheets.
 const celVertex = /* glsl */ `
@@ -379,12 +400,16 @@ varying vec3 vColour;
 varying vec3 vNormal;
 varying vec3 vWorld;
 varying vec3 vLocal;
+${poseChunk}
 void main() {
   vColour = color;
   vLocal = position;
-  // Instanced models (wildlife.md section 5) carry each part's pose in instanceMatrix.
+  // Instanced models (wildlife.md section 5) carry each part's pose in instanceMatrix,
+  // or, merged into one mesh, in a texture of every animal's part poses.
   mat4 model = modelMatrix;
-  #ifdef USE_INSTANCING
+  #if defined(USE_POSE)
+  model = modelMatrix * pose();
+  #elif defined(USE_INSTANCING)
   model = modelMatrix * instanceMatrix;
   #endif
   vNormal = normalize(mat3(model) * normal);
@@ -457,8 +482,13 @@ const inkVertex = /* glsl */ `
 #include <logdepthbuf_pars_vertex>
 uniform float inkPixels;
 uniform vec2 viewport;
+${poseChunk}
 void main() {
-  #ifdef USE_INSTANCING
+  #if defined(USE_POSE)
+  mat4 posed = pose();
+  vec4 clip = projectionMatrix * modelViewMatrix * posed * vec4(position, 1.0);
+  vec3 nView = normalize(normalMatrix * mat3(posed) * normal);
+  #elif defined(USE_INSTANCING)
   vec4 clip = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
   vec3 nView = normalize(normalMatrix * mat3(instanceMatrix) * normal);
   #else
@@ -506,6 +536,34 @@ export function inkMaterial(): THREE.ShaderMaterial {
     side: THREE.BackSide,
   });
   return ink;
+}
+
+/**
+ * The cel and ink materials for a model merged into one mesh whose parts are
+ * posed from a texture (wildlife.md section 5), sharing the common light.
+ */
+export function posedMaterials(poseTex: THREE.Texture): {
+  cel: THREE.ShaderMaterial;
+  ink: THREE.ShaderMaterial;
+} {
+  const uniforms = { ...lightUniforms, poseTex: { value: poseTex } };
+  return {
+    cel: new THREE.ShaderMaterial({
+      uniforms,
+      vertexShader: celVertex,
+      fragmentShader: celFragment,
+      vertexColors: true,
+      side: THREE.DoubleSide,
+      defines: { USE_POSE: '' },
+    }),
+    ink: new THREE.ShaderMaterial({
+      uniforms,
+      vertexShader: inkVertex,
+      fragmentShader: inkFragment,
+      side: THREE.BackSide,
+      defines: { USE_POSE: '' },
+    }),
+  };
 }
 
 // --- Colour helpers. ---

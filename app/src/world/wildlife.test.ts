@@ -38,11 +38,11 @@ describe('wildlife groups (wildlife.md section 3)', () => {
     }
   });
 
-  it('has at most two groups of each species, of 2 or 3 animals', () => {
+  it('has at most two groups of each species, of 2 or 3 animals unless set', () => {
     const per = new Map<string, number>();
     WILD_GROUPS.forEach((g, i) => {
       per.set(g.species, (per.get(g.species) ?? 0) + 1);
-      expect([2, 3]).toContain(groupSize(g, i));
+      expect(g.size !== undefined ? [g.size] : [2, 3]).toContain(groupSize(g, i));
     });
     for (const n of per.values()) expect(n).toBeLessThanOrEqual(2);
   });
@@ -174,6 +174,54 @@ describe('wildlifeAt (wildlife.md section 4)', () => {
         // The curve between open spots may bow a little beyond them.
         expect(a.eastKm).toBeGreaterThan(-40 - 0.2 * roamOf(g));
       }
+  });
+
+  /** A mask per walking group from a test of each cell's middle in km east and north of the home. */
+  const masksWhere = (openAt: (x: number, y: number, g: (typeof WILD_GROUPS)[number]) => boolean) =>
+    WILD_GROUPS.map((g) => {
+      if (flies(g)) return undefined;
+      const m = new Uint8Array(WILD_MASK_N * WILD_MASK_N);
+      for (let j = 0; j < WILD_MASK_N; j++)
+        for (let i = 0; i < WILD_MASK_N; i++) {
+          const [x, y] = wildMaskCell(g, i, j);
+          m[j * WILD_MASK_N + i] = openAt(x, y, g) ? 1 : 0;
+        }
+      return m;
+    });
+
+  it('walks round a lake instead of across it', () => {
+    // A lake 300 km wide runs north to south through the home, passable only far to the north.
+    const masks = masksWhere((x, y, g) => Math.abs(x) > 150 || y > 0.6 * roamOf(g));
+    let crossed = 0;
+    for (let s = 0; s < 2400; s += 3)
+      for (const a of wildlifeAt(day(1800), s, WILD_GROUPS, masks)) {
+        const g = WILD_GROUPS[Number(a.key.split(':')[0])]!;
+        if (flies(g) || roamOf(g) < 500 || a.clip !== 'walk') continue;
+        if (Math.abs(a.eastKm) < 100 && a.northKm < 0.6 * roamOf(g) - 100) crossed++;
+      }
+    expect(crossed).toBe(0);
+  });
+
+  it('grazes on the only open ground there is', () => {
+    // One open patch far to the north-east: every group gathers there.
+    const masks = masksWhere((x, y, g) => {
+      const r = roamOf(g) * 0.6;
+      return Math.abs(x - r) < 120 && Math.abs(y - r) < 120;
+    });
+    for (const s of [0, 50, 400])
+      for (const a of wildlifeAt(day(1800), s, WILD_GROUPS, masks)) {
+        const g = WILD_GROUPS[Number(a.key.split(':')[0])]!;
+        if (flies(g)) continue;
+        const r = roamOf(g) * 0.6;
+        expect(Math.sqrt((a.eastKm - r) ** 2 + (a.northKm - r) ** 2)).toBeLessThan(400);
+      }
+  });
+
+  it('lets a silverback lead the gorillas and shows a lone thylacine', () => {
+    const gorillas = wildlifeAt(day(1800), 0).filter((a) => a.model.startsWith('animal-gorilla'));
+    expect(gorillas.filter((a) => a.model === 'animal-gorilla').length).toBe(1);
+    expect(gorillas.length).toBeGreaterThanOrEqual(2);
+    expect(wildlifeAt(day(1800), 0).filter((a) => a.model === 'animal-thylacine').length).toBe(1);
   });
 
   it('keeps clear of a camp while it stands and walks round it without jumping (section 4)', () => {
