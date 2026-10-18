@@ -66,5 +66,9 @@
   "stats.renderScale": "Render scale",
   "stats.tier": "Quality",
   "stats.report": "Save report",
-  "stress.title": "Stress scene"
+  "stress.title": "Stress scene",
+  "vignette.span": "Shown from {from} to {to}",
+  "vignette.learnMore": "Learn more",
+  "vignette.loading": "Loading…",
+  "vignette.failed": "This text could not be loaded."
 }

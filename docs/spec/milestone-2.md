@@ -448,9 +448,9 @@ The player understands these verbs from section 6.4 and the additions in [dioram
 | Verb | Movement | Clip |
 | --- | --- | --- |
 | `wait` | Stays | idle |
-| `walk-to`, `run-to`, `carry-to` | To a mark at 1.4, 4.5 or 1.1 m/s at life size, then idle | walk, run or carry, then idle |
+| `walk-to`, `run-to`, `carry-to` | To a mark at 1.4, 4.5 or 1.3 m/s at life size, then idle | walk, run or carry, then idle |
 | `work-at` | Walks to a mark if not there, then works | walk, then crouch-work |
-| `point`, `throw-at`, `cheer` | Stays, facing the target group if one is named | point, throw or cheer |
+| `point`, `throw-at`, `cheer` | Stays, facing the target group if one is named | point or throw for 3 seconds, then idle; cheer until the next beat |
 | `fall` | Sinks into the ground and disappears over 3 seconds | fall |
 | `appear` | Reappears at its starting mark, rising from the ground over 2 seconds | idle |
 
@@ -473,7 +473,7 @@ The player uses only integer and `+ − × ÷` arithmetic plus `Math.sqrt` (sect
 ### 18.6 The mammoth hunt
 
 - **Cast:** two scouts and two flanks of three hunters each (`ice-age-hunter`), three family members at the camp, one mammoth to be hunted and two more of its herd. Stand-ins: hunters in brown and ochre fur with spears, the mammoths dark reddish brown with tusks and a high domed head, at the miniature factor of section 5.1.
-- **Script (90 s loop):** the family works at the camp throughout; the scouts walk to a lookout and point at the herd; the two flanks creep wide around the herd; at the signal the hunters run in, the herd runs off one edge of the stage and the hunted mammoth runs into a boggy hollow; spears are thrown and it falls; the hunters cut the meat and carry it back to the camp; the herd wanders back and a new mammoth appears among them, so the loop closes.
+- **Script (120 s loop):** the family works at the camp throughout; the scouts walk to a lookout and point at the herd; the two flanks creep wide around the herd; at the signal the hunters run in, the rest of the herd runs to the edge of the stage and the hunted mammoth runs into a boggy hollow; spears are thrown and it falls; the hunters cut the meat and carry it back to the camp; the herd wanders back and a new mammoth appears among them, so the loop closes.
 - **Sites, from c. 43,000 to c. 10,000 BCE, one period per 1,000 years, two instances per period:** Geißenklösterle (Swabian Jura), Krems-Wachtberg, Dolní Věstonice, Předmostí, Kostenki, Sungir, Yana in Siberia from c. 30,000 BCE and Mal'ta near Lake Baikal from c. 22,000 BCE. The card says that how often people killed mammoths, rather than collecting the bones of dead ones, is debated.
 
 ### 18.7 Tests

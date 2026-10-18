@@ -160,6 +160,11 @@ export class ContentLoader {
     }
   }
 
+  /** Fetches a whole JSON file by name, such as a vignette's structure or text. */
+  json<T>(file: string): Promise<T> {
+    return this.fetchJson<T>(file);
+  }
+
   private async fetchJson<T>(file: string): Promise<T> {
     const res = await fetch(this.base + file);
     if (!res.ok) throw new Error(`${res.status} ${file}`);

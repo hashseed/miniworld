@@ -4,7 +4,20 @@ import type { SourceInfo } from '../content/types.ts';
 import type { PlayState } from '../time/clock.ts';
 import type { Bookmark, Settings, Tier } from './storage.ts';
 
-export type Panel = 'none' | 'settings' | 'bookmarks' | 'about';
+export type Panel = 'none' | 'settings' | 'bookmarks' | 'about' | 'vignette';
+
+/** The vignette card (spec milestone 2, section 11); its text arrives when the card opens. */
+export interface VignetteCard {
+  id: string;
+  title: string;
+  fromDay: number;
+  /** Day after the last day of the span. */
+  toDay: number;
+  fromApproximate: boolean;
+  toApproximate: boolean;
+  text?: { title: string; body: string; learnMore: string };
+  failed?: boolean;
+}
 
 export interface UiState {
   ready: boolean;
@@ -28,6 +41,7 @@ export interface UiState {
   version: string;
   cutoffDay: number;
   sources: SourceInfo[];
+  vignette: VignetteCard | undefined;
 }
 
 export interface Actions {

@@ -6,11 +6,11 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Store } from '../core/store.ts';
 import { dateFromDay } from '../time/calendar.ts';
 import { SPEEDS } from '../time/rateCurve.ts';
-import { formatDateReadout, formatFullDate, roundRate } from '../i18n/dates.ts';
+import { formatDateReadout, formatFullDate, formatYear, roundRate } from '../i18n/dates.ts';
 import { LANGUAGES, type Language } from '../i18n/messages.ts';
 import { LANGUAGE_NAMES, type I18n } from '../i18n/i18n.ts';
 import { useStore } from './hooks.ts';
-import type { Actions, UiState } from './state.ts';
+import type { Actions, UiState, VignetteCard } from './state.ts';
 import type { QualitySetting, Settings } from './storage.ts';
 import {
   BookmarkIcon,
@@ -130,6 +130,9 @@ export function App({ store, i18n, actions }: Props) {
       {s.panel === 'settings' && <SettingsPanel s={s} t={t} actions={actions} />}
       {s.panel === 'bookmarks' && <BookmarksPanel s={s} t={t} lang={lang} actions={actions} />}
       {s.panel === 'about' && <AboutPanel s={s} t={t} lang={lang} actions={actions} />}
+      {s.panel === 'vignette' && s.vignette && (
+        <VignettePanel card={s.vignette} t={t} lang={lang} actions={actions} />
+      )}
 
       <div class="bottom">
         {s.fixture && <div class="notice">{t('app.fixtureNotice')}</div>}
@@ -471,6 +474,47 @@ function AboutPanel({
       </ul>
     </PanelFrame>
   );
+}
+
+function VignettePanel({
+  card,
+  t,
+  lang,
+  actions,
+}: {
+  card: VignetteCard;
+  t: T;
+  lang: Language;
+  actions: Actions;
+}) {
+  const from = formatYear(dateFromDay(card.fromDay).year, lang, card.fromApproximate);
+  const to = formatYear(dateFromDay(card.toDay - 1).year, lang, card.toApproximate);
+  const text = card.text;
+  return (
+    <PanelFrame title={text?.title ?? card.title} t={t} actions={actions}>
+      <p class="card-date">{t('vignette.span', { from, to })}</p>
+      {text ? (
+        <>
+          {paragraphs(text.body)}
+          {text.learnMore && (
+            <>
+              <h3>{t('vignette.learnMore')}</h3>
+              {paragraphs(text.learnMore)}
+            </>
+          )}
+        </>
+      ) : (
+        <p class="card-loading">{card.failed ? t('vignette.failed') : t('vignette.loading')}</p>
+      )}
+    </PanelFrame>
+  );
+}
+
+function paragraphs(text: string) {
+  return text
+    .split(/\n\s*\n/)
+    .filter((p) => p.trim())
+    .map((p, i) => <p key={i}>{p.trim()}</p>);
 }
 
 function Stats({ s, t, actions }: { s: UiState; t: T; actions: Actions }) {

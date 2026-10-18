@@ -5,7 +5,7 @@ import '@fontsource-variable/fredoka';
 import * as THREE from 'three';
 import { h, render } from 'preact';
 import { ContentLoader } from './content/loader.ts';
-import type { StartupIndex } from './content/types.ts';
+import type { StartupIndex, VignetteEntry } from './content/types.ts';
 import { Store } from './core/store.ts';
 import { latLonToDir } from './globe/cube.ts';
 import { CameraController } from './globe/cameraController.ts';
@@ -26,12 +26,13 @@ import {
   targetFrameMs,
 } from './perf/quality.ts';
 import { STRESS_CENTRE, StressScene } from './perf/stressScene.ts';
+import { VignetteLayer } from './vignettes/vignetteLayer.ts';
 import { OPENING_DAY, TIMELINE_START, dayFromDate } from './time/calendar.ts';
 import { Clock } from './time/clock.ts';
 import { zoomFactor } from './time/rateCurve.ts';
 import { Timeline } from './timeline/timeline.ts';
 import { App } from './ui/App.tsx';
-import type { Actions, UiState } from './ui/state.ts';
+import type { Actions, UiState, VignetteCard } from './ui/state.ts';
 import {
   loadBookmarks,
   loadPerf,
@@ -101,6 +102,7 @@ const ui = new Store<UiState>({
   version: '',
   cutoffDay: 0,
   sources: [],
+  vignette: undefined,
 });
 
 // --- Scene --------------------------------------------------------------------------
@@ -138,6 +140,11 @@ const controller = new CameraController(
   surface,
   savedView?.camera ?? (STRESS ? stressCamera(0) : DEFAULT_CAMERA),
 );
+const vignettes = new VignetteLayer(loader, surface, canvas);
+scene.add(vignettes.group);
+vignettes.onOpen = (entry) => void openVignette(entry);
+vignettes.onFly = (lat, lon, altitudeKm) =>
+  controller.flyTo({ ...controller.state, lat, lon, altitudeKm });
 controller.reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 let stress: StressScene | undefined;
@@ -315,7 +322,31 @@ async function switchLanguage(lang: Settings['language']): Promise<void> {
   document.title = i18n.t('app.title');
   index = next;
   timeline?.setIndex(next);
+  vignettes.setIndex(next.vignettes);
+  const open = ui.value.vignette && next.vignettes.find((v) => v.id === ui.value.vignette!.id);
+  if (open && ui.value.panel === 'vignette') void openVignette(open);
   ui.update({ sources: next.sources });
+}
+
+/** Opens a vignette's card at once with its title, then fills in the text (milestone 2 section 11). */
+async function openVignette(entry: VignetteEntry): Promise<void> {
+  const card: VignetteCard = {
+    id: entry.id,
+    title: entry.title,
+    fromDay: entry.fromDay,
+    toDay: entry.toDay,
+    fromApproximate: entry.fromApproximate,
+    toApproximate: entry.toApproximate,
+  };
+  ui.update({ panel: 'vignette', vignette: card });
+  const done = (patch: Partial<VignetteCard>) => {
+    if (ui.value.vignette === card) ui.update({ vignette: { ...card, ...patch } });
+  };
+  try {
+    done({ text: await loader.json<NonNullable<VignetteCard['text']>>(entry.text) });
+  } catch {
+    done({ failed: true });
+  }
 }
 
 // --- Keys ---------------------------------------------------------------------------
@@ -495,6 +526,7 @@ function frame(now: number): void {
     if (ground > 0 || globe.drawnTiles > 0) stress.setGround(ground);
     stress.update(camera, clock.lifeMs, now);
   }
+  vignettes.update(camera, clock.day, clock.lifeMs, u.lightDir!.value);
 
   renderer.info.reset();
   frames.render(scene, camera);
@@ -551,6 +583,7 @@ async function start(): Promise<void> {
     const manifest = await loader.init();
     index = await loader.index(i18n.language);
     minSeaLevel = lowestSeaLevel(index.seaLevel);
+    vignettes.setIndex(index.vignettes);
     const startDay = STRESS ? STRESS_DAY : (savedView?.day ?? OPENING_DAY);
     clock.configure({
       startDay: manifest.timelineStartDay,
@@ -627,6 +660,7 @@ if (import.meta.env.DEV)
   Object.assign(globalThis, {
     __miniworld: {
       globe,
+      vignettes,
       controller,
       clock,
       loader,
