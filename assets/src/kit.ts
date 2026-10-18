@@ -19,6 +19,9 @@ export interface BoneDef {
 const ROOT = 'root';
 
 /** Collects coloured parts per bone and builds the model. */
+/** A colour for a point of a model in model space, or undefined for the part's own colour. */
+export type Pattern = (p: THREE.Vector3) => THREE.ColorRepresentation | undefined;
+
 export class ModelBuilder {
   private bones = new Map<string, BoneDef>([[ROOT, { name: ROOT, pivot: [0, 0, 0] }]]);
   private parts = new Map<string, THREE.BufferGeometry[]>();
@@ -37,8 +40,17 @@ export class ModelBuilder {
     return this;
   }
 
-  /** Adds a part in model space to a bone, painted one flat colour. */
-  add(geometry: THREE.BufferGeometry, colour: THREE.ColorRepresentation, bone = ROOT): this {
+  /**
+   * Adds a part in model space to a bone, painted one flat colour, or with a
+   * pattern: each triangle takes the pattern's colour at its centre where it
+   * gives one (stripes are painted on, never stuck on).
+   */
+  add(
+    geometry: THREE.BufferGeometry,
+    colour: THREE.ColorRepresentation,
+    bone = ROOT,
+    pattern?: Pattern,
+  ): this {
     if (!this.bones.has(bone)) throw new Error(`Unknown bone ${bone}`);
     const g = geometry.index ? geometry.toNonIndexed() : geometry;
     for (const name of Object.keys(g.attributes)) {
@@ -49,6 +61,24 @@ export class ModelBuilder {
     const n = g.getAttribute('position').count;
     const colours = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) colours.set([c.r, c.g, c.b], i * 3);
+    if (pattern) {
+      const pos = g.getAttribute('position');
+      const centre = new THREE.Vector3();
+      const t = new THREE.Color();
+      for (let i = 0; i + 2 < n; i += 3) {
+        centre
+          .set(
+            pos.getX(i) + pos.getX(i + 1) + pos.getX(i + 2),
+            pos.getY(i) + pos.getY(i + 1) + pos.getY(i + 2),
+            pos.getZ(i) + pos.getZ(i + 1) + pos.getZ(i + 2),
+          )
+          .multiplyScalar(1 / 3);
+        const paint = pattern(centre);
+        if (paint === undefined) continue;
+        t.set(paint);
+        for (let k = 0; k < 3; k++) colours.set([t.r, t.g, t.b], (i + k) * 3);
+      }
+    }
     g.setAttribute('color', new THREE.BufferAttribute(colours, 3));
     const list = this.parts.get(bone) ?? [];
     list.push(g);
@@ -137,15 +167,30 @@ function clayWobble(g: THREE.BufferGeometry, clay: number, seed: number): void {
 const up = new THREE.Vector3(0, 1, 0);
 
 /** An ellipsoid: a low sphere scaled per axis, the kit's clay blob. */
-export function blob(at: Vec3, radii: Vec3, segments = 7): THREE.BufferGeometry {
-  const g = new THREE.SphereGeometry(1, segments, Math.max(3, Math.round(segments * 0.6)));
+export function blob(
+  at: Vec3,
+  radii: Vec3,
+  segments = 7,
+  rings = Math.max(3, Math.round(segments * 0.6)),
+  poles: 'y' | 'z' = 'y',
+): THREE.BufferGeometry {
+  const g = new THREE.SphereGeometry(1, segments, rings);
+  // Poles along z put the rings across a long body, for painted bands.
+  if (poles === 'z') g.rotateX(Math.PI / 2);
   g.scale(...radii);
   g.translate(...at);
   return g;
 }
 
-/** A tapered capsule from a to b with end radii ra and rb. */
-export function limb(a: Vec3, b: Vec3, ra: number, rb = ra, segments = 5): THREE.BufferGeometry {
+/** A tapered capsule from a to b with end radii ra and rb, with extra rings along it for painted bands. */
+export function limb(
+  a: Vec3,
+  b: Vec3,
+  ra: number,
+  rb = ra,
+  segments = 5,
+  rings = 0,
+): THREE.BufferGeometry {
   const va = new THREE.Vector3(...a);
   const vb = new THREE.Vector3(...b);
   const len = va.distanceTo(vb);
@@ -154,6 +199,10 @@ export function limb(a: Vec3, b: Vec3, ra: number, rb = ra, segments = 5): THREE
   for (let i = 0; i <= caps; i++) {
     const t = (i / caps) * (Math.PI / 2);
     pts.push(new THREE.Vector2(Math.sin(t) * ra, -Math.cos(t) * ra));
+  }
+  for (let i = 1; i <= rings; i++) {
+    const f = i / (rings + 1);
+    pts.push(new THREE.Vector2(ra + (rb - ra) * f, len * f));
   }
   for (let i = 0; i <= caps; i++) {
     const t = (i / caps) * (Math.PI / 2);
@@ -333,8 +382,13 @@ varying vec3 vLocal;
 void main() {
   vColour = color;
   vLocal = position;
-  vNormal = normalize(mat3(modelMatrix) * normal);
-  vec4 w = modelMatrix * vec4(position, 1.0);
+  // Instanced models (wildlife.md section 5) carry each part's pose in instanceMatrix.
+  mat4 model = modelMatrix;
+  #ifdef USE_INSTANCING
+  model = modelMatrix * instanceMatrix;
+  #endif
+  vNormal = normalize(mat3(model) * normal);
+  vec4 w = model * vec4(position, 1.0);
   vWorld = w.xyz;
   gl_Position = projectionMatrix * viewMatrix * w;
   #include <logdepthbuf_vertex>
@@ -404,8 +458,13 @@ const inkVertex = /* glsl */ `
 uniform float inkPixels;
 uniform vec2 viewport;
 void main() {
+  #ifdef USE_INSTANCING
+  vec4 clip = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+  vec3 nView = normalize(normalMatrix * mat3(instanceMatrix) * normal);
+  #else
   vec4 clip = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   vec3 nView = normalize(normalMatrix * normal);
+  #endif
   vec2 dir = normalize((projectionMatrix * vec4(nView, 0.0)).xy + 1e-6);
   clip.xy += dir * inkPixels * 2.0 / viewport * clip.w;
   gl_Position = clip;

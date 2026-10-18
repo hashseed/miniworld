@@ -85,6 +85,18 @@ export interface StartupIndex {
   vignettes: VignetteEntry[];
   /** Landmark records (giza.md section 11), in the same form. */
   landmarks: VignetteEntry[];
+  /** Ground mask of each wildlife group, in the order of data/curated/wildlife.json (wildlife.md section 4). */
+  wildlife: string[];
+  /** Card of each wildlife species: title in the index's language and its text file (wildlife.md section 8). */
+  animals: AnimalEntry[];
+}
+
+export interface AnimalEntry {
+  /** The species, as in data/curated/wildlife.json. */
+  id: string;
+  title: string;
+  /** Text file in the index's language. */
+  text: string;
 }
 
 export interface VignetteEntry {

@@ -18,6 +18,11 @@ export interface VignetteCard {
   toApproximate: boolean;
   text?: { title: string; body: string; learnMore: string };
   failed?: boolean;
+  /**
+   * An animal's card (wildlife.md section 8): which ends of its group's span
+   * the date line shows, none for a group shown at every date.
+   */
+  animal?: { from: boolean; to: boolean };
 }
 
 /**
