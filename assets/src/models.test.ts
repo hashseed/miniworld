@@ -7,7 +7,16 @@ import { describe, expect, it } from 'vitest';
 import manifest from '../../data/assets/manifest.json';
 import { ANIMALS, buildAnimal } from './animals.ts';
 import { MODELS, geometryHash } from './approval.ts';
-import { THROW_RELEASE, animateAnimal, animatePerson, type Clip } from './clips.ts';
+import {
+  BLEND_SECONDS,
+  GAITS,
+  THROW_RELEASE,
+  animateAnimal,
+  animatePerson,
+  blendPerson,
+  gaitSpeed,
+  type Clip,
+} from './clips.ts';
 import type { Model } from './kit.ts';
 import {
   LANDMARK_ASSETS,
@@ -144,6 +153,78 @@ describe('clips', () => {
     animatePerson(m, 'run', 0.4);
     animatePerson(m, clip, 1.234);
     expect(pose(m)).toEqual(first);
+  });
+
+  /** The world position of the lowest point of a foot in the rest pose, as posed now. */
+  function soleOf(m: Model, bone: string): () => THREE.Vector3 {
+    animatePerson(m, 'idle', 0);
+    m.object.position.set(0, 0, 0);
+    m.object.updateMatrixWorld(true);
+    let best: { mesh: THREE.Mesh; i: number; y: number } | undefined;
+    m.bones.get(bone)!.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh || (mesh.parent as THREE.Mesh).isMesh) return;
+      const pos = mesh.geometry.getAttribute('position');
+      const v = new THREE.Vector3();
+      for (let i = 0; i < pos.count; i++) {
+        v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld);
+        if (!best || v.y < best.y) best = { mesh, i, y: v.y };
+      }
+    });
+    const { mesh, i } = best!;
+    return () => {
+      m.object.updateMatrixWorld(true);
+      return new THREE.Vector3()
+        .fromBufferAttribute(mesh.geometry.getAttribute('position'), i)
+        .applyMatrix4(mesh.matrixWorld);
+    };
+  }
+
+  it.each(['walk', 'carry', 'haul'] as const)(
+    'moving at the gait speed, the standing foot of %s stays put on the ground',
+    (clip) => {
+      const m = buildPerson({ profile: 'african-stone-age', kind: 'woman', founder: true });
+      const sole = soleOf(m, 'legLowerL');
+      const g = GAITS[clip];
+      const v = gaitSpeed(m, clip);
+      const at = (u: number) => {
+        const t = u * g.period;
+        animatePerson(m, clip, t);
+        m.object.position.set(0, 0, v * t);
+        return sole();
+      };
+      const first = at(0.02);
+      for (let u = 0.02; u < g.stance - 0.02; u += 0.02) {
+        const p = at(u);
+        expect(Math.abs(p.z - first.z)).toBeLessThan(0.05);
+        expect(Math.abs(p.y)).toBeLessThan(0.05);
+      }
+    },
+  );
+
+  it('changing clip never snaps a limb (fluid motion)', () => {
+    const m = buildPerson({ profile: 'african-stone-age', kind: 'woman', founder: true });
+    const all: Clip[] = ['idle', 'walk', 'run', 'carry', 'haul', 'work', 'point', 'cheer'];
+    const world = () => {
+      m.object.updateMatrixWorld(true);
+      return [...m.bones.values()].map((b) => b.getWorldQuaternion(new THREE.Quaternion()));
+    };
+    for (const from of all)
+      for (const to of all) {
+        if (from === to) continue;
+        let prev: THREE.Quaternion[] | undefined;
+        // From half a second before the change to half a second after, at 60 frames per second.
+        for (let f = -30; f <= 30; f++) {
+          const t = f / 60;
+          if (t < 0) animatePerson(m, from, 2 + t);
+          else if (t < BLEND_SECONDS) blendPerson(m, from, 2 + t, to, t, t / BLEND_SECONDS);
+          else animatePerson(m, to, t);
+          const cur = world();
+          // A real arm swings at well under 30 radians per second, except in a throw.
+          if (prev) cur.forEach((q, i) => expect(q.angleTo(prev![i]!) * 60).toBeLessThan(30));
+          prev = cur;
+        }
+      }
   });
 
   it('the spear leaves the hand at the release time and comes back for other clips', () => {

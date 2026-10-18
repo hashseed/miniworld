@@ -27,6 +27,10 @@ export const MODELS: Record<string, () => THREE.Object3D> = Object.fromEntries([
       () => buildPerson({ profile, kind }).object,
     ]),
   ),
+  [
+    'figure-first-person',
+    () => buildPerson({ profile: 'african-stone-age', kind: 'woman', founder: true }).object,
+  ],
   ...SHELTERS.map((id) => [id, () => buildShelter(id).object]),
   ['prop-hearth', () => buildHearth().object],
   ...ANIMALS.map((id) => [id, () => buildAnimal(id).object]),
