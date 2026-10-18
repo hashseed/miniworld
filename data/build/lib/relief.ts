@@ -94,7 +94,7 @@ function coneM(m: Mountain, t: number): number {
 /**
  * Raises the stored coast distance under every listed peak's cone, so the
  * rounded coast edge (section 4.2) never flattens a peak near the sea, such
- * as Mount Fuji.
+ * as Mount Fuji. Changes the grid in place.
  */
 export function allowPeaksAtCoast(coast: Grid<Uint8Array>, mountains: Mountain[]): void {
   for (const m of mountains) {

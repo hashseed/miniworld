@@ -4,7 +4,6 @@
 // heights, shelves and ice are invented, so a build from it is marked as a
 // fixture and is never shipped.
 
-import { readFileSync } from 'node:fs';
 import { valueNoise } from '../../../app/src/core/hash.ts';
 import { Grid } from './grid.ts';
 import { featurePolygons, rasterizePolygon, type GeoJsonFeature } from './rasterize.ts';
@@ -13,26 +12,24 @@ export const FIXTURE_WIDTH = 2160; // 10 arc-minutes
 export const FIXTURE_HEIGHT = 1080;
 
 export function fixtureElevation(
-  landPath: string,
+  land: GeoJsonFeature[],
   width = FIXTURE_WIDTH,
   height = FIXTURE_HEIGHT,
 ): Grid {
-  const land = new Uint8Array(width * height);
+  const isLand = new Uint8Array(width * height);
   const target = { width, height };
-  const features = (JSON.parse(readFileSync(landPath, 'utf8')) as { features: GeoJsonFeature[] })
-    .features;
-  for (const f of features)
+  for (const f of land)
     for (const poly of featurePolygons(f))
-      rasterizePolygon(target, poly, (c, r) => (land[r * width + c] = 1));
+      rasterizePolygon(target, poly, (c, r) => (isLand[r * width + c] = 1));
 
   // Chamfer distance (in cells) from the coast, on both sides.
   const dist = new Float32Array(width * height).fill(1e9);
   for (let r = 0; r < height; r++)
     for (let c = 0; c < width; c++) {
       const i = r * width + c;
-      const l = land[i]!;
-      const right = land[r * width + ((c + 1) % width)]!;
-      const down = r + 1 < height ? land[i + width]! : l;
+      const l = isLand[i]!;
+      const right = isLand[r * width + ((c + 1) % width)]!;
+      const down = r + 1 < height ? isLand[i + width]! : l;
       if (l !== right || l !== down) dist[i] = 0;
     }
   const passes: [number, number][][] = [
@@ -72,7 +69,7 @@ export function fixtureElevation(
     for (let c = 0; c < width; c++) {
       const i = r * width + c;
       const n = valueNoise(c / 40, r / 40, 11) * 0.85 + valueNoise(c / 9, r / 9, 12) * 0.15;
-      if (land[i]) {
+      if (isLand[i]) {
         out[i] = Math.round(20 + Math.min(dist[i]! * 15, 600) + Math.pow(n, 3) * 3500);
       } else {
         const d = dist[i]!;

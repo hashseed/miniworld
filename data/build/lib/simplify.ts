@@ -116,7 +116,8 @@ export function islandGrowthKm(areaKm2: number): number {
  * 4.2). Islands under ISLAND_MIN_KM2 become sea floor at REMOVED_ISLAND_DEPTH
  * unless one of the kept points lies on them or within one cell; every other
  * island up to ISLAND_MAX_KM2 grows into the surrounding sea by
- * islandGrowthKm, as a low shore sloping down from its coast.
+ * islandGrowthKm, as a low shore sloping down from its coast. Changes the
+ * grid in place.
  */
 export function enlargeIslands(
   g: Grid,
@@ -244,7 +245,8 @@ function insidePolygon(lon: number, lat: number, poly: [number, number][]): bool
 
 /**
  * Turns every cell inside a removed area into deep sea floor (section 4.2),
- * except near kept islands. Returns the number of cells changed.
+ * except near kept islands. Changes the grid in place and returns the number
+ * of cells changed.
  */
 export function removeAreas(
   g: Grid,
