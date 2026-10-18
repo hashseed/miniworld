@@ -22,7 +22,7 @@ import {
   type TileKey,
   type Vec3,
 } from './cube.ts';
-import { BUSH, isDry, KINDS, PALM, pickKind, recipeOf } from './foliageKinds.ts';
+import { BUSH, groundOf, isDry, KINDS, PALM, pickKind, recipeOf } from './foliageKinds.ts';
 import { plantGeometry } from './foliageModels.ts';
 import { EXAGGERATION, LAND_LIFT_M, type Globe } from './globe.ts';
 import { iceSlicePair, type PlanetState } from './planet.ts';
@@ -108,6 +108,8 @@ export class Foliage {
   private days: number[] = [];
   private files: string[] = [];
   private slices: (FoliageSlice | undefined)[] = [];
+  /** Ground tint per slice (section 6). */
+  private grounds: (THREE.DataTexture | undefined)[] = [];
   private requested: boolean[] = [];
   private samples = new Map<string, TileSamples>();
   private placed = new Map<string, Plant[]>();
@@ -157,6 +159,7 @@ export class Foliage {
       this.days = this.loader.manifest.foliage.days;
       this.files = this.loader.manifest.foliage.files;
       this.slices = this.days.map(() => undefined);
+      this.grounds = this.days.map(() => undefined);
       this.requested = this.days.map(() => false);
     }
     if (this.days.length === 0) return;
@@ -168,6 +171,10 @@ export class Foliage {
     const sa = this.slices[ka];
     const sb = this.slices[kb];
     if (!sa || !sb) return;
+    const gu = this.globe.material.uniforms;
+    gu.groundA!.value = this.grounds[ka];
+    gu.groundB!.value = this.grounds[kb];
+    gu.groundT!.value = t;
 
     // Only the slot tiles on the visible side of the globe.
     const camPos = camera.position;
@@ -227,6 +234,7 @@ export class Foliage {
         return;
       }
       this.slices[k] = decodeFoliageSlice(buf);
+      this.grounds[k] = groundTexture(this.slices[k]);
       this.lastKey = '';
     });
   }
@@ -343,6 +351,54 @@ export class Foliage {
       for (let ii = 0; ii < PALM_SLOTS; ii++) slot(PALM_SLOTS, ii, jj, true);
     return plants;
   }
+}
+
+/** The ground tint of a foliage slice as an RGBA texture on its grid (section 6). */
+function groundTexture(slice: FoliageSlice): THREE.DataTexture {
+  const n = FOLIAGE_GRID_W * FOLIAGE_GRID_H;
+  const data = new Uint8Array(n * 4);
+  // Colours are blurred premultiplied by their strength, so untinted cells do not darken edges.
+  let a: Float32Array = new Float32Array(n * 4);
+  for (let i = 0; i < n; i++) {
+    const [r, g, b, w] = groundOf(slice.cells[i]!, slice.density[i]! / 255);
+    a.set([r * w, g * w, b * w, w], i * 4);
+  }
+  // Two passes of a 3 × 3 blur, so the 0.5° cells blend into soft edges.
+  for (let pass = 0; pass < 2; pass++) a = blurGrid(a);
+  for (let i = 0; i < n; i++) {
+    const w = a[i * 4 + 3]!;
+    for (let k = 0; k < 3; k++) data[i * 4 + k] = w > 0 ? Math.round((a[i * 4 + k]! / w) * 255) : 0;
+    data[i * 4 + 3] = Math.round(w * 255);
+  }
+  const tex = new THREE.DataTexture(data, FOLIAGE_GRID_W, FOLIAGE_GRID_H, THREE.RGBAFormat);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.magFilter = THREE.LinearFilter;
+  tex.minFilter = THREE.LinearFilter;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+/** A 3 × 3 box blur of an RGBA grid on the foliage grid, wrapping in longitude. */
+function blurGrid(src: Float32Array): Float32Array {
+  const W = FOLIAGE_GRID_W;
+  const H = FOLIAGE_GRID_H;
+  const out = new Float32Array(src.length);
+  for (let r = 0; r < H; r++)
+    for (let c = 0; c < W; c++) {
+      let count = 0;
+      const o = (r * W + c) * 4;
+      for (let dr = -1; dr <= 1; dr++) {
+        const rr = r + dr;
+        if (rr < 0 || rr >= H) continue;
+        for (let dc = -1; dc <= 1; dc++) {
+          const i = (rr * W + ((c + dc + W) % W)) * 4;
+          for (let k = 0; k < 4; k++) out[o + k]! += src[i + k]!;
+          count++;
+        }
+      }
+      for (let k = 0; k < 4; k++) out[o + k]! /= count;
+    }
+  return out;
 }
 
 const S = TILE_N + 1;

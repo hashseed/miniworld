@@ -75,12 +75,12 @@ Desert, barren land, the colder tundra classes and land ice have no plants. Shar
 
 ## 6. The ground under the plants
 
-The ground painting of milestone 1 (section 4.3) gets two changes from the same foliage classes, so ground and trees always agree:
+Trees are few and only hint at the vegetation. The ground itself carries the rest of it, so the globe looks alive without more polygons (Yang, 2026-10-18: "is there a way to add grass etc without adding polygons and regress performance? e.g. some sort of texture?"). Both parts are painted in the terrain's fragment shader and add no triangles.
 
-- Under forest classes the ground turns to the darker forest-floor green, so the gaps between trees are not steppe-coloured. In the prototype the taiga stands on golden steppe ground, which looks wrong.
-- Along desert rivers, a green strip of about 15 to 25 km either side of the water is painted as grass under the palms, so the green ribbon of the Nile reads from orbit; so it shows between the palms.
-
-These touch the terrain shader, which belongs to the milestone 1 work; they are made together with that work.
+- **Vegetation tint.** The ground painting of milestone 1 (section 4.3) is tinted from the same foliage slices as the trees, so ground and trees always agree. From the foliage class and tree density of each 0.5° cell, the app derives a ground colour and a strength, so thinned ice-age forest shows steppe-coloured ground: deep forest-floor green under rainforest and broadleaf forest, blue-green under conifers, fresh grass green on grassland and savanna, olive under Mediterranean woodland, ochre on steppe and dry shrubland, and pale grey-green on tundra. Deserts, bare rock and ice keep the colours they have. The tint is a small RGBA texture on the slice grid (720 × 300), made on the CPU once per foliage slice when it loads and blended between the two slices around the date like the climate slices. Until the foliage slices load (just after the first view) the ground keeps the milestone 1 colours. It replaces the steppe-under-taiga look and gives each biome its own ground.
+- **Green banks.** Along desert rivers, a strip of about 15 to 25 km either side of the water is painted as grass under the palms, from the river field the shader already has, so the green ribbon of the Nile reads from orbit.
+- **Painted grass.** On grassy and wooded ground the shader adds a soft painted pattern: small cel-shaded tufts and dapples, a little lighter and darker than the ground, from seeded value noise on the true position (deterministic, so the same for every viewer). Its scale is fixed on the globe, so it moves with the land, and it fades out with the screen-space footprint of a pattern cell (`fwidth`) before it gets smaller than about 4 pixels, so it never shimmers or flickers. From orbit only the tint shows; the tufts appear as the camera comes down. Tundra gets sparse low dots, steppe longer dry streaks, and deserts nothing.
+- **Cost.** One extra texture lookup and a few noise evaluations per land pixel, about the cost of the existing coast and river shading, and no extra draw calls or triangles. The tint texture is rebuilt only when the date crosses a foliage slice.
 
 ## 7. Performance
 
@@ -112,4 +112,4 @@ The plant models are built in code from simple shapes (balls, cones and strips w
 
 ## 10. Open questions
 
-- The darker ground under forests and the green strip along desert rivers (section 6) wait for the terrain work.
+None at the moment.
