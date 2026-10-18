@@ -12,11 +12,27 @@ export class TimeStack {
   readonly header: ExtractHeader;
   private readonly data: ExtractData;
   private readonly years: number[];
+  // The header's numbers, looked up once: sampling runs millions of times a build.
+  private readonly half: number;
+  private readonly period: number;
+  private readonly width: number;
+  private readonly height: number;
+  private readonly nodata: number | undefined;
+  /** The last date asked for and its two layers, since callers ask one date many times. */
+  private lastYear = NaN;
+  private lastK = 0;
+  private lastT = 0;
 
   constructor(header: ExtractHeader, data: ExtractData) {
     this.header = header;
     this.data = data;
     this.years = header.yearsBP ?? [0];
+    this.half = header.registration === 'cell' ? 0.5 : 0;
+    // Longitude wraps; a node grid spanning 360° repeats its first column.
+    this.period = Math.round(360 / header.cellDegrees);
+    this.width = header.width;
+    this.height = header.height;
+    this.nodata = header.nodata;
   }
 
   /** Value in units at a point and date, or undefined where every neighbour has no data. */
@@ -24,9 +40,15 @@ export class TimeStack {
     const ys = this.years;
     if (yearsBP >= ys[0]!) return this.sampleLayer(0, lat, lon);
     if (yearsBP <= ys[ys.length - 1]!) return this.sampleLayer(ys.length - 1, lat, lon);
-    let k = 1;
-    while (ys[k]! > yearsBP) k++;
-    const t = (ys[k - 1]! - yearsBP) / (ys[k - 1]! - ys[k]!);
+    if (yearsBP !== this.lastYear) {
+      let k = 1;
+      while (ys[k]! > yearsBP) k++;
+      this.lastYear = yearsBP;
+      this.lastK = k;
+      this.lastT = (ys[k - 1]! - yearsBP) / (ys[k - 1]! - ys[k]!);
+    }
+    const k = this.lastK;
+    const t = this.lastT;
     const a = this.sampleLayer(k - 1, lat, lon);
     const b = this.sampleLayer(k, lat, lon);
     if (a === undefined) return t >= 0.5 ? b : undefined;
@@ -37,31 +59,30 @@ export class TimeStack {
   /** Bilinear sample of one layer, skipping cells without data. */
   sampleLayer(layer: number, lat: number, lon: number): number | undefined {
     const h = this.header;
-    const half = h.registration === 'cell' ? 0.5 : 0;
+    const { half, period, width, height, nodata } = this;
     let x = (lon - h.west) / h.cellDegrees - half;
     const y = (h.north - lat) / h.cellDegrees - half;
-    // Longitude wraps; a node grid spanning 360° repeats its first column.
-    const period = Math.round(360 / h.cellDegrees);
     x = ((x % period) + period) % period;
     const x0 = Math.floor(x);
     const y0 = Math.floor(y);
     const fx = x - x0;
     const fy = y - y0;
-    const base = layer * h.width * h.height;
+    const base = layer * width * height;
+    const gx = 1 - fx;
+    const gy = 1 - fy;
+    // The four corners in a fixed order, so the sum is the same as ever.
     let sum = 0;
     let weight = 0;
-    for (const [dx, dy, wgt] of [
-      [0, 0, (1 - fx) * (1 - fy)],
-      [1, 0, fx * (1 - fy)],
-      [0, 1, (1 - fx) * fy],
-      [1, 1, fx * fy],
-    ] as const) {
+    for (let k = 0; k < 4; k++) {
+      const dx = k & 1;
+      const dy = k >> 1;
+      const wgt = (dx ? fx : gx) * (dy ? fy : gy);
       const r = y0 + dy;
-      if (r < 0 || r >= h.height || wgt === 0) continue;
+      if (r < 0 || r >= height || wgt === 0) continue;
       const c = (x0 + dx) % period;
-      if (c >= h.width) continue;
-      const v = this.data[base + r * h.width + c]!;
-      if (h.nodata !== undefined && v === h.nodata) continue;
+      if (c >= width) continue;
+      const v = this.data[base + r * width + c]!;
+      if (nodata !== undefined && v === nodata) continue;
       sum += v * wgt;
       weight += wgt;
     }

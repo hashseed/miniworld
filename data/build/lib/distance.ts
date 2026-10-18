@@ -14,35 +14,54 @@ export function distanceKm(seed: Uint8Array, w: number, h: number): Float32Array
   }
   const d = new Float32Array(w * h);
   for (let i = 0; i < w * h; i++) d[i] = seed[i] ? 0 : 1e9;
-  const relax = (i: number, j: number, cost: number) => {
-    const v = d[j]! + cost;
-    if (v < d[i]!) d[i] = v;
-  };
+  // Each cell takes the cheapest of its neighbours' distances plus the step,
+  // in a fixed order: west or east first, then the row before. Rounding to
+  // float32 at every step keeps the result what storing each step gives.
   for (let pass = 0; pass < 2; pass++) {
     for (let r = 0; r < h; r++) {
       const ddx = dx[r]!;
       const diag = Math.hypot(r > 0 ? (ddx + dx[r - 1]!) / 2 : ddx, cellKm);
+      const row = r * w;
+      const up = row - w;
       for (let c = 0; c < w; c++) {
-        const i = r * w + c;
-        relax(i, r * w + ((c - 1 + w) % w), ddx);
+        const i = row + c;
+        const left = c === 0 ? w - 1 : c - 1;
+        const right = c === w - 1 ? 0 : c + 1;
+        let best = d[i]!;
+        let v = d[row + left]! + ddx;
+        if (v < best) best = Math.fround(v);
         if (r > 0) {
-          relax(i, (r - 1) * w + c, cellKm);
-          relax(i, (r - 1) * w + ((c - 1 + w) % w), diag);
-          relax(i, (r - 1) * w + ((c + 1) % w), diag);
+          v = d[up + c]! + cellKm;
+          if (v < best) best = Math.fround(v);
+          v = d[up + left]! + diag;
+          if (v < best) best = Math.fround(v);
+          v = d[up + right]! + diag;
+          if (v < best) best = Math.fround(v);
         }
+        d[i] = best;
       }
     }
     for (let r = h - 1; r >= 0; r--) {
       const ddx = dx[r]!;
       const diag = Math.hypot(r < h - 1 ? (ddx + dx[r + 1]!) / 2 : ddx, cellKm);
+      const row = r * w;
+      const down = row + w;
       for (let c = w - 1; c >= 0; c--) {
-        const i = r * w + c;
-        relax(i, r * w + ((c + 1) % w), ddx);
+        const i = row + c;
+        const left = c === 0 ? w - 1 : c - 1;
+        const right = c === w - 1 ? 0 : c + 1;
+        let best = d[i]!;
+        let v = d[row + right]! + ddx;
+        if (v < best) best = Math.fround(v);
         if (r < h - 1) {
-          relax(i, (r + 1) * w + c, cellKm);
-          relax(i, (r + 1) * w + ((c - 1 + w) % w), diag);
-          relax(i, (r + 1) * w + ((c + 1) % w), diag);
+          v = d[down + c]! + cellKm;
+          if (v < best) best = Math.fround(v);
+          v = d[down + left]! + diag;
+          if (v < best) best = Math.fround(v);
+          v = d[down + right]! + diag;
+          if (v < best) best = Math.fround(v);
         }
+        d[i] = best;
       }
     }
   }
