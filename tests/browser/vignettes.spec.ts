@@ -82,13 +82,27 @@ test('the mammoth hunt is visible from orbit, flies down and moves while playing
   // Setting the day again on each try, in case the app is still restoring its own state.
   const lonAt = async (k: number) => {
     await setDay(k);
-    return (await hunt(page)).stages[0]?.lon;
+    // The stage of this period, not one left from the period tried before.
+    return (await hunt(page)).stages.find((s) => s.id.startsWith(`mammoth-hunt:${13 + k}:`))?.lon;
   };
-  for (let k = 0; ; k++) {
-    let lon: number | undefined;
-    await expect.poll(async () => (lon = await lonAt(k))).toBeDefined();
-    if (lon! < 45) break;
-  }
+  // Content streams by place, so a hunt far from the camera may never load:
+  // try the next period when this one shows no European hunt for a while.
+  await expect
+    .poll(
+      async () => {
+        for (let k = 0; k < 6; k++) {
+          for (let tries = 0; tries < 20; tries++) {
+            const lon = await lonAt(k);
+            if (lon !== undefined && lon < 45) return true;
+            if (lon !== undefined) break;
+            await page.waitForTimeout(250);
+          }
+        }
+        return false;
+      },
+      { timeout: 90_000 },
+    )
+    .toBe(true);
   // Look at it from orbit with the stage left of the centre, clear of the card.
   const site = (await hunt(page)).stages[0]!;
   await page.evaluate(
