@@ -2,7 +2,7 @@
 
 import type { SourceInfo } from '../content/types.ts';
 import type { PlayState } from '../time/clock.ts';
-import type { Bookmark, Settings, Tier } from './storage.ts';
+import type { Bookmark, Settings } from './storage.ts';
 
 export type Panel = 'none' | 'settings' | 'bookmarks' | 'about' | 'vignette';
 
@@ -21,7 +21,6 @@ export interface VignetteCard {
 
 export interface UiState {
   ready: boolean;
-  preparing: boolean;
   error: string | undefined;
   day: number;
   playState: PlayState;
@@ -31,8 +30,6 @@ export interface UiState {
   scrubbing: boolean;
   panel: Panel;
   settings: Settings;
-  tier: Tier;
-  autoTier: Tier;
   bookmarks: Bookmark[];
   follow: boolean;
   isPhone: boolean;
@@ -61,7 +58,6 @@ export interface Actions {
   tiltCamera(degrees: number): void;
   followPlayhead(): void;
   toggleLanes(): void;
-  remeasure(): void;
   /** The "True sizes" button: switches the history lens off or back on. */
   toggleTrueSizes(): void;
   closeLensHint(): void;

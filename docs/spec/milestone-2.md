@@ -29,7 +29,7 @@ Decided by Yang on 2026-10-17: no population model is needed for this milestone 
 
 ### 2.1 The worker and the scene
 
-The world query runs in a Web Worker (`app/src/world/`). It receives the date, the life clock, the play state and the view (camera position, the visible quadtree tiles and the quality tier) and returns a **scene**: the camps, figures, vignette instances, landmarks, migration groups and markers in and near the view, each with a stable id. The renderer and the interface only draw the scene; they never decide anything about the world.
+The world query runs in a Web Worker (`app/src/world/`). It receives the date, the life clock, the play state and the view (camera position, the visible quadtree tiles) and returns a **scene**: the camps, figures, vignette instances, landmarks, migration groups and markers in and near the view, each with a stable id. The renderer and the interface only draw the scene; they never decide anything about the world.
 
 The pure functions of `app/src/time`, `app/src/core` and the date-dependent parts of `app/src/globe` (sea level, ocean mask, ice, aridity) move into the worker unchanged ([milestone-1.md](milestone-1.md#22-repository-layout) section 2.2), so the world query knows where land, sea, ice and desert are at the date.
 
@@ -124,7 +124,7 @@ Ordinary figures live in their camp. Each figure's id is the hash of its camp an
 | 80 to 300 km | Coloured marks, one per figure, moving along their segments |
 | Above 300 km | Camps only, as hearth smoke |
 
-The tier limits on animated figures (milestone 1 section 11.2) cap the first level; figures beyond the limit fall back to the next level, nearest kept first.
+The limit on animated figures (milestone 1 section 11.2) caps the first level; figures beyond the limit fall back to the next level, nearest kept first.
 
 ## 6. Vignettes
 

@@ -11,7 +11,7 @@ import { LANGUAGES, type Language } from '../i18n/messages.ts';
 import { LANGUAGE_NAMES, type I18n } from '../i18n/i18n.ts';
 import { useStore } from './hooks.ts';
 import type { Actions, UiState, VignetteCard } from './state.ts';
-import type { QualitySetting, Settings } from './storage.ts';
+import type { Settings } from './storage.ts';
 import {
   BookmarkIcon,
   CloseIcon,
@@ -59,9 +59,9 @@ export function App({ store, i18n, actions }: Props) {
 
   return (
     <>
-      {(!s.ready || s.preparing) && (
+      {!s.ready && (
         <div class="overlay" aria-live="polite">
-          {s.preparing ? t('app.preparing') : t('app.loading')}
+          {t('app.loading')}
         </div>
       )}
 
@@ -309,7 +309,6 @@ function Toggle({
 
 function SettingsPanel({ s, t, actions }: { s: UiState; t: T; actions: Actions }) {
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => actions.setSetting(k, v);
-  const tierName = (tier: 'high' | 'medium' | 'low') => t(`settings.quality.${tier}`);
   return (
     <PanelFrame title={t('settings.title')} t={t} actions={actions}>
       <label class="row">
@@ -323,18 +322,6 @@ function SettingsPanel({ s, t, actions }: { s: UiState; t: T; actions: Actions }
               {LANGUAGE_NAMES[l]}
             </option>
           ))}
-        </select>
-      </label>
-      <label class="row">
-        <span>{t('settings.quality')}</span>
-        <select
-          value={s.settings.quality}
-          onChange={(e) => set('quality', (e.target as HTMLSelectElement).value as QualitySetting)}
-        >
-          <option value="auto">{t('settings.quality.auto', { tier: tierName(s.autoTier) })}</option>
-          <option value="high">{tierName('high')}</option>
-          <option value="medium">{tierName('medium')}</option>
-          <option value="low">{tierName('low')}</option>
         </select>
       </label>
       <Toggle
@@ -357,11 +344,6 @@ function SettingsPanel({ s, t, actions }: { s: UiState; t: T; actions: Actions }
         value={s.settings.showStats}
         onChange={(v) => set('showStats', v)}
       />
-      <p>
-        <button class="btn" onClick={() => actions.remeasure()}>
-          {t('settings.remeasure')}
-        </button>
-      </p>
     </PanelFrame>
   );
 }
@@ -551,8 +533,6 @@ function Stats({ s, t, actions }: { s: UiState; t: T; actions: Actions }) {
         <dd>{st.triangles.toLocaleString()}</dd>
         <dt>{t('stats.renderScale')}</dt>
         <dd>{st.scale.toFixed(2)}</dd>
-        <dt>{t('stats.tier')}</dt>
-        <dd>{t(`settings.quality.${s.tier}`)}</dd>
       </dl>
       <button class="btn" onClick={() => actions.saveReport()}>
         {t('stats.report')}

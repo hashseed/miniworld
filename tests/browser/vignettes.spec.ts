@@ -45,7 +45,6 @@ test.beforeEach(async ({ page }) => {
         'miniworld.settings.v1',
         JSON.stringify({
           language: 'en',
-          quality: 'low',
           slowWhenZoomed: false,
           lensHintSeen: true,
         }),
@@ -58,7 +57,7 @@ test.beforeEach(async ({ page }) => {
 test('the mammoth hunt is visible from orbit, flies down and moves while playing', async ({
   page,
 }) => {
-  await page.goto('/?nobench');
+  await page.goto('/');
   await expect(page.locator('.overlay')).toHaveCount(0, { timeout: 60_000 });
 
   // A fixed day around 30,000 BCE, looking at Europe from orbit.

@@ -20,7 +20,6 @@ class MemoryStorage {
 
 const defaults: Settings = {
   language: 'en',
-  quality: 'auto',
   timelineExpanded: false,
   trueTimeScale: false,
   slowWhenZoomed: true,
