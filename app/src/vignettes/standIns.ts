@@ -5,7 +5,7 @@
 
 import * as THREE from 'three';
 import { hash01, hashString } from '../core/hash.ts';
-import type { Clip } from '../world/vignette.ts';
+import type { CastRules, Clip } from '../world/vignette.ts';
 
 const TWO_PI = Math.PI * 2;
 
@@ -66,12 +66,13 @@ const SKINS = [0xc58c64, 0xa86f4c, 0x8d5a3b, 0xd2a07a];
 const HAIR = [0x2b1d14, 0x3d2a1c, 0x4a3322];
 
 /** A person of an ice-age hunting band; looks vary by a hash of its key. */
-export function buildHuman(key: string, role: string | undefined): StandIn {
+export function buildHuman(key: string, rules: CastRules = {}): StandIn {
   const h = hashString(key);
   const fur = FURS[Math.floor(hash01(h, 1) * FURS.length)]!;
   const skin = SKINS[Math.floor(hash01(h, 2) * SKINS.length)]!;
   const hair = HAIR[Math.floor(hash01(h, 3) * HAIR.length)]!;
-  const size = role === 'hunter' ? 1 : 0.8 + hash01(h, 4) * 0.2;
+  // Roles played by men are full-size adults; the others vary like a family.
+  const size = rules.man ? 1 : 0.8 + hash01(h, 4) * 0.2;
 
   const root = new THREE.Group();
   const body = new THREE.Group();
@@ -103,9 +104,9 @@ export function buildHuman(key: string, role: string | undefined): StandIn {
   const legL = limb(0, 0.02, 0.1, 0.085, 0.62, fur);
   const legR = limb(0, 0.02, -0.1, 0.085, 0.62, fur);
 
-  // Hunters carry a spear in the right hand, pointing forward (+x).
+  // A role holding a spear carries it in the right hand, pointing forward (+x).
   let spear: THREE.Object3D | undefined;
-  if (role === 'hunter') {
+  if (rules.tool === 'spear') {
     spear = new THREE.Group();
     const shaft = part(new THREE.CylinderGeometry(0.022, 0.022, 2.2, 6), 0xb98a52, 0.015);
     shaft.rotation.z = -Math.PI / 2;
@@ -315,9 +316,9 @@ export function buildStandIn(
   kind: 'human' | 'animal' | 'prop',
   look: string,
   key: string,
-  role?: string,
+  rules: CastRules = {},
 ): StandIn {
   if (kind === 'prop') return buildPropStandIn();
-  if (kind === 'animal' && look === 'woolly-mammoth') return buildMammoth();
-  return buildHuman(key, role);
+  if (kind === 'animal' && look === 'mammoth') return buildMammoth();
+  return buildHuman(key, rules);
 }

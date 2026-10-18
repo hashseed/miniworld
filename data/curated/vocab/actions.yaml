@@ -1,0 +1,19 @@
+# Vignette actions (docs/spec/milestone-2.md section 6.4; content-format.md
+# section 1): who can do each one (cast groups or props) and what its object
+# names. The vignette player implements exactly these actions.
+wait: { for: cast, object: none }
+walk-to: { for: cast, object: mark }
+run-to: { for: cast, object: mark }
+carry-to: { for: cast, object: mark }
+haul: { for: cast, object: mark }
+work-at: { for: cast, object: mark }
+point: { for: cast, object: optional-group }
+throw-at: { for: cast, object: group }
+cheer: { for: cast, object: optional-group }
+struggle: { for: cast, object: none }
+fall: { for: cast, object: none }
+cut-up: { for: cast, object: none }
+appear: { for: cast, object: none }
+vanish: { for: cast, object: none }
+show: { for: prop, object: none }
+hide: { for: prop, object: none }
