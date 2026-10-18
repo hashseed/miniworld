@@ -2,6 +2,8 @@
 // section 8.4). Supports "{name}" and "{name, plural, one {...} other {...}}",
 // where "#" inside a plural branch is replaced by the formatted number.
 
+import { numberFormat, pluralRules } from './intl.ts';
+
 export type Language = 'en' | 'de';
 export const LANGUAGES: readonly Language[] = ['en', 'de'];
 export const FALLBACK_LANGUAGE: Language = 'en';
@@ -13,7 +15,7 @@ export function formatMessage(
   template: string,
   params: Params,
   language: Language,
-  formatNumber: (n: number) => string = (n) => new Intl.NumberFormat(language).format(n),
+  formatNumber: (n: number) => string = (n) => numberFormat(language).format(n),
 ): string {
   let out = '';
   let i = 0;
@@ -65,7 +67,7 @@ function formatArgument(
   const n = typeof value === 'number' ? value : Number(value);
   const branches = parseBranches(rest.slice(comma2 + 1));
   const exact = branches.get(`=${n}`);
-  const category = new Intl.PluralRules(language).select(n);
+  const category = pluralRules(language).select(n);
   const branch = exact ?? branches.get(category) ?? branches.get('other') ?? '';
   const display = typeof value === 'string' ? value : formatNumber(n);
   return formatMessage(branch, params, language, formatNumber).replaceAll('#', display);

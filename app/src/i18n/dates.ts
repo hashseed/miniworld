@@ -3,10 +3,19 @@
 // eras are formatted here.
 
 import { dateFromDay, type Day } from '../time/calendar.ts';
+import { dateTimeFormat, numberFormat } from './intl.ts';
 import type { Language } from './messages.ts';
 
+const FULL_DATE: Intl.DateTimeFormatOptions = {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  timeZone: 'UTC',
+};
+const RATE_DIGITS: Intl.NumberFormatOptions = { maximumSignificantDigits: 2 };
+
 export function formatNumber(n: number, language: Language): string {
-  return new Intl.NumberFormat(language).format(n);
+  return numberFormat(language).format(n);
 }
 
 /** Year number as written: no separator up to four digits, one from five. */
@@ -62,12 +71,7 @@ export function formatFullDate(
 ): string {
   const date = new Date(Date.UTC(2000, month - 1, day));
   date.setUTCFullYear(year);
-  return new Intl.DateTimeFormat(language === 'de' ? 'de-DE' : 'en-GB', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(date);
+  return dateTimeFormat(language === 'de' ? 'de-DE' : 'en-GB', FULL_DATE).format(date);
 }
 
 /** Rate readout number, rounded to two significant figures. */
@@ -79,5 +83,5 @@ export function roundRate(yearsPerMinute: number): number {
 
 export function formatRateNumber(yearsPerMinute: number, language: Language): string {
   const r = roundRate(yearsPerMinute);
-  return new Intl.NumberFormat(language, { maximumSignificantDigits: 2 }).format(r);
+  return numberFormat(language, RATE_DIGITS).format(r);
 }

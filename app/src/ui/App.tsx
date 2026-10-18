@@ -11,7 +11,7 @@ import { formatDateReadout, formatFullDate, formatYear, roundRate } from '../i18
 import { LANGUAGES, type Language } from '../i18n/messages.ts';
 import { LANGUAGE_NAMES, type I18n } from '../i18n/i18n.ts';
 import { useStore } from './hooks.ts';
-import type { Actions, UiState, VignetteCard } from './state.ts';
+import type { Actions, HotState, UiState, VignetteCard } from './state.ts';
 import type { Settings } from './storage.ts';
 import {
   BookmarkIcon,
@@ -30,11 +30,12 @@ import {
 
 interface Props {
   store: Store<UiState>;
+  hot: Store<HotState>;
   i18n: I18n;
   actions: Actions;
 }
 
-export function App({ store, i18n, actions }: Props) {
+export function App({ store, hot, i18n, actions }: Props) {
   const s = useStore(store);
   useStore(i18n);
   const t = i18n.t.bind(i18n);
@@ -51,14 +52,6 @@ export function App({ store, i18n, actions }: Props) {
     );
   }
 
-  const stationary = s.playState !== 'playing' && !s.scrubbing;
-  const dateText = formatDateReadout(s.day, lang, { yearsPerMinute: s.yearsPerMinute, stationary });
-  const stateText = s.playState === 'playing' ? t('controls.playing') : t('controls.paused');
-  const label = speedLabel(s.speedLog2);
-  const speedText = t(label.fraction ? 'controls.speedFraction' : 'controls.speedValue', {
-    speed: i18n.number(label.value),
-  });
-
   return (
     <>
       {!s.ready && (
@@ -67,7 +60,9 @@ export function App({ store, i18n, actions }: Props) {
         </div>
       )}
 
-      {(s.settings.showStats || s.stressScene) && <Stats s={s} t={t} actions={actions} />}
+      {(s.settings.showStats || s.stressScene) && (
+        <Stats hot={hot} stress={s.stressScene} t={t} actions={actions} />
+      )}
 
       <div class="top-right">
         <button
@@ -136,58 +131,7 @@ export function App({ store, i18n, actions }: Props) {
       <div class="bottom">
         {s.fixture && <div class="notice">{t('app.fixtureNotice')}</div>}
         <div class="bar">
-          <Fold
-            class="play-fold"
-            button={(open) =>
-              s.playState === 'playing' ? (
-                <button
-                  class="btn"
-                  aria-label={t('controls.pause')}
-                  title={t('controls.pauseHint')}
-                  onClick={() => {
-                    actions.pause();
-                    open();
-                  }}
-                >
-                  <PauseIcon />
-                </button>
-              ) : (
-                <button
-                  class="btn"
-                  aria-label={t('controls.play')}
-                  title={t('controls.playHint')}
-                  onClick={() => {
-                    actions.play();
-                    open();
-                  }}
-                >
-                  <PlayIcon />
-                </button>
-              )
-            }
-          >
-            <input
-              type="range"
-              min={MIN_SPEED_LOG2}
-              max={MAX_SPEED_LOG2}
-              step="any"
-              value={s.speedLog2}
-              aria-label={t('controls.speed')}
-              aria-valuetext={speedText}
-              data-testid="speed"
-              onInput={(e) => actions.setSpeed(Number((e.target as HTMLInputElement).value))}
-              onChange={(e) => actions.setSpeed(Number((e.target as HTMLInputElement).value), true)}
-            />
-            <output>{speedText}</output>
-          </Fold>
-          <span class="date" aria-live="off" data-testid="date">
-            {dateText}
-          </span>
-          <span class="rate" title={stateText}>
-            {s.playState === 'playing'
-              ? t('controls.rate', { rate: roundRate(s.yearsPerMinute) })
-              : stateText}
-          </span>
+          <PlayControls hot={hot} i18n={i18n} actions={actions} />
           <LensFold s={s} t={t} i18n={i18n} actions={actions} />
         </div>
         <TimelineCanvas s={s} t={t} actions={actions} />
@@ -197,6 +141,84 @@ export function App({ store, i18n, actions }: Props) {
 }
 
 type T = I18n['t'];
+
+/** Play button, speed slider, date and rate: the parts that change while history plays. */
+function PlayControls({
+  hot,
+  i18n,
+  actions,
+}: {
+  hot: Store<HotState>;
+  i18n: I18n;
+  actions: Actions;
+}) {
+  const s = useStore(hot);
+  const t = i18n.t.bind(i18n);
+  const lang = i18n.language;
+  const stationary = s.playState !== 'playing' && !s.scrubbing;
+  const dateText = formatDateReadout(s.day, lang, { yearsPerMinute: s.yearsPerMinute, stationary });
+  const stateText = s.playState === 'playing' ? t('controls.playing') : t('controls.paused');
+  const label = speedLabel(s.speedLog2);
+  const speedText = t(label.fraction ? 'controls.speedFraction' : 'controls.speedValue', {
+    speed: i18n.number(label.value),
+  });
+  return (
+    <>
+      <Fold
+        class="play-fold"
+        button={(open) =>
+          s.playState === 'playing' ? (
+            <button
+              class="btn"
+              aria-label={t('controls.pause')}
+              title={t('controls.pauseHint')}
+              onClick={() => {
+                actions.pause();
+                open();
+              }}
+            >
+              <PauseIcon />
+            </button>
+          ) : (
+            <button
+              class="btn"
+              aria-label={t('controls.play')}
+              title={t('controls.playHint')}
+              onClick={() => {
+                actions.play();
+                open();
+              }}
+            >
+              <PlayIcon />
+            </button>
+          )
+        }
+      >
+        <input
+          type="range"
+          min={MIN_SPEED_LOG2}
+          max={MAX_SPEED_LOG2}
+          step="any"
+          value={s.speedLog2}
+          aria-label={t('controls.speed')}
+          aria-valuetext={speedText}
+          data-testid="speed"
+          onInput={(e) => actions.setSpeed(Number((e.target as HTMLInputElement).value))}
+          onChange={(e) => actions.setSpeed(Number((e.target as HTMLInputElement).value), true)}
+        />
+        <output>{speedText}</output>
+      </Fold>
+      <span class="date" aria-live="off" data-testid="date">
+        {dateText}
+      </span>
+      <span class="rate" title={stateText}>
+        {s.playState === 'playing'
+          ? t('controls.rate', { rate: roundRate(s.yearsPerMinute) })
+          : stateText}
+      </span>
+    </>
+  );
+}
 
 function TimelineCanvas({ s, t, actions }: { s: UiState; t: T; actions: Actions }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -589,11 +611,21 @@ function paragraphs(text: string) {
     .map((p, i) => <p key={i}>{p.trim()}</p>);
 }
 
-function Stats({ s, t, actions }: { s: UiState; t: T; actions: Actions }) {
-  const st = s.stats;
+function Stats({
+  hot,
+  stress,
+  t,
+  actions,
+}: {
+  hot: Store<HotState>;
+  stress: boolean;
+  t: T;
+  actions: Actions;
+}) {
+  const st = useStore(hot).stats;
   return (
     <div class="stats" data-testid="stats">
-      <strong>{s.stressScene ? t('stress.title') : t('stats.title')}</strong>
+      <strong>{stress ? t('stress.title') : t('stats.title')}</strong>
       <dl>
         <dt>{t('stats.fps')}</dt>
         <dd>{st.fps.toFixed(0)}</dd>

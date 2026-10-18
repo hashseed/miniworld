@@ -58,11 +58,14 @@ export interface TerrainTile {
 }
 
 const TERRAIN_MAGIC = 0x3554574d; // "MWT5"
+/** Bytes of a terrain tile file: header, heights, then nine bytes per sample. */
+export const TERRAIN_TILE_BYTES =
+  16 + TERRAIN_BORDERED * TERRAIN_BORDERED * 2 + TERRAIN_SAMPLES * TERRAIN_SAMPLES * 9;
 
 export function encodeTerrainTile(t: TerrainTile): Uint8Array {
   const hb = TERRAIN_BORDERED * TERRAIN_BORDERED * 2;
   const sb = TERRAIN_SAMPLES * TERRAIN_SAMPLES;
-  const buf = new ArrayBuffer(16 + hb + sb * 9);
+  const buf = new ArrayBuffer(TERRAIN_TILE_BYTES);
   const dv = new DataView(buf);
   dv.setUint32(0, TERRAIN_MAGIC, true);
   dv.setUint8(4, t.key.level);
@@ -82,6 +85,8 @@ export function encodeTerrainTile(t: TerrainTile): Uint8Array {
 }
 
 export function decodeTerrainTile(bytes: ArrayBuffer): TerrainTile {
+  if (bytes.byteLength !== TERRAIN_TILE_BYTES)
+    throw new Error(`Terrain tile of ${bytes.byteLength} bytes, expected ${TERRAIN_TILE_BYTES}`);
   const dv = new DataView(bytes);
   if (dv.getUint32(0, true) !== TERRAIN_MAGIC) throw new Error('Not a terrain tile');
   const key = {
@@ -151,6 +156,8 @@ export function encodeClimateSlice(c: ClimateSlice): Uint8Array {
 }
 
 export function decodeClimateSlice(bytes: ArrayBuffer): ClimateSlice {
+  if (bytes.byteLength !== 16 + ICE_GRID_W * ICE_GRID_H + ARID_GRID_W * ARID_GRID_H)
+    throw new Error(`Climate slice of ${bytes.byteLength} bytes`);
   const dv = new DataView(bytes);
   if (dv.getUint32(0, true) !== CLIMATE_MAGIC) throw new Error('Not a climate slice');
   if (dv.getUint16(8, true) !== ICE_GRID_W || dv.getUint16(12, true) !== ARID_GRID_W)
@@ -207,6 +214,8 @@ export function encodeFoliageSlice(f: FoliageSlice): Uint8Array {
 }
 
 export function decodeFoliageSlice(bytes: ArrayBuffer): FoliageSlice {
+  if (bytes.byteLength !== 12 + 2 * FOLIAGE_GRID_W * FOLIAGE_GRID_H)
+    throw new Error(`Foliage slice of ${bytes.byteLength} bytes`);
   const dv = new DataView(bytes);
   if (dv.getUint32(0, true) !== FOLIAGE_MAGIC) throw new Error('Not a foliage slice');
   if (dv.getUint16(8, true) !== FOLIAGE_GRID_W || dv.getUint16(10, true) !== FOLIAGE_GRID_H)

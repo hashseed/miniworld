@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { iceSlicePair, seaLevelAt, windowAt } from './planet.ts';
+import { iceSlicePair, seaLevelAt, windowAt } from './state.ts';
 
 describe('planet', () => {
   const curve = { startDay: 0, stepDays: 100, metres: [-120, -100, -20, 0] };

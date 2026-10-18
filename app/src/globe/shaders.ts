@@ -7,16 +7,19 @@
 // directly until textures are approved (section 12).
 
 import { ICE_DISTANCE_STEP_KM, ICE_DISTANCE_ZERO, TERRAIN_SAMPLES } from '../content/formats.ts';
+import {
+  COAST_BEACH_KM,
+  COAST_CURVE,
+  COAST_SLOPE,
+  ICE_DOME_KM,
+  ICE_DOME_M,
+  ICE_HIDE_KM,
+  LAKE_FIELD,
+} from '../planet/surface.ts';
 import { LENS_COLS, LENS_ROWS, LENS_STEP } from './lens.ts';
 
-/**
- * Ice sheets rise from their border as smooth domes, ICE_DOME_M at most,
- * reaching 63% of it ICE_DOME_KM inside; the relief under them is hidden over
- * the first ICE_HIDE_KM (section 5.2). Used by the shader and by globe.ts.
- */
-export const ICE_DOME_M = 1200;
-export const ICE_DOME_KM = 250;
-export const ICE_HIDE_KM = 120;
+/** A number as a GLSL float literal. */
+const f = (n: number) => (Number.isInteger(n) ? `${n}.0` : `${n}`);
 
 /**
  * The history lens in GLSL (history-lens.md, section 4): the forward grid
@@ -92,17 +95,15 @@ ${lensChunk}
 
 // How far below the sea level the flat sea surface lies (section 4.4).
 const float SEA_DROP = 3.0;
-// Ice domes (section 5.2), from the constants at the top of this file.
-const float ICE_DOME_M = ${ICE_DOME_M}.0;
-const float ICE_DOME_KM = ${ICE_DOME_KM}.0;
-const float ICE_HIDE_KM = ${ICE_HIDE_KM}.0;
-// Near the sea, land may rise at most coastCap(d) metres at d km from today's
-// coast (after a flat beach), so at 100x relief every coast and ice margin is
-// a rounded clay edge rather than a wall; further inland the cap grows fast
-// enough to leave mountains alone (section 4.2).
-const float COAST_BEACH_KM = 2.0;
-const float COAST_SLOPE = 12.0; // m per km at the coast
-const float COAST_CURVE = 0.15; // extra m per km²
+// Ice domes (section 5.2) and the rounded coast (section 4.2), with the same
+// constants and rules as the planet query (app/src/planet/surface.ts).
+const float ICE_DOME_M = ${f(ICE_DOME_M)};
+const float ICE_DOME_KM = ${f(ICE_DOME_KM)};
+const float ICE_HIDE_KM = ${f(ICE_HIDE_KM)};
+const float COAST_BEACH_KM = ${f(COAST_BEACH_KM)};
+const float COAST_SLOPE = ${f(COAST_SLOPE)}; // m per km at the coast
+const float COAST_CURVE = ${f(COAST_CURVE)}; // extra m per km²
+const float LAKE_FIELD = ${f(LAKE_FIELD)};
 
 varying vec3 vWorld;
 varying vec3 vUp;
@@ -129,9 +130,9 @@ void main() {
   // below crosses zero along smooth curves (sections 4.3 and 5.1). Where the
   // sea reaches a lake basin, it is sea.
   float seaWater = seaLevel - oceanLevel;
-  float lakeWater = (lake - 0.5) * 80.0;
+  float lakeWater = (lake - LAKE_FIELD) * 80.0;
   bool sea = seaWater > 0.0;
-  bool isLake = !sea && lake > 0.5;
+  bool isLake = !sea && lake > LAKE_FIELD;
   float water = sea ? seaWater : isLake ? lakeWater : max(seaWater, lakeWater);
   float surface = h;
   if (sea) {
@@ -210,6 +211,11 @@ uniform float riverThreshold;
 uniform float seaLevel;
 uniform sampler2D fields; // ocean level (m), lake field, river field per tile sample
 ${climateGlsl}
+// Vegetation tint of the ground from the foliage slices (foliage.md, section 6):
+// colour and strength on the 0.5° grid from 90°N to 60°S.
+uniform sampler2D groundA;
+uniform sampler2D groundB;
+uniform float groundT;
 
 varying vec3 vWorld;
 varying vec3 vUp;
@@ -238,7 +244,28 @@ float noise3(vec3 x) {
              mix(mix(hash3(i + vec3(0,0,1)), hash3(i + vec3(1,0,1)), f.x), mix(hash3(i + vec3(0,1,1)), hash3(i + vec3(1,1,1)), f.x), f.y), f.z);
 }
 
-vec3 landColour(vec3 n, vec3 up, float arid) {
+/**
+ * One layer of painted grass: a lighter or darker dab in some cells of a
+ * grid fixed on the globe, faded out before its cells get smaller than a few
+ * pixels so it never shimmers.
+ */
+float tuftLayer(vec3 p, float seed) {
+  vec3 cell = floor(p);
+  vec3 f = fract(p) - 0.5;
+  float h = hash3(cell + seed);
+  vec3 off = vec3(hash3(cell + seed + 1.7), hash3(cell + seed + 3.1), hash3(cell + seed + 5.3)) - 0.5;
+  float dab = 1.0 - smoothstep(0.2, 0.3, length(f - off * 0.4));
+  float fade = 1.0 - smoothstep(0.12, 0.25, length(fwidth(p)));
+  return dab * step(0.45, h) * fade * (h > 0.72 ? 1.0 : -1.0);
+}
+
+vec3 grassTufts(vec3 c, float amount) {
+  float t = tuftLayer(vPattern * 0.12, 0.0) + tuftLayer(vPattern * 0.31, 11.0) * 0.7;
+  // Two cel bands: a lighter tip or a darker shadow.
+  return c * (1.0 + clamp(t, -1.0, 1.0) * 0.2 * amount);
+}
+
+vec3 landColour(vec3 n, vec3 up, float arid, float riverF) {
   // Climate follows the true latitude, not the drawn one.
   float lat = degrees(asin(clamp(normalize(vTrueUp).y, -1.0, 1.0)));
   float alat = abs(lat);
@@ -265,6 +292,21 @@ vec3 landColour(vec3 n, vec3 up, float arid) {
   // Deserts come from the desert model, which follows their wet and dry phases.
   c = mix(c, steppe, smoothstep(0.05, 0.4, arid + (v - 0.5) * 0.2) * 0.7);
   c = mix(c, sand, smoothstep(0.45, 0.75, arid + (v - 0.5) * 0.25));
+  // The vegetation of the foliage slices tints the ground, with green banks
+  // along desert rivers and painted grass tufts close up (foliage.md, section 6).
+  vec3 tu = normalize(vTrueUp);
+  // Looked up with a soft wobble of about a cell, so 0.5° cells never show as steps.
+  vec2 wob = vec2(noise3(vPattern * 0.02), noise3(vPattern * 0.02 + 17.0)) - 0.5;
+  vec2 guv = vec2(atan(tu.x, tu.z) * 0.15915494 + 0.5 + wob.x * 0.0035, (90.0 - lat + wob.y * 0.6) / 150.0);
+  vec4 g = lat > -60.0 ? mix(texture2D(groundA, guv), texture2D(groundB, guv), groundT) : vec4(0.0);
+  c = mix(c, g.rgb, g.a * (0.85 + 0.15 * v));
+  // Green banks fade out into the desert on both sides, strongest at the water.
+  // The river field falls from the water's edge (riverThreshold) to 0 over
+  // about 15 km of land, so the banks use all of it.
+  float bank = smoothstep(0.0, riverThreshold * 0.9, riverF + (v - 0.5) * 0.04);
+  bank = bank * bank * 0.8 * smoothstep(0.3, 0.5, arid);
+  c = mix(c, vec3(0.5, 0.7, 0.3), bank);
+  c = grassTufts(c, max(g.a, bank));
   // Mountains turn to rock towards the snow line and carry glacier caps on
   // their steep tops (section 4.3). The line follows the smoothed heights:
   // about 4600 m in the tropics, falling to 1000 m towards the poles and in
@@ -432,7 +474,7 @@ void main() {
     float edge = 1.0 - smoothstep(0.0, 60.0, iceKm);
     albedo = mix(vec3(0.97, 0.99, 1.0), vec3(0.78, 0.9, 0.98), edge);
   } else {
-    albedo = landColour(smoothN, up, clim.y);
+    albedo = landColour(smoothN, up, clim.y, riverF);
   }
 
   vec3 colour = studio(albedo, n, viewDir);

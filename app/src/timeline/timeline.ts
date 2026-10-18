@@ -62,6 +62,10 @@ export class Timeline {
   private pinch = new Map<number, number>();
   private pinchStart: { dist: number; a0: number; a1: number; centre: number } | undefined;
   private tooltip: { text: string; x: number; y: number; until: number } | undefined;
+  /** Bumped whenever the lanes are laid out again. */
+  private layoutVersion = 0;
+  /** What the canvas shows now; draw() does nothing while it is unchanged. */
+  private drawnKey = '';
   onFollowChange: (follow: boolean) => void = () => {};
   onLayout: (height: number) => void = () => {};
 
@@ -71,6 +75,13 @@ export class Timeline {
     this.clock = opts.clock;
     this.i18n = opts.i18n;
     this.attach();
+    // Labels drawn before the web font arrived are drawn again with it.
+    globalThis.document?.fonts?.addEventListener('loadingdone', () => this.invalidate());
+  }
+
+  /** Makes the next draw() redraw even if nothing it tracks has changed. */
+  invalidate(): void {
+    this.drawnKey = '';
   }
 
   setIndex(index: StartupIndex): void {
@@ -166,6 +177,7 @@ export class Timeline {
 
   private layoutLanes(): void {
     this.lanes = this.buildLanes(this.visibleLanes);
+    this.layoutVersion++;
     this.maxLaneRows = Math.max(1, ...this.buildLanes(undefined).map((l) => l.rows));
   }
 
@@ -216,12 +228,18 @@ export class Timeline {
     this.canvas.height = Math.round(height * this.dpr);
     this.canvas.style.width = `${width}px`;
     this.canvas.style.height = `${height}px`;
+    // Setting the canvas size clears it.
+    this.invalidate();
   }
 
   // --- Drawing ---------------------------------------------------------------------
 
-  draw(): void {
-    if (!this.index || this.width === 0) return;
+  /**
+   * Draws the timeline if the date, view, layout, language or tooltip changed
+   * since the last draw, or a scale switch is animating; returns whether it drew.
+   */
+  draw(): boolean {
+    if (!this.index || this.width === 0) return false;
     const day = this.clock.day;
     if (this.follow && !this.drag && this.clock.playState === 'playing') {
       const x = this.x(day);
@@ -231,6 +249,25 @@ export class Timeline {
         this.view = this.clampView(a - span * 0.3, a + span * 0.7);
       }
     }
+    const tip = this.tooltip && performance.now() <= this.tooltip.until ? this.tooltip : undefined;
+    const key = this.transition
+      ? ''
+      : [
+          day,
+          this.view.a0,
+          this.view.a1,
+          this.mode,
+          this.clock.startDay,
+          this.clock.endDay,
+          this.width,
+          this.height,
+          this.rowH,
+          this.layoutVersion,
+          this.i18n.language,
+          tip ? `${tip.text}@${tip.x},${tip.y}` : '',
+        ].join('|');
+    if (key && key === this.drawnKey) return false;
+    this.drawnKey = key;
     const ctx = this.ctx;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.clearRect(0, 0, this.width, this.height);
@@ -286,6 +323,7 @@ export class Timeline {
     ctx.lineTo(px, 8);
     ctx.fill();
     this.drawTooltip();
+    return true;
   }
 
   private drawRuler(): void {

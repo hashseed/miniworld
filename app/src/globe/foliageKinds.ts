@@ -117,3 +117,66 @@ export function pickKind(recipe: Recipe, roll: number): number {
   }
   return -1;
 }
+
+/** Ground colour (linear 0..1 RGB) and strength of the vegetation tint (spec foliage.md, section 6). */
+export type Ground = readonly [number, number, number, number];
+
+const RAINFOREST_FLOOR: Ground = [0.13, 0.5, 0.22, 0.9];
+const BROADLEAF_FLOOR: Ground = [0.27, 0.58, 0.22, 0.85];
+const CONIFER_FLOOR: Ground = [0.22, 0.47, 0.3, 0.85];
+const SAVANNA: Ground = [0.6, 0.72, 0.3, 0.8];
+const GRASSLAND: Ground = [0.52, 0.74, 0.3, 0.85];
+const MEDITERRANEAN: Ground = [0.56, 0.62, 0.32, 0.8];
+const DRY_SHRUB: Ground = [0.79, 0.71, 0.4, 0.6];
+const PARKLAND: Ground = [0.44, 0.59, 0.33, 0.8];
+const TUNDRA: Ground = [0.62, 0.66, 0.46, 0.65];
+const STEPPE_TUNDRA: Ground = [0.74, 0.7, 0.44, 0.7];
+/** Ground of a forest whose trees the tree density removed: open steppe. */
+const OPEN_STEPPE: readonly [number, number, number] = [0.72, 0.69, 0.42];
+
+/** BIOME4 class to ground; missing classes (desert, barren, ice) keep the milestone 1 colours. */
+const BIOME_GROUND: Readonly<Record<number, Ground>> = {
+  1: RAINFOREST_FLOOR,
+  2: RAINFOREST_FLOOR,
+  3: [0.36, 0.62, 0.22, 0.8],
+  4: BROADLEAF_FLOOR,
+  5: CONIFER_FLOOR,
+  6: BROADLEAF_FLOOR,
+  7: [0.25, 0.53, 0.26, 0.85],
+  8: CONIFER_FLOOR,
+  9: CONIFER_FLOOR,
+  10: CONIFER_FLOOR,
+  11: CONIFER_FLOOR,
+  12: SAVANNA,
+  13: DRY_SHRUB,
+  14: DRY_SHRUB,
+  15: MEDITERRANEAN,
+  16: [0.48, 0.68, 0.28, 0.8],
+  17: PARKLAND,
+  18: PARKLAND,
+  19: [0.6, 0.74, 0.3, 0.8],
+  20: GRASSLAND,
+  22: STEPPE_TUNDRA,
+  23: TUNDRA,
+  24: [0.66, 0.68, 0.5, 0.6],
+  25: [0.72, 0.72, 0.58, 0.5],
+  26: [0.75, 0.74, 0.62, 0.4],
+};
+
+/** The ground under a stored foliage byte with a tree density (0..1). */
+export function groundOf(code: number, density: number): Ground {
+  if (code > HUMID_SAVANNA) {
+    const s = (code - HUMID_SAVANNA) / 127;
+    return [SAVANNA[0], SAVANNA[1], SAVANNA[2], SAVANNA[3] * s];
+  }
+  const g = BIOME_GROUND[code];
+  if (!g) return [0, 0, 0, 0];
+  // Thinned trees leave open steppe between them.
+  const open = recipeOf(code).some(([kind]) => kind !== BUSH) ? 1 - density : 0;
+  return [
+    g[0] + (OPEN_STEPPE[0] - g[0]) * open,
+    g[1] + (OPEN_STEPPE[1] - g[1]) * open,
+    g[2] + (OPEN_STEPPE[2] - g[2]) * open,
+    g[3],
+  ];
+}
