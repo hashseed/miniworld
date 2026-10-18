@@ -375,10 +375,9 @@
       "file": "assets/src/animals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "approved",
-      "geometry": "846d741891a40830",
+      "status": "generated",
       "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "note": "Shorter muzzle after Yang's review on 2026-10-18, waiting for re-approval"
     },
     {
       "id": "animal-eland",
@@ -416,7 +415,7 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "generated",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+      "note": "Wildlife (wildlife.md section 6), round feet after Yang's review on 2026-10-18, waiting for Yang's review"
     },
     {
       "id": "animal-asian-elephant",
@@ -424,7 +423,7 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "generated",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+      "note": "Wildlife (wildlife.md section 6), round feet after Yang's review on 2026-10-18, waiting for Yang's review"
     },
     {
       "id": "animal-giraffe",
@@ -440,7 +439,7 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "generated",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+      "note": "Wildlife (wildlife.md section 6), stripes painted on after Yang's review on 2026-10-18, waiting for Yang's review"
     },
     {
       "id": "animal-wildebeest",
@@ -537,6 +536,158 @@
       "generated": "Modelling script, buildAnimal",
       "status": "generated",
       "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-capybara",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-tiger",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-giant-deer",
+      "file": "assets/src/extinctAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-aurochs",
+      "file": "assets/src/extinctAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-cave-lion",
+      "file": "assets/src/extinctAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-smilodon",
+      "file": "assets/src/extinctAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-mastodon",
+      "file": "assets/src/extinctAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-ground-sloth",
+      "file": "assets/src/extinctAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-glyptodon",
+      "file": "assets/src/extinctAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-diprotodon",
+      "file": "assets/src/extinctAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-moa",
+      "file": "assets/src/extinctAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-haast-eagle",
+      "file": "assets/src/extinctAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-elephant-bird",
+      "file": "assets/src/extinctAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-dodo",
+      "file": "assets/src/extinctAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-quagga",
+      "file": "assets/src/extinctAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-thylacine",
+      "file": "assets/src/extinctAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-whale",
+      "file": "assets/src/seaAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Sea animals (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-dolphin",
+      "file": "assets/src/seaAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Sea animals (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-sea-cow",
+      "file": "assets/src/seaAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Sea animals (wildlife.md section 6), waiting for Yang's review"
     },
     {
       "id": "plant-rainforest",

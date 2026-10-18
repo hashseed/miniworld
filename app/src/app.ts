@@ -467,6 +467,7 @@ async function start(): Promise<void> {
     minSeaLevel = lowestSeaLevel(index.seaLevel);
     vignettes.setIndex(index.vignettes);
     landmarks.setIndex(index.landmarks);
+    wildlife.setMasks(index.wildlife);
     globe.lowestSeaLevel = minSeaLevel;
     clock.configure({
       startDay: manifest.timelineStartDay,

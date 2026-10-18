@@ -83,6 +83,8 @@ export interface StartupIndex {
   vignettes: VignetteEntry[];
   /** Landmark records (giza.md section 11), in the same form. */
   landmarks: VignetteEntry[];
+  /** Ground mask of each wildlife group, in the order of data/curated/wildlife.json (wildlife.md section 4). */
+  wildlife: string[];
 }
 
 export interface VignetteEntry {

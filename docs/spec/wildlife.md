@@ -2,7 +2,7 @@
 
 The globe gets small groups of wild animals that are typical of each continent: elephants and lions in Africa, kangaroos in Australia, penguins in Antarctica, yaks on the Tibetan plateau. They make the land feel alive between the stories, teach a child which animals live where, and show how the world changed: mammoths walk Siberia until the end of the ice age, and horses vanish from the Americas and come back with the Europeans. Like everything else, wildlife is a pure function of the date and the clock.
 
-Status: asked for by Yang on 2026-10-18 ("let's add typical animals to all continents ... only groups of 2 or 3, only 1-2 groups of each species", then "also add parrots in south america, keas in new zealand, zebras, lions" and "elands and wildebeests (for hunting later!)"). The species and places below are **Proposed**, for review on the preview.
+Status: asked for by Yang on 2026-10-18 ("let's add typical animals to all continents ... only groups of 2 or 3, only 1-2 groups of each species", then "also add parrots in south america, keas in new zealand, zebras, lions" and "elands and wildebeests (for hunting later!)"; later the same day capybaras, Siberian tigers and the extinct megafauna of section 2: "ok add these too"). The species and places below are **Proposed**, for review on the preview.
 
 ## 1. What the viewer sees
 
@@ -20,6 +20,7 @@ Each group has one or more **spans** of years in which it is shown. Outside them
 - **Bison.** The American bison herd of the Great Plains is shown until 1885, when hunting had nearly wiped bison out; from 1885 a group lives in Yellowstone, where the last wild herd survived (US National Park Service, *Bison history*).
 - **Camels.** Dromedaries are shown in Arabia for the whole timeline and in the Sahara only from 200 CE, after they were brought across North Africa (Bulliet, *The Camel and the Wheel*, 1975).
 - **Lions.** One group in the Okavango and one in the Gir forest of India, where the last Asiatic lions live (IUCN Red List, *Panthera leo*).
+- **Extinct megafauna** (Yang, 2026-10-18: "what other megafauna in the past should I add, that maybe are even extinct already", then "ok add these too"). Each is shown until it died out, then shrinks away like any group; dates before written history are approximate and come from the sources in the data file: the giant deer (Irish elk) in Ireland until 10,700 BCE and in the southern Urals until 5700 BCE; the cave lion in the Swabian Jura and in Yakutia until 12,000 BCE; the sabre-toothed cat *Smilodon* at La Brea and in Florida until 8000 BCE; the American mastodon by the Great Lakes until 9000 BCE; the Columbian mammoth in the Valley of Mexico until 10,500 BCE (with the woolly mammoth model); the giant ground sloth *Megatherium* in the Pampas until 8500 BCE; *Glyptodon* in Uruguay until 8000 BCE; *Diprotodon* at Lake Callabonna until 42,000 BCE; the moa (North Island) and Haast's eagle (Otago, flying like the parrots) until about 1400 CE, soon after the first people came; the elephant bird in southern Madagascar until about 1000 CE; the dodo on Mauritius until 1662; the aurochs in Mazovia, Poland, until 1627, when the last one died; the quagga in the Karoo until 1883; and the thylacine in Tasmania until 1936. Small islands give their group a smaller roaming radius (`roamKm` in the data file: 25 km on Mauritius, 90 km on Tasmania).
 - **The Amazon crocodilian** is a black caiman, a relative of the crocodile that lives in the Amazon; it uses the crocodile model.
 
 The ground under a group is whatever the terrain draws at the date: penguins and polar bears stand on ice, and a group whose home the sea floods simply stands on the water surface. Homes are picked so that this does not happen within their spans.
@@ -58,7 +59,7 @@ Africa's groups are spread over the east, the south and the Sahel and west (Yang
 | Woolly rhino | `animal-woolly-rhino` | Siberia | 62.0, 100.0 | All to −12,000 |
 | Cave bear | `animal-cave-bear` | Eastern Alps, Slovenia | 46.0, 14.5 | All to −22,000 |
 | Brown bear | `animal-brown-bear` | Carpathians, Romania | 46.5, 25.0 | All |
-| Brown bear | `animal-brown-bear` | Interior Alaska | 64.5, −150.0 | All |
+| Brown bear | `animal-brown-bear` | Kamchatka | 54.0, 156.5 | All |
 | Polar bear | `animal-polar-bear` | North Slope, Alaska | 70.8, −153.0 | All |
 | Polar bear | `animal-polar-bear` | Svalbard | 78.5, 17.0 | −10,000 to 1991 |
 | Grey wolf | `animal-wolf` | Central Russia | 55.0, 40.0 | All |
@@ -67,14 +68,40 @@ Africa's groups are spread over the east, the south and the Sahel and west (Yang
 | Guanaco | `animal-guanaco` | Patagonia | −48.0, −69.0 | All |
 | Guanaco | `animal-guanaco` | Atacama Andes | −24.0, −68.0 | All |
 | Black caiman | `animal-crocodile` | Amazon near Manaus | −3.3, −60.0 | All |
+| Amur tiger | `animal-tiger` | Sikhote-Alin, Russian Far East | 45.5, 136.0 | All |
+| Bengal tiger | `animal-tiger` | Kanha, India | 22.3, 80.6 | All |
+| Capybara | `animal-capybara` | Amazon near Tefé | −3.4, −64.7 | All |
 | Scarlet macaw | `animal-parrot` | Western Amazon | −4.0, −72.0 | All |
 | Scarlet macaw | `animal-parrot` | Eastern Amazon | −3.0, −52.0 | All |
 | Saltwater crocodile | `animal-crocodile` | Kakadu, Australia | −12.6, 132.5 | All |
 | Grey kangaroo | `animal-kangaroo` | New South Wales | −31.0, 146.0 | All |
 | Red kangaroo | `animal-kangaroo` | Western Australia | −27.0, 118.0 | All |
-| Kea | `animal-kea` | Southern Alps, New Zealand | −43.6, 170.5 | All |
+| Kea | `animal-kea` | Nelson Lakes, New Zealand | −41.8, 172.8 | All |
 | Emperor penguin | `animal-penguin` | Cape Crozier, Ross Sea | −77.5, 169.0 | All |
 | Emperor penguin | `animal-penguin` | Halley Bay, Weddell Sea | −75.5, −26.5 | All |
+| Giant deer | `animal-giant-deer` | Ireland | 53.0, −8.0 | All to c. −10,700 |
+| Giant deer | `animal-giant-deer` | Southern Urals | 57.5, 61.0 | All to c. −5700 |
+| Aurochs | `animal-aurochs` | Mazovia, Poland | 52.2, 18.8 | All to 1627 |
+| Cave lion | `animal-cave-lion` | Swabian Jura, Germany | 48.5, 9.8 | All to c. −12,000 |
+| Cave lion | `animal-cave-lion` | Yakutia, Siberia | 66.0, 140.0 | All to c. −12,000 |
+| Sabre-toothed cat | `animal-smilodon` | La Brea, California | 34.1, −118.3 | All to c. −8000 |
+| Sabre-toothed cat | `animal-smilodon` | Florida | 28.0, −82.0 | All to c. −8000 |
+| American mastodon | `animal-mastodon` | Great Lakes, Michigan | 42.5, −84.5 | All to c. −9000 |
+| Columbian mammoth | `animal-mammoth` | Valley of Mexico | 19.6, −99.1 | All to c. −10,500 |
+| Giant ground sloth | `animal-ground-sloth` | Pampas, Argentina | −35.5, −60.5 | All to c. −8500 |
+| Glyptodon | `animal-glyptodon` | Uruguay | −32.5, −56.0 | All to c. −8000 |
+| Diprotodon | `animal-diprotodon` | Lake Callabonna, South Australia | −29.8, 140.1 | All to c. −42,000 |
+| Moa | `animal-moa` | Hawke's Bay, New Zealand | −39.6, 176.6 | All to c. 1400 |
+| Haast's eagle | `animal-haast-eagle` | Otago, New Zealand | −45.2, 169.8 | All to c. 1400 |
+| Elephant bird | `animal-elephant-bird` | Southern Madagascar | −24.5, 45.5 | All to c. 1000 |
+| Dodo | `animal-dodo` | Mauritius | −20.3, 57.6 | All to 1662 |
+| Quagga | `animal-quagga` | Karoo, South Africa | −31.5, 23.0 | All to 1883 |
+| Thylacine | `animal-thylacine` | Tasmania | −42.0, 146.5 | All to 1936 |
+| Humpback whale | `animal-whale` | Hawaii, off Maui | 20.3, −157.3 | All |
+| Humpback whale | `animal-whale` | North Atlantic, off Newfoundland | 47.0, −45.0 | All |
+| Bottlenose dolphin | `animal-dolphin` | Ionian Sea | 37.0, 18.5 | All |
+| Bottlenose dolphin | `animal-dolphin` | East of the Bahamas | 25.0, −72.0 | All |
+| Steller's sea cow | `animal-sea-cow` | Commander Islands | 54.5, 167.5 | All to 1768 |
 
 The groups are a curated data file, `data/curated/wildlife.json`, with the species, model, home, spans and source of each group. It is small (about 5 KB) and part of the app bundle, like the asset manifest; there is no text in it for the viewer.
 
@@ -84,19 +111,24 @@ All of it is a pure function of the group, its member index and the clock (spec 
 
 - **Size of a group.** 2 or 3 members, chosen by the hash of the group.
 - **Grazing and walking, in fluid motion** (Yang, 2026-10-18). A group's time is cut into rounds of about 10 to 16 seconds of the clock at regular speed: it stands and grazes (idle clip) for a part of the round, then walks (walk clip) to its next spot. The path runs along a smooth curve through the spots (a Catmull-Rom spline), so the group turns gradually and never snaps round, and the walk eases in and out: the animals speed up from standing, slow down before they stop, and their steps slow with them, ending on a whole stride so the legs come to rest. Spots are hashed points within the group's roaming radius around its home, about 150 km of the true globe (crocodiles about 80 km: they mostly bask), so groups never meet: homes are at least about 350 km apart. The group walks at about the speed its walk clip suggests, so feet do not slide much.
+- **On open lowland only** (Yang, 2026-10-18: "animals also should not climb mountains"). The data build gives every walking group a ground mask: a 24 × 24 grid of cells over a square reaching about 450 km beyond its roaming radius, each open where the drawn ground is dry land at today's sea level (no sea or lake), at most about 500 m above the home and no steeper than about 300 m over 40 km. The masks travel in the startup index (one short hex string per group, in the order of the data file) and the app draws no wildlife until they have arrived, so loading never changes where an animal is. A spot is the first of up to 8 hashed tries at which every animal of the group, at its place in the group, stands on open ground; if none is, the group stays at home, whose cells are always open. An animal's own jittered spot falls back to the group's when it is not open. Birds fly over anything and have no mask.
 - **Each animal walks on its own** (Yang, 2026-10-18: "animals run individually, they don't keep a formation"). Every member has its own place in the group, about one and a half body lengths from the first, fixed on the ground and never turned with the group, and its own path: its spots lie up to about 40 km from the group's, it sets off up to about 1.5 seconds after the first and walks a little faster or slower, and it faces along its own curve. So the group stays together, but the animals at the back never swing round when it turns.
 - **Birds** (macaws and keas) fly loops of about 160 km radius around their home at about 150 km above the ground, flapping their wings in big strokes (one beat every 0.6 seconds), each well behind the one before (about 0.15 of the loop) and on a loop about 60 km wider, so they never crowd (Yang, 2026-10-18: "the parrots are too close to each other").
+- **Sea animals** (Yang, 2026-10-18: "whales and dolphins in the oceans"). Whales, dolphins and Steller's sea cow move like the walking groups, from spot to spot along smooth curves, but their spots lie in open sea at least about 300 m deep, so it is sea at every date (their masks open only such cells), and they swim the whole time (a `swim` clip: the tail beats up and down, the flippers steer). They ride at the sea surface, their backs just awash. Dolphins leap in arcs out of the water and back, about one leap every 2.4 seconds, tipping nose up as they rise and nose down as they fall. Whales cruise at the surface between spots, then dive while resting: they tip nose down so the flukes lift, sink out of sight and come up again before the next journey. The sea cow floats and never dives.
 - **Penguins** waddle, **kangaroos** hop, everything else walks on four legs.
 
 ## 5. Drawing and performance
 
 Yang asked for small counts, and the Pixel 9 must keep 30 fps.
 
-- About 45 groups and 100 animals exist over the whole timeline; at one date about 35 groups and 85 animals, of which at most about half are on the visible side of the globe.
+- About 65 groups and 160 animals exist over the whole timeline; at one date about 45 to 50 groups and 115 animals, of which at most about half are on the visible side of the globe.
 - **Instanced.** Each species is drawn as instanced meshes, one per moving part of its model (body, head, legs, tail, wings), each with its ink outline, so a species in view costs about 10 to 14 draw calls however many of its animals are seen, and a species with nothing in view costs none. Each frame the app poses one copy of the model per animal with the clips of milestone 2 and copies its part matrices into the instances. The model shaders accept instance matrices for this.
 - Animals on the far side of the globe are skipped.
+- **Standing on the ground, never in it** (Yang, 2026-10-18: "animals clip through the terrain"). An animal stands at the highest drawn ground under its middle and four points half a body length to the north, east, south and west, so no part sinks into a slope, and turning never moves it up or down.
 - **Trees make room.** Each group keeps a clearing of trees around its home as wide as its roaming area plus about 225 km (foliage.md section 4), so the animals are not hidden in a forest of 200 km trees.
 - **Proposed** limit: 70,000 wildlife triangles per frame, about 60 animals at up to 1,200 triangles each.
+
+Keas are drawn smaller than the other animals, at 1.2 m (Yang, 2026-10-18: "the keas are a bit too large").
 
 Yang's review of the first models (2026-10-18) asked for the giraffe's mane on its neck, the elephant's ears on its head and its legs closer together, and rounder bear faces; these are in.
 
@@ -106,10 +138,10 @@ New clay models in `assets/src/animals.ts`, built like the existing animals, at 
 
 | Id | Animal | Look |
 | --- | --- | --- |
-| `animal-elephant` | African bush elephant | Grey, huge ears on the sides of the head, trunk, short tusks, legs close under the body |
+| `animal-elephant` | African bush elephant | Grey, huge ears on the sides of the head, trunk, short tusks, legs close under the body, round column feet with toenails (Yang, 2026-10-18: no flat feet) |
 | `animal-asian-elephant` | Asian elephant | Darker grey, small ears, domed twin-bumped head, no visible tusks |
 | `animal-giraffe` | Giraffe | Tall neck and legs, tan with brown patches, ossicones, a short dark mane along the back of the neck |
-| `animal-zebra` | Plains zebra | Horse body in white with black stripes, upright striped mane |
+| `animal-zebra` | Plains zebra | Horse body in white with bold black stripes painted on, never stuck on (Yang, 2026-10-18): upright bands on the body, across the thighs on the rump, rings round the legs, across the neck and the face; a short upright striped mane |
 | `animal-wildebeest` | Blue wildebeest | Grey-blue, heavy front, dark mane and beard, curved horns |
 | `animal-lion` | Lion | Tawny cat with a big dark mane; the first member of a lion group |
 | `animal-lioness` | Lioness | Tawny cat without a mane; the other members of a lion group |
@@ -118,14 +150,43 @@ New clay models in `assets/src/animals.ts`, built like the existing animals, at 
 | `animal-brown-bear` | Brown bear | Brown, shoulder hump, round face with full cheeks and a short muzzle, round ears |
 | `animal-polar-bear` | Polar bear | Creamy white, long neck, round face, black nose |
 | `animal-guanaco` | Guanaco | Llama shape, tan back, white belly, grey face |
+| `animal-tiger` | Tiger | Orange with narrow black stripes painted on its back, sides, upper legs, brow and tail; white cheeks and belly |
+| `animal-capybara` | Capybara | Barrel-shaped, reddish brown, no tail, big blunt square head, small round ears, short legs |
 | `animal-crocodile` | Crocodile | Long low olive body, snout, sprawling legs, ridged tail |
 | `animal-penguin` | Emperor penguin | Upright, black back, white front, yellow neck patch, flippers |
 | `animal-parrot` | Scarlet macaw | Red body, wings with yellow and blue bands, long tail |
 | `animal-kea` | Kea | Olive-green parrot with orange under the wings, hooked beak |
 
+The sea animals are in `assets/src/seaAnimals.ts`, built with their lowest point on y = 0 like the land animals; the layer floats them:
+
+| Id | Animal | Look |
+| --- | --- | --- |
+| `animal-whale` | Humpback whale | Dark slate back, pale belly painted on, very long flippers, broad flukes, knobs on the head, a small back fin |
+| `animal-dolphin` | Bottlenose dolphin | Grey, pale belly, a short beak, a curved back fin |
+| `animal-sea-cow` | Steller's sea cow | Huge and bulky, dark bark-like skin, a small head with a pale snout, stubby flippers, broad flukes |
+
+The extinct megafauna are in `assets/src/extinctAnimals.ts`:
+
+| Id | Animal | Look |
+| --- | --- | --- |
+| `animal-giant-deer` | Giant deer (Irish elk) | Big reddish deer with huge flat antlers, palms with tines |
+| `animal-aurochs` | Aurochs | Huge black wild bull, pale stripe down the back, pale muzzle, long forward-curving horns |
+| `animal-cave-lion` | Cave lion | A pale lion without a mane |
+| `animal-smilodon` | Sabre-toothed cat | Stocky tawny cat, short tail, two long upper fangs |
+| `animal-mastodon` | American mastodon | Lower and longer than a mammoth, reddish-brown hair, long upcurved tusks |
+| `animal-ground-sloth` | Giant ground sloth | Elephant-sized, bulky hindquarters, a small long head, big front claws, a thick tail touching the ground |
+| `animal-glyptodon` | Glyptodon | A domed shell with bands of pale plates painted on, a bony cap, a ringed tail with a club |
+| `animal-diprotodon` | Diprotodon | A rhino-sized wombat with a broad dark nose |
+| `animal-moa` | Moa | A giant wingless bird, long neck, thick three-toed legs; strides |
+| `animal-elephant-bird` | Elephant bird | Heavier than the moa, with a shorter neck; strides |
+| `animal-haast-eagle` | Haast's eagle | Dark brown eagle with a yellow beak, drawn in flight |
+| `animal-dodo` | Dodo | Plump grey bird, big hooked beak, stubby wings, curly white tail, yellow legs; waddles |
+| `animal-quagga` | Quagga | Zebra stripes only on the head, neck and front, brown behind, pale legs |
+| `animal-thylacine` | Thylacine | Sandy dog-like marsupial with dark stripes painted over its back and rump, a long stiff tail |
+
 Bison, horse, reindeer, mammoth, woolly rhino, cave bear, wolf, eland, gazelle and kangaroo use the approved models of milestone 2.
 
-**Clips.** The animal clips of milestone 2 gain a `fly` clip (wings flap, body bobs) for birds, a waddle for two-legged walkers (penguins) and a hop for the kangaroo. They stay pure functions of the clip and the seconds.
+**Clips.** The animal clips of milestone 2 gain a `fly` clip (wings flap, body bobs) for birds, a waddle for two-legged walkers with wings (penguins, dodos), a stride for wingless birds (moas, elephant birds), a hop for the kangaroo and a `swim` clip for sea animals. Haast's eagle is drawn 2.2 m in life size, between the keas and the big animals. They stay pure functions of the clip and the seconds.
 
 ## 7. Later
 

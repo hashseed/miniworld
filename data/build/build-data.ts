@@ -40,6 +40,8 @@ import { AXIS_K_YEARS, dayAtPosition, logAxis } from '../../app/src/time/axis.ts
 import { erasForLanguage, validateEras, type CuratedEras } from './lib/eras.ts';
 import { buildLandmarks, placeOffWater } from './lib/landmarks.ts';
 import { buildVignettes } from './lib/vignettes.ts';
+import { openShare, wildMasks } from './lib/wildlife.ts';
+import { WILD_GROUPS } from '../../app/src/world/wildlife.ts';
 import { fixtureElevation } from './lib/fixture.ts';
 import { Grid, GridPyramid } from './lib/grid.ts';
 import { climateStepYears, iceGrid, seaLevelCurve, sliceDay } from './lib/ice.ts';
@@ -367,6 +369,16 @@ const wet = (lat: number, lon: number) =>
 for (const l of landmarkBuild.landmarks)
   log(`landmark ${l.structure.id} moved ${placeOffWater(l, wet)} km west off the water`);
 
+// Wildlife keeps to open lowland around its homes (wildlife.md section 4).
+const wildlife = wildMasks(WILD_GROUPS, {
+  height: (lat, lon) => relief.bilinear(lat, lon),
+  wet: (lat, lon) =>
+    lakes.bilinear(lat, lon) > 127 || connection.nearest(lat, lon) <= -OCEAN_MIN_LEVEL,
+});
+WILD_GROUPS.forEach((g, i) =>
+  log(`wildlife ${g.species} at ${g.home}: ${Math.round(openShare(g, wildlife[i]!) * 100)}% open`),
+);
+
 // --- Terrain tiles ----------------------------------------------------------
 
 interface LayerOut {
@@ -629,6 +641,7 @@ for (const language of LANGUAGES) {
       structure,
       text: text[language],
     })),
+    wildlife,
   };
   index[language] = output.writeJson(`index-${language}`, idx);
 }

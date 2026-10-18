@@ -32,6 +32,8 @@ export const WILD_ANIMALS = [
   'animal-penguin',
   'animal-parrot',
   'animal-kea',
+  'animal-capybara',
+  'animal-tiger',
 ] as const;
 export type WildAnimalId = (typeof WILD_ANIMALS)[number];
 
@@ -77,6 +79,10 @@ export function buildWildAnimal(id: WildAnimalId): Model {
         underWing: '#f2c230',
         tailLength: 0.5,
       });
+    case 'animal-tiger':
+      return tiger();
+    case 'animal-capybara':
+      return capybara();
     case 'animal-kea':
       return bird(id, {
         body: '#6f7f3c',
@@ -91,7 +97,7 @@ export function buildWildAnimal(id: WildAnimalId): Model {
 }
 
 /** A short tail on the tail bone ending in a tuft. */
-function tuftTail(
+export function tuftTail(
   p: Parts,
   coat: THREE.ColorRepresentation,
   tuft: THREE.ColorRepresentation,
@@ -106,7 +112,7 @@ function tuftTail(
 }
 
 /** Ears as flattened lumps either side of the head. */
-function ears(p: Parts, at: Vec3, radii: Vec3, colour: THREE.ColorRepresentation): void {
+export function ears(p: Parts, at: Vec3, radii: Vec3, colour: THREE.ColorRepresentation): void {
   for (const s of [1, -1])
     p.mb.add(blob([s * at[0], p.headAt.y + at[1], p.headAt.z + at[2]], radii, 5), colour, 'head');
 }
@@ -125,6 +131,7 @@ function elephant(id: WildAnimalId, african: boolean): Model {
     headDrop: 0.15,
     coat,
     hoof: '#c9c1b2',
+    toenails: true,
   });
   const { mb, headAt, bodyY } = p;
   if (african) {
@@ -262,39 +269,75 @@ function giraffe(): Model {
   return mb.build('animal-giraffe');
 }
 
-function zebra(): Model {
-  const white = '#f2eee6';
-  const black = '#26211e';
+/** A plains zebra, or a quagga: striped only at the front, brown behind, pale legs. */
+export function zebra(quagga = false): Model {
+  const white = quagga ? '#efe2c8' : '#f2eee6';
+  const black = quagga ? '#3a2a1e' : '#26211e';
+  const brown = '#a0744a';
+  const shoulder = 1.3;
+  const length = 1.55;
+  const girth: [number, number] = [0.37, 0.41];
+  const neck: [number, number] = [0.42, 0.3];
+  const head: Vec3 = [0.17, 0.2, 0.42];
+  const headDrop = 0.9;
+  // Where quadruped() puts the body, neck and head, for laying the stripes along them.
+  const front = length / 2;
+  const bodyY = shoulder - girth[1] * 0.75;
+  const headAt = new THREE.Vector3(0, shoulder + neck[1] * shoulder, front + neck[0] * shoulder);
+  const neckA = new THREE.Vector3(0, bodyY + girth[1] * 0.3, front * 0.8);
+  const neckB = new THREE.Vector3(0, headAt.y - head[1] * 0.3, headAt.z - head[2] * 0.45);
+  const neckDir = neckB.clone().sub(neckA);
+  const neckLen = neckDir.length();
+  neckDir.normalize();
+  const headDir = new THREE.Vector3(0, -Math.sin(headDrop), Math.cos(headDrop));
+  const band = (v: number) =>
+    ((Math.floor(v) % 2) + 2) % 2 === 1 ? black : quagga ? white : undefined;
+  // Bold bands painted on (Yang, 2026-10-18): upright on the barrel, turning
+  // diagonal over the rump, rings round the legs, across the neck, thin on the face.
+  const pattern = {
+    // One band per ring of the barrel and the chest, so the edges are clean;
+    // the rump turns to bands across the thighs.
+    body: (p: THREE.Vector3) => {
+      if (quagga)
+        return p.z < front * 0.25
+          ? undefined
+          : band((Math.acos(Math.min(1, p.z / (length * 0.55))) / Math.PI) * 15);
+      if (p.z < -length * 0.38) return band((p.y - bodyY) / 0.11 + 0.5);
+      const z = Math.min(1, Math.max(-1, p.z / (length * 0.55)));
+      return band((Math.acos(z) / Math.PI) * 15);
+    },
+    chest: (p: THREE.Vector3) => {
+      const z = Math.min(1, Math.max(-1, (p.z - front * 0.6) / (length * 0.3)));
+      const ring = (Math.acos(z) / Math.PI) * 8;
+      return ring < 1.5 ? undefined : band(ring);
+    },
+    legs: (p: THREE.Vector3) => (quagga || p.y < 0.2 ? undefined : band(p.y / 0.11)),
+    neck: (p: THREE.Vector3) => band((p.clone().sub(neckA).dot(neckDir) / neckLen) * 7),
+    head: (p: THREE.Vector3) => {
+      const u = p.clone().sub(headAt).dot(headDir) / head[2];
+      return u > 0.45 ? undefined : band((u + 1) * 5);
+    },
+  };
   const p = quadruped({
-    shoulder: 1.3,
-    length: 1.55,
-    girth: [0.37, 0.41],
+    shoulder,
+    length,
+    girth,
     leg: 0.085,
-    neck: [0.42, 0.3],
-    head: [0.17, 0.2, 0.42],
-    headDrop: 0.9,
-    coat: white,
-    legColour: '#d9d4cb',
+    neck,
+    head,
+    headDrop,
+    coat: quagga ? brown : white,
+    legColour: quagga ? '#ece4d4' : undefined,
     hoof: black,
+    pattern,
   });
-  const { mb, headAt, bodyY, front, back } = p;
-  // Stripes: thin dark bands wrapped round the barrel, slightly proud of it.
-  for (const z of [0.55, 0.3, 0.05, -0.2, -0.45]) {
-    mb.add(blob([0, bodyY + 0.03, z], [0.4, 0.44, 0.045], 7), black, 'body');
-  }
-  // Rump stripes and a striped neck.
-  for (const s of [1, -1])
-    mb.add(blob([s * 0.3, bodyY + 0.05, back * 0.72], [0.1, 0.32, 0.045], 5), black, 'body');
-  for (const t of [0.35, 0.65]) {
-    const y = bodyY + 0.3 + (headAt.y - bodyY - 0.4) * t;
-    const z = front * 0.8 + (headAt.z - 0.2 - front * 0.8) * t;
-    mb.add(blob([0, y, z], [0.17, 0.05, 0.13], 5), black, 'head');
-  }
-  // Upright black and white mane, dark muzzle, ears.
+  const { mb } = p;
+  // A short, upright mane striped like the neck, a dark muzzle, ears.
   mb.add(
-    limb([0, bodyY + 0.42, front * 0.55], [0, headAt.y + 0.18, headAt.z - 0.25], 0.08, 0.06, 5),
-    black,
+    limb([0, bodyY + 0.42, front * 0.55], [0, headAt.y + 0.18, headAt.z - 0.25], 0.06, 0.05, 4, 6),
+    white,
     'head',
+    (q) => band(((q.y - bodyY - 0.42) / (headAt.y + 0.18 - bodyY - 0.42)) * 8),
   );
   mb.add(blob([0, headAt.y - 0.2, headAt.z + 0.27], [0.12, 0.11, 0.12], 6), black, 'head');
   for (const s of [1, -1])
@@ -308,8 +351,8 @@ function zebra(): Model {
       white,
       'head',
     );
-  tuftTail(p, white, black, 0.6, 0.035);
-  return mb.build('animal-zebra');
+  tuftTail(p, quagga ? '#ece4d4' : white, black, 0.6, 0.035);
+  return mb.build(quagga ? 'animal-quagga' : 'animal-zebra');
 }
 
 function wildebeest(): Model {
@@ -360,8 +403,7 @@ function wildebeest(): Model {
   return mb.build('animal-wildebeest');
 }
 
-function lion(id: WildAnimalId, maned: boolean): Model {
-  const coat = '#c9995a';
+export function lion(id: string, maned: boolean, coat = '#c9995a'): Model {
   const p = quadruped({
     shoulder: maned ? 1.15 : 1.0,
     length: maned ? 1.75 : 1.55,
@@ -402,6 +444,66 @@ function lion(id: WildAnimalId, maned: boolean): Model {
   );
   mb.add(blob([0, p.bodyY - 0.6, p.back * 1.55], [0.06, 0.09, 0.06], 5), '#4a3020', 'tail');
   return mb.build(id);
+}
+
+/** A tiger: orange with black stripes painted on, white cheeks and belly. */
+function tiger(): Model {
+  const coat = '#d9772a';
+  const black = '#231b17';
+  const length = 1.9;
+  const bodyY = 1.0 - 0.34 * 0.75;
+  const band = (v: number) => (((Math.floor(v) % 2) + 2) % 2 === 1 ? black : undefined);
+  const p = quadruped({
+    shoulder: 1.0,
+    length,
+    girth: [0.3, 0.34],
+    leg: 0.095,
+    neck: [0.2, 0.04],
+    head: [0.21, 0.21, 0.25],
+    headDrop: 0.05,
+    coat,
+    belly: '#f1e6d2',
+    hoof: shade(coat, -0.1).getStyle(),
+    // Narrow upright stripes down the back and sides, none on the belly;
+    // rings on the upper legs; across the brow (Yang, 2026-10-18).
+    pattern: {
+      body: (q) => {
+        if (q.y < bodyY - 0.12) return undefined;
+        const z = Math.min(1, Math.max(-1, q.z / (length * 0.55)));
+        return band((Math.acos(z) / Math.PI) * 15);
+      },
+      chest: () => undefined,
+      legs: (q) => (q.y < 0.45 ? undefined : band(q.y / 0.1)),
+      head: (q) => (q.y > 1.08 ? band(q.x / 0.06 + 0.5) : undefined),
+    },
+  });
+  const { mb, headAt } = p;
+  // White cheeks and muzzle with a pink nose, round ears.
+  for (const sx of [1, -1])
+    mb.add(
+      blob([sx * 0.12, headAt.y - 0.07, headAt.z + 0.08], [0.11, 0.1, 0.11], 5),
+      '#f4ede2',
+      'head',
+    );
+  mb.add(blob([0, headAt.y - 0.08, headAt.z + 0.19], [0.11, 0.09, 0.11], 6), '#f4ede2', 'head');
+  mb.add(blob([0, headAt.y - 0.02, headAt.z + 0.29], [0.04, 0.03, 0.03], 4), '#b56a5a', 'head');
+  ears(p, [0.14, 0.19, -0.06], [0.06, 0.06, 0.04], coat);
+  // A long tail with black rings.
+  mb.add(
+    horn(
+      [0, p.bodyY + 0.15, p.back],
+      [0, p.bodyY - 0.2, p.back * 1.5],
+      [0, p.bodyY - 0.5, p.back * 1.6],
+      0.045,
+      0.035,
+      4,
+      6,
+    ),
+    coat,
+    'tail',
+    (q) => band((q.y - p.bodyY) / 0.09),
+  );
+  return mb.build('animal-tiger');
 }
 
 function camel(): Model {
@@ -506,6 +608,40 @@ function bear(id: WildAnimalId, polar: boolean): Model {
   ears(p, [polar ? 0.17 : 0.22, polar ? 0.2 : 0.25, -0.06], [0.09, 0.09, 0.06], coat);
   mb.add(blob([0, bodyY + 0.2, back * 1.02], [0.09, 0.08, 0.08], 5), coat, 'tail');
   return mb.build(id);
+}
+
+/** A capybara: a barrel of reddish fur on short legs, no tail, a big blunt head. */
+function capybara(): Model {
+  const coat = '#8a5a36';
+  const p = quadruped({
+    shoulder: 0.6,
+    length: 1.1,
+    girth: [0.26, 0.3],
+    leg: 0.06,
+    legSpread: 0.6,
+    neck: [0.1, 0.08],
+    head: [0.15, 0.17, 0.24],
+    headDrop: 0.1,
+    coat,
+    legColour: shade(coat, -0.1).getStyle(),
+    hoof: '#2e2219',
+  });
+  const { mb, headAt, bodyY, back } = p;
+  // A round rump, a long deep box of a snout and small round ears high on the head.
+  mb.add(blob([0, bodyY + 0.03, back * 0.7], [0.29, 0.29, 0.32], 7), coat, 'body');
+  mb.add(
+    limb([0, headAt.y - 0.02, headAt.z], [0, headAt.y - 0.05, headAt.z + 0.3], 0.14, 0.12, 6),
+    coat,
+    'head',
+  );
+  for (const s of [1, -1])
+    mb.add(
+      blob([s * 0.04, headAt.y - 0.02, headAt.z + 0.42], [0.025, 0.02, 0.015], 4),
+      EYE,
+      'head',
+    );
+  ears(p, [0.1, 0.17, -0.14], [0.045, 0.045, 0.03], shade(coat, -0.2));
+  return mb.build('animal-capybara');
 }
 
 function guanaco(): Model {
@@ -637,7 +773,7 @@ function penguin(): Model {
   return mb.build('animal-penguin');
 }
 
-interface BirdLook {
+export interface BirdLook {
   body: string;
   /** Wing bands from the shoulder out. */
   wing: [string, string, string];
@@ -649,7 +785,7 @@ interface BirdLook {
 }
 
 /** A parrot drawn in flight: wings spread, tail streaming behind, feet tucked. */
-function bird(id: WildAnimalId, look: BirdLook): Model {
+export function bird(id: string, look: BirdLook): Model {
   const y = 0.16;
   const mb = new ModelBuilder([
     { name: 'body', pivot: [0, y, 0] },

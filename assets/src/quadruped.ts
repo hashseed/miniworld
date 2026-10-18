@@ -3,7 +3,7 @@
 // bones, so the animal clips drive every quadruped the same way.
 
 import * as THREE from 'three';
-import { type Vec3, ModelBuilder, blob, limb, shade } from './kit.ts';
+import { type Pattern, type Vec3, ModelBuilder, blob, limb, shade } from './kit.ts';
 
 export interface Quad {
   /** Height of the back at the shoulder. */
@@ -24,6 +24,10 @@ export interface Quad {
   belly?: string;
   legColour?: string;
   hoof?: string;
+  /** Round column feet with toenails (elephants) instead of flat hooves or paws; the hoof colour is the nails'. */
+  toenails?: boolean;
+  /** Patterns painted on the coat (zebra stripes); the parts get extra rings so bands can follow them. */
+  pattern?: { body?: Pattern; chest?: Pattern; neck?: Pattern; head?: Pattern; legs?: Pattern };
 }
 
 export interface Parts {
@@ -58,15 +62,18 @@ export function quadruped(q: Quad, clay = 1): Parts {
     clay,
   );
   // Body: chest and rump lumps joined by the barrel.
-  mb.add(blob([0, bodyY, 0], [q.girth[0], q.girth[1], q.length * 0.55], 8), q.coat, 'body');
+  const pt = q.pattern;
+  const barrel = pt?.body
+    ? blob([0, bodyY, 0], [q.girth[0], q.girth[1], q.length * 0.55], 8, 15, 'z')
+    : blob([0, bodyY, 0], [q.girth[0], q.girth[1], q.length * 0.55], 8);
+  mb.add(barrel, q.coat, 'body', pt?.body);
+  const chestAt: Vec3 = [0, bodyY + q.girth[1] * 0.08, front * 0.6];
+  const chestRadii: Vec3 = [q.girth[0] * 1.05, q.girth[1] * 1.04, q.length * 0.3];
   mb.add(
-    blob(
-      [0, bodyY + q.girth[1] * 0.08, front * 0.6],
-      [q.girth[0] * 1.05, q.girth[1] * 1.04, q.length * 0.3],
-      9,
-    ),
+    pt?.body ? blob(chestAt, chestRadii, 7, 8, 'z') : blob(chestAt, chestRadii, 9),
     q.coat,
     'body',
+    pt?.chest ?? pt?.body,
   );
   if (q.belly)
     mb.add(
@@ -87,14 +94,16 @@ export function quadruped(q: Quad, clay = 1): Parts {
       Math.min(q.girth[0], q.girth[1]) * 0.55,
       q.head[0] * 0.8,
       6,
+      pt?.neck ? 6 : 0,
     ),
     q.coat,
     'head',
+    pt?.neck,
   );
-  const head = blob([0, 0, 0], q.head, 7);
+  const head = pt?.head ? blob([0, 0, 0], q.head, 7, 9, 'z') : blob([0, 0, 0], q.head, 7);
   head.rotateX(q.headDrop);
   head.translate(headAt.x, headAt.y, headAt.z);
-  mb.add(head, q.coat, 'head');
+  mb.add(head, q.coat, 'head', pt?.head);
   // Eyes.
   for (const s of [1, -1]) {
     mb.add(
@@ -119,10 +128,30 @@ export function quadruped(q: Quad, clay = 1): Parts {
     const leg = q.leg * 1.4; // chunky toy legs
     // End the leg one cap radius up, so its rounded end rests on the ground.
     mb.add(
-      limb([lx, legTop, z], [lx, Math.max(0.08, leg * 0.75), z], leg, leg * 0.75, 5),
+      limb(
+        [lx, legTop, z],
+        [lx, Math.max(0.08, leg * 0.75), z],
+        leg,
+        leg * 0.75,
+        5,
+        pt?.legs ? 6 : 0,
+      ),
       legColour,
       bone,
+      pt?.legs,
     );
+    if (q.toenails) {
+      // A round foot as wide as the leg and a little wider at the ground, with
+      // three nails at the front (Yang, 2026-10-18: elephants have no flat feet).
+      mb.add(blob([lx, leg * 0.5, z], [leg * 1.08, leg * 0.55, leg * 1.08], 6), legColour, bone);
+      for (const t of [-0.45, 0, 0.45])
+        mb.add(
+          blob([lx + t * leg, leg * 0.2, z + leg * 0.98], [leg * 0.22, leg * 0.2, leg * 0.14], 4),
+          q.hoof ?? shade(legColour, 0.25),
+          bone,
+        );
+      continue;
+    }
     mb.add(
       blob([lx, 0.06, z + leg * 0.2], [leg * 0.85, 0.07, leg * 1.0], 5),
       q.hoof ?? shade(legColour, -0.35),

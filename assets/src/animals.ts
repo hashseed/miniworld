@@ -14,6 +14,8 @@ import {
 } from './kit.ts';
 import { quadruped } from './quadruped.ts';
 import { WILD_ANIMALS, buildWildAnimal, type WildAnimalId } from './wildAnimals.ts';
+import { EXTINCT_ANIMALS, buildExtinctAnimal, type ExtinctAnimalId } from './extinctAnimals.ts';
+import { SEA_ANIMALS, buildSeaAnimal, type SeaAnimalId } from './seaAnimals.ts';
 
 /** The animals of the first culture profiles. */
 export const PREHISTORIC_ANIMALS = [
@@ -29,7 +31,12 @@ export const PREHISTORIC_ANIMALS = [
   'animal-kangaroo',
 ] as const;
 /** Every animal model: the prehistoric ones and the wildlife of wildlife.md. */
-export const ANIMALS = [...PREHISTORIC_ANIMALS, ...WILD_ANIMALS] as const;
+export const ANIMALS = [
+  ...PREHISTORIC_ANIMALS,
+  ...WILD_ANIMALS,
+  ...EXTINCT_ANIMALS,
+  ...SEA_ANIMALS,
+] as const;
 export type AnimalId = (typeof ANIMALS)[number];
 
 export function buildAnimal(id: AnimalId): Model {
@@ -374,12 +381,17 @@ export function buildAnimal(id: AnimalId): Model {
         legColour: '#a49c90',
         hoof: '#4a423a',
       });
+      // A short, blunt muzzle (Yang, 2026-10-18: the long snout looked wrong).
       mb.add(
-        cone([0, headAt.y - 0.05, headAt.z + 0.12], [0, headAt.y - 0.07, headAt.z + 0.38], 0.08, 6),
+        cone([0, headAt.y - 0.05, headAt.z + 0.1], [0, headAt.y - 0.07, headAt.z + 0.27], 0.075, 6),
         coat,
         'head',
       );
-      mb.add(blob([0, headAt.y - 0.06, headAt.z + 0.38], [0.03, 0.03, 0.03], 4), '#1d1410', 'head');
+      mb.add(
+        blob([0, headAt.y - 0.06, headAt.z + 0.26], [0.035, 0.03, 0.03], 4),
+        '#1d1410',
+        'head',
+      );
       for (const s of [1, -1])
         mb.add(
           cone(
@@ -489,6 +501,9 @@ export function buildAnimal(id: AnimalId): Model {
     case 'animal-kangaroo':
       return kangaroo();
     default:
+      if ((SEA_ANIMALS as readonly string[]).includes(id)) return buildSeaAnimal(id as SeaAnimalId);
+      if ((EXTINCT_ANIMALS as readonly string[]).includes(id))
+        return buildExtinctAnimal(id as ExtinctAnimalId);
       return buildWildAnimal(id as WildAnimalId);
   }
 }

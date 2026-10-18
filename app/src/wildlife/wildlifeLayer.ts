@@ -11,7 +11,14 @@ import { animateAnimal, walkPeriod } from '../../../assets/src/clips.ts';
 import { celMaterial, inkMaterial, type Model } from '../../../assets/src/kit.ts';
 import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 import { latLonToDir, type Vec3 } from '../geo/cube.ts';
-import { wildClearings, wildlifeAt, type WildAnimal } from '../world/wildlife.ts';
+import {
+  decodeWildMask,
+  wildClearings,
+  wildlifeAt,
+  WILD_GROUPS,
+  type WildAnimal,
+  type WildMask,
+} from '../world/wildlife.ts';
 import type { SurfaceSource } from '../vignettes/vignetteLayer.ts';
 
 /** Drawn kilometres per life-size metre: half as large again as the figures (section 1). */
@@ -19,6 +26,8 @@ const KM_PER_M = 75;
 /** An animal's size (the larger of its height and half its length) is drawn between these, in metres (section 1). */
 const MIN_SIZE_M = 1.8;
 const MAX_SIZE_M = 4;
+/** Drawn sizes that differ from the rule above (section 5). */
+const DRAWN_SIZE_M: Record<string, number> = { 'animal-kea': 1.2, 'animal-haast-eagle': 2.2 };
 /** Most animals of one species drawn at once. */
 const CAPACITY = 12;
 
@@ -36,6 +45,8 @@ interface Species {
   scale: number;
   /** Body length in model metres, for spacing the group. */
   length: number;
+  /** Height in model metres, for sea animals at the surface. */
+  height: number;
   count: number;
 }
 
@@ -45,6 +56,12 @@ export class WildlifeLayer {
   private species = new Map<string, Species | null>();
   /** Animals drawn last frame. */
   count = 0;
+  /** Each group's ground mask from the startup index; nothing is drawn before it arrives. */
+  private masks: WildMask[] | undefined;
+  private reach = (model: string) => {
+    const s = this.speciesOf(model);
+    return s ? s.length * s.scale : 0;
+  };
   private root = new THREE.Matrix4();
   private part = new THREE.Matrix4();
   private basis = new THREE.Matrix4();
@@ -60,6 +77,35 @@ export class WildlifeLayer {
 
   constructor(surface: SurfaceSource) {
     this.surface = surface;
+  }
+
+  /** The ground masks of the startup index, one hex string per group (section 4). */
+  setMasks(hex: readonly string[]): void {
+    this.masks = WILD_GROUPS.map((_, i) => (hex[i] ? decodeWildMask(hex[i]) : undefined));
+  }
+
+  /**
+   * The highest ground under an animal: its middle and four points a body's
+   * half length away to the north, east, south and west, so no part of it
+   * sinks into a slope and turning never moves it up or down (section 5).
+   */
+  private groundUnder(up: THREE.Vector3, halfKm: number): number {
+    let top = this.surface.surfaceKm([up.x, up.y, up.z]);
+    for (const [e, n] of [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ] as const) {
+      const p = this.v2
+        .copy(up)
+        .multiplyScalar(EARTH_RADIUS_KM)
+        .addScaledVector(this.east, e * halfKm)
+        .addScaledVector(this.north, n * halfKm)
+        .normalize();
+      top = Math.max(top, this.surface.surfaceKm([p.x, p.y, p.z]));
+    }
+    return top;
   }
 
   /** Clearings in the trees around the groups shown on a day, in true directions. */
@@ -84,7 +130,10 @@ export class WildlifeLayer {
     for (const s of this.species.values()) if (s) s.count = 0;
     const camPos = camera.position;
     this.count = 0;
-    for (const a of wildlifeAt(day, ms / 1000)) {
+    const animals = this.masks
+      ? wildlifeAt(day, ms / 1000, WILD_GROUPS, this.masks, this.reach)
+      : [];
+    for (const a of animals) {
       const s = this.speciesOf(a.model);
       if (!s || s.count >= CAPACITY) continue;
       // The group's spot on the drawn globe and its compass there.
@@ -101,8 +150,10 @@ export class WildlifeLayer {
           .normalize();
         northEast(up, this.north, this.east);
       }
-      const ground = this.surface.surfaceKm([up.x, up.y, up.z]);
-      this.pos.copy(up).multiplyScalar(EARTH_RADIUS_KM + ground + a.liftKm);
+      const ground = this.groundUnder(up, (reach * a.grow) / 2);
+      // Sea animals ride at the surface: their middle sits rise body heights above it.
+      const swim = a.clip === 'swim' ? (a.rise - 0.5) * s.height * s.scale * a.grow : 0;
+      this.pos.copy(up).multiplyScalar(EARTH_RADIUS_KM + ground + a.liftKm + swim);
       // Animals on the far side of the globe are skipped.
       if (this.v2.copy(camPos).sub(this.pos).dot(up) <= 0) continue;
 
@@ -111,9 +162,17 @@ export class WildlifeLayer {
         .multiplyScalar(a.heading[0])
         .addScaledVector(this.north, a.heading[1])
         .normalize();
-      // Upright on the ground, whatever the camera does (Yang, 2026-10-18).
-      const r = this.right.crossVectors(up, f);
-      this.q.setFromRotationMatrix(this.basis.makeBasis(r, up, f));
+      // Upright on the ground, whatever the camera does (Yang, 2026-10-18);
+      // sea animals tip nose up or down as they leap and dive.
+      const u = this.v2.copy(up);
+      if (a.pitch !== 0) {
+        const c = Math.cos(a.pitch);
+        const sn = Math.sin(a.pitch);
+        u.multiplyScalar(c).addScaledVector(f, -sn);
+        f.multiplyScalar(c).addScaledVector(up, sn);
+      }
+      const r = this.right.crossVectors(u, f);
+      this.q.setFromRotationMatrix(this.basis.makeBasis(r, u, f));
       const size = s.scale * a.grow;
       this.root.compose(this.pos, this.q, this.scaleV.set(size, size, size));
 
@@ -154,7 +213,7 @@ export class WildlifeLayer {
       template.object.updateMatrixWorld(true);
       const box = new THREE.Box3().setFromObject(template.object);
       const sizeM = Math.max(box.max.y - box.min.y, (box.max.z - box.min.z) / 2);
-      const drawnM = Math.min(MAX_SIZE_M, Math.max(MIN_SIZE_M, sizeM));
+      const drawnM = DRAWN_SIZE_M[model] ?? Math.min(MAX_SIZE_M, Math.max(MIN_SIZE_M, sizeM));
       const parts: Part[] = [];
       template.object.traverse((o) => {
         const mesh = o as THREE.Mesh;
@@ -175,6 +234,7 @@ export class WildlifeLayer {
         parts,
         scale: (KM_PER_M * drawnM) / sizeM,
         length: box.max.z - box.min.z,
+        height: box.max.y - box.min.y,
         count: 0,
       };
     }

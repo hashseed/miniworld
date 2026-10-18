@@ -7,8 +7,9 @@ import { cameraLight } from '../../app/src/globe/sky.ts';
 import { ModelBuilder, blob, lightUniforms, type Model } from './kit.ts';
 import { PROFILES, buildPerson, posePerson, type Kind, type Pose } from './people.ts';
 import { SHELTERS, buildShelter, buildHearth, CAMP_SHELTER } from './shelters.ts';
-import { ANIMALS, PREHISTORIC_ANIMALS, buildAnimal } from './animals.ts';
+import { ANIMALS, PREHISTORIC_ANIMALS, buildAnimal, type AnimalId } from './animals.ts';
 import { WILD_ANIMALS } from './wildAnimals.ts';
+import { EXTINCT_ANIMALS } from './extinctAnimals.ts';
 import {
   BLEND_SECONDS,
   animateAnimal,
@@ -149,6 +150,7 @@ function sheltersSheet(): void {
 
 function animalsSheet(): void {
   const set = params.get('set') ?? 'large';
+  if (set === 'extinct') return wildSheet(false, EXTINCT_ANIMALS);
   if (set.startsWith('wild')) return wildSheet(set === 'wild-small');
   // Two sheets, so the small animals are not lost behind the big ones.
   const large = set !== 'small';
@@ -180,10 +182,10 @@ function animalsSheet(): void {
   camera.lookAt(0, large ? 1.3 : 0.7, 0);
 }
 
-/** The wildlife of wildlife.md section 6: the big ones in two rows, or the small ones. */
-function wildSheet(small: boolean): void {
+/** The wildlife of wildlife.md section 6: the big ones in rows, or the small ones; or the extinct megafauna. */
+function wildSheet(small: boolean, set: readonly AnimalId[] = WILD_ANIMALS): void {
   const SMALL = ['animal-penguin', 'animal-parrot', 'animal-kea', 'animal-crocodile'];
-  const ids = WILD_ANIMALS.filter((id) => SMALL.includes(id) === small);
+  const ids = set.filter((id) => SMALL.includes(id) === small);
   const perRow = small ? ids.length : 4;
   const gap = small ? 2.6 : 5.2;
   ids.forEach((id, i) => {
@@ -196,7 +198,7 @@ function wildSheet(small: boolean): void {
     else ground(x, z, 1.2, '#b2b874');
     place(m, x, z, 0.9);
     // Birds are built in flight: lift them clear of the plate.
-    if (id === 'animal-parrot' || id === 'animal-kea') {
+    if (id === 'animal-parrot' || id === 'animal-kea' || id === 'animal-haast-eagle') {
       m.object.position.y = 0.5;
       animateAnimal(m, 'fly', 0.1);
     }

@@ -282,9 +282,9 @@
     {
       "species": "brown-bear",
       "model": "animal-brown-bear",
-      "home": "Interior Alaska",
-      "lat": 64.5,
-      "lon": -150.0,
+      "home": "Kamchatka",
+      "lat": 54.0,
+      "lon": 156.5,
       "source": "IUCN Red List range map"
     },
     {
@@ -357,6 +357,30 @@
       "source": "IUCN Red List range map"
     },
     {
+      "species": "amur-tiger",
+      "model": "animal-tiger",
+      "home": "Sikhote-Alin, Russian Far East",
+      "lat": 45.5,
+      "lon": 136.0,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "bengal-tiger",
+      "model": "animal-tiger",
+      "home": "Kanha, India",
+      "lat": 22.3,
+      "lon": 80.6,
+      "source": "IUCN Red List range map"
+    },
+    {
+      "species": "capybara",
+      "model": "animal-capybara",
+      "home": "Amazon near Tefé",
+      "lat": -3.4,
+      "lon": -64.7,
+      "source": "IUCN Red List range map"
+    },
+    {
       "species": "scarlet-macaw",
       "model": "animal-parrot",
       "home": "Western Amazon",
@@ -399,9 +423,9 @@
     {
       "species": "kea",
       "model": "animal-kea",
-      "home": "Southern Alps, New Zealand",
-      "lat": -43.6,
-      "lon": 170.5,
+      "home": "Nelson Lakes, New Zealand",
+      "lat": -41.8,
+      "lon": 172.8,
       "source": "IUCN Red List range map"
     },
     {
@@ -419,6 +443,287 @@
       "lat": -75.5,
       "lon": -26.5,
       "source": "IUCN Red List range map"
+    },
+    {
+      "species": "giant-deer",
+      "model": "animal-giant-deer",
+      "home": "Ireland",
+      "lat": 53.0,
+      "lon": -8.0,
+      "spans": [
+        {
+          "to": -10700
+        }
+      ],
+      "source": "Stuart et al. 2004, Nature 431: Pleistocene to Holocene extinction dynamics in giant deer; dates approximate"
+    },
+    {
+      "species": "giant-deer",
+      "model": "animal-giant-deer",
+      "home": "Southern Urals",
+      "lat": 57.5,
+      "lon": 61.0,
+      "spans": [
+        {
+          "to": -5700
+        }
+      ],
+      "source": "Stuart et al. 2004, Nature 431: giant deer survived in the Urals to about 7,700 years ago; dates approximate"
+    },
+    {
+      "species": "aurochs",
+      "model": "animal-aurochs",
+      "home": "Mazovia, Poland",
+      "lat": 52.2,
+      "lon": 18.8,
+      "spans": [
+        {
+          "to": 1627
+        }
+      ],
+      "source": "Encyclopaedia Britannica, Aurochs: the last one died in the Jaktorów forest, Poland, in 1627"
+    },
+    {
+      "species": "cave-lion",
+      "model": "animal-cave-lion",
+      "home": "Swabian Jura, Germany",
+      "lat": 48.5,
+      "lon": 9.8,
+      "spans": [
+        {
+          "to": -12000
+        }
+      ],
+      "source": "Stuart and Lister 2011, Quaternary Science Reviews 30: cave lion extinction about 14,000 years ago; dates approximate"
+    },
+    {
+      "species": "cave-lion",
+      "model": "animal-cave-lion",
+      "home": "Yakutia, Siberia",
+      "lat": 66.0,
+      "lon": 140.0,
+      "spans": [
+        {
+          "to": -12000
+        }
+      ],
+      "source": "Stuart and Lister 2011, Quaternary Science Reviews 30: cave lion extinction about 14,000 years ago; dates approximate"
+    },
+    {
+      "species": "smilodon",
+      "model": "animal-smilodon",
+      "home": "La Brea, California",
+      "lat": 34.1,
+      "lon": -118.3,
+      "spans": [
+        {
+          "to": -8000
+        }
+      ],
+      "source": "Encyclopaedia Britannica, Smilodon: died out about 10,000 years ago; dates approximate"
+    },
+    {
+      "species": "smilodon",
+      "model": "animal-smilodon",
+      "home": "Florida",
+      "lat": 28.0,
+      "lon": -82.0,
+      "spans": [
+        {
+          "to": -8000
+        }
+      ],
+      "source": "Encyclopaedia Britannica, Smilodon: died out about 10,000 years ago; dates approximate"
+    },
+    {
+      "species": "american-mastodon",
+      "model": "animal-mastodon",
+      "home": "Great Lakes, Michigan",
+      "lat": 42.5,
+      "lon": -84.5,
+      "spans": [
+        {
+          "to": -9000
+        }
+      ],
+      "source": "Encyclopaedia Britannica, Mastodon: died out about 11,000 years ago; dates approximate"
+    },
+    {
+      "species": "columbian-mammoth",
+      "model": "animal-mammoth",
+      "home": "Valley of Mexico",
+      "lat": 19.6,
+      "lon": -99.1,
+      "spans": [
+        {
+          "to": -10500
+        }
+      ],
+      "source": "Encyclopaedia Britannica, Mammoth: North American mammoths died out about 12,500 years ago; dates approximate"
+    },
+    {
+      "species": "megatherium",
+      "model": "animal-ground-sloth",
+      "home": "Pampas, Argentina",
+      "lat": -35.5,
+      "lon": -60.5,
+      "spans": [
+        {
+          "to": -8500
+        }
+      ],
+      "source": "Encyclopaedia Britannica, Megatherium: died out about 10,000 years ago; dates approximate"
+    },
+    {
+      "species": "glyptodon",
+      "model": "animal-glyptodon",
+      "home": "Uruguay",
+      "lat": -32.5,
+      "lon": -56.0,
+      "spans": [
+        {
+          "to": -8000
+        }
+      ],
+      "source": "Encyclopaedia Britannica, Glyptodon: died out about 10,000 years ago; dates approximate"
+    },
+    {
+      "species": "diprotodon",
+      "model": "animal-diprotodon",
+      "home": "Lake Callabonna, South Australia",
+      "lat": -29.8,
+      "lon": 140.1,
+      "spans": [
+        {
+          "to": -42000
+        }
+      ],
+      "source": "Roberts et al. 2001, Science 292: Australian megafauna died out about 46,000 years ago; dates approximate"
+    },
+    {
+      "species": "moa",
+      "model": "animal-moa",
+      "home": "Hawke's Bay, New Zealand",
+      "lat": -39.6,
+      "lon": 176.6,
+      "spans": [
+        {
+          "to": 1400
+        }
+      ],
+      "source": "Perry et al. 2014, PNAS 111: moa died out within about 200 years of the first settlers, by about 1400; dates approximate"
+    },
+    {
+      "species": "haasts-eagle",
+      "model": "animal-haast-eagle",
+      "home": "Otago, New Zealand",
+      "lat": -45.2,
+      "lon": 169.8,
+      "spans": [
+        {
+          "to": 1400
+        }
+      ],
+      "source": "Encyclopaedia Britannica, Haast's eagle: died out with the moa about 1400; dates approximate"
+    },
+    {
+      "species": "elephant-bird",
+      "model": "animal-elephant-bird",
+      "home": "Southern Madagascar",
+      "lat": -24.5,
+      "lon": 45.5,
+      "spans": [
+        {
+          "to": 1000
+        }
+      ],
+      "source": "Hansford et al. 2018, Science Advances 4: elephant birds died out about 1,000 years ago; dates approximate"
+    },
+    {
+      "species": "dodo",
+      "model": "animal-dodo",
+      "home": "Mauritius",
+      "lat": -20.3,
+      "lon": 57.6,
+      "spans": [
+        {
+          "to": 1662
+        }
+      ],
+      "roamKm": 25,
+      "source": "Encyclopaedia Britannica, Dodo: last reliable sighting in 1662"
+    },
+    {
+      "species": "quagga",
+      "model": "animal-quagga",
+      "home": "Karoo, South Africa",
+      "lat": -31.5,
+      "lon": 23.0,
+      "spans": [
+        {
+          "to": 1883
+        }
+      ],
+      "source": "Encyclopaedia Britannica, Quagga: the last one died in Amsterdam Zoo in 1883; gone from the wild by the 1870s"
+    },
+    {
+      "species": "thylacine",
+      "model": "animal-thylacine",
+      "home": "Tasmania",
+      "lat": -42.0,
+      "lon": 146.5,
+      "spans": [
+        {
+          "to": 1936
+        }
+      ],
+      "roamKm": 90,
+      "source": "Encyclopaedia Britannica, Thylacine: the last known one died in Hobart Zoo in 1936"
+    },
+    {
+      "species": "humpback-whale",
+      "model": "animal-whale",
+      "home": "Hawaii, off Maui",
+      "lat": 20.3,
+      "lon": -157.3,
+      "source": "IUCN Red List range map, Megaptera novaeangliae; NOAA Fisheries, Humpback whale"
+    },
+    {
+      "species": "humpback-whale",
+      "model": "animal-whale",
+      "home": "North Atlantic, off Newfoundland",
+      "lat": 47.0,
+      "lon": -45.0,
+      "source": "IUCN Red List range map, Megaptera novaeangliae"
+    },
+    {
+      "species": "bottlenose-dolphin",
+      "model": "animal-dolphin",
+      "home": "Ionian Sea",
+      "lat": 37.0,
+      "lon": 18.5,
+      "source": "IUCN Red List range map, Tursiops truncatus"
+    },
+    {
+      "species": "bottlenose-dolphin",
+      "model": "animal-dolphin",
+      "home": "East of the Bahamas",
+      "lat": 25.0,
+      "lon": -72.0,
+      "source": "IUCN Red List range map, Tursiops truncatus"
+    },
+    {
+      "species": "stellers-sea-cow",
+      "model": "animal-sea-cow",
+      "home": "Commander Islands",
+      "lat": 54.5,
+      "lon": 167.5,
+      "spans": [
+        {
+          "to": 1768
+        }
+      ],
+      "source": "Encyclopaedia Britannica, Steller's sea cow: found by Georg Steller in 1741, hunted out by 1768"
     }
   ]
 }

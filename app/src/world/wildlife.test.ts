@@ -3,7 +3,19 @@ import { ANIMALS } from '../../../assets/src/animals.ts';
 import { latLonToDir } from '../geo/cube.ts';
 import { EARTH_RADIUS_KM } from '../geo/earth.ts';
 import { astronomicalYear, dayOfYearStart } from '../time/calendar.ts';
-import { WILD_GROUPS, cosSinTurn, groupGrowth, groupSize, wildlifeAt } from './wildlife.ts';
+import {
+  WILD_GROUPS,
+  WILD_MASK_N,
+  cosSinTurn,
+  decodeWildMask,
+  encodeWildMask,
+  flies,
+  groupGrowth,
+  groupSize,
+  roamOf,
+  wildMaskCell,
+  wildlifeAt,
+} from './wildlife.ts';
 
 const day = (year: number) => dayOfYearStart(year < 0 ? astronomicalYear(-year, 'BCE') : year);
 /** Straight-line distance in km, close to the distance over the ground at these ranges. */
@@ -83,9 +95,7 @@ describe('wildlifeAt (wildlife.md section 4)', () => {
         expect(Math.sqrt(a.eastKm ** 2 + a.northKm ** 2)).toBeLessThan(300);
         expect(a.lat).toBe(g.lat);
         expect(Math.sqrt(a.heading[0] ** 2 + a.heading[1] ** 2)).toBeCloseTo(1, 5);
-        expect(a.clip).toBe(
-          g.model === 'animal-parrot' || g.model === 'animal-kea' ? 'fly' : a.clip,
-        );
+        expect(a.clip).toBe(flies(g) ? 'fly' : a.clip);
         counts.set(a.clip, (counts.get(a.clip) ?? 0) + 1);
       }
     // Mostly grazing, sometimes walking.
@@ -93,15 +103,41 @@ describe('wildlifeAt (wildlife.md section 4)', () => {
     expect(counts.get('walk')!).toBeGreaterThan(0);
   });
 
-  it('shows about 85 animals at one date', () => {
+  it('shows about 115 animals at one date', () => {
     const n = wildlifeAt(day(1500), 0).length;
-    expect(n).toBeGreaterThan(60);
-    expect(n).toBeLessThan(110);
+    expect(n).toBeGreaterThan(85);
+    expect(n).toBeLessThan(145);
   });
 
   it('gives lion groups one lion and lionesses', () => {
     const lions = wildlifeAt(day(1500), 0).filter((a) => a.model.startsWith('animal-lion'));
     expect(lions.filter((a) => a.model === 'animal-lion').length).toBe(2);
     expect(lions.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('keeps walking animals on the open ground of their masks', () => {
+    // Open only east of the home: every spot of a walking group must lie there.
+    const masks = WILD_GROUPS.map((g) => {
+      if (flies(g)) return undefined;
+      const m = new Uint8Array(WILD_MASK_N * WILD_MASK_N);
+      for (let j = 0; j < WILD_MASK_N; j++)
+        for (let i = 0; i < WILD_MASK_N; i++)
+          m[j * WILD_MASK_N + i] = wildMaskCell(g, i, j)[0] > -40 ? 1 : 0;
+      return decodeWildMask(encodeWildMask(m));
+    });
+    for (const s of [0, 7, 31, 90, 200, 333])
+      for (const a of wildlifeAt(day(1800), s, WILD_GROUPS, masks)) {
+        const g = WILD_GROUPS[Number(a.key.split(':')[0])]!;
+        if (flies(g)) continue;
+        // The curve between open spots may bow a little beyond them.
+        expect(a.eastKm).toBeGreaterThan(-40 - 0.2 * roamOf(g));
+      }
+  });
+
+  it('round-trips a mask through its hex string', () => {
+    const m = Uint8Array.from({ length: WILD_MASK_N * WILD_MASK_N }, (_, i) =>
+      (i * 7) % 3 === 0 ? 1 : 0,
+    );
+    expect(decodeWildMask(encodeWildMask(m))).toEqual(m);
   });
 });
