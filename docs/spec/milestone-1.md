@@ -71,7 +71,7 @@ All are npm scripts, run in the dev container or any machine with the pinned Nod
 
 ### 2.4 Continuous integration
 
-GitHub Actions runs on every pull request and on `main`: lint, typecheck, unit and golden tests, data validation against a small fixture dataset, the production build with its size check (section 10.6), and the Playwright tests in headless Chromium. CI does not judge frame rate, because CI machines are not the reference devices; it checks draw calls and triangle counts of the stress scene instead (section 11.4).
+GitHub Actions runs on every pull request and on `main`: lint, typecheck, unit and golden tests, data validation against a small fixture dataset, the production build with its size check (section 10.6), and the Playwright tests in headless Chromium. CI does not judge frame rate, because CI machines are not the reference devices; it checks draw calls and triangle counts of the stress scene instead (section 11.4). The phone browser tests emulate a phone's screen size and touch input at device pixel ratio 1, because CI renders in software and a phone's full pixel density would make every test several times slower without testing anything more.
 
 ## 3. Time
 
