@@ -1,0 +1,17 @@
+# Bibliography of content sources (docs/spec/content-format.md section 1).
+# Records refer to these ids under `sources`.
+hoffecker-2002:
+  title: 'Desolate Landscapes: Ice-Age Settlement in Eastern Europe'
+  author: John F. Hoffecker
+  publisher: Rutgers University Press
+  year: 2002
+soffer-1985:
+  title: The Upper Paleolithic of the Central Russian Plain
+  author: Olga Soffer
+  publisher: Academic Press
+  year: 1985
+pitulko-2004:
+  title: 'The Yana RHS site: humans in the Arctic before the Last Glacial Maximum'
+  author: Vladimir V. Pitulko and others
+  publisher: Science 303, 52–56
+  year: 2004

@@ -32,3 +32,13 @@ export function valueNoise(x: number, y: number, seed: number): number {
   const d = hash01(x0 + 1, y0 + 1, seed);
   return (a * (1 - sx) + b * sx) * (1 - sy) + (c * (1 - sx) + d * sx) * sy;
 }
+
+/** 32-bit FNV-1a hash of a string's UTF-16 code units, for stable ids. */
+export function hashString(s: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}

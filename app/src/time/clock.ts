@@ -1,11 +1,11 @@
 // The two clocks (spec section 2 and milestone 1, sections 3.3 to 3.5).
 // The historical clock advances the date by the base rate × speed × zoom
-// factor; the life clock runs in real time unless everything is frozen.
+// factor; the life clock runs in real time while playing. Paused stops both.
 
 import { DAYS_PER_YEAR, continuousYear, type Day } from './calendar.ts';
-import { DEFAULT_SPEED_INDEX, SPEEDS, baseRate } from './rateCurve.ts';
+import { baseRate, clampSpeedLog2 } from './rateCurve.ts';
 
-export type PlayState = 'playing' | 'historyPaused' | 'frozen';
+export type PlayState = 'playing' | 'paused';
 
 export interface ClockOptions {
   startDay: Day;
@@ -13,14 +13,16 @@ export interface ClockOptions {
   day: Day;
   lifeMs?: number;
   playState?: PlayState;
-  speedIndex?: number;
+  /** Base-2 logarithm of the speed multiplier, −6 to 6. */
+  speedLog2?: number;
 }
 
 export class Clock {
   startDay: Day;
   endDay: Day;
   playState: PlayState;
-  speedIndex: number;
+  /** Base-2 logarithm of the speed multiplier, −6 to 6. */
+  speedLog2: number;
   /** Multiplier from the camera altitude; 1 when the setting is off. */
   zoomFactor = 1;
 
@@ -34,8 +36,8 @@ export class Clock {
     this.endDay = options.endDay;
     this.dayAccumulator = clamp(options.day, this.startDay, this.endDay);
     this.lifeAccumulator = options.lifeMs ?? 0;
-    this.playState = options.playState ?? 'historyPaused';
-    this.speedIndex = options.speedIndex ?? DEFAULT_SPEED_INDEX;
+    this.playState = options.playState ?? 'paused';
+    this.speedLog2 = clampSpeedLog2(options.speedLog2 ?? 0);
   }
 
   /** Sets the range and the restored state once the manifest is known. */
@@ -45,8 +47,7 @@ export class Clock {
     this.dayAccumulator = clamp(options.day, this.startDay, this.endDay);
     if (options.lifeMs !== undefined) this.lifeAccumulator = options.lifeMs;
     if (options.playState !== undefined) this.playState = options.playState;
-    if (options.speedIndex !== undefined)
-      this.speedIndex = clamp(Math.round(options.speedIndex), 0, SPEEDS.length - 1);
+    if (options.speedLog2 !== undefined) this.speedLog2 = clampSpeedLog2(options.speedLog2);
     this.emit();
   }
 
@@ -61,7 +62,7 @@ export class Clock {
   }
 
   get speed(): number {
-    return SPEEDS[this.speedIndex] ?? 1;
+    return 2 ** this.speedLog2;
   }
 
   get isScrubbing(): boolean {
@@ -76,8 +77,9 @@ export class Clock {
   /** Advances both clocks by a real-time interval. */
   tick(realMs: number): void {
     if (realMs <= 0) return;
-    if (this.playState !== 'frozen') this.lifeAccumulator += realMs;
-    if (this.playState !== 'playing' || this.scrubbing) return;
+    if (this.playState !== 'playing') return;
+    this.lifeAccumulator += realMs;
+    if (this.scrubbing) return;
     const before = this.day;
     // Small steps keep the integration accurate where the rate changes fast.
     let remaining = realMs;
@@ -89,7 +91,7 @@ export class Clock {
     }
     if (this.dayAccumulator >= this.endDay) {
       this.dayAccumulator = this.endDay;
-      this.playState = 'historyPaused';
+      this.playState = 'paused';
     }
     if (this.day !== before || this.playState !== 'playing') this.emit();
   }
@@ -100,24 +102,21 @@ export class Clock {
   }
 
   setPlayState(state: PlayState): void {
-    if (state === 'playing' && this.day >= this.endDay) state = 'historyPaused';
+    if (state === 'playing' && this.day >= this.endDay) state = 'paused';
     if (this.playState === state) return;
     this.playState = state;
     this.emit();
   }
 
-  /** Space: toggles between playing and history paused (frozen goes to paused). */
-  togglePauseHistory(): void {
-    this.setPlayState(this.playState === 'historyPaused' ? 'playing' : 'historyPaused');
+  /** Space: toggles between playing and paused. */
+  togglePlay(): void {
+    this.setPlayState(this.playState === 'playing' ? 'paused' : 'playing');
   }
 
-  /** Shift and space: freezes everything, or returns to playing. */
-  toggleFreeze(): void {
-    this.setPlayState(this.playState === 'frozen' ? 'playing' : 'frozen');
-  }
-
-  setSpeedIndex(index: number): void {
-    this.speedIndex = clamp(Math.round(index), 0, SPEEDS.length - 1);
+  setSpeedLog2(log2: number): void {
+    const v = clampSpeedLog2(log2);
+    if (v === this.speedLog2) return;
+    this.speedLog2 = v;
     this.emit();
   }
 

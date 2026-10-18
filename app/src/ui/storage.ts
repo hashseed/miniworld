@@ -33,7 +33,8 @@ export interface ViewState {
   day: number;
   camera: CameraState;
   playState: PlayState;
-  speedIndex: number;
+  /** Base-2 logarithm of the speed multiplier, −6 to 6. */
+  speedLog2: number;
 }
 
 export interface Bookmark {
@@ -112,10 +113,12 @@ export function loadView(): ViewState | undefined {
   const v = read(KEYS.view);
   if (!isObj(v)) return undefined;
   const camera = validCamera(v.camera);
-  if (!camera || !isNum(v.day) || !Number.isInteger(v.day) || !isNum(v.speedIndex))
-    return undefined;
-  const playState: PlayState = v.playState === 'frozen' ? 'frozen' : 'historyPaused'; // never resume running unattended
-  return { day: v.day, camera, playState, speedIndex: v.speedIndex };
+  if (!camera || !isNum(v.day) || !Number.isInteger(v.day)) return undefined;
+  // Views saved before the speed slider kept an index into ×¼, ×½, ×1, ×2, ×4, ×16.
+  const legacy = isNum(v.speedIndex) ? [-2, -1, 0, 1, 2, 4][v.speedIndex] : undefined;
+  const speedLog2 = isNum(v.speedLog2) ? v.speedLog2 : (legacy ?? 0);
+  const playState: PlayState = 'paused'; // never resume running unattended
+  return { day: v.day, camera, playState, speedLog2 };
 }
 
 export function saveView(view: ViewState): void {

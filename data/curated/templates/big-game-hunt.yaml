@@ -1,0 +1,38 @@
+# Hunters stalk a herd, drive one animal into a trap, bring it down and
+# carry the meat home (docs/spec/milestone-2.md section 18.6). Used by
+# mammoth-hunt; other hunts fill the same parameters.
+id: big-game-hunt
+params: { hunters: culture, prey: animal }
+loop: 120 s
+stage:
+  radius: 80 m
+  marks:
+    camp: [-35, 0]
+    lookout: [-15, 10]
+    herd: [30, 0]
+    flank-left: [25, 22]
+    flank-right: [25, -22]
+    trap: [-5, -3]
+    trap-left: [-7, 10]
+    trap-right: [0, -15]
+    edge: [60, 20]
+cast:
+  family: { culture: $hunters, role: gatherer, count: 3, at: camp }
+  scouts: { culture: $hunters, role: hunter, count: 2, at: camp }
+  hunters-left: { culture: $hunters, role: hunter, count: 3, at: camp }
+  hunters-right: { culture: $hunters, role: hunter, count: 3, at: camp }
+  prey: { animal: $prey, count: 1, at: herd }
+  herd: { animal: $prey, count: 2, at: herd }
+beats:
+  - { at: 0, family: { work-at: camp }, scouts: { walk-to: lookout } }
+  - { at: 16, scouts: { point: herd } }
+  - { at: 18, hunters-left: { walk-to: flank-left }, hunters-right: { walk-to: flank-right } }
+  - { at: 66, hunters-left: { run-to: trap-left }, hunters-right: { run-to: trap-right } }
+  - { at: 66, prey: { run-to: trap }, herd: { run-to: edge } }
+  - { at: 76, hunters-left: { throw-at: prey }, hunters-right: { throw-at: prey } }
+  - { at: 79, prey: fall }
+  - { at: 83, hunters-left: { work-at: trap }, hunters-right: { work-at: trap } }
+  - { at: 84, herd: { walk-to: herd } }
+  - { at: 92, hunters-left: { carry-to: camp }, hunters-right: { carry-to: camp } }
+  - { at: 92, scouts: { walk-to: camp } }
+  - { at: 105, prey: appear }
