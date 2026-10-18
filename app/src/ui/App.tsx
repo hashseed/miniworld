@@ -44,6 +44,18 @@ export function App({ store, hot, i18n, actions }: Props) {
   useStore(i18n);
   const t = i18n.t.bind(i18n);
   const lang = i18n.language;
+  // The bottom bar's height, so a card in the top left ends above the play
+  // controls and the timeline (wildlife.md section 8).
+  const bottom = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = bottom.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() =>
+      document.documentElement.style.setProperty('--bottom-h', `${el.offsetHeight}px`),
+    );
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [s.error]);
 
   if (s.error !== undefined) {
     return (
@@ -132,7 +144,7 @@ export function App({ store, hot, i18n, actions }: Props) {
         <VignettePanel card={s.vignette} t={t} lang={lang} actions={actions} />
       )}
 
-      <div class="bottom">
+      <div class="bottom" ref={bottom}>
         {s.fixture && <div class="notice">{t('app.fixtureNotice')}</div>}
         <div class="bar">
           <PlayControls hot={hot} i18n={i18n} actions={actions} />
@@ -386,15 +398,18 @@ function PanelFrame({
   title,
   t,
   actions,
+  left,
   children,
 }: {
   title: string;
   t: T;
   actions: Actions;
+  /** Opens in the top-left corner instead of the top right. */
+  left?: boolean;
   children: preact.ComponentChildren;
 }) {
   return (
-    <section class="panel" role="dialog" aria-label={title}>
+    <section class={left ? 'panel left' : 'panel'} role="dialog" aria-label={title}>
       <h2>{title}</h2>
       <button
         class="btn close"
@@ -616,7 +631,7 @@ function VignettePanel({
           ? t('animal.until', { to })
           : undefined;
   return (
-    <PanelFrame title={text?.title ?? card.title} t={t} actions={actions}>
+    <PanelFrame title={text?.title ?? card.title} t={t} actions={actions} left={!!a}>
       {dateLine && <p class="card-date">{dateLine}</p>}
       {text ? (
         <>

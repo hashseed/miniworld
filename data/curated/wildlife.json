@@ -683,19 +683,6 @@
       "lat": 25.0,
       "lon": -72.0,
       "source": "IUCN Red List range map, Tursiops truncatus"
-    },
-    {
-      "species": "stellers-sea-cow",
-      "model": "animal-sea-cow",
-      "home": "Commander Islands",
-      "lat": 54.5,
-      "lon": 167.5,
-      "spans": [
-        {
-          "to": 1768
-        }
-      ],
-      "source": "Encyclopaedia Britannica, Steller's sea cow: found by Georg Steller in 1741, hunted out by 1768"
     }
   ]
 }
