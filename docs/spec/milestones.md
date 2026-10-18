@@ -54,7 +54,7 @@ Detailed spec: [milestone-2.md](milestone-2.md).
 - First figure rig with instanced, GPU-animated figures and levels of detail, in the toy-planet style.
 - Culture profiles for the hunter-gatherers of Africa, Asia, Sahul, Europe (including Neanderthals), Siberia and the Americas, and the Natufians: camps, hunting, gathering, tool-making, fire.
 - Where people live from culture areas and migrations, with a hand-set density per area; no population data.
-- The tree of humankind ([humankind.md](humankind.md)): one first person at Lake Turkana at 70,000 BCE, new people stepping out of lodgings, camps budding across the world, kept as one tree with a report and a development overlay.
+- The tree of humankind ([humankind.md](humankind.md)): one first person at Lake Turkana at 70,000 BCE, new people stepping out of lodgings, camps budding across the world, kept as one tree with a report, a check against population estimates, a development overlay and a family tree view for jumping to its key moments.
 - Vignettes: small staged stories that play on the clock, fully scripted, built from templates, in three forms: repeated, singular and long, and short but stretched so they can be watched.
 - Landmarks with construction stages, visible from orbit, starting with Göbekli Tepe.
 - Foliage ([foliage.md](foliage.md)): a few big trees and bushes from the climate data, readable from orbit; built ahead of the rest of the milestone (2026-10-18).
@@ -81,7 +81,7 @@ Detailed spec: [milestone-2.md](milestone-2.md).
 
 - Morphing: figures change roles, clothes and tools across a transition window.
 - Neolithic culture profiles for the Fertile Crescent and Europe: fields, herds, mudbrick and timber houses, pottery.
-- Settlements growing from population data, with new figures stepping out of their houses as the tree of humankind grows ([humankind.md](humankind.md#32-lodgings) section 3.2).
+- Settlements growing through their size classes, with new figures stepping out of their houses as the tree of humankind grows ([humankind.md](humankind.md#32-lodgings) section 3.2).
 - The rest of the event system: all event types, floating event markers and the "Happening now" list (event records, timeline icons and fly-to come in milestone 2).
 - First events from [events.md](events.md): the start of farming, Çatalhöyük, Doggerland drowning.
 - Construction and founding event visuals.

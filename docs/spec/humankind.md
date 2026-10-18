@@ -4,6 +4,8 @@ This is the design of where ordinary people come from (spec section 2.4). It ref
 
 Asked for by Yang on 2026-10-18: history starts with a single human at the cradle of humanity in Kenya, who hunts and builds temporary lodgings. As the population grows, more humans come out of these lodgings, and later out of houses, forts and palaces, so the globe holds one family tree of humankind. The tree is kept so that we can reason about what is going on.
 
+Decided by Yang on 2026-10-18, on the first draft: the tree is computed by the data build and looked up by the app; the app opens at 70,000 BCE on the first person; Out of Africa moves to c. 60,000 BCE; Neanderthals are a second root; no population data is used to build the world, but the tree is checked against population estimates from time to time (section 6.1); a family tree view, a very detailed timeline of the tree, lets us skip to its key moments for debugging (section 6.2); foliage trees take a few years to grow and to disappear unless people fell them (section 7). Implementation waits until the one-clock spec and its implementation are merged.
+
 ## 1. The idea in one paragraph
 
 At the very start of the timeline, 70,000 BCE, one person stands on the eastern shore of Lake Turkana in northern Kenya. She builds a grass hut, lights a fire and hunts. After a while a second person steps out of the hut, then a third. When the hut is full, two of them walk off and build a hut of their own a little further away, and people come out of that one too. Camp by camp the family spreads through Africa, then out of it, and on across the world. Every ordinary figure on the globe, from a mammoth hunter in Siberia to a factory worker in 1900, came out of some lodging and has a parent figure that was living there, so all of them form one tree that goes back to the first person. The tree is computed once, when the data is built, from the historical data; the app only looks it up, so the world stays a pure function of the clock.
@@ -17,7 +19,7 @@ Humankind never began with one person. Our species, *Homo sapiens*, arose in Afr
 - **Founder's card** (draft, both languages):
   - en: "The first person in this world. Our species, *Homo sapiens*, began in Africa about 300,000 years ago, and some of its oldest bones were found near Lake Turkana. Real humankind did not start with one person: she stands for the first people of Africa. Everyone you will see on this globe comes from here."
   - de: "Der erste Mensch dieser Welt. Unsere Art, *Homo sapiens*, entstand vor etwa 300.000 Jahren in Afrika, und einige ihrer ältesten Knochen wurden nahe dem Turkana-See gefunden. In Wirklichkeit begann die Menschheit nicht mit einem einzigen Menschen: Sie steht für die ersten Menschen Afrikas. Alle, die du auf diesem Globus sehen wirst, stammen von hier."
-- **Neanderthals** are not descendants of the first person: their ancestors left Africa hundreds of thousands of years earlier. They are a second, smaller tree whose camps already stand in Europe and western Asia at the start of the timeline (section 3.5). Their card says that most people living today carry a little Neanderthal ancestry, because the two met and had children; the tree, being a tree, does not draw these links (**Proposed**).
+- **Neanderthals** are not descendants of the first person: their ancestors left Africa hundreds of thousands of years earlier. They are a second, smaller tree whose camps already stand in Europe and western Asia at the start of the timeline (section 3.5; decided by Yang on 2026-10-18). Their card says that most people living today carry a little Neanderthal ancestry, because the two met and had children; the tree, being a tree, does not draw these links.
 
 ## 3. What the tree holds
 
@@ -68,7 +70,7 @@ Each branch row holds an id, its parent branch, the figure and clock time it sta
 
 ### 3.4 What the tree is not
 
-- It is not a population count. How many people really lived is given by the culture areas and densities of milestone 2 section 3 and later by population data (spec section 4). The tree decides only which figures stand for them, where they live and which figure they came from.
+- It is not a population count, and no population data goes into it (decided by Yang on 2026-10-18). How many figures live where is set by the densities of the culture areas (milestone 2 section 3) and the size classes of settlements; the tree decides which figures these are, where they live and which figure each came from. Population estimates are used only to check the tree (section 6.1).
 - It is not a family history of real people. Famous people are separate figures with their own records (spec section 6); they are not part of the tree.
 
 ### 3.5 Roots
@@ -78,7 +80,7 @@ Each branch row holds an id, its parent branch, the figure and clock time it sta
 | Modern humans | The first person, `african-stone-age` | Koobi Fora at clock time 0 (1 January 70,000 BCE) |
 | Neanderthals | One figure per Neanderthal camp present at clock time 0 | The Neanderthal culture area at 70,000 BCE (milestone 2 section 4), with camps at full density from the start |
 
-Neanderthal camps grow no further after the start (**Proposed**). From about 45,000 BCE their branch thins out and its last camps disappear by about 38,000 BCE, as an event "Neanderthals disappear" whose card explains that the reasons are still debated (small and scattered groups, climate swings, competition with modern humans) and that their genes live on in us.
+Neanderthal camps grow no further after the start (decided by Yang on 2026-10-18). From about 45,000 BCE their branch thins out and its last camps disappear by about 38,000 BCE, as an event "Neanderthals disappear" whose card explains that the reasons are still debated (small and scattered groups, climate swings, competition with modern humans) and that their genes live on in us.
 
 ## 4. How the tree grows
 
@@ -90,7 +92,7 @@ For every place and date the data gives a **target**: how many camps a culture a
 
 - **Camp spacing** follows the density of the culture area: **Proposed** about 400 km between camps for `medium`, 600 km for `low` and 900 km for `sparse`, measured on the true globe before the history lens. With figures drawn at the size of trees (milestone 2 section 5.1), this keeps camps from overlapping at their drawn size; it replaces the camp cells of milestone 2 section 3.2.
 - **Figures per camp** follow the band sizes of milestone 2 section 3.3 (6 to 10, 8 to 14, 10 to 18 for `sparse`, `low` and `medium`), with a lodging holding up to 4 figures (**Proposed**) and a camp up to 5 lodgings.
-- **From 10,000 BCE** (milestone 3 onwards) a settlement's target follows its real population through a damped mapping, **Proposed** figures proportional to the cube root of the population, so a city of a million people has about ten times the figures of a village of a thousand, not a thousand times. The exponent is tuned against the figure budget of spec section 9 when settlements arrive.
+- **Settlements** (milestone 3 onwards) carry a size class over time in their records instead of population numbers: hamlet, village, town, city and great city, with **Proposed** targets of about 10, 20, 40, 80 and 150 figures, so a city of a million people has about ten times the figures of a village of a thousand, not a thousand times. The targets are tuned against the figure budget of spec section 9 when settlements arrive.
 
 Rough world totals the targets give (**Proposed**, to check against the budget): 1 figure at 70,000 BCE, about 1,000 at the end of the prologue, about 2,000 at 50,000 BCE, about 4,000 at 10,000 BCE when nearly all habitable land is reached, and some tens of thousands by 1991. The view never holds more than a fraction of them.
 
@@ -134,17 +136,33 @@ The tree is computed by the data build (`npm run build-data`), in a step after t
 The tree is meant to be looked at, both by us while building the world and in a simple form by the viewer.
 
 - **Report.** `npm run tree -- report` writes a readable summary of the built tree to `data/build/tree/report.md` (git-ignored): figures, camps, births, moves and losses per world region and time window; every branch with its date, place, first figure and parent branch; losses per event; and the results of the checks of section 5.
+
+### 6.1 Checking against population estimates
+
+No population data is used to build the tree, but we check from time to time that it tells the right story (Yang, 2026-10-18). `npm run tree -- check-population` compares the tree with a small curated table of published population estimates per world region and date (`data/curated/population-check.yaml`, each row with its source, for example world totals of about a few hundred thousand to a million people at 70,000 BCE, about 5 million at 10,000 BCE, about 200 million at 1 CE and 5.4 billion in 1991). Since one figure stands for more people the more people there are, the check does not expect the figure count to match; it expects the share of the world's figures in each region to follow the share of the world's people there, damped the same way as the settlement targets (**Proposed**: the cube root), and the growth to happen in the same periods. It lists every region and date where the tree is off by more than a factor of 2 (**Proposed**). It is a report for us, not a build failure, and runs whenever the culture areas, densities or settlements change a lot.
+
+### 6.2 The family tree view
+
+Once the world is fully populated the tree holds tens of thousands of figures, so it is shown as a very detailed timeline that lets us jump straight to its key moments for debugging (Yang, 2026-10-18).
+
+- **Where.** In development builds the address flag `?tree` opens a panel above the timeline, with the same axis as the timeline (spec section 7.1), zoomable down to single years.
+- **Lanes.** Each branch is a lane, nested under its parent branch and drawn from its first figure to the end of the timeline, with the number of its figures over time as the lane's thickness. Lanes can be folded and filtered by world region.
+- **Key moments** are marks on the lanes, generated by the tree build: a branch starting (a migration passing a named point, a new culture, a settlement founded), the first lodging of each kind in a region (the first hut in Asia, the first house, fort or palace), losses to an event, a camp moving away from rising sea, ice or desert, and failed or near-failed checks of section 5.
+- **Jumping.** Clicking a mark moves the clock to that moment and flies the camera to its place; clicking a lane shows its line back to the root, as `lineage` does. Selecting a figure on the globe highlights its lane.
+- **Data.** The key moments are a small list per time window, in the tree's chunks (section 5); the view loads them as it scrolls, like the rest of the content.
+
+A view of the tree for viewers, such as a "Family tree of humankind" button, may follow later; for now the tree is for development and the family line on the figure card.
 - **Questions.** `npm run tree -- at <date> [--region <id>]` lists the camps and figures alive then, and `npm run tree -- lineage <figure id>` prints the figure's line back to its root, shortened to the branch points ("figure 1,822, Danube 40,000 BCE ← first camp in Europe 45,100 BCE ← crossing of the Bab-el-Mandeb 60,000 BCE ← Lake Turkana 70,000 BCE").
 - **Tree overlay for development.** In development builds, the address flag `?tree` draws lines on the globe from each camp to the camp it budded from, coloured by branch, for the camps founded in the time window in view, so the spread of humankind can be watched and checked.
 - **On the figure card.** The card of every ordinary figure adds one line about its family, in both languages, built from its branch chain, for example "Her family's line goes back to the first person at Lake Turkana and left Africa about 60,000 BCE." / "Die Linie ihrer Familie reicht zurück bis zum ersten Menschen am Turkana-See und verließ Afrika um 60.000 v. Chr." Double-tapping the line flies to the camp where the branch began, at its founding date (**Proposed**).
 
-Whether viewers get the tree overlay as well, as a "Family tree of humankind" view, is open (section 9).
 
 ## 7. Changes to the rest of the spec
 
-- **Start of the timeline** (spec section 2.5): the app opens at clock time 0, 1 January 70,000 BCE, at Lake Turkana, close enough to see the first person, instead of at 50,000 BCE in Africa (**Proposed**, Yang to confirm). The first load stays within the 3 MB of spec section 10, since the opening view needs the African tiles, one camp and its models.
+- **Start of the timeline** (spec section 2.5): the timeline already begins at 70,000 BCE; the app now opens there, at clock time 0, at Lake Turkana, close enough to see the first person, instead of at 50,000 BCE (decided by Yang on 2026-10-18). The first load stays within the 3 MB of spec section 10, since the opening view needs the African tiles, one camp and its models.
 - **Out of Africa** moves from c. 70,000 BCE to c. 60,000 BCE ([events.md](events.md) and milestone 2 section 12), close to the mainstream genetic estimate of a main dispersal between about 60,000 and 50,000 years ago; the card mentions earlier groups whose lines died out. **The first people in Sahul** are shown at c. 50,000 BCE, with older dates such as Madjedbebe (about 65,000 years ago) named as debated.
-- **Milestone 2** builds the tree for modern humans and Neanderthals up to 9000 BCE in place of its camp cells, residence fades and figure ids (milestone 2 sections 3, 5.4 and 15); the "no population model" decision stands for population data, while the tree now decides where figures come from.
+- **Milestone 2** builds the tree for modern humans and Neanderthals up to 9000 BCE in place of its camp cells, residence fades and figure ids (milestone 2 sections 3, 5.4 and 15), together with the report, the population check and the family tree view of section 6. No population data is used (decided by Yang on 2026-10-18).
+- **Foliage** ([foliage.md](foliage.md#4-placement) section 4): a tree takes a few years to grow and a few years to disappear (**Proposed** 5 years each, about 12 seconds at regular speed), unless people fell it, which takes a moment: where a camp, lodging or field is founded on a tree's spot, the builders fell it and it tips over and is gone within half a year of the timeline (decided by Yang on 2026-10-18).
 - **Milestone 3 onwards** add lodgings of farming villages and settlements, and figures coming out of houses, forts and palaces.
 
 ## 8. Performance
@@ -153,7 +171,4 @@ Nothing about the tree is simulated in the app. The world query loads the tree c
 
 ## 9. Open questions for Yang
 
-1. Opening the app at 70,000 BCE on the first person at Lake Turkana, with the prologue filling Africa by 62,000 BCE and Out of Africa at c. 60,000 BCE (sections 4.2 and 7).
-2. A tree view for viewers, such as the overlay of section 6 with a "Family tree of humankind" button, or the tree only for development and on the figure card.
-3. The first person drawn as a woman of the `african-stone-age` profile, never lost (sections 2 and 4.4).
-4. Neanderthals as a second root that does not grow after the start (section 3.5).
+1. The first person drawn as a woman of the `african-stone-age` profile, never lost (sections 2 and 4.4).

@@ -58,7 +58,7 @@ Each ordinary figure is a persistent individual who stays on screen across centu
 
 ### 2.5 Range and start
 
-The timeline runs from 70,000 BCE to 26 December 1991, the day the Soviet Union was dissolved, which ends the Cold War (decided by Yang on 2026-10-17). That date is the content cutoff, fixed for every build: no event, war, border, building or era on the globe or the timeline goes past it, and an event or war that began before it but mostly happened after it is left out. A card may say in a sentence what happened next, such as Nelson Mandela becoming president in 1994, but the world itself stops at the cutoff. The app opens at the start of the timeline, 70,000 BCE, on the first person at Lake Turkana in Kenya, who builds a hut and hunts; her family fills Africa by about 62,000 BCE and leaves it from about 60,000 BCE ([humankind.md](humankind.md#7-changes-to-the-rest-of-the-spec) section 7; **Proposed**, Yang to confirm).
+The timeline runs from 70,000 BCE to 26 December 1991, the day the Soviet Union was dissolved, which ends the Cold War (decided by Yang on 2026-10-17). That date is the content cutoff, fixed for every build: no event, war, border, building or era on the globe or the timeline goes past it, and an event or war that began before it but mostly happened after it is left out. A card may say in a sentence what happened next, such as Nelson Mandela becoming president in 1994, but the world itself stops at the cutoff. The app opens at the start of the timeline, 70,000 BCE, on the first person at Lake Turkana in Kenya, who builds a hut and hunts; her family fills Africa by about 62,000 BCE and leaves it from about 60,000 BCE ([humankind.md](humankind.md#7-changes-to-the-rest-of-the-spec) section 7; decided by Yang on 2026-10-18).
 
 ### 2.6 Lighting
 
@@ -90,7 +90,7 @@ History enters the app as a curated database of dated, located records; everythi
 | --- | --- | --- |
 | Culture regions | An area, a date range and a culture profile, such as "Roman, Imperial period" or "Han China" | Curated by hand from standard histories |
 | Culture profiles | Architecture set, clothing, tools, vehicles, crops and animals, and an activity mix (farming, fishing, crafts, trade, worship, soldiering) | Curated; the main art cost |
-| Population | People per area over time, which sets how many figures appear | HYDE (History Database of the Global Environment) from 10,000 BCE, licence to check against section 13; before that, a hand-set density per culture area ([milestone-2.md](milestone-2.md#3-where-people-live) section 3) |
+| Population | How many figures live where: a hand-set density per culture area ([milestone-2.md](milestone-2.md#3-where-people-live) section 3) and a size class per settlement; no population data goes into the world (decided by Yang on 2026-10-18) | Curated; published population estimates are used only to check the tree of humankind ([humankind.md](humankind.md#61-checking-against-population-estimates) section 6.1) |
 | Settlements | Localised name, coordinates, founding date, population over time, landmarks with build dates | Urban history datasets, Wikidata |
 | Polities | Borders at snapshot dates, localised name, colour, capital | historical-basemaps (open GeoJSON of world borders; GPL-3.0, so it needs Yang's decision under section 13), Wikidata (CC0) |
 | Routes | Trade routes, migrations and voyages with date ranges | Curated |

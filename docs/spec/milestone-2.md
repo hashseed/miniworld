@@ -68,7 +68,7 @@ A camp has a hearth, two to five shelters from the culture's architecture set, w
 
 ### 3.3 Density
 
-Each culture area per period carries a `density` of `sparse`, `low` or `medium`, which sets the spacing between camps (**Proposed**: about 900, 600 and 400 km, [humankind.md](humankind.md#41-targets) section 4.1) and the band size shown in a camp (**Proposed**: 6 to 10, 8 to 14 and 10 to 18 figures). These are visual densities, not population counts: the card for a camp says that a band was usually 20 to 50 people and that the whole world then held perhaps a few million. HYDE takes over as the population source from 10,000 BCE in later milestones (spec section 4).
+Each culture area per period carries a `density` of `sparse`, `low` or `medium`, which sets the spacing between camps (**Proposed**: about 900, 600 and 400 km, [humankind.md](humankind.md#41-targets) section 4.1) and the band size shown in a camp (**Proposed**: 6 to 10, 8 to 14 and 10 to 18 figures). These are visual densities, not population counts: the card for a camp says that a band was usually 20 to 50 people and that the whole world then held perhaps a few million. No population data is used in later milestones either; settlements carry size classes, and population estimates only check the tree ([humankind.md](humankind.md#61-checking-against-population-estimates) section 6.1).
 
 ## 4. Culture profiles of this milestone
 
