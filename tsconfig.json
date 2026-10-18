@@ -19,5 +19,5 @@
     "noEmit": true,
     "types": ["node", "vite/client"]
   },
-  "include": ["app", "data/build", "tests", "*.config.ts"]
+  "include": ["app", "assets", "data/build", "tests", "*.config.ts"]
 }
