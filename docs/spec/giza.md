@@ -2,7 +2,7 @@
 
 The plan for the pyramids of Giza as a landmark with its dioramas: the plateau is bare desert rock, the three pyramids and the Great Sphinx are built over about 85 years, and then they stay there across the ages while the world around them changes, from the priests of the Old Kingdom to Greek travellers, Mamluk stone robbers, Napoleon's army, archaeologists and tourists in 1991. It is the first landmark of [milestones.md](milestones.md#4-early-civilisations) milestone 4, whose exit criterion is that "the Great Pyramid can be watched growing over about 20 years and then stands for the rest of history".
 
-Asked for by Yang on 2026-10-18. It uses the landmark system of [milestone-2.md](milestone-2.md#8-landmarks) section 8 and the vignettes of section 6, with the conventions of [dioramas.md](dioramas.md): data first (a landmark record, vignette records and template YAML), scripts in English and German, dioramas not to scale and visible and alive from orbit, the claymation look, and hard history told correctly at an 11 to 12-year-old reading level. Dates follow the conventional chronology used in [events/egypt.md](events/egypt.md) and are checked against sources when the records are written. Decisions marked **Proposed** are open for Yang to change; the open questions are in section 10.
+Asked for by Yang on 2026-10-18. It uses the landmark system of [milestone-2.md](milestone-2.md#8-landmarks) section 8 and the vignettes of section 6, with the conventions of [dioramas.md](dioramas.md): data first (a landmark record, vignette records and template YAML), scripts in English and German, dioramas not to scale and visible and alive from orbit, the claymation look, and hard history told correctly at an 11 to 12-year-old reading level. Dates follow the conventional chronology used in [events/egypt.md](events/egypt.md) and are checked against sources when the records are written. Decisions marked **Proposed** are open for Yang to change; the decisions Yang made on 2026-10-18 are listed in section 10.
 
 ## 1. The story in three acts
 
@@ -14,7 +14,7 @@ Asked for by Yang on 2026-10-18. It uses the landmark system of [milestone-2.md]
 
 ## 2. The landmark record
 
-One landmark record `giza-pyramids` covers the whole group, because at globe scale the pyramids, the Sphinx and their temples read as one place (**Proposed**; [content-format.md](content-format.md#1-records) uses `great-pyramid.md` as an example file name, which this replaces).
+One landmark record `giza-pyramids` covers the whole group, because at globe scale the pyramids, the Sphinx and their temples read as one place (decided by Yang on 2026-10-18; [content-format.md](content-format.md#1-records) uses `great-pyramid.md` as an example file name, which this replaces).
 
 ```markdown
 ---
@@ -47,7 +47,7 @@ Two extensions of the landmark format, both **Proposed** and to be written into 
 - **Parts.** A landmark may have named `parts`, each with its own point and its own `stages`. The landmark is drawn as the union of its parts at the date. Without parts, Giza would need one model per combination of pyramid stages, Sphinx sand and casing state; with parts, each piece changes on its own dates. A landmark without parts works as before.
 - **Several builds.** `build` may be a list, each entry naming the part it builds, its span and its singular vignette. The construction stages of that part rise gradually through the span (spec section 5, construction events).
 
-**Placement.** The pyramids stand on the desert edge on the west bank of the Nile, about 8 km from the river today and close to the floodplain in the Old Kingdom. The globe draws the Nile as a wide, smooth ribbon (spec section 6), so the true points may fall inside the drawn river or its green band. The landmark is therefore anchored to its true point and, if the drawn river or its banks cover any part's footprint, the whole group is shifted west, as one piece, to the nearest desert land that is clear of them (**Proposed**). The shift is computed once in the data build from the terrain, which is time-independent, so it is deterministic.
+**Placement.** The pyramids stand on the desert edge on the west bank of the Nile, about 8 km from the river today and close to the floodplain in the Old Kingdom. The globe draws the Nile as a wide, smooth ribbon (spec section 6), so the true points may fall inside the drawn river or its green band. The landmark is therefore anchored to its true point and, if the drawn river or its banks cover any part's footprint, the whole group is shifted west, as one piece, to the nearest desert land that is clear of them (decided by Yang on 2026-10-18). The shift is computed once in the data build from the terrain, which is time-independent, so it is deterministic.
 
 **Size.** Landmarks follow the same miniature scale as other buildings and, as `beacon: wonder`, keep a minimum on-screen size up to orbit (milestone-2 section 8). In keeping with Yang's decision of 2026-10-18 that dioramas are not to scale but much larger and alive from orbit, the building crews and the later visitors keep the minimum figure size of milestone-2 section 5.1, so from orbit the viewer sees three clay pyramids with tiny crowds moving around them. The relative sizes of the three pyramids stay true to each other (Khufu and Khafre almost equal, Menkaure clearly smaller), because that is how children recognise the group.
 
@@ -99,7 +99,7 @@ A new template for the building of a pyramid, used here three times and later fo
 
 The beats are the record scripts in section 4.2. The loop closes because the sledge returns empty down the ramp and a new block is cut in the quarry while the boat sails off and returns full. **Proposed** loop length: 120 s, like the mammoth hunt.
 
-How the blocks were raised is not fully known: archaeologists have found remains of ramps at Giza and at Hatnub, and debate whether they were straight, zigzag or wound around the pyramid. The diorama shows one straight supply ramp, which is simple to read, and the card says that the exact way is still debated (**Proposed**).
+How the blocks were raised is not fully known: archaeologists have found remains of ramps at Giza and at Hatnub, and debate whether they were straight, zigzag or wound around the pyramid. The diorama shows one straight supply ramp, which is simple to read, and the card says that the exact way is still debated (decided by Yang on 2026-10-18).
 
 ### 4.2 The three building dioramas
 
@@ -207,10 +207,12 @@ Every model is generated in the claymation house style and must be approved by Y
 - **milestone-2.md section 8 and content-format.md section 5.** The landmark `parts` field and list-valued `build` of section 2, written in when milestone 4 is built.
 - **events/egypt.md.** The new rows of section 6.
 
-## 10. Open questions for Yang
+## 10. Decisions
 
-1. One landmark for the whole Giza group with parts, rather than separate landmarks for each pyramid and the Sphinx (section 2).
-2. Shift the whole group west onto clear desert when the drawn Nile covers it (section 2).
-3. A straight supply ramp in the building dioramas, with the card saying the method is debated (section 4.1).
-4. A diorama playing at Giza at all times after the building, except c. 2180–c. 1550 BCE (section 5).
-5. The end date of the Great Pyramid's construction: c. 2560 BCE as in events/egypt.md, after the end of Khufu's reign as given in people.md (section 6).
+Decided by Yang on 2026-10-18:
+
+1. One combined landmark for the whole Giza group, with parts (section 2).
+2. When the drawn Nile covers the site, the whole group shifts west onto clear desert (section 2).
+3. One straight supply ramp in the building dioramas, with the card saying the method is debated (section 4.1).
+4. The gap at Giza from c. 2180 to c. 1550 BCE stays open for now; the farming dioramas of the Nile valley that carry the region then are worked out in detail later.
+5. The Great Pyramid is finished c. 2560 BCE, as in events/egypt.md; the sources settle the exact date and Khufu's reign when the records are written (section 6).
