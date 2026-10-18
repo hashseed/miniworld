@@ -14,6 +14,8 @@ export interface BoneDef {
   name: string;
   pivot: Vec3;
   parent?: string;
+  /** How far a knee or hock bone bends while its foot is lifted, in radians; the sign is its direction. */
+  flex?: number;
 }
 
 const ROOT = 'root';
@@ -103,6 +105,7 @@ export class ModelBuilder {
       o.position.copy(world(def)).sub(parentDef ? world(parentDef) : new THREE.Vector3());
       parent.add(o);
       o.userData.rest = o.position.clone();
+      if (def.flex !== undefined) o.userData.flex = def.flex;
       nodes.set(bname, o);
       return o;
     };

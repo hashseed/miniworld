@@ -253,6 +253,7 @@ export function buildWildlifeMasks(ctx: BuildContext, map: WorldMap): string[] {
     height: (lat, lon) => relief.bilinear(lat, lon),
     wet: (lat, lon) =>
       lakes.bilinear(lat, lon) > 127 || connection.nearest(lat, lon) <= -OCEAN_MIN_LEVEL,
+    lake: (lat, lon) => lakes.bilinear(lat, lon) > 127,
   });
   WILD_GROUPS.forEach((g, i) =>
     ctx.log(

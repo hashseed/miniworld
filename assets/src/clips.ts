@@ -359,13 +359,27 @@ export function animateAnimal(m: Model, clip: Clip, seconds: number): void {
   const rest = body.userData.rest as THREE.Vector3;
   const stride = Math.sqrt(rest.y);
   const rot = (name: string, x = 0, y = 0, z = 0) => m.bones.get(name)?.rotation.set(x, y, z);
-  const gait = (period: number, swing: number) => {
+  const gait = (period: number, swing: number, trot: boolean) => {
     const p = (seconds / period) * TAU;
-    // Diagonal pairs move together, as in a walk or trot.
-    rot('legFL', swing * Math.sin(p));
-    rot('legBR', swing * Math.sin(p));
-    rot('legFR', -swing * Math.sin(p));
-    rot('legBL', -swing * Math.sin(p));
+    // A walk sets the feet down one after another, hind left, fore left, hind
+    // right, fore right; a trot moves diagonal pairs together. Each foot pushes
+    // back slowly on the ground, then swings forward lifted, its knee or hock
+    // bent (Yang, 2026-10-18: legs need a joint).
+    const stance = trot ? 0.5 : 0.7;
+    for (const [leg, offset] of [
+      ['BL', 0],
+      ['FL', trot ? 0.5 : 0.25],
+      ['BR', 0.5],
+      ['FR', trot ? 0 : 0.75],
+    ] as const) {
+      const ph = seconds / period + offset - Math.floor(seconds / period + offset);
+      const lifted = ph >= stance;
+      const s = lifted ? (ph - stance) / (1 - stance) : ph / stance;
+      rot(`leg${leg}`, swing * (lifted ? 1 - 2 * smooth(s) : -1 + 2 * s));
+      const low = m.bones.get(`low${leg}`);
+      if (low)
+        low.rotation.x = lifted ? ((low.userData.flex as number) ?? 0) * Math.sin(Math.PI * s) : 0;
+    }
     rot('head', 0.05 * Math.sin(p * 2));
     rot('tail', 0, 0.25 * Math.sin(p));
     body.position.y = rest.y + Math.abs(Math.cos(p)) * swing * 0.05 * rest.y;
@@ -428,10 +442,10 @@ export function animateAnimal(m: Model, clip: Clip, seconds: number): void {
   }
   switch (clip) {
     case 'walk':
-      gait(walkPeriod(m), 0.3);
+      gait(walkPeriod(m), 0.3, false);
       break;
     case 'run':
-      gait(0.55 * stride, 0.55);
+      gait(0.55 * stride, 0.55, true);
       rot('head', -0.1);
       break;
     case 'struggle': {

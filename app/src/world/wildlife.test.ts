@@ -35,11 +35,11 @@ describe('wildlife groups (wildlife.md section 3)', () => {
     }
   });
 
-  it('has at most two groups of each species, of 2 or 3 animals', () => {
+  it('has at most two groups of each species, of 2 or 3 animals unless set', () => {
     const per = new Map<string, number>();
     WILD_GROUPS.forEach((g, i) => {
       per.set(g.species, (per.get(g.species) ?? 0) + 1);
-      expect([2, 3]).toContain(groupSize(g, i));
+      expect(g.size !== undefined ? [g.size] : [2, 3]).toContain(groupSize(g, i));
     });
     for (const n of per.values()) expect(n).toBeLessThanOrEqual(2);
   });

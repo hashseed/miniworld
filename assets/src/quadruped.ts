@@ -26,9 +26,18 @@ export interface Quad {
   hoof?: string;
   /** Round column feet with toenails (elephants) instead of flat hooves or paws; the hoof colour is the nails'. */
   toenails?: boolean;
+  /**
+   * How far the knees bend while a foot is lifted, in radians (default 0.8):
+   * little for elephants' column legs, deep for cats and dogs.
+   */
+  knee?: number;
   /** Patterns painted on the coat (zebra stripes); the parts get extra rings so bands can follow them. */
   pattern?: { body?: Pattern; chest?: Pattern; neck?: Pattern; head?: Pattern; legs?: Pattern };
 }
+
+/** Height of the front knee and of the hock as a share of the top of the leg. */
+const FRONT_KNEE = 0.45;
+const HOCK = 0.5;
 
 export interface Parts {
   mb: ModelBuilder;
@@ -58,6 +67,21 @@ export function quadruped(q: Quad, clay = 1): Parts {
       { name: 'legBL', pivot: [spread, legTop, back * 0.72], parent: 'body' },
       { name: 'legBR', pivot: [-spread, legTop, back * 0.72], parent: 'body' },
       { name: 'tail', pivot: [0, bodyY + q.girth[1] * 0.4, back * 1.02], parent: 'body' },
+      // The lower legs hang from the knees in front and the hocks behind,
+      // which bend the other way (Yang, 2026-10-18: legs need a joint).
+      ...(
+        [
+          ['FL', spread, front, FRONT_KNEE, 1],
+          ['FR', -spread, front, FRONT_KNEE, 1],
+          ['BL', spread, back, HOCK, -1],
+          ['BR', -spread, back, HOCK, -1],
+        ] as const
+      ).map(([leg, x, end, at, way]) => ({
+        name: `low${leg}`,
+        pivot: [x, legTop * at, end * 0.72] as Vec3,
+        parent: `leg${leg}`,
+        flex: way * (q.knee ?? (q.toenails ? 0.3 : 0.8)),
+      })),
     ],
     clay,
   );
@@ -118,24 +142,27 @@ export function quadruped(q: Quad, clay = 1): Parts {
   }
   // Legs with hooves or paws.
   const legColour = q.legColour ?? q.coat;
-  for (const [bone, x, z] of [
-    ['legFL', 1, front * 0.72],
-    ['legFR', -1, front * 0.72],
-    ['legBL', 1, back * 0.72],
-    ['legBR', -1, back * 0.72],
+  for (const [leg, x, z, at] of [
+    ['FL', 1, front * 0.72, FRONT_KNEE],
+    ['FR', -1, front * 0.72, FRONT_KNEE],
+    ['BL', 1, back * 0.72, HOCK],
+    ['BR', -1, back * 0.72, HOCK],
   ] as const) {
+    const bone = `low${leg}`;
     const lx = x * spread;
-    const leg = q.leg * 1.4; // chunky toy legs
-    // End the leg one cap radius up, so its rounded end rests on the ground.
+    const legR = q.leg * 1.4; // chunky toy legs
+    const footY = Math.max(0.08, legR * 0.75);
+    const kneeY = Math.max(footY + legR * 0.5, legTop * at);
+    const kneeR = legR * 0.87;
+    // Upper leg to the knee, lower leg to one cap radius above the ground, so its rounded end rests there.
     mb.add(
-      limb(
-        [lx, legTop, z],
-        [lx, Math.max(0.08, leg * 0.75), z],
-        leg,
-        leg * 0.75,
-        5,
-        pt?.legs ? 6 : 0,
-      ),
+      limb([lx, legTop, z], [lx, kneeY, z], legR, kneeR, 5, pt?.legs ? 2 : 0),
+      legColour,
+      `leg${leg}`,
+      pt?.legs,
+    );
+    mb.add(
+      limb([lx, kneeY, z], [lx, footY, z], kneeR, legR * 0.75, 5, pt?.legs ? 2 : 0),
       legColour,
       bone,
       pt?.legs,
@@ -143,17 +170,25 @@ export function quadruped(q: Quad, clay = 1): Parts {
     if (q.toenails) {
       // A round foot as wide as the leg and a little wider at the ground, with
       // three nails at the front (Yang, 2026-10-18: elephants have no flat feet).
-      mb.add(blob([lx, leg * 0.5, z], [leg * 1.08, leg * 0.55, leg * 1.08], 6), legColour, bone);
+      mb.add(
+        blob([lx, legR * 0.5, z], [legR * 1.08, legR * 0.55, legR * 1.08], 6),
+        legColour,
+        bone,
+      );
       for (const t of [-0.45, 0, 0.45])
         mb.add(
-          blob([lx + t * leg, leg * 0.2, z + leg * 0.98], [leg * 0.22, leg * 0.2, leg * 0.14], 4),
+          blob(
+            [lx + t * legR, legR * 0.2, z + legR * 0.98],
+            [legR * 0.22, legR * 0.2, legR * 0.14],
+            4,
+          ),
           q.hoof ?? shade(legColour, 0.25),
           bone,
         );
       continue;
     }
     mb.add(
-      blob([lx, 0.06, z + leg * 0.2], [leg * 0.85, 0.07, leg * 1.0], 5),
+      blob([lx, 0.06, z + legR * 0.2], [legR * 0.85, 0.07, legR * 1.0], 5),
       q.hoof ?? shade(legColour, -0.35),
       bone,
     );

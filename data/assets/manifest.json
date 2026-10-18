@@ -425,10 +425,8 @@
       "file": "assets/src/wildAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "approved",
-      "geometry": "d8f28a05bb6809f1",
-      "note": "Wildlife (wildlife.md section 6), round feet after Yang's review on 2026-10-18, waiting for Yang's review",
-      "reviewed": "2026-10-18"
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6); lightened, waiting for Yang's review"
     },
     {
       "id": "animal-giraffe",
@@ -579,6 +577,46 @@
       "geometry": "6e857bd485ab755e",
       "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
       "reviewed": "2026-10-18"
+    },
+    {
+      "id": "animal-panda",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-gorilla",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-gorilla-female",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-orangutan",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "animal-komodo",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
     },
     {
       "id": "animal-tiger",
