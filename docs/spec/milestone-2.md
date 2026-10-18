@@ -4,7 +4,7 @@ This is the detailed spec for the second milestone in [milestones.md](milestones
 
 **Goal:** the first living humans, and the systems that let small stories play out on the globe. A viewer opens the app at 50,000 BCE and sees camps of people at work in Africa, along the coasts of Asia, in Sahul and in Europe, where Neanderthals still live. Families walk out of Africa along the coasts. On the steppe a band of hunters stalks a mammoth, over and over for as long as its era lasts. Zooming in on Lascaux opens the hill like a dollhouse, and painters are at work inside by torchlight. At about 9500 BCE the stone rings of Göbekli Tepe rise in southeastern Anatolia. Tapping any figure explains what it is doing, in English or German.
 
-The milestone proves the world query in its Web Worker, figures driven by the life clock, cross-device determinism, and four systems every later milestone reuses: **vignettes** (small staged stories that loop), **landmarks** (recognisable buildings that rise over their real years), **migrations**, and **cutaways** for things too small to see from above.
+The milestone proves the world query in its Web Worker, figures driven by the clock (spec section 2.1), cross-device determinism, and four systems every later milestone reuses: **vignettes** (small staged stories that loop), **landmarks** (recognisable buildings that rise over their real years), **migrations**, and **cutaways** for things too small to see from above.
 
 Decided by Yang on 2026-10-17: no population model is needed for this milestone (where people live comes from culture areas and migrations, section 3); vignettes, landmarks, migrations and a way to show small-scale scenes are the core of the milestone; vignettes come in three forms: repeated, singular and long, and short but stretched so they can be watched (section 6).
 
@@ -12,7 +12,7 @@ Decided by Yang on 2026-10-17: no population model is needed for this milestone 
 
 | Area | Delivered | Section |
 | --- | --- | --- |
-| World query | Scene from date, life clock and view in a Web Worker; deterministic arithmetic | 2 |
+| World query | Scene from the clock and view in a Web Worker; deterministic arithmetic | 2 |
 | Where people live | Culture areas by date, camps, density without a population model | 3 |
 | Culture profiles | Seven hunter-gatherer profiles from Africa to the Americas | 4 |
 | Figures | Rig, parts, animations, tasks and levels of detail | 5 |
@@ -29,26 +29,26 @@ Decided by Yang on 2026-10-17: no population model is needed for this milestone 
 
 ### 2.1 The worker and the scene
 
-The world query runs in a Web Worker (`app/src/world/`). It receives the date, the life clock, the play state and the view (camera position, the visible quadtree tiles) and returns a **scene**: the camps, figures, vignette instances, landmarks, migration groups and markers in and near the view, each with a stable id. The renderer and the interface only draw the scene; they never decide anything about the world.
+The world query runs in a Web Worker (`app/src/world/`). It receives the clock, the play state and the view (camera position, the visible quadtree tiles) and returns a **scene**: the camps, figures, vignette instances, landmarks, migration groups and markers in and near the view, each with a stable id. The renderer and the interface only draw the scene; they never decide anything about the world.
 
 The pure functions of `app/src/time`, `app/src/core` and the date-dependent parts of `app/src/globe` (sea level, ocean mask, ice, aridity) move into the worker unchanged ([milestone-1.md](milestone-1.md#22-repository-layout) section 2.2), so the world query knows where land, sea, ice and desert are at the date.
 
 ### 2.2 Motion as segments
 
-Figures and props move every frame, but the worker does not run every frame. For every moving thing it returns **segments**: a start and end on the life clock, a start and end position, a heading, and an animation clip with its start offset. The renderer interpolates positions and plays clips on the GPU from the life clock. The worker returns segments covering at least the next 10 seconds of life clock and is asked again when the earliest segment set runs out, when the date crosses a time-window boundary, or when the view changes tiles. When history is paused nothing is recomputed and the renderer holds the stopped life clock, so every figure stops mid-step.
+Figures and props move every frame, but the worker does not run every frame. For every moving thing it returns **segments**: a start and end on the clock, a start and end position, a heading, and an animation clip with its start offset. The renderer interpolates positions and plays clips on the GPU from the clock. The worker returns segments covering at least the next 10 seconds of real time at the current speed mode (so 160 seconds of clock time in fast forward) and is asked again when the earliest segment set runs out, when the clock crosses a time-window boundary, or when the view changes tiles. When history is paused nothing is recomputed and the renderer holds the stopped clock, so every figure stops mid-step. When the clock jumps (scrubbing, a bookmark), the worker is asked at once for the new clock time.
 
 ### 2.3 Determinism rules
 
-The same date, life clock and view always give the same scene, on every device and browser.
+The same clock time and view always give the same scene, on every device and browser.
 
-- **Hashing.** Every choice that looks random is the 32-bit hash of `app/src/core/hash.ts` (milestone 1) over stable inputs, such as a figure id and a life-clock slot. Inputs are integers and string ids, never floating-point values.
-- **Integer inputs.** Dates are whole days and the life clock whole milliseconds (milestone 1 section 3). Positions in the scene are latitude and longitude in whole microdegrees (about 0.1 m, far below anything visible), and stage coordinates in whole centimetres.
+- **Hashing.** Every choice that looks random is the 32-bit hash of `app/src/core/hash.ts` (milestone 1) over stable inputs, such as a figure id and a clock slot. Inputs are integers and string ids, never floating-point values.
+- **Integer inputs.** The clock is whole milliseconds and dates derived from it are whole days (milestone 1 section 3). Positions in the scene are latitude and longitude in whole microdegrees (about 0.1 m, far below anything visible), and stage coordinates in whole centimetres.
 - **No engine-dependent maths.** `Math.sin`, `Math.cos`, `Math.atan2`, `Math.exp`, `Math.pow` and their relatives may differ between JavaScript engines in the last bits, so the world query never calls them. It uses only `+ − × ÷` and `Math.sqrt` on doubles, which IEEE 754 makes exact on every device, plus deterministic polynomial versions of sine, cosine and arctangent in `app/src/core/detmath.ts`. Rounding to microdegrees happens once, at the end of each computation. A lint rule forbids the engine functions in `app/src/world/` and `app/src/core/`; the renderer is free to use them.
 - **Loading never changes the world.** A camp, figure or vignette exists in the scene whether or not its models, textures or text have arrived (spec section 10). Missing models draw as neutral placeholders.
 
 ### 2.4 Budget
 
-A full world query for the densest view of this milestone takes under 8 ms on the reference phone (spec section 9). Updates triggered by the life clock alone, which are the most frequent, recompute only segments and take under 2 ms.
+A full world query for the densest view of this milestone takes under 8 ms on the reference phone (spec section 9). Updates triggered by the clock moving on within a time window, which are the most frequent, recompute only segments and take under 2 ms.
 
 ## 3. Where people live
 
@@ -113,7 +113,7 @@ Clips are baked into an animation texture and played on the GPU (milestone 1 sec
 
 ### 5.4 Tasks
 
-Ordinary figures live in their camp. Each figure's id is the hash of its camp and its index in the band, so it stays the same as long as the camp stands. Life-clock time is cut into **slots** of 10 to 30 seconds per figure (length from a hash of figure id and slot number). In each slot the figure picks a task from its profile's activity mix (hash of figure id and slot), walks to the matching work spot, works there and may carry something back. Gatherers and hunters may walk out of the camp and return within one slot. The worker turns the slot's task into segments (section 2.2).
+Ordinary figures live in their camp. Each figure's id is the hash of its camp and its index in the band, so it stays the same as long as the camp stands. Clock time is cut into **slots** of 10 to 30 seconds per figure (length from a hash of figure id and slot number). In each slot the figure picks a task from its profile's activity mix (hash of figure id and slot), walks to the matching work spot, works there and may carry something back. Gatherers and hunters may walk out of the camp and return within one slot. The worker turns the slot's task into segments (section 2.2).
 
 ### 5.5 Levels of detail
 
@@ -130,7 +130,7 @@ The limit on animated figures (milestone 1 section 11.2) caps the first level; f
 
 ### 6.1 What a vignette is
 
-A **vignette** is a small staged story at a place and time: Vikings raiding a village, hunters stalking a mammoth, workers hauling a pillar into place, painters at work in a cave. It has a cast of figures, props, a stage and a short script that plays on the life clock in a loop of about one to two minutes. With history running the vignette plays while its date span lasts; when history is paused it stops mid-beat (spec section 2.3).
+A **vignette** is a small staged story at a place and time: Vikings raiding a village, hunters stalking a mammoth, workers hauling a pillar into place, painters at work in a cave. It has a cast of figures, props, a stage and a short script that plays on the clock (spec section 2.1) in a loop of about one to two minutes. Because the clock fixes everything, a vignette is fully scripted: at a given clock time it is always at the same beat, at the same site (decided by Yang on 2026-10-18). With history running the vignette plays while its shown span lasts; when history is paused it stops mid-beat.
 
 Vignettes are where the stories of history become visible. Ordinary figures show how people lived; vignettes show what happened.
 
@@ -140,7 +140,7 @@ Every vignette is one of three forms (decided by Yang):
 | --- | --- | --- |
 | **Repeated** | Viking raids, mammoth hunts | One record covers a span and an area; instances are placed at dates and sites chosen by hash (section 6.6) |
 | **Singular and long** | Building the pyramids, Göbekli Tepe | One instance over the real span; the date drives progress, such as a landmark's construction stage (section 8), while the loop keeps the work going |
-| **Short but stretched** | The raid on Lindisfarne, a single battle | One instance whose true span is too short to watch; it is shown for a minimum watching time (section 6.7) |
+| **Short but stretched** | The raid on Lindisfarne, a single battle | One instance whose true span is shorter than its script; the script plays in full, covering more of the timeline than the event took (section 6.7) |
 
 ### 6.2 Templates and records
 
@@ -150,7 +150,7 @@ To keep vignettes clean, the stage and script live in a reusable **template**, a
 - **Stage**: the size of the stage, its orientation rule, named **marks** (positions in metres at life size around the stage centre, stored as whole centimetres) with what must be under each (land, water, coast), and the **props** with the asset or parameter they show.
 - **Cast**: named groups, each with a culture or an animal (or a parameter for either), role, count and starting mark. Animals, such as the hunted mammoth, are cast members like people and move by the same actions.
 - **Beats**: the script, a list of steps at times on the loop, each giving a group or prop an action from the vocabulary (section 6.4).
-- **Loop**: its length in life-clock seconds.
+- **Loop**: its length in seconds of clock time, and optionally its **decisive beat** (`climax`), the moment a stretched instance places on the true date (section 6.7).
 
 ```yaml
 # data/curated/templates/coastal-raid.yaml
@@ -220,7 +220,7 @@ The Viking raid is the worked example for this spec; it ships with the Viking Ag
 | `when`, `where` | The envelope's span and place (content-format sections 3 and 4). A singular vignette has a place or point; a repeated one an area |
 | `repeat` | For repeated vignettes: how many instances per period, and where they may stand (section 6.6) |
 | `progress` | For singular vignettes that drive something by date, such as `{ landmark: gobekli-tepe }` (section 8) |
-| `stretch` | Optional override of the minimum watching time (section 6.7), or `false` |
+| `stretch` | Optional number of loops a stretched instance plays (section 6.7), default 1 |
 | `cutaway` | Optional interior set for small scenes (section 7) |
 | `links` | Usually the event, landmark or people the vignette shows |
 
@@ -235,9 +235,9 @@ Beats use only actions from `vocab/actions.yaml`, so every vignette is made of t
 - `clash` and `fall` follow spec section 4: armed figures meet in a short stylised scuffle, and a figure that falls sinks down and fades out, with no blood. An animal hunted in a vignette falls the same way.
 - A new action is a vocabulary entry, its movement rule and its clips, added together. The actions later milestones need are listed in [dioramas.md](dioramas.md#3-additions-to-the-action-vocabulary) section 3.
 
-### 6.5 Looping and the clocks
+### 6.5 Shown span and the clock
 
-A vignette instance plays its script at **phase** = (life clock + offset) modulo the loop length, where the offset is the hash of the instance id. Everything about the instance at a given moment is a pure function of the record, the date and the phase, so it is deterministic and needs no state.
+Every vignette instance has a **shown span** on the clock: a start and an end clock time, always a whole number of loops long and at least one loop. It plays its script from its start, at **phase** = (clock − start) modulo the loop length, so it begins at the first beat and ends at the end of a loop, never mid-scene. Everything about the instance at a moment is a pure function of the record and the clock, so it is deterministic, needs no state, and scrubbing back to a moment shows exactly the same beat.
 
 - The loop must close: at the end of the loop every cast member and prop is back at its starting mark, or has left by `vanish`, `board` or walking off the stage edge and re-enters the same way at the start. The data build checks this by running every template through one loop.
 - Lasting consequences do not come from the loop. A village that is burnt for good is an event effect (`abandon`, content-format section 6), not a beat; the loop shows the action, the world state shows the outcome.
@@ -245,22 +245,23 @@ A vignette instance plays its script at **phase** = (life clock + offset) modulo
 
 ### 6.6 Repeated vignettes
 
-A repeated vignette's span is cut into periods of `repeat.per` (for example 10 years). In each period the hash of the record id and the period number picks `repeat.count` instance dates in the period and, for each, a site from `repeat.sites`:
+A repeated vignette's span is cut into periods of `repeat.per` (for example 10 years, which is 24 seconds at 25 years per minute). In each period the hash of the record id and the period number picks `repeat.count` instances. Each instance starts at the period's start plus an offset of less than one loop, chosen by the hash of its id, so instances of one record do not move in step, and lasts as many whole loops as fit before the period's end, at least one; when the period is shorter than a loop, the instance runs on past it. For each instance a site comes from `repeat.sites`:
 
 - `places`: place records, by id or tag (such as every coastal settlement standing at that date);
 - `camps`: the camps of a culture in the area (for hunts, fishing and other everyday stories of hunter-gatherers); the camp's band becomes the cast where the template's roles match;
 - `points`: hashed points in the area that meet the template's mark rules, or a curated list of candidate points (each optionally with its own `from` and `to`), from which the hash picks;
 - `routes`: route records, for ships, caravans, trains and aircraft; each instance travels one route, with small stages at its two ends ([dioramas.md](dioramas.md#1-rules) section 1).
 
-A site is only used when every mark of the template lands on what it needs at the date (water, coast or land); otherwise the hash moves on to the next candidate, so the result stays deterministic. Instances do not overlap at one site.
+A site is only used when every mark of the template lands on what it needs at the date (water, coast or land) and no other instance's shown span at that site overlaps this one; otherwise the hash moves on to the next candidate, so the result stays deterministic.
 
 ### 6.7 Stretching short events
 
-Some events lasted a few days, which at the timeline's normal speed would pass in a fraction of a second. So every vignette instance is **shown for at least a minimum watching time**: **Proposed** 30 seconds at ×1 (decided in principle by Yang). Its shown span is its true span widened symmetrically around its peak (or centre) until it covers that much watching time on the rate curve (spec section 2.1). Because the stretch comes from the rate curve and not from the current speed or zoom, it is deterministic; zooming in, which slows the clock (spec section 2.2), gives longer to watch as usual.
+Many events lasted a few days, which at 25 years per minute pass in a fraction of a second. A singular vignette whose true span is shorter than its script is **stretched**: it plays its whole script once (or `stretch` loops), so a one-day battle is shown for its full scene and covers several years of the timeline (decided by Yang on 2026-10-18). A 90-second battle covers about 37 years at 25 years per minute.
 
+- The shown span is placed so that the template's decisive beat (`climax`, section 6.2) falls on the event's peak day, or on its first day when it has no peak. A template without a decisive beat is centred on that day.
 - The card always gives the true date, and for a stretched instance adds one line: "Shown for longer than it really took, so you can watch it."
 - Stretching applies to the vignette only, never to world state: a building stands, a border changes and an effect applies at its true date.
-- At 5 years per minute, 30 seconds is 2.5 years, so a raid in 793 is visible from about 792 to 794. In the deep past the minimum is far shorter than any span there, so it rarely applies.
+- Snail mode (milestone 1 section 3.3) slows the whole scene down for a closer look, figures included.
 
 ### 6.8 Finding vignettes
 
@@ -320,7 +321,7 @@ The stage dates in this example are illustrative; the record's dates are set fro
 A migration is an event of type Migration (or Voyage for sea crossings) whose `where` is a dated path (content-format section 4), possibly branching into several paths, and whose effect is to extend a culture area (section 3.1).
 
 - **The front.** At any date the front is the interpolated position along each path. Land behind the front and inside the culture's next area snapshot is inhabited.
-- **Walking families.** Near the front, groups of six to ten figures (adults and children with bundles, baskets and carried fire) walk along the path. Each group's base position follows the front by date; on the life clock the group walks a short stretch, makes camp, and walks on. When history is paused they stop mid-step.
+- **Walking families.** Near the front, groups of six to ten figures (adults and children with bundles, baskets and carried fire) walk along the path. Each group's base position follows the front by date; on the clock the group walks a short stretch, makes camp, and walks on. When history is paused they stop mid-step.
 - **Rafts.** Sea crossings, such as from Sunda to Sahul across straits of up to about 90 km at the time, are a repeated vignette with the raft-crossing template along the crossing points of the path.
 - **On the overlay.** A migration path is drawn as an animated dotted line while it is active, the first use of the route overlay (spec section 7.2).
 
@@ -434,8 +435,8 @@ The budget of spec section 9 holds with this milestone's content. Two new scenes
 | Deterministic maths | `detmath` against `Math` within its stated error over the whole input range, and fixed outputs for fixed inputs stored as golden values |
 | Lint | No engine-dependent maths functions in `app/src/world/` and `app/src/core/` |
 | Schema and validation | Templates, vignettes, landmarks, cultures and migrations (section 6.9); every loop closes; culture areas agree with migrations |
-| Golden scenes | For a fixed list of cases (date, life clock, view): the scene's camps, figure ids, roles, tasks, segment end points and vignette phases, stored as a readable summary and a hash of the canonical serialisation. Cases: East Africa and the Bab-el-Mandeb at 50,000 BCE; the Danube at 40,000 BCE; Sahul at 45,000 BCE; Beringia and the Great Plains at 30,000 and 12,000 BCE; Lascaux at 15,000 BCE; Göbekli Tepe at 9200 BCE; each at life clock 0, 37,000 ms and 3,600,000 ms |
-| Expected answers | No people in the Americas at 30,000 BCE; no Neanderthals after 38,000 BCE; Sahul inhabited at 45,000 BCE; no camp on sea, ice or deep desert at any golden case; a repeated vignette is identical at life clock t and t plus its loop length on the same day |
+| Golden scenes | For a fixed list of cases (clock time, view): the scene's camps, figure ids, roles, tasks, segment end points and vignette phases, stored as a readable summary and a hash of the canonical serialisation. Cases: East Africa and the Bab-el-Mandeb at 50,000 BCE; the Danube at 40,000 BCE; Sahul at 45,000 BCE; Beringia and the Great Plains at 30,000 and 12,000 BCE; Lascaux at 15,000 BCE; Göbekli Tepe at 9200 BCE; each at the clock time at which its date begins, and 37,000 ms and 1,800,000 ms later |
+| Expected answers | No people in the Americas at 30,000 BCE; no Neanderthals after 38,000 BCE; Sahul inhabited at 45,000 BCE; no camp on sea, ice or deep desert at any golden case; a repeated vignette instance shows the same pose at clock time t and t plus its loop length while both lie in its shown span, and starts at its first beat |
 | Cross-browser | The golden scenes computed in Chromium, Firefox and WebKit through Playwright, in the worker, must match the stored results exactly |
 | Browser tests | Pausing history stops figures and vignettes mid-step; tapping a figure opens its card in both languages; double-clicking the Göbekli Tepe event flies there and shows the building site |
 | Models | Every model of section 13.3 is built the same way every time, stays within its triangle budget (people 1,050, animals 1,200, shelters 1,000), stands on the ground at a believable height and faces +Z; clips give the same pose for the same time whatever came before; the spear leaves the hand at the release time; the falling animal stays on the ground; every model is listed in the asset manifest as approved, with the geometry hash it was approved with |
@@ -462,14 +463,14 @@ The definition of done in [milestones.md](milestones.md#definition-of-done-every
 **Open questions for Yang:**
 
 1. The miniature factor of 90 (section 5.1).
-2. The minimum watching time of 30 seconds for stretched vignettes (section 6.7).
+2. The factors of the three speed modes, ×1/8, ×1 and ×16 (milestone 1 section 3.3).
 3. Making figures, props and landmarks with modelling scripts and reviewing them on generated sheets (section 13.1).
 4. Neanderthals as their own profile in the first milestone with people (section 4).
 5. The arrival of people in the Americas shown at c. 14,000 BCE, with the earlier dates (such as the White Sands footprints, about 21,000 BCE) mentioned as debated on the card.
 
 ## 18. First slice: the mammoth hunt
 
-Decided by Yang on 2026-10-18: the mammoth hunt (`mammoth-hunt` in [dioramas.md](dioramas.md#5-europe-and-mediterranean)) is built first, on top of milestone 1, as the worked example of how a diorama is stored as data files and played by a small engine. It proves the template and record formats, their data build step, the deterministic player and the loop on the life clock before the rest of this milestone exists. Everything not listed here stays as specified above and is built with the milestone.
+Decided by Yang on 2026-10-18: the mammoth hunt (`mammoth-hunt` in [dioramas.md](dioramas.md#5-europe-and-mediterranean)) is built first, on top of milestone 1, as the worked example of how a diorama is stored as data files and played by a small engine. It proves the template and record formats, their data build step, the deterministic player and the loop on the clock before the rest of this milestone exists. Everything not listed here stays as specified above and is built with the milestone.
 
 ### 18.1 What the slice builds
 
@@ -523,8 +524,8 @@ The data build writes one structure file per vignette record, content-hashed: th
 
 The player is three pure functions of their inputs, with no state:
 
-- **Instances.** For a record and a day: the period number is ⌊(day − from) / period⌋; for each of `count` slots, the hash of the record id, the period and the slot picks a site among the candidates valid at the period's start, never the same site twice in one period. An instance is shown for its whole period (its shown span), which at the rate of the deep past is about 2 minutes at ×1, as section 6.7 asks. Each instance gets an id, a phase offset (the hash of its id, modulo the loop) and an orientation, one of eight compass directions chosen by hash.
-- **Pose.** For an instance and a life-clock time: phase = (life clock + offset) modulo the loop, then for every cast member its stage position in centimetres, heading as a direction (two numbers, never an angle), clip, time into the clip, and a visibility between 0 and 1 (for `fall` and `appear`).
+- **Instances.** For a record and a clock time: the day it gives, the period number ⌊(day − from) / period⌋, and for each of `count` slots, the hash of the record id, the period and the slot picks a site among the candidates valid at the period's start, never the same site twice in one period. Each instance gets an id, a shown span on the clock (section 6.6: the period's start plus a hashed offset of less than one loop, then as many whole loops as fit in the period, at least one; a 1,000-year period lasts 40 minutes, so about 20 loops of the hunt) and an orientation, one of eight compass directions chosen by hash.
+- **Pose.** For an instance and a clock time: phase = (clock − instance start) modulo the loop, then for every cast member its stage position in centimetres, heading as a direction (two numbers, never an angle), clip, time into the clip, and a visibility between 0 and 1 (for `fall` and `appear`).
 - **Loop check.** Runs a template through one loop and lists every group that does not end where it started (section 6.5); the data build fails on any.
 
 The player uses only integer and `+ − × ÷` arithmetic plus `Math.sqrt` (section 2.3), and the lint rule forbidding engine-dependent maths applies to `app/src/world/`. Loading never changes it: the instances and poses are the same whether or not a structure file has arrived; an instance whose file has not arrived is simply not drawn yet.
@@ -541,7 +542,7 @@ The player uses only integer and `+ − × ÷` arithmetic plus `Math.sqrt` (sect
 | --- | --- |
 | Formats | The template and record parse; unknown verbs, marks, groups and parameters, missing languages and dates outside the timeline fail with a clear message |
 | Loop | The hunt's loop closes; a broken copy of the template fails the check |
-| Golden poses | Instances at four fixed days and member poses at life clock 0, 37,000 and 3,600,000 ms, stored as a readable snapshot |
+| Golden poses | Instances at four fixed clock times and member poses at an instance's start and 37,000 and 1,800,000 ms later, stored as a readable snapshot |
 | Expected answers | No instance before 43,000 BCE or after 10,000 BCE; no Siberian site before its own start date; two different sites per period; the pose at *t* equals the pose at *t* plus the loop length |
 | Figures | Hunters, family and mammoths get the approved models at a plausible height, the same clip and time give the same pose, and a culture without an approved model falls back to a stand-in |
 | Browser | At a fixed date the hunt is drawn from orbit with its hunters at least 22 pixels tall; tapping a hunter opens the card; double-clicking it flies down to the hunt and the hunters move while history plays; pausing stops them |

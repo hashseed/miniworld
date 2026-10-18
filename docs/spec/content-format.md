@@ -190,7 +190,7 @@ flowchart LR
   validate --> docs["Generated indexes<br/>CHRONOLOGY.md, INDEX.md, coverage"]
   index --> worker["World query"]
   chunks --> worker
-  worker --> presenters["Presenter per event type<br/>record × date × life clock → scene parts"]
+  worker --> presenters["Presenter per event type<br/>record × clock → scene parts"]
   presenters --> renderer["Renderer and interface"]
 ```
 
@@ -198,7 +198,7 @@ flowchart LR
 - **Startup index.** Per language, every event, era, place founding and famous person in chronological order, with id, kind, type or category, `from` and `to` as day integers with their approximate flags, regions, anchor, title and icon. The timeline, search, the "Happening now" list and double-click fly-to all read it. It holds no card text, paths or geometry, within the budget of [milestone-1.md](milestone-1.md#102-startup-index) section 10.2.
 - **Structure chunks.** Each layer (`events`, `people`, `places`, `polities`, `routes`, `cultures`) is split by quadtree tile and time window ([spec.md section 10](spec.md#10-content-delivery)). A record goes into every chunk its `when` and `where` overlap, so a long war or a voyage is present wherever and whenever it is visible. Structure chunks hold no text and use the language key `xx`.
 - **Text chunks.** Card texts and "Learn more" per language, grouped by layer, tile and window like the structure chunks, loaded when a card opens.
-- **Presenters.** Each event type has one presenter in `app/src/world/presenters/`, registered by type id. A presenter is a pure function of the record, the date and the life clock that returns scene parts: markers, building sites, figure groups with their tasks, terrain overlays. It never changes world state and draws any variety only from hashes of stable ids. Adding an event of an existing type needs no code.
+- **Presenters.** Each event type has one presenter in `app/src/world/presenters/`, registered by type id. A presenter is a pure function of the record and the clock that returns scene parts: markers, building sites, figure groups with their tasks, terrain overlays. It never changes world state and draws any variety only from hashes of stable ids. Adding an event of an existing type needs no code.
 
 ## 8. Generated indexes
 

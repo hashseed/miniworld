@@ -18,34 +18,39 @@ Principles that decide every design question:
 
 ## 2. Time model
 
-History plays at a varying rate: the deep past rushes by because little visibly changes, and time slows as events grow denser towards the end of the timeline. The little people always move at a natural, watchable pace. These are two different clocks, and keeping them apart is what makes the diorama both accurate and pleasant to watch.
+History plays at one even pace from beginning to end, and everything on screen follows a single clock (decided by Yang on 2026-10-18). Because nothing depends on how long someone has been watching, every diorama is fully scripted: at a given moment of the timeline it shows the same scene, in the same place, at the same beat, every time and for everyone. The timeline is drawn on a logarithmic scale instead, so that the busy recent centuries get room to read while the clock itself never changes pace.
 
-### 2.1 Historical clock
+### 2.1 The clock
 
-The historical date decides everything that is true about the world: which cultures live where, how many people there are, what buildings stand, which borders exist and which events are under way. At normal speed it advances along a base rate curve that is fast in the deep past and slow in recent centuries. The curve is smooth, so the rate never jumps, and it is tuned by hand against how many events fall in each period. Proposed starting curve:
+The **clock** is the position on the timeline, counted in milliseconds of watching time from the start of the timeline. Everything on screen is a function of it: the historical date and with it everything that is true about the world (which cultures live where, how many people there are, what buildings stand, which borders exist and which events are under way), and also every figure's step, every diorama beat, the waves, rivers and clouds.
 
-| Period | Base rate | Watching time at normal speed |
-| --- | --- | --- |
-| 70,000 to 10,000 BCE | about 470 years per minute | about 2 h 10 min |
-| 10,000 to 3000 BCE | about 47 years per minute | about 2 h 30 min |
-| 3000 to 500 BCE | about 12 years per minute | about 3 h 30 min |
-| 500 BCE to 1500 CE | about 5 years per minute | about 7 h |
-| 1500 to 1800 | about 2.4 years per minute | about 2 h 10 min |
-| 1800 to 1900 | about 1.2 years per minute | about 1 h 25 min |
-| 1900 to 1991 | about half a year per minute | about 3 h 10 min |
+- The date advances at a **uniform rate of 25 years per minute** at regular speed, in every era (decided by Yang on 2026-10-18). The date is a fixed function of the clock, so the same clock time is always the same date.
+- At that rate a year passes in 2.4 seconds and a day in about 6.6 milliseconds. A figure walking across a camp in ten seconds walks while four years go by; that is intended, since the figures stand for the everyday life of their era, not for a particular afternoon.
 
-The whole of history takes about 24 hours at normal speed (decided by Yang on 2026-10-18, so that dioramas fixed in time, such as a battle or a building site, last long enough to watch), and about half of that is the last 2,500 years.
+| Period | Watching time at regular speed |
+| --- | --- |
+| 70,000 to 10,000 BCE | 40 h |
+| 10,000 to 3000 BCE | 4 h 40 min |
+| 3000 to 500 BCE | 1 h 40 min |
+| 500 BCE to 1500 CE | 1 h 20 min |
+| 1500 to 1800 | 12 min |
+| 1800 to 1900 | 4 min |
+| 1900 to 1991 | about 3 min 40 s |
+
+The whole timeline takes about 48 hours at regular speed, and about 34 h 40 min from the opening date of 50,000 BCE (accepted by Yang on 2026-10-18, replacing the earlier rate curve of about 24 hours that slowed down towards the present). The recent centuries pass quickly at regular speed; snail mode is how they are watched closely (section 2.2).
+
+**Later: time jumps.** To keep the long quiet stretches interesting, later versions may jump over parts of the timeline. A jump moves the clock; it never changes what the world looks like at a given clock time.
 
 ### 2.2 Speed and pausing
 
-- A speed multiplier applies on top of the curve, set with a slider on a logarithmic scale from ×1/64 to ×64 (decided by Yang on 2026-10-18). The UI shows the resulting rate, for example "≈ 5 years/min".
-- Zooming in automatically slows the clock: close to the ground history runs up to eight times slower than from orbit, so changes in one place can be followed, and zooming out speeds it up again. The change is gradual and can be turned off in the settings ([milestone-1.md](milestone-1.md#33-historical-clock-and-rate-curve) section 3.3).
-- *Pause*: the date and every figure stop mid-step, like a photograph, so you can look around and point things out. There is no mode in which the date stands still while people carry on (removed by Yang on 2026-10-18): dioramas can be fixed in time, so the world either runs or stands still as a whole. To watch a moment closely, slow the speed down instead.
-- Scrubbing: drag the timeline to any date; the world updates live.
+- Three speed modes instead of a slider (decided by Yang on 2026-10-18): **snail** (×1/8, about 3 years per minute), **regular** (×1, 25 years per minute) and **fast forward** (×16, 400 years per minute). The factors are **Proposed**. The mode only changes how fast the clock runs; at a faster speed the figures move faster too, like a film played fast, and in snail mode they move in slow motion.
+- Zooming does not change the speed (the earlier slowdown when zoomed in was removed by Yang on 2026-10-18).
+- *Pause*: the clock stops, so the date and every figure stop mid-step, like a photograph, so you can look around and point things out. There is no mode in which the date stands still while people carry on.
+- Scrubbing: drag the timeline to any point; the clock jumps there and the world, including every diorama, shows exactly what it shows at that point when played.
 
-### 2.3 Life clock
+### 2.3 No separate life clock
 
-Everyday activity runs on its own clock in real time, independent of the historical rate and speed multiplier. It decides what each figure is doing right now: which task it picks next (every 10 to 30 real seconds), where it walks and which animation plays. It also plays the loops of repeated vignettes (section 5). It runs while history plays, at real time whatever the speed, and stops when history is paused. Because the historical date sets the era and the life clock sets the moment, people never race around at fast historical rates and never stand idle when history stops.
+Earlier versions ran everyday activity on a second clock in real time, independent of the historical rate. It is gone: figures, vignettes and animations run on the clock of section 2.1. Which task a figure picks next (every 10 to 30 seconds of clock time), where it walks and which animation plays are a function of the clock, so scrubbing back to a moment replays it exactly.
 
 ### 2.4 People morph instead of dying of age
 
@@ -130,7 +135,7 @@ Every event has a type, and each type has one reusable way of showing itself on 
 
 **Events take time.** Every event has a start date and an end date, which are the same for an event of a single day, and may have a peak: the day, years or phase when it is strongest. The span covers everything the globe shows, not just the headline moment: the warning signs before an eruption, the years of cold after it, the later waves of a plague, the centuries a desert takes to spread. Between start and peak the effect builds up, and between peak and end it fades, at the pace the record gives; a slow climate shift changes the land gradually over centuries, while an earthquake starts at full strength. Changes that outlast the event stay in the world after its end, such as a crater lake, a drowned coastline, ruins or a toppled statue. An event that came back in waves, such as plague or cholera, lists its waves as phases, each with its own dates and places.
 
-**Vignettes.** Many events are shown as a **vignette**: a small staged story with a cast, props and a short script that loops on the life clock, such as Vikings raiding a village, hunters stalking a mammoth or workers hauling a pillar. While history runs it plays during its span; when history is paused it stops mid-beat. A vignette is repeated (one record places many instances over a span and area, such as Viking raids), singular and long (one instance whose progress follows the date, such as building the pyramids), or short but stretched: an event of a few days is shown for a minimum watching time so it can be seen at all, while the card gives its true date (decided by Yang on 2026-10-17). Things too small to see from above, such as cave paintings, open as a cutaway, like a dollhouse, when the camera comes close. The format and rules are in [milestone-2.md](milestone-2.md#6-vignettes). The recurring dioramas planned for every region and era, each with its script, are in [dioramas.md](dioramas.md).
+**Vignettes.** Many events are shown as a **vignette**: a small staged story with a cast, props and a script that plays on the clock (section 2.1), such as Vikings raiding a village, hunters stalking a mammoth or workers hauling a pillar. Because the clock fixes everything, a vignette is fully scripted: at a given point of the timeline it is always at the same beat in the same place. While history runs it plays during its span; when history is paused it stops mid-beat. A vignette is repeated (one record places many instances over a span and area, such as Viking raids), singular and long (one instance whose progress follows the date, such as building the pyramids), or short but stretched: an event of a few days, such as a one-day battle, plays its whole script, which may cover several years of the timeline, while the card gives its true date (decided by Yang on 2026-10-17 and 2026-10-18). Things too small to see from above, such as cave paintings, open as a cutaway, like a dollhouse, when the camera comes close. The format and rules are in [milestone-2.md](milestone-2.md#6-vignettes). The recurring dioramas planned for every region and era, each with its script, are in [dioramas.md](dioramas.md).
 
 **Finding events.** Events in progress near the camera show a small floating marker with an icon and the title. Events far away appear on the timeline and in a list "Happening now". Double-clicking any event flies the camera there and, if needed, moves time to its start.
 
@@ -152,8 +157,8 @@ The screen is the globe with a timeline along the bottom; everything else stays 
 
 - A top lane "World" shows global eras as coloured ranges (Paleolithic, Neolithic, Bronze Age and so on). Below it, one lane per world region shows that region's eras and empires as coloured ranges: Europe and Mediterranean, Middle East and North Africa, Sub-Saharan Africa, Central Asia and steppe, South Asia, East Asia, Southeast Asia, Americas, Oceania. Ranges are defined in [eras.md](eras.md).
 - Events sit on the timeline as small icons by type. An event that lasts longer than it takes to watch for a moment shows as a thin bar from start to end, with its icon at the peak and its phases marked on the bar. Hovering or tapping shows the title and date; double-clicking (double-tapping on phones) flies the camera to the place and moves time there.
-- The timeline zooms from the whole of history down to single years. Its axis follows the same rate curve as the clock, so each period is as wide as its watching time. A toggle "True time scale" switches to the true linear scale, where all of written history is a thin sliver at the end.
-- Dragging the playhead scrubs through time. Controls: play, pause, and a speed slider from ×1/64 to ×64.
+- The timeline zooms from the whole of history down to single years. Its axis is **logarithmic** in the time before the end of the timeline (decided by Yang on 2026-10-18), so the recent centuries, where events are dense, get much more room than the deep past and the listed events spread roughly evenly along it ([milestone-1.md](milestone-1.md#72-axis-and-zoom) section 7.2). The clock still runs at one pace, so the playhead moves slowly across the deep past and faster towards the end. A toggle "True time scale" switches to the true linear scale, where all of written history is a thin sliver at the end.
+- Dragging the playhead scrubs through time. Controls: play, pause, and the speed modes snail, regular and fast forward (section 2.2).
 
 ### 7.2 Overlays
 
@@ -181,7 +186,7 @@ Desktop: drag to rotate, scroll to zoom, right-drag to tilt, space to play and p
 
 ### 7.6 What is saved
 
-With no simulation state to keep, browser local storage holds only small things: settings, the last date and camera position, and bookmarks of favourite moments and places.
+With no simulation state to keep, browser local storage holds only small things: settings, the last clock time and camera position, and bookmarks of favourite moments and places.
 
 ## 8. Visual style
 
@@ -204,16 +209,16 @@ Every asset has two or three lower levels of detail, and at globe zoom figures b
 
 ## 9. Architecture
 
-The world on screen is a pure function of two clocks: the historical date decides the state of the world, and the life clock decides what each figure is doing at this moment. Given the same data, date and life-clock time, the app always computes the same world, without simulating forward from the beginning. That one decision delivers determinism, instant scrubbing to any year and tiny saves at the same time.
+The world on screen is a pure function of one clock (section 2.1): the date it gives decides the state of the world, and the clock itself decides what each figure and each vignette is doing at this moment. Given the same data and clock time, the app always computes the same world, without simulating forward from the beginning. That one decision delivers determinism, instant scrubbing to any year and tiny saves at the same time.
 
 ```mermaid
 flowchart LR
   build["Offline data build<br/>sources + curated records,<br/>validated in every language"] --> packs["Content chunks and map tiles<br/>static, content-addressed"]
   packs --> query
-  clocks["Two clocks<br/>date: rate curve × speed<br/>life clock: real time"] --> query["World query (Web Worker)<br/>scene = f(date, life clock, area in view)"]
+  clocks["One clock<br/>ms of watching time × speed mode<br/>date = 25 years per minute"] --> query["World query (Web Worker)<br/>scene = f(clock, area in view)"]
   query --> renderer["Renderer (Three.js)<br/>globe tiles, instanced figures, overlays"]
   query --> ui["Interface (Preact)<br/>timeline, cards, controls, de/en"]
-  ui --> storage["localStorage<br/>settings, last date, camera, bookmarks"]
+  ui --> storage["localStorage<br/>settings, last clock time, camera, bookmarks"]
 ```
 
 **Offline data build.** Node scripts turn source datasets and hand-curated records (events, people, cultures, settlements) into validated content chunks and globe map tiles (section 10). Validation fails the build when a record lacks a date, a location, a source or its text in any supported language, or when references point nowhere.
@@ -221,15 +226,15 @@ flowchart LR
 **World query (Web Worker).** For the current date and the area in view, the worker computes a scene: which culture profiles apply, which settlements and buildings stand, which figures exist with their role, task and position, which events are under way, and which borders apply.
 
 - Every random-looking choice comes from a seeded hash of stable inputs, such as figure id plus time slot. There is no `Math.random` and no wall clock in the world state.
-- A figure's task comes from a hash of its id and the current life-clock slot (10 to 30 seconds); its position is interpolated within the slot. Its role at a date comes from its culture profile, with a per-figure offset inside the transition window, which is what makes eras morph gradually.
+- A figure's task comes from a hash of its id and the current clock slot (10 to 30 seconds); its position is interpolated within the slot. Its role at a date comes from its culture profile, with a per-figure offset inside the transition window, which is what makes eras morph gradually.
 - War, famine, epidemic and disaster events remove a share of figures in their area that matches the record; which figures are lost is decided by hash, so it is the same every time.
-- Dates use whole-day integers, never floating-point years, so results match on every device.
+- The clock is a whole number of milliseconds and dates are whole-day integers derived from it, never floating-point years, so results match on every device.
 
 **Renderer (main thread).** Three.js on WebGL2, with WebGPU as a later option. Globe terrain is a cube-sphere quadtree that streams tiles as you zoom. Figures are drawn with instancing and baked animation textures, so thousands of animated figures cost little. Buildings are instanced from modular kits; overlays are drawn as lines and labels on the globe.
 
 **Interface.** Preact for panels and cards, and a canvas-drawn timeline for smooth zooming with many events.
 
-**Storage and offline use.** localStorage holds settings, the last date and camera, and bookmarks. Content chunks and tiles are cached by a service worker, so places and periods already visited also work without a connection.
+**Storage and offline use.** localStorage holds settings, the last clock time and camera, and bookmarks. Content chunks and tiles are cached by a service worker, so places and periods already visited also work without a connection.
 
 **Why Three.js and not Unity.** The cost is in drawing thousands of small figures, which depends on instancing, level of detail and GPU animation, not on the engine. Three.js does these well and keeps the app small, quick to start and plain web code, which suits streamed content, the DOM interface, localisation and offline caching. A Unity web build is typically tens of megabytes before the first frame and memory-hungry on phone browsers. Babylon.js is the fallback if more built-in engine features are needed.
 
@@ -257,7 +262,7 @@ Content will grow to many thousands of records, hundreds of models and a global 
 **Chunks.** Everything else is split into chunks keyed by three things:
 
 - **Place:** the same cube-sphere quadtree tile keys the terrain uses, at a level chosen per content type (borders coarser, settlements finer).
-- **Time:** windows aligned to the rate curve, so each window covers a similar amount of watching time (thousands of years in the deep past, a few years in the 20th century).
+- **Time:** windows of equal width on the logarithmic timeline axis (section 7.1), so each covers a similar amount of history to read (thousands of years in the deep past, a few years in the 20th century).
 - **Language:** text lives in separate per-language chunks, so a viewer only downloads one language.
 
 Card texts and "Learn more" sections load on demand when a card opens. Models and textures are bundled per culture profile and load when that culture is near the camera and the current time window.
