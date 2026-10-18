@@ -36,6 +36,7 @@ describe('clock', () => {
     c.tick(5000);
     expect(c.day).toBe(OPENING_DAY);
     expect(c.lifeMs).toBe(0);
+    expect(c.vignetteMs).toBe(0);
     c.togglePlay();
     expect(c.playState).toBe('playing');
   });
@@ -48,6 +49,19 @@ describe('clock', () => {
     c.setSpeedLog2(6);
     c.tick(5000);
     expect(c.lifeMs).toBe(10000);
+  });
+
+  it('runs the vignette clock at real time × speed', () => {
+    const c = make();
+    c.setSpeedLog2(-2);
+    c.tick(4000);
+    expect(c.vignetteMs).toBe(1000);
+    c.setSpeedLog2(3);
+    c.tick(1000);
+    expect(c.vignetteMs).toBe(9000);
+    c.zoomFactor = 1 / 8;
+    c.tick(1000);
+    expect(c.vignetteMs).toBe(17000);
   });
 
   it('keeps the speed between ×1/64 and ×64', () => {
