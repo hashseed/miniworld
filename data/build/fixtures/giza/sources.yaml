@@ -1,0 +1,16 @@
+# Sources of the shelved Giza records, kept as a test fixture (spec giza.md, section 12).
+lehner-hawass-2017:
+  title: 'Giza and the Pyramids'
+  author: Mark Lehner and Zahi Hawass
+  publisher: Thames & Hudson
+  year: 2017
+tallet-2017:
+  title: 'Les papyrus de la mer Rouge I: le « journal de Merer »'
+  author: Pierre Tallet
+  publisher: Institut français d'archéologie orientale
+  year: 2017
+shaw-2000:
+  title: The Oxford History of Ancient Egypt
+  author: Ian Shaw (editor)
+  publisher: Oxford University Press
+  year: 2000

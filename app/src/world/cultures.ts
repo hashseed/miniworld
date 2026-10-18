@@ -10,5 +10,6 @@ export const PROFILES = [
   'ice-age-hunter',
   'steppe-beringia-hunter',
   'natufian',
+  'old-kingdom-egyptian',
 ] as const;
 export type Profile = (typeof PROFILES)[number];

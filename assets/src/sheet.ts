@@ -49,6 +49,7 @@ const GROUND: Record<string, string> = {
   'ice-age-hunter': '#c7cfa2',
   'steppe-beringia-hunter': '#dfe4dc',
   natufian: '#b8b06e',
+  'old-kingdom-egyptian': '#e0c58e',
 };
 
 const KINDS: Kind[] = ['man', 'woman', 'child'];
@@ -93,7 +94,8 @@ function turnaroundSheet(): void {
 function campSheet(): void {
   const profile = (params.get('profile') ?? 'ice-age-hunter') as (typeof PROFILES)[number];
   ground(0, 0, 5.5, GROUND[profile]);
-  place(buildShelter(CAMP_SHELTER[profile]), -1.6, -1.4, 0.4);
+  const shelter = CAMP_SHELTER[profile];
+  if (shelter) place(buildShelter(shelter), -1.6, -1.4, 0.4);
   place(buildHearth(), 0.9, 0.2);
   const poses: Pose[] = ['work', 'walk', 'throw', 'carry', 'point', 'stand'];
   const spots: [number, number, number][] = [

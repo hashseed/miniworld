@@ -11,6 +11,7 @@ import { latLonToDir, type Vec3 } from '../geo/cube.ts';
 import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 import {
   buildMembers,
+  formationOffset,
   buildProps,
   buildSpears,
   instancesAt,
@@ -24,6 +25,7 @@ import {
   type PropTrack,
   type Spear,
 } from '../world/vignette.ts';
+import type { PartFrame } from '../landmarks/landmarkLayer.ts';
 import { buildActor, buildProp, buildSpearObject, lightModels } from './figures.ts';
 import type { StandIn } from './standIns.ts';
 
@@ -53,6 +55,11 @@ interface Script {
   spears: Spear[];
 }
 
+/** Where the landmark parts stand that singular vignettes build (giza.md section 11.4). */
+export interface PartFrames {
+  frame(landmark: string, part: string): PartFrame | undefined;
+}
+
 export interface SurfaceSource {
   /** Drawn surface height in km over a drawn direction. */
   surfaceKm(dir: Vec3): number;
@@ -64,6 +71,10 @@ interface Stage {
   instance: Instance;
   entry: VignetteEntry;
   members: Member[];
+  /** Each member's formation offset in centimetres, spread apart on a landmark's stage. */
+  offsets: [number, number][];
+  /** The landmark part a building stage stands on, once it is drawn. */
+  frame?: PartFrame;
   /** Holds the actors, each placed in world coordinates on the globe. */
   cast: THREE.Group;
   actors: StandIn[];
@@ -79,6 +90,8 @@ interface Stage {
   north: THREE.Vector3;
   /** World position of the stage centre, on the ground. */
   centre: THREE.Vector3;
+  /** The landmark part a singular vignette stands on. */
+  progress?: { landmark: string; part: string };
 }
 
 export class VignetteLayer {
@@ -87,6 +100,10 @@ export class VignetteLayer {
   onOpen: (entry: VignetteEntry) => void = () => {};
   /** Called when the cast is double-tapped, with the stage's position. */
   onFly: (lat: number, lon: number, altitudeKm: number) => void = () => {};
+  /** Called when a tap hits no cast, so other layers can take it. */
+  onMiss: (clientX: number, clientY: number) => void = () => {};
+  /** Landmark parts, for vignettes that build them. */
+  landmarks: PartFrames | undefined;
 
   private loader: ContentLoader;
   private surface: SurfaceSource;
@@ -170,10 +187,11 @@ export class VignetteLayer {
     }
 
     for (const stage of this.stages.values()) {
-      this.place(stage);
+      const frame = this.place(stage);
       const toCam = this.v1.copy(camera.position).sub(stage.centre);
-      const facing = toCam.dot(stage.up) > 0;
+      const facing = toCam.dot(stage.up) > 0 && (!stage.progress || !!frame);
       stage.cast.visible = facing;
+      stage.frame = frame;
       if (facing) this.pose(stage);
     }
   }
@@ -233,6 +251,13 @@ export class VignetteLayer {
       east: new THREE.Vector3(),
       north: new THREE.Vector3(),
       centre: new THREE.Vector3(),
+      progress: v.progress,
+      offsets: members.map((m) =>
+        formationOffset(
+          v.template.groups.find((g) => g.name === m.group)!,
+          m.index,
+        ),
+      ),
     };
     this.place(stage);
     return stage;
@@ -243,12 +268,23 @@ export class VignetteLayer {
    * The lens and the terrain can change from frame to frame (finer tiles
    * arrive, the lens morphs), so this runs every frame.
    */
-  private place(stage: Stage): void {
+  private place(stage: Stage): PartFrame | undefined {
     const { up, east, north } = stage;
+    if (stage.progress) {
+      const frame = this.landmarks?.frame(stage.progress.landmark, stage.progress.part);
+      if (frame) {
+        up.copy(frame.up);
+        east.copy(frame.east);
+        north.copy(frame.north);
+        stage.centre.copy(frame.centre);
+      }
+      return frame;
+    }
     up.set(...this.surface.toDrawn(stage.trueDir)).normalize();
     northEast(up, north, east);
     const ground = this.surface.surfaceKm([up.x, up.y, up.z]);
     stage.centre.copy(up).multiplyScalar(EARTH_RADIUS_KM + ground);
+    return undefined;
   }
 
   /**
@@ -275,7 +311,12 @@ export class VignetteLayer {
       if (!actor.root.visible) continue;
       actor.setFade?.(fade);
       const scale = FIGURE_KM_PER_M * this.cap(actor);
-      this.stand(stage, actor.root, p.x, p.z, p.dirX, p.dirZ, lean);
+      // On a landmark a group's members are spread as on any other stage, so they
+      // do not merge into a blob at the landmark's smaller scale (giza.md section 11.4).
+      const frame = stage.frame;
+      const spread = frame ? LAYOUT_KM_PER_M / frame.kmPerM - 1 : 0;
+      const [ox, oz] = stage.offsets[i]!;
+      this.stand(stage, actor.root, p.x + ox * spread, p.z + oz * spread, p.dirX, p.dirZ, lean);
       const sink = p.fade ? 0 : (1 - p.visibility) * actor.height * scale;
       actor.root.position.addScaledVector(this.v2, -sink);
       actor.root.scale.setScalar(scale);
@@ -325,18 +366,23 @@ export class VignetteLayer {
     root.quaternion.multiply(this.turn.setFromAxisAngle(this.yAxis, Math.atan2(dirZ, dirX)));
     this.leanAt(dir, lean);
     root.quaternion.premultiply(this.leanQ);
+    // On a landmark, figures stand on its drawn surface (giza.md section 11.6).
+    const f = stage.frame;
+    const onLandmark = f ? f.surfaceM(x / 100, z / 100) * f.upKmPerM : 0;
     root.position
       .copy(dir)
-      .multiplyScalar(EARTH_RADIUS_KM + this.surface.surfaceKm([dir.x, dir.y, dir.z]));
+      .multiplyScalar(EARTH_RADIUS_KM + this.surface.surfaceKm([dir.x, dir.y, dir.z]) + onLandmark);
   }
 
   /** The up direction of the globe under a stage point, in v2. */
   private ground(stage: Stage, x: number, z: number): THREE.Vector3 {
+    // A stage on a landmark is laid out at the landmark's scale (giza.md section 11.4).
+    const kmPerM = stage.frame ? stage.frame.kmPerM : LAYOUT_KM_PER_M;
     return this.v2
       .copy(stage.up)
       .multiplyScalar(EARTH_RADIUS_KM)
-      .addScaledVector(stage.east, (x / 100) * LAYOUT_KM_PER_M)
-      .addScaledVector(stage.north, (z / 100) * LAYOUT_KM_PER_M)
+      .addScaledVector(stage.east, (x / 100) * kmPerM)
+      .addScaledVector(stage.north, (z / 100) * kmPerM)
       .normalize();
   }
 
@@ -520,6 +566,7 @@ export class VignetteLayer {
       if (performance.now() - d.t > 500) return;
       const stage = this.hit(e.clientX, e.clientY);
       if (stage) this.onOpen(stage.entry);
+      else this.onMiss(e.clientX, e.clientY);
     });
     // Capture before the camera's own double-click zoom, so a double-tap on the cast flies to its stage.
     window.addEventListener(

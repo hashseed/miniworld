@@ -298,12 +298,24 @@ export function buildMammoth(): StandIn {
 }
 
 /** Builds the stand-in for a cast member's look. */
+/** A prop stand-in: a flat-coloured block on runners, the size of a loaded sledge. */
+function buildPropStandIn(): StandIn {
+  const root = new THREE.Group();
+  const block = part(new THREE.BoxGeometry(1.4, 1, 1.6), 0xd6bc8a);
+  block.position.set(0, 0.85, 0);
+  const runners = part(new THREE.BoxGeometry(2.6, 0.3, 1.3), 0x7a5030);
+  runners.position.set(0, 0.15, 0);
+  root.add(block, runners);
+  return { root, height: 1.35, pose: () => {} };
+}
+
 export function buildStandIn(
-  kind: 'human' | 'animal',
+  kind: 'human' | 'animal' | 'prop',
   look: string,
   key: string,
   role?: string,
 ): StandIn {
+  if (kind === 'prop') return buildPropStandIn();
   if (kind === 'animal' && look === 'woolly-mammoth') return buildMammoth();
   return buildHuman(key, role);
 }

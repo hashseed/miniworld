@@ -17,6 +17,7 @@ import {
   LAKE_FIELD,
 } from '../planet/surface.ts';
 import { LENS_COLS, LENS_ROWS, LENS_STEP } from './lens.ts';
+import { CAP_KM_PER_M, snowGlsl } from './snowCap.ts';
 
 /** A number as a GLSL float literal. */
 const f = (n: number) => (Number.isInteger(n) ? `${n}.0` : `${n}`);
@@ -85,13 +86,16 @@ attribute vec3 elev;   // height (m), smoothed sea level at which the sample is 
 attribute vec4 extra;  // lake field, river field, skirt, km from today's coast / 255
 attribute vec2 flow;   // river flow phase as cosine and sine (-1..1)
 attribute vec2 fieldUv; // texel centre of this sample in the tile's field texture
+attribute vec3 coastGrad; // gradient of the distance from today's coast (km per km), in world space
 
 uniform float seaLevel;
 uniform float exaggeration;
 ${climateGlsl}
 uniform float skirtDepth;
 uniform float landLift; // metres every land vertex stands above its height
+uniform float glacial;
 ${lensChunk}
+${snowGlsl}
 
 // How far below the sea level the flat sea surface lies (section 4.4).
 const float SEA_DROP = 3.0;
@@ -103,6 +107,8 @@ const float ICE_HIDE_KM = ${f(ICE_HIDE_KM)};
 const float COAST_BEACH_KM = ${f(COAST_BEACH_KM)};
 const float COAST_SLOPE = ${f(COAST_SLOPE)}; // m per km at the coast
 const float COAST_CURVE = ${f(COAST_CURVE)}; // extra m per km²
+// Spacing (km) of the climate samples that give the ice surface its slope.
+const float ICE_GRAD_KM = 20.0;
 const float LAKE_FIELD = ${f(LAKE_FIELD)};
 
 varying vec3 vWorld;
@@ -115,6 +121,7 @@ varying float vHeight;
 varying float vRiver;
 varying float vLake;
 varying float vSkirt;
+varying float vCap;
 varying vec2 vFlow;
 varying vec2 vFieldUv;
 
@@ -135,12 +142,20 @@ void main() {
   bool isLake = !sea && lake > LAKE_FIELD;
   float water = sea ? seaWater : isLake ? lakeWater : max(seaWater, lakeWater);
   float surface = h;
+  // The surface's gradient (m per km, along the ground) is carried through
+  // every step below, so the normal is exact and smooth instead of coming
+  // from screen-space derivatives, which show blocky stripes (section 4.2).
+  float kLift = exaggeration * 0.001;
+  vec3 n0 = normalize(normal);
+  vec3 grad = (up - n0 / max(dot(n0, up), 0.05)) / kLift;
   if (sea) {
     // The terrain's sea is left out; the flat sea surface lies just below
     // (section 4.4), so coast triangles never dip under it on the land side.
     surface = seaLevel;
+    grad = vec3(0.0);
   } else if (!isLake) {
     // The smoothed coast can leave sea floor on the land side.
+    if (surface < seaLevel) grad = vec3(0.0);
     surface = max(surface, seaLevel);
   }
   if (!sea) {
@@ -152,20 +167,40 @@ void main() {
     float cap = d * (COAST_SLOPE + COAST_CURVE * d) + 1e-3;
     float rise = max(surface - seaLevel, 0.0);
     float q = rise / cap;
-    surface = seaLevel + rise * inversesqrt(sqrt(1.0 + q * q * q * q));
+    float q4 = q * q * q * q;
+    float k = inversesqrt(sqrt(1.0 + q4)); // (1 + q^4)^(-1/4)
+    surface = seaLevel + rise * k;
+    float k5 = k * k * k * k * k; // (1 + q^4)^(-5/4)
+    float capSlope = d > 0.0 ? COAST_SLOPE + 2.0 * COAST_CURVE * d : 0.0;
+    grad = grad * k5 + coastGrad * (q4 * q * k5 * capSlope);
   }
   // The ice sheets are smooth domes on the smoothed bed, rising from their
   // border, so they hide the relief and meet sea and land without walls.
   float sheet = smoothstep(0.0, ICE_HIDE_KM, iceKm);
-  float iceTop = max(elev.z, seaLevel) + landLift + ICE_DOME_M * (1.0 - exp(-max(iceKm, 0.0) / ICE_DOME_KM));
+  float domeE = exp(-max(iceKm, 0.0) / ICE_DOME_KM);
+  float iceTop = max(elev.z, seaLevel) + landLift + ICE_DOME_M * (1.0 - domeE);
+  vec3 iceGrad = vec3(0.0);
   if (sheet > 0.0) {
+    // Gradient of the ice distance from the climate slices around the vertex.
+    vec3 east = normalize(cross(vec3(0.0, 1.0, 0.0), up) + vec3(1e-6, 0.0, 0.0));
+    vec3 north = cross(up, east);
+    float e = ICE_GRAD_KM / earthRadius;
+    vec3 gIce = (east * (climateAt(normalize(up + east * e)).x - climateAt(normalize(up - east * e)).x) +
+                 north * (climateAt(normalize(up + north * e)).x - climateAt(normalize(up - north * e)).x)) /
+                (2.0 * ICE_GRAD_KM);
+    float t = clamp(iceKm / ICE_HIDE_KM, 0.0, 1.0);
+    vec3 sheetGrad = gIce * (6.0 * t * (1.0 - t) / ICE_HIDE_KM);
+    iceGrad = gIce * (ICE_DOME_M / ICE_DOME_KM * domeE * step(0.0, iceKm));
+    grad = grad * (1.0 - sheet) + iceGrad * sheet + sheetGrad * (iceTop - surface);
     surface = mix(surface, iceTop, sheet);
     water = min(water, -1.0);
   }
 #ifdef SEA_SURFACE
   surface = seaLevel - SEA_DROP;
+  grad = vec3(0.0);
 #ifdef SEA_ICE
   // A tile that is sea at every date carries the ice over the sea itself.
+  grad = iceGrad * sheet;
   surface = mix(surface, iceTop, sheet);
 #endif
 #endif
@@ -186,12 +221,14 @@ void main() {
   vTrueUp = up;
   // Painted patterns stay fixed to the land while it morphs.
   vPattern = world0.xyz + up * lift;
-  vNormal = rotateTo(normalize(normal), up, drawnUp);
+  vNormal = rotateTo(normalize(up - grad * kLift), up, drawnUp);
   vWater = water;
   vHeight = h;
   vRiver = extra.y;
   vLake = lake;
   vSkirt = extra.z;
+  // Snow caps are drawn as ice (section 5.2), from the heights, per vertex.
+  vCap = sea ? -1000.0 : snowCap(h, elev.z, abs(degrees(asin(clamp(up.y, -1.0, 1.0)))), glacial);
   vFlow = flow;
   vFieldUv = fieldUv;
   #include <logdepthbuf_vertex>
@@ -207,10 +244,12 @@ uniform vec3 screenUp; // camera up, for the sky fill from above
 uniform float glacial;
 uniform float time;
 uniform vec3 cameraWorld;
+uniform float limbInk; // 1 draws the globe's outline, 0 in low views (section 4.5)
 uniform float riverThreshold;
 uniform float seaLevel;
 uniform sampler2D fields; // ocean level (m), lake field, river field per tile sample
 ${climateGlsl}
+${snowGlsl}
 // Vegetation tint of the ground from the foliage slices (foliage.md, section 6):
 // colour and strength on the 0.5° grid from 90°N to 60°S.
 uniform sampler2D groundA;
@@ -227,8 +266,15 @@ varying float vHeight;
 varying float vRiver;
 varying float vLake;
 varying float vSkirt;
+varying float vCap;
 varying vec2 vFlow;
 varying vec2 vFieldUv;
+
+// Metres of snow cap counted as one km of ice distance, so caps and ice
+// sheets share one field and one ink outline where they meet (section 5.2).
+const float CAP_KM_PER_M = ${CAP_KM_PER_M.toFixed(3)};
+// Km the ice sheets reach over the Arctic pack ice and its shores (section 5.2).
+const float POLAR_REACH_KM = 80.0;
 
 float hash3(vec3 p) {
   p = fract(p * 0.3183099 + 0.1);
@@ -282,7 +328,6 @@ vec3 landColour(vec3 n, vec3 up, float arid, float riverF) {
   vec3 tundra = vec3(0.70, 0.72, 0.50);
   vec3 sand = vec3(0.97, 0.63, 0.29);
   vec3 rock = vec3(0.66, 0.53, 0.45);
-  vec3 snow = vec3(0.98, 0.98, 1.0);
 
   vec3 c = grass;
   c = mix(c, forest, smoothstep(38.0, 46.0, coldLat) * (1.0 - smoothstep(56.0, 62.0, coldLat)) * (0.6 + 0.4 * v));
@@ -307,15 +352,11 @@ vec3 landColour(vec3 n, vec3 up, float arid, float riverF) {
   bank = bank * bank * 0.8 * smoothstep(0.3, 0.5, arid);
   c = mix(c, vec3(0.5, 0.7, 0.3), bank);
   c = grassTufts(c, max(g.a, bank));
-  // Mountains turn to rock towards the snow line and carry glacier caps on
-  // their steep tops (section 4.3). The line follows the smoothed heights:
-  // about 4600 m in the tropics, falling to 1000 m towards the poles and in
-  // the ice age. Flat high plateaus such as Tibet stay bare.
-  float snowLine = max(1000.0, 4600.0 - smoothstep(15.0, 60.0, coldLat) * 3800.0);
-  float alpine = smoothstep(snowLine - 1000.0, snowLine - 300.0, vHeight + v * 200.0);
+  // Mountains turn to rock towards the snow line (section 4.3); their snow
+  // caps are drawn as ice (section 5.2).
+  float line = snowLine(alat, glacial);
+  float alpine = smoothstep(line - 1000.0, line - 300.0, vHeight + v * 200.0);
   c = mix(c, rock, clamp(smoothstep(0.35, 0.6, slope) + alpine * 0.85, 0.0, 1.0));
-  float peak = max(smoothstep(0.07, 0.16, slope), smoothstep(snowLine + 2000.0, snowLine + 2500.0, vHeight));
-  c = mix(c, snow, smoothstep(snowLine, snowLine + 250.0, vHeight + v * 300.0) * peak);
   return c * (0.93 + 0.14 * v);
 }
 
@@ -399,18 +440,9 @@ void main() {
   vec3 up = normalize(vUp);
   vec3 viewDir = normalize(cameraWorld - vWorld);
 
+  // The vertex shader carries the exact normal of the visible surface,
+  // coast edges and ice domes included.
   vec3 n = normalize(vNormal);
-#ifdef SEA_SURFACE
-  n = up;
-#endif
-  vec3 smoothN = n;
-  // The coast cliffs and ice edges are made in the vertex shader, so their
-  // slope comes from the screen-space derivative of the surface.
-  vec3 dn = normalize(cross(dFdx(vWorld), dFdy(vWorld)));
-  if (dot(dn, up) < 0.0) dn = -dn;
-  float nearCoast = 1.0 - smoothstep(0.0, 400.0, abs(vWater));
-  if (vSkirt < 0.5)
-    n = normalize(mix(n, dn, smoothstep(0.25, 0.6, 1.0 - dot(dn, up)) * nearCoast));
   vec3 albedo;
 
   // The ice border is where the blended distance crosses zero, per pixel, so
@@ -420,7 +452,22 @@ void main() {
 #if defined(SEA_SURFACE) && !defined(SEA_ICE)
   float iceKm = -100.0;
 #else
-  float iceKm = clim.x;
+  // Ice sheets and mountain snow caps in one field (section 5.2).
+  float iceKm = max(clim.x, vCap * CAP_KM_PER_M);
+#endif
+  // Arctic pack ice (section 5.2): the sea north of a wobbly edge near 78°N
+  // today, reaching 70°N at the glacial maximum.
+  float lat = degrees(asin(clamp(normalize(vTrueUp).y, -1.0, 1.0)));
+  float packEdge = mix(78.0, 70.0, glacial) + (noise3(vPattern * 0.004) - 0.5) * 4.0;
+  float packKm = (lat - packEdge) * 111.0;
+  // Past the pack edge the ice sheets reach over the pack ice and narrow
+  // strips of shore up to POLAR_REACH_KM away, so the Arctic's ice reads as
+  // one; the reach grows smoothly from nothing at the pack edge.
+  iceKm = max(iceKm, min(packKm, iceKm + POLAR_REACH_KM));
+#if defined(SEA_SURFACE) && !defined(SEA_ICE)
+  // Under the terrain's ice this surface draws nothing, so its coast lines
+  // never show through.
+  if (max(clim.x, min(packKm, clim.x + POLAR_REACH_KM)) > 0.0) discard;
 #endif
   bool hasIce = iceKm > 0.0;
   // The same water signal as the vertex shader, from the smooth fields.
@@ -436,17 +483,13 @@ void main() {
   if (isWater && seaW > 0.0) discard;
 #endif
   bool isRiver = !isWater && !hasIce && riverF > riverThreshold;
-  // Arctic pack ice (section 5.2): the sea north of a wobbly edge near 78°N
-  // today, reaching 70°N at the glacial maximum.
-  float lat = degrees(asin(clamp(normalize(vTrueUp).y, -1.0, 1.0)));
-  float packEdge = mix(78.0, 70.0, glacial) + (noise3(vPattern * 0.004) - 0.5) * 4.0;
   bool isPack = isWater && seaW > 0.0 && lat > packEdge;
   if (isPack) {
     albedo = mix(vec3(0.93, 0.97, 1.0), vec3(0.78, 0.9, 0.98), smoothstep(1.5, 0.0, lat - packEdge));
     n = up;
   } else if (isWater || isRiver) {
-    // One glossy sea colour, with no shallows (section 4.4).
-    albedo = seaW <= 0.0 || isRiver ? vec3(0.24, 0.62, 0.92) : vec3(0.08, 0.44, 0.86);
+    // One glossy colour for the sea, lakes and rivers, with no shallows (section 4.4).
+    albedo = vec3(0.08, 0.44, 0.86);
     n = up;
     float w = sin(dot(vWorld, vec3(3.1, 1.7, 2.3)) + time * 1.3) + sin(dot(vWorld, vec3(-1.9, 2.8, 1.1)) + time * 0.9);
     n = normalize(up + (vec3(sin(time + vWorld.x * 2.0), 0.0, cos(time * 0.8 + vWorld.z * 2.0)) * 0.02) * w);
@@ -470,20 +513,21 @@ void main() {
     albedo = mix(albedo, vec3(0.55, 0.82, 1.0), sheen * 0.55);
   } else if (hasIce) {
     // Plain ice, shaded by its own smooth surface rather than the relief below.
-    n = normalize(up + dn);
     float edge = 1.0 - smoothstep(0.0, 60.0, iceKm);
     albedo = mix(vec3(0.97, 0.99, 1.0), vec3(0.78, 0.9, 0.98), edge);
   } else {
-    albedo = landColour(smoothN, up, clim.y, riverF);
+    albedo = landColour(n, up, clim.y, riverF);
   }
 
   vec3 colour = studio(albedo, n, viewDir);
   // Ink outlines: the globe's silhouette, coastlines, river banks and ice edges.
   // The water and ice fields are clamped so the lines keep an even width.
-  float ink = inkLine(min(dot(up, viewDir), 0.25), 0.0, 5.0);
+  float ink = inkLine(min(dot(up, viewDir), 0.25), 0.0, 5.0) * limbInk;
   // No coast line across a river mouth.
   if (riverF < riverThreshold && !hasIce) ink = max(ink, inkLine(clamp(water, -30.0, 30.0), 0.0, 1.6));
-  ink = max(ink, inkLine(clamp(iceKm, -30.0, 30.0), 0.0, 1.6));
+  // Pack ice and the ice sheets read as one ice: no line where they meet.
+  float iceInk = seaW > 0.0 ? max(iceKm, packKm) : iceKm;
+  ink = max(ink, inkLine(clamp(iceInk, -30.0, 30.0), 0.0, 1.6));
   if (isWater && seaW > 0.0) ink = max(ink, inkLine(clamp(lat - packEdge, -1.0, 1.0), 0.0, 1.6));
   if (!isWater && !hasIce) ink = max(ink, inkLine(riverF, riverThreshold, 1.4));
   if (vSkirt > 0.5) ink = 0.0;
@@ -563,8 +607,8 @@ void main() {
   // Studio backdrop: warm peach at the bottom of the screen to lilac and sky blue at the top.
   vec4 clip = projectionMatrix * vec4(vView, 1.0);
   float y = clamp(clip.y / clip.w * 0.5 + 0.5, 0.0, 1.0);
-  vec3 backdrop = mix(vec3(1.0, 0.86, 0.76), vec3(0.89, 0.85, 0.96), smoothstep(0.0, 0.55, y));
-  backdrop = mix(backdrop, vec3(0.76, 0.87, 0.98), smoothstep(0.55, 1.0, y));
+  vec3 backdrop = mix(vec3(0.84, 0.66, 0.58), vec3(0.68, 0.63, 0.80), smoothstep(0.0, 0.55, y));
+  backdrop = mix(backdrop, vec3(0.53, 0.66, 0.82), smoothstep(0.55, 1.0, y));
   gl_FragColor = vec4(mix(backdrop, sky, atmosphere), 1.0);
   #include <colorspace_fragment>
 }
