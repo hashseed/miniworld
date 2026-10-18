@@ -173,6 +173,54 @@ describe('wildlifeAt (wildlife.md section 4)', () => {
       }
   });
 
+  /** A mask per walking group from a test of each cell's middle in km east and north of the home. */
+  const masksWhere = (openAt: (x: number, y: number, g: (typeof WILD_GROUPS)[number]) => boolean) =>
+    WILD_GROUPS.map((g) => {
+      if (flies(g)) return undefined;
+      const m = new Uint8Array(WILD_MASK_N * WILD_MASK_N);
+      for (let j = 0; j < WILD_MASK_N; j++)
+        for (let i = 0; i < WILD_MASK_N; i++) {
+          const [x, y] = wildMaskCell(g, i, j);
+          m[j * WILD_MASK_N + i] = openAt(x, y, g) ? 1 : 0;
+        }
+      return m;
+    });
+
+  it('walks round a lake instead of across it', () => {
+    // A lake 300 km wide runs north to south through the home, passable only far to the north.
+    const masks = masksWhere((x, y, g) => Math.abs(x) > 150 || y > 0.6 * roamOf(g));
+    let crossed = 0;
+    for (let s = 0; s < 2400; s += 3)
+      for (const a of wildlifeAt(day(1800), s, WILD_GROUPS, masks)) {
+        const g = WILD_GROUPS[Number(a.key.split(':')[0])]!;
+        if (flies(g) || roamOf(g) < 500 || a.clip !== 'walk') continue;
+        if (Math.abs(a.eastKm) < 100 && a.northKm < 0.6 * roamOf(g) - 100) crossed++;
+      }
+    expect(crossed).toBe(0);
+  });
+
+  it('grazes on the only open ground there is', () => {
+    // One open patch far to the north-east: every group gathers there.
+    const masks = masksWhere((x, y, g) => {
+      const r = roamOf(g) * 0.6;
+      return Math.abs(x - r) < 120 && Math.abs(y - r) < 120;
+    });
+    for (const s of [0, 50, 400])
+      for (const a of wildlifeAt(day(1800), s, WILD_GROUPS, masks)) {
+        const g = WILD_GROUPS[Number(a.key.split(':')[0])]!;
+        if (flies(g)) continue;
+        const r = roamOf(g) * 0.6;
+        expect(Math.sqrt((a.eastKm - r) ** 2 + (a.northKm - r) ** 2)).toBeLessThan(400);
+      }
+  });
+
+  it('lets a silverback lead the gorillas and shows a lone thylacine', () => {
+    const gorillas = wildlifeAt(day(1800), 0).filter((a) => a.model.startsWith('animal-gorilla'));
+    expect(gorillas.filter((a) => a.model === 'animal-gorilla').length).toBe(1);
+    expect(gorillas.length).toBeGreaterThanOrEqual(2);
+    expect(wildlifeAt(day(1800), 0).filter((a) => a.model === 'animal-thylacine').length).toBe(1);
+  });
+
   it('round-trips a mask through its hex string', () => {
     const m = Uint8Array.from({ length: WILD_MASK_N * WILD_MASK_N }, (_, i) =>
       (i * 7) % 3 === 0 ? 1 : 0,
