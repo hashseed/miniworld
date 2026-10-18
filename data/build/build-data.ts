@@ -42,9 +42,9 @@ import {
 import { readExtract } from './lib/extract.ts';
 import { checkLicences, type SourceEntry } from './lib/licence.ts';
 import { floodInlandSeas, INLAND_SEAS, oceanConnection } from './lib/ocean.ts';
-import { buildLens, LENS_PARAMS, parseCoordinates } from './lib/lens.ts';
+import { atStrength, buildLens, checkLens, LENS_PARAMS, parseCoordinates } from './lib/lens.ts';
 import { lensPreviewSvg } from './lib/lensPreview.ts';
-import { decodeLensGrids, encodeLensGrids } from '../../app/src/globe/lens.ts';
+import { decodeLensGrids, encodeLensGrids, MAX_STRENGTH } from '../../app/src/globe/lens.ts';
 import { Output } from './lib/output.ts';
 import { readElevation } from './lib/readers.ts';
 import {
@@ -415,6 +415,20 @@ if (existsSync(lensCache)) {
   writeFileSync(lensCache, lensBytes);
   writeFileSync(`${lensCache}.exponent`, String(lensExponent));
   log(`history lens ${lensVersion} from ${eventPoints.length} event coordinates`);
+}
+// The slider goes up to 200%, where the limits no longer hold but the warp
+// must still not fold (history-lens.md, section 3).
+{
+  const strongest = checkLens(
+    atStrength(decodeLensGrids(lensBytes).forward, MAX_STRENGTH),
+    LENS_PARAMS,
+  );
+  if (strongest.folds > 0)
+    throw new Error(`history lens ${lensVersion} folds at ${MAX_STRENGTH * 100}% strength`);
+  log(
+    `history lens at ${MAX_STRENGTH * 100}%: no folds, smallest area factor ` +
+      `${strongest.minArea.toFixed(2)}, stretch up to ${strongest.maxAnisotropy.toFixed(2)}:1`,
+  );
 }
 // The before-and-after preview Yang approves before a new warp ships (section 3).
 const lensPreview = join(ROOT, 'data/out/lens', `preview-${lensVersion}.svg`);

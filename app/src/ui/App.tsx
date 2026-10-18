@@ -126,15 +126,6 @@ export function App({ store, i18n, actions }: Props) {
           <TiltSteeperIcon />
         </button>
       </div>
-      <button
-        class="btn true-sizes"
-        title={t('lens.trueSizesHint')}
-        aria-pressed={!s.settings.historyLens}
-        data-testid="true-sizes"
-        onClick={() => actions.toggleTrueSizes()}
-      >
-        {t('lens.trueSizes')}
-      </button>
       {s.ready && !s.stressScene && !s.settings.lensHintSeen && (
         <LensHint t={t} actions={actions} />
       )}
@@ -229,6 +220,7 @@ export function App({ store, i18n, actions }: Props) {
           >
             <LanesIcon />
           </button>
+          <LensSlider s={s} t={t} i18n={i18n} actions={actions} />
         </div>
         <TimelineCanvas t={t} actions={actions} />
       </div>
@@ -254,6 +246,30 @@ function TimelineCanvas({ t, actions }: { t: T; actions: Actions }) {
         data-testid="timeline"
       />
     </div>
+  );
+}
+
+/** The history lens strength, 0 to 200% (history-lens.md, section 1). */
+function LensSlider({ s, t, i18n, actions }: { s: UiState; t: T; i18n: I18n; actions: Actions }) {
+  const value = s.settings.lensStrength;
+  const text = t('lens.value', { percent: i18n.number(value) });
+  return (
+    <label class="lens-slider" title={t('lens.sliderHint')}>
+      <span>{t('lens.slider')}</span>
+      <input
+        type="range"
+        min={0}
+        max={200}
+        step={10}
+        value={value}
+        aria-valuetext={text}
+        data-testid="lens-strength"
+        onInput={(e) =>
+          actions.setSetting('lensStrength', Number((e.target as HTMLInputElement).value))
+        }
+      />
+      <output>{text}</output>
+    </label>
   );
 }
 
@@ -369,11 +385,6 @@ function SettingsPanel({ s, t, actions }: { s: UiState; t: T; actions: Actions }
         label={t('settings.slowWhenZoomed')}
         value={s.settings.slowWhenZoomed}
         onChange={(v) => set('slowWhenZoomed', v)}
-      />
-      <Toggle
-        label={t('settings.historyLens')}
-        value={s.settings.historyLens}
-        onChange={(v) => set('historyLens', v)}
       />
       <Toggle
         label={t('settings.showStats')}

@@ -10,7 +10,7 @@ import { Store } from './core/store.ts';
 import { latLonToDir } from './globe/cube.ts';
 import { CameraController } from './globe/cameraController.ts';
 import { Globe } from './globe/globe.ts';
-import { Lens, MORPH_MS, MORPH_MS_REDUCED, decodeLensGrids } from './globe/lens.ts';
+import { Lens, MORPH_OMEGA, MORPH_OMEGA_REDUCED, decodeLensGrids } from './globe/lens.ts';
 import { lowestSeaLevel, planetAt, type PlanetState } from './globe/planet.ts';
 import { Clouds } from './globe/clouds.ts';
 import { Sky, cameraLight } from './globe/sky.ts';
@@ -69,7 +69,7 @@ const settings = loadSettings({
   trueTimeScale: false,
   slowWhenZoomed: true,
   showStats: false,
-  historyLens: true,
+  lensStrength: 100,
   lensHintSeen: false,
 });
 const savedView = STRESS ? undefined : loadView();
@@ -148,7 +148,7 @@ controller.lens = {
   toTrue: (d) => globe.lens.toTrue(d),
   widthAt: (d) => globe.lens.widthAt(d),
 };
-globe.lens.setOn(settings.historyLens, false);
+globe.lens.setStrength(settings.lensStrength / 100, false);
 
 let stress: StressScene | undefined;
 let timeline: Timeline | undefined;
@@ -259,9 +259,8 @@ const actions: Actions = {
     if (key === 'language') void switchLanguage(next.language);
     if (key === 'quality') applyTier();
     if (key === 'trueTimeScale') timeline?.setMode(value ? 'true' : 'watch');
-    if (key === 'historyLens') globe.lens.setOn(value as boolean);
+    if (key === 'lensStrength') globe.lens.setStrength((value as number) / 100);
   },
-  toggleTrueSizes: () => actions.setSetting('historyLens', !ui.value.settings.historyLens),
   closeLensHint: () => actions.setSetting('lensHintSeen', true),
   addBookmark: () => {
     const name = formatDateReadout(clock.day, i18n.language, {
@@ -489,7 +488,7 @@ function frame(now: number): void {
     controller.cancelFlight();
   }
   // The lens morph runs on frame time, never on either clock (history-lens.md, section 4.1).
-  globe.lens.advance(dt, controller.reducedMotion ? MORPH_MS_REDUCED : MORPH_MS);
+  globe.lens.advance(dt, controller.reducedMotion ? MORPH_OMEGA_REDUCED : MORPH_OMEGA);
   controller.update(dt, now);
   clock.zoomFactor =
     ui.value.settings.slowWhenZoomed && !STRESS ? zoomFactor(controller.altitudeKm) : 1;

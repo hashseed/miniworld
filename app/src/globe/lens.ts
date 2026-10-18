@@ -2,7 +2,7 @@
 // draws busy regions larger. The world stays in true coordinates; only the
 // drawing goes through the warp. The warp ships as two 2-degree grids, one
 // forward (true to drawn) and one inverse (drawn to true), and is blended
-// with the identity while the lens is switched on or off (section 4.1).
+// with the identity by the strength the slider sets (section 4.1).
 
 import type { Vec3 } from './cube.ts';
 
@@ -202,20 +202,28 @@ export function slerpDir(a: Vec3, b: Vec3, t: number, out: Vec3 = [0, 0, 0]): Ve
   return out;
 }
 
-/** Length of the morph between true sizes and the lens (section 4.1). */
-export const MORPH_MS = 1000;
-export const MORPH_MS_REDUCED = 250;
+/**
+ * Stiffness of the spring the blend follows (section 4.1), in 1/s: critically
+ * damped, a jump by 1 settles in about 1 s, or 0.25 s with reduced motion.
+ */
+export const MORPH_OMEGA = 7;
+export const MORPH_OMEGA_REDUCED = 26;
+/** Highest strength of the slider (200%). */
+export const MAX_STRENGTH = 2;
 
-/** The warp and its blend with the identity: 0 shows true sizes, 1 the full lens. */
+/**
+ * The warp and its blend with the identity: 0 shows true sizes, 1 the warp
+ * as built (100%) and 2 twice its displacement (200%, history-lens.md).
+ */
 export class Lens {
   readonly forward: Float64Array;
   readonly inverse: Float64Array;
   readonly width: Float32Array;
-  /** Current blend, eased (section 4.1). */
+  /** Current drawn strength (section 4.1). */
   blend = 0;
-  /** Linear progress of the morph; the blend is its smoothstep. */
-  private progress = 0;
-  private on = false;
+  /** Strength the blend is moving to. */
+  private target = 0;
+  private velocity = 0;
   private widest: number;
   private tmp: Vec3 = [0, 0, 0];
   private tmp2: Vec3 = [0, 0, 0];
@@ -229,34 +237,43 @@ export class Lens {
     this.widest = m;
   }
 
-  /** Switches the lens; with animate false it jumps straight there (at start). */
-  setOn(on: boolean, animate = true): void {
-    this.on = on;
+  /** Sets the strength (0..2); with animate false it jumps straight there (at start). */
+  setStrength(strength: number, animate = true): void {
+    this.target = Math.max(0, Math.min(MAX_STRENGTH, strength));
     if (!animate) {
-      this.progress = on ? 1 : 0;
-      this.blend = this.progress;
+      this.blend = this.target;
+      this.velocity = 0;
     }
   }
 
-  get isOn(): boolean {
-    return this.on;
+  get strength(): number {
+    return this.target;
   }
 
   get morphing(): boolean {
-    return this.progress !== (this.on ? 1 : 0);
+    return this.blend !== this.target;
   }
 
-  /** Advances the morph by frame time; returns whether the blend changed. */
-  advance(dtMs: number, durationMs: number): boolean {
-    const goal = this.on ? 1 : 0;
-    if (this.progress === goal) return false;
-    const step = dtMs / Math.max(1, durationMs);
-    this.progress =
-      goal > this.progress
-        ? Math.min(goal, this.progress + step)
-        : Math.max(goal, this.progress - step);
-    const p = this.progress;
-    this.blend = p * p * (3 - 2 * p);
+  /**
+   * Advances the morph by frame time with the exact solution of a critically
+   * damped spring, so long frames stay stable; returns whether the blend changed.
+   */
+  advance(dtMs: number, omega: number): boolean {
+    if (!this.morphing) return false;
+    const t = Math.max(0, dtMs) / 1000;
+    const c1 = this.blend - this.target;
+    const c2 = this.velocity + omega * c1;
+    const e = Math.exp(-omega * t);
+    this.blend = this.target + (c1 + c2 * t) * e;
+    this.velocity = (c2 - omega * (c1 + c2 * t)) * e;
+    if (this.blend < 0 || this.blend > MAX_STRENGTH) {
+      this.blend = Math.max(0, Math.min(MAX_STRENGTH, this.blend));
+      this.velocity = 0;
+    }
+    if (Math.abs(this.blend - this.target) < 1e-4 && Math.abs(this.velocity) < 1e-3) {
+      this.blend = this.target;
+      this.velocity = 0;
+    }
     return true;
   }
 
@@ -286,7 +303,7 @@ export class Lens {
     return new Lens(g, g);
   }
 
-  /** Drawn direction of a true direction at the current blend. */
+  /** Drawn direction of a true direction at the current blend (above 1 it extrapolates). */
   toDrawn(d: Vec3, out: Vec3 = [0, 0, 0]): Vec3 {
     if (this.blend <= 0) {
       out[0] = d[0];
@@ -315,13 +332,15 @@ export class Lens {
       out[2] = d[2];
       return out;
     }
-    // Start from the blended inverse grid and correct by the forward error.
+    // Start from the blended inverse grid and correct by the forward error,
+    // shrunk by the local width so that strong lenses converge too.
     const x: Vec3 = slerpDir(d, sampleGrid(this.inverse, d, this.tmp), this.blend, [0, 0, 0]);
-    for (let k = 0; k < 6; k++) {
+    for (let k = 0; k < 8; k++) {
       const f = this.toDrawn(x, this.tmp2);
-      x[0] += d[0] - f[0];
-      x[1] += d[1] - f[1];
-      x[2] += d[2] - f[2];
+      const k1 = 1 / this.widthAt(x);
+      x[0] += (d[0] - f[0]) * k1;
+      x[1] += (d[1] - f[1]) * k1;
+      x[2] += (d[2] - f[2]) * k1;
       const len = Math.hypot(x[0], x[1], x[2]);
       x[0] /= len;
       x[1] /= len;
@@ -341,6 +360,6 @@ export class Lens {
 
   /** Largest width factor anywhere, for conservative bounds. */
   get maxWidth(): number {
-    return 1 + (this.widest - 1) * this.blend;
+    return Math.max(1, 1 + (this.widest - 1) * this.blend);
   }
 }
