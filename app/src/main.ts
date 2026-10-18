@@ -30,7 +30,7 @@ import { STRESS_CENTRE, StressScene } from './perf/stressScene.ts';
 import { VignetteLayer } from './vignettes/vignetteLayer.ts';
 import { OPENING_DAY, TIMELINE_START, dayFromDate } from './time/calendar.ts';
 import { Clock } from './time/clock.ts';
-import { zoomFactor } from './time/rateCurve.ts';
+import { snapSpeedLog2, zoomFactor } from './time/rateCurve.ts';
 import { Timeline } from './timeline/timeline.ts';
 import { App } from './ui/App.tsx';
 import type { Actions, UiState, VignetteCard } from './ui/state.ts';
@@ -88,8 +88,8 @@ const ui = new Store<UiState>({
   preparing: false,
   error: undefined,
   day: OPENING_DAY,
-  playState: 'historyPaused',
-  speedIndex: clock.speedIndex,
+  playState: 'paused',
+  speedLog2: clock.speedLog2,
   yearsPerMinute: 0,
   scrubbing: false,
   panel: 'none',
@@ -258,10 +258,8 @@ const actions: Actions = {
     clock.setPlayState('playing');
     timeline?.setFollow(true);
   },
-  pauseHistory: () =>
-    clock.setPlayState(clock.playState === 'historyPaused' ? 'playing' : 'historyPaused'),
-  freeze: () => clock.setPlayState(clock.playState === 'frozen' ? 'playing' : 'frozen'),
-  setSpeed: (i) => clock.setSpeedIndex(i),
+  pause: () => clock.setPlayState('paused'),
+  setSpeed: (log2, release) => clock.setSpeedLog2(release ? snapSpeedLog2(log2) : log2),
   setPanel: (panel) => ui.update({ panel }),
   setSetting: (key, value) => {
     const next: Settings = { ...ui.value.settings, [key]: value };
@@ -385,8 +383,10 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === ' ' || e.code === 'Space') {
     if (target?.tagName === 'BUTTON') return;
     e.preventDefault();
-    if (e.shiftKey) clock.toggleFreeze();
-    else clock.togglePauseHistory();
+    clock.togglePlay();
+  } else if (e.key === '[' || e.key === ']') {
+    e.preventDefault();
+    clock.setSpeedLog2(clock.speedLog2 + (e.key === ']' ? 1 : -1));
   } else if ((e.key === 'Home' || e.key === 'End') && target !== timeline?.canvas) {
     e.preventDefault();
     clock.setDay(e.key === 'Home' ? clock.startDay : clock.endDay);
@@ -402,7 +402,7 @@ function persistView(): void {
     day: clock.day,
     camera: { ...controller.state },
     playState: clock.playState,
-    speedIndex: clock.speedIndex,
+    speedLog2: clock.speedLog2,
   });
 }
 document.addEventListener('visibilitychange', () => {
@@ -576,7 +576,7 @@ function syncUi(now: number): void {
   const patch: Partial<UiState> = {};
   if (v.day !== clock.day) patch.day = clock.day;
   if (v.playState !== clock.playState) patch.playState = clock.playState;
-  if (v.speedIndex !== clock.speedIndex) patch.speedIndex = clock.speedIndex;
+  if (v.speedLog2 !== clock.speedLog2) patch.speedLog2 = clock.speedLog2;
   if (v.scrubbing !== clock.isScrubbing) patch.scrubbing = clock.isScrubbing;
   const ypm = clock.yearsPerMinute;
   if (Math.abs(ypm - v.yearsPerMinute) > v.yearsPerMinute * 0.02 + 1e-3) patch.yearsPerMinute = ypm;
@@ -618,8 +618,8 @@ async function start(): Promise<void> {
       startDay: manifest.timelineStartDay,
       endDay: manifest.cutoffDay,
       day: startDay,
-      playState: STRESS ? 'playing' : (savedView?.playState ?? 'historyPaused'),
-      speedIndex: savedView?.speedIndex,
+      playState: STRESS ? 'playing' : (savedView?.playState ?? 'paused'),
+      speedLog2: savedView?.speedLog2,
     });
     clock.subscribe(() => syncUi(performance.now()));
     ui.update({
@@ -629,7 +629,7 @@ async function start(): Promise<void> {
       sources: index.sources,
       day: clock.day,
       playState: clock.playState,
-      speedIndex: clock.speedIndex,
+      speedLog2: clock.speedLog2,
     });
     if (timeline) {
       timeline.setIndex(index);

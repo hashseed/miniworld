@@ -86,7 +86,7 @@ const SOURCES = join(ROOT, 'data/sources');
 const OUT = join(ROOT, 'app/public/data');
 
 /** Watching seconds per content time window (spec milestone 1, section 10.3). */
-export const WINDOW_SECONDS = 600;
+export const WINDOW_SECONDS = 2460;
 const PART_LEVEL = 2;
 /** Simplified map (spec milestone 1, section 4.2). */
 const SMOOTHING_KM = 40;

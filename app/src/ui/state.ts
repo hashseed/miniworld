@@ -25,7 +25,8 @@ export interface UiState {
   error: string | undefined;
   day: number;
   playState: PlayState;
-  speedIndex: number;
+  /** Base-2 logarithm of the speed multiplier, −6 to 6. */
+  speedLog2: number;
   yearsPerMinute: number;
   scrubbing: boolean;
   panel: Panel;
@@ -46,9 +47,9 @@ export interface UiState {
 
 export interface Actions {
   play(): void;
-  pauseHistory(): void;
-  freeze(): void;
-  setSpeed(index: number): void;
+  pause(): void;
+  /** Sets the speed slider; `release` snaps it to ×1 when close. */
+  setSpeed(log2: number, release?: boolean): void;
   setPanel(panel: Panel): void;
   setSetting<K extends keyof Settings>(key: K, value: Settings[K]): void;
   addBookmark(): void;

@@ -80,17 +80,29 @@ test('the mammoth hunt shows a marker, flies down and moves with the life clock'
     })
     .toBeLessThan(0.05);
 
-  // History paused (the start state): the hunters keep moving.
+  // Playing slowly, so the date stays inside this period: the hunters move.
+  const clock = (state: string, speedLog2: number) =>
+    page.evaluate(
+      ([state, speedLog2]) => {
+        const c = (
+          globalThis as unknown as {
+            __miniworld: {
+              clock: { setPlayState(s: string): void; setSpeedLog2(v: number): void };
+            };
+          }
+        ).__miniworld.clock;
+        c.setSpeedLog2(speedLog2);
+        c.setPlayState(state);
+      },
+      [state, speedLog2] as const,
+    );
   const cast = async () => (await hunt(page)).stages.find((s) => s.id === target.id)!.cast;
   const a = await cast();
+  await clock('playing', -6);
   await expect.poll(async () => JSON.stringify(await cast())).not.toBe(JSON.stringify(a));
 
-  // Frozen: they stand still.
-  await page.evaluate(() =>
-    (
-      globalThis as unknown as { __miniworld: { clock: { setPlayState(s: string): void } } }
-    ).__miniworld.clock.setPlayState('frozen'),
-  );
+  // Paused: they stand still.
+  await clock('paused', -6);
   await page.waitForTimeout(300);
   const b = await cast();
   await page.waitForTimeout(1500);

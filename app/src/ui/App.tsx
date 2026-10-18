@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Store } from '../core/store.ts';
 import { dateFromDay } from '../time/calendar.ts';
-import { SPEEDS } from '../time/rateCurve.ts';
+import { MAX_SPEED_LOG2, MIN_SPEED_LOG2, speedLabel } from '../time/rateCurve.ts';
 import { formatDateReadout, formatFullDate, formatYear, roundRate } from '../i18n/dates.ts';
 import { LANGUAGES, type Language } from '../i18n/messages.ts';
 import { LANGUAGE_NAMES, type I18n } from '../i18n/i18n.ts';
@@ -19,7 +19,6 @@ import {
   TiltFlatterIcon,
   TiltSteeperIcon,
   FollowIcon,
-  FreezeIcon,
   GearIcon,
   InfoIcon,
   LanesIcon,
@@ -34,8 +33,6 @@ interface Props {
   i18n: I18n;
   actions: Actions;
 }
-
-const SPEED_LABELS: Record<number, string> = { 0.25: '¼', 0.5: '½' };
 
 export function App({ store, i18n, actions }: Props) {
   const s = useStore(store);
@@ -56,12 +53,11 @@ export function App({ store, i18n, actions }: Props) {
 
   const stationary = s.playState !== 'playing' && !s.scrubbing;
   const dateText = formatDateReadout(s.day, lang, { yearsPerMinute: s.yearsPerMinute, stationary });
-  const stateText =
-    s.playState === 'playing'
-      ? t('controls.playing')
-      : s.playState === 'frozen'
-        ? t('controls.frozen')
-        : t('controls.historyPaused');
+  const stateText = s.playState === 'playing' ? t('controls.playing') : t('controls.paused');
+  const label = speedLabel(s.speedLog2);
+  const speedText = t(label.fraction ? 'controls.speedFraction' : 'controls.speedValue', {
+    speed: i18n.number(label.value),
+  });
 
   return (
     <>
@@ -149,44 +145,40 @@ export function App({ store, i18n, actions }: Props) {
       <div class="bottom">
         {s.fixture && <div class="notice">{t('app.fixtureNotice')}</div>}
         <div class="bar">
-          <button
-            class="btn"
-            aria-label={t('controls.play')}
-            title={t('controls.play')}
-            aria-pressed={s.playState === 'playing'}
-            onClick={() => actions.play()}
-          >
-            <PlayIcon />
-          </button>
-          <button
-            class="btn"
-            aria-label={t('controls.pauseHistory')}
-            title={t('controls.pauseHistory')}
-            aria-pressed={s.playState === 'historyPaused'}
-            onClick={() => actions.pauseHistory()}
-          >
-            <PauseIcon />
-          </button>
-          <button
-            class="btn"
-            aria-label={t('controls.freeze')}
-            title={t('controls.freeze')}
-            aria-pressed={s.playState === 'frozen'}
-            onClick={() => actions.freeze()}
-          >
-            <FreezeIcon />
-          </button>
-          <div class="speed" role="group" aria-label={t('controls.speed')}>
-            {SPEEDS.map((sp, i) => (
-              <button
-                key={sp}
-                aria-pressed={s.speedIndex === i}
-                onClick={() => actions.setSpeed(i)}
-              >
-                {t('controls.speedValue', { speed: SPEED_LABELS[sp] ?? i18n.number(sp) })}
-              </button>
-            ))}
-          </div>
+          {s.playState === 'playing' ? (
+            <button
+              class="btn"
+              aria-label={t('controls.pause')}
+              title={t('controls.pause')}
+              onClick={() => actions.pause()}
+            >
+              <PauseIcon />
+            </button>
+          ) : (
+            <button
+              class="btn"
+              aria-label={t('controls.play')}
+              title={t('controls.play')}
+              onClick={() => actions.play()}
+            >
+              <PlayIcon />
+            </button>
+          )}
+          <label class="speed">
+            <input
+              type="range"
+              min={MIN_SPEED_LOG2}
+              max={MAX_SPEED_LOG2}
+              step="any"
+              value={s.speedLog2}
+              aria-label={t('controls.speed')}
+              aria-valuetext={speedText}
+              data-testid="speed"
+              onInput={(e) => actions.setSpeed(Number((e.target as HTMLInputElement).value))}
+              onChange={(e) => actions.setSpeed(Number((e.target as HTMLInputElement).value), true)}
+            />
+            <span class="speed-value">{speedText}</span>
+          </label>
           <span class="date" aria-live="off" data-testid="date">
             {dateText}
           </span>
