@@ -6,23 +6,29 @@
 import { hash32, hashString } from '../core/hash.ts';
 import { dayAtMs, msAtDay } from '../time/rate.ts';
 
-export type Verb =
-  | 'wait'
-  | 'walk-to'
-  | 'run-to'
-  | 'carry-to'
-  | 'haul'
-  | 'work-at'
-  | 'point'
-  | 'throw-at'
-  | 'cheer'
-  | 'struggle'
-  | 'fall'
-  | 'cut-up'
-  | 'appear'
-  | 'vanish'
-  | 'show'
-  | 'hide';
+/**
+ * The actions the player implements, exactly those of data/curated/vocab/actions.yaml
+ * (section 6.4), which says what each one's object names.
+ */
+export const VERBS = [
+  'wait',
+  'walk-to',
+  'run-to',
+  'carry-to',
+  'haul',
+  'work-at',
+  'point',
+  'throw-at',
+  'cheer',
+  'struggle',
+  'fall',
+  'cut-up',
+  'appear',
+  'vanish',
+  'show',
+  'hide',
+] as const;
+export type Verb = (typeof VERBS)[number];
 
 export type Clip =
   | 'idle'
@@ -36,29 +42,6 @@ export type Clip =
   | 'cheer'
   | 'struggle'
   | 'fall';
-
-/** Every verb the player understands, with what its object names. */
-export const VERBS: Record<Verb, 'none' | 'mark' | 'group' | 'optional-group'> = {
-  wait: 'none',
-  'walk-to': 'mark',
-  'run-to': 'mark',
-  'carry-to': 'mark',
-  haul: 'mark',
-  'work-at': 'mark',
-  point: 'optional-group',
-  'throw-at': 'group',
-  cheer: 'optional-group',
-  struggle: 'none',
-  fall: 'none',
-  'cut-up': 'none',
-  appear: 'none',
-  vanish: 'none',
-  show: 'none',
-  hide: 'none',
-};
-
-/** The verbs of props; every other verb is for cast groups. */
-export const PROP_VERBS: ReadonlySet<Verb> = new Set<Verb>(['show', 'hide']);
 
 /** Stage speeds in centimetres per second, three times life (section 18.3). */
 const SPEED_CM_S: Partial<Record<Verb, number>> = {
@@ -110,6 +93,9 @@ export interface CompiledGroup {
   /** The culture, animal or prop asset id, after the record's parameters are filled in. */
   look: string;
   role?: string;
+  /** The role's cast rules from vocab/roles.yaml, copied in by the build. */
+  man?: true;
+  tool?: string;
   count: number;
   at: string;
   /** Where the group stands relative to its marks, in centimetres, like a formation (giza.md section 11.3). */
@@ -283,7 +269,15 @@ export interface Segment {
   fade?: boolean;
 }
 
-export interface Member {
+/** A role's cast rules (vocab/roles.yaml), copied into each group by the build. */
+export interface CastRules {
+  /** Always played by a man of the profile. */
+  man?: true;
+  /** The tool the role holds instead of the profile's own. */
+  tool?: string;
+}
+
+export interface Member extends CastRules {
   group: string;
   index: number;
   kind: CastKind;
@@ -445,6 +439,8 @@ export function buildMembers(t: CompiledTemplate): Member[] {
         kind: g.kind,
         look: g.look,
         role: g.role,
+        ...(g.man ? { man: g.man } : {}),
+        ...(g.tool ? { tool: g.tool } : {}),
         segments: segs,
       });
     }

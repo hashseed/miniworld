@@ -16,7 +16,6 @@ import type { Language } from '../../../app/src/i18n/messages.ts';
 import { type CompiledLandmark, type CompiledPart } from '../../../app/src/world/landmark.ts';
 import {
   Errors,
-  ICONS,
   isMap,
   num,
   parseDate,
@@ -27,6 +26,7 @@ import {
   type VignetteText,
   type Yaml,
 } from './vignettes.ts';
+import { repoVocab, type Vocab } from './vocab.ts';
 
 const RECORD_FIELDS = [
   'id',
@@ -83,6 +83,8 @@ export function placeOffWater(
 export interface LandmarkInputs {
   curated: string;
   lanes: Set<string>;
+  /** The vocabularies; the repository's unless a test passes its own. */
+  vocab?: Vocab;
   startDay: number;
   cutoffDay: number;
 }
@@ -215,7 +217,7 @@ function compileLandmark(
   const where = isMap(y.where) ? point(y.where.point) : undefined;
   if (!where) e.add('where needs point: [lat, lon]');
   const icon = str(y.icon) ?? '';
-  if (!ICONS.has(icon)) e.add(`unknown icon "${icon}"`);
+  if (!(inp.vocab ?? repoVocab()).icons[icon]) e.add(`unknown icon "${icon}"`);
   if (y.beacon !== undefined && y.beacon !== 'wonder') e.add('beacon can only be "wonder"');
   const regions = Array.isArray(y.region)
     ? y.region.map((r) => str(r) ?? '')

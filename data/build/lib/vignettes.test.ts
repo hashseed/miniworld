@@ -27,7 +27,6 @@ describe('vignette formats', () => {
       curated: CURATED,
       records: RECORDS,
       lanes,
-      animals: new Set(['woolly-mammoth']),
       startDay: TIMELINE_START,
       cutoffDay: 0,
       landmarkParts: new Map(landmarks.landmarks.map((l) => [l.structure.id, l.parts])),
@@ -39,7 +38,7 @@ describe('vignette formats', () => {
     expect(v.text.en.title).toBe('Mammoth hunt');
     expect(v.text.de.title).toBe('Mammutjagd');
     expect(v.text.de.learnMore).not.toBe('');
-    expect(v.structure.template.groups.find((g) => g.name === 'prey')!.look).toBe('woolly-mammoth');
+    expect(v.structure.template.groups.find((g) => g.name === 'prey')!.look).toBe('mammoth');
   });
 
   it('parses written dates', () => {
@@ -105,7 +104,6 @@ describe('vignette formats', () => {
       const r = buildVignettes({
         curated: dir,
         lanes: new Set(['europe']),
-        animals: new Set(['woolly-mammoth']),
         startDay: TIMELINE_START,
         cutoffDay: 0,
       });

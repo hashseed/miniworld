@@ -3,8 +3,6 @@
 // language at the end (spec milestone 1, section 10; milestone 2, section 18).
 
 import { join } from 'node:path';
-import { readFileSync } from 'node:fs';
-import { parse as parseYaml } from 'yaml';
 import type { SourceInfo, StartupIndex } from '../../../app/src/content/types.ts';
 import { LANGUAGES, type Language } from '../../../app/src/i18n/messages.ts';
 import { TIMELINE_START } from '../../../app/src/time/calendar.ts';
@@ -13,6 +11,7 @@ import { erasForLanguage, validateEras, type CuratedEras } from '../lib/eras.ts'
 import { buildLandmarks } from '../lib/landmarks.ts';
 import { regionGrid } from '../lib/regions.ts';
 import { buildVignettes } from '../lib/vignettes.ts';
+import { readVocab, type Vocab } from '../lib/vocab.ts';
 import { ROOT, type BuildContext, type WriteContext } from './context.ts';
 
 export interface Content {
@@ -28,16 +27,17 @@ export function validateContent(ctx: BuildContext): Content {
   const eraErrors = validateEras(eras, TIMELINE_START, cutoffDay);
   if (eraErrors.length) fail(eraErrors.join('\n'));
 
-  const animals = new Set(
-    Object.keys(
-      (parseYaml(readFileSync(join(ROOT, 'data/curated/vocab/animals.yaml'), 'utf8'), {
-        schema: 'failsafe',
-      }) ?? {}) as Record<string, unknown>,
-    ),
-  );
+  const vocab = ((): Vocab => {
+    try {
+      return readVocab(join(ROOT, 'data/curated/vocab'));
+    } catch (err) {
+      return fail((err as Error).message);
+    }
+  })();
   const landmarkBuild = buildLandmarks({
     curated: join(ROOT, 'data/curated'),
     lanes: new Set(eras.lanes.map((l) => l.id)),
+    vocab,
     startDay: TIMELINE_START,
     cutoffDay,
   });
@@ -45,7 +45,7 @@ export function validateContent(ctx: BuildContext): Content {
   const vignetteBuild = buildVignettes({
     curated: join(ROOT, 'data/curated'),
     lanes: new Set(eras.lanes.map((l) => l.id)),
-    animals,
+    vocab,
     startDay: TIMELINE_START,
     cutoffDay,
     landmarkParts: new Map(landmarkBuild.landmarks.map((l) => [l.structure.id, l.parts])),

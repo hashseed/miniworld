@@ -1,0 +1,27 @@
+# Roles of cast members (content-format.md sections 1 and 5): the label in
+# English, the German labels in the feminine and masculine form, and the cast
+# rules: man: true when the role is always played by a man of the profile,
+# and the tool the role holds instead of the profile's own
+# (docs/spec/milestone-2.md section 18.1).
+hunter:
+  en: Hunter
+  de: { female: Jägerin, male: Jäger }
+  man: true
+  tool: spear
+gatherer:
+  en: Gatherer
+  de: { female: Sammlerin, male: Sammler }
+worker:
+  en: Worker
+  de: { female: Arbeiterin, male: Arbeiter }
+  man: true
+overseer:
+  en: Overseer
+  de: { female: Aufseherin, male: Aufseher }
+  man: true
+  tool: staff
+scribe:
+  en: Scribe
+  de: { female: Schreiberin, male: Schreiber }
+  man: true
+  tool: palette

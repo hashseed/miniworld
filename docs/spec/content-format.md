@@ -11,7 +11,8 @@ Every piece of content is a **record**: one Markdown file under `data/curated/<k
 ```
 data/curated/
   vocab/        event-types.yaml, effect-types.yaml, people-categories.yaml,
-                lanes.yaml, regions.yaml, tags.yaml, actions.yaml, roles.yaml
+                lanes.yaml, regions.yaml, tags.yaml, actions.yaml, roles.yaml,
+                animals.yaml, icons.yaml
   eras/         roman-republic.md ...
   events/       vesuvius-79.md, black-death.md ...
   people/       julius-caesar.md ...
@@ -30,7 +31,11 @@ data/schema/    one schema per kind, shared by the data build and the app
 
 - One file per record keeps pull requests small: a change touches only the records it is about, and a reviewer reads one item at a time.
 - The front matter is parsed strictly as YAML 1.2 with no implicit type guessing, so `no` stays a string and `1.10` is not a number. Plain Markdown tables are not used for records, because they cannot hold nested data such as paths, phases or effects.
-- **Vocabularies are data.** Event types, effect types, people categories, timeline lanes, regions and tags each live in one YAML file under `vocab/`, every entry with an id and `en` and `de` labels. Code and records refer to vocabulary ids only, never to labels.
+- **Vocabularies are data.** Event types, effect types, people categories, timeline lanes, regions, tags, vignette actions, roles, animals and scene-marker icons each live in one YAML file under `vocab/`, every entry keyed by its id, with `en` and `de` labels where the viewer reads them. Code and records refer to vocabulary ids only, never to labels. Each vocabulary file has a schema in `data/schema/` (section 7), and the data build fails on an entry that does not match it.
+  - `actions.yaml`: per action, whether it is for cast groups or props (`for: cast` or `for: prop`) and what its object names (`object: none`, `mark`, `group` or `optional-group`). The movement rule and the clips are the action's code in the vignette player, which implements exactly the actions in this file.
+  - `roles.yaml`: per role, an `en` label and German labels in the feminine and masculine form (`de: { female, male }`), and the rules the cast follows: `man: true` when the role is always played by a man of the profile, and `tool` for the tool the role holds instead of the profile's own.
+  - `animals.yaml`: per animal, its `en` and `de` names. The animal's model has the id `animal-<id>` (milestone 2, section 13).
+  - `icons.yaml`: the scene-marker icons the app can draw (milestone 2, section 7.2), with their labels.
 
 ## 2. The record envelope
 
@@ -162,7 +167,7 @@ Each kind adds only what it needs on top of the envelope.
 | `landmark` | `stages` (model asset per date: construction, later changes, ruins), `build` (construction span and its vignette), optional `beacon` ([milestone-2.md](milestone-2.md#8-landmarks) section 8) |
 | `vignette` | `template`, `with` (the template's parameters), and `repeat`, `progress`, `stretch` or `cutaway` as needed ([milestone-2.md](milestone-2.md#6-vignettes) section 6) |
 
-**Templates** are the one kind of curated data that is not a record: a vignette template holds a stage, cast, props and a script but no viewer text, so it is a plain YAML file in `templates/` with an id equal to its file name, validated by its own schema ([milestone-2.md](milestone-2.md#62-templates-and-records) section 6.2). `vocab/roles.yaml` gives every role an `en` label and German labels in the feminine and masculine form, so figure cards match the figure.
+**Templates** are the one kind of curated data that is not a record: a vignette template holds a stage, cast, props and a script but no viewer text, so it is a plain YAML file in `templates/` with an id equal to its file name, validated by its own schema ([milestone-2.md](milestone-2.md#62-templates-and-records) section 6.2). `vocab/roles.yaml` gives every role an `en` label and German labels in the feminine and masculine form, so figure cards match the figure, and the role's cast rules (section 1).
 
 ## 6. Effects
 
