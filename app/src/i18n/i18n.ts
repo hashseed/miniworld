@@ -6,6 +6,7 @@ import en from '../../messages/en.json';
 import de from '../../messages/de.json';
 import { Store } from '../core/store.ts';
 import { formatMessage, type Language, type Messages, type Params } from './messages.ts';
+import { numberFormat } from './intl.ts';
 
 const MESSAGES: Record<Language, Messages> = { en, de };
 
@@ -22,7 +23,7 @@ export class I18n extends Store<Language> {
   }
 
   number(n: number, options?: Intl.NumberFormatOptions): string {
-    return new Intl.NumberFormat(this.value, options).format(n);
+    return numberFormat(this.value, options).format(n);
   }
 }
 
