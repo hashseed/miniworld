@@ -8,7 +8,7 @@ Milestones are done in order. A milestone is finished when every exit criterion 
 
 - The spec describes everything the milestone built, and was updated before the code.
 - Every user-visible string and content record added has English and German text, and the app is reviewed in both languages.
-- Golden snapshot tests cover the new dates and places, and the scene for the same date and life-clock time is identical across runs and devices.
+- Golden snapshot tests cover the new dates and places, and the scene for the same clock time is identical across runs and devices.
 - The performance budget (spec section 9) holds on the reference laptop and phone with the stress scene and the new content.
 - Every content record names its source, and every shipped asset is approved by Yang.
 - The app runs in the devenv dev container with `npm run dev` on http://localhost:8800 and works on desktop and phone browsers.
@@ -24,7 +24,7 @@ Detailed spec: [milestone-1.md](milestone-1.md).
 - TypeScript project with npm scripts and pinned Node, CI running lint, typecheck and tests.
 - Globe from elevation and coastline data: cube-sphere quadtree terrain, painted terrain textures, water, exaggerated elevation, curved horizon close up.
 - Camera from orbit to ground with mouse, touch and keyboard controls.
-- Historical clock with the rate curve and a speed slider from ×1/64 to ×64; life clock; play and pause.
+- One clock at a uniform 25 years per minute, with the speed modes snail, regular and fast forward; play and pause.
 - Timeline with the World lane and regional lanes from [eras.md](eras.md), zoom, scrubbing and the true time scale toggle.
 - Sea level and ice sheets changing with the date.
 - English and German UI shell with a language switch and per-language date and number formatting.
@@ -44,17 +44,17 @@ Detailed spec: [milestone-1.md](milestone-1.md).
 
 ## 2. First people
 
-**Goal:** the first living humans, and the small stories they live out. Proves the world query, the life clock driving figures, determinism, and the vignette, landmark, migration and cutaway systems every later milestone reuses.
+**Goal:** the first living humans, and the small stories they live out. Proves the world query, the clock driving figures, determinism, and the vignette, landmark, migration and cutaway systems every later milestone reuses.
 
 Detailed spec: [milestone-2.md](milestone-2.md).
 
 **Scope**
 
-- World query in a Web Worker computing a scene from date, life clock and area in view, with deterministic arithmetic on every device.
+- World query in a Web Worker computing a scene from the clock and area in view, with deterministic arithmetic on every device.
 - First figure rig with instanced, GPU-animated figures and levels of detail, in the toy-planet style.
 - Culture profiles for the hunter-gatherers of Africa, Asia, Sahul, Europe (including Neanderthals), Siberia and the Americas, and the Natufians: camps, hunting, gathering, tool-making, fire.
 - Where people live from culture areas and migrations, with a hand-set density per area; no population model.
-- Vignettes: small staged stories that loop on the life clock, built from templates, in three forms: repeated, singular and long, and short but stretched so they can be watched.
+- Vignettes: small staged stories that play on the clock, fully scripted, built from templates, in three forms: repeated, singular and long, and short but stretched so they can be watched.
 - Landmarks with construction stages, visible from orbit, starting with Göbekli Tepe.
 - Foliage ([foliage.md](foliage.md)): a few big trees and bushes from the climate data, readable from orbit; built ahead of the rest of the milestone (2026-10-18).
 - Cutaways and scene markers for small scenes, starting with the painters of Lascaux.

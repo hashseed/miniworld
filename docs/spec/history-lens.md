@@ -70,7 +70,7 @@ The warp is a smooth, one-to-one map of the sphere onto itself, from true positi
 
 ## 4. Rendering
 
-The world query does not change. It computes everything in true coordinates, and the lens is applied only when the world is drawn. That keeps the world a pure function of the date and the life clock, with or without the lens.
+The world query does not change. It computes everything in true coordinates, and the lens is applied only when the world is drawn. That keeps the world a pure function of the clock, with or without the lens.
 
 - **Terrain.** Tiles keep their true coordinates, so streaming and caching do not change. The vertex shader moves each vertex to its drawn position by reading the forward grid as a texture. It also multiplies the elevation by the local width factor, so that mountains in enlarged regions keep their steepness and do not look flattened. Tile detail is chosen from the drawn size of a tile, so enlarged regions get finer tiles.
 - **Lines.** Coasts, rivers, borders, routes and paths pass through the same warp. Long segments are first split into pieces of at most 50 km, so the lines bend with the land.
@@ -86,7 +86,7 @@ Changing the strength morphs the globe instead of swapping it, so the viewer see
 - **Timing.** The blend follows the slider like a critically damped spring: it starts and ends gently, never overshoots, and a jump from 0% to 100% settles in about 1 second. With "reduce motion" set in the operating system it settles in about 0.25 seconds. Moving the slider again during a morph, or dragging it, changes the target without a jump, so the globe follows the hand smoothly.
 - **Camera.** The camera keeps the same true point in the middle of the screen and the same height above the ground, so the region in view grows or shrinks around that point. A fly-to that runs during a morph keeps flying to its true target.
 - **No flicker.** The morph moves the existing terrain in the vertex shader; tiles are not rebuilt and nothing is loaded for it. Tile detail follows the blended drawn size, and a finer tile is shown only once its mesh exists, as everywhere else.
-- **Clocks and world.** The morph runs on the frame time of the screen, not on the historical clock or the life clock, so it also plays while history is paused and changes neither clock. It changes only how the world is drawn, never the world.
+- **Clocks and world.** The morph runs on the frame time of the screen, not on the clock of history, so it also plays while history is paused and never changes the clock. It changes only how the world is drawn, never the world.
 - **Start.** When the app opens, the globe is drawn straight in the saved state, with no morph.
 
 ## 5. Settings and tests

@@ -22,9 +22,10 @@ import { PlanetQuery } from '../planet/query.ts';
 import type { PlanetState } from '../planet/state.ts';
 import { LAND_LIFT_M } from '../planet/surface.ts';
 import { terrainFragment, terrainVertex } from './shaders.ts';
-import { buildTileGeometry, indexFor } from './tileMesh.ts';
+import { startTerrainWorkers, type TerrainWorkers } from './terrainWorkers.ts';
+import { indexFor, tileGeometry } from './tileMesh.ts';
 import { EARTH_RADIUS_KM } from '../geo/earth.ts';
-import { sampleTile, TerrainStore } from './terrainStore.ts';
+import { TerrainStore } from './terrainStore.ts';
 import type { TerrainTile } from '../content/formats.ts';
 
 export const EXAGGERATION = 100;
@@ -61,6 +62,8 @@ export class Globe {
   readonly store: TerrainStore;
   /** Ice and deserts for the whole planet, per time step (section 5.2). */
   readonly climate: ClimateStore;
+  /** Builds tiles and climate textures off the main thread (section 11.5). */
+  private workers: TerrainWorkers;
   /** Sea, ice and ground height at a place, from the loaded data (section 5). */
   readonly query: PlanetQuery;
   private loader: ChunkSource;
@@ -70,6 +73,11 @@ export class Globe {
   quality: GlobeQuality = { errorTargetPx: 2.5 };
   /** Tiles drawn last frame. */
   drawnTiles = 0;
+
+  /** Tile and climate builds waiting or running in the terrain workers. */
+  get pendingBuilds(): number {
+    return this.workers.pending;
+  }
   /** Lowest sea level of the timeline (m); below it a place is sea at every date. */
   lowestSeaLevel = -130;
   /** The date of the last update, for surface queries. */
@@ -82,7 +90,8 @@ export class Globe {
   constructor(loader: ChunkSource) {
     this.loader = loader;
     this.store = new TerrainStore(loader);
-    this.climate = new ClimateStore(loader);
+    this.workers = startTerrainWorkers();
+    this.climate = new ClimateStore(loader, this.workers);
     this.query = new PlanetQuery(this.store, this.climate);
     this.material = new THREE.ShaderMaterial({
       vertexShader: terrainVertex,
@@ -285,6 +294,7 @@ export class Globe {
     for (const e of selected) e.mesh.visible = true;
     this.drawnTiles = selected.length;
     this.store.endFrame();
+    this.workers.endFrame();
     this.evict();
   }
 
@@ -311,10 +321,12 @@ export class Globe {
       return existing;
     }
     if (!source) return undefined;
+    // Meshes made per frame are capped, since each is uploaded to the graphics card.
     if (this.buildsThisFrame >= 12 && key.level > 1) return undefined;
+    const arrays = this.workers.tile(id, key, source, EXAGGERATION, this.lowestSeaLevel, priority);
+    if (!arrays) return undefined;
     this.buildsThisFrame++;
-    const samples = sampleTile(key, source);
-    const g = buildTileGeometry(key, samples, EXAGGERATION, this.lowestSeaLevel);
+    const g = tileGeometry(arrays);
     // A tile that is sea at every date is its flat sea surface alone, which
     // also carries ice over the sea; polar tiles use a coarser grid; a tile
     // that is never sea needs no sea surface (section 4.2).
@@ -335,7 +347,7 @@ export class Globe {
       // the tile's placement and visibility.
       const seaGeometry = new THREE.BufferGeometry();
       for (const [name, attr] of Object.entries(g.geometry.attributes))
-        seaGeometry.setAttribute(name, attr);
+        seaGeometry.setAttribute(name, attr as THREE.BufferAttribute);
       seaGeometry.setIndex(indexFor(g.flip, SEA_STEP));
       const sea = new THREE.Mesh(seaGeometry, this.seaMaterial);
       sea.onBeforeRender = () => {

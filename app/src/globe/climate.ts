@@ -5,16 +5,14 @@
 
 import * as THREE from 'three';
 import {
-  ARID_GRID_H,
-  ARID_GRID_W,
   decodeClimateSlice,
   ICE_GRID_H,
   ICE_GRID_W,
   type ClimateSlice,
 } from '../content/formats.ts';
 import type { ChunkSource } from '../content/loader.ts';
+import type { TerrainWorkers } from './terrainWorkers.ts';
 import type { IcePair, IceSource } from '../planet/query.ts';
-import { sampleGrid } from '../planet/sample.ts';
 import { iceSlicePair } from '../planet/state.ts';
 
 /** Priority of the slices that are not around the date, after the terrain in view. */
@@ -39,8 +37,11 @@ export class ClimateStore implements IceSource {
   /** Called with each new texture, so it can be uploaded before it is needed. */
   onTexture?: (texture: THREE.Texture) => void;
 
-  constructor(loader: ChunkSource) {
+  private workers: TerrainWorkers;
+
+  constructor(loader: ChunkSource, workers: TerrainWorkers) {
     this.loader = loader;
+    this.workers = workers;
     this.empty = new THREE.DataTexture(new Uint8Array([0, 0]), 1, 1, THREE.RGFormat);
     this.empty.needsUpdate = true;
   }
@@ -53,7 +54,7 @@ export class ClimateStore implements IceSource {
     if (!this.background && this.slices[ka] && this.slices[kb]) this.loadRest(day);
     if (this.textures[ka] && this.textures[kb])
       return { a: this.textures[ka], b: this.textures[kb], t };
-    const near = this.nearestLoaded(day);
+    const near = nearest(this.days, this.textures, day);
     const tex = near === undefined ? this.empty : this.textures[near]!;
     return { a: tex, b: tex, t: 0 };
   }
@@ -64,7 +65,7 @@ export class ClimateStore implements IceSource {
     const a = this.slices[ka];
     const b = this.slices[kb];
     if (a && b) return { a, b, t };
-    const near = this.nearestLoaded(day);
+    const near = nearest(this.days, this.slices, day);
     if (near === undefined) return undefined;
     const s = this.slices[near]!;
     return { a: s, b: s, t: 0 };
@@ -81,17 +82,6 @@ export class ClimateStore implements IceSource {
     }
     const { a, b, t } = iceSlicePair(this.days, day);
     return { ka: Math.max(0, this.days.indexOf(a)), kb: Math.max(0, this.days.indexOf(b)), t };
-  }
-
-  private nearestLoaded(day: number): number | undefined {
-    let best: number | undefined;
-    for (let k = 0; k < this.days.length; k++)
-      if (
-        this.textures[k] &&
-        (best === undefined || Math.abs(this.days[k]! - day) < Math.abs(this.days[best]! - day))
-      )
-        best = k;
-    return best;
   }
 
   /** Requests every other slice, nearest in time first, behind the terrain in view. */
@@ -119,24 +109,27 @@ export class ClimateStore implements IceSource {
         return;
       }
       this.slices[k] = slice;
-      this.textures[k] = climateTexture(slice);
-      this.onTexture?.(this.textures[k]);
+      // Resampled in a terrain worker, as urgent as the request (section 11.5).
+      void this.workers.climate(String(k), slice, priority).then((data) => {
+        const tex = climateTexture(data);
+        this.textures[k] = tex;
+        this.onTexture?.(tex);
+      });
     });
   }
 }
 
-/** One RG texture on the ice grid: ice distance in red, aridity (resampled) in green. */
-function climateTexture(s: ClimateSlice): THREE.DataTexture {
-  const data = new Uint8Array(ICE_GRID_W * ICE_GRID_H * 2);
-  for (let r = 0; r < ICE_GRID_H; r++) {
-    const lat = 90 - ((r + 0.5) * 180) / ICE_GRID_H;
-    for (let c = 0; c < ICE_GRID_W; c++) {
-      const lon = -180 + ((c + 0.5) * 360) / ICE_GRID_W;
-      const i = r * ICE_GRID_W + c;
-      data[i * 2] = s.ice[i]!;
-      data[i * 2 + 1] = Math.round(sampleGrid(s.aridity, ARID_GRID_W, ARID_GRID_H, lat, lon));
-    }
-  }
+/** The nearest loaded entry to a date, by slice day. */
+function nearest<T>(days: number[], loaded: (T | undefined)[], day: number): number | undefined {
+  let best: number | undefined;
+  for (let k = 0; k < days.length; k++)
+    if (loaded[k] && (best === undefined || Math.abs(days[k]! - day) < Math.abs(days[best]! - day)))
+      best = k;
+  return best;
+}
+
+/** The RG texture of a slice on the ice grid (terrainJobs.ts). */
+function climateTexture(data: Uint8Array): THREE.DataTexture {
   const tex = new THREE.DataTexture(data, ICE_GRID_W, ICE_GRID_H, THREE.RGFormat);
   tex.magFilter = THREE.LinearFilter;
   tex.minFilter = THREE.LinearFilter;

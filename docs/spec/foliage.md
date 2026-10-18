@@ -71,7 +71,7 @@ Desert, barren land, the colder tundra classes and land ice have no plants. Shar
 - Plants follow the toy-planet style of spec section 8: chunky rounded clay shapes made of a few balls and cones, flat cel-shaded colours in three bands lit like the terrain, with no outlines (decided by Yang on 2026-10-18).
 - Colours are rich and saturated, like the ground: bright greens for broadleaf, deep greens for rainforest, blue-green for conifers, olive for acacia and grey-green for the Mediterranean trees. Each tree has a small hashed variation of size and shade so forests do not look stamped.
 - Each model has up to about 400 triangles (crown balls with 80 faces each), since there are few trees and each is large on screen. A simpler far model (balls with 20 faces) may be added if the budget needs it.
-- **Later:** trees may sway very gently on the life clock, standing still while history is paused.
+- **Later:** trees may sway very gently on the clock, standing still while history is paused.
 
 ## 6. The ground under the plants
 
