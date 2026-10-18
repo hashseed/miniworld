@@ -196,7 +196,7 @@ Whimsy never bends the facts: buildings, landmarks, ships and vehicles appear on
 | Building | About 1,000 to 4,000 triangles | Modular kits per architecture style so a city can be assembled from parts |
 | Landmark | Up to about 20,000 triangles | Pyramids, Colosseum, Hagia Sophia and other unique buildings |
 | Animals, ships, vehicles | 300 to 3,000 triangles | Reused across cultures with texture variants |
-| Trees and bushes | About 30 to 80 triangles from afar, up to about 300 close up | Eight clay plant kinds placed from the climate data at a constant spacing on screen ([foliage.md](foliage.md)) |
+| Trees and bushes | Up to about 400 triangles | Eight clay plant kinds placed from the climate data, few and large: about 15 trees across Iberia ([foliage.md](foliage.md)) |
 | Terrain | Splat-mapped painted tiles (grass, soil, sand, rock, snow, fields) | Fields, roads and town ground painted from data |
 
 Every asset has two or three lower levels of detail, and at globe zoom figures become small coloured marks. Quality tiers (high, medium, low) are picked automatically from the device and can be changed in the settings; phones default to low or medium.
