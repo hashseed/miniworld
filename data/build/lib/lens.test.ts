@@ -5,7 +5,7 @@ import {
   decodeLensGrids,
   encodeLensGrids,
 } from '../../../app/src/globe/lens.ts';
-import { latLonToDir, type Vec3 } from '../../../app/src/globe/cube.ts';
+import { latLonToDir, type Vec3 } from '../../../app/src/geo/cube.ts';
 import { LENS_PARAMS, buildLens, jacobians, parseCoordinates } from './lens.ts';
 import { LENS_COLS, LENS_STEP } from '../../../app/src/globe/lens.ts';
 

@@ -7,7 +7,7 @@ import { h, render } from 'preact';
 import { ContentLoader } from './content/loader.ts';
 import type { StartupIndex, VignetteEntry } from './content/types.ts';
 import { Store } from './core/store.ts';
-import { latLonToDir } from './globe/cube.ts';
+import { latLonToDir } from './geo/cube.ts';
 import { CameraController } from './globe/cameraController.ts';
 import { Globe } from './globe/globe.ts';
 import { Foliage } from './globe/foliage.ts';
@@ -36,9 +36,9 @@ import {
   saveSettings,
   saveView,
   MAX_BOOKMARKS,
-  type CameraState,
   type Settings,
 } from './ui/storage.ts';
+import type { CameraState } from './core/camera.ts';
 
 const params = new URLSearchParams(location.search);
 const STRESS = params.get('scene') === 'stress';
@@ -119,7 +119,7 @@ scene.add(sky.dome, globe.group, clouds.mesh, foliage.group);
 
 let index: StartupIndex | undefined;
 let minSeaLevel = -130;
-let planet: PlanetState = { seaLevel: 0, glacialIndex: 0, iceA: 0, iceB: 0, iceT: 0 };
+let planet: PlanetState = { seaLevel: 0, glacialIndex: 0 };
 const surface = {
   surfaceKm: (dir: [number, number, number]) => (index ? globe.surfaceKm(dir, planet) : 0),
 };
@@ -155,7 +155,7 @@ const stats = new FrameStats(600);
 /** Applies the one fixed quality (section 11.2). */
 function applyQuality(): void {
   const q = QUALITY;
-  globe.quality = { errorTargetPx: q.errorTargetPx, waterDetail: q.waterDetail };
+  globe.quality = { errorTargetPx: q.errorTargetPx };
   dynres.configure(Math.min(q.renderScaleCap, devicePixelRatio || 1), targetFrameMs(isPhone));
   dynres.scale = Math.min(q.renderScaleCap, devicePixelRatio || 1);
   frames.setSize(innerWidth, innerHeight, dynres.scale);

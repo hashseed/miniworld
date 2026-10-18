@@ -2,6 +2,13 @@ import { defineConfig, devices } from '@playwright/test';
 
 // Browser tests (spec milestone 1, section 13) run against the dev server
 // with the fixture data built by `npm run build-data -- --fixture`.
+// They start their own server on MINIWORLD_PORT, never on the staging port
+// 8800, and run PW_WORKERS tests at a time (spec milestone 1, section 2.5).
+const port = Number(process.env.MINIWORLD_PORT ?? 8810);
+const baseURL = `http://localhost:${port}`;
+const workers = Number(process.env.PW_WORKERS ?? 1);
+// A Chromium of the system's own, where Playwright's download is not available.
+const executablePath = process.env.MINIWORLD_CHROMIUM || undefined;
 const gpuArgs = [
   '--use-gl=angle',
   '--use-angle=swiftshader',
@@ -13,18 +20,19 @@ export default defineConfig({
   testDir: 'tests/browser',
   timeout: 120_000,
   expect: { timeout: 30_000 },
-  fullyParallel: false,
-  workers: 1,
+  fullyParallel: true,
+  workers,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
-    baseURL: 'http://localhost:8800',
-    launchOptions: { args: gpuArgs },
+    baseURL,
+    launchOptions: { args: gpuArgs, ...(executablePath ? { executablePath } : {}) },
     trace: 'retain-on-failure',
   },
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:8800',
-    reuseExistingServer: true,
+    url: baseURL,
+    env: { MINIWORLD_PORT: String(port) },
+    reuseExistingServer: false,
     timeout: 60_000,
   },
   projects: [

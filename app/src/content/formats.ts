@@ -1,11 +1,19 @@
 // Binary chunk formats shared by the data build and the app
 // (spec milestone 1, section 10.5). All numbers are little-endian.
 
-import { TILE_N, type TileKey } from '../globe/cube.ts';
+import { TILE_N, type TileKey } from '../geo/cube.ts';
 
 /** Samples per terrain tile edge, including a one-sample border for normals. */
 export const TERRAIN_BORDERED = TILE_N + 3;
 export const TERRAIN_SAMPLES = TILE_N + 1;
+
+/**
+ * Terrain heights are clamped to this depth (m); a tile entirely at it has no
+ * file and is listed as deep in the manifest (section 10.1).
+ */
+export const DEEP_HEIGHT = -1000;
+/** Tiles at and above this level are listed in the manifest itself, deeper ones in a part file per tile of this level (section 10.1). */
+export const PART_LEVEL = 2;
 
 /**
  * Ocean channel: values 0..OCEAN_TOP × OCEAN_SCALE give the sea level
@@ -44,7 +52,7 @@ export interface TerrainTile {
   /**
    * Distance from today's smoothed coast in km per sample, TERRAIN_SAMPLES²,
    * 0 at sea and 255 for 255 km or more: land rises no faster than a rounded
-   * clay edge allows near the sea (section 4.4).
+   * clay edge allows near the sea (section 4.2).
    */
   coast: Uint8Array;
 }

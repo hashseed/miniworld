@@ -52,7 +52,7 @@ export function monotoneCubic(xs: number[], ys: number[]): (x: number) => number
 
 export const SEA_LEVEL_STEP_YEARS = 100;
 
-/** Sea level sampled every 100 years from startDay to endDay (spec section 5.1). */
+/** Sea level sampled every 100 years from startDay to endDay (spec milestone 1, section 5.1). */
 export function seaLevelCurve(
   points: [number, number][],
   startDay: number,

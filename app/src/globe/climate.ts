@@ -15,7 +15,7 @@ import {
   type ClimateSlice,
 } from '../content/formats.ts';
 import type { ContentLoader } from '../content/loader.ts';
-import { dirToLatLon, type Vec3 } from './cube.ts';
+import { dirToLatLon, type Vec3 } from '../geo/cube.ts';
 import { iceSlicePair } from './planet.ts';
 
 /** Priority of the slices that are not around the date, after the terrain in view. */
@@ -73,10 +73,6 @@ export class ClimateStore {
       v = near === undefined ? 0 : at(this.slices[near]!);
     }
     return (v - ICE_DISTANCE_ZERO) * ICE_DISTANCE_STEP_KM;
-  }
-
-  get loadedCount(): number {
-    return this.slices.filter(Boolean).length;
   }
 
   private pair(day: number): { ka: number; kb: number; t: number } {

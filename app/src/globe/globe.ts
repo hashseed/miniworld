@@ -5,34 +5,29 @@
 import * as THREE from 'three';
 import type { ContentLoader } from '../content/loader.ts';
 import {
-  DATA_MAX_LEVEL,
   FACE_COUNT,
   TILE_N,
   childKeys,
-  dirToFaceUv,
   dirToLatLon,
   faceUvToDir,
   tileAngularSize,
-  tileAt,
   tileId,
   tileSampleUv,
   type TileKey,
   type Vec3,
-} from './cube.ts';
+} from '../geo/cube.ts';
 import { ClimateStore } from './climate.ts';
 import { LENS_COLS, LENS_ROWS, Lens } from './lens.ts';
 import type { PlanetState } from './planet.ts';
-import { terrainFragment, terrainVertex } from './shaders.ts';
-import { EARTH_RADIUS_KM, buildTileGeometry, indexFor } from './tileMesh.ts';
+import { ICE_DOME_KM, ICE_DOME_M, terrainFragment, terrainVertex } from './shaders.ts';
+import { buildTileGeometry, indexFor } from './tileMesh.ts';
+import { EARTH_RADIUS_KM } from '../geo/earth.ts';
 import { sampleTile, TerrainStore } from './terrainStore.ts';
 import type { TerrainTile } from '../content/formats.ts';
 
 export const EXAGGERATION = 100;
 /** Every land vertex stands this many metres above its height (section 4.2). */
 export const LAND_LIFT_M = 250;
-/** Ice dome height and scale; match the shader (section 5.2). */
-const ICE_DOME_M = 1200;
-const ICE_DOME_KM = 250;
 export const MAX_RENDER_LEVEL = 9;
 /** Meshes kept beyond those touched this frame; touched meshes are never evicted. */
 const MAX_CACHED_MESHES = 1500;
@@ -45,15 +40,11 @@ const POLAR_STEP = 2;
 interface TileEntry {
   key: TileKey;
   mesh: THREE.Mesh;
-  centre: THREE.Vector3;
-  radius: number;
-  dataVersion: number;
   lastUsed: number;
 }
 
 export interface GlobeQuality {
   errorTargetPx: number;
-  waterDetail: number;
 }
 
 /** Ground tint before the foliage slices load: none. */
@@ -74,7 +65,7 @@ export class Globe {
   private tiles = new Map<string, TileEntry>();
   private frame = 0;
   private buildsThisFrame = 0;
-  quality: GlobeQuality = { errorTargetPx: 2.5, waterDetail: 1 };
+  quality: GlobeQuality = { errorTargetPx: 2.5 };
   /** Tiles drawn last frame. */
   drawnTiles = 0;
   /** Lowest sea level of the timeline (m); below it a place is sea at every date. */
@@ -112,7 +103,6 @@ export class Globe {
         time: { value: 0 },
         cameraWorld: { value: new THREE.Vector3() },
         riverThreshold: { value: 0.5 },
-        waterDetail: { value: 1 },
         fields: { value: null },
         lensGrid: { value: null },
         lensBlend: { value: 0 },
@@ -180,7 +170,6 @@ export class Globe {
     u.climateT!.value = climate.t;
     u.glacial!.value = planet.glacialIndex;
     u.cameraWorld!.value.copy(camera.position);
-    u.waterDetail!.value = this.quality.waterDetail;
     const lens = this.lens;
     u.lensBlend!.value = lens.blend;
     const corner: Vec3 = [0, 0, 0];
@@ -345,9 +334,6 @@ export class Globe {
     const entry: TileEntry = {
       key,
       mesh,
-      centre: g.centre,
-      radius: g.radius,
-      dataVersion: 0,
       lastUsed: this.frame,
     };
     this.tiles.set(id, entry);
@@ -387,12 +373,6 @@ export class Globe {
       top = Math.max(top, Math.max(h, planet.seaLevel) + LAND_LIFT_M + dome);
     }
     return top * EXAGGERATION * 0.001 * this.lens.widthAt(dir);
-  }
-
-  /** The tile at the deepest data level under a direction, for tests and tools. */
-  static dataTileAt(dir: Vec3): TileKey {
-    const { face, u, v } = dirToFaceUv(dir);
-    return tileAt(face, u, v, DATA_MAX_LEVEL);
   }
 }
 

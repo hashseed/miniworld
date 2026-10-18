@@ -65,7 +65,7 @@ function layer(ds: Dataset, t: number): Float32Array | Float64Array {
 
 async function etopo(): Promise<string[]> {
   let grid: Grid = await readEtopo(original('etopo-2022', 'ETOPO_2022_v1_60s_N90W180_bed.tif'));
-  // The map is simplified and smoothed by about 25 km (spec milestone 1,
+  // The map is simplified and smoothed by about 40 km (spec milestone 1,
   // section 4.2), so 4 arc-minutes (about 7 km) keeps every shape it shows.
   while (grid.width > 5400) {
     const m = grid.downsampleMean();

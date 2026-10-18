@@ -7,8 +7,8 @@
 import * as THREE from 'three';
 import type { ContentLoader } from '../content/loader.ts';
 import type { VignetteEntry } from '../content/types.ts';
-import { latLonToDir, type Vec3 } from '../globe/cube.ts';
-import { EARTH_RADIUS_KM } from '../globe/tileMesh.ts';
+import { latLonToDir, type Vec3 } from '../geo/cube.ts';
+import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 import {
   buildMembers,
   instancesAt,
@@ -110,11 +110,6 @@ export class VignetteLayer {
     }
   }
 
-  /** Number of stages on the current day, for tests and stats. */
-  get stageCount(): number {
-    return this.stages.size;
-  }
-
   update(
     camera: THREE.PerspectiveCamera,
     day: number,
@@ -211,8 +206,7 @@ export class VignetteLayer {
   private place(stage: Stage): void {
     const { up, east, north } = stage;
     up.set(...this.surface.toDrawn(stage.trueDir)).normalize();
-    north.set(0, 1, 0).addScaledVector(up, -up.y).normalize();
-    east.crossVectors(north, up).normalize();
+    northEast(up, north, east);
     const ground = this.surface.surfaceKm([up.x, up.y, up.z]);
     stage.centre.copy(up).multiplyScalar(EARTH_RADIUS_KM + ground);
   }
@@ -256,8 +250,7 @@ export class VignetteLayer {
         .addScaledVector(stage.east, eastKm)
         .addScaledVector(stage.north, northKm)
         .normalize();
-      north.set(0, 1, 0).addScaledVector(dir, -dir.y).normalize();
-      east.crossVectors(north, dir).normalize();
+      northEast(dir, north, east);
       // Local frame x east, y up, z south; then turn to face along (dirX east, dirZ north).
       actor.root.quaternion.setFromRotationMatrix(this.basis.makeBasis(east, dir, north.negate()));
       actor.root.quaternion.multiply(

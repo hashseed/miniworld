@@ -2,6 +2,8 @@ import { defineConfig } from 'vite';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
+// 8800 is the staging server; test runs pick their own port (spec milestone 1, section 2.5).
+const port = Number(process.env.MINIWORLD_PORT ?? 8800);
 
 export default defineConfig({
   root,
@@ -14,11 +16,11 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    port: 8800,
+    port,
     strictPort: true,
   },
   preview: {
     host: '0.0.0.0',
-    port: 8800,
+    port,
   },
 });

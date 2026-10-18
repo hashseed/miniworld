@@ -2,9 +2,9 @@
 // keyboard, with tilt that follows altitude, inertia and fly-to.
 
 import * as THREE from 'three';
-import type { CameraState } from '../ui/storage.ts';
-import { dirToLatLon, latLonToDir, type Vec3 } from './cube.ts';
-import { EARTH_RADIUS_KM } from './tileMesh.ts';
+import type { CameraState } from '../core/camera.ts';
+import { dirToLatLon, latLonToDir, type Vec3 } from '../geo/cube.ts';
+import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 
 export const MIN_DISTANCE_KM = 2;
 export const MAX_DISTANCE_KM = EARTH_RADIUS_KM * 2.6;
@@ -64,7 +64,6 @@ export class CameraController {
   private targetSurfKm: number | undefined;
   reducedMotion = false;
   lens: LensView = IDENTITY_LENS;
-  onInteract: () => void = () => {};
 
   constructor(
     camera: THREE.PerspectiveCamera,
@@ -83,10 +82,6 @@ export class CameraController {
   /** Camera altitude above the surface, smoothed (drives the zoom factor of the clock). */
   get altitudeKm(): number {
     return this.easedAltitude;
-  }
-
-  get isFlying(): boolean {
-    return this.flight !== undefined;
   }
 
   flyTo(target: CameraState, now = performance.now()): void {
@@ -179,9 +174,9 @@ export class CameraController {
         : this.targetSurfKm + (ground - this.targetSurfKm) * (1 - Math.exp(-dt * 2));
     const surf = this.targetSurfKm;
     const target = up.clone().multiplyScalar(EARTH_RADIUS_KM + surf);
-    const north = new THREE.Vector3(0, 1, 0).sub(up.clone().multiplyScalar(up.y)).normalize();
-    if (!Number.isFinite(north.x) || north.lengthSq() < 1e-6) north.set(0, 0, 1);
-    const east = new THREE.Vector3().crossVectors(north, up).normalize();
+    const north = new THREE.Vector3();
+    const east = new THREE.Vector3();
+    northEast(up, north, east);
     const h = THREE.MathUtils.degToRad(s.heading);
     const forward = north
       .clone()
@@ -296,7 +291,6 @@ export class CameraController {
       this.gesture = undefined;
       this.cancelFlight();
       this.velocity = { lat: 0, lon: 0 };
-      this.onInteract();
     });
     el.addEventListener('pointermove', (e) => {
       const p = this.pointers.get(e.pointerId);
@@ -325,7 +319,6 @@ export class CameraController {
         e.preventDefault();
         this.cancelFlight();
         this.zoom(Math.exp(e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0015)));
-        this.onInteract();
       },
       { passive: false },
     );

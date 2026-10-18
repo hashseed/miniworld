@@ -4,7 +4,7 @@
 // forward (true to drawn) and one inverse (drawn to true), and is blended
 // with the identity by the strength the slider sets (section 4.1).
 
-import type { Vec3 } from './cube.ts';
+import type { Vec3 } from '../geo/cube.ts';
 
 /** Grid spacing in degrees and the number of points per row and column. */
 export const LENS_STEP = 2;
@@ -357,10 +357,5 @@ export class Lens {
   widthAt(d: Vec3): number {
     if (this.blend <= 0) return 1;
     return 1 + (sampleScalar(this.width, d) - 1) * this.blend;
-  }
-
-  /** Largest width factor anywhere, for conservative bounds. */
-  get maxWidth(): number {
-    return Math.max(1, 1 + (this.widest - 1) * this.blend);
   }
 }

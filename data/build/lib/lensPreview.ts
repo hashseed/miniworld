@@ -4,7 +4,7 @@
 
 import { readFileSync } from 'node:fs';
 import { sampleGrid } from '../../../app/src/globe/lens.ts';
-import type { Vec3 } from '../../../app/src/globe/cube.ts';
+import type { Vec3 } from '../../../app/src/geo/cube.ts';
 
 const W = 1440;
 const H = 720;

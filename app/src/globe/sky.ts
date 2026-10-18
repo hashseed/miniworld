@@ -4,7 +4,7 @@
 
 import * as THREE from 'three';
 import { skyFragment, skyVertex } from './shaders.ts';
-import { EARTH_RADIUS_KM } from './tileMesh.ts';
+import { EARTH_RADIUS_KM } from '../geo/earth.ts';
 
 /**
  * Light direction for the globe: from the upper left of the view and slightly

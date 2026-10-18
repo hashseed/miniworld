@@ -2,6 +2,7 @@
 // rate readout, timeline, top-right buttons and their panels. Every visible
 // string comes from the message files.
 
+import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Store } from '../core/store.ts';
 import { dateFromDay } from '../time/calendar.ts';
@@ -22,6 +23,7 @@ import {
   GearIcon,
   InfoIcon,
   LanesIcon,
+  LensIcon,
   PauseIcon,
   PlayIcon,
 } from './icons.tsx';
@@ -134,26 +136,36 @@ export function App({ store, i18n, actions }: Props) {
       <div class="bottom">
         {s.fixture && <div class="notice">{t('app.fixtureNotice')}</div>}
         <div class="bar">
-          {s.playState === 'playing' ? (
-            <button
-              class="btn"
-              aria-label={t('controls.pause')}
-              title={t('controls.pause')}
-              onClick={() => actions.pause()}
-            >
-              <PauseIcon />
-            </button>
-          ) : (
-            <button
-              class="btn"
-              aria-label={t('controls.play')}
-              title={t('controls.play')}
-              onClick={() => actions.play()}
-            >
-              <PlayIcon />
-            </button>
-          )}
-          <label class="speed">
+          <Fold
+            class="play-fold"
+            button={(open) =>
+              s.playState === 'playing' ? (
+                <button
+                  class="btn"
+                  aria-label={t('controls.pause')}
+                  title={t('controls.pauseHint')}
+                  onClick={() => {
+                    actions.pause();
+                    open();
+                  }}
+                >
+                  <PauseIcon />
+                </button>
+              ) : (
+                <button
+                  class="btn"
+                  aria-label={t('controls.play')}
+                  title={t('controls.playHint')}
+                  onClick={() => {
+                    actions.play();
+                    open();
+                  }}
+                >
+                  <PlayIcon />
+                </button>
+              )
+            }
+          >
             <input
               type="range"
               min={MIN_SPEED_LOG2}
@@ -166,8 +178,8 @@ export function App({ store, i18n, actions }: Props) {
               onInput={(e) => actions.setSpeed(Number((e.target as HTMLInputElement).value))}
               onChange={(e) => actions.setSpeed(Number((e.target as HTMLInputElement).value), true)}
             />
-            <span class="speed-value">{speedText}</span>
-          </label>
+            <output>{speedText}</output>
+          </Fold>
           <span class="date" aria-live="off" data-testid="date">
             {dateText}
           </span>
@@ -176,7 +188,7 @@ export function App({ store, i18n, actions }: Props) {
               ? t('controls.rate', { rate: roundRate(s.yearsPerMinute) })
               : stateText}
           </span>
-          <LensSlider s={s} t={t} i18n={i18n} actions={actions} />
+          <LensFold s={s} t={t} i18n={i18n} actions={actions} />
         </div>
         <TimelineCanvas s={s} t={t} actions={actions} />
       </div>
@@ -226,19 +238,70 @@ function TimelineCanvas({ s, t, actions }: { s: UiState; t: T; actions: Actions 
   );
 }
 
-/** The history lens strength, 0 to 200% (history-lens.md, section 1). */
-function LensSlider({ s, t, i18n, actions }: { s: UiState; t: T; i18n: I18n; actions: Actions }) {
+/**
+ * A slider folded away behind an icon button (milestone-1.md, section 8.1): it
+ * opens while pointed at or focused from the keyboard, and on touch screens
+ * when the button is tapped, until a tap lands elsewhere.
+ */
+function Fold({
+  class: cls,
+  button,
+  children,
+}: {
+  class: string;
+  button: (open: () => void) => ComponentChildren;
+  children: ComponentChildren;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('pointerdown', away);
+    return () => document.removeEventListener('pointerdown', away);
+  }, [open]);
+  return (
+    <div
+      ref={ref}
+      class={`fold ${cls}${open ? ' open' : ''}`}
+      onPointerLeave={(e) => e.pointerType === 'mouse' && setOpen(false)}
+    >
+      {button(() => setOpen(true))}
+      <div class="fold-panel">
+        <div class="fold-box">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+/** The history lens strength, 0 to 200%, behind a magnifier (history-lens.md, section 1). */
+function LensFold({ s, t, i18n, actions }: { s: UiState; t: T; i18n: I18n; actions: Actions }) {
   const value = s.settings.lensStrength;
   const text = t('lens.value', { percent: i18n.number(value) });
   return (
-    <label class="lens-slider" title={t('lens.sliderHint')}>
-      <span>{t('lens.slider')}</span>
+    <Fold
+      class="lens-fold"
+      button={(open) => (
+        <button
+          class="btn"
+          aria-label={t('lens.slider')}
+          title={t('lens.sliderHint')}
+          data-testid="lens-button"
+          onClick={open}
+        >
+          <LensIcon />
+        </button>
+      )}
+    >
       <input
         type="range"
         min={0}
         max={200}
         step={10}
         value={value}
+        aria-label={t('lens.slider')}
         aria-valuetext={text}
         data-testid="lens-strength"
         onInput={(e) =>
@@ -246,7 +309,7 @@ function LensSlider({ s, t, i18n, actions }: { s: UiState; t: T; i18n: I18n; act
         }
       />
       <output>{text}</output>
-    </label>
+    </Fold>
   );
 }
 
