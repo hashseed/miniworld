@@ -47,6 +47,10 @@ export interface GlobeQuality {
   errorTargetPx: number;
 }
 
+/** Ground tint before the foliage slices load: none. */
+const NO_GROUND = new THREE.DataTexture(new Uint8Array([0, 0, 0, 0]), 1, 1, THREE.RGBAFormat);
+NO_GROUND.needsUpdate = true;
+
 export class Globe {
   readonly group = new THREE.Group();
   readonly material: THREE.ShaderMaterial;
@@ -90,6 +94,10 @@ export class Globe {
         climateA: { value: null },
         climateB: { value: null },
         climateT: { value: 0 },
+        // Vegetation tint of the ground, set by the foliage (foliage.md, section 6).
+        groundA: { value: NO_GROUND },
+        groundB: { value: NO_GROUND },
+        groundT: { value: 0 },
         skirtDepth: { value: 200 },
         landLift: { value: LAND_LIFT_M },
         lightDir: { value: new THREE.Vector3(0, 0, 1) },
