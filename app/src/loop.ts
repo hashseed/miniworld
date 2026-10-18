@@ -115,7 +115,7 @@ export class FrameLoop {
     p.clouds.update(p.camera, p.clock.lifeMs, u.lightDir!.value);
     p.stress?.update(now, p.globe, this.planet, p.camera, p.clock.lifeMs);
     p.landmarks.update(p.camera, day);
-    p.vignettes.update(p.camera, day, p.clock.lifeMs, u.lightDir!.value);
+    p.vignettes.update(p.camera, day, p.clock.vignetteMs, u.lightDir!.value);
 
     p.renderer.info.reset();
     p.frames.render(p.scene, p.camera);

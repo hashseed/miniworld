@@ -951,3 +951,14 @@ export function posePerson(m: Model, pose: Pose, phase = 0.25): void {
       break;
   }
 }
+
+/**
+ * A hunter's spear on its own, as it flies and sticks in a target (spec
+ * milestone 2, section 18.3): the same shaft and flint tip the hunter holds,
+ * shaft along +Y from y = 0, tip up at about 2.2 m.
+ */
+export function buildSpear(): Model {
+  const mb = new ModelBuilder([{ name: 'tool', pivot: [0, 0, 0] }]);
+  addTool(mb, 'spear', [0, 0.6, 0], 1);
+  return mb.build('spear');
+}

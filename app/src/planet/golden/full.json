@@ -1,0 +1,324 @@
+{
+  "50000 BCE": {
+    "seaLevel": -43.1,
+    "glacialIndex": 0.37,
+    "Bering Strait": {
+      "sea": false,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -43.1
+    },
+    "North Sea": {
+      "sea": false,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -43.1
+    },
+    "Java Sea": {
+      "sea": false,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -43.1
+    },
+    "Torres Strait": {
+      "sea": false,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -43.1
+    },
+    "Hudson Bay": {
+      "sea": true,
+      "ice": true,
+      "iceKm": 685,
+      "groundM": 1372.52
+    },
+    "Baltic": {
+      "sea": true,
+      "ice": true,
+      "iceKm": 84.44,
+      "groundM": 459.3
+    },
+    "Caspian Sea": {
+      "sea": false,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": 222
+    }
+  },
+  "20000 BCE": {
+    "seaLevel": -112.5,
+    "glacialIndex": 0.97,
+    "Bering Strait": {
+      "sea": false,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -112.5
+    },
+    "North Sea": {
+      "sea": false,
+      "ice": true,
+      "iceKm": 0.15,
+      "groundM": -112.5
+    },
+    "Java Sea": {
+      "sea": false,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -112.5
+    },
+    "Torres Strait": {
+      "sea": false,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -112.5
+    },
+    "Hudson Bay": {
+      "sea": true,
+      "ice": true,
+      "iceKm": 892,
+      "groundM": 1416.15
+    },
+    "Baltic": {
+      "sea": true,
+      "ice": true,
+      "iceKm": 523,
+      "groundM": 1301.87
+    },
+    "Caspian Sea": {
+      "sea": false,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": 222
+    }
+  },
+  "12000 BCE": {
+    "seaLevel": -69.2,
+    "glacialIndex": 0.6,
+    "Bering Strait": {
+      "sea": false,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -69.2
+    },
+    "North Sea": {
+      "sea": false,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -69.2
+    },
+    "Java Sea": {
+      "sea": false,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -69.2
+    },
+    "Torres Strait": {
+      "sea": false,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -69.2
+    },
+    "Hudson Bay": {
+      "sea": true,
+      "ice": true,
+      "iceKm": 892,
+      "groundM": 1416.15
+    },
+    "Baltic": {
+      "sea": true,
+      "ice": true,
+      "iceKm": 187.93,
+      "groundM": 884.13
+    },
+    "Caspian Sea": {
+      "sea": false,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": 222
+    }
+  },
+  "8000 BCE": {
+    "seaLevel": -27.8,
+    "glacialIndex": 0.24,
+    "Bering Strait": {
+      "sea": true,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -27.8
+    },
+    "North Sea": {
+      "sea": false,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -27.8
+    },
+    "Java Sea": {
+      "sea": true,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -27.8
+    },
+    "Torres Strait": {
+      "sea": false,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -27.8
+    },
+    "Hudson Bay": {
+      "sea": true,
+      "ice": true,
+      "iceKm": 768,
+      "groundM": 1394.41
+    },
+    "Baltic": {
+      "sea": true,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -27.8
+    },
+    "Caspian Sea": {
+      "sea": false,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": 222
+    }
+  },
+  "6200 BCE": {
+    "seaLevel": -11.4,
+    "glacialIndex": 0.1,
+    "Bering Strait": {
+      "sea": true,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -11.4
+    },
+    "North Sea": {
+      "sea": true,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -11.4
+    },
+    "Java Sea": {
+      "sea": true,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -11.4
+    },
+    "Torres Strait": {
+      "sea": false,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -11.4
+    },
+    "Hudson Bay": {
+      "sea": true,
+      "ice": true,
+      "iceKm": 701.62,
+      "groundM": 1377.5
+    },
+    "Baltic": {
+      "sea": true,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -11.4
+    },
+    "Caspian Sea": {
+      "sea": false,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": 222
+    }
+  },
+  "3000 BCE": {
+    "seaLevel": -4.3,
+    "glacialIndex": 0.04,
+    "Bering Strait": {
+      "sea": true,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -4.3
+    },
+    "North Sea": {
+      "sea": true,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -4.3
+    },
+    "Java Sea": {
+      "sea": true,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -4.3
+    },
+    "Torres Strait": {
+      "sea": true,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -4.3
+    },
+    "Hudson Bay": {
+      "sea": true,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -4.3
+    },
+    "Baltic": {
+      "sea": true,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -4.3
+    },
+    "Caspian Sea": {
+      "sea": false,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": 222
+    }
+  },
+  "today": {
+    "seaLevel": 0,
+    "glacialIndex": 0,
+    "Bering Strait": {
+      "sea": true,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": 0
+    },
+    "North Sea": {
+      "sea": true,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": 0
+    },
+    "Java Sea": {
+      "sea": true,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": 0
+    },
+    "Torres Strait": {
+      "sea": true,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": 0
+    },
+    "Hudson Bay": {
+      "sea": true,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": 0
+    },
+    "Baltic": {
+      "sea": true,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": 0
+    },
+    "Caspian Sea": {
+      "sea": false,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": 222
+    }
+  }
+}

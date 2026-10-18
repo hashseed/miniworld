@@ -7,14 +7,16 @@ import { drawable } from '../content/assets.ts';
 import { ANIMALS, buildAnimal, type AnimalId } from '../../../assets/src/animals.ts';
 import { animateAnimal, animatePerson } from '../../../assets/src/clips.ts';
 import { lightUniforms, type Model } from '../../../assets/src/kit.ts';
-import { buildProp, PROPS, type PropId } from '../../../assets/src/landmarks.ts';
+import { buildProp as buildCastProp, PROPS, type PropId } from '../../../assets/src/landmarks.ts';
 import {
   buildPerson,
+  buildSpear,
   PROFILES,
   type Kind,
   type Profile,
   type Tool,
 } from '../../../assets/src/people.ts';
+import { buildHearth, buildShelter, CAMP_SHELTER } from '../../../assets/src/shelters.ts';
 import { hashString } from '../core/hash.ts';
 import type { Clip } from '../world/vignette.ts';
 import { buildStandIn, type StandIn } from './standIns.ts';
@@ -48,7 +50,36 @@ function wrap(model: Model, pose: (clip: Clip, seconds: number) => void): StandI
   const box = new THREE.Box3().setFromObject(model.object);
   for (const [bone, parent] of extras) parent.add(bone);
   pose('idle', 0);
-  return { root, height: box.max.y - box.min.y, pose };
+  return { root, height: box.max.y - box.min.y, pose, setFade: fader(model.object) };
+}
+
+/**
+ * Fading for one model: the first fade gives it its own copies of the shared
+ * materials, with a fade uniform of its own, so other models stay solid.
+ */
+function fader(object: THREE.Object3D): (fade: number) => void {
+  let own: { value: number } | undefined;
+  return (fade) => {
+    if (!own) {
+      if (fade >= 1) return;
+      const uniform = { value: 1 };
+      const copies = new Map<THREE.Material, THREE.ShaderMaterial>();
+      object.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        const m = mesh.material as THREE.ShaderMaterial | undefined;
+        if (!mesh.isMesh || !m?.isShaderMaterial) return;
+        let copy = copies.get(m);
+        if (!copy) {
+          copy = m.clone();
+          copy.uniforms = { ...m.uniforms, fade: uniform };
+          copies.set(m, copy);
+        }
+        mesh.material = copy;
+      });
+      own = uniform;
+    }
+    own.value = fade;
+  };
 }
 
 /** Builds the drawn actor for a cast member. */
@@ -61,14 +92,27 @@ export function buildActor(
 ): StandIn {
   if (kind === 'prop') {
     if ((PROPS as readonly string[]).includes(look) && drawable.has(look)) {
-      const model = buildProp(look as PropId);
+      const model = buildCastProp(look as PropId);
       return wrap(model, () => {});
     }
   } else if (kind === 'animal') {
     const id = animalModel(look);
     if (id && drawable.has(id)) {
       const model = buildAnimal(id);
-      return wrap(model, (clip, s) => animateAnimal(model, clip, s));
+      const actor = wrap(model, (clip, s) => animateAnimal(model, clip, s));
+      const body = model.bones.get('body');
+      if (body) {
+        // The body's extent in its own space, without legs, head or tail.
+        const box = new THREE.Box3();
+        for (const child of body.children)
+          if ((child as THREE.Mesh).isMesh) {
+            const g = (child as THREE.Mesh).geometry;
+            g.computeBoundingBox();
+            box.union(g.boundingBox!);
+          }
+        if (!box.isEmpty()) actor.back = { bone: body, box };
+      }
+      return actor;
     }
   } else if ((PROFILES as readonly string[]).includes(look)) {
     const profile = look as Profile;
@@ -98,4 +142,23 @@ export function lightModels(
   lightUniforms.screenUp.value.set(e[4]!, e[5]!, e[6]!);
   lightUniforms.viewport.value.set(canvas.width, canvas.height);
   lightUniforms.inkPixels.value = (1.6 * canvas.width) / Math.max(1, canvas.clientWidth);
+}
+
+/**
+ * Builds a stage prop (section 18.2): a culture's camp shelter or an asset by
+ * id, facing +X like the stage, or undefined when it has no approved model.
+ */
+export function buildProp(kind: 'shelter' | 'asset', look: string): StandIn | undefined {
+  let model: Model | undefined;
+  if (kind === 'shelter') {
+    const id = CAMP_SHELTER[look as Profile];
+    if (id && drawable.has(id)) model = buildShelter(id);
+  } else if (look === 'prop-hearth' && drawable.has(look)) model = buildHearth();
+  if (!model) return undefined;
+  return wrap(model, () => {});
+}
+
+/** A thrown spear, shaft along +Y with the tip up, at life size. */
+export function buildSpearObject(): THREE.Object3D {
+  return buildSpear().object;
 }
