@@ -31,6 +31,14 @@
       "note": "Approved by Yang from the review sheets"
     },
     {
+      "id": "figure-first-person",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson with founder",
+      "status": "generated",
+      "note": "The first person of the tree of humankind (spec humankind.md section 2.1)"
+    },
+    {
       "id": "figure-neanderthal-man",
       "file": "assets/src/people.ts",
       "kind": "figure",

@@ -233,7 +233,42 @@ function clipsAnimalSheet(): void {
   camera.lookAt(0, 0, 0.5);
 }
 
+/** The first person (spec humankind.md section 2.1): a turnaround beside an ordinary woman. */
+function founderSheet(): void {
+  ground(0, 0, 3.6, GROUND['african-stone-age']);
+  for (let a = 0; a < 4; a++) {
+    const m = buildPerson({ profile: 'african-stone-age', kind: 'woman', founder: true });
+    posePerson(m, 'stand');
+    place(m, -2.4 + a * 1.15, 0, (a * Math.PI) / 2);
+  }
+  const plain = buildPerson({ profile: 'african-stone-age', kind: 'woman' });
+  posePerson(plain, 'stand');
+  place(plain, 2.6, 0, 0);
+  labels.push({
+    text: 'first person: front, left, back, right; an ordinary woman',
+    at: new THREE.Vector3(0, -0.1, 2.2),
+  });
+  camera.position.set(0, 2.0, 8.5);
+  camera.lookAt(0, 0.9, 0);
+}
+
+/** The first person's camp at Lake Turkana: grass hut, hearth, and her hunting an eland. */
+function founderCampSheet(): void {
+  ground(0, 0, 5.5, GROUND['african-stone-age']);
+  place(buildShelter('shelter-grass-hut'), -2.0, -1.2, 0.5);
+  place(buildHearth(), -0.4, 0.8);
+  const hunter = buildPerson({ profile: 'african-stone-age', kind: 'woman', founder: true });
+  posePerson(hunter, 'throw');
+  place(hunter, 1.2, 1.0, 1.1);
+  place(buildAnimal('animal-eland'), 3.6, -0.8, -1.9);
+  labels.push({ text: 'her first camp at Lake Turkana', at: new THREE.Vector3(0, -0.3, 4.6) });
+  camera.position.set(2, 6, 12);
+  camera.lookAt(0.4, 0.6, 0);
+}
+
 const sheets: Record<string, () => void> = {
+  founder: founderSheet,
+  'founder-camp': founderCampSheet,
   clips: clipsSheet,
   'clips-animal': clipsAnimalSheet,
   single: singleSheet,

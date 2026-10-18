@@ -226,11 +226,30 @@ export interface PersonOptions {
   /** Stable variant number; chooses skin, hair and hide colours. */
   variant?: number;
   tool?: Tool;
+  /**
+   * The first person of the tree of humankind (spec humankind.md section 2.1):
+   * pass `african-stone-age` and `woman`; she has her own fixed look and a spear.
+   */
+  founder?: boolean;
 }
+
+/** The first person's fixed look: red-ochre headband (her mark in every era), ochre-dyed hide, two bead strings. */
+const FOUNDER = {
+  skin: '#5e3b26',
+  hair: '#2a1d17',
+  hide: '#b8643a',
+  headband: '#c43f26',
+  ochre: '#c4502a',
+  beads: '#f4ecd8',
+  shells: '#e8c9a0',
+};
 
 /** Builds one person at life size, facing +Z, feet on y = 0. */
 export function buildPerson(o: PersonOptions): Model {
-  const look = LOOKS[o.profile];
+  const founder = !!o.founder;
+  const look = founder
+    ? { ...LOOKS['african-stone-age'], headband: FOUNDER.headband, beads: FOUNDER.beads }
+    : LOOKS[o.profile];
   const v = o.variant ?? 0;
   const neanderthal = !!look.neanderthal;
   const b = body(o.kind, neanderthal);
@@ -240,9 +259,9 @@ export function buildPerson(o: PersonOptions): Model {
   bones.push({ name: 'tool', pivot: [-(b.shoulderX + 0.04), wristY, 0.03], parent: 'armLowerR' });
   bones.push({ name: 'load', pivot: [0, b.shoulderY, 0], parent: 'torso' });
   const mb = new ModelBuilder(bones);
-  const skin = pick(look.skin, v);
-  const hair = pick(look.hair, v * 7 + 3);
-  const hide = pick(look.hide, v * 3 + 1);
+  const skin = founder ? FOUNDER.skin : pick(look.skin, v);
+  const hair = founder ? FOUNDER.hair : pick(look.hair, v * 7 + 3);
+  const hide = founder ? FOUNDER.hide : pick(look.hide, v * 3 + 1);
   const dark = shade(hide, -0.3);
   const top = look.top[o.kind];
   const bottom = look.bottom[o.kind];
@@ -324,7 +343,7 @@ export function buildPerson(o: PersonOptions): Model {
         hair,
         'head',
       );
-    if (o.kind === 'woman' && v % 3 === 1)
+    if (o.kind === 'woman' && (founder || v % 3 === 1))
       mb.add(
         blob([0, headY + hr * 0.75, -hr * 0.45], [hr * 0.4, hr * 0.36, hr * 0.36], 6),
         hair,
@@ -519,6 +538,20 @@ export function buildPerson(o: PersonOptions): Model {
   if (look.beads) {
     mb.add(torusRing([0, b.shoulderY + 0.02, 0.01], cx * 0.55, 0.022, 'y', 1), look.beads, 'torso');
   }
+  if (founder) {
+    // A second, longer string of shell beads, and ochre bands on the upper arms.
+    mb.add(
+      torusRing([0, b.shoulderY - 0.07, 0.015], cx * 0.78, 0.02, 'y', cz / cx),
+      FOUNDER.shells,
+      'torso',
+    );
+    bothSides(
+      torusRing([sx + 0.015, (b.shoulderY + elbow) / 2, 0], b.limb * 1.04, 0.016, 'y'),
+      FOUNDER.ochre,
+      'armUpperL',
+      'armUpperR',
+    );
+  }
   if (look.ochre) {
     // Ochre lines across the chest and upper arms.
     for (const dy of [0.05, -0.03]) {
@@ -533,7 +566,7 @@ export function buildPerson(o: PersonOptions): Model {
   }
 
   // Tool in the right hand.
-  const tool = o.tool ?? look.tools[o.kind];
+  const tool = o.tool ?? (founder ? 'spear' : look.tools[o.kind]);
   addTool(mb, tool, [-(sx + 0.04), wrist, 0.03], o.kind === 'child' ? 0.75 : 1);
 
   // A bundle of meat wrapped in hide and tied with cord, carried across the shoulders.
@@ -546,7 +579,7 @@ export function buildPerson(o: PersonOptions): Model {
     );
   }
 
-  const model = mb.build(`${o.profile}-${o.kind}`);
+  const model = mb.build(founder ? 'first-person' : `${o.profile}-${o.kind}`);
   model.bones.get('load')!.visible = false;
   return model;
 }

@@ -396,6 +396,8 @@ The first models are the people, shelters and animals of the seven culture profi
 | `steppe-beringia-hunter` | Heavy hooded fur parka, fur trousers and boots | Spear (with a fluted point in the Americas), scraper |
 | `natufian` | Hide tunic, bead headband | Flint sickle in a bone haft, grinding stone |
 
+**The first person.** One more figure, `figure-first-person`, is the first person of the tree of humankind, who stands alone at Lake Turkana at the start of the timeline (asked for by Yang on 2026-10-18; the tree is specified separately). She is a woman of `african-stone-age` with a fixed look instead of a hashed one, so she can always be recognised: a red-ochre headband, which she keeps in every later era as her mark; a hide wrap and skirt dyed with red ochre; a string of ostrich-eggshell beads and a second, longer string of shell beads (shell beads are known in Africa from at least about 75,000 years ago at Blombos Cave, d'Errico et al. 2005, *Journal of Human Evolution* 48); red-ochre bands on her upper arms; her hair in a bun; and a spear, since she hunts. She uses the same skeleton and clips as everyone else and stays within the people's budget of 1,050 triangles (936). `npm run asset-sheets` draws her turnaround beside an ordinary woman (`first-person`) and her first camp with the grass hut, the hearth and an eland (`first-person-camp`).
+
 **Shelters and camp props.**
 
 | Id | Model | Profiles |
