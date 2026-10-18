@@ -123,7 +123,7 @@ The tier limits on animated figures (milestone 1 section 11.2) cap the first lev
 
 ### 6.1 What a vignette is
 
-A **vignette** is a small staged story at a place and time: Vikings raiding a village, hunters stalking a mammoth, workers hauling a pillar into place, painters at work in a cave. It has a cast of figures, props, a stage and a short script that plays on the life clock in a loop of about one to two minutes. With history running the vignette plays while its date span lasts; with history paused it simply repeats; with everything frozen it stops mid-beat (spec section 2.3).
+A **vignette** is a small staged story at a place and time: Vikings raiding a village, hunters stalking a mammoth, workers hauling a pillar into place, painters at work in a cave. It has a cast of figures, props, a stage and a short script that plays on the life clock in a loop of about one to two minutes. With history running the vignette plays while its date span lasts; when history is paused it stops mid-beat (spec section 2.3).
 
 Vignettes are where the stories of history become visible. Ordinary figures show how people lived; vignettes show what happened.
 
@@ -253,7 +253,7 @@ Some events lasted a few days, which at the timeline's normal speed would pass i
 
 - The card always gives the true date, and for a stretched instance adds one line: "Shown for longer than it really took, so you can watch it."
 - Stretching applies to the vignette only, never to world state: a building stands, a border changes and an effect applies at its true date.
-- At 20 years per minute, 30 seconds is 10 years, so a raid in 793 is visible from about 788 to 798. In the deep past the minimum is far shorter than any span there, so it rarely applies.
+- At 5 years per minute, 30 seconds is 2.5 years, so a raid in 793 is visible from about 792 to 794. In the deep past the minimum is far shorter than any span there, so it rarely applies.
 
 ### 6.8 Finding vignettes
 
@@ -313,7 +313,7 @@ The stage dates in this example are illustrative; the record's dates are set fro
 A migration is an event of type Migration (or Voyage for sea crossings) whose `where` is a dated path (content-format section 4), possibly branching into several paths, and whose effect is to extend a culture area (section 3.1).
 
 - **The front.** At any date the front is the interpolated position along each path. Land behind the front and inside the culture's next area snapshot is inhabited.
-- **Walking families.** Near the front, groups of six to ten figures (adults and children with bundles, baskets and carried fire) walk along the path. Each group's base position follows the front by date; on the life clock the group walks a short stretch, makes camp, and walks on. While history is paused they keep walking their stretch in a loop.
+- **Walking families.** Near the front, groups of six to ten figures (adults and children with bundles, baskets and carried fire) walk along the path. Each group's base position follows the front by date; on the life clock the group walks a short stretch, makes camp, and walks on. When history is paused they stop mid-step.
 - **Rafts.** Sea crossings, such as from Sunda to Sahul across straits of up to about 90 km at the time, are a repeated vignette with the raft-crossing template along the crossing points of the path.
 - **On the overlay.** A migration path is drawn as an animated dotted line while it is active, the first use of the route overlay (spec section 7.2).
 
@@ -377,7 +377,7 @@ The budget of spec section 9 holds with this milestone's content. Two new scenes
 | Lint | No engine-dependent maths functions in `app/src/world/` and `app/src/core/` |
 | Schema and validation | Templates, vignettes, landmarks, cultures and migrations (section 6.9); every loop closes; culture areas agree with migrations |
 | Golden scenes | For a fixed list of cases (date, life clock, view): the scene's camps, figure ids, roles, tasks, segment end points and vignette phases, stored as a readable summary and a hash of the canonical serialisation. Cases: East Africa and the Bab-el-Mandeb at 50,000 BCE; the Danube at 40,000 BCE; Sahul at 45,000 BCE; Beringia and the Great Plains at 30,000 and 12,000 BCE; Lascaux at 15,000 BCE; Göbekli Tepe at 9200 BCE; each at life clock 0, 37,000 ms and 3,600,000 ms |
-| Expected answers | No people in the Americas at 30,000 BCE; no Neanderthals after 38,000 BCE; Sahul inhabited at 45,000 BCE; no camp on sea, ice or deep desert at any golden case; a vignette is identical at life clock t and t plus its loop length when history is paused |
+| Expected answers | No people in the Americas at 30,000 BCE; no Neanderthals after 38,000 BCE; Sahul inhabited at 45,000 BCE; no camp on sea, ice or deep desert at any golden case; a repeated vignette is identical at life clock t and t plus its loop length on the same day |
 | Cross-browser | The golden scenes computed in Chromium, Firefox and WebKit through Playwright, in the worker, must match the stored results exactly |
 | Browser tests | Pausing history keeps figures and vignettes moving; freezing stops them; tapping a figure opens its card in both languages; double-clicking the Göbekli Tepe event flies there and shows the building site |
 | Performance check | Draw calls and triangles of the two new scenes (section 14) |
@@ -388,7 +388,7 @@ The budget of spec section 9 holds with this milestone's content. Two new scenes
 | --- | --- |
 | Opening at 50,000 BCE shows bands of people at work in Africa and spreading along the coasts of Asia | Golden scenes; screenshots at the golden cases for review; Yang watches on desktop and phone |
 | Scrubbing from 70,000 to 9000 BCE shows people leaving Africa and reaching Sahul, Europe, Siberia and finally the Americas | Expected-answer tests; Yang watches a scrub |
-| A repeated, a singular and a stretched vignette play, repeat while history is paused and stop mid-beat when everything is frozen | Browser tests; Yang watches the mammoth hunt and the Göbekli Tepe building site |
+| A repeated, a singular and a stretched vignette play while history runs and stop mid-beat when it is paused | Browser tests; Yang watches the mammoth hunt and the Göbekli Tepe building site |
 | Lascaux can be found from orbit by its marker and opens as a cutaway | Browser test; Yang review |
 | Göbekli Tepe rises over its real span, can be found from orbit, and becomes a buried hill | Golden scene at 9200 BCE; screenshots at its stage dates |
 | Tapping a figure explains what it is doing, in English and German | Browser tests; review in both languages |
@@ -464,7 +464,7 @@ The data build writes one structure file per vignette record, content-hashed: th
 
 The player is three pure functions of their inputs, with no state:
 
-- **Instances.** For a record and a day: the period number is ⌊(day − from) / period⌋; for each of `count` slots, the hash of the record id, the period and the slot picks a site among the candidates valid at the period's start, never the same site twice in one period. An instance is shown for its whole period (its shown span), which at the rate of the deep past is about 30 seconds at ×1, as section 6.7 asks. Each instance gets an id, a phase offset (the hash of its id, modulo the loop) and an orientation, one of eight compass directions chosen by hash.
+- **Instances.** For a record and a day: the period number is ⌊(day − from) / period⌋; for each of `count` slots, the hash of the record id, the period and the slot picks a site among the candidates valid at the period's start, never the same site twice in one period. An instance is shown for its whole period (its shown span), which at the rate of the deep past is about 2 minutes at ×1, as section 6.7 asks. Each instance gets an id, a phase offset (the hash of its id, modulo the loop) and an orientation, one of eight compass directions chosen by hash.
 - **Pose.** For an instance and a life-clock time: phase = (life clock + offset) modulo the loop, then for every cast member its stage position in centimetres, heading as a direction (two numbers, never an angle), clip, time into the clip, and a visibility between 0 and 1 (for `fall` and `appear`).
 - **Loop check.** Runs a template through one loop and lists every group that does not end where it started (section 6.5); the data build fails on any.
 
@@ -484,4 +484,4 @@ The player uses only integer and `+ − × ÷` arithmetic plus `Math.sqrt` (sect
 | Loop | The hunt's loop closes; a broken copy of the template fails the check |
 | Golden poses | Instances at four fixed days and member poses at life clock 0, 37,000 and 3,600,000 ms, stored as a readable snapshot |
 | Expected answers | No instance before 43,000 BCE or after 10,000 BCE; no Siberian site before its own start date; two different sites per period; the pose at *t* equals the pose at *t* plus the loop length |
-| Browser | At a fixed date the marker is visible from orbit; double-clicking it flies down to the hunt and the hunters move; pausing history keeps them moving and freezing stops them |
+| Browser | At a fixed date the marker is visible from orbit; double-clicking it flies down to the hunt and the hunters move while history plays; pausing stops them |
