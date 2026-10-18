@@ -97,15 +97,19 @@ const ui = new Store<UiState>({
 
 const canvas = document.getElementById('globe') as HTMLCanvasElement;
 canvas.tabIndex = 0;
+// A reversed float depth buffer where the graphics card supports it, else a
+// logarithmic one (section 11.7).
+const reversedDepth = supportsClipControl();
 const renderer = new THREE.WebGLRenderer({
   canvas,
   antialias: false,
-  logarithmicDepthBuffer: true,
+  logarithmicDepthBuffer: !reversedDepth,
+  reversedDepthBuffer: reversedDepth,
   powerPreference: 'high-performance',
 });
 renderer.info.autoReset = false;
 renderer.setClearColor(0xfbe3d4);
-const frames = new FrameRenderer(renderer);
+const frames = new FrameRenderer(renderer, isPhone ? 2 : 4, reversedDepth);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 1, 1e5);
 const loader = new ContentLoader('data/');
@@ -548,3 +552,11 @@ if (import.meta.env.DEV)
       timeline: () => timeline,
     },
   });
+
+/** Whether WebGL 2 offers clip control, which a reversed depth buffer needs. */
+function supportsClipControl(): boolean {
+  const gl = document.createElement('canvas').getContext('webgl2');
+  const ok = !!gl?.getExtension('EXT_clip_control');
+  gl?.getExtension('WEBGL_lose_context')?.loseContext();
+  return ok;
+}
