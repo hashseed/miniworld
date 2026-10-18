@@ -14,7 +14,7 @@
 // runs the tests with the slot's own dev server port 8810 + n, writes the
 // logs to <slot>/.pool/last/, and frees the slot. Worktrees stay for reuse.
 
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
   cpSync,
@@ -32,6 +32,10 @@ import { dirname, join, resolve } from 'node:path';
 const FIXTURE_ARGS = ['--fixture', '--max-level', '4'];
 const BASE_PORT = 8810;
 const KEEP_CACHES = 3;
+// A lock whose heartbeat is older than this belongs to a run that is gone.
+const STALE_LOCK_MS = 60_000;
+const HEARTBEAT_SECONDS = 10;
+const INSTALL_TIMEOUT_MS = 15 * 60_000;
 const TASKS = ['check', 'browser', 'all'] as const;
 type Task = (typeof TASKS)[number];
 
@@ -52,7 +56,14 @@ function output(cmd: string, args: string[], cwd: string): string {
 }
 
 /** Runs a command with its output shown and copied to a log file. */
-function run(cmd: string, args: string[], cwd: string, logFile: string, env = {}): boolean {
+function run(
+  cmd: string,
+  args: string[],
+  cwd: string,
+  logFile: string,
+  env = {},
+  timeout?: number,
+): boolean {
   log(`${cmd} ${args.join(' ')}`);
   const r = spawnSync(
     'bash',
@@ -61,8 +72,10 @@ function run(cmd: string, args: string[], cwd: string, logFile: string, env = {}
       cwd,
       stdio: 'inherit',
       env: { ...process.env, ...env, POOL_LOG: logFile },
+      ...(timeout ? { timeout } : {}),
     },
   );
+  if (r.error) log(`${cmd} stopped: ${r.error.message}`);
   return r.status === 0;
 }
 
@@ -113,24 +126,23 @@ if (!sha) {
   sha = output('git', ['rev-parse', 'FETCH_HEAD^{commit}'], repo);
 }
 
-/** The pid in a lock, or 0 while the run that just took it has not written it yet. */
-function lockOwner(lock: string): number {
-  try {
-    return Number(readFileSync(join(lock, 'pid'), 'utf8'));
-  } catch {
-    return 0;
+/**
+ * How long ago the run holding a lock last showed it was alive. A heartbeat
+ * file's age works across machines and PID namespaces, and goes stale by
+ * itself when a run is killed without cleaning up.
+ */
+function lockAge(lock: string): number {
+  for (const f of [join(lock, 'heartbeat'), lock]) {
+    try {
+      return Date.now() - statSync(f).mtimeMs;
+    } catch {
+      // not there (yet); try the lock itself
+    }
   }
+  return 0;
 }
 
-function isRunning(pid: number): boolean {
-  try {
-    return process.kill(pid, 0);
-  } catch {
-    return false;
-  }
-}
-
-/** Takes a free slot: a lock directory created atomically, holding our pid. */
+/** Takes a free slot: a lock directory created atomically, kept alive by a heartbeat. */
 function acquire(): number {
   mkdirSync(pool, { recursive: true });
   for (;;) {
@@ -138,13 +150,14 @@ function acquire(): number {
       const lock = join(pool, `slot-${n}.lock`);
       try {
         mkdirSync(lock);
-        writeFileSync(join(lock, 'pid'), String(process.pid));
+        writeFileSync(join(lock, 'heartbeat'), `${process.pid}\n`);
         return n;
       } catch {
-        // Taken; free it if the run that holds it is gone.
-        const pid = lockOwner(lock);
-        const alive = pid === 0 || isRunning(pid);
-        if (!alive) rmSync(lock, { recursive: true, force: true });
+        if (lockAge(lock) > STALE_LOCK_MS) {
+          log(`slot-${n}: freeing a lock its run left behind`);
+          rmSync(lock, { recursive: true, force: true });
+          n--; // and take it
+        }
       }
     }
     log('all slots busy, waiting');
@@ -154,7 +167,25 @@ function acquire(): number {
 
 const n = acquire();
 const lock = join(pool, `slot-${n}.lock`);
-const release = () => rmSync(lock, { recursive: true, force: true });
+// The heartbeat runs beside this process, which blocks while tests run, and
+// stops when this process is gone.
+const heartbeat = spawn(
+  'bash',
+  [
+    '-c',
+    'while kill -0 "$1" 2>/dev/null; do touch "$2"; sleep "$3"; done',
+    '--',
+    String(process.pid),
+    join(lock, 'heartbeat'),
+    String(HEARTBEAT_SECONDS),
+  ],
+  { stdio: 'ignore', detached: true },
+);
+heartbeat.unref();
+const release = () => {
+  heartbeat.kill();
+  rmSync(lock, { recursive: true, force: true });
+};
 process.on('exit', release);
 process.on('SIGINT', () => process.exit(130));
 process.on('SIGTERM', () => process.exit(143));
@@ -195,7 +226,23 @@ const logFile = (name: string) => join(last, `${name}.log`);
 const lockHash = sha256(join(slot, 'package-lock.json'));
 const lockStamp = join(state, 'package-lock.sha256');
 if (!existsSync(lockStamp) || readFileSync(lockStamp, 'utf8') !== lockHash) {
-  if (!run('npm', ['ci', '--no-audit', '--no-fund'], slot, logFile('install')))
+  // The pool's own npm cache, so installs work where the user's is read-only;
+  // few retries and a time limit, so an unreachable registry fails quickly.
+  const npmEnv = {
+    npm_config_cache: join(pool, 'npm-cache'),
+    npm_config_fetch_retries: '1',
+    npm_config_fetch_timeout: '60000',
+  };
+  if (
+    !run(
+      'npm',
+      ['ci', '--no-audit', '--no-fund'],
+      slot,
+      logFile('install'),
+      npmEnv,
+      INSTALL_TIMEOUT_MS,
+    )
+  )
     fail('npm ci failed');
   writeFileSync(lockStamp, lockHash);
 }

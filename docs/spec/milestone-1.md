@@ -82,8 +82,8 @@ GitHub Actions runs on every pull request and on `main`: lint, typecheck, unit a
 
 Tests run in Yang's devenv container, but never in the checkout that serves the app on port 8800, which is the staging copy Yang looks at. `npm run pool -- <ref> [check|browser|all]` runs them for any commit in a pool of git worktrees beside that checkout (`../miniworld-pool/slot-<n>`, two slots by default):
 
-- A run takes a free slot under a lock, so runs from different threads never share one, checks the commit out there, and frees the slot when it ends. Worktrees stay for the next run.
-- Dependencies are installed only when `package-lock.json` changed since the slot's last run. The fixture data comes from a cache shared by all slots under the same key as in CI, and is built only when the key is new.
+- A run takes a free slot under a lock, so runs from different threads never share one, checks the commit out there, and frees the slot when it ends. The lock is kept alive by a heartbeat file, so a run that is killed frees its slot a minute later. Worktrees stay for the next run.
+- Dependencies are installed only when `package-lock.json` changed since the slot's last run, with the pool's own npm cache and a time limit. The fixture data comes from a cache shared by all slots under the same key as in CI, and is built only when the key is new.
 - Each slot's browser tests start their own dev server on port 8810 + n. The browser tests never use port 8800 or a server that is already running, so they cannot test the staging copy by mistake.
 - Logs and the Playwright report of the last run are kept in the slot's `.pool/last/`. `npm run pool -- --prune` removes the slots and old caches.
 
