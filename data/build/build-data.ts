@@ -32,6 +32,7 @@ import { TIMELINE_START, continuousYear, dayFromDate } from '../../app/src/time/
 import { buildWatchTable, yearAtSeconds, totalSeconds } from '../../app/src/time/watchTable.ts';
 import { dayFromContinuousYear } from '../../app/src/time/calendar.ts';
 import { erasForLanguage, validateEras, type CuratedEras } from './lib/eras.ts';
+import { buildLandmarks, placeOffWater } from './lib/landmarks.ts';
 import { buildVignettes } from './lib/vignettes.ts';
 import { fixtureElevation } from './lib/fixture.ts';
 import { Grid, GridPyramid } from './lib/grid.ts';
@@ -201,14 +202,28 @@ const animals = new Set(
     }) ?? {}) as Record<string, unknown>,
   ),
 );
+const landmarkBuild = buildLandmarks({
+  curated: join(ROOT, 'data/curated'),
+  lanes: new Set(eras.lanes.map((l) => l.id)),
+  startDay: TIMELINE_START,
+  cutoffDay,
+});
+if (landmarkBuild.errors.length) fail(landmarkBuild.errors.join('\n'));
 const vignetteBuild = buildVignettes({
   curated: join(ROOT, 'data/curated'),
   lanes: new Set(eras.lanes.map((l) => l.id)),
   animals,
   startDay: TIMELINE_START,
   cutoffDay,
+  landmarkParts: new Map(landmarkBuild.landmarks.map((l) => [l.structure.id, l.parts])),
 });
 if (vignetteBuild.errors.length) fail(vignetteBuild.errors.join('\n'));
+for (const l of landmarkBuild.landmarks)
+  for (const p of l.structure.parts)
+    if (p.build && !vignetteBuild.vignettes.some((v) => v.structure.id === p.build!.vignette))
+      fail(
+        `landmarks/${l.structure.id}.md: build of ${p.name} names unknown vignette "${p.build.vignette}"`,
+      );
 
 // --- Elevation, ocean mask, lakes and rivers -------------------------------
 
@@ -310,6 +325,16 @@ const flow = riverFlow(conn, rivers.data, riverContext);
 const flowCos = new Grid(conn.width, conn.height, flow.cos);
 const flowSin = new Grid(conn.width, conn.height, flow.sin);
 log(`${lakeCount} lakes, ${riverCount} river lines`);
+
+// Landmarks stand on dry land beside the drawn rivers (giza.md section 2). The
+// sea is where the ocean reaches at today's level, so dry depressions such as
+// Qattara count as land.
+const wet = (lat: number, lon: number) =>
+  rivers.bilinear(lat, lon) > 127 ||
+  lakes.bilinear(lat, lon) > 127 ||
+  connection.nearest(lat, lon) <= -OCEAN_MIN_LEVEL;
+for (const l of landmarkBuild.landmarks)
+  log(`landmark ${l.structure.id} moved ${placeOffWater(l, wet)} km west off the water`);
 
 // --- Terrain tiles ----------------------------------------------------------
 
@@ -513,6 +538,17 @@ const vignetteFiles = vignetteBuild.vignettes.map((v) => ({
   ) as Record<Language, string>,
 }));
 log(`${vignetteFiles.length} vignettes`);
+const landmarkFiles = landmarkBuild.landmarks.map((l) => ({
+  l,
+  structure: output.writeJson(`landmarks/${l.structure.id}`, l.structure),
+  text: Object.fromEntries(
+    LANGUAGES.map((lang) => [
+      lang,
+      output.writeJson(`landmarks/${l.structure.id}-${lang}`, l.text[lang]),
+    ]),
+  ) as Record<Language, string>,
+}));
+log(`${landmarkFiles.length} landmarks`);
 
 const index = {} as Record<Language, string>;
 for (const language of LANGUAGES) {
@@ -534,6 +570,17 @@ for (const language of LANGUAGES) {
       toApproximate: v.toApproximate,
       icon: v.structure.icon,
       title: v.text[language].title,
+      structure,
+      text: text[language],
+    })),
+    landmarks: landmarkFiles.map(({ l, structure, text }) => ({
+      id: l.structure.id,
+      fromDay: l.structure.fromDay,
+      toDay: l.structure.toDay,
+      fromApproximate: l.fromApproximate,
+      toApproximate: false,
+      icon: l.structure.icon,
+      title: l.text[language].title,
       structure,
       text: text[language],
     })),
