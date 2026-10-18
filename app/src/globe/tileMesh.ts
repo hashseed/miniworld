@@ -61,6 +61,7 @@ export function tileGeometry(t: TileArrays): TileGeometry {
   geometry.setAttribute('extra', new THREE.BufferAttribute(t.extra, 4, true));
   geometry.setAttribute('flow', new THREE.BufferAttribute(t.flow, 2, true));
   geometry.setAttribute('fieldUv', new THREE.BufferAttribute(t.fieldUv, 2, true));
+  geometry.setAttribute('coastGrad', new THREE.BufferAttribute(t.coastGrad, 4, true));
   // Winding: the cross product of +i and +j must point outward.
   geometry.setIndex(indexFor(t.flip));
   geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(), t.radius);

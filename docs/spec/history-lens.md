@@ -76,7 +76,7 @@ The world query does not change. It computes everything in true coordinates, and
 - **Lines.** Coasts, rivers, borders, routes and paths pass through the same warp. Long segments are first split into pieces of at most 50 km, so the lines bend with the land.
 - **Things placed on the globe.** Settlements, landmarks, vignettes ([milestone-2.md](milestone-2.md#6-vignettes) section 6), event markers, labels and famous people are placed at the warped position of their anchor. A settlement's cluster of buildings, a vignette's stage and the routines of their figures are laid out around that point in drawn units at the usual miniature scale, so figures walk at their normal speed everywhere.
 - **Camera and picking.** Fly-to goes to the warped anchor. A tap is turned back into a true position through the inverse grid, so cards, the region in view and the timeline lane all use true positions. The clock slowing as the camera zooms in uses the drawn height of the camera.
-- **Changing the strength.** When the slider moves, the globe morphs to the new strength (section 4.1).
+- **Changing the strength.** When the slider moves, the globe morphs to the new strength (section 4.1). Which terrain tiles are drawn is chosen from the warp at 100% whatever the strength, so moving the slider never reloads tiles or shows coarser ones while new data arrives (decided by Yang on 2026-10-18, after flicker and a coarse map while sliding).
 
 ### 4.1 The transition
 
