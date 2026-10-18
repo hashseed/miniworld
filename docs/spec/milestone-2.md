@@ -19,7 +19,7 @@ Decided by Yang on 2026-10-17: no population model is needed for this milestone 
 | Vignettes | Templates, records, scripts, looping, repeats, stretching | 6 |
 | Small scenes | Cutaways and scene markers | 7 |
 | Landmarks | Records, construction stages, ruins, visibility from orbit | 8 |
-| Migrations | Dated paths, walking families, rafts | 9 |
+| Migrations | Arrival points, the arrival map, canoe crossings, adapting to each region | 9, [peopling.md](peopling.md) |
 | Events | The part of the event system this milestone needs | 10 |
 | Info cards | Figure, vignette, landmark and event cards | 11 |
 | Content | The records of this milestone | 12 |
@@ -334,6 +334,8 @@ The stage dates in this example are illustrative; the record's dates are set fro
 
 ## 9. Migrations
 
+How people spread out of Africa and adapt to each region is designed in [peopling.md](peopling.md) (decided by Yang on 2026-10-18). Its arrival map replaces the front below, the tree's budding bands replace the walking families, and the rafts become small canoes at its listed crossings; where this section and peopling.md disagree, peopling.md wins.
+
 A migration is an event of type Migration (or Voyage for sea crossings) whose `where` is a dated path (content-format section 4), possibly branching into several paths, and whose effect is to extend a culture area (section 3.1).
 
 - **The front.** At any date the front is the interpolated position along each path. Land behind the front and inside the culture's next area snapshot is inhabited.
@@ -367,7 +369,7 @@ Card texts come from text chunks loaded when the card opens (content-format sect
 | --- | --- |
 | Culture profiles | The seven of section 4 |
 | Migrations (events) | Out of Africa (c. 60,000 BCE, after the tree has filled Africa, from East Africa across the Bab-el-Mandeb and along the coasts of Arabia and India to Sundaland); first people reach Sahul (c. 50,000 BCE, older dates such as Madjedbebe debated; Voyage); modern humans reach Europe (c. 45,000 BCE) and East Asia (c. 43,000 BCE, debated); into Siberia and Beringia (c. 30,000 BCE); people reach the Americas (c. 14,000 BCE, debated and possibly earlier; then south along the Pacific coast and through the opening ice-free corridor) |
-| Vignettes | Mammoth hunt (repeated, camps of `ice-age-hunter` and `steppe-beringia-hunter`); shellfish gathering at the shore (repeated, coastal camps of `african-stone-age` and `coastal-asia-hunter`); raft crossing to Sahul (repeated along the crossing); painters at Lascaux (singular, cutaway, c. 15,000 BCE); building Göbekli Tepe (singular and long, c. 9500 to 8000 BCE) |
+| Vignettes | Mammoth hunt (repeated, camps of `ice-age-hunter` and `steppe-beringia-hunter`); shellfish gathering at the shore (repeated, coastal camps of `african-stone-age` and `coastal-asia-hunter`); canoe crossing to Sahul (at the crossing, [peopling.md](peopling.md#6-crossing-water) section 6); painters at Lascaux (singular, cutaway, c. 15,000 BCE); building Göbekli Tepe (singular and long, c. 9500 to 8000 BCE) |
 | Landmarks | Göbekli Tepe; Lascaux cave, as a cutaway landmark whose painted walls grow by stage |
 | Events | Those above from [events.md](events.md) (Modern humans leave Africa, First people reach Australia, Lascaux cave paintings, People reach the Americas, Building of Göbekli Tepe), plus the eruption of the Phlegraean Fields (c. 37,900 BCE) as a card on the timeline only, without its presenter |
 
