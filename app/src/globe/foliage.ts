@@ -84,6 +84,22 @@ interface Plant {
 }
 
 /** Tree line in metres: high in the tropics, lower towards the poles. */
+/**
+ * A plant's rotation standing on the unit vector up, turned about it by turn
+ * radians: model y along up, x west and z north, the way the plants faced
+ * when they were approved. The basis must stay right-handed, or the
+ * quaternion of a mirrored basis tilts every plant.
+ */
+export function plantRotation(up: THREE.Vector3, turn: number): THREE.Quaternion {
+  const north = new THREE.Vector3();
+  const east = new THREE.Vector3();
+  northEast(up, north, east);
+  const q = new THREE.Quaternion().setFromRotationMatrix(
+    new THREE.Matrix4().makeBasis(east.negate(), up, north),
+  );
+  return q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), turn));
+}
+
 export function treeLine(lat: number): number {
   return 3800 - Math.max(0, Math.abs(lat) - 25) * 75;
 }
@@ -270,15 +286,7 @@ export class Foliage {
     const drawn = lens.toDrawn(p.dir);
     const up = new THREE.Vector3(drawn[0], drawn[1], drawn[2]);
     const pos = up.clone().multiplyScalar(EARTH_RADIUS_KM + p.groundKm * width - size * 0.06);
-    const north = new THREE.Vector3();
-    const east = new THREE.Vector3();
-    northEast(up, north, east);
-    // x west, y up, z south: the plants were placed facing this way when approved.
-    const q = new THREE.Quaternion().setFromRotationMatrix(
-      new THREE.Matrix4().makeBasis(east.negate(), up, north.negate()),
-    );
-    q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), p.turn));
-    out.compose(pos, q, new THREE.Vector3(size, size, size));
+    out.compose(pos, plantRotation(up, p.turn), new THREE.Vector3(size, size, size));
     return true;
   }
 
