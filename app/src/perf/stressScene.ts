@@ -82,6 +82,7 @@ export class StressScene {
   private animatedLimit: number;
   private lastSort = -1e9;
   private placedGround = false;
+  private groundKm = 0;
 
   constructor(animatedLimit: number) {
     this.animatedLimit = animatedLimit;
@@ -169,9 +170,22 @@ export class StressScene {
   /** Raises the scene onto the terrain once its height is known. */
   setGround(heightKm: number): void {
     if (this.placedGround) return;
-    const dir = this.group.position.clone().normalize();
-    this.group.position.copy(dir.multiplyScalar(EARTH_RADIUS_KM + heightKm));
+    this.groundKm = heightKm;
+    this.place(this.group.position.clone().normalize());
     this.placedGround = true;
+  }
+
+  /**
+   * Stands the scene at a drawn direction, so it follows the history lens;
+   * the figures keep their miniature size (history-lens.md, section 4).
+   */
+  place(dir: THREE.Vector3): void {
+    const up = dir.clone().normalize();
+    const north = new THREE.Vector3(0, 1, 0).sub(up.clone().multiplyScalar(up.y)).normalize();
+    const east = new THREE.Vector3().crossVectors(north, up).normalize();
+    const basis = new THREE.Matrix4().makeBasis(east, up, north.clone().negate());
+    this.group.quaternion.setFromRotationMatrix(basis);
+    this.group.position.copy(up.multiplyScalar(EARTH_RADIUS_KM + this.groundKm));
   }
 
   setAnimatedLimit(n: number): void {

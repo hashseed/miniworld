@@ -1,8 +1,8 @@
 // Service worker (spec milestone 1, section 10.9). Content-hashed files are
 // served cache-first and kept; the manifest and the page are network-first
 // with the cached copy as offline fallback. Data chunks are evicted least
-// recently used when the cache exceeds its budget; the app shell and the
-// language indexes are never evicted.
+// recently used when the cache exceeds its budget; the app shell, the
+// language indexes and the history lens grids are never evicted.
 
 const CACHE = 'miniworld-v1';
 const META = '/__miniworld-cache-meta';
@@ -38,6 +38,7 @@ async function protectedUrls(cache) {
       const m = await res.json();
       for (const file of Object.values(m.index ?? {}))
         keep.add(new URL(`data/${file}`, self.registration.scope).href);
+      if (m.lens?.file) keep.add(new URL(`data/${m.lens.file}`, self.registration.scope).href);
     } catch {
       // A broken manifest copy only means nothing extra is protected.
     }

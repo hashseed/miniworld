@@ -7,6 +7,45 @@
 // directly until textures are approved (section 12).
 
 import { ICE_DISTANCE_STEP_KM, ICE_DISTANCE_ZERO, TERRAIN_SAMPLES } from '../content/formats.ts';
+import { LENS_COLS, LENS_ROWS, LENS_STEP } from './lens.ts';
+
+/**
+ * The history lens in GLSL (history-lens.md, section 4): the forward grid
+ * read with the same bilinear lookup as lens.ts, blended with the identity.
+ */
+const lensChunk = /* glsl */ `
+uniform sampler2D lensGrid; // drawn direction (xyz) and width factor (w) per grid point
+uniform float lensBlend;    // 0 true sizes .. 1 full lens
+uniform float earthRadius;
+
+vec4 lensAt(vec3 d) {
+  if (lensBlend <= 0.0) return vec4(d, 1.0);
+  float lat = degrees(asin(clamp(d.y, -1.0, 1.0)));
+  float lon = degrees(atan(d.x, d.z));
+  vec2 f = clamp(
+    vec2((lon + 180.0) / ${LENS_STEP}.0, (lat + 90.0) / ${LENS_STEP}.0),
+    vec2(0.0),
+    vec2(${LENS_COLS}.0 - 1.0001, ${LENS_ROWS}.0 - 1.0001));
+  ivec2 i = ivec2(floor(f));
+  vec2 t = f - vec2(i);
+  vec4 a = texelFetch(lensGrid, i, 0);
+  vec4 b = texelFetch(lensGrid, i + ivec2(1, 0), 0);
+  vec4 c = texelFetch(lensGrid, i + ivec2(0, 1), 0);
+  vec4 e = texelFetch(lensGrid, i + ivec2(1, 1), 0);
+  vec4 m = mix(mix(a, b, t.x), mix(c, e, t.x), t.y);
+  vec3 drawn = normalize(mix(d, normalize(m.xyz), lensBlend));
+  return vec4(drawn, mix(1.0, m.w, lensBlend));
+}
+
+/** Rotates v by the rotation that takes unit vector a to unit vector b. */
+vec3 rotateTo(vec3 v, vec3 a, vec3 b) {
+  vec3 k = cross(a, b);
+  float s2 = dot(k, k);
+  if (s2 < 1e-12) return v;
+  float c = dot(a, b);
+  return v * c + cross(k, v) + k * dot(k, v) * ((1.0 - c) / s2);
+}
+`;
 
 /**
  * The date's ice and deserts from the two global climate slices around it
@@ -40,6 +79,7 @@ uniform float exaggeration;
 ${climateGlsl}
 uniform float skirtDepth;
 uniform float landLift; // metres every land vertex stands above its height
+${lensChunk}
 
 // How far below the sea level the flat sea surface lies (section 4.4).
 const float SEA_DROP = 3.0;
@@ -59,6 +99,8 @@ const float COAST_CURVE = 0.15; // extra m per km²
 
 varying vec3 vWorld;
 varying vec3 vUp;
+varying vec3 vTrueUp;
+varying vec3 vPattern;
 varying vec3 vNormal;
 varying float vWater;
 varying float vHeight;
@@ -118,14 +160,22 @@ void main() {
   surface = seaLevel - SEA_DROP;
 #endif
 
+  // The history lens moves the vertex to its drawn position and scales its
+  // relief with the local width (history-lens.md, section 4).
+  vec4 lens = lensAt(up);
+  vec3 drawnUp = lens.xyz;
   float lift = surface * exaggeration * 0.001;
+  vec3 offset = (drawnUp - up) * earthRadius + drawnUp * (lift * lens.w);
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
-  mv.xyz += normalize(mat3(viewMatrix) * up) * lift;
+  mv.xyz += mat3(viewMatrix) * offset;
   gl_Position = projectionMatrix * mv;
 
-  vWorld = world0.xyz + up * lift;
-  vUp = up;
-  vNormal = normalize(normal);
+  vWorld = world0.xyz + offset;
+  vUp = drawnUp;
+  vTrueUp = up;
+  // Painted patterns stay fixed to the land while it morphs.
+  vPattern = world0.xyz + up * lift;
+  vNormal = rotateTo(normalize(normal), up, drawnUp);
   vWater = water;
   vHeight = h;
   vRiver = extra.y;
@@ -154,6 +204,8 @@ ${climateGlsl}
 
 varying vec3 vWorld;
 varying vec3 vUp;
+varying vec3 vTrueUp;
+varying vec3 vPattern;
 varying vec3 vNormal;
 varying float vWater;
 varying float vHeight;
@@ -178,11 +230,12 @@ float noise3(vec3 x) {
 }
 
 vec3 landColour(vec3 n, vec3 up, float arid) {
-  float lat = degrees(asin(clamp(up.y, -1.0, 1.0)));
+  // Climate follows the true latitude, not the drawn one.
+  float lat = degrees(asin(clamp(normalize(vTrueUp).y, -1.0, 1.0)));
   float alat = abs(lat);
   float slope = 1.0 - clamp(dot(n, up), 0.0, 1.0);
   // Large soft patches, like painted clay, rather than fine speckle.
-  float v = noise3(vWorld * 0.012) * 0.7 + noise3(vWorld * 0.05) * 0.3;
+  float v = noise3(vPattern * 0.012) * 0.7 + noise3(vPattern * 0.05) * 0.3;
   // Colder, drier ice age: climate bands move towards the equator.
   float coldLat = alat + glacial * 12.0;
 
@@ -312,7 +365,7 @@ void main() {
   // The ice border is where the blended distance crosses zero, per pixel, so
   // it is a smooth curve. The sea surface has no ice of its own: its coarse
   // grid would draw stepped edges, and the ice belongs to the terrain.
-  vec2 clim = climateAt(up);
+  vec2 clim = climateAt(normalize(vTrueUp));
 #ifdef SEA_SURFACE
   float iceKm = -100.0;
 #else
@@ -334,8 +387,8 @@ void main() {
   bool isRiver = !isWater && !hasIce && riverF > riverThreshold;
   // Arctic pack ice (section 5.2): the sea north of a wobbly edge near 78°N
   // today, reaching 70°N at the glacial maximum.
-  float lat = degrees(asin(clamp(up.y, -1.0, 1.0)));
-  float packEdge = mix(78.0, 70.0, glacial) + (noise3(vWorld * 0.004) - 0.5) * 4.0;
+  float lat = degrees(asin(clamp(normalize(vTrueUp).y, -1.0, 1.0)));
+  float packEdge = mix(78.0, 70.0, glacial) + (noise3(vPattern * 0.004) - 0.5) * 4.0;
   bool isPack = isWater && seaW > 0.0 && lat > packEdge;
   if (isPack) {
     albedo = mix(vec3(0.93, 0.97, 1.0), vec3(0.78, 0.9, 0.98), smoothstep(1.5, 0.0, lat - packEdge));

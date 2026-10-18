@@ -20,6 +20,8 @@ export interface Manifest {
   windows: number[];
   /** Startup index file per language. */
   index: Record<Language, string>;
+  /** The history lens warp grids (globe/lens.ts), loaded with the startup index. */
+  lens: { file: string; version: string; exponent: number };
   layers: Record<string, LayerManifest>;
   /** Global climate slices (ice and deserts): their days, ascending, and files. */
   climate: { days: number[]; files: string[] };

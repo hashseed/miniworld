@@ -62,6 +62,9 @@ export interface Actions {
   followPlayhead(): void;
   toggleLanes(): void;
   remeasure(): void;
+  /** The "True sizes" button: switches the history lens off or back on. */
+  toggleTrueSizes(): void;
+  closeLensHint(): void;
   saveReport(): void;
   attachTimeline(canvas: HTMLCanvasElement | null): void;
 }

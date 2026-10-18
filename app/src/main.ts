@@ -10,6 +10,7 @@ import { Store } from './core/store.ts';
 import { latLonToDir } from './globe/cube.ts';
 import { CameraController } from './globe/cameraController.ts';
 import { Globe } from './globe/globe.ts';
+import { Lens, MORPH_MS, MORPH_MS_REDUCED, decodeLensGrids } from './globe/lens.ts';
 import { lowestSeaLevel, planetAt, type PlanetState } from './globe/planet.ts';
 import { Clouds } from './globe/clouds.ts';
 import { Sky, cameraLight } from './globe/sky.ts';
@@ -69,6 +70,8 @@ const settings = loadSettings({
   trueTimeScale: false,
   slowWhenZoomed: true,
   showStats: false,
+  historyLens: true,
+  lensHintSeen: false,
 });
 const savedView = STRESS ? undefined : loadView();
 const savedPerf = loadPerf();
@@ -146,6 +149,13 @@ vignettes.onOpen = (entry) => void openVignette(entry);
 vignettes.onFly = (lat, lon, altitudeKm) =>
   controller.flyTo({ ...controller.state, lat, lon, altitudeKm });
 controller.reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+// The camera sees the lens through the globe, which swaps in the loaded warp.
+controller.lens = {
+  toDrawn: (d) => globe.lens.toDrawn(d),
+  toTrue: (d) => globe.lens.toTrue(d),
+  widthAt: (d) => globe.lens.widthAt(d),
+};
+globe.lens.setOn(settings.historyLens, false);
 
 let stress: StressScene | undefined;
 let timeline: Timeline | undefined;
@@ -256,7 +266,10 @@ const actions: Actions = {
     if (key === 'language') void switchLanguage(next.language);
     if (key === 'quality') applyTier();
     if (key === 'trueTimeScale') timeline?.setMode(value ? 'true' : 'watch');
+    if (key === 'historyLens') globe.lens.setOn(value as boolean);
   },
+  toggleTrueSizes: () => actions.setSetting('historyLens', !ui.value.settings.historyLens),
+  closeLensHint: () => actions.setSetting('lensHintSeen', true),
   addBookmark: () => {
     const name = formatDateReadout(clock.day, i18n.language, {
       yearsPerMinute: 0,
@@ -506,6 +519,8 @@ function frame(now: number): void {
     controller.state = stressCamera(now - stressStart);
     controller.cancelFlight();
   }
+  // The lens morph runs on frame time, never on either clock (history-lens.md, section 4.1).
+  globe.lens.advance(dt, controller.reducedMotion ? MORPH_MS_REDUCED : MORPH_MS);
   controller.update(dt, now);
   clock.zoomFactor =
     ui.value.settings.slowWhenZoomed && !STRESS ? zoomFactor(controller.altitudeKm) : 1;
@@ -522,8 +537,10 @@ function frame(now: number): void {
   sky.update(camera);
   clouds.update(camera, clock.lifeMs, u.lightDir!.value);
   if (stress) {
-    const ground = globe.surfaceKm(latLonToDir(STRESS_CENTRE.lat, STRESS_CENTRE.lon), planet);
+    const centre = latLonToDir(STRESS_CENTRE.lat, STRESS_CENTRE.lon);
+    const ground = globe.surfaceAtTrue(centre, planet);
     if (ground > 0 || globe.drawnTiles > 0) stress.setGround(ground);
+    stress.place(new THREE.Vector3(...globe.lens.toDrawn(centre)));
     stress.update(camera, clock.lifeMs, now);
   }
   vignettes.update(camera, clock.day, clock.lifeMs, u.lightDir!.value);
@@ -581,7 +598,14 @@ async function start(): Promise<void> {
   render(h(App, { store: ui, i18n, actions }), document.getElementById('ui')!);
   try {
     const manifest = await loader.init();
-    index = await loader.index(i18n.language);
+    // The lens grids load with the startup index; the first frame needs both.
+    const [loadedIndex, lensBytes] = await Promise.all([
+      loader.index(i18n.language),
+      loader.fetchBytes(manifest.lens.file),
+    ]);
+    index = loadedIndex;
+    const grids = decodeLensGrids(lensBytes);
+    globe.setLens(new Lens(grids.forward, grids.inverse));
     minSeaLevel = lowestSeaLevel(index.seaLevel);
     vignettes.setIndex(index.vignettes);
     const startDay = STRESS ? STRESS_DAY : (savedView?.day ?? OPENING_DAY);
