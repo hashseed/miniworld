@@ -17,6 +17,8 @@ export default defineConfig(({ mode }) => {
       target: 'es2022',
       chunkSizeWarningLimit: 800,
     },
+    // The terrain workers are ES modules (milestone 1 section 11.5).
+    worker: { format: 'es' },
     server: {
       host: '0.0.0.0',
       port,

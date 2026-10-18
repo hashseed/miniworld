@@ -31,7 +31,7 @@ Decided by Yang on 2026-10-17: no population model is needed for this milestone 
 
 The world query runs in a Web Worker (`app/src/world/`). It receives the date, the life clock, the play state and the view (camera position, the visible quadtree tiles) and returns a **scene**: the camps, figures, vignette instances, landmarks, migration groups and markers in and near the view, each with a stable id. The renderer and the interface only draw the scene; they never decide anything about the world.
 
-The pure functions of `app/src/time`, `app/src/core` and the date-dependent parts of `app/src/globe` (sea level, ocean mask, ice, aridity) move into the worker unchanged ([milestone-1.md](milestone-1.md#22-repository-layout) section 2.2), so the world query knows where land, sea, ice and desert are at the date.
+The pure functions of `app/src/time`, `app/src/core` and `app/src/planet` (sea level, ocean mask, ice, ground height) move into the worker unchanged ([milestone-1.md](milestone-1.md#22-repository-layout) section 2.2), so the world query knows where land, sea, ice and desert are at the date. It is a separate worker from the terrain workers of milestone 1 (section 11.5), which only build meshes and textures.
 
 ### 2.2 Motion as segments
 
