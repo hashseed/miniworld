@@ -13,6 +13,7 @@ import {
   groupGrowth,
   groupSize,
   roamOf,
+  wildClearings,
   wildMaskCell,
   wildlifeAt,
 } from './wildlife.ts';
@@ -92,7 +93,7 @@ describe('wildlifeAt (wildlife.md section 4)', () => {
     for (let t = 0; t < 600; t += 7.3)
       for (const a of wildlifeAt(day(1500), t)) {
         const g = WILD_GROUPS[Number(a.key.split(':')[0])]!;
-        expect(Math.sqrt(a.eastKm ** 2 + a.northKm ** 2)).toBeLessThan(300);
+        expect(Math.sqrt(a.eastKm ** 2 + a.northKm ** 2)).toBeLessThan(roamOf(g) + 100);
         expect(a.lat).toBe(g.lat);
         expect(Math.sqrt(a.heading[0] ** 2 + a.heading[1] ** 2)).toBeCloseTo(1, 5);
         expect(a.clip).toBe(flies(g) ? 'fly' : a.clip);
@@ -101,6 +102,43 @@ describe('wildlifeAt (wildlife.md section 4)', () => {
     // Mostly grazing, sometimes walking.
     expect(counts.get('idle')!).toBeGreaterThan(counts.get('walk')!);
     expect(counts.get('walk')!).toBeGreaterThan(0);
+  });
+
+  it('drifts across its range a few hundred km per round', () => {
+    const at = new Map<string, [number, number]>();
+    for (let t = 0; t < 600; t += 1)
+      for (const a of wildlifeAt(day(1500), t)) {
+        const last = at.get(a.key);
+        if (last)
+          expect(Math.sqrt((a.eastKm - last[0]) ** 2 + (a.northKm - last[1]) ** 2)).toBeLessThan(
+            250,
+          );
+        at.set(a.key, [a.eastKm, a.northKm]);
+      }
+  });
+
+  it('roams up to about 1000 km from home over time', () => {
+    let far = 0;
+    for (let t = 0; t < 3000; t += 13)
+      for (const a of wildlifeAt(day(1500), t))
+        far = Math.max(far, Math.sqrt(a.eastKm ** 2 + a.northKm ** 2));
+    expect(far).toBeGreaterThan(600);
+  });
+
+  it('clears the trees wherever the animals graze or walk (section 5)', () => {
+    for (let t = 0; t < 300; t += 3.7) {
+      const clear = wildClearings(day(1500), t);
+      for (const a of wildlifeAt(day(1500), t)) {
+        const g = WILD_GROUPS[Number(a.key.split(':')[0])]!;
+        const inside = clear.some(
+          (c) =>
+            c.lat === g.lat &&
+            c.lon === g.lon &&
+            Math.sqrt((c.eastKm - a.eastKm) ** 2 + (c.northKm - a.northKm) ** 2) < c.km,
+        );
+        expect(inside).toBe(true);
+      }
+    }
   });
 
   it('shows about 115 animals at one date', () => {

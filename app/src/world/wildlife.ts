@@ -63,11 +63,21 @@ export interface WildAnimal {
 
 /** Years over which a group grows in or shrinks away (section 2). */
 const GROW_YEARS = 5;
-/** Roaming radius around the home, in km of the true globe (section 4). */
-const ROAM_KM = 150;
+/**
+ * Roaming radius around the home, in km of the true globe (section 4; Yang,
+ * 2026-10-18: "like the radius of 1000km").
+ */
+const ROAM_KM = 1000;
 const ROAM_KM_CROCODILE = 80;
 /** Walking speed in km of the globe per second of the clock. */
 const WALK_KM_S = 55;
+/**
+ * A group grazes its spots up to this far around a centre that wanders
+ * slowly over its open ground, a few rounds at a time (section 4).
+ */
+const LOCAL_KM = 120;
+/** Rounds for the wandering centre to swing once east-west and north-south. */
+const WANDER_ROUNDS: P2 = [41, 29];
 /** Each animal's own spots lie up to this far from the group's (section 4). */
 const MEMBER_JITTER_KM = 40;
 /** Birds fly loops of this radius at this height (section 4). */
@@ -86,14 +96,16 @@ const LEAP_RISE = 0.9;
 /** How deep a whale dives, in body heights, and how far it tips. */
 const DIVE_DEPTH = 1.4;
 const DIVE_PITCH = 0.4;
-/** Trees keep this far beyond a group's roaming area (section 5). */
+/** Trees keep this far beyond where a group grazes (section 5). */
 const CLEARING_MARGIN_KM = 225;
+/** Clearings move on in stretches of this many seconds of the clock (section 5). */
+const CLEAR_STEP_S = 20;
 /** Cells per side of a group's ground mask (section 4). */
-export const WILD_MASK_N = 24;
+export const WILD_MASK_N = 48;
 /** The mask reaches this far beyond the roaming radius, for the animals' places in the group. */
 const WILD_MASK_MARGIN_KM = 450;
 /** Tries to find a spot on open ground before an animal stays at home. */
-const SPOT_TRIES = 8;
+const SPOT_TRIES = 16;
 
 /**
  * Where each group may stand, built from the terrain by the data build:
@@ -181,14 +193,93 @@ export function cosSinTurn(turns: number): [number, number] {
   return [cos, sin];
 }
 
-/** Clearing in the trees around each group shown on a day: its home and radius in km (section 5). */
+/**
+ * Clearings in the trees where the groups shown on a day graze over a stretch
+ * of the clock (section 5): around each spot a group visits in the
+ * CLEAR_STEP_S seconds that hold the clock time, as km east and north of its
+ * home and a radius in drawn km. Each covers the animals' own wander and
+ * places in the group, one body length, half the walk to the next or last
+ * spot, all as the history lens stretches them there, and a tree crown
+ * beyond that. Birds keep one clearing over their whole loop. The clearings
+ * change only once per stretch, so the trees are not re-placed every frame.
+ * drawnLengthKm gives a model's drawn body length, widthAt the lens's
+ * stretch at a group's home.
+ */
 export function wildClearings(
   day: number,
+  seconds: number,
   groups = WILD_GROUPS,
-): { lat: number; lon: number; km: number }[] {
-  return groups.flatMap((g) =>
-    groupGrowth(g, day) > 0 ? [{ lat: g.lat, lon: g.lon, km: roamOf(g) + CLEARING_MARGIN_KM }] : [],
-  );
+  masks: readonly WildMask[] = [],
+  reachKm: (model: string, g: WildGroup) => number = () => 0,
+  drawnLengthKm: (model: string) => number = () => 0,
+  widthAt: (g: WildGroup) => number = () => 1,
+): { lat: number; lon: number; eastKm: number; northKm: number; km: number }[] {
+  const out: { lat: number; lon: number; eastKm: number; northKm: number; km: number }[] = [];
+  groups.forEach((g, gi) => {
+    if (groupGrowth(g, day) <= 0) return;
+    const len = Math.max(drawnLengthKm(g.model), drawnLengthKm(modelOf(g, 1)));
+    const width = widthAt(g);
+    const at = (eastKm: number, northKm: number, km: number) =>
+      out.push({ lat: g.lat, lon: g.lon, eastKm, northKm, km });
+    if (BIRDS.has(g.model)) {
+      at(0, 0, width * roamOf(g) + len + CLEARING_MARGIN_KM);
+      return;
+    }
+    // The farthest place in the group, in body lengths (see groupPlaces).
+    const place = SWIMMERS.has(g.model) ? 1.0 : 1.8;
+    const base = width * MEMBER_JITTER_KM + (place + 1) * len + CLEARING_MARGIN_KM;
+    const seed = groupSeed(g, gi);
+    const roam = roamOf(g);
+    const period = roundSeconds(g, seed);
+    const { places } = groupPlaces(g, gi, reachKm);
+    const step = Math.floor(seconds / CLEAR_STEP_S) * CLEAR_STEP_S;
+    const shift = period * hash01(seed, 5);
+    // The last members follow the first by up to two seconds (see wildlifeAt).
+    const first = Math.floor((step - 2 + shift) / period);
+    const last = Math.floor((step + CLEAR_STEP_S + shift) / period) + 1;
+    const spots: P2[] = [];
+    for (let k = first; k <= last; k++) spots.push(spot(seed, k, roam, masks[gi], places));
+    spots.forEach(([x, y], n) => {
+      const hop = (q: P2 | undefined) => (q ? Math.sqrt((q[0] - x) ** 2 + (q[1] - y) ** 2) : 0);
+      const half = Math.max(hop(spots[n - 1]), hop(spots[n + 1])) / 2;
+      at(x, y, base + width * half);
+    });
+  });
+  return out;
+}
+
+/** Seconds of one round of grazing and walking for a group. */
+function roundSeconds(g: WildGroup, seed: number): number {
+  return (g.model === 'animal-crocodile' ? 18 : 10) + 6 * hash01(seed, 4);
+}
+
+/**
+ * Each animal's place in its group, fixed on the ground and never turned with
+ * the group: in body lengths (offsets) and in km of the true globe (places).
+ */
+function groupPlaces(
+  g: WildGroup,
+  gi: number,
+  reachKm: (model: string, g: WildGroup) => number,
+): { offsets: P2[]; places: P2[] } {
+  const seed = groupSeed(g, gi);
+  const swimmer = SWIMMERS.has(g.model);
+  const offsets: P2[] = [];
+  const places: P2[] = [];
+  for (let i = 0; i < groupSize(g, gi); i++) {
+    const [c, sn] = cosSinTurn(hash01(seed, 10 + i));
+    // Sea animals swim close together, as a pod.
+    const dist = i === 0 ? 0 : (swimmer ? 0.7 : 1.3) + (swimmer ? 0.3 : 0.5) * hash01(seed, 20 + i);
+    const reach = reachKm(modelOf(g, i), g);
+    offsets.push([dist * c, dist * sn]);
+    places.push([dist * c * reach, dist * sn * reach]);
+  }
+  return { offsets, places };
+}
+
+/** The model of the i-th animal of a group: a lion's pride has lionesses. */
+function modelOf(g: WildGroup, i: number): string {
+  return g.model === 'animal-lion' && i > 0 ? 'animal-lioness' : g.model;
 }
 
 /** Whether a group flies (birds), over any ground (section 4). */
@@ -208,10 +299,68 @@ export function roamOf(g: WildGroup): number {
   return g.model === 'animal-crocodile' ? ROAM_KM_CROCODILE : ROAM_KM;
 }
 
+/** Middle and spread (km east and north of the home) of a group's open cells within its roaming radius. */
+interface Range {
+  mid: P2;
+  spread: P2;
+}
+const ranges = new WeakMap<Uint8Array, Map<number, Range>>();
+
+function rangeOf(mask: WildMask, roam: number): Range {
+  const free = { mid: [0, 0] as P2, spread: [roam * 0.6, roam * 0.6] as P2 };
+  if (!mask) return free;
+  let cache = ranges.get(mask);
+  if (!cache) ranges.set(mask, (cache = new Map()));
+  const hit = cache.get(roam);
+  if (hit) return hit;
+  const half = roam + WILD_MASK_MARGIN_KM;
+  const cell = (2 * half) / WILD_MASK_N;
+  let n = 0;
+  let sx = 0;
+  let sy = 0;
+  let sxx = 0;
+  let syy = 0;
+  for (let j = 0; j < WILD_MASK_N; j++)
+    for (let i = 0; i < WILD_MASK_N; i++) {
+      const x = -half + (i + 0.5) * cell;
+      const y = -half + (j + 0.5) * cell;
+      if (x * x + y * y > roam * roam || mask[j * WILD_MASK_N + i] !== 1) continue;
+      n++;
+      sx += x;
+      sy += y;
+      sxx += x * x;
+      syy += y * y;
+    }
+  const range: Range =
+    n === 0
+      ? { mid: [0, 0], spread: [0, 0] }
+      : {
+          mid: [sx / n, sy / n],
+          spread: [
+            Math.sqrt(Math.max(0, sxx / n - (sx / n) ** 2)),
+            Math.sqrt(Math.max(0, syy / n - (sy / n) ** 2)),
+          ],
+        };
+  cache.set(roam, range);
+  return range;
+}
+
+/**
+ * Where a group's grazing wanders around in round k: a slow loop over the
+ * middle of its open ground, as wide as that ground (section 4).
+ */
+function wanderCentre(seed: number, k: number, roam: number, mask: WildMask): P2 {
+  const { mid, spread } = rangeOf(mask, roam);
+  const [cx] = cosSinTurn(k / WANDER_ROUNDS[0] + hash01(seed, 8));
+  const [, sy] = cosSinTurn(k / WANDER_ROUNDS[1] + hash01(seed, 9));
+  return [mid[0] + 1.2 * spread[0] * cx, mid[1] + 1.2 * spread[1] * sy];
+}
+
 /**
  * The k-th grazing spot of a group, km east and north of its home: the first
- * of a few seeded tries that lands on open ground, else the home itself, so
- * animals never climb into the mountains or walk into the sea (section 4).
+ * of a few seeded tries near the group's wandering centre that lands on open
+ * ground, else the open ground nearest that centre, so animals never climb
+ * into the mountains or walk into the sea (section 4).
  */
 function spot(
   seed: number,
@@ -220,16 +369,66 @@ function spot(
   mask: WildMask,
   places: readonly P2[],
 ): [number, number] {
+  const local = Math.min(LOCAL_KM, roam);
+  const [mx, my] = roam > LOCAL_KM ? wanderCentre(seed, k, roam, mask) : [0, 0];
   for (let a = 0; a < SPOT_TRIES; a++) {
     const h = a === 0 ? 2 : 100 + 10 * a;
-    const r = roam * Math.sqrt(hash01(seed, k, h));
+    const r = local * Math.sqrt(hash01(seed, k, h));
     const [c, s] = cosSinTurn(hash01(seed, k, h + 1));
-    const x = r * c;
-    const y = r * s;
+    const x = mx + r * c;
+    const y = my + r * s;
     // Every animal of the group, at its place in the group, must stand on open ground.
-    if (places.every(([px, py]) => open(mask, roam, x + px, y + py))) return [x, y];
+    if (
+      x * x + y * y <= roam * roam &&
+      places.every(([px, py]) => open(mask, roam, x + px, y + py))
+    )
+      return [x, y];
   }
-  return [0, 0];
+  return fallbackSpot(mask, roam, places, [mx, my]);
+}
+
+const fallbacks = new WeakMap<Uint8Array, Map<string, P2>>();
+
+/**
+ * Where a group grazes when no try finds open ground for all its animals:
+ * the open cell nearest the wandering centre where they all fit, else the
+ * open cell nearest it, else the home itself (section 4).
+ */
+function fallbackSpot(mask: WildMask, roam: number, places: readonly P2[], near: P2): P2 {
+  if (!mask) return near;
+  const half = roam + WILD_MASK_MARGIN_KM;
+  const cell = (2 * half) / WILD_MASK_N;
+  // Cached by the cell of the centre, so the search runs once per cell.
+  const ci = Math.floor((near[0] + half) / cell);
+  const cj = Math.floor((near[1] + half) / cell);
+  const key = `${roam}:${ci},${cj}:${places.map(([x, y]) => `${Math.round(x)},${Math.round(y)}`).join(';')}`;
+  let cache = fallbacks.get(mask);
+  if (!cache) fallbacks.set(mask, (cache = new Map()));
+  const hit = cache.get(key);
+  if (hit) return hit;
+  const nx = -half + (ci + 0.5) * cell;
+  const ny = -half + (cj + 0.5) * cell;
+  let best: P2 = [0, 0];
+  let bestD = Infinity;
+  for (const all of [true, false]) {
+    for (let j = 0; j < WILD_MASK_N; j++)
+      for (let i = 0; i < WILD_MASK_N; i++) {
+        const x = -half + (i + 0.5) * cell;
+        const y = -half + (j + 0.5) * cell;
+        const d = (x - nx) ** 2 + (y - ny) ** 2;
+        if (d >= bestD || x * x + y * y > roam * roam) continue;
+        const fits = all
+          ? places.every(([px, py]) => open(mask, roam, x + px, y + py))
+          : open(mask, roam, x, y);
+        if (fits) {
+          best = [x, y];
+          bestD = d;
+        }
+      }
+    if (bestD < Infinity) break;
+  }
+  cache.set(key, best);
+  return best;
 }
 
 type P2 = [number, number];
@@ -267,7 +466,7 @@ export function wildlifeAt(
   seconds: number,
   groups = WILD_GROUPS,
   masks: readonly WildMask[] = [],
-  reachKm: (model: string) => number = () => 0,
+  reachKm: (model: string, g: WildGroup) => number = () => 0,
 ): WildAnimal[] {
   const out: WildAnimal[] = [];
   groups.forEach((g, gi) => {
@@ -275,7 +474,7 @@ export function wildlifeAt(
     if (grow <= 0) return;
     const seed = groupSeed(g, gi);
     const size = groupSize(g, gi);
-    const model = (i: number) => (g.model === 'animal-lion' && i > 0 ? 'animal-lioness' : g.model);
+    const model = (i: number) => modelOf(g, i);
 
     if (BIRDS.has(g.model)) {
       // Loops around the home, each bird well behind the one before and on a
@@ -315,20 +514,8 @@ export function wildlifeAt(
     const swimmer = SWIMMERS.has(g.model);
     const roam = roamOf(g);
     const mask = masks[gi];
-    const period = (crocodile ? 18 : 10) + 6 * hash01(seed, 4);
-    // Each animal's place in the group, fixed on the ground in body lengths,
-    // never turned with the group.
-    const offsets: P2[] = [];
-    const places: P2[] = [];
-    for (let i = 0; i < size; i++) {
-      const [c, sn] = cosSinTurn(hash01(seed, 10 + i));
-      // Sea animals swim close together, as a pod.
-      const dist =
-        i === 0 ? 0 : (swimmer ? 0.7 : 1.3) + (swimmer ? 0.3 : 0.5) * hash01(seed, 20 + i);
-      const reach = reachKm(model(i));
-      offsets.push([dist * c, dist * sn]);
-      places.push([dist * c * reach, dist * sn * reach]);
-    }
+    const period = roundSeconds(g, seed);
+    const { offsets, places } = groupPlaces(g, gi, reachKm);
     for (let i = 0; i < size; i++) {
       const lag = i === 0 ? 0 : 0.4 + 1.2 * hash01(seed, 40 + i);
       const pace = 0.9 + 0.2 * hash01(seed, 50 + i);
@@ -358,8 +545,13 @@ export function wildlifeAt(
       const u = f * f * (3 - 2 * f);
       const [x, y] = catmullRom(p0, p1, p2, p3, u);
       // Facing along its own curve; between walks the tangent there, so it never snaps round.
-      const [hx, hy] = catmullRomTangent(p0, p1, p2, p3, u);
-      const hl = Math.sqrt(hx * hx + hy * hy) || 1;
+      let [hx, hy] = catmullRomTangent(p0, p1, p2, p3, u);
+      // A group that stays put has no curve to face along: it faces a seeded way.
+      let hl = Math.sqrt(hx * hx + hy * hy);
+      if (hl < 1e-6) {
+        [hx, hy] = cosSinTurn(hash01(seed, 90 + i));
+        hl = 1;
+      }
       out.push({
         key: `${gi}:${i}`,
         model: model(i),

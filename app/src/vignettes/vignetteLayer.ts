@@ -66,6 +66,8 @@ export interface SurfaceSource {
   surfaceKm(dir: Vec3): number;
   /** Where a true direction is drawn, through the history lens (history-lens.md section 4). */
   toDrawn(dir: Vec3): Vec3;
+  /** Drawn km per true km at a true direction; 1 where absent. */
+  widthAt?(dir: Vec3): number;
 }
 
 interface Stage {

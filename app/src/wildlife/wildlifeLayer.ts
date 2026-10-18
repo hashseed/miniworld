@@ -50,6 +50,11 @@ interface Species {
   count: number;
 }
 
+/** How far the ground around an animal may lift it, in body heights (section 5). */
+const MAX_LIFT = 0.1;
+/** The steepest an animal leans with the ground, as a slope (about 15 degrees). */
+const MAX_TILT = 0.27;
+
 export class WildlifeLayer {
   readonly group = new THREE.Group();
   private surface: SurfaceSource;
@@ -58,9 +63,14 @@ export class WildlifeLayer {
   count = 0;
   /** Each group's ground mask from the startup index; nothing is drawn before it arrives. */
   private masks: WildMask[] | undefined;
-  private reach = (model: string) => {
+  /**
+   * One body length of a model on the true globe at a group's home: its drawn
+   * length over the history lens's width there, so the group keeps its drawn
+   * spacing and the world can check each animal's place against the mask.
+   */
+  private reach = (model: string, g: { lat: number; lon: number }) => {
     const s = this.speciesOf(model);
-    return s ? s.length * s.scale : 0;
+    return s ? (s.length * s.scale) / (this.surface.widthAt?.(latLonToDir(g.lat, g.lon)) ?? 1) : 0;
   };
   private root = new THREE.Matrix4();
   private part = new THREE.Matrix4();
@@ -84,45 +94,94 @@ export class WildlifeLayer {
     this.masks = WILD_GROUPS.map((_, i) => (hex[i] ? decodeWildMask(hex[i]) : undefined));
   }
 
-  /**
-   * The highest ground under an animal: its middle and four points a body's
-   * half length away to the north, east, south and west, so no part of it
-   * sinks into a slope and turning never moves it up or down (section 5).
-   */
-  private groundUnder(up: THREE.Vector3, halfKm: number): number {
-    let top = this.surface.surfaceKm([up.x, up.y, up.z]);
-    for (const [e, n] of [
-      [1, 0],
-      [-1, 0],
-      [0, 1],
-      [0, -1],
-    ] as const) {
-      const p = this.v2
-        .copy(up)
-        .multiplyScalar(EARTH_RADIUS_KM)
-        .addScaledVector(this.east, e * halfKm)
-        .addScaledVector(this.north, n * halfKm)
-        .normalize();
-      top = Math.max(top, this.surface.surfaceKm([p.x, p.y, p.z]));
-    }
-    return top;
+  /** Drawn ground height in km at a point km along forward and right of an animal's middle. */
+  private groundAt(
+    up: THREE.Vector3,
+    f: THREE.Vector3,
+    r: THREE.Vector3,
+    fKm: number,
+    rKm: number,
+  ) {
+    const p = this.v2
+      .copy(up)
+      .multiplyScalar(EARTH_RADIUS_KM)
+      .addScaledVector(f, fKm)
+      .addScaledVector(r, rKm)
+      .normalize();
+    return this.surface.surfaceKm([p.x, p.y, p.z]);
   }
 
-  /** Clearings in the trees around the groups shown on a day, in true directions. */
-  clearings(day: number): { dir: Vec3; km: number }[] {
-    return wildClearings(day).map((c) => ({ dir: latLonToDir(c.lat, c.lon), km: c.km }));
+  /**
+   * The ground under an animal and its slope (section 5): the drawn ground
+   * under its middle and at four points about a third of a body length to
+   * the front, back, left and right. It stands on the middle, raised by at
+   * most a tenth of its height where the points around it lie higher (a
+   * valley), and tilts with the slope between them, by at most MAX_TILT, so
+   * its feet follow the ground instead of hovering above a hillside.
+   */
+  private slopeUnder(
+    up: THREE.Vector3,
+    f: THREE.Vector3,
+    r: THREE.Vector3,
+    halfKm: number,
+    heightKm: number,
+  ): { ground: number; along: number; across: number } {
+    const middle = this.surface.surfaceKm([up.x, up.y, up.z]);
+    const front = this.groundAt(up, f, r, halfKm, 0);
+    const back = this.groundAt(up, f, r, -halfKm, 0);
+    const right = this.groundAt(up, f, r, 0, halfKm);
+    const left = this.groundAt(up, f, r, 0, -halfKm);
+    const mean = (front + back + right + left) / 4;
+    const ground = middle + Math.min(Math.max(mean - middle, 0), heightKm * MAX_LIFT);
+    let along = (front - back) / (2 * halfKm);
+    let across = (right - left) / (2 * halfKm);
+    const steep = Math.hypot(along, across);
+    if (steep > MAX_TILT) {
+      along *= MAX_TILT / steep;
+      across *= MAX_TILT / steep;
+    }
+    return { ground, along, across };
+  }
+
+  /** Clearings in the trees where the groups shown on a day graze around a clock time, in true directions. */
+  clearings(day: number, ms: number): { dir: Vec3; km: number }[] {
+    if (!this.masks) return [];
+    const drawnLength = (model: string) => {
+      const s = this.speciesOf(model);
+      return s ? s.length * s.scale : 0;
+    };
+    const width = (g: { lat: number; lon: number }) =>
+      this.surface.widthAt?.(latLonToDir(g.lat, g.lon)) ?? 1;
+    return wildClearings(
+      day,
+      ms / 1000,
+      WILD_GROUPS,
+      this.masks,
+      this.reach,
+      drawnLength,
+      width,
+    ).map((c) => ({ dir: this.offsetDir(c.lat, c.lon, c.eastKm, c.northKm), km: c.km }));
+  }
+
+  /** The true direction km east and north of a point. */
+  private offsetDir(lat: number, lon: number, eastKm: number, northKm: number): Vec3 {
+    const up = this.up.set(...latLonToDir(lat, lon));
+    northEast(up, this.north, this.east);
+    up.multiplyScalar(EARTH_RADIUS_KM)
+      .addScaledVector(this.east, eastKm)
+      .addScaledVector(this.north, northKm)
+      .normalize();
+    return [up.x, up.y, up.z];
   }
 
   /** The true direction of an animal's spot: km east and north of its group's home. */
-  private trueDir(a: WildAnimal): Vec3 {
-    const home = latLonToDir(a.lat, a.lon);
-    const up = this.up.set(...home);
-    northEast(up, this.north, this.east);
-    up.multiplyScalar(EARTH_RADIUS_KM)
-      .addScaledVector(this.east, a.eastKm)
-      .addScaledVector(this.north, a.northKm)
-      .normalize();
-    return [up.x, up.y, up.z];
+  private trueDir(a: WildAnimal, reachKm: number): Vec3 {
+    return this.offsetDir(
+      a.lat,
+      a.lon,
+      a.eastKm + a.offset[0] * reachKm,
+      a.northKm + a.offset[1] * reachKm,
+    );
   }
 
   /** Poses the animals of a day at a clock time in milliseconds. */
@@ -137,41 +196,47 @@ export class WildlifeLayer {
       const s = this.speciesOf(a.model);
       if (!s || s.count >= CAPACITY) continue;
       // The group's spot on the drawn globe and its compass there.
-      const up = this.up.set(...this.surface.toDrawn(this.trueDir(a))).normalize();
+      // Its place in the group is added on the true globe, where the world checked it against the mask.
+      const up = this.up
+        .set(...this.surface.toDrawn(this.trueDir(a, this.reach(a.model, a))))
+        .normalize();
       northEast(up, this.north, this.east);
-      // Formation offset, in drawn km, so the group keeps its drawn spacing.
       const reach = s.length * s.scale;
-      const ox = a.offset[0] * reach;
-      const oy = a.offset[1] * reach;
-      if (ox !== 0 || oy !== 0) {
-        up.multiplyScalar(EARTH_RADIUS_KM)
-          .addScaledVector(this.east, ox)
-          .addScaledVector(this.north, oy)
-          .normalize();
-        northEast(up, this.north, this.east);
-      }
-      const ground = this.groundUnder(up, (reach * a.grow) / 2);
+      const f = this.forward
+        .copy(this.east)
+        .multiplyScalar(a.heading[0])
+        .addScaledVector(this.north, a.heading[1])
+        .normalize();
+      if (f.lengthSq() < 0.5) f.copy(this.north);
+      this.right.crossVectors(up, f);
+      // Land animals stand on the ground and lean with its slope; birds and swimmers stay level.
+      const level = a.liftKm > 0 || a.clip === 'swim';
+      const { ground, along, across } = level
+        ? { ground: this.surface.surfaceKm([up.x, up.y, up.z]), along: 0, across: 0 }
+        : this.slopeUnder(up, f, this.right, reach * a.grow * 0.35, s.height * s.scale * a.grow);
       // Sea animals ride at the surface: their middle sits rise body heights above it.
       const swim = a.clip === 'swim' ? (a.rise - 0.5) * s.height * s.scale * a.grow : 0;
       this.pos.copy(up).multiplyScalar(EARTH_RADIUS_KM + ground + a.liftKm + swim);
       // Animals on the far side of the globe are skipped.
       if (this.v2.copy(camPos).sub(this.pos).dot(up) <= 0) continue;
 
-      const f = this.forward
-        .copy(this.east)
-        .multiplyScalar(a.heading[0])
-        .addScaledVector(this.north, a.heading[1])
+      // Upright on the ground, whatever the camera does (Yang, 2026-10-18),
+      // leaning with the slope under it; sea animals tip nose up or down as
+      // they leap and dive.
+      const u = this.v2
+        .copy(up)
+        .addScaledVector(f, -along)
+        .addScaledVector(this.right, -across)
         .normalize();
-      // Upright on the ground, whatever the camera does (Yang, 2026-10-18);
-      // sea animals tip nose up or down as they leap and dive.
-      const u = this.v2.copy(up);
+      f.addScaledVector(up, along).normalize();
       if (a.pitch !== 0) {
         const c = Math.cos(a.pitch);
         const sn = Math.sin(a.pitch);
         u.multiplyScalar(c).addScaledVector(f, -sn);
         f.multiplyScalar(c).addScaledVector(up, sn);
       }
-      const r = this.right.crossVectors(u, f);
+      const r = this.right.crossVectors(u, f).normalize();
+      f.crossVectors(r, u);
       this.q.setFromRotationMatrix(this.basis.makeBasis(r, u, f));
       const size = s.scale * a.grow;
       this.root.compose(this.pos, this.q, this.scaleV.set(size, size, size));

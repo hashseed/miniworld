@@ -147,6 +147,7 @@ vignettes.landmarks = landmarks;
 const wildlife = new WildlifeLayer({
   surfaceKm: surface.surfaceKm,
   toDrawn: (d) => globe.lens.toDrawn(d),
+  widthAt: (d) => globe.lens.widthAt(d),
 });
 scene.add(landmarks.group, vignettes.group, wildlife.group);
 vignettes.onOpen = (entry) => void openVignette(entry);

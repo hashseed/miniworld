@@ -13,6 +13,8 @@ import {
   WILD_MASK_N,
   type WildGroup,
 } from '../../../app/src/world/wildlife.ts';
+import { dirToLatLon, latLonToDir } from '../../../app/src/geo/cube.ts';
+import { EARTH_RADIUS_KM, northEast, type Vec3Like } from '../../../app/src/geo/earth.ts';
 
 /** Sea animals keep to water at least this deep (metres), sea at every date (section 4). */
 export const SEA_DEPTH_M = 300;
@@ -30,11 +32,79 @@ export interface WildGround {
   wet(lat: number, lon: number): boolean;
 }
 
-/** Degrees of a point km east and north of a home. */
+function vec(x: number, y: number, z: number): Vec3Like {
+  const v = {
+    x,
+    y,
+    z,
+    set: (a: number, b: number, c: number) => Object.assign(v, { x: a, y: b, z: c }),
+  };
+  return v;
+}
+
+/**
+ * Degrees of a point km east and north of a home, on the plane touching the
+ * globe there, as the wildlife layer places animals.
+ */
 function at(g: WildGroup, east: number, north: number): [number, number] {
-  const lat = g.lat + north / KM_PER_DEG;
-  const lon = g.lon + east / (KM_PER_DEG * Math.cos((g.lat * Math.PI) / 180));
-  return [lat, ((lon + 540) % 360) - 180];
+  const home = latLonToDir(g.lat, g.lon);
+  const up = vec(...home);
+  const n = vec(0, 0, 0);
+  const e = vec(0, 0, 0);
+  northEast(up, n, e);
+  const d: [number, number, number] = [
+    home[0] * EARTH_RADIUS_KM + e.x * east + n.x * north,
+    home[1] * EARTH_RADIUS_KM + e.y * east + n.y * north,
+    home[2] * EARTH_RADIUS_KM + e.z * east + n.z * north,
+  ];
+  const len = Math.hypot(...d);
+  const { lat, lon } = dirToLatLon([d[0] / len, d[1] / len, d[2] / len]);
+  return [lat, lon];
+}
+
+/**
+ * Keeps only the open cells a walk can reach from the open cell nearest the
+ * home, through open cells, so animals never cross a sea or strait to other
+ * land (or land to other seas) inside their roaming area (section 4).
+ */
+function reachable(mask: Uint8Array): void {
+  const N = WILD_MASK_N;
+  let start = -1;
+  let best = Infinity;
+  for (let j = 0; j < N; j++)
+    for (let i = 0; i < N; i++) {
+      const d = (i - (N - 1) / 2) ** 2 + (j - (N - 1) / 2) ** 2;
+      if (mask[j * N + i] === 1 && d < best) {
+        best = d;
+        start = j * N + i;
+      }
+    }
+  const seen = new Uint8Array(N * N);
+  if (start >= 0) {
+    const stack = [start];
+    seen[start] = 1;
+    while (stack.length > 0) {
+      const k = stack.pop()!;
+      const i = k % N;
+      const j = (k - i) / N;
+      for (const [di, dj] of [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ] as const) {
+        const a = i + di;
+        const b = j + dj;
+        if (a < 0 || b < 0 || a >= N || b >= N) continue;
+        const q = b * N + a;
+        if (mask[q] === 1 && !seen[q]) {
+          seen[q] = 1;
+          stack.push(q);
+        }
+      }
+    }
+  }
+  mask.set(seen);
 }
 
 /** Whether a point is open lowland for a group whose home stands at homeM. */
@@ -50,32 +120,46 @@ function openAt(ground: WildGround, lat: number, lon: number, homeM: number): bo
     [0, dLon],
     [0, -dLon],
   ] as const)
-    if (Math.abs(ground.height(lat + a, lon + b) - h) > SLOPE_M) return false;
+    // The sea floor beyond a coast is no slope to climb.
+    if (!ground.wet(lat + a, lon + b) && Math.abs(ground.height(lat + a, lon + b) - h) > SLOPE_M)
+      return false;
   return true;
 }
 
 /**
  * The ground mask of every group as hex strings in the order of the groups
- * (section 4), '' for birds. The home cell is always open.
+ * (section 4), '' for birds.
  */
 export function wildMasks(groups: readonly WildGroup[], ground: WildGround): string[] {
   return groups.map((g) => {
     if (flies(g)) return '';
     const homeM = ground.height(g.lat, g.lon);
     const sea = swims(g);
+    const cellKm = wildMaskCell(g, 1, 0)[0] - wildMaskCell(g, 0, 0)[0];
     const mask = new Uint8Array(WILD_MASK_N * WILD_MASK_N);
     for (let j = 0; j < WILD_MASK_N; j++)
       for (let i = 0; i < WILD_MASK_N; i++) {
         const [e, n] = wildMaskCell(g, i, j);
-        const [lat, lon] = at(g, e, n);
-        const open = sea
-          ? ground.wet(lat, lon) && ground.height(lat, lon) < -SEA_DEPTH_M
-          : openAt(ground, lat, lon, homeM);
+        // The whole cell must fit: its middle and the middles of its edges, so
+        // no animal stands half in the sea or half on land (section 4).
+        const q = cellKm / 2;
+        const open = (
+          [
+            [0, 0],
+            [q, 0],
+            [-q, 0],
+            [0, q],
+            [0, -q],
+          ] as const
+        ).every(([de, dn]) => {
+          const [lat, lon] = at(g, e + de, n + dn);
+          return sea
+            ? ground.wet(lat, lon) && ground.height(lat, lon) < -SEA_DEPTH_M
+            : openAt(ground, lat, lon, homeM);
+        });
         mask[j * WILD_MASK_N + i] = open ? 1 : 0;
       }
-    const home = WILD_MASK_N / 2;
-    for (const j of [home - 1, home])
-      for (const i of [home - 1, home]) mask[j * WILD_MASK_N + i] = 1;
+    reachable(mask);
     return encodeWildMask(mask);
   });
 }

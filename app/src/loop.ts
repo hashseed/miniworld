@@ -115,7 +115,7 @@ export class FrameLoop {
     p.globe.update(p.camera, innerHeight, this.planet, day);
     p.foliage.clearings = [
       ...p.vignettes.clearings().map((dir) => ({ dir, km: CLEARING_KM })),
-      ...p.wildlife.clearings(day),
+      ...p.wildlife.clearings(day, p.clock.ms),
     ];
     p.foliage.update(p.camera, this.planet, day, u.lightDir!.value);
     p.sky.update(p.camera);

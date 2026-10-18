@@ -20,9 +20,9 @@
     {
       "species": "asian-elephant",
       "model": "animal-asian-elephant",
-      "home": "Kaziranga, Assam, India",
-      "lat": 26.6,
-      "lon": 93.4,
+      "home": "Irrawaddy plains, Myanmar",
+      "lat": 21.0,
+      "lon": 95.5,
       "source": "IUCN Red List range map"
     },
     {
@@ -640,20 +640,6 @@
       "source": "Hansford et al. 2018, Science Advances 4: elephant birds died out about 1,000 years ago; dates approximate"
     },
     {
-      "species": "dodo",
-      "model": "animal-dodo",
-      "home": "Mauritius",
-      "lat": -20.3,
-      "lon": 57.6,
-      "spans": [
-        {
-          "to": 1662
-        }
-      ],
-      "roamKm": 25,
-      "source": "Encyclopaedia Britannica, Dodo: last reliable sighting in 1662"
-    },
-    {
       "species": "quagga",
       "model": "animal-quagga",
       "home": "Karoo, South Africa",
@@ -677,16 +663,15 @@
           "to": 1936
         }
       ],
-      "roamKm": 90,
       "source": "Encyclopaedia Britannica, Thylacine: the last known one died in Hobart Zoo in 1936"
     },
     {
       "species": "humpback-whale",
       "model": "animal-whale",
-      "home": "Hawaii, off Maui",
-      "lat": 20.3,
-      "lon": -157.3,
-      "source": "IUCN Red List range map, Megaptera novaeangliae; NOAA Fisheries, Humpback whale"
+      "home": "Southern Ocean, off the Antarctic Peninsula",
+      "lat": -60.0,
+      "lon": -60.0,
+      "source": "IUCN Red List range map, Megaptera novaeangliae: humpbacks feed in the Southern Ocean around Antarctica in summer"
     },
     {
       "species": "humpback-whale",

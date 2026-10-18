@@ -198,10 +198,14 @@ export class Foliage {
     });
     // Plants change only with the slices, the sea level and the lens, never with the camera alone.
     const state = `${ka}:${kb}:${t.toFixed(3)}:${planet.seaLevel.toFixed(1)}`;
-    const clear = this.clearings.map((c) => ({
-      at: lens.toDrawn(c.dir),
-      cos: Math.cos(c.km / EARTH_RADIUS_KM),
-    }));
+    // Only clearings that reach the side of the globe in view.
+    const clear = this.clearings
+      .map((c) => ({ at: lens.toDrawn(c.dir), km: c.km }))
+      .filter(({ at, km }) => {
+        const dot = at[0] * camDir.x + at[1] * camDir.y + at[2] * camDir.z;
+        return Math.acos(Math.max(-1, Math.min(1, dot))) < horizon + km / EARTH_RADIUS_KM;
+      })
+      .map(({ at, km }) => ({ at, cos: Math.cos(km / EARTH_RADIUS_KM) }));
     const clearKey = clear
       .map((c) => `${c.at.map((x) => x.toFixed(4)).join(',')}:${c.cos.toFixed(6)}`)
       .join(';');
