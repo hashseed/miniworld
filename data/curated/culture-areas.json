@@ -3,7 +3,7 @@
   "areas": [
     {
       "culture": "african-stone-age",
-      "density": "low",
+      "density": "sparse",
       "snapshots": [
         {
           "fromBP": 71950,
