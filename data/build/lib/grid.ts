@@ -90,7 +90,7 @@ export class GridPyramid {
     }
   }
 
-  /** Finest grid whose cells are no smaller than half the spacing (degrees). */
+  /** Coarsest grid whose cells are no larger than the spacing (degrees); the base grid if none is. */
   forSpacing(spacingDeg: number): Grid<GridData> {
     let best = this.levels[0]!;
     for (const g of this.levels) {
