@@ -567,6 +567,8 @@ async function start(): Promise<void> {
     requestAnimationFrame(frame);
     await firstView();
     ui.update({ ready: true });
+    // The first view's data budget counts what was requested before this mark.
+    performance.mark('miniworld:first-view');
     // Plants load after the first view, outside its data budget (spec foliage.md, section 7).
     foliage.active = true;
   } catch (err) {

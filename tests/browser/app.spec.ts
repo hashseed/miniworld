@@ -62,19 +62,28 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('first view opens at 50,000 BCE within the data budget', async ({ page }) => {
+  await page.addInitScript(() => performance.setResourceTimingBufferSize(10_000));
+  await open(page);
+  await expect(page.getByTestId('date')).toHaveText('50,000 BCE');
+  // Only data requested before the first view counts; plants load after it.
+  const paths = await page.evaluate(() => {
+    const mark = performance.getEntriesByName('miniworld:first-view')[0]!;
+    return performance
+      .getEntriesByType('resource')
+      .filter((e) => e.startTime < mark.startTime)
+      .map((e) => new URL(e.name).pathname)
+      .filter((p) => p.startsWith('/data/'));
+  });
   // The dev server sends uncompressed files; count the Brotli size of each data file.
   let dataBytes = 0;
-  page.on('response', (res) => {
-    const path = new URL(res.url()).pathname;
-    if (!path.startsWith('/data/')) return;
+  for (const path of paths) {
     try {
       dataBytes += statSync(`${root}/app/public${path}.br`).size;
     } catch {
       dataBytes += statSync(`${root}/app/public${path}`).size;
     }
-  });
-  await open(page);
-  await expect(page.getByTestId('date')).toHaveText('50,000 BCE');
+  }
+  expect(paths.length).toBeGreaterThan(0);
   // Section 10.6: manifest and index 200 KB, terrain 1.5 MB, ice 200 KB.
   expect(dataBytes).toBeLessThan(1.9 * 1024 * 1024);
 });
