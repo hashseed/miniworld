@@ -1,30 +1,107 @@
 name: CI
 
+# Spec milestone 1, section 2.4. Three stages run side by side: the static
+# checks and unit tests, the fixture data build (cached by a hash of its
+# inputs), and once the data is there, the browser tests, one job per
+# Playwright project.
+
 on:
   pull_request:
   push:
     branches: [main]
 
+concurrency:
+  # A new push to a pull request replaces its running checks.
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npm run check
-      # The fixture dataset stands in for the real data in CI (spec milestone 1, section 2.4).
-      - run: npm run build-data -- --fixture --max-level 4
-      - run: npx vite build --config app/vite.config.ts && node data/build/check-size.ts
-      - run: npx playwright install --with-deps chromium
-      - run: npx playwright test
-      - uses: actions/upload-artifact@v4
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run coverage
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: browser-test-results
+          name: coverage
+          path: coverage/
+          if-no-files-found: ignore
+
+  data:
+    runs-on: ubuntu-latest
+    outputs:
+      key: ${{ steps.key.outputs.key }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - id: key
+        run: echo "key=fixture-$(node data/build/fixture-key.ts --fixture --max-level 4)" >> "$GITHUB_OUTPUT"
+      - id: cache
+        uses: actions/cache@v6
+        with:
+          path: app/public/data
+          key: ${{ steps.key.outputs.key }}
+      # The fixture dataset stands in for the real data in CI.
+      - if: steps.cache.outputs.cache-hit != 'true'
+        run: npm run build-data -- --fixture --max-level 4
+      - run: npx vite build --config app/vite.config.ts && node data/build/check-size.ts
+
+  browser:
+    needs: data
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: desktop
+            workers: 2
+          - project: phone
+            workers: 2
+          - project: perf
+            workers: 1
+    env:
+      PW_WORKERS: ${{ matrix.workers }}
+      PERF_SECONDS: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - uses: actions/cache/restore@v6
+        with:
+          path: app/public/data
+          key: ${{ needs.data.outputs.key }}
+          fail-on-cache-miss: true
+      - id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - id: browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ steps.playwright.outputs.version }}
+      - if: steps.browsers.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+      - if: steps.browsers.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+      - run: npx playwright test --project=${{ matrix.project }}
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: browser-test-results-${{ matrix.project }}
           path: |
             playwright-report/
             perf-report.json

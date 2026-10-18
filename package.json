@@ -18,8 +18,11 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
+    "coverage": "vitest run --coverage",
     "check": "npm run lint && npm run typecheck && npm run test",
     "test:browser": "playwright test",
+    "pool": "node scripts/pool.ts",
+    "fixture-key": "node data/build/fixture-key.ts",
     "perf": "playwright test --project=perf",
     "asset-sheets": "node assets/sheets.ts"
   },
@@ -30,9 +33,10 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
-    "@playwright/test": "1.56.1",
+    "@playwright/test": "1.64.1",
     "@types/node": "22.20.5",
     "@types/three": "0.186.0",
+    "@vitest/coverage-v8": "5.0.5",
     "eslint": "10.13.0",
     "geotiff": "3.0.5",
     "h5wasm": "0.10.3",
