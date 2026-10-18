@@ -32,11 +32,12 @@ data/schema/    one schema per kind, shared by the data build and the app
 
 - One file per record keeps pull requests small: a change touches only the records it is about, and a reviewer reads one item at a time.
 - The front matter is parsed strictly as YAML 1.2 with no implicit type guessing, so `no` stays a string and `1.10` is not a number. Plain Markdown tables are not used for records, because they cannot hold nested data such as paths, phases or effects.
-- **Vocabularies are data.** Event types, effect types, people categories, timeline lanes, regions, tags, vignette actions, roles, animals and scene-marker icons each live in one YAML file under `vocab/`, every entry keyed by its id, with `en` and `de` labels where the viewer reads them. Code and records refer to vocabulary ids only, never to labels. Each vocabulary file has a schema in `data/schema/` (section 7), and the data build fails on an entry that does not match it.
+- **Vocabularies are data.** Event types, effect types, people categories, timeline lanes, regions, tags, vignette actions, roles, animals and scene-marker icons each live in one YAML file under `vocab/`, every entry keyed by its id (`lanes.yaml`, whose order matters, is a list), with `en` and `de` labels where the viewer reads them. Code and records refer to vocabulary ids only, never to labels. Each vocabulary file has a schema in `data/schema/` (section 7), and the data build fails on an entry that does not match it.
   - `actions.yaml`: per action, whether it is for cast groups or props (`for: cast` or `for: prop`) and what its object names (`object: none`, `mark`, `group` or `optional-group`). The movement rule and the clips are the action's code in the vignette player, which implements exactly the actions in this file.
   - `roles.yaml`: per role, an `en` label and German labels in the feminine and masculine form (`de: { female, male }`), and the rules the cast follows: `man: true` when the role is always played by a man of the profile, and `tool` for the tool the role holds instead of the profile's own.
   - `animals.yaml`: per animal, its `en` and `de` names. The animal's model has the id `animal-<id>` (milestone 2, section 13).
   - `icons.yaml`: the scene-marker icons the app can draw (milestone 2, section 7.2), with their labels.
+  - **Regions and lanes.** `vocab/regions.yaml` maps each world region's id to its labels, in the order of [spec.md section 7.1](spec.md#71-timeline): `europe`, `mena`, `africa`, `central-asia`, `south-asia`, `east-asia`, `southeast-asia`, `americas`, `oceania`. `vocab/lanes.yaml` lists the timeline lanes from top to bottom: the World lane as `{ id: world, en: World, de: Welt }`, then one entry `{ region: <id> }` per region, which takes the region's id and labels, so a region's name is written once. The data build fails when a region has no lane, has two, or a lane names an unknown region.
 
 ## 2. The record envelope
 
@@ -49,7 +50,7 @@ kind: event
 type: natural-disaster
 when: { from: 79-10-24, to: 79-10-25 }
 where: { place: pompeii }
-region: europe-mediterranean
+region: europe
 sources:
   - ref: smithsonian-gvp
   - ref: pliny-letters
@@ -86,13 +87,13 @@ Der Vesuv bricht aus und begräbt die Stadt Pompeji unter Asche. ...
 | `kind` | yes | `event`, `person`, `era`, `place`, `polity`, `route`, `culture`, `landmark`, `vignette` or `animal`; must match the folder. |
 | `when` | yes, except culture and animal | Time span (section 3). |
 | `where` | yes for events, people, places, routes, landmarks and vignettes | Place (section 4). |
-| `region` | yes, except culture and animal | One or more region ids from `vocab/regions.yaml` (the timeline's regional lanes); used for the timeline, the phone lane filter and the coverage report. |
+| `region` | yes, except culture, animal and era (an era's `lane` places it) | One or more region ids from `vocab/regions.yaml` (the timeline's regional lanes); used for the timeline, the phone lane filter and the coverage report. |
 | `sources` | yes | One or more references into `sources.yaml`, each with an optional note such as a page or letter number. |
 | `debated` | no | What historians dispute: `date`, `place`, `cause`, `numbers` or `method` (how something was done, such as whether people killed mammoths or collected the bones of dead ones). The data build fails on any other value. The card says so in plain words. |
 | `tags`, `links` | no | Tag ids, and links to other records by kind and id. |
 | `aliases` | no | Former ids. |
 
-**Text.** The body has one section per supported language (`## en`, `## de`). Each holds the title as a `#` heading, then the card text written for a reader of about 11 to 12, then an optional `### Learn more` (`### Mehr erfahren`) section for adults. Kinds without cards, such as eras, have only the title. The title goes into the startup index; the card and "Learn more" go into text chunks loaded when a card opens (section 7).
+**Text.** The body has one section per supported language (`## en`, `## de`). Each holds the title as a `#` heading, then the card text written for a reader of about 11 to 12, then an optional `### Learn more` (`### Mehr erfahren`) section for adults. Kinds without cards, such as eras, have only the title, and the build fails on any other text in them. The title goes into the startup index; the card and "Learn more" go into text chunks loaded when a card opens (section 7).
 
 **Validation.** The data build fails when a record has an unknown field, a heading outside this fixed set, a missing language section or text that the other language has, a reference (`place`, `links`, `sources`, `type`, `region`, `tags`, asset ids) that points nowhere, or a date it cannot parse. These checks join those of [milestone-1.md](milestone-1.md#108-data-build-validation) section 10.8. A new field is added by changing this file and the schema first.
 
@@ -126,6 +127,7 @@ when:
 - A single date (`when: 79`) is shorthand for `from` and `to` being the same.
 - `peak` is the moment or phase of greatest force (the "Peak" of the disaster list). `phases` are named sub-spans with an optional place of their own, such as the later waves of a plague or the battles of a war.
 - For a person `when` is their life (with `active` for the part of it they appear on the globe, section 5); for an era it is its range on the timeline; for a place it is from founding to abandonment, if any.
+- An era's `from` and `to` are boundaries between eras rather than spans: its range runs from the first day of its `from` year to the first day of its `to` year, so an era that ends in 27 BCE and the next that begins in 27 BCE meet without overlapping, and `today` ends it on the last day of the timeline. An era has no `peak` or `phases`.
 
 ## 4. Place
 
@@ -160,7 +162,7 @@ Each kind adds only what it needs on top of the envelope.
 | --- | --- |
 | `event` | `type` from `vocab/event-types.yaml` (the types of [spec.md section 5](spec.md#5-how-events-appear-in-the-world)), `effects` (section 6); a construction event links to the landmark it builds |
 | `person` | `category` and optional `also` from `vocab/people-categories.yaml` (see [people.md](people.md)), `active` span, `look` (culture profile and unique asset id), `roles` per span |
-| `era` | `lane` from `vocab/lanes.yaml`, `colour` or `polity` (whose overlay colour it uses) |
+| `era` | `lane` from `vocab/lanes.yaml`, and either `colour` (written `'#rrggbb'`) or `polity` (the polity record whose overlay colour it uses; until polity records exist every era has a `colour`). The other envelope fields an era may have are `debated` and `aliases`; `where`, `region`, `tags` and `links` are unknown fields for an era. |
 | `place` | `names` per language and per period, `population` over time; its landmarks are linked, not described |
 | `polity` | `names` per language and per period, `colour`, `capital` per period, `borders` (GeoJSON per snapshot date) |
 | `route` | `path`, `mode` (caravan, ship, march), `active` span |
