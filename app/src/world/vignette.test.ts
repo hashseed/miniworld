@@ -14,9 +14,11 @@ import {
   type Pose,
 } from './vignette.ts';
 
+const RECORDS = new URL('../../../data/build/fixtures/vignettes', import.meta.url).pathname;
 const CURATED = new URL('../../../data/curated', import.meta.url).pathname;
 const hunt = buildVignettes({
   curated: CURATED,
+  records: RECORDS,
   lanes: new Set(['europe']),
   animals: new Set(['woolly-mammoth']),
   startDay: TIMELINE_START,

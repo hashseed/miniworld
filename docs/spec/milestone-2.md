@@ -480,11 +480,13 @@ The definition of done in [milestones.md](milestones.md#definition-of-done-every
 
 Decided by Yang on 2026-10-18: the mammoth hunt (`mammoth-hunt` in [dioramas.md](dioramas.md#5-europe-and-mediterranean)) is built first, on top of milestone 1, as the worked example of how a diorama is stored as data files and played by a small engine. It proves the template and record formats, their data build step, the deterministic player and the loop on the life clock before the rest of this milestone exists. Everything not listed here stays as specified above and is built with the milestone.
 
+**Not in the world for now** (decided by Yang on 2026-10-18: "remove the mammoth hunt entirely from the world"): the engine, the `big-game-hunt` template and the approved models stay, but the `mammoth-hunt` record is kept only as a test fixture, `data/build/fixtures/vignettes/mammoth-hunt.md`, which the unit tests of section 18.7 build and play. The data build reads records from `data/curated/vignettes/` only, so the app ships no vignette until a record is added there again.
+
 ### 18.1 What the slice builds
 
 | Part | In the slice | Later in this milestone |
 | --- | --- | --- |
-| Template and record | `data/curated/templates/big-game-hunt.yaml` and `data/curated/vignettes/mammoth-hunt.md`, in the formats of section 18.2 | More templates and records (section 12) |
+| Template and record | `data/curated/templates/big-game-hunt.yaml` and the record `mammoth-hunt.md` (a test fixture for now, see above), in the formats of section 18.2 | More templates and records (section 12) |
 | Data build | Parses, validates and compiles them into the vignette layer of section 18.4 | Unchanged |
 | Player | Pure functions in `app/src/world/` (section 18.5), called on the main thread | Called from the world query in the Web Worker (section 2) |
 | Sites | A curated list of candidate points (section 6.6) | Camps of the hunting cultures (section 3.2) |
@@ -564,4 +566,4 @@ The player uses only integer and `+ − × ÷` arithmetic plus `Math.sqrt` (sect
 | Golden poses | Instances at four fixed days and member poses at four points of each instance's shown span, stored as a readable snapshot |
 | Expected answers | No instance before 43,000 BCE or after 10,000 BCE; no Siberian site before its own start date; one site per period; the phase is 0 at the start of the shown span and the end of the script at its end, whatever the vignette clock |
 | Figures | Hunters, family and mammoths get the approved models at a plausible height, the same clip and time give the same pose, and a culture without an approved model falls back to a stand-in |
-| Browser | At a fixed date a fifth into a period whose hunt is in Europe, the hunt is drawn from orbit, and a hunter's drawn height in kilometres is the same from orbit and close up; tapping a hunter opens the card; double-clicking it flies down to the hunt and the hunters move while history plays; pausing stops them |
+| Browser | Returns when a vignette is in the world again. Then: at a fixed date a fifth into a period whose hunt is in Europe, the hunt is drawn from orbit, and a hunter's drawn height in kilometres is the same from orbit and close up; tapping a hunter opens the card; double-clicking it flies down to the hunt and the hunters move while history plays; pausing stops them |

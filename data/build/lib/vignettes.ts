@@ -342,6 +342,8 @@ function parseText(e: Errors, body: string): Record<Language, VignetteText> | un
 
 export interface VignetteInputs {
   curated: string;
+  /** Folder of the records; `<curated>/vignettes` unless a test passes its fixtures. */
+  records?: string;
   lanes: Set<string>;
   animals: Set<string>;
   startDay: number;
@@ -371,7 +373,7 @@ export function buildVignettes(inp: VignetteInputs): {
     ? (parse(readFileSync(sourcesFile, 'utf8'), { schema: 'failsafe' }) as Yaml)
     : {};
   const vignettes: BuiltVignette[] = [];
-  const vdir = join(inp.curated, 'vignettes');
+  const vdir = inp.records ?? join(inp.curated, 'vignettes');
   if (existsSync(vdir))
     for (const f of readdirSync(vdir)
       .filter((n) => n.endsWith('.md'))

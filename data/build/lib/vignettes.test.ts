@@ -9,6 +9,7 @@ import {
 } from '../../../app/src/time/calendar.ts';
 import { buildVignettes, compileTemplate, parseDate } from './vignettes.ts';
 
+const RECORDS = new URL('../fixtures/vignettes', import.meta.url).pathname;
 const CURATED = new URL('../../curated', import.meta.url).pathname;
 const TEMPLATE = readFileSync(join(CURATED, 'templates/big-game-hunt.yaml'), 'utf8');
 
@@ -16,6 +17,7 @@ describe('vignette formats', () => {
   it('builds the mammoth hunt without errors', () => {
     const r = buildVignettes({
       curated: CURATED,
+      records: RECORDS,
       lanes: new Set(['europe']),
       animals: new Set(['woolly-mammoth']),
       startDay: TIMELINE_START,
@@ -87,7 +89,7 @@ describe('vignette formats', () => {
       cpSync(join(CURATED, 'templates'), join(dir, 'templates'), { recursive: true });
       cpSync(join(CURATED, 'sources.yaml'), join(dir, 'sources.yaml'));
       mkdirSync(join(dir, 'vignettes'));
-      const record = readFileSync(join(CURATED, 'vignettes/mammoth-hunt.md'), 'utf8')
+      const record = readFileSync(join(RECORDS, 'mammoth-hunt.md'), 'utf8')
         .replace('icon: spear', 'icon: rocket')
         .replace('debated: method', 'debated: everything');
       writeFileSync(join(dir, 'vignettes/mammoth-hunt.md'), record);
