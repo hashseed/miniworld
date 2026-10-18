@@ -18,6 +18,7 @@ interface Debug {
     lon: number;
     actor?: [number, number];
     heightPx?: number;
+    heightKm?: number;
     phase?: number;
     cast: number[];
   }[];
@@ -76,7 +77,6 @@ test('the mammoth hunt is visible from orbit, flies down and moves while playing
     m.controller.state = { ...m.controller.state, lat: 50, lon: 25, altitudeKm: 6000 };
   });
   await expect.poll(async () => (await hunt(page)).stages.length).toBe(2);
-  // Section 5.1: from orbit the figures are still at least 22 pixels tall.
   // A stage left of the card, which opens on the right on desktop.
   const { width, height } = page.viewportSize()!;
   const clear = (s: Debug['stages'][number]) =>
@@ -87,7 +87,8 @@ test('the mammoth hunt is visible from orbit, flies down and moves while playing
     s.actor[1] < height - 320;
   await expect.poll(async () => (await hunt(page)).stages.some(clear)).toBe(true);
   const target = (await hunt(page)).stages.find(clear)!;
-  expect(target.heightPx!).toBeGreaterThanOrEqual(21.5);
+  // Section 5.1: seen from orbit, a hunter is still a few pixels tall.
+  expect(target.heightPx!).toBeGreaterThan(8);
 
   // Tapping a hunter opens the card; double-clicking flies down to the stage.
   const [x, y] = target.actor!;
@@ -103,6 +104,9 @@ test('the mammoth hunt is visible from orbit, flies down and moves while playing
       return Math.abs(h.camera.lat - target.lat) + Math.abs(h.camera.lon - target.lon);
     })
     .toBeLessThan(0.05);
+  // Section 5.1: like the trees, the cast keeps its drawn size at every zoom.
+  const near = (await hunt(page)).stages.find((s) => s.id === target.id)!;
+  expect(near.heightKm! / target.heightKm!).toBeCloseTo(1, 1);
 
   // Playing slowly, so the date stays inside this period: the hunters move.
   const clock = (state: string, speedLog2: number) =>

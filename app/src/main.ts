@@ -472,6 +472,7 @@ function frame(now: number): void {
   u.screenUp!.value.set(e[4]!, e[5]!, e[6]!);
   u.time!.value = clock.lifeMs / 1000;
   globe.update(camera, innerHeight, planet, clock.day);
+  foliage.clearings = vignettes.clearings();
   foliage.update(camera, planet, clock.day, u.lightDir!.value);
   sky.update(camera);
   clouds.update(camera, clock.lifeMs, u.lightDir!.value);

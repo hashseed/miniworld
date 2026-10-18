@@ -1,38 +1,53 @@
-# Hunters stalk a herd, drive one animal into a trap, bring it down and
-# carry the meat home (docs/spec/milestone-2.md section 18.6). Used by
-# mammoth-hunt; other hunts fill the same parameters.
+# Hunters stalk a herd, drive one animal into a trap, bring it down, cut it
+# up and carry the meat home (docs/spec/milestone-2.md section 18.6). Used by
+# mammoth-hunt; other hunts fill the same parameters. Every group has marks of
+# its own so the enlarged figures never overlap (section 5.1).
 id: big-game-hunt
 params: { hunters: culture, prey: animal }
-loop: 120 s
+loop: 60 s
 stage:
-  radius: 80 m
+  radius: 40 m
   marks:
-    camp: [-35, 0]
-    lookout: [-15, 10]
-    herd: [30, 0]
-    flank-left: [25, 22]
-    flank-right: [25, -22]
-    trap: [-5, -3]
-    trap-left: [-7, 10]
-    trap-right: [0, -15]
-    edge: [60, 20]
+    family-home: [-34, 0]
+    scouts-home: [-24, 0]
+    left-home: [-26, 12]
+    right-home: [-26, -12]
+    lookout: [-8, 4]
+    herd-home: [22, 10]
+    prey-home: [24, -10]
+    flank-left: [8, 26]
+    flank-right: [8, -30]
+    swerve: [10, -4]
+    trap: [-6, -8]
+    throw-left: [-4, 8]
+    throw-right: [-4, -24]
+    butcher-left: [-6, 3]
+    butcher-right: [-6, -19]
+    edge: [30, 24]
 cast:
-  family: { culture: $hunters, role: gatherer, count: 3, at: camp }
-  scouts: { culture: $hunters, role: hunter, count: 2, at: camp }
-  hunters-left: { culture: $hunters, role: hunter, count: 3, at: camp }
-  hunters-right: { culture: $hunters, role: hunter, count: 3, at: camp }
-  prey: { animal: $prey, count: 1, at: herd }
-  herd: { animal: $prey, count: 2, at: herd }
+  family: { culture: $hunters, role: gatherer, count: 3, at: family-home }
+  scouts: { culture: $hunters, role: hunter, count: 2, at: scouts-home }
+  hunters-left: { culture: $hunters, role: hunter, count: 3, at: left-home }
+  hunters-right: { culture: $hunters, role: hunter, count: 3, at: right-home }
+  prey: { animal: $prey, count: 1, at: prey-home }
+  herd: { animal: $prey, count: 2, at: herd-home }
 beats:
-  - { at: 0, family: { work-at: camp }, scouts: { walk-to: lookout } }
-  - { at: 16, scouts: { point: herd } }
-  - { at: 18, hunters-left: { walk-to: flank-left }, hunters-right: { walk-to: flank-right } }
-  - { at: 66, hunters-left: { run-to: trap-left }, hunters-right: { run-to: trap-right } }
-  - { at: 66, prey: { run-to: trap }, herd: { run-to: edge } }
-  - { at: 76, hunters-left: { throw-at: prey }, hunters-right: { throw-at: prey } }
-  - { at: 79, prey: fall }
-  - { at: 83, hunters-left: { work-at: trap }, hunters-right: { work-at: trap } }
-  - { at: 84, herd: { walk-to: herd } }
-  - { at: 92, hunters-left: { carry-to: camp }, hunters-right: { carry-to: camp } }
-  - { at: 92, scouts: { walk-to: camp } }
-  - { at: 105, prey: appear }
+  - { at: 0, family: { work-at: family-home }, scouts: { walk-to: lookout } }
+  - { at: 2, hunters-left: { walk-to: flank-left }, hunters-right: { walk-to: flank-right } }
+  - { at: 10, scouts: { point: herd } }
+  - { at: 13, scouts: { point: prey } }
+  - { at: 15, hunters-left: { run-to: throw-left }, hunters-right: { run-to: throw-right } }
+  - { at: 15, prey: { run-to: swerve }, herd: { run-to: edge } }
+  - { at: 17, prey: { run-to: trap } }
+  - { at: 20, hunters-left: { throw-at: prey }, hunters-right: { throw-at: prey } }
+  - { at: 23, hunters-left: { throw-at: prey }, hunters-right: { throw-at: prey } }
+  - { at: 24, prey: fall }
+  - { at: 25, hunters-left: cheer, hunters-right: cheer, scouts: cheer }
+  - { at: 26, herd: { walk-to: herd-home } }
+  - { at: 27, scouts: { walk-to: scouts-home } }
+  - { at: 29, hunters-left: { work-at: butcher-left }, hunters-right: { work-at: butcher-right } }
+  - { at: 31, prey: cut-up }
+  - { at: 43, hunters-left: { carry-to: left-home }, hunters-right: { carry-to: right-home } }
+  - { at: 50, family: { cheer: hunters-left } }
+  - { at: 53, family: { work-at: family-home } }
+  - { at: 55, prey: appear }

@@ -1,8 +1,8 @@
 // Draws vignettes on the globe (spec milestone 2, sections 5.1 and 18): asks
 // the player which instances stand on the current day, places a stage of
-// stand-ins at each site and poses them from the life clock. Close up the
-// stage is at the miniature factor; further out it grows so its cast stays
-// visible and moving up to orbit. It only draws; the player decides everything.
+// figures at each site and poses them from the life clock. Like the trees, a
+// stage keeps one drawn size at every zoom, large enough to be seen moving
+// from orbit. It only draws; the player decides everything.
 
 import * as THREE from 'three';
 import type { ContentLoader } from '../content/loader.ts';
@@ -19,26 +19,25 @@ import {
   type Instance,
   type Member,
 } from '../world/vignette.ts';
-import { MINIATURE } from '../world/landmark.ts';
 import type { PartFrame } from '../landmarks/landmarkLayer.ts';
 import { buildActor, lightModels } from './figures.ts';
 import type { StandIn } from './standIns.ts';
 
-/** Life-size metres to drawn kilometres at the miniature factor. */
-const M_TO_KM = MINIATURE / 1000;
-/** Smallest on-screen height of an adult figure, in CSS pixels (section 5.1). */
-const FIGURE_MIN_PX = 22;
-/** From afar, an animal is drawn at most this many times an adult's height (section 5.1). */
+/** Drawn kilometres per life-size metre of a figure, at every zoom (section 5.1). */
+const FIGURE_KM_PER_M = 50;
+/** Figures are drawn this many times larger than the stage layout (section 5.1). */
+const OVERSIZE = 3;
+/** Drawn kilometres per life-size metre of the stage layout. */
+const LAYOUT_KM_PER_M = FIGURE_KM_PER_M / OVERSIZE;
+/** An animal is drawn at most this many times an adult's height (section 5.1). */
 const ANIMAL_MAX_ADULTS = 1.6;
 const ADULT_M = 1.75;
-/** From afar, figures are drawn at most this many times larger than the stage layout (section 5.1). */
-const MAX_OVERSIZE = 6;
-/** From afar, figures lean up to this far (radians) towards the top of the screen, like pop-up cut-outs. */
+/** Figures lean up to this far (radians) towards the top of the screen when seen from above, like pop-up cut-outs. */
 const MAX_LEAN = 1.15;
 /** Taps within this many pixels of a cast member count as hits. */
 const HIT_PX = 26;
 /** Altitude the camera flies down to on a double-tap: the whole stage in view. */
-const FLY_ALTITUDE_KM = 12;
+const FLY_ALTITUDE_KM = 2000;
 
 /** Where the landmark parts stand that singular vignettes build (giza.md section 11.4). */
 export interface PartFrames {
@@ -124,6 +123,11 @@ export class VignetteLayer {
     }
   }
 
+  /** True directions of the stages standing now, for the foliage's clearings. */
+  clearings(): Vec3[] {
+    return [...this.stages.values()].map((s) => s.trueDir);
+  }
+
   /** Number of stages on the current day, for tests and stats. */
   get stageCount(): number {
     return this.stages.size;
@@ -161,21 +165,12 @@ export class VignetteLayer {
       this.stages.delete(id);
     }
 
-    // CSS pixels per kilometre at one kilometre's distance.
-    const pxAtKm = (camera.projectionMatrix.elements[5]! * innerHeight) / 2;
     for (const stage of this.stages.values()) {
       const frame = this.place(stage);
       const toCam = this.v1.copy(camera.position).sub(stage.centre);
-      const distance = toCam.length();
       const facing = toCam.dot(stage.up) > 0 && (!stage.progress || !!frame);
       stage.cast.visible = facing;
-      if (!facing) continue;
-      // Section 5.1: figures and layout keep their minimum sizes on screen.
-      const kmPerPx = distance / pxAtKm;
-      const figureKmPerM = Math.max(M_TO_KM, (FIGURE_MIN_PX * kmPerPx) / ADULT_M);
-      // A stage on a landmark is laid out at the landmark's scale (giza.md section 11.4).
-      const layoutKmPerM = frame ? frame.kmPerM : Math.max(M_TO_KM, figureKmPerM / MAX_OVERSIZE);
-      this.pose(stage, lifeMs, figureKmPerM, layoutKmPerM, pxAtKm, frame);
+      if (facing) this.pose(stage, lifeMs, frame);
     }
   }
 
@@ -255,25 +250,16 @@ export class VignetteLayer {
    * globe, upright there, so a stage grown to hundreds of kilometres still
    * follows the curve of the Earth.
    */
-  private pose(
-    stage: Stage,
-    lifeMs: number,
-    figureKmPerM: number,
-    layoutKmPerM: number,
-    pxAtKm: number,
-    frame?: PartFrame,
-  ): void {
+  private pose(stage: Stage, lifeMs: number, frame?: PartFrame): void {
     const v = this.structures.get(stage.entry.structure);
     if (!v) return;
     const poses = posesAt(v.template, stage.members, stage.instance, lifeMs);
-    // Section 5.1: the further the figures are enlarged, the more they lean, up to MAX_LEAN.
-    const grown = Math.min(1, Math.max(0, Math.log(figureKmPerM / M_TO_KM) / Math.log(8)));
     const screenUp = this.v6.setFromMatrixColumn(this.camera!.matrixWorld, 1);
     const steep = Math.max(
       0,
       this.v7.copy(this.camera!.position).sub(stage.centre).normalize().dot(stage.up),
     );
-    const lean = MAX_LEAN * grown * steep;
+    const lean = MAX_LEAN * steep;
     const dir = this.v2;
     const north = this.v3;
     const east = this.v4;
@@ -282,9 +268,10 @@ export class VignetteLayer {
       const actor = stage.actors[i]!;
       actor.root.visible = p.visibility > 0;
       if (!actor.root.visible) continue;
-      // On a landmark the layout is not enlarged with the figures, so a group's
-      // members are spread by their figure size instead and do not merge into a blob.
-      const spread = frame ? figureKmPerM / layoutKmPerM - 1 : 0;
+      // A stage on a landmark is laid out at the landmark's scale (giza.md section 11.4),
+      // and a group's members are spread as on any other stage, so they do not merge into a blob.
+      const layoutKmPerM = frame ? frame.kmPerM : LAYOUT_KM_PER_M;
+      const spread = frame ? LAYOUT_KM_PER_M / layoutKmPerM - 1 : 0;
       const [ox, oz] = stage.offsets[i]!;
       const xM = (p.x + ox * spread) / 100;
       const zM = (p.z + oz * spread) / 100;
@@ -313,15 +300,13 @@ export class VignetteLayer {
           actor.root.quaternion.premultiply(this.turn.setFromUnitVectors(dir, tipped));
         }
       }
-      // Big animals shrink towards ANIMAL_MAX_ADULTS as the cast grows, so people stay readable.
+      // Big animals are drawn at most ANIMAL_MAX_ADULTS adults tall, so people stay readable.
       const cap = Math.min(1, (ANIMAL_MAX_ADULTS * ADULT_M) / actor.height);
       // On a landmark, figures stand on its drawn surface (giza.md section 11.5).
       const onLandmark = frame ? frame.surfaceM(xM, zM) * frame.upKmPerM : 0;
       const ground = this.surface.surfaceKm([dir.x, dir.y, dir.z]) + onLandmark;
       actor.root.position.copy(dir).multiplyScalar(EARTH_RADIUS_KM + ground);
-      // The minimum size holds for each figure at its own distance, not only at the stage centre.
-      const own = (FIGURE_MIN_PX * actor.root.position.distanceTo(this.camera!.position)) / pxAtKm;
-      const scale = Math.max(figureKmPerM, own / ADULT_M) * (1 + (cap - 1) * grown);
+      const scale = FIGURE_KM_PER_M * cap;
       const sink = (1 - p.visibility) * actor.height * scale;
       actor.root.position.addScaledVector(dir, -sink);
       actor.root.scale.setScalar(scale);
@@ -345,6 +330,8 @@ export class VignetteLayer {
       lon: number;
       actor?: [number, number];
       heightPx?: number;
+      /** Drawn height of that hunter in kilometres. */
+      heightKm?: number;
       /** Loop phase in milliseconds at the last frame. */
       phase?: number;
       cast: number[];
@@ -356,7 +343,8 @@ export class VignetteLayer {
       stages: [...this.stages.values()].map((stage) => {
         let actor: [number, number] | undefined;
         let heightPx: number | undefined;
-        // The tallest hunter: an adult, so it shows the minimum figure size.
+        let heightKm: number | undefined;
+        // A hunter: an adult, so it shows the figure size.
         const first = stage.actors.find(
           (a, i) => a.root.visible && stage.members[i]!.role === 'hunter',
         );
@@ -365,7 +353,8 @@ export class VignetteLayer {
           actor = [((p.x + 1) / 2) * innerWidth, ((1 - p.y) / 2) * innerHeight];
           const distance = first.root.position.distanceTo(camera.position);
           const pxAtKm = (camera.projectionMatrix.elements[5]! * innerHeight) / 2;
-          heightPx = (first.height * first.root.scale.x * pxAtKm) / distance;
+          heightKm = first.height * first.root.scale.x;
+          heightPx = (heightKm * pxAtKm) / distance;
         }
         return {
           id: stage.instance.id,
@@ -373,6 +362,7 @@ export class VignetteLayer {
           lon: stage.instance.site.lon / 1e6,
           actor,
           heightPx,
+          heightKm,
           phase: (() => {
             const v = this.structures.get(stage.entry.structure);
             return v ? phaseOf(v.template, stage.instance, this.lifeMs) : undefined;

@@ -16,6 +16,7 @@ export type Verb =
   | 'throw-at'
   | 'cheer'
   | 'fall'
+  | 'cut-up'
   | 'appear';
 
 export type Clip =
@@ -33,16 +34,17 @@ export const VERBS: Record<Verb, 'none' | 'mark' | 'group' | 'optional-group'> =
   'throw-at': 'group',
   cheer: 'optional-group',
   fall: 'none',
+  'cut-up': 'none',
   appear: 'none',
 };
 
-/** Life-size speeds in centimetres per second (section 18.3). */
+/** Stage speeds in centimetres per second, three times life (section 18.3). */
 const SPEED_CM_S: Partial<Record<Verb, number>> = {
-  'walk-to': 140,
-  'run-to': 450,
-  'carry-to': 130,
+  'walk-to': 400,
+  'run-to': 1200,
+  'carry-to': 350,
   haul: 300,
-  'work-at': 140,
+  'work-at': 400,
 };
 const MOVE_CLIP: Partial<Record<Verb, Clip>> = {
   'walk-to': 'walk',
@@ -52,13 +54,15 @@ const MOVE_CLIP: Partial<Record<Verb, Clip>> = {
   'work-at': 'walk',
 };
 const FALL_MS = 3000;
+/** How long a fallen animal takes to be cut up and sink away. */
+const CUT_MS = 12000;
 const APPEAR_MS = 2000;
 /** Length of a point or a throw before the member stands idle again. */
 const GESTURE_MS = 3000;
 /** A member closer than this to its target does not walk there first. */
 const NEAR_CM = 50;
-/** Formation spacing per member, scaled by √count (section 18.3). */
-const SPACING_CM = { human: 150, animal: 500, prop: 300 };
+/** Formation spacing between members (section 18.3). */
+const SPACING_CM = { human: 250, animal: 1400, prop: 300 };
 
 export interface CompiledAction {
   atMs: number;
@@ -188,6 +192,8 @@ export interface Segment {
   visMs: number;
   /** For facing verbs: the group to face, resolved in a second pass. */
   face?: string;
+  /** When the clip started, if before t0 (a held clip, as for cut-up). */
+  clipT0?: number;
 }
 
 export interface Member {
@@ -199,14 +205,19 @@ export interface Member {
   segments: Segment[];
 }
 
-/** Formation offset of member i of n in a group, in centimetres. */
+/**
+ * Formation offset of member i of n in a group, in centimetres: a grid
+ * ⌈√n⌉ members wide across z, centred on the mark, so members never overlap.
+ */
 export function formationOffset(group: CompiledGroup, i: number): [number, number] {
-  if (group.count === 1) return [0, 0];
-  const reach = SPACING_CM[group.kind] * Math.sqrt(group.count);
-  const h = hashString(group.name);
-  const ox = Math.round(((hash32(h, i, 1) % 2001) / 1000 - 1) * reach);
-  const oz = Math.round(((hash32(h, i, 2) % 2001) / 1000 - 1) * reach);
-  return [ox, oz];
+  let cols = 1;
+  while (cols * cols < group.count) cols++;
+  const rows = Math.ceil(group.count / cols);
+  const row = Math.floor(i / cols);
+  const inRow = row === rows - 1 ? group.count - row * cols : cols;
+  const col = i - row * cols;
+  const step = SPACING_CM[group.kind];
+  return [Math.round((row - (rows - 1) / 2) * step), Math.round((col - (inRow - 1) / 2) * step)];
 }
 
 function posAt(s: Segment, t: number): [number, number] {
@@ -284,7 +295,18 @@ export function buildMembers(t: CompiledTemplate): Member[] {
           }
           segs.push(rest(t0, tx, tz, a.verb === 'work-at' ? 'work' : 'idle', vis));
         } else if (a.verb === 'fall') {
-          segs.push({ ...rest(a.atMs, x, z, 'fall', 0), vis0: vis, visMs: FALL_MS });
+          // People sink away; an animal rolls onto its side and stays down.
+          if (g.kind === 'animal') segs.push(rest(a.atMs, x, z, 'fall', vis));
+          else segs.push({ ...rest(a.atMs, x, z, 'fall', 0), vis0: vis, visMs: FALL_MS });
+        } else if (a.verb === 'cut-up') {
+          // The fallen body keeps lying as it was and sinks away.
+          const held = last.clip === 'fall' ? (last.clipT0 ?? last.t0) : a.atMs;
+          segs.push({
+            ...rest(a.atMs, x, z, 'fall', 0),
+            vis0: vis,
+            visMs: CUT_MS,
+            clipT0: held,
+          });
         } else if (a.verb === 'appear') {
           segs.push({ ...rest(a.atMs, home[0], home[1], 'idle', 1), vis0: 0, visMs: APPEAR_MS });
         } else {
@@ -404,7 +426,7 @@ export function posesAt(
       dirX: c * fx - s * fz,
       dirZ: s * fx + c * fz,
       clip: seg.clip,
-      clipMs: phase - seg.t0,
+      clipMs: phase - (seg.clipT0 ?? seg.t0),
       visibility: visAt(seg, phase),
     };
   });

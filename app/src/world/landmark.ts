@@ -2,9 +2,6 @@
 // model each part of a landmark shows on a day, and how far a part under
 // construction has risen. Pure functions of the compiled record and the day.
 
-/** People and everything they make are drawn 90 times life size (milestone 2, section 5.1). */
-export const MINIATURE = 90;
-
 export interface CompiledStage {
   fromDay: number;
   asset: string;

@@ -121,9 +121,10 @@ export const LOOKS: Record<Profile, ProfileLook> = {
     hair: DARK_HAIR,
     top: { man: 'tunic', woman: 'tunic', child: 'tunic' },
     bottom: { man: 'trousers', woman: 'trousers', child: 'trousers' },
-    hide: ['#9a6e45', '#8a5f3a', '#a97c50'],
-    trim: '#e8dcc4',
-    beads: '#f0e6cf',
+    // Light buckskin with white fur trim, so people stand out from the dark mammoths (Yang, 2026-10-18).
+    hide: ['#dcb98a', '#e6cba0', '#cfa774'],
+    trim: '#fbf8f2',
+    beads: '#ffffff',
     boots: true,
     tools: { man: 'spear-thrower', woman: 'needle', child: 'none' },
   },

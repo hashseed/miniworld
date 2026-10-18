@@ -53,6 +53,8 @@ const KIND_SCALE = [1.15, 1.05, 0.85, 1.1, 1.0, 0.85, 0.65, 0.6];
 const CROWN = 1.1;
 /** Where plants never stand (section 4). */
 const MIN_COAST_KM = 2.5;
+/** Drawn radius of the clearing around a vignette stage, so trees never hide a diorama (section 4). */
+const CLEARING_KM = 800;
 const MAX_WATER_FIELD = 0.42;
 const ICE_CLEARANCE_KM = 25;
 /** River field of the bank band that gets palms in dry land. */
@@ -116,6 +118,8 @@ export class Foliage {
   count = 0;
   /** Set once the first view is ready; until then nothing is loaded or drawn. */
   active = false;
+  /** True directions of the vignette stages standing now; plants keep clear of them. */
+  clearings: Vec3[] = [];
 
   constructor(globe: Globe, loader: ContentLoader) {
     this.globe = globe;
@@ -182,7 +186,14 @@ export class Foliage {
     });
     // Plants change only with the slices, the sea level and the lens, never with the camera alone.
     const state = `${ka}:${kb}:${t.toFixed(3)}:${planet.seaLevel.toFixed(1)}`;
-    const frameKey = `${state}|${lens.blend}|${visible.map(tileId).join(',')}|${this.placed.size}`;
+    const clear = this.clearings.map((c) => lens.toDrawn(c));
+    const clearKey = clear.map((c) => c.map((x) => x.toFixed(4)).join(',')).join(';');
+    const frameKey = `${state}|${lens.blend}|${visible.map(tileId).join(',')}|${this.placed.size}|${clearKey}`;
+    const clearCos = Math.cos(CLEARING_KM / EARTH_RADIUS_KM);
+    const inClearing = (e: number[]) => {
+      const len = Math.hypot(e[12]!, e[13]!, e[14]!);
+      return clear.some((c) => (c[0] * e[12]! + c[1] * e[13]! + c[2] * e[14]!) / len > clearCos);
+    };
     if (frameKey === this.lastKey) return;
     this.lastKey = frameKey;
 
@@ -200,6 +211,7 @@ export class Foliage {
       for (const p of plants) {
         const n = counts[p.kind]!;
         if (n >= CAPACITY || !this.matrixOf(p, m)) continue;
+        if (clear.length > 0 && inClearing(m.elements)) continue;
         const mesh = this.meshes[p.kind]!;
         mesh.setMatrixAt(n, m);
         mesh.setColorAt(n, tint.setScalar(p.tint));
