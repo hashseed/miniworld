@@ -2,8 +2,8 @@ name: CI
 
 # Spec milestone 1, section 2.4. Three stages run side by side: the static
 # checks and unit tests, the fixture data build (cached by a hash of its
-# inputs), and once the data is there, the browser tests, one job per
-# Playwright project.
+# inputs), and once the data is there, the browser tests, split over five
+# jobs by Playwright project and shard.
 
 on:
   pull_request:
@@ -63,16 +63,17 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      # One test at a time per job: SwiftShader renders on every core, so two
+      # tests on one runner slow each other down more than they gain. The
+      # desktop and phone tests are split over two runners each instead.
       matrix:
         include:
-          - project: desktop
-            workers: 2
-          - project: phone
-            workers: 2
-          - project: perf
-            workers: 1
+          - { project: desktop, shard: 1/2 }
+          - { project: desktop, shard: 2/2 }
+          - { project: phone, shard: 1/2 }
+          - { project: phone, shard: 2/2 }
+          - { project: perf, shard: 1/1 }
     env:
-      PW_WORKERS: ${{ matrix.workers }}
       PERF_SECONDS: 10
     steps:
       - uses: actions/checkout@v7
@@ -97,11 +98,11 @@ jobs:
         run: npx playwright install --with-deps chromium
       - if: steps.browsers.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
-      - run: npx playwright test --project=${{ matrix.project }}
+      - run: npx playwright test --project=${{ matrix.project }} --shard=${{ matrix.shard }}
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: browser-test-results-${{ matrix.project }}
+          name: browser-test-results-${{ matrix.project }}-${{ strategy.job-index }}
           path: |
             playwright-report/
             perf-report.json
