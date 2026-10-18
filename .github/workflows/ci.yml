@@ -56,6 +56,8 @@ jobs:
       # The fixture dataset stands in for the real data in CI.
       - if: steps.cache.outputs.cache-hit != 'true'
         run: npm run build-data -- --fixture --max-level 4
+      # Golden tests (spec milestone 1, section 13) on the fixture dataset.
+      - run: npm run golden
       - run: npx vite build --config app/vite.config.ts && node data/build/check-size.ts
 
   browser:

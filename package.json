@@ -19,6 +19,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
+    "golden": "vitest run app/src/planet/golden.test.ts",
     "check": "npm run lint && npm run typecheck && npm run test",
     "test:browser": "playwright test",
     "pool": "node scripts/pool.ts",
