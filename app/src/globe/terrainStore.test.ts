@@ -22,7 +22,7 @@ import {
 import type { ChunkSource } from '../content/loader.ts';
 import type { Manifest } from '../content/types.ts';
 import { TILE_N, faceUvToDir, type TileKey } from '../geo/cube.ts';
-import { CANCEL_AFTER_FRAMES, TerrainStore, sampleTile } from './terrainStore.ts';
+import { CANCEL_AFTER_FRAMES, MAX_DATA_TILES, TerrainStore, sampleTile } from './terrainStore.ts';
 
 const B = TERRAIN_BORDERED;
 const S = TERRAIN_SAMPLES;
@@ -215,6 +215,27 @@ describe('TerrainStore', () => {
     } finally {
       console.error = original;
     }
+  });
+
+  it('drops the least recently used data tiles beyond the cache size, keeping coarse ones', async () => {
+    const src = new FakeSource();
+    const store = new TerrainStore(src);
+    const root = { face: 0, level: 0, x: 0, y: 0 };
+    const keys = [root];
+    for (let n = 0; n < MAX_DATA_TILES + 10; n++)
+      keys.push({ face: 1, level: 6, x: n % 64, y: Math.floor(n / 64) });
+    for (const k of keys) store.terrainTile(k, 1);
+    src.requests.forEach((r, n) => r.answer(copy(encodeTerrainTile(rampTile(keys[n]!)))));
+    await settle();
+    // Using the first deep tile again makes it the most recent.
+    expect(store.terrainTile(keys[1]!, 1)).toMatchObject({ key: keys[1] });
+    store.endFrame();
+    expect(store.cached).toBe(MAX_DATA_TILES);
+    expect(store.terrainTile(root, 1)).toMatchObject({ key: root });
+    expect(store.terrainTile(keys[1]!, 1)).toMatchObject({ key: keys[1] });
+    // The next ten were least recently used and are asked for again.
+    expect(store.terrainTile(keys[2]!, 1)).toBeUndefined();
+    expect(store.terrainTile(keys.at(-1)!, 1)).toMatchObject({ key: keys.at(-1) });
   });
 
   it('gives the finest loaded tile at a direction', async () => {

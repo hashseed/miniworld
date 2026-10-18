@@ -14,6 +14,7 @@ import {
   ARID_GRID_H,
   ARID_GRID_W,
   encodeClimateSlice,
+  type ClimateSlice,
   encodeFoliageSlice,
   encodeTerrainTile,
   OCEAN_MIN_LEVEL,
@@ -53,6 +54,9 @@ import {
 } from './lib/climate.ts';
 import { readExtract } from './lib/extract.ts';
 import { foliageGrid } from './lib/foliage.ts';
+import { climateHabitat } from './lib/habitat.ts';
+import { buildTree, checkTree } from './lib/humankind.ts';
+import { humankindSettings, validateCultureAreas, type CultureAreas } from './lib/cultureAreas.ts';
 import { checkLicences, type SourceEntry } from './lib/licence.ts';
 import { floodInlandSeas, INLAND_SEAS, oceanConnection } from './lib/ocean.ts';
 import { atStrength, buildLens, checkLens, LENS_PARAMS, parseCoordinates } from './lib/lens.ts';
@@ -134,8 +138,11 @@ function fail(message: string): never {
   process.exit(1);
 }
 
+const started = performance.now();
+/** Logs a step with the seconds since the build started, so slow stages show. */
 function log(message: string): void {
-  console.log(`build-data: ${message}`);
+  const s = ((performance.now() - started) / 1000).toFixed(1).padStart(5);
+  console.log(`build-data ${s}s: ${message}`);
 }
 
 function sha256(path: string): string {
@@ -455,6 +462,7 @@ const seaLevelAt = (day: number) =>
 const climateYears = climateStepYears(precipitation.yearsBP, TIMELINE_START);
 const iceDays = climateYears.map(sliceDay); // ascending, as the years descend
 const climateFiles: string[] = [];
+const climateSlices: ClimateSlice[] = [];
 for (const bp of climateYears) {
   const slice = {
     day: sliceDay(bp),
@@ -467,9 +475,9 @@ for (const bp of climateYears) {
     ),
     aridity: aridityGrid(precipitation, humid.periods, ARID_GRID_W, ARID_GRID_H, bp),
   };
+  climateSlices.push(slice);
   climateFiles.push(output.write(`climate/${bp}`, 'bin', encodeClimateSlice(slice)));
 }
-const climateBytes = climateFiles.reduce((n, f) => n + (output.sizes.get(f) ?? 0), 0);
 // One foliage slice per climate step (spec foliage.md, section 2): the biome
 // class per 0.5° cell, with the humid periods turning dry land to savanna, and
 // the tree density near the ice sheets and in cold or dry climates.
@@ -491,11 +499,47 @@ const foliageFiles = climateYears.map((bp) => {
     encodeFoliageSlice({ day: sliceDay(bp), cells: grid.classes, density: grid.density }),
   );
 });
-const foliageBytes = foliageFiles.reduce((n, f) => n + (output.sizes.get(f) ?? 0), 0);
-log(`${foliageFiles.length} foliage slices, ${(foliageBytes / 1000).toFixed(0)} KB Brotli`);
 log(
-  `${climateFiles.length} climate slices, ${(climateBytes / 1000).toFixed(0)} KB Brotli; lowest sea level ${Math.min(...seaLevel.metres)} m`,
+  `${climateFiles.length} climate and foliage slices; lowest sea level ${Math.min(...seaLevel.metres)} m`,
 );
+
+// --- Tree of humankind ---------------------------------------------------------
+
+// The tree grows from the first person over the habitable land of each date
+// (spec humankind.md, sections 4 and 5). The fixture map has no Africa.
+if (fixture) log('tree of humankind skipped on the fixture map');
+else {
+  const habitat = climateHabitat({
+    slices: climateSlices,
+    isSea: (lat, lon, day) => {
+      const v = connection.nearest(lat, lon);
+      return v !== OCEAN_NEVER && OCEAN_MIN_LEVEL + v <= seaLevelAt(day);
+    },
+    isLake: (lat, lon) => lakes.nearest(lat, lon) >= 128,
+    isRiver: (lat, lon) => rivers.nearest(lat, lon) > 0,
+    elevation: (lat, lon) => elevation.bilinear(lat, lon),
+  });
+  const cultureAreas = JSON.parse(
+    readFileSync(join(ROOT, 'data/curated/culture-areas.json'), 'utf8'),
+  ) as CultureAreas;
+  const areaErrors = validateCultureAreas(cultureAreas);
+  if (areaErrors.length) fail(areaErrors.join('\n'));
+  const treeSettings = humankindSettings(cultureAreas);
+  if (!habitat.habitable(treeSettings.founder.lat, treeSettings.founder.lon, TIMELINE_START))
+    fail('tree of humankind: the first person stands on uninhabitable land');
+  const tree = buildTree(treeSettings, habitat);
+  const treeProblems = checkTree(tree, treeSettings, habitat);
+  if (treeProblems.length) fail(`tree of humankind:\n${treeProblems.slice(0, 20).join('\n')}`);
+  mkdirSync(join(ROOT, 'data/build/tree'), { recursive: true });
+  writeFileSync(
+    join(ROOT, 'data/build/tree/tree.json'),
+    JSON.stringify({ startDay: treeSettings.startDay, endDay: treeSettings.endDay, tree }),
+  );
+  log(
+    `tree of humankind: ${tree.figures.length} figures, ${tree.lodgings.length} lodgings, ` +
+      `${tree.moments.filter((m) => m.kind === 'camp-founded').length + 1} camps founded`,
+  );
+}
 
 // --- History lens -------------------------------------------------------------
 
@@ -665,6 +709,12 @@ const manifest: Manifest = {
 };
 output.writeNamed('manifest.json', new TextEncoder().encode(JSON.stringify(manifest)));
 
+await output.finish();
+const brotliKb = (files: string[]) =>
+  (files.reduce((n, f) => n + (output.sizes.get(f) ?? 0), 0) / 1000).toFixed(0);
+log(
+  `climate slices ${brotliKb(climateFiles)} KB Brotli, foliage slices ${brotliKb(foliageFiles)} KB`,
+);
 const mb = (n: number) => (n / 1e6).toFixed(1);
 log(
   `${output.files} files, ${mb(output.rawBytes)} MB raw, ${mb(output.compressedBytes)} MB Brotli → ${OUT}`,

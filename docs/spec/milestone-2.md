@@ -62,13 +62,13 @@ The data build checks that every culture area at every snapshot is consistent wi
 
 ### 3.2 Camps
 
-People live in camps. Camps are founded by the tree of humankind ([humankind.md](humankind.md#4-how-the-tree-grows) section 4), which replaces the camp cells and fades of earlier drafts: a camp stands at least one camp spacing from the next (section 3.3), at a spot scored for being near a river, lake or coast and away from steep or high ground, so camps cluster along water as they did. At the end of each **residence window** (1,000 years before 10,000 BCE, **Proposed**) a band takes down its shelters, walks to a new spot nearby and builds them again; it never fades out and back in.
+People live in camps. Camps are founded by the tree of humankind ([humankind.md](humankind.md#4-how-the-tree-grows) section 4), which replaces the camp cells and fades of earlier drafts: a camp stands at least one camp spacing from the next (section 3.3), at a spot scored for being near a river, lake or coast and away from steep or high ground, so camps cluster along water as they did. At the end of each **residence window** (100 years before 10,000 BCE, about 4 minutes of watching at regular speed, staggered by hash so camps do not all move at once; decided by Yang on 2026-10-18: these are nomads) a band takes down its shelters, walks to a new spot nearby and builds them again; it never fades out and back in.
 
 A camp has a hearth, two to five shelters from the culture's architecture set, work spots (knapping stone, drying rack, hide frame, wood pile) and a ring of paths, laid out from the camp's hash. From orbit each camp shows as a small puff of hearth smoke, so inhabited land reads at a glance.
 
 ### 3.3 Density
 
-Each culture area per period carries a `density` of `sparse`, `low` or `medium`, which sets the spacing between camps (**Proposed**: about 900, 600 and 400 km, [humankind.md](humankind.md#41-targets) section 4.1) and the band size shown in a camp (**Proposed**: 6 to 10, 8 to 14 and 10 to 18 figures). These are visual densities, not population counts: the card for a camp says that a band was usually 20 to 50 people and that the whole world then held perhaps a few million. No population data is used in later milestones either; settlements carry size classes, and population estimates only check the tree ([humankind.md](humankind.md#61-checking-against-population-estimates) section 6.1).
+Each culture area per period carries a `density` of `sparse`, `low` or `medium`, which sets the spacing between camps (**Proposed**: about 900, 600 and 400 km, [humankind.md](humankind.md#41-targets) section 4.1). Every camp shows a band of 3 to 5 figures, whatever the density (decided by Yang on 2026-10-18). These are visual densities, not population counts: the card for a camp says that a band was usually 20 to 50 people and that the whole world then held perhaps a few million. No population data is used in later milestones either; settlements carry size classes, and population estimates only check the tree ([humankind.md](humankind.md#61-checking-against-population-estimates) section 6.1).
 
 ## 4. Culture profiles of this milestone
 
@@ -110,6 +110,13 @@ From orbit an adult is then about 15 pixels tall on a desktop screen; close to t
 ### 5.3 Animations
 
 Clips are baked into an animation texture and played on the GPU (milestone 1 section 11.4). The first clip set: idle, walk, run, carry, crouch-work, knap, scrape, dig, gather, throw, stab-thrust, paint, tend-fire, sit, talk, point, wave, paddle, haul, lift, sleep, sink (for figures lost to an effect), play (children). Clips have no blood or wounds in any form. Every action in the vignette vocabulary (section 6.4) maps to one or more clips.
+
+**Fluid motion** (Yang, 2026-10-18: "make sure her movements are fluid"). Every clip is smooth in angle and in speed, so no joint snaps:
+
+- **Planted feet.** The stepping clips (walk, run, carry, haul) turn the standing leg at an even pace while its foot is down and swing the other leg forward on a smooth curve that leaves and meets the stance at the same speed. A figure playing one moves at that clip's **gait speed** (`gaitSpeed` in `assets/src/clips.ts`, from the leg length and the clip's stride: about 1.1 m/s walking for an adult woman), so the standing foot stays where it was put down instead of sliding. The hips rise over the standing leg, dip as a heel comes down, and turn and roll a little with each stride; the torso turns against the hips and the head keeps looking ahead; lower arms trail the upper arms.
+- **Easing between clips.** A change of clip never cuts: over 0.35 s (`BLEND_SECONDS`) every joint angle and the speed ease from the old clip into the new one. Held and carried things switch half way through.
+- **Checked by tests.** Moving at the gait speed, the standing foot of walk, carry and haul stays within 5 cm of where it was put down and of the ground; across every change between two clips, no body part turns faster than 30 radians per second at 60 frames per second (the snap of a throw is the one faster movement, as in life).
+- The review sheet `founder-motion` (`asset-sheet.html?sheet=founder-motion`) shows the first person walking in, working at the hearth, standing, walking on and throwing; `window.setFrame(seconds)` poses it at any moment, so a short film for review is recorded frame by frame.
 
 ### 5.4 Tasks
 
@@ -396,6 +403,8 @@ The first models are the people, shelters and animals of the seven culture profi
 | `ice-age-hunter` | Tailored fur tunic, trousers and boots sewn with bone needles | Spear with spear-thrower (from c. 16,000 BCE; spear alone before), sewing needle |
 | `steppe-beringia-hunter` | Heavy hooded fur parka, fur trousers and boots | Spear (with a fluted point in the Americas), scraper |
 | `natufian` | Hide tunic, bead headband | Flint sickle in a bone haft, grinding stone |
+
+**The first person.** One more figure, `figure-first-person`, is the first person of the tree of humankind, who stands alone at Lake Turkana at the start of the timeline (asked for by Yang on 2026-10-18; the tree is specified separately). She is a woman of `african-stone-age` with a fixed look instead of a hashed one, so she can always be recognised: a red-ochre headband, which she keeps in every later era as her mark; a hide wrap and skirt dyed with red ochre; a string of ostrich-eggshell beads and a second, longer string of shell beads (shell beads are known in Africa from at least about 75,000 years ago at Blombos Cave, d'Errico et al. 2005, *Journal of Human Evolution* 48); red-ochre bands on her upper arms; her hair in a bun; and a spear, since she hunts. She uses the same skeleton and clips as everyone else and stays within the people's budget of 1,050 triangles (936). `npm run asset-sheets` draws her turnaround beside an ordinary woman (`first-person`) and her first camp with the grass hut, the hearth and an eland (`first-person-camp`).
 
 **Shelters and camp props.**
 

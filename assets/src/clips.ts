@@ -24,6 +24,34 @@ export const THROW_RELEASE = 0.55;
 
 const TAU = Math.PI * 2;
 
+/** A stepping clip: seconds per stride, hip swing to each side (radians), share of the stride a foot is down, swing-knee bend. */
+interface Gait {
+  period: number;
+  swing: number;
+  stance: number;
+  knee: number;
+}
+
+/** The stepping clips (spec milestone 2, section 5.3). */
+export const GAITS = {
+  walk: { period: 1.0, swing: 0.42, stance: 0.6, knee: 0.9 },
+  run: { period: 0.6, swing: 0.6, stance: 0.4, knee: 1.7 },
+  carry: { period: 1.15, swing: 0.36, stance: 0.62, knee: 0.7 },
+  haul: { period: 1.6, swing: 0.27, stance: 0.65, knee: 0.5 },
+} satisfies Record<string, Gait>;
+
+/**
+ * Metres per second (at life size) a figure must move while playing a
+ * stepping clip so that its standing foot stays where it was put down; zero
+ * for clips that stand still.
+ */
+export function gaitSpeed(m: Model, clip: Clip): number {
+  const g = (GAITS as Record<string, Gait | undefined>)[clip];
+  if (!g) return 0;
+  const leg = (m.bones.get('hips')!.userData.rest as THREE.Vector3).y;
+  return (2 * leg * Math.sin(g.swing)) / (g.stance * g.period);
+}
+
 function reset(m: Model): void {
   for (const b of m.bones.values()) {
     b.rotation.set(0, 0, 0);
@@ -52,19 +80,58 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
     !(clip === 'throw' && t >= THROW_RELEASE);
   bone('load').visible = clip === 'carry';
 
-  const legs = (phase: number, swing: number, bend: number) => {
-    const s = Math.sin(phase * TAU);
-    rot('legUpperL', -swing * s);
-    rot('legUpperR', swing * s);
-    rot('legLowerL', Math.max(0, bend * s));
-    rot('legLowerR', Math.max(0, -bend * s));
-    lift(Math.abs(Math.cos(phase * TAU)) * swing * 0.06);
+  const hipRest = (bone('hips').userData.rest as THREE.Vector3).y;
+  // A planted gait (Yang, 2026-10-18: fluid movements). While a foot is on the
+  // ground its leg turns at an even pace, so moving the figure at gaitSpeed()
+  // keeps that foot still; the swing forward is a smooth curve that leaves and
+  // meets the stance at the same speed, so no joint ever snaps.
+  const legs = (phase: number, g: Gait) => {
+    const leg = (u: number) => {
+      const slope = (2 * g.swing) / g.stance;
+      if (u < g.stance) return { angle: -g.swing + slope * u, knee: 0.05 };
+      const w = 1 - g.stance;
+      const x = (u - g.stance) / w;
+      const m = slope * w;
+      const angle =
+        (2 * x ** 3 - 3 * x ** 2 + 1) * g.swing +
+        (x ** 3 - 2 * x ** 2 + x) * m +
+        (-2 * x ** 3 + 3 * x ** 2) * -g.swing +
+        (x ** 3 - x ** 2) * m;
+      return { angle, knee: 0.05 + g.knee * Math.sin(Math.PI * x) ** 2 };
+    };
+    const u = phase - Math.floor(phase);
+    const l = leg(u);
+    const r = leg((u + 0.5) % 1);
+    rot('legUpperL', l.angle);
+    rot('legUpperR', r.angle);
+    rot('legLowerL', l.knee);
+    rot('legLowerR', r.knee);
+    // The hips ride over the standing leg like an upturned pendulum, lowest as a
+    // heel comes down, and turn and roll a little with each stride.
+    const low = 1 - Math.cos(g.swing);
+    lift(-hipRest * low * 0.5 * (0.5 - 0.5 * Math.cos(4 * Math.PI * (u - 0.35))));
+    const s = Math.sin(TAU * (u - 0.3));
+    rot('hips', 0, -0.2 * g.swing * s, 0.05 * Math.cos(TAU * (u - 0.3)));
+    return s;
   };
+  /** Arms swing against the legs, lower arms trailing a little behind. */
+  const arms = (s: number, lag: number, swing: number, bendL: number, bendR: number, holdR = 0) => {
+    rot('armUpperL', -swing * s, 0, 0.1);
+    rot('armUpperR', swing * s * (1 - holdR) - 0.15 * holdR, 0, -0.1);
+    rot('armLowerL', bendL - 0.12 * (1 - lag));
+    rot('armLowerR', bendR - 0.12 * (1 + lag) * (1 - holdR));
+  };
+  const lagOf = (phase: number) => Math.sin(TAU * (phase - 0.38));
 
   switch (clip) {
     case 'idle': {
       const b = Math.sin((t / 3.2) * TAU);
-      rot('torso', 0.02 * b);
+      // Breathing, and a slow shift of weight from one leg to the other.
+      const w = Math.sin((t / 5.3) * TAU);
+      rot('hips', 0, 0.03 * w, 0.025 * w);
+      rot('legLowerL', 0.05 + 0.04 * Math.max(0, w) ** 2);
+      rot('legLowerR', 0.05 + 0.04 * Math.max(0, -w) ** 2);
+      rot('torso', 0.02 * b, 0, -0.02 * w);
       rot('head', 0.04 * b, 0.25 * Math.sin((t / 7) * TAU));
       rot('armUpperL', 0.04 * b, 0, 0.1);
       rot('armUpperR', -0.06 - 0.04 * b, 0, -0.1);
@@ -72,33 +139,29 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
       break;
     }
     case 'walk': {
-      const p = t / 1.0;
-      legs(p, 0.5, 0.6);
-      const s = Math.sin(p * TAU);
-      rot('armUpperL', 0.45 * s, 0, 0.1);
-      rot('armUpperR', -0.3 * s - 0.15, 0, -0.1);
-      rot('armLowerL', -0.3);
-      rot('armLowerR', -0.4);
-      rot('torso', 0.06, 0.08 * s);
+      const p = t / GAITS.walk.period;
+      const s = legs(p, GAITS.walk);
+      // The hand holding a tool swings less.
+      arms(s, lagOf(p), 0.4, -0.25, -0.35, 0.35);
+      // The torso turns against the hips and the head keeps looking ahead.
+      rot('torso', 0.06, 0.12 * s);
+      rot('head', 0.02 * Math.cos(2 * p * TAU), -0.06 * s);
       break;
     }
     case 'run': {
-      const p = t / 0.6;
-      legs(p, 0.85, 1.3);
-      const s = Math.sin(p * TAU);
-      rot('torso', 0.25, 0.12 * s);
-      rot('head', -0.15);
-      rot('armUpperL', 0.8 * s, 0, 0.12);
-      rot('armUpperR', -0.5 * s - 0.4, 0, -0.12);
-      rot('armLowerL', -1.2);
-      rot('armLowerR', -1.0);
+      const p = t / GAITS.run.period;
+      const s = legs(p, GAITS.run);
+      rot('torso', 0.25, 0.15 * s);
+      rot('head', -0.18 + 0.03 * Math.cos(2 * p * TAU), -0.08 * s);
+      arms(s, lagOf(p), 0.8, -1.1, -0.95);
+      rot('armUpperR', 0.56 * s - 0.4, 0, -0.12);
       break;
     }
     case 'carry': {
       // Walking with a bundle across the shoulders, held by both hands.
-      const p = t / 1.15;
-      legs(p, 0.4, 0.5);
-      rot('torso', 0.12);
+      const p = t / GAITS.carry.period;
+      const s = legs(p, GAITS.carry);
+      rot('torso', 0.12, 0.06 * s);
       // Upper arms raised and bent back so the hands hold the bundle behind the neck.
       rot('armUpperL', -3.3, 0, 0.45);
       rot('armUpperR', -3.3, 0, -0.45);
@@ -108,9 +171,8 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
     }
     case 'haul': {
       // Pulling a rope over the shoulder: leaning into it with short, heavy steps.
-      const p = t / 1.6;
-      const s = Math.sin(p * TAU);
-      legs(p, 0.3, 0.45);
+      const p = t / GAITS.haul.period;
+      const s = legs(p, GAITS.haul);
       rot('torso', 0.45 + 0.04 * s);
       rot('head', -0.3);
       rot('armUpperL', -1.0 + 0.08 * s, 0, 0.15);
@@ -180,6 +242,48 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
     }
     case 'fall':
       break;
+  }
+}
+
+/** Seconds over which a figure eases from one clip into the next. */
+export const BLEND_SECONDS = 0.35;
+
+/**
+ * Poses a person part way from one clip into the next, so a change of clip
+ * never snaps: every joint angle eases from the one clip to the other.
+ * `weight` is 0 at the start of the change and 1 at its end.
+ */
+export function blendPerson(
+  m: Model,
+  from: Clip,
+  fromSeconds: number,
+  to: Clip,
+  toSeconds: number,
+  weight: number,
+): void {
+  const w = smooth(weight);
+  animatePerson(m, from, fromSeconds);
+  const start = new Map<string, [THREE.Vector3, THREE.Vector3, boolean]>();
+  for (const [name, b] of m.bones)
+    start.set(name, [
+      new THREE.Vector3(b.rotation.x, b.rotation.y, b.rotation.z),
+      b.position.clone(),
+      b.visible,
+    ]);
+  animatePerson(m, to, toSeconds);
+  for (const [name, b] of m.bones) {
+    const [r0, p0, visible] = start.get(name)!;
+    // The clips set joint angles, so the angles are blended (not the
+    // orientations): a raised arm comes down the way it went up and never
+    // flips round the other side.
+    b.rotation.set(
+      mix(r0.x, b.rotation.x, w),
+      mix(r0.y, b.rotation.y, w),
+      mix(r0.z, b.rotation.z, w),
+    );
+    b.position.lerpVectors(p0, b.position, w);
+    // Held and carried things switch over half way.
+    if (w < 0.5) b.visible = visible;
   }
 }
 

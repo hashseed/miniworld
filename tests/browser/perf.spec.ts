@@ -13,6 +13,8 @@ interface PerfReport {
   maxTriangles: number;
   averageFps: number;
   p99FrameMs: number;
+  averageUpdateMs: number;
+  p99UpdateMs: number;
   done: boolean;
 }
 

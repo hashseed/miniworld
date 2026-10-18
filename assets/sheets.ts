@@ -10,6 +10,9 @@ const out = process.argv[2] ?? 'assets/sheets';
 const base = process.env.SHEET_URL ?? 'http://localhost:8800/asset-sheet.html';
 const sheets: [string, string][] = [
   ['people', 'sheet=people'],
+  ['first-person', 'sheet=founder'],
+  ['first-person-camp', 'sheet=founder-camp'],
+  ['first-person-motion', 'sheet=founder-motion'],
   ...['idle', 'walk', 'run', 'carry', 'work', 'point', 'throw', 'cheer'].map(
     (c): [string, string] => [`clip-${c}`, `sheet=clips&clip=${c}`],
   ),

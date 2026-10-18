@@ -1,6 +1,7 @@
-// Draws the scene with MSAA 4× (spec milestone 1, section 11.2): the scene
+// Draws the scene with MSAA (spec milestone 1, section 11.2): the scene
 // renders into a multisampled target that is then copied to the screen. The
 // render scale from dynamic resolution sets the size of the drawing buffer.
+// With a reversed depth buffer the target's depth is 32-bit float (section 11.7).
 
 import * as THREE from 'three';
 
@@ -24,12 +25,16 @@ export class FrameRenderer {
   private height = 1;
   private scale = 1;
 
-  constructor(renderer: THREE.WebGLRenderer, samples = 4) {
+  constructor(renderer: THREE.WebGLRenderer, samples = 4, floatDepth = false) {
     this.renderer = renderer;
     this.target = new THREE.WebGLRenderTarget(1, 1, {
       samples,
       depthBuffer: true,
       type: THREE.UnsignedByteType,
+      // The depth is only tested, never read, so it need not be resolved.
+      ...(floatDepth
+        ? { depthTexture: new THREE.DepthTexture(1, 1, THREE.FloatType), resolveDepthBuffer: false }
+        : {}),
     });
     const copy = new THREE.ShaderMaterial({
       vertexShader: QUAD_VERTEX,

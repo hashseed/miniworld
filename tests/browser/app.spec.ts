@@ -223,6 +223,12 @@ test('the speed modes fold behind the play button', async ({ page }, info) => {
   } else {
     await play.hover();
     await expect(snail).toBeVisible();
+    // The modes pop up above the button and leave the date uncovered.
+    const modes = (await page.locator('.speed-modes').boundingBox())!;
+    const button = (await play.boundingBox())!;
+    const date = (await page.getByTestId('date').boundingBox())!;
+    expect(modes.y + modes.height).toBeLessThanOrEqual(button.y);
+    expect(modes.y + modes.height <= date.y || modes.x + modes.width <= date.x).toBe(true);
     await snail.click();
     await page.mouse.move(640, 200);
     await expect(snail).toBeHidden();

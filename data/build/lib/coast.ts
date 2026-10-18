@@ -59,7 +59,6 @@ export function blurField(
   const cellDeg = 360 / w;
   const cellKm = cellDeg * KM_PER_DEG;
   const value = Float32Array.from(values);
-  const weight = new Float32Array(w * h).fill(1);
   const prefix = new Float64Array(Math.max(w, h) + 1);
   // At least one cell, so a coarse grid is still smoothed.
   const radius = (sigmaCells: number) =>
@@ -71,15 +70,28 @@ export function blurField(
     const kmPerCol = Math.max(cellKm * Math.cos((lat * Math.PI) / 180), 1e-3);
     rowRadius[r] = Math.min(Math.floor((w - 1) / 2), radius(sigmaKm / kmPerCol));
   }
-  for (let pass = 0; pass < 3; pass++) {
-    for (const buf of [value, weight]) {
+  const blur = (buf: Float32Array) => {
+    for (let pass = 0; pass < 3; pass++) {
       for (let r = 0; r < h; r++) blurLine(buf, r * w, 1, w, rowRadius[r]!, true, prefix);
       for (let c = 0; c < w; c++) blurLine(buf, c, w, h, colRadius, false, prefix);
     }
+  };
+  blur(value);
+  // The blurred field of ones normalises the edges; it depends only on the
+  // grid and the blur, so it is worked out once for each.
+  const key = `${w}x${h}@${sigmaKm}`;
+  let weight = blurWeights.get(key);
+  if (!weight) {
+    weight = new Float32Array(w * h).fill(1);
+    blur(weight);
+    blurWeights.set(key, weight);
   }
   for (let i = 0; i < w * h; i++) value[i] = value[i]! / weight[i]!;
   return value;
 }
+
+/** The blurred field of ones per grid size and blur, shared by every blurField call. */
+const blurWeights = new Map<string, Float32Array>();
 
 /** Sliding-window maximum of radius r along a row, wrapping around, into out. */
 function rowMax(src: Float32Array, off: number, w: number, r: number, out: Float32Array): void {

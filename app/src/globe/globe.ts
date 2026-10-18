@@ -67,7 +67,13 @@ export class Globe {
   /** Sea, ice and ground height at a place, from the loaded data (section 5). */
   readonly query: PlanetQuery;
   private loader: ChunkSource;
+  /** Tile meshes, least recently used first. */
   private tiles = new Map<string, TileEntry>();
+  /** The six faces' root tiles of the quadtree. */
+  private roots = Array.from({ length: FACE_COUNT }, (_, face) =>
+    tileNode({ face, level: 0, x: 0, y: 0 }),
+  );
+  private selected: TileEntry[] = [];
   private frame = 0;
   private buildsThisFrame = 0;
   quality: GlobeQuality = { errorTargetPx: 2.5 };
@@ -96,7 +102,7 @@ export class Globe {
     this.material = new THREE.ShaderMaterial({
       vertexShader: terrainVertex,
       fragmentShader: terrainFragment,
-      side: THREE.DoubleSide,
+      side: THREE.FrontSide,
       uniforms: {
         seaLevel: { value: 0 },
         exaggeration: { value: EXAGGERATION },
@@ -126,14 +132,14 @@ export class Globe {
     this.seaMaterial = new THREE.ShaderMaterial({
       vertexShader: terrainVertex,
       fragmentShader: terrainFragment,
-      side: THREE.DoubleSide,
+      side: THREE.FrontSide,
       uniforms: this.material.uniforms,
       defines: { SEA_SURFACE: 1 },
     });
     this.seaIceMaterial = new THREE.ShaderMaterial({
       vertexShader: terrainVertex,
       fragmentShader: terrainFragment,
-      side: THREE.DoubleSide,
+      side: THREE.FrontSide,
       uniforms: this.material.uniforms,
       defines: { SEA_SURFACE: 1, SEA_ICE: 1 },
     });
@@ -186,8 +192,8 @@ export class Globe {
     // No ink along the globe's outline in low views, where it would cut
     // across the mountains standing above the horizon (section 4.5).
     const lookDown = camera
-      .getWorldDirection(new THREE.Vector3())
-      .dot(camera.position.clone().normalize().negate());
+      .getWorldDirection(_lookDir)
+      .dot(_camDir.copy(camera.position).normalize().negate());
     u.limbInk!.value =
       1 -
       THREE.MathUtils.smoothstep(
@@ -195,100 +201,24 @@ export class Globe {
         LIMB_INK_TILT[0],
         LIMB_INK_TILT[1],
       );
-    const lens = this.lens;
-    u.lensBlend!.value = lens.blend;
-    const corner: Vec3 = [0, 0, 0];
-    const drawnCorner: Vec3 = [0, 0, 0];
+    u.lensBlend!.value = this.lens.blend;
 
     const camPos = camera.position;
     const camDist = camPos.length();
-
-    const frustum = new THREE.Frustum().setFromProjectionMatrix(
-      new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse),
+    _frustum.setFromProjectionMatrix(
+      _viewProjection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse),
     );
-    const pxPerRad = viewportHeight / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
-    const camDir = camPos.clone().normalize();
-    const horizon = Math.acos(Math.min(1, EARTH_RADIUS_KM / camDist));
-
-    // Ice can stand up to about 4 km on land during glacials.
-    const iceRoom = planet.glacialIndex > 0.02 ? 4000 : 0;
-    const selected: TileEntry[] = [];
-    const priorities: number[] = [];
-    const visit = (key: TileKey) => {
-      const c = tileSampleUv(key, TILE_N / 2, TILE_N / 2);
-      const trueCentre = faceUvToDir(key.face, c.u, c.v);
-      // Tiles are chosen and culled where they are drawn (history-lens.md, section 4).
-      const cd = lens.toDrawn(trueCentre);
-      const width = lens.widthAt(trueCentre);
-      let spread = 1;
-      if (lens.blend > 0)
-        for (const [i, j] of CORNERS) {
-          const p = tileSampleUv(key, i, j);
-          faceUvToDir(key.face, p.u, p.v, corner);
-          lens.toDrawn(corner, drawnCorner);
-          const t = angleBetween(trueCentre, corner);
-          if (t > 0) spread = Math.max(spread, angleBetween(cd, drawnCorner) / t);
-        }
-      const ang = tileAngularSize(key.level) * spread;
-      const angle = Math.acos(
-        Math.max(-1, Math.min(1, cd[0] * camDir.x + cd[1] * camDir.y + cd[2] * camDir.z)),
-      );
-      // Highest point of the tile (exaggerated, with room for ice), from its
-      // data tile once loaded; mountains stay visible beyond the horizon.
-      const topKm =
-        (this.maxHeightM(key, angle * EARTH_RADIUS_KM + key.level) + iceRoom + LAND_LIFT_M) *
-        EXAGGERATION *
-        0.001 *
-        width;
-      const beyond = Math.acos(EARTH_RADIUS_KM / (EARTH_RADIUS_KM + Math.max(0, topKm)));
-      if (angle - ang * 0.75 > horizon + beyond + 0.002) return;
-      const centre = new THREE.Vector3(cd[0], cd[1], cd[2]).multiplyScalar(EARTH_RADIUS_KM);
-      const extent = EARTH_RADIUS_KM * ang * 0.75;
-      // The tile is a thin column from sea level to its top: test spheres along it.
-      const top = Math.max(1, topKm);
-      const steps = Math.min(8, Math.ceil(top / Math.max(1, extent)));
-      let inside = false;
-      for (let k = 0; k <= steps && !inside; k++) {
-        const c = centre.clone().addScaledVector(camDirOf(cd), (top * k) / steps);
-        inside = frustum.intersectsSphere(new THREE.Sphere(c, extent + top / (2 * steps) + 0.5));
-      }
-      if (!inside) return;
-      const dist = Math.max(0.5, centre.distanceTo(camPos) - extent);
-      // Geometric error of the vertex grid, estimated as half its sample
-      // spacing at the lens as built, so moving the lens slider does not
-      // re-pick tiles and reload them while it morphs.
-      const errorKm =
-        (0.5 * EARTH_RADIUS_KM * tileAngularSize(key.level) * lens.builtWidthAt(trueCentre)) /
-        TILE_N;
-      const errorPx = (errorKm / dist) * pxPerRad;
-      const priority = dist + key.level;
-
-      const wantsSplit = key.level < maxLevelAt(trueCentre) && errorPx > this.quality.errorTargetPx;
-      if (wantsSplit) {
-        const children = childKeys(key);
-        // Split only when every child has a mesh; otherwise draw this tile and build them.
-        let ready = true;
-        for (const ch of children) if (!this.entryFor(ch, priority)) ready = false;
-        if (ready) {
-          // Keep this tile's mesh too, so zooming out never waits for a rebuild.
-          const own = this.tiles.get(tileId(key));
-          if (own) own.lastUsed = this.frame;
-          for (const ch of children) visit(ch);
-          return;
-        }
-      }
-      const entry = this.entryFor(key, priority);
-      if (entry) {
-        selected.push(entry);
-        priorities.push(priority);
-      } else if (key.level < MAX_RENDER_LEVEL) {
-        // No mesh yet: keep drawing finer children that still exist rather than a hole.
-        const children = childKeys(key);
-        if (children.every((ch) => this.tiles.has(tileId(ch))))
-          for (const ch of children) visit(ch);
-      }
+    const view: View = {
+      camPos,
+      camDir: _camDir.copy(camPos).normalize(),
+      pxPerRad: viewportHeight / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)),
+      horizon: Math.acos(Math.min(1, EARTH_RADIUS_KM / camDist)),
+      // Ice can stand up to about 4 km on land during glacials.
+      iceRoom: planet.glacialIndex > 0.02 ? 4000 : 0,
     };
-    for (let face = 0; face < FACE_COUNT; face++) visit({ face, level: 0, x: 0, y: 0 });
+    const selected = this.selected;
+    selected.length = 0;
+    for (const root of this.roots) this.visit(root, view);
 
     for (const e of this.tiles.values()) e.mesh.visible = false;
     for (const e of selected) e.mesh.visible = true;
@@ -298,9 +228,108 @@ export class Globe {
     this.evict();
   }
 
+  /** Culls a tile, then draws it or walks on into its children (section 4.2). */
+  private visit(node: TileNode, view: View): void {
+    // Children not walked into for a while are forgotten, so the tree stays small.
+    if (node.children && this.frame - node.childFrame > NODE_KEEP_FRAMES) node.children = undefined;
+    const { key } = node;
+    const lens = this.lens;
+    const trueCentre = node.centre;
+    // Tiles are chosen and culled where they are drawn (history-lens.md, section 4).
+    const cd = lens.toDrawn(trueCentre, _drawnCentre);
+    const width = lens.widthAt(trueCentre);
+    let spread = 1;
+    if (lens.blend > 0)
+      for (const corner of node.corners) {
+        lens.toDrawn(corner, _drawnCorner);
+        const t = angleBetween(trueCentre, corner);
+        if (t > 0) spread = Math.max(spread, angleBetween(cd, _drawnCorner) / t);
+      }
+    const ang = tileAngularSize(key.level) * spread;
+    const { camDir } = view;
+    const angle = Math.acos(
+      Math.max(-1, Math.min(1, cd[0] * camDir.x + cd[1] * camDir.y + cd[2] * camDir.z)),
+    );
+    // Highest point of the tile (exaggerated, with room for ice), from its
+    // data tile once loaded; mountains stay visible beyond the horizon.
+    const topKm =
+      (this.maxHeightM(node, angle * EARTH_RADIUS_KM + key.level) + view.iceRoom + LAND_LIFT_M) *
+      EXAGGERATION *
+      0.001 *
+      width;
+    const beyond = Math.acos(EARTH_RADIUS_KM / (EARTH_RADIUS_KM + Math.max(0, topKm)));
+    if (angle - ang * 0.75 > view.horizon + beyond + 0.002) return;
+    const centre = _centre.set(cd[0], cd[1], cd[2]).multiplyScalar(EARTH_RADIUS_KM);
+    const extent = EARTH_RADIUS_KM * ang * 0.75;
+    // The tile is a thin column from sea level to its top: test spheres along it.
+    const top = Math.max(1, topKm);
+    const steps = Math.min(8, Math.ceil(top / Math.max(1, extent)));
+    const axis = _axis.set(cd[0], cd[1], cd[2]);
+    _sphere.radius = extent + top / (2 * steps) + 0.5;
+    let inside = false;
+    for (let k = 0; k <= steps && !inside; k++) {
+      _sphere.center.copy(centre).addScaledVector(axis, (top * k) / steps);
+      inside = _frustum.intersectsSphere(_sphere);
+    }
+    if (!inside) return;
+    const dist = Math.max(0.5, centre.distanceTo(view.camPos) - extent);
+    // Geometric error of the vertex grid, estimated as half its sample
+    // spacing at the lens as built, so moving the lens slider does not
+    // re-pick tiles and reload them while it morphs.
+    const errorKm =
+      (0.5 * EARTH_RADIUS_KM * tileAngularSize(key.level) * lens.builtWidthAt(trueCentre)) / TILE_N;
+    const errorPx = (errorKm / dist) * view.pxPerRad;
+    const priority = dist + key.level;
+
+    const wantsSplit = key.level < node.maxLevel && errorPx > this.quality.errorTargetPx;
+    if (wantsSplit) {
+      const children = this.childrenOf(node);
+      // Split only when every child has a mesh; otherwise draw this tile and build them.
+      let ready = true;
+      for (const ch of children) if (!this.entryFor(ch, priority)) ready = false;
+      if (ready) {
+        // Keep this tile's mesh too, so zooming out never waits for a rebuild.
+        const own = this.tiles.get(node.id);
+        if (own) this.touch(own);
+        for (const ch of children) this.visit(ch, view);
+        return;
+      }
+    }
+    const entry = this.entryFor(node, priority);
+    if (entry) this.selected.push(entry);
+    else if (key.level < MAX_RENDER_LEVEL) {
+      // No mesh yet: keep drawing finer children that still exist rather than a hole.
+      const children = this.childrenOf(node);
+      if (children.every((ch) => this.tiles.has(ch.id)))
+        for (const ch of children) this.visit(ch, view);
+    }
+  }
+
+  private childrenOf(node: TileNode): TileNode[] {
+    node.childFrame = this.frame;
+    return (node.children ??= childKeys(node.key).map(tileNode));
+  }
+
+  /** Marks a mesh as used this frame, moving it to the back of the eviction order. */
+  private touch(entry: TileEntry): void {
+    entry.lastUsed = this.frame;
+    const id = tileId(entry.key);
+    this.tiles.delete(id);
+    this.tiles.set(id, entry);
+  }
+
+  /** The data tile a tile is sampled from, if loaded, requesting it if needed. */
+  private sourceOf(node: TileNode, priority: number): TerrainTile | 'deep' | undefined {
+    if (!node.data) {
+      const key = this.store.dataKeyFor(node.key);
+      node.data = { key, id: tileId(key) };
+    }
+    return this.store.terrainTile(node.data.key, priority, node.data.id);
+  }
+
   /** Highest terrain in metres under a tile, from its data tile; a safe guess until loaded. */
-  private maxHeightM(key: TileKey, priority: number): number {
-    const src = this.store.sourceFor(key, priority);
+  private maxHeightM(node: TileNode, priority: number): number {
+    const src = this.sourceOf(node, priority);
     if (src === 'deep') return 0;
     if (!src) return 9000;
     let m = this.maxHeights.get(src);
@@ -312,12 +341,12 @@ export class Globe {
     return Math.max(0, m);
   }
 
-  private entryFor(key: TileKey, priority: number): TileEntry | undefined {
-    const id = tileId(key);
+  private entryFor(node: TileNode, priority: number): TileEntry | undefined {
+    const { key, id } = node;
     const existing = this.tiles.get(id);
-    const source = this.store.sourceFor(key, priority);
+    const source = this.sourceOf(node, priority);
     if (existing) {
-      existing.lastUsed = this.frame;
+      this.touch(existing);
       return existing;
     }
     if (!source) return undefined;
@@ -330,8 +359,7 @@ export class Globe {
     // A tile that is sea at every date is its flat sea surface alone, which
     // also carries ice over the sea; polar tiles use a coarser grid; a tile
     // that is never sea needs no sea surface (section 4.2).
-    const c = tileSampleUv(key, TILE_N / 2, TILE_N / 2);
-    const polar = maxLevelAt(faceUvToDir(key.face, c.u, c.v)) === POLAR_MAX_LEVEL;
+    const polar = node.maxLevel === POLAR_MAX_LEVEL;
     if (g.alwaysSea) g.geometry.setIndex(indexFor(g.flip, SEA_STEP));
     else if (polar) g.geometry.setIndex(indexFor(g.flip, g.neverSea ? SEA_STEP : POLAR_STEP));
     const material = g.alwaysSea ? this.seaIceMaterial : this.material;
@@ -372,17 +400,18 @@ export class Globe {
     return entry;
   }
 
+  /**
+   * Drops the least recently used meshes beyond the cache size. Meshes are
+   * kept in order of last use, so this stops at the first one used this frame.
+   */
   private evict(): void {
-    if (this.tiles.size <= MAX_CACHED_MESHES) return;
-    const old = [...this.tiles.values()]
-      .filter((e) => e.lastUsed < this.frame)
-      .sort((a, b) => a.lastUsed - b.lastUsed);
-    for (const e of old.slice(0, this.tiles.size - MAX_CACHED_MESHES)) {
+    for (const [id, e] of this.tiles) {
+      if (this.tiles.size <= MAX_CACHED_MESHES || e.lastUsed >= this.frame) break;
       this.group.remove(e.mesh);
       for (const child of e.mesh.children) (child as THREE.Mesh).geometry.dispose();
       e.mesh.geometry.dispose();
       (e.mesh.userData.fields as THREE.DataTexture).dispose();
-      this.tiles.delete(tileId(e.key));
+      this.tiles.delete(id);
     }
   }
 
@@ -424,6 +453,61 @@ function maxLevelAt(d: Vec3): number {
   return lat > 74 || lat < -62 ? POLAR_MAX_LEVEL : MAX_RENDER_LEVEL;
 }
 
-function camDirOf(d: Vec3): THREE.Vector3 {
-  return new THREE.Vector3(d[0], d[1], d[2]);
+/** What the tile selection needs to know about the camera in a frame. */
+interface View {
+  camPos: THREE.Vector3;
+  /** Direction from the globe's centre to the camera. */
+  camDir: THREE.Vector3;
+  pxPerRad: number;
+  /** Angle from the camera direction to the horizon. */
+  horizon: number;
+  /** Room for ice on top of the terrain, in metres. */
+  iceRoom: number;
 }
+
+/** Frames a tile's children are remembered after the selection last walked into them. */
+const NODE_KEEP_FRAMES = 600;
+
+/** A quadtree tile as the selection walks it, with what never changes worked out once. */
+interface TileNode {
+  key: TileKey;
+  id: string;
+  /** True direction of the tile centre. */
+  centre: Vec3;
+  /** True directions of the tile corners, for the lens's spread. */
+  corners: Vec3[];
+  maxLevel: number;
+  /** The data tile it is sampled from, found on first use. */
+  data?: { key: TileKey; id: string };
+  children: TileNode[] | undefined;
+  /** The frame in which the selection last walked into the children. */
+  childFrame: number;
+}
+
+function tileNode(key: TileKey): TileNode {
+  const dirAt = (i: number, j: number) => {
+    const p = tileSampleUv(key, i, j);
+    return faceUvToDir(key.face, p.u, p.v);
+  };
+  const centre = dirAt(TILE_N / 2, TILE_N / 2);
+  return {
+    key,
+    id: tileId(key),
+    centre,
+    corners: CORNERS.map(([i, j]) => dirAt(i, j)),
+    maxLevel: maxLevelAt(centre),
+    children: undefined,
+    childFrame: 0,
+  };
+}
+
+// Scratch objects for the tile selection, which runs every frame.
+const _frustum = new THREE.Frustum();
+const _viewProjection = new THREE.Matrix4();
+const _camDir = new THREE.Vector3();
+const _lookDir = new THREE.Vector3();
+const _centre = new THREE.Vector3();
+const _axis = new THREE.Vector3();
+const _sphere = new THREE.Sphere();
+const _drawnCentre: Vec3 = [0, 0, 0];
+const _drawnCorner: Vec3 = [0, 0, 0];

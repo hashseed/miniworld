@@ -47,7 +47,7 @@ export default tseslint.config(
   {
     // The world query may differ between engines in the last bits of these
     // functions, so it never calls them (spec milestone 2, section 2.3).
-    files: ['app/src/world/**/*.ts'],
+    files: ['app/src/world/**/*.ts', 'app/src/core/detmath.ts'],
     rules: {
       'no-restricted-properties': [
         'error',

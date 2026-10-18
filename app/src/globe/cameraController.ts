@@ -62,6 +62,26 @@ export interface LensView {
   widthAt(dir: Vec3): number;
 }
 
+// Scratch vectors for placing the camera, which runs every frame.
+const _up = new THREE.Vector3();
+const _target = new THREE.Vector3();
+const _north = new THREE.Vector3();
+const _east = new THREE.Vector3();
+const _forward = new THREE.Vector3();
+const _back = new THREE.Vector3();
+const _pos = new THREE.Vector3();
+const _camUp = new THREE.Vector3();
+const _dir = new THREE.Vector3();
+const _vec3: Vec3 = [0, 0, 0];
+
+/** A vector as a direction for the surface, in a shared scratch array. */
+function toVec3(v: THREE.Vector3): Vec3 {
+  _vec3[0] = v.x;
+  _vec3[1] = v.y;
+  _vec3[2] = v.z;
+  return _vec3;
+}
+
 const IDENTITY_LENS: LensView = {
   toDrawn: (d) => d,
   toTrue: (d) => d,
@@ -189,39 +209,37 @@ export class CameraController {
 
   private place(dt: number): void {
     const s = this.state;
-    const up = new THREE.Vector3(...this.lens.toDrawn(latLonToDir(s.lat, s.lon)));
-    const ground = this.surface.surfaceKm([up.x, up.y, up.z]);
+    const up = _up.fromArray(this.lens.toDrawn(latLonToDir(s.lat, s.lon)));
+    const ground = this.surface.surfaceKm(toVec3(up));
     this.targetSurfKm =
       this.targetSurfKm === undefined
         ? ground
         : this.targetSurfKm + (ground - this.targetSurfKm) * (1 - Math.exp(-dt * 2));
     const surf = this.targetSurfKm;
-    const target = up.clone().multiplyScalar(EARTH_RADIUS_KM + surf);
-    const north = new THREE.Vector3();
-    const east = new THREE.Vector3();
+    const target = _target.copy(up).multiplyScalar(EARTH_RADIUS_KM + surf);
+    const north = _north;
+    const east = _east;
     northEast(up, north, east);
     const h = THREE.MathUtils.degToRad(s.heading);
-    const forward = north
-      .clone()
+    const forward = _forward
+      .copy(north)
       .multiplyScalar(Math.cos(h))
-      .add(east.clone().multiplyScalar(Math.sin(h)));
+      .addScaledVector(east, Math.sin(h));
     const tilt = THREE.MathUtils.degToRad(this.totalTilt);
-    const back = up
-      .clone()
+    const back = _back
+      .copy(up)
       .multiplyScalar(Math.cos(tilt))
-      .sub(forward.clone().multiplyScalar(Math.sin(tilt)));
-    const pos = target.clone().add(back.multiplyScalar(s.altitudeKm));
+      .addScaledVector(forward, -Math.sin(tilt));
+    const pos = _pos.copy(target).addScaledVector(back, s.altitudeKm);
     // Keep clear of the ground under the camera.
-    const camUp = pos.clone().normalize();
-    const clear =
-      EARTH_RADIUS_KM + this.surface.surfaceKm([camUp.x, camUp.y, camUp.z]) + MIN_CLEARANCE_KM;
+    const camUp = _camUp.copy(pos).normalize();
+    const clear = EARTH_RADIUS_KM + this.surface.surfaceKm(toVec3(camUp)) + MIN_CLEARANCE_KM;
     if (pos.length() < clear) pos.setLength(clear);
     this.camera.position.copy(pos);
-    const camUpVec = forward
-      .clone()
+    this.camera.up
+      .copy(forward)
       .lerp(up, Math.cos(tilt) < 0.5 ? 1 - Math.cos(tilt) : 0.5)
       .normalize();
-    this.camera.up.copy(camUpVec);
     this.camera.lookAt(target);
     const dist = pos.length() - EARTH_RADIUS_KM;
     this.camera.near = Math.max(0.01, dist * 0.02);
@@ -231,8 +249,7 @@ export class CameraController {
   }
 
   private dirOf(v: THREE.Vector3): Vec3 {
-    const n = v.clone().normalize();
-    return [n.x, n.y, n.z];
+    return toVec3(_dir.copy(v).normalize());
   }
 
   /** Angle per screen pixel (radians) for moving over the ground. */
