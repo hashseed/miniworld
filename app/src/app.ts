@@ -200,7 +200,9 @@ const loop = new FrameLoop(
     wildlife,
     tree,
     hot,
-    stress: STRESS ? new StressRun(scene) : undefined,
+    stress: STRESS
+      ? new StressRun(scene, Number(params.get('pathFrames')) || undefined)
+      : undefined,
     isPhone,
   },
   () => ({
@@ -613,6 +615,15 @@ if (import.meta.env.DEV)
       sky,
       camera,
       timeline: () => timeline,
+      /**
+       * Fixes the render scale for browser screenshots, so they do not depend
+       * on how fast the software renderer draws (section 11.3).
+       */
+      pinRenderScale: (scale: number) => {
+        dynres.configure(scale, Infinity);
+        dynres.scale = scale;
+        frames.setSize(innerWidth, innerHeight, scale);
+      },
     },
   });
 

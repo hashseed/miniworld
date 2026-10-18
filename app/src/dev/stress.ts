@@ -40,9 +40,18 @@ export function stressCamera(ms: number): CameraState {
 export class StressRun {
   private scene: StressScene;
   private start = 0;
+  /**
+   * With a number of frames (`&pathFrames=` in the URL, for the browser
+   * test), the camera moves along the path by an equal step each frame
+   * instead of with the time, so a slow browser still sees the whole path at
+   * the same points.
+   */
+  private pathFrames: number | undefined;
+  private frame = 0;
 
-  constructor(parent: THREE.Scene) {
+  constructor(parent: THREE.Scene, pathFrames?: number) {
     this.scene = new StressScene(QUALITY.animatedFigures);
+    this.pathFrames = pathFrames && pathFrames > 0 ? Math.floor(pathFrames) : undefined;
     parent.add(this.scene.group);
   }
 
@@ -52,12 +61,17 @@ export class StressRun {
 
   /** Whether one full camera path has been flown. */
   done(now: number): boolean {
+    if (this.pathFrames) return this.frame >= this.pathFrames;
     return now - this.start >= STRESS_PATH_MS;
   }
 
   /** Puts the camera on the path, before the camera updates. */
   steer(now: number, controller: CameraController): void {
-    controller.state = stressCamera(now - this.start);
+    const ms = this.pathFrames
+      ? (Math.min(this.frame, this.pathFrames - 1) * STRESS_PATH_MS) / this.pathFrames
+      : now - this.start;
+    this.frame++;
+    controller.state = stressCamera(ms);
     controller.cancelFlight();
   }
 
