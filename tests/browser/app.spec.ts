@@ -158,7 +158,9 @@ test('keyboard plays history and moves the camera', async ({ page }) => {
   await page.keyboard.up('ArrowUp');
 });
 
-test('True sizes morphs the globe and keeps the point in view', async ({ page }) => {
+test('the lens slider morphs the globe and keeps the point in view', async ({ page }) => {
+  // Two morphs and a reload: on the slow CI runners this needs more than the usual budget.
+  test.slow();
   await open(page);
   const lens = () =>
     page.evaluate(() => {
@@ -176,25 +178,28 @@ test('True sizes morphs the globe and keeps the point in view', async ({ page })
         lon: m.controller.state.lon,
       };
     });
-  const button = page.getByTestId('true-sizes');
-  await expect(button).toHaveAttribute('aria-pressed', 'false');
+  const slider = page.getByTestId('lens-strength');
+  await expect(slider).toHaveValue('100');
+  await expect(page.locator('.lens-slider output')).toHaveText('100%');
   expect((await lens()).blend).toBe(1);
   const before = await lens();
   const lensOn = await page.locator('#globe').screenshot();
-  await button.click();
-  await expect(button).toHaveAttribute('aria-pressed', 'true');
+  await slider.fill('0');
   // The blend passes through values between the two states, then settles at true sizes.
-  await expect.poll(async () => (await lens()).blend).toBe(0);
+  await expect.poll(async () => (await lens()).blend, { timeout: 90_000 }).toBe(0);
   const after = await lens();
   expect(after.lat).toBeCloseTo(before.lat, 6);
   expect(after.lon).toBeCloseTo(before.lon, 6);
   const lensOff = await page.locator('#globe').screenshot();
   expect(lensOff.equals(lensOn)).toBe(false);
-  // The setting and the button are one saved value.
-  await page.getByRole('button', { name: en['menu.settings'] }).click();
-  await expect(page.getByLabel(en['settings.historyLens']!)).not.toBeChecked();
-  await page.getByLabel(en['settings.historyLens']!).check();
-  await expect(button).toHaveAttribute('aria-pressed', 'false');
+  await slider.fill('200');
+  await expect.poll(async () => (await lens()).blend, { timeout: 90_000 }).toBe(2);
+  await expect(page.locator('.lens-slider output')).toHaveText('200%');
+  // The strength is saved.
+  await page.reload();
+  await expect(page.locator('.overlay')).toHaveCount(0, { timeout: 60_000 });
+  await expect(slider).toHaveValue('200');
+  expect((await lens()).blend).toBe(2);
 });
 
 test('the lens hint shows once until closed', async ({ page }) => {

@@ -15,7 +15,7 @@ import { LENS_COLS, LENS_ROWS, LENS_STEP } from './lens.ts';
  */
 const lensChunk = /* glsl */ `
 uniform sampler2D lensGrid; // drawn direction (xyz) and width factor (w) per grid point
-uniform float lensBlend;    // 0 true sizes .. 1 full lens
+uniform float lensBlend;    // strength: 0 true sizes, 1 the warp as built, 2 twice as strong
 uniform float earthRadius;
 
 vec4 lensAt(vec3 d) {

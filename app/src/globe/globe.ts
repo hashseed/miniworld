@@ -128,9 +128,9 @@ export class Globe {
     });
   }
 
-  /** Uses a loaded warp, keeping the current state of the switch. */
+  /** Uses a loaded warp, keeping the current strength. */
   setLens(lens: Lens): void {
-    lens.setOn(this.lens.isOn, false);
+    lens.setStrength(this.lens.strength, false);
     this.lens = lens;
     this.lensTexture.dispose();
     this.lensTexture = this.makeLensTexture();

@@ -489,6 +489,28 @@ export function jacobians(forward: Float64Array): { area: Float64Array; aniso: F
   return { area, aniso };
 }
 
+/**
+ * The forward grid at a strength other than 100%: every point moved that many
+ * times as far from its true position, as the app draws it (history-lens.md, 4.1).
+ */
+export function atStrength(forward: Float64Array, strength: number): Float64Array {
+  const out = new Float64Array(forward.length);
+  const d: Vec3 = [0, 0, 0];
+  for (let j = 0; j < LENS_ROWS; j++)
+    for (let i = 0; i < LENS_COLS; i++) {
+      gridPointDir(i, j, d);
+      const k = (j * LENS_COLS + i) * 3;
+      const x = d[0] + (forward[k]! - d[0]) * strength;
+      const y = d[1] + (forward[k + 1]! - d[1]) * strength;
+      const z = d[2] + (forward[k + 2]! - d[2]) * strength;
+      const len = Math.hypot(x, y, z);
+      out[k] = x / len;
+      out[k + 1] = y / len;
+      out[k + 2] = z / len;
+    }
+  return out;
+}
+
 export function checkLens(forward: Float64Array, params: LensParams): LensChecks {
   const { area, aniso } = jacobians(forward);
   let folds = 0;
