@@ -654,13 +654,25 @@ function addWig(
   band: string,
 ): void {
   if (kind === 'child') {
+    // Dark stubble on the shaved scalp, so it reads as a hairstyle, not as bald.
     mb.add(
-      blob([0, headY + hr * 0.2, -hr * 0.06], [hr * 1.02, hr * 0.84, hr * 0.98], 7),
-      shade(skin, -0.12),
+      blob([0, headY + hr * 0.2, -hr * 0.06], [hr * 1.03, hr * 0.86, hr * 0.99], 7),
+      shade(skin, -0.5),
       'head',
     );
+    // The braided sidelock on the right, from the temple to the shoulder, curled at the end.
+    for (let i = 0; i < 4; i++)
+      mb.add(
+        blob(
+          [hr * (1.0 + i * 0.03), headY + hr * (0.25 - i * 0.45), hr * 0.05],
+          [hr * 0.3, hr * 0.3, hr * 0.3],
+          5,
+        ),
+        hair,
+        'head',
+      );
     mb.add(
-      blob([hr * 0.95, headY - hr * 0.45, hr * 0.05], [hr * 0.24, hr * 0.7, hr * 0.24], 5),
+      blob([hr * 0.95, headY - hr * 1.55, hr * 0.25], [hr * 0.22, hr * 0.2, hr * 0.26], 5),
       hair,
       'head',
     );
