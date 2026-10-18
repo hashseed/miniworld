@@ -16,6 +16,7 @@ Humankind never began with one person. Our species, *Homo sapiens*, arose in Afr
 
 - **Why Lake Turkana.** The Turkana basin, on the border of Kenya and Ethiopia, is one of the richest places on Earth for fossils of early humans and their relatives. The oldest well-dated *Homo sapiens* bones of East Africa, Omo I, about 233,000 years old, come from the Omo valley just north of the lake (Vidal et al. 2022, *Nature* 601). The name "Cradle of Humankind" is also used for a group of cave sites in South Africa; the card names Lake Turkana and says that early humans lived in many parts of Africa.
 - **Place.** Koobi Fora, on the eastern shore of the lake, at about 3.95° N, 36.20° E (**Proposed**).
+- **Her look** (decided by Yang on 2026-10-18: a woman): the model `figure-first-person` of [milestone-2.md](milestone-2.md#133-the-prehistoric-model-set) section 13.3, an `african-stone-age` woman with a fixed look and a spear. Her red-ochre headband stays with her in every later era, whatever her clothes, so the root of the tree can always be found.
 - **Founder's card** (draft, both languages):
   - en: "The first person in this world. Our species, *Homo sapiens*, began in Africa about 300,000 years ago, and some of its oldest bones were found near Lake Turkana. Real humankind did not start with one person: she stands for the first people of Africa. Everyone you will see on this globe comes from here."
   - de: "Der erste Mensch dieser Welt. Unsere Art, *Homo sapiens*, entstand vor etwa 300.000 Jahren in Afrika, und einige ihrer ältesten Knochen wurden nahe dem Turkana-See gefunden. In Wirklichkeit begann die Menschheit nicht mit einem einzigen Menschen: Sie steht für die ersten Menschen Afrikas. Alle, die du auf diesem Globus sehen wirst, stammen von hier."
@@ -115,7 +116,7 @@ The build steps through time in steps of 25 years of history (**Proposed**; one 
 
 - **Camps move.** Before villages, a camp moves to a new spot inside its area at the end of every residence window (1,000 years before 10,000 BCE, milestone 2 section 3.2). Its figures take down their lodgings, walk together to the new spot and build them again. The tree records the move as new home entries and new lodgings, so a band is seen walking, never fading out and back in.
 - **The land changes.** When the sea rises over a camp, ice advances over it or the land turns to desert, the camp moves to the nearest habitable spot before that happens; nobody is lost to it. The Green Sahara (spec section 3) opens land to camps between about 9000 and 3500 BCE, and as it dries the camps move away, south or to the Nile.
-- **Lost figures.** People never die of age (spec section 2.4). War, famine, epidemic and disaster events remove the share of figures in their area that the record gives; which figures are lost is decided by hash, so it is the same every time (spec section 9). A lost figure sinks down and fades out, with no blood (spec section 4). The first person is never lost (**Proposed**), so the root of the tree can always be found, still living by Lake Turkana and taking on each new era's role there.
+- **Lost figures.** People never die of age (spec section 2.4). War, famine, epidemic and disaster events remove the share of figures in their area that the record gives; which figures are lost is decided by hash, so it is the same every time (spec section 9). A lost figure sinks down and fades out, with no blood (spec section 4). The first person is never lost, so the root of the tree can always be found, still living by Lake Turkana and taking on each new era's role there.
 - **Refilling.** After a loss the camp is below its target again, and new figures come out of its lodgings as the population recovers, at the pace the data gives.
 
 ## 5. The tree build
@@ -171,4 +172,4 @@ Nothing about the tree is simulated in the app. The world query loads the tree c
 
 ## 9. Open questions for Yang
 
-1. The first person drawn as a woman of the `african-stone-age` profile, never lost (sections 2 and 4.4).
+None at the moment.
