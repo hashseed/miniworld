@@ -35,7 +35,10 @@ const HIT_PX = 26;
 const FLY_ALTITUDE_KM = 12;
 
 export interface SurfaceSource {
+  /** Drawn surface height in km over a drawn direction. */
   surfaceKm(dir: Vec3): number;
+  /** Where a true direction is drawn, through the history lens (history-lens.md section 4). */
+  toDrawn(dir: Vec3): Vec3;
 }
 
 interface Stage {
@@ -46,6 +49,8 @@ interface Stage {
   cast: THREE.Group;
   actors: StandIn[];
   marker: THREE.Sprite;
+  /** The site in true coordinates; the stage stands at its drawn position. */
+  trueDir: Vec3;
   up: THREE.Vector3;
   east: THREE.Vector3;
   north: THREE.Vector3;
@@ -74,6 +79,8 @@ export class VignetteLayer {
   private ambient = new THREE.AmbientLight(0xffffff, 0.9);
   private camera: THREE.PerspectiveCamera | undefined;
   private down: { x: number; y: number; t: number } | undefined;
+  private basis = new THREE.Matrix4();
+  private south = new THREE.Vector3();
 
   constructor(loader: ContentLoader, surface: SurfaceSource, element: HTMLElement) {
     this.loader = loader;
@@ -128,6 +135,7 @@ export class VignetteLayer {
     const camPos = camera.position;
     const markerScale = (MARKER_PX * 2) / (camera.projectionMatrix.elements[5]! * innerHeight);
     for (const stage of this.stages.values()) {
+      this.place(stage);
       const toCam = camPos.clone().sub(stage.centre);
       const distance = toCam.length();
       const facing = toCam.dot(stage.up) > 0;
@@ -160,18 +168,7 @@ export class VignetteLayer {
       members = buildMembers(v.template);
       this.members.set(entry.structure, members);
     }
-    const lat = instance.site.lat / 1e6;
-    const lon = instance.site.lon / 1e6;
-    const up = new THREE.Vector3(...latLonToDir(lat, lon));
-    const north = new THREE.Vector3(0, 1, 0).addScaledVector(up, -up.y).normalize();
-    const east = new THREE.Vector3().crossVectors(north, up).normalize();
-    // Local frame: x east, y up, z south.
     const root = new THREE.Group();
-    root.quaternion.setFromRotationMatrix(
-      new THREE.Matrix4().makeBasis(east, up, north.clone().negate()),
-    );
-    const baseKm = this.surface.surfaceKm([up.x, up.y, up.z]);
-    root.position.copy(up).multiplyScalar(EARTH_RADIUS_KM + baseKm);
     const cast = new THREE.Group();
     root.add(cast);
     const actors = members.map((m) => {
@@ -193,14 +190,35 @@ export class VignetteLayer {
       cast,
       actors,
       marker,
-      up,
-      east,
-      north,
-      baseKm,
-      centre: root.position.clone(),
+      trueDir: latLonToDir(instance.site.lat / 1e6, instance.site.lon / 1e6),
+      up: new THREE.Vector3(),
+      east: new THREE.Vector3(),
+      north: new THREE.Vector3(),
+      baseKm: 0,
+      centre: new THREE.Vector3(),
       markerOpacity: 0,
     };
+    this.place(stage);
     return stage;
+  }
+
+  /**
+   * Stands a stage at the drawn position of its site, on the ground, in a
+   * local frame of x east, y up and z south. The lens and the terrain can
+   * change from frame to frame (finer tiles arrive, the lens morphs), so
+   * this runs every frame.
+   */
+  private place(stage: Stage): void {
+    const { up, east, north, root } = stage;
+    up.set(...this.surface.toDrawn(stage.trueDir)).normalize();
+    north.set(0, 1, 0).addScaledVector(up, -up.y).normalize();
+    east.crossVectors(north, up).normalize();
+    root.quaternion.setFromRotationMatrix(
+      this.basis.makeBasis(east, up, this.south.copy(north).negate()),
+    );
+    stage.baseKm = this.surface.surfaceKm([up.x, up.y, up.z]);
+    root.position.copy(up).multiplyScalar(EARTH_RADIUS_KM + stage.baseKm);
+    stage.centre.copy(root.position);
   }
 
   private pose(stage: Stage, lifeMs: number): void {
@@ -217,12 +235,7 @@ export class VignetteLayer {
         .normalize();
       return this.surface.surfaceKm([dir.x, dir.y, dir.z]);
     };
-    const base = groundAt(0, 0);
-    if (base !== stage.baseKm) {
-      stage.baseKm = base;
-      stage.root.position.copy(stage.up).multiplyScalar(EARTH_RADIUS_KM + base);
-      stage.centre.copy(stage.root.position);
-    }
+    const base = stage.baseKm;
     const poses = posesAt(v.template, stage.members, stage.instance, lifeMs);
     for (let i = 0; i < poses.length; i++) {
       const p = poses[i]!;

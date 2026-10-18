@@ -143,7 +143,11 @@ const controller = new CameraController(
   surface,
   savedView?.camera ?? (STRESS ? stressCamera(0) : DEFAULT_CAMERA),
 );
-const vignettes = new VignetteLayer(loader, surface, canvas);
+const vignettes = new VignetteLayer(
+  loader,
+  { surfaceKm: surface.surfaceKm, toDrawn: (d) => globe.lens.toDrawn(d) },
+  canvas,
+);
 scene.add(vignettes.group);
 vignettes.onOpen = (entry) => void openVignette(entry);
 vignettes.onFly = (lat, lon, altitudeKm) =>
