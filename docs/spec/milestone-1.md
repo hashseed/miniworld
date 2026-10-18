@@ -139,9 +139,9 @@ in exact integer arithmetic (the product stays below 2⁵³ for the whole timeli
 
 | Mode | Factor | Rate shown | Icon |
 | --- | --- | --- | --- |
-| Snail | ×1/8 | ≈ 3 years/min | A snail |
-| Regular | ×1 (default) | 25 years/min | A single play arrow |
-| Fast forward | ×16 | 400 years/min | A double arrow |
+| Snail | ×1/8 | ≈ 3 years/min | A turtle |
+| Regular | ×1 (default) | 25 years/min | A walking person |
+| Fast forward | ×16 | 400 years/min | A galloping horse |
 
 The mode only changes how fast the clock advances, never the clock time itself, so changing it never changes the date or what is on screen. Figures and vignettes run on the clock, so they move faster in fast forward and in slow motion in snail mode. Keys `[` and `]` step to the slower and the faster mode. At the end of the timeline the clock stops and switches to *paused*.
 
@@ -317,7 +317,7 @@ The camera has one fly-to operation used by bookmarks now and by events and famo
 ### 8.1 Screen layout
 
 - The globe fills the screen. Text on buttons, the speed selector, the date ribbon and the timeline cannot be selected, so clicking and dragging never highlights it (decided by Yang on 2026-10-17); text in the About panel and in cards can be selected. The timeline runs along the bottom. Above its left end sit the play controls: one play/pause button, the speed modes and the rate readout. The top-right corner holds three buttons: bookmarks, settings and About. The history lens button ([history-lens.md](history-lens.md) section 1) sits at the bottom right, at the right end of that row, just above the timeline.
-- Sliders fold away behind icon buttons, so the screen stays calm (decided by Yang on 2026-10-18). The three speed-mode buttons (section 3.3) fold away behind the play/pause button, and the history lens slider behind a magnifying-glass button. Pointing at a button shows a short explanation of what it does, and the speed modes or the slider slide out beside it while the pointer is over the button or them, and fold away when the pointer leaves. On touch screens, where nothing can be pointed at, tapping the button opens them (the play/pause button also plays or pauses), and tapping anywhere else folds them away again. They also open while they have keyboard focus. While folded, the play/pause button shows a small snail or double arrow when the mode is not regular. The play/pause explanation is "Play history; the buttons beside it set the speed" ("Geschichte abspielen; die Knöpfe daneben stellen die Geschwindigkeit ein"), or "Pause history; …" ("Geschichte anhalten; …") while playing. The speed modes are named "Snail", "Regular" and "Fast forward" ("Schnecke", "Normal", "Vorspulen").
+- Sliders fold away behind icon buttons, so the screen stays calm (decided by Yang on 2026-10-18). The three speed-mode buttons (section 3.3) fold away behind the play/pause button, and the history lens slider behind a magnifying-glass button. Pointing at a button shows a short explanation of what it does, and the slider slides out beside its button while the pointer is over the button or the slider. The speed modes pop up above the play/pause button as a column of bare buttons as wide as it, with no box around them, fast forward at the top and snail nearest the button, so they never cover the date beside it (Yang, 2026-10-18; icons by Yang the same day: turtle, walking person, galloping horse). Both fold away when the pointer leaves. On touch screens, where nothing can be pointed at, tapping the button opens them (the play/pause button also plays or pauses), and tapping anywhere else folds them away again. They also open while they have keyboard focus. While folded, the play/pause button shows a small turtle or horse when the mode is not regular. The play/pause explanation is "Play history; the buttons above it set the speed" ("Geschichte abspielen; die Knöpfe darüber stellen die Geschwindigkeit ein"), or "Pause history; …" ("Geschichte anhalten; …") while playing. The speed modes are named "Slow", "Regular" and "Fast" ("Langsam", "Normal", "Schnell").
 - The date readout is large and clear above the timeline's playhead area, in the format of section 3.2.
 - All controls are at least 44 by 44 CSS pixels on touch devices, have visible focus outlines, and have accessible names in the current language.
 
