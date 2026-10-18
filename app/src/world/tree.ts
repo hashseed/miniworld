@@ -37,6 +37,11 @@ export interface TreeLodging {
   builder: number;
   /** Its place on the ring round the camp's hearth, free of the camp's other lodgings (section 8.1). */
   slot: number;
+  /**
+   * How far its people can go out on land through each gap between the camp's lodgings,
+   * in layout metres, for their outings (section 8.1); 0 where water is close.
+   */
+  reach: number[];
   /** Asset id of its model, from the architecture set of its culture. */
   kind: string;
 }

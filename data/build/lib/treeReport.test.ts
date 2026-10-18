@@ -35,6 +35,7 @@ const tree: Tree = {
       gone: NEVER,
       builder: 0,
       slot: 0,
+      reach: [80, 80, 80, 80, 80],
       kind: 'hut',
     },
     {
@@ -46,6 +47,7 @@ const tree: Tree = {
       gone: NEVER,
       builder: 1,
       slot: 0,
+      reach: [80, 80, 80, 80, 80],
       kind: 'hut',
     },
   ],

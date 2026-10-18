@@ -68,7 +68,7 @@ A camp has a hearth, two to five shelters from the culture's architecture set, w
 
 ### 3.3 Density
 
-Each culture area per period carries a `density` of `sparse`, `low` or `medium`, which sets the spacing between camps (**Proposed**: about 900, 600 and 400 km, [humankind.md](humankind.md#41-targets) section 4.1). Every camp shows a band of 3 to 5 figures, whatever the density (decided by Yang on 2026-10-18). These are visual densities, not population counts: the card for a camp says that a band was usually 20 to 50 people and that the whole world then held perhaps a few million. No population data is used in later milestones either; settlements carry size classes, and population estimates only check the tree ([humankind.md](humankind.md#61-checking-against-population-estimates) section 6.1).
+Each culture area per period carries a `density` of `sparse`, `low` or `medium`, which sets the spacing between camps (**Proposed**: about 1,350, 900 and 600 km, [humankind.md](humankind.md#41-targets) section 4.1). Every camp shows a band of 3 to 5 figures, whatever the density (decided by Yang on 2026-10-18). These are visual densities, not population counts: the card for a camp says that a band was usually 20 to 50 people and that the whole world then held perhaps a few million. No population data is used in later milestones either; settlements carry size classes, and population estimates only check the tree ([humankind.md](humankind.md#61-checking-against-population-estimates) section 6.1).
 
 ## 4. Culture profiles of this milestone
 

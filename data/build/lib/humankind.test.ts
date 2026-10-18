@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { msAtDay } from '../../../app/src/time/rate.ts';
-import { treeScene } from '../../../app/src/world/treeScene.ts';
+import { LAYOUT_KM_PER_M, treeScene } from '../../../app/src/world/treeScene.ts';
 import { describe, expect, it } from 'vitest';
 import { DAYS_PER_YEAR, TIMELINE_START } from '../../../app/src/time/calendar.ts';
 import { NEVER, aliveOn, homeOn, lineage } from '../../../app/src/world/tree.ts';
@@ -61,7 +61,7 @@ describe('the tree of humankind', () => {
     const camps = new Set(standing(settings.endDay - 1).map((l) => l.camp));
     // Low density packs camps at 600 km on a 2500 km disk: well over ten fit.
     expect(camps.size).toBeGreaterThan(10);
-    expect(tree.figures.length).toBeGreaterThan(100);
+    expect(tree.figures.length).toBeGreaterThan(60);
     expect(tree.moments.some((m) => m.kind === 'first-born')).toBe(true);
   });
 
@@ -178,10 +178,49 @@ describe('the camp scene', () => {
   }, 30_000);
 });
 
+describe('camps by the sea', () => {
+  it('keep their lodgings and outings on land', () => {
+    const whole = {
+      fromDay: settings.startDay,
+      toDay: settings.endDay,
+      figures: tree.figures,
+      lodgings: tree.lodgings,
+    };
+    const end = msAtDay(settings.endDay, settings.startDay);
+    const km = LAYOUT_KM_PER_M;
+    const onLandAt = (p: { lat: number; lon: number; x: number; z: number }) =>
+      onLand(
+        p.lat + (p.z * km) / 111.195,
+        p.lon + (p.x * km) / (111.195 * Math.cos((p.lat * Math.PI) / 180)),
+      );
+    const where: string[] = [];
+    let seen = 0;
+    for (let ms = 0; ms < end; ms += 99_991) {
+      const s = treeScene(whole, ms, settings.startDay);
+      for (const l of s.lodgings) {
+        seen++;
+        if (!onLandAt(l)) {
+          where.push(`lodging ${l.id} ${ms}`);
+        }
+      }
+      for (const f of s.figures) {
+        seen++;
+        if (!onLandAt(f)) {
+          where.push(
+            `figure ${f.id} ${f.clip} ${f.x.toFixed(1)},${f.z.toFixed(1)} at ${f.lat.toFixed(2)},${f.lon.toFixed(2)}`,
+          );
+        }
+      }
+    }
+    expect(seen).toBeGreaterThan(1000);
+    expect(where).toEqual([]);
+  }, 30_000);
+});
+
 describe('the canonical tree', () => {
   it('keeps its hash, so any change to the rules is seen', () => {
     const hash = createHash('sha256').update(JSON.stringify(tree)).digest('hex').slice(0, 16);
-    expect(hash).toBe('3ddfe0bf66925870');
+    expect(hash).toBe('e1385a0d28d75f17');
   });
 });
 

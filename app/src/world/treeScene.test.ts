@@ -4,7 +4,6 @@ import { msAtDay } from '../time/rate.ts';
 import { NEVER } from './tree.ts';
 import {
   BLEND_MS,
-  BUILD_MS,
   TAKE_DOWN_MS,
   lodgingSpot,
   lookOf,
@@ -58,6 +57,7 @@ const chunk: TreeChunk = {
       gone: moveDay,
       builder: 0,
       slot: 0,
+      reach: [80, 80, 80, 80, 80],
       kind: 'hut',
     },
     {
@@ -69,6 +69,7 @@ const chunk: TreeChunk = {
       gone: NEVER,
       builder: 0,
       slot: 0,
+      reach: [80, 80, 80, 80, 80],
       kind: 'hut',
     },
   ],
@@ -92,55 +93,73 @@ describe('the tree scene', () => {
     expect(later.x ** 2 + later.z ** 2).toBeLessThan(out.x ** 2 + out.z ** 2);
   });
 
-  it('walks the band to its new camp and puts up the hut when they arrive', () => {
+  // The scene every 50 ms over the first 20 seconds after the band sets off.
+  const trip = () => {
     const left = ms(moveDay);
-    const mid = treeScene(chunk, left + 1000, d0);
-    for (const f of mid.figures) {
-      expect(f.clip).toBe('walk');
-      expect(f.lon).toBeGreaterThan(36);
-      expect(f.lon).toBeLessThan(39);
-      expect(f.dirX).toBeCloseTo(1);
-    }
-    expect(mid.lodgings.map((l) => l.id)).toEqual([]);
-    const after = treeScene(chunk, left + 20_000, d0);
+    return Array.from({ length: 400 }, (_, k) => ({
+      t: k * 50,
+      scene: treeScene(chunk, left + k * 50, d0),
+    }));
+  };
+  const between = (lon: number) => lon > 36 && lon < 39;
+
+  it('walks the band out of its old camp, across the land and into the new one', () => {
+    const frames = trip();
+    const crossing = frames.filter((f) => f.scene.figures.some((g) => between(g.lon)));
+    expect(crossing.length).toBeGreaterThan(0);
+    for (const { scene } of crossing)
+      for (const g of scene.figures.filter((g) => between(g.lon))) {
+        expect(g.clip).toBe('walk');
+        expect(g.dirX).toBeCloseTo(1);
+      }
+    // The new hut appears only once its builder has walked in.
+    const first = crossing[0]!.t;
+    expect(frames.find((f) => f.t === first)!.scene.lodgings.some((l) => l.id === 1)).toBe(false);
+    const after = frames.at(-1)!.scene;
     expect(after.figures.every((f) => f.lon === 39 && f.clip !== 'walk')).toBe(true);
     expect(after.lodgings.map((l) => l.id)).toEqual([1]);
   });
 
   it('has the band build the hut together before they go to their spots', () => {
-    const left = ms(moveDay);
-    // Arrival after about 1.9 seconds; then about 2.7 seconds of building.
-    const building = treeScene(chunk, left + 3000, d0);
+    const frames = trip();
     const hut = lodgingSpot(chunk.lodgings[1]!);
-    for (const f of building.figures) {
-      expect(f.clip).toBe('work');
-      expect(f.lon).toBe(39);
-      // Facing the hut, close by it.
-      expect(f.dirX * (hut.x - f.x) + f.dirZ * (hut.z - f.z)).toBeGreaterThan(0);
-      expect((hut.x - f.x) ** 2 + (hut.z - f.z) ** 2).toBeLessThan(7.5 ** 2);
-    }
-    const rising = building.lodgings[0]!;
-    expect(rising.built).toBeGreaterThan(0);
-    expect(rising.built).toBeLessThan(1);
-    const later = treeScene(chunk, left + 2000 + BUILD_MS, d0);
-    expect(later.lodgings[0]!.built).toBe(1);
-    // The hut never shrinks while it goes up.
+    const rising = frames.filter((f) => {
+      const l = f.scene.lodgings.find((l) => l.id === 1);
+      return l && l.built > 0.3 && l.built < 0.7;
+    });
+    expect(rising.length).toBeGreaterThan(0);
+    for (const { scene } of rising)
+      for (const f of scene.figures) {
+        expect(f.clip).toBe('work');
+        expect(f.lon).toBe(39);
+        // Facing the hut, close by it.
+        expect(f.dirX * (hut.x - f.x) + f.dirZ * (hut.z - f.z)).toBeGreaterThan(0);
+        expect((hut.x - f.x) ** 2 + (hut.z - f.z) ** 2).toBeLessThan(7.5 ** 2);
+      }
+    // The hut never shrinks while it goes up, and is up in the end.
     let last = 0;
-    for (let t = 1500; t < 6000; t += 100) {
-      const l = treeScene(chunk, left + t, d0).lodgings[0];
+    for (const { scene } of frames) {
+      const l = scene.lodgings.find((l) => l.id === 1);
       if (!l) continue;
       expect(l.built).toBeGreaterThanOrEqual(last);
       last = l.built;
     }
+    expect(last).toBe(1);
   });
 
-  it('walks at the pace of the walk clip', () => {
-    // 333 km at 180 km per second of watching.
-    const left = ms(moveDay);
-    const walking = (t: number) =>
-      treeScene(chunk, left + t, d0).figures.every((f) => f.clip === 'walk');
-    expect(walking(1600)).toBe(true);
-    expect(walking(2300)).toBe(false);
+  it('crosses at the pace of the walk clip', () => {
+    // 333 km at 180 km per second of watching: about 1.85 seconds between the camps.
+    const crossing = trip().filter((f) => f.scene.figures.some((g) => between(g.lon)));
+    const seconds = (crossing.at(-1)!.t - crossing[0]!.t) / 1000;
+    expect(seconds).toBeGreaterThan(1.6);
+    expect(seconds).toBeLessThan(2.3);
+  });
+
+  it('never walks through the fire on the way out or in', () => {
+    for (const { scene } of trip())
+      for (const f of scene.figures)
+        if (f.lon === 36 || f.lon === 39)
+          expect(f.x ** 2 + f.z ** 2).toBeGreaterThanOrEqual(2.9 ** 2);
   });
 
   it('eases between clips', () => {
