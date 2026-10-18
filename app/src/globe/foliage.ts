@@ -22,10 +22,12 @@ import {
   type TileKey,
   type Vec3,
 } from '../geo/cube.ts';
-import { BUSH, isDry, KINDS, PALM, pickKind, recipeOf } from './foliageKinds.ts';
+import { BUSH, groundOf, isDry, KINDS, PALM, pickKind, recipeOf } from './foliageKinds.ts';
 import { plantGeometry } from './foliageModels.ts';
-import { EXAGGERATION, LAND_LIFT_M, type Globe } from './globe.ts';
-import { iceSlicePair, type PlanetState } from './planet.ts';
+import { bilinear as bilinearGrid, bilinearBordered } from '../planet/sample.ts';
+import { iceSlicePair, type PlanetState } from '../planet/state.ts';
+import { groundM } from '../planet/surface.ts';
+import { EXAGGERATION, type Globe } from './globe.ts';
 import { foliageFragment, foliageVertex } from './shaders.ts';
 import { CAP_KM_PER_M, snowCap } from './snowCap.ts';
 import { sampleTile, type TileSamples } from './terrainStore.ts';
@@ -64,10 +66,6 @@ const GROW_ROLL = 0.02;
 const THINNED_BUSH = 0.25;
 /** Most plants of one kind in view; at most about 1,500 plants are on the visible side. */
 const CAPACITY = 4000;
-/** Coast cap of the terrain shader (milestone-1.md, section 4.2). */
-const COAST_BEACH_KM = 2;
-const COAST_SLOPE = 12;
-const COAST_CURVE = 0.15;
 
 /** A plant a slot can hold; whether it shows, and where, depends on the lens. */
 interface Plant {
@@ -105,16 +103,6 @@ export function treeLine(lat: number): number {
   return 3800 - Math.max(0, Math.abs(lat) - 25) * 75;
 }
 
-/** Ground height in metres as the terrain shader draws it, away from ice. */
-function drawnGround(h: number, seaLevel: number, coastKm: number): number {
-  const surface = Math.max(h, seaLevel) + LAND_LIFT_M;
-  const d = Math.max(coastKm - COAST_BEACH_KM, 0);
-  const cap = d * (COAST_SLOPE + COAST_CURVE * d) + 1e-3;
-  const rise = Math.max(surface - seaLevel, 0);
-  const q = rise / cap;
-  return seaLevel + rise / Math.sqrt(Math.sqrt(1 + q ** 4));
-}
-
 export class Foliage {
   readonly group = new THREE.Group();
   readonly material: THREE.ShaderMaterial;
@@ -125,6 +113,8 @@ export class Foliage {
   private days: number[] = [];
   private files: string[] = [];
   private slices: (FoliageSlice | undefined)[] = [];
+  /** Ground tint per slice (section 6). */
+  private grounds: (THREE.DataTexture | undefined)[] = [];
   private requested: boolean[] = [];
   private samples = new Map<string, TileSamples>();
   private placed = new Map<string, Plant[]>();
@@ -174,6 +164,7 @@ export class Foliage {
       this.days = this.loader.manifest.foliage.days;
       this.files = this.loader.manifest.foliage.files;
       this.slices = this.days.map(() => undefined);
+      this.grounds = this.days.map(() => undefined);
       this.requested = this.days.map(() => false);
     }
     if (this.days.length === 0) return;
@@ -185,6 +176,10 @@ export class Foliage {
     const sa = this.slices[ka];
     const sb = this.slices[kb];
     if (!sa || !sb) return;
+    const gu = this.globe.material.uniforms;
+    gu.groundA!.value = this.grounds[ka];
+    gu.groundB!.value = this.grounds[kb];
+    gu.groundT!.value = t;
 
     // Only the slot tiles on the visible side of the globe.
     const camPos = camera.position;
@@ -249,6 +244,7 @@ export class Foliage {
         console.error(`${this.files[k]}: ${(e as Error).message}`); // stays requested: not asked for again
         return;
       }
+      this.grounds[k] = groundTexture(this.slices[k]);
       this.lastKey = '';
     });
   }
@@ -312,7 +308,8 @@ export class Foliage {
       const ocean = bilinear(s.oceanLevel, fi, fj);
       if (ocean <= planet.seaLevel + 1) return;
       const river = bilinear(s.rivers, fi, fj);
-      if (bilinear(s.lake, fi, fj) > 0.3 || river > MAX_WATER_FIELD) return;
+      const lake = bilinear(s.lake, fi, fj);
+      if (lake > 0.3 || river > MAX_WATER_FIELD) return;
       const coastKm = bilinear(s.coast, fi, fj);
       if (coastKm < MIN_COAST_KM) return;
       const uv = tileSampleUv(key, fi, fj);
@@ -323,7 +320,7 @@ export class Foliage {
       // Clear of the mountain snow caps as of the ice (section 5.2).
       const cap = snowCap(height, bilinear(s.bed, fi, fj), Math.abs(lat), planet.glacialIndex);
       if (cap * CAP_KM_PER_M > -ICE_CLEARANCE_KM) return;
-      if (this.globe.climate.iceKmAt(dir, day) > -ICE_CLEARANCE_KM) return;
+      if (this.globe.query.iceKmAt(dir, day) > -ICE_CLEARANCE_KM) return;
       // Between two slices each slot switches at its own hashed moment.
       const slice = h(4) < t ? sb : sa;
       const i = this.cell(lat, lon);
@@ -347,7 +344,10 @@ export class Foliage {
         kind,
         dir,
         size: spacing * KIND_SCALE[kind]! * CROWN * (SIZE_MIN + SIZE_RANGE * h(5) * h(5)),
-        groundKm: drawnGround(height, planet.seaLevel, coastKm) * EXAGGERATION * 0.001,
+        groundKm:
+          groundM({ height, oceanLevel: ocean, lake, bed: height, coastKm }, planet.seaLevel) *
+          EXAGGERATION *
+          0.001,
         roll: h(8),
         share: palmsOnly ? PALM_SHARE : (SLOTS * SLOTS) / (n * n),
         turn: h(6) * Math.PI * 2,
@@ -362,27 +362,57 @@ export class Foliage {
   }
 }
 
+/** The ground tint of a foliage slice as an RGBA texture on its grid (section 6). */
+function groundTexture(slice: FoliageSlice): THREE.DataTexture {
+  const n = FOLIAGE_GRID_W * FOLIAGE_GRID_H;
+  const data = new Uint8Array(n * 4);
+  // Colours are blurred premultiplied by their strength, so untinted cells do not darken edges.
+  let a: Float32Array = new Float32Array(n * 4);
+  for (let i = 0; i < n; i++) {
+    const [r, g, b, w] = groundOf(slice.cells[i]!, slice.density[i]! / 255);
+    a.set([r * w, g * w, b * w, w], i * 4);
+  }
+  // Two passes of a 3 × 3 blur, so the 0.5° cells blend into soft edges.
+  for (let pass = 0; pass < 2; pass++) a = blurGrid(a);
+  for (let i = 0; i < n; i++) {
+    const w = a[i * 4 + 3]!;
+    for (let k = 0; k < 3; k++) data[i * 4 + k] = w > 0 ? Math.round((a[i * 4 + k]! / w) * 255) : 0;
+    data[i * 4 + 3] = Math.round(w * 255);
+  }
+  const tex = new THREE.DataTexture(data, FOLIAGE_GRID_W, FOLIAGE_GRID_H, THREE.RGBAFormat);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.magFilter = THREE.LinearFilter;
+  tex.minFilter = THREE.LinearFilter;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+/** A 3 × 3 box blur of an RGBA grid on the foliage grid, wrapping in longitude. */
+function blurGrid(src: Float32Array): Float32Array {
+  const W = FOLIAGE_GRID_W;
+  const H = FOLIAGE_GRID_H;
+  const out = new Float32Array(src.length);
+  for (let r = 0; r < H; r++)
+    for (let c = 0; c < W; c++) {
+      let count = 0;
+      const o = (r * W + c) * 4;
+      for (let dr = -1; dr <= 1; dr++) {
+        const rr = r + dr;
+        if (rr < 0 || rr >= H) continue;
+        for (let dc = -1; dc <= 1; dc++) {
+          const i = (rr * W + ((c + dc + W) % W)) * 4;
+          for (let k = 0; k < 4; k++) out[o + k]! += src[i + k]!;
+          count++;
+        }
+      }
+      for (let k = 0; k < 4; k++) out[o + k]! /= count;
+    }
+  return out;
+}
+
 const S = TILE_N + 1;
-const B = TILE_N + 3;
 
 /** Bilinear sample of a per-sample field (TILE_N + 1 squared) at fractional sample coordinates. */
 function bilinear(f: Float32Array, fi: number, fj: number): number {
   return bilinearGrid(f, S, fi, fj);
-}
-
-/** The same for the heights, which start one sample outside the tile. */
-function bilinearBordered(f: Float32Array, fi: number, fj: number): number {
-  return bilinearGrid(f, B, fi + 1, fj + 1);
-}
-
-function bilinearGrid(f: Float32Array, w: number, x: number, y: number): number {
-  const i0 = Math.min(w - 2, Math.max(0, Math.floor(x)));
-  const j0 = Math.min(w - 2, Math.max(0, Math.floor(y)));
-  const a = x - i0;
-  const b = y - j0;
-  const at = (i: number, j: number) => f[j * w + i]!;
-  return (
-    (at(i0, j0) * (1 - a) + at(i0 + 1, j0) * a) * (1 - b) +
-    (at(i0, j0 + 1) * (1 - a) + at(i0 + 1, j0 + 1) * a) * b
-  );
 }

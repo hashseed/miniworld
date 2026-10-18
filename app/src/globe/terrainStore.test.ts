@@ -21,7 +21,7 @@ import {
 } from '../content/formats.ts';
 import type { ChunkSource } from '../content/loader.ts';
 import type { Manifest } from '../content/types.ts';
-import { TILE_N, type TileKey } from '../geo/cube.ts';
+import { TILE_N, faceUvToDir, type TileKey } from '../geo/cube.ts';
 import { CANCEL_AFTER_FRAMES, TerrainStore, sampleTile } from './terrainStore.ts';
 
 const B = TERRAIN_BORDERED;
@@ -217,15 +217,21 @@ describe('TerrainStore', () => {
     }
   });
 
-  it('reads heights from the finest loaded tile', async () => {
+  it('gives the finest loaded tile at a direction', async () => {
     const src = new FakeSource();
     const store = new TerrainStore(src);
+    expect(store.dataTileAt([1, 0, 0])).toBeUndefined();
     const root = { face: 0, level: 0, x: 0, y: 0 };
     store.terrainTile(root, 1);
     src.requests[0]!.answer(copy(encodeTerrainTile(rampTile(root))));
     await settle();
-    // Face 0's centre is sample (16, 16): 16·10 + 16.
-    const h = store.heightAt([1, 0, 0]);
-    expect(h).toBeCloseTo(176, 3);
+    expect(store.dataTileAt([1, 0, 0])).toMatchObject({ key: root });
+    // Face 0's centre lies in child (1, 1) of level 1.
+    const child = { face: 0, level: 1, x: 1, y: 1 };
+    store.terrainTile(child, 1);
+    src.requests[1]!.answer(copy(encodeTerrainTile(rampTile(child))));
+    await settle();
+    expect(store.dataTileAt([1, 0, 0])).toMatchObject({ key: child });
+    expect(store.dataTileAt(faceUvToDir(0, -0.5, -0.5))).toMatchObject({ key: root });
   });
 });

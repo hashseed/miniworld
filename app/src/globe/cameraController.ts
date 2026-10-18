@@ -356,44 +356,32 @@ export class CameraController {
         altitudeKm: Math.max(MIN_DISTANCE_KM, this.state.altitudeKm / 3),
       });
     });
-    window.addEventListener('keydown', (e) => {
-      if (isTyping(e)) return;
-      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-      if (key === 'n') {
-        this.resetOrientation();
-        return;
-      }
-      if (
-        [
-          'ArrowLeft',
-          'ArrowRight',
-          'ArrowUp',
-          'ArrowDown',
-          'PageUp',
-          'PageDown',
-          'w',
-          'a',
-          's',
-          'd',
-          'q',
-          'e',
-          '+',
-          '=',
-          '-',
-          ',',
-          '.',
-        ].includes(key)
-      ) {
-        this.keys.add(key);
-        this.cancelFlight();
-        e.preventDefault();
-      }
-    });
-    window.addEventListener('keyup', (e) => {
-      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-      this.keys.delete(key);
-    });
-    window.addEventListener('blur', () => this.keys.clear());
+  }
+
+  /**
+   * A key pressed outside text fields (app/src/input.ts): N turns north up,
+   * and the movement keys move the camera while held. Returns whether the
+   * camera used the key.
+   */
+  keyDown(e: KeyboardEvent): boolean {
+    const key = keyName(e);
+    if (key === 'n') {
+      this.resetOrientation();
+      return true;
+    }
+    if (!HELD_KEYS.includes(key)) return false;
+    this.keys.add(key);
+    this.cancelFlight();
+    return true;
+  }
+
+  keyUp(e: KeyboardEvent): void {
+    this.keys.delete(keyName(e));
+  }
+
+  /** Forgets held keys, such as when the window loses focus. */
+  releaseKeys(): void {
+    this.keys.clear();
   }
 
   private twoFinger(): void {
@@ -429,13 +417,27 @@ function normaliseHeading(target: number, from: number): number {
   return h;
 }
 
-function isTyping(e: KeyboardEvent): boolean {
-  const t = e.target as HTMLElement | null;
-  return (
-    !!t &&
-    (t.tagName === 'INPUT' ||
-      t.tagName === 'TEXTAREA' ||
-      t.tagName === 'SELECT' ||
-      t.isContentEditable)
-  );
+/** Keys that move the camera while held (section 6.2). */
+const HELD_KEYS = [
+  'ArrowLeft',
+  'ArrowRight',
+  'ArrowUp',
+  'ArrowDown',
+  'PageUp',
+  'PageDown',
+  'w',
+  'a',
+  's',
+  'd',
+  'q',
+  'e',
+  '+',
+  '=',
+  '-',
+  ',',
+  '.',
+];
+
+function keyName(e: KeyboardEvent): string {
+  return e.key.length === 1 ? e.key.toLowerCase() : e.key;
 }

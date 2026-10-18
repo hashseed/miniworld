@@ -19,22 +19,30 @@ export interface VignetteCard {
   failed?: boolean;
 }
 
-export interface UiState {
-  ready: boolean;
-  error: string | undefined;
+/**
+ * State that changes while history plays, every frame or every half second,
+ * kept apart so only the date readout, play controls and stats re-render.
+ */
+export interface HotState {
   day: number;
   playState: PlayState;
   /** Base-2 logarithm of the speed multiplier, −6 to 6. */
   speedLog2: number;
   yearsPerMinute: number;
   scrubbing: boolean;
+  stats: { fps: number; avg: number; p99: number; calls: number; triangles: number; scale: number };
+}
+
+/** State that changes only on the viewer's actions or as data arrives. */
+export interface UiState {
+  ready: boolean;
+  error: string | undefined;
   panel: Panel;
   settings: Settings;
   bookmarks: Bookmark[];
   follow: boolean;
   isPhone: boolean;
   stressScene: boolean;
-  stats: { fps: number; avg: number; p99: number; calls: number; triangles: number; scale: number };
   fixture: boolean;
   version: string;
   cutoffDay: number;

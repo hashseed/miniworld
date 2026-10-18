@@ -1,7 +1,7 @@
 // The famous mountains that keep their shape on the smoothed map (spec
 // milestone 1, section 4.2): ranges with less smoothing, peaks as cones.
 
-import { coastKmForRise } from '../../../app/src/globe/coastCap.ts';
+import { coastKmForRise } from '../../../app/src/planet/surface.ts';
 import { forCellsNearLine } from './coast.ts';
 import { Grid } from './grid.ts';
 
