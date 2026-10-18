@@ -74,6 +74,7 @@ All are npm scripts, run in the dev container or any machine with the pinned Nod
 | `npm run simplify-data` | Turns the original downloads into the simplified extracts under `data/sources/` and records their checksums; used only when adding or updating a source |
 | `npm run build-data` | Runs the offline data build (section 10): terrain tiles, ocean mask, ice, sea-level curve, startup index, chunks, manifest |
 | `npm run dev` | The dev server on port 8800 |
+| `npm run staging` | Keeps the staging checkout on the latest `main` and its dev server on port 8800 running (spec section 11); data built with `--max-level 5` |
 | `npm run build` | Production build of app plus data into `dist/` |
 | `npm run check` | Lint, typecheck, unit and golden tests, data validation |
 | `npm run coverage` | Unit and golden tests with the coverage report and its thresholds (section 2.4) |
