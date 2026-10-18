@@ -95,7 +95,7 @@ test('language switch changes every string without a reload', async ({ page }) =
   await page.getByRole('button', { name: en['menu.settings'] }).click();
   await page.locator('select').first().selectOption('de');
   await expect(page.locator('html')).toHaveAttribute('lang', 'de');
-  await expect(page.getByTestId('date')).toHaveText('50.000 v. Chr.');
+  await expect(page.getByTestId('date')).toHaveText('70.000 v. Chr.');
   await expect(page).toHaveTitle(de['app.title']!);
   const text = await page.evaluate(() => {
     const labels = [...document.querySelectorAll('[aria-label],[title]')].map(
