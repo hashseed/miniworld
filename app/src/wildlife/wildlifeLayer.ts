@@ -106,6 +106,14 @@ export class WildlifeLayer {
 
   /** The ground masks of the startup index, one hex string per group (section 4). */
   setMasks(hex: readonly string[]): void {
+    // Masks built for another list of groups would put animals on the wrong
+    // ground (in the sea), so data older than the app draws no wildlife.
+    if (hex.length !== WILD_GROUPS.length) {
+      console.warn(
+        `wildlife: ${hex.length} ground masks for ${WILD_GROUPS.length} groups; run build-data`,
+      );
+      return;
+    }
     this.masks = WILD_GROUPS.map((_, i) => (hex[i] ? decodeWildMask(hex[i]) : undefined));
   }
 
