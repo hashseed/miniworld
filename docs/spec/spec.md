@@ -279,6 +279,7 @@ Development happens in Yang's devenv Docker container, the local development con
 - The Node version is pinned in `.nvmrc` and in `engines` in `package.json`; every other tool is a dev dependency installed by `npm ci`, so nothing project-specific is installed globally.
 - `npm run dev` starts the dev server on port 8800 (http://localhost:8800), serving the app with hot reload and the locally built content chunks under the same origin. It listens on all interfaces so the app can be opened from outside the container through its published port.
 - Scripts for the data build, tests and asset pipeline are npm scripts.
+- The checkout that serves port 8800 is the staging copy of `main`. `npm run staging`, started there once and left running, keeps it current: about once a minute it fetches `main` from GitHub, fast-forwards the checkout to it, reinstalls dependencies only when `package-lock.json` changed, rebuilds the content only when the inputs of the data build changed, and restarts the dev server on port 8800. It never discards local work: when the checkout has uncommitted changes to tracked files or a local `main` that has diverged, it leaves the checkout and the running server as they are and logs why. It touches no other port, so previews on other ports are left alone.
 
 ## 12. Development process
 

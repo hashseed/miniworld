@@ -36,6 +36,7 @@ app/              the browser app
   src/core/       deterministic hash and noise, small shared store, camera type (no engine-dependent maths)
   src/geo/        cube-sphere quadtree, Earth constants, local compass frame; shared with the data build
   src/time/       dates, historical clock, life clock, formatting
+  src/planet/     the planet at a date and place: sea level, ocean mask, ice, drawn ground height (no DOM, Three.js or network code)
   src/globe/      terrain, water, ice, sky, clouds, foliage, history lens, camera
   src/timeline/   canvas timeline
   src/ui/         Preact shell, settings, bookmarks, saved state
@@ -62,7 +63,7 @@ dist/             build output (not committed)
 
 **Simplified source data is kept in the repository** (decided by Yang on 2026-10-17). The full original downloads are not stored: `npm run fetch-data` downloads them into `data/out/` (not committed) and checks them against the checksums recorded in `data/sources.json`, and `npm run simplify-data` turns them into small extracts that are committed under `data/sources/<source-id>/` as plain files (no Git LFS), together with the licence text, so the app can always be rebuilt even if a source disappears from the web. An extract keeps only the variables, times (from the timeline's start onwards) and resolution the app needs (section 4.1). Gridded extracts are Brotli-compressed little-endian grids, `<name>.bin.br`, each with a JSON header, `<name>.json`, giving the variable, units, type, scale, no-data value, size, grid registration, origin, cell size and the years before present of each layer; layers follow one another, rows run from north to south and columns from west to east. The data build reads only from `data/sources/` and checks every file against the checksum in `data/sources.json`.
 
-`src/time` and the pure functions of `src/globe` that depend on the date (sea level, ice, ocean mask) contain no DOM, Three.js or network code, so the world query of milestone 2 can move them into the Web Worker unchanged.
+`src/time` and `src/planet` (sea level, ice, ocean mask and ground height at a date and place) contain no DOM, Three.js or network code, so the world query of milestone 2 can move them into the Web Worker unchanged.
 
 ### 2.3 Scripts
 
@@ -74,9 +75,11 @@ All are npm scripts, run in the dev container or any machine with the pinned Nod
 | `npm run simplify-data` | Turns the original downloads into the simplified extracts under `data/sources/` and records their checksums; used only when adding or updating a source |
 | `npm run build-data` | Runs the offline data build (section 10): terrain tiles, ocean mask, ice, sea-level curve, startup index, chunks, manifest |
 | `npm run dev` | The dev server on port 8800 |
+| `npm run staging` | Keeps the staging checkout on the latest `main` and its dev server on port 8800 running (spec section 11); data built with `--max-level 5` |
 | `npm run build` | Production build of app plus data into `dist/` |
 | `npm run check` | Lint, typecheck, unit and golden tests, data validation |
 | `npm run coverage` | Unit and golden tests with the coverage report and its thresholds (section 2.4) |
+| `npm run golden` | The golden tests (section 13) on the data in `app/public/data`; `npm run golden -- -u` stores new results after an intended change |
 | `npm run test:browser` | Playwright tests at desktop and phone sizes |
 | `npm run pool` | Runs the checks or browser tests for a commit in a worktree of the test pool (section 2.5) |
 | `npm run fixture-key` | Prints the hash of everything the fixture data build reads, the key of its cache (section 2.4) |
@@ -85,7 +88,7 @@ All are npm scripts, run in the dev container or any machine with the pinned Nod
 
 ### 2.4 Continuous integration
 
-GitHub Actions runs on every pull request and on `main`: lint, typecheck, unit and golden tests with the coverage report, data validation against a small fixture dataset, the production build with its size check (section 10.6), and the Playwright tests in headless Chromium. Three jobs run side by side so a pull request is checked in about three minutes: the static checks and unit tests; the fixture data build; and, once the data is built, the browser tests, split over five jobs (desktop and phone in two shards each, and the perf check), one test at a time, because the software renderer uses every core and two tests on one machine slow each other down more than they gain. The fixture data is cached under a hash of everything its build reads (`npm run fixture-key`), and the Playwright browser under its version, so neither is rebuilt or downloaded when nothing changed. A new push to a pull request cancels its running checks. CI does not judge frame rate, because CI machines are not the reference devices; it checks draw calls and triangle counts of the stress scene instead (section 11.4). The phone browser tests emulate a phone's screen size and touch input at device pixel ratio 1, because CI renders in software and a phone's full pixel density would make every test several times slower without testing anything more.
+GitHub Actions runs on every pull request and on `main`: lint, typecheck, unit and golden tests with the coverage report, data validation against a small fixture dataset, the production build with its size check (section 10.6), and the Playwright tests in headless Chromium. Three jobs run side by side so a pull request is checked in about three minutes: the static checks and unit tests; the fixture data build and the golden tests on it; and, once the data is built, the browser tests, split over five jobs (desktop and phone in two shards each, and the perf check), one test at a time, because the software renderer uses every core and two tests on one machine slow each other down more than they gain. The fixture data is cached under a hash of everything its build reads (`npm run fixture-key`), and the Playwright browser under its version, so neither is rebuilt or downloaded when nothing changed. A new push to a pull request cancels its running checks. CI does not judge frame rate, because CI machines are not the reference devices; it checks draw calls and triangle counts of the stress scene instead (section 11.4). The phone browser tests emulate a phone's screen size and touch input at device pixel ratio 1, because CI renders in software and a phone's full pixel density would make every test several times slower without testing anything more.
 
 `npm run coverage` runs the unit tests with a line and branch coverage report (`coverage/`). Its thresholds, overall and for the well-tested folders, are the coverage when they were set; a change may raise them but never lower them.
 
@@ -217,6 +220,8 @@ Every source must meet the data licence policy in [spec.md](spec.md#13-licences)
 ## 5. The planet over time
 
 Everything in this section is a pure function of the date, computed from data, so scrubbing to any date shows the coastline and ice for that date at once.
+
+**One planet query.** Sea level, whether a place is sea, ice cover and the height of the drawn ground at a place and date are answered by one planet query (`src/planet`). It samples the terrain data the way the terrain mesh does (heights bicubically, the ocean level, lake field, bed and coast distance bilinearly) and applies the same rules as the terrain shader (sea, lakes, the land lift, the rounded coast of section 4.2 and the ice domes of section 5.2), and the shader takes its constants from the same module. Everything placed on the ground, such as vignette figures, trees and the camera's lowest height, therefore stands on the drawn surface rather than floating above it or sinking into it.
 
 Sea level, ice and deserts come from published reconstructions (decided by Yang on 2026-10-17, replacing the hand-made models of the first drafts): ice thickness and sea level from PaleoMIST 1.0, and precipitation from Beyer, Krapp and Manica 2020 (section 4.1). Both are read from the small extracts under `data/sources/`. The main periods they show:
 
@@ -375,7 +380,9 @@ In this milestone the shipped layers are `terrain` (place only) and the climate 
 
 - The loader requests chunks for the tiles in view and their neighbours. It loads the two climate slices around the date first, then every other slice in the background, nearest in time first, so the whole history of ice and deserts is ready soon after start (about 600 KB in all).
 - While scrubbing it fetches only chunks for the window under the playhead once the playhead has rested there for 200 ms, so a fast drag across history does not queue hundreds of requests.
-- At most six requests run at once; requests for tiles that left the view are cancelled.
+- At most six requests run at once, the most urgent first. Every frame, waiting terrain requests take the priority of their tile in the current view, and a request whose tile has been out of view for half a second is cancelled, whether it is still waiting or already running.
+- A failed request is retried with growing pauses: not before 1 second has passed, then 2, 4 and so on up to 60 seconds, so a lost connection does not turn into a storm of requests and loading resumes by itself when the connection returns. A file the server says does not exist (HTTP 404 or 410) is not asked for again until the app is reloaded. A cancelled request is not a failure.
+- If the other language's index cannot be loaded when the language is switched, the app stays in the current language and the language setting goes back to it, so the setting always shows the language on screen; switching again tries again.
 
 ### 10.5 Formats
 
@@ -463,14 +470,15 @@ The only shipped assets are the six terrain textures, the water normal map and t
 | Date unit tests | Day-number conversion, year 0, leap years, formatting in both languages |
 | Rate curve test | Watching time per period within 15 % of target (section 3.3); round trip date to watching time and back |
 | Clock tests | Play states, the speed slider's scale, snapping and limits, zoom factor at and between its limits, end of timeline, scrubbing, life clock stops when paused |
-| Golden tests | For a fixed list of dates (50,000 BCE, 20,000 BCE, 12,000 BCE, 8000 BCE, 6200 BCE, 3000 BCE, today) and places (Bering Strait, North Sea, Java Sea, Torres Strait, Hudson Bay, Baltic, Caspian Sea): sea level, whether each place is sea or land, ice cover, glacial index. Stored results must match exactly; changes must be intended and reviewed |
+| Golden tests | For a fixed list of dates (50,000 BCE, 20,000 BCE, 12,000 BCE, 8000 BCE, 6200 BCE, 3000 BCE, today) and places (Bering Strait, North Sea, Java Sea, Torres Strait, Hudson Bay, Baltic, Caspian Sea): sea level, whether each place is sea or land, ice cover, glacial index, and the height of the drawn ground. They run on the built data (`npm run golden`; in CI on the fixture dataset after its build), with the results stored per dataset (fixture or full) beside the test. Stored results must match exactly; changes must be intended and reviewed |
 | Localisation tests | Same keys in both message files, no empty messages, no viewer-facing literals in components |
 | Data validation | Section 10.8 on the fixture dataset in CI and the full dataset locally |
 | Pipeline tests | Chunk keys, hashing, manifest, the test layer in both languages |
+| Loader tests | With a fake server and clock: at most six requests at once and most urgent first, new priorities, cancelling, the growing retry pauses, no second request for a missing file, a failed index retried; terrain tiles cancelled when out of view; every binary format round-trips and refuses a file of the wrong length (section 10) |
 | Browser tests | Desktop and phone sizes: first view loads within the size budget; timeline scrubbing changes the date and coastline; language switch changes every string without reload; settings and bookmarks survive a reload; camera controls with mouse, touch emulation and keyboard |
 | Performance check | Stress scene draw calls and triangles (section 11.4) |
 
-The golden places must show the expected answers as well as matching the stored results: the North Sea between Britain and the continent is land at 12,000 BCE and sea at 3000 BCE; the Bering Strait is land at 20,000 BCE and sea today; the Caspian Sea is never ocean; Hudson Bay is under ice at 20,000 BCE.
+The golden places must show the expected answers as well as matching the stored results: the North Sea between Britain and the continent is land at 12,000 BCE and sea at 3000 BCE; the Bering Strait is land at 20,000 BCE and sea today; the Caspian Sea is never ocean; Hudson Bay is under ice at 20,000 BCE. These are checked on the full dataset, since the synthetic fixture has no real sea floor.
 
 ## 14. Exit criteria and how they are checked
 

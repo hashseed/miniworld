@@ -3,7 +3,7 @@
 // (spec milestone 1, sections 4 and 5).
 
 import * as THREE from 'three';
-import type { ContentLoader } from '../content/loader.ts';
+import type { ChunkSource } from '../content/loader.ts';
 import {
   FACE_COUNT,
   TILE_N,
@@ -18,16 +18,16 @@ import {
 } from '../geo/cube.ts';
 import { ClimateStore } from './climate.ts';
 import { LENS_COLS, LENS_ROWS, Lens } from './lens.ts';
-import type { PlanetState } from './planet.ts';
-import { ICE_DOME_KM, ICE_DOME_M, terrainFragment, terrainVertex } from './shaders.ts';
+import { PlanetQuery } from '../planet/query.ts';
+import type { PlanetState } from '../planet/state.ts';
+import { LAND_LIFT_M } from '../planet/surface.ts';
+import { terrainFragment, terrainVertex } from './shaders.ts';
 import { buildTileGeometry, indexFor } from './tileMesh.ts';
 import { EARTH_RADIUS_KM } from '../geo/earth.ts';
 import { sampleTile, TerrainStore } from './terrainStore.ts';
 import type { TerrainTile } from '../content/formats.ts';
 
 export const EXAGGERATION = 100;
-/** Every land vertex stands this many metres above its height (section 4.2). */
-export const LAND_LIFT_M = 250;
 export const MAX_RENDER_LEVEL = 9;
 /** Meshes kept beyond those touched this frame; touched meshes are never evicted. */
 const MAX_CACHED_MESHES = 1500;
@@ -61,7 +61,9 @@ export class Globe {
   readonly store: TerrainStore;
   /** Ice and deserts for the whole planet, per time step (section 5.2). */
   readonly climate: ClimateStore;
-  private loader: ContentLoader;
+  /** Sea, ice and ground height at a place, from the loaded data (section 5). */
+  readonly query: PlanetQuery;
+  private loader: ChunkSource;
   private tiles = new Map<string, TileEntry>();
   private frame = 0;
   private buildsThisFrame = 0;
@@ -77,10 +79,11 @@ export class Globe {
   lens = Lens.identity();
   private lensTexture: THREE.DataTexture;
 
-  constructor(loader: ContentLoader) {
+  constructor(loader: ChunkSource) {
     this.loader = loader;
     this.store = new TerrainStore(loader);
     this.climate = new ClimateStore(loader);
+    this.query = new PlanetQuery(this.store, this.climate);
     this.material = new THREE.ShaderMaterial({
       vertexShader: terrainVertex,
       fragmentShader: terrainFragment,
@@ -364,14 +367,7 @@ export class Globe {
 
   /** Drawn surface height in km above the sphere over a true direction. */
   surfaceAtTrue(dir: Vec3, planet: PlanetState): number {
-    const h = this.store.heightAt(dir);
-    // Approximates the ocean mask by height: land stands on its lift above the sea.
-    let top = h > planet.seaLevel ? h + LAND_LIFT_M : planet.seaLevel;
-    const iceKm = this.climate.iceKmAt(dir, this.day);
-    if (iceKm > 0) {
-      const dome = ICE_DOME_M * (1 - Math.exp(-iceKm / ICE_DOME_KM));
-      top = Math.max(top, Math.max(h, planet.seaLevel) + LAND_LIFT_M + dome);
-    }
+    const top = this.query.surfaceM(dir, this.day, planet.seaLevel);
     return top * EXAGGERATION * 0.001 * this.lens.widthAt(dir);
   }
 }

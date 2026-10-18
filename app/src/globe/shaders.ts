@@ -7,16 +7,19 @@
 // directly until textures are approved (section 12).
 
 import { ICE_DISTANCE_STEP_KM, ICE_DISTANCE_ZERO, TERRAIN_SAMPLES } from '../content/formats.ts';
+import {
+  COAST_BEACH_KM,
+  COAST_CURVE,
+  COAST_SLOPE,
+  ICE_DOME_KM,
+  ICE_DOME_M,
+  ICE_HIDE_KM,
+  LAKE_FIELD,
+} from '../planet/surface.ts';
 import { LENS_COLS, LENS_ROWS, LENS_STEP } from './lens.ts';
 
-/**
- * Ice sheets rise from their border as smooth domes, ICE_DOME_M at most,
- * reaching 63% of it ICE_DOME_KM inside; the relief under them is hidden over
- * the first ICE_HIDE_KM (section 5.2). Used by the shader and by globe.ts.
- */
-export const ICE_DOME_M = 1200;
-export const ICE_DOME_KM = 250;
-export const ICE_HIDE_KM = 120;
+/** A number as a GLSL float literal. */
+const f = (n: number) => (Number.isInteger(n) ? `${n}.0` : `${n}`);
 
 /**
  * The history lens in GLSL (history-lens.md, section 4): the forward grid
@@ -92,17 +95,15 @@ ${lensChunk}
 
 // How far below the sea level the flat sea surface lies (section 4.4).
 const float SEA_DROP = 3.0;
-// Ice domes (section 5.2), from the constants at the top of this file.
-const float ICE_DOME_M = ${ICE_DOME_M}.0;
-const float ICE_DOME_KM = ${ICE_DOME_KM}.0;
-const float ICE_HIDE_KM = ${ICE_HIDE_KM}.0;
-// Near the sea, land may rise at most coastCap(d) metres at d km from today's
-// coast (after a flat beach), so at 100x relief every coast and ice margin is
-// a rounded clay edge rather than a wall; further inland the cap grows fast
-// enough to leave mountains alone (section 4.2).
-const float COAST_BEACH_KM = 2.0;
-const float COAST_SLOPE = 12.0; // m per km at the coast
-const float COAST_CURVE = 0.15; // extra m per km²
+// Ice domes (section 5.2) and the rounded coast (section 4.2), with the same
+// constants and rules as the planet query (app/src/planet/surface.ts).
+const float ICE_DOME_M = ${f(ICE_DOME_M)};
+const float ICE_DOME_KM = ${f(ICE_DOME_KM)};
+const float ICE_HIDE_KM = ${f(ICE_HIDE_KM)};
+const float COAST_BEACH_KM = ${f(COAST_BEACH_KM)};
+const float COAST_SLOPE = ${f(COAST_SLOPE)}; // m per km at the coast
+const float COAST_CURVE = ${f(COAST_CURVE)}; // extra m per km²
+const float LAKE_FIELD = ${f(LAKE_FIELD)};
 
 varying vec3 vWorld;
 varying vec3 vUp;
@@ -129,9 +130,9 @@ void main() {
   // below crosses zero along smooth curves (sections 4.3 and 5.1). Where the
   // sea reaches a lake basin, it is sea.
   float seaWater = seaLevel - oceanLevel;
-  float lakeWater = (lake - 0.5) * 80.0;
+  float lakeWater = (lake - LAKE_FIELD) * 80.0;
   bool sea = seaWater > 0.0;
-  bool isLake = !sea && lake > 0.5;
+  bool isLake = !sea && lake > LAKE_FIELD;
   float water = sea ? seaWater : isLake ? lakeWater : max(seaWater, lakeWater);
   float surface = h;
   if (sea) {
