@@ -128,17 +128,10 @@ input:focus-visible {
   gap: 8px;
 }
 
-.true-sizes {
-  position: fixed;
-  right: max(12px, env(safe-area-inset-right));
-  top: calc(max(12px, env(safe-area-inset-top)) + 208px);
-  white-space: nowrap;
-}
-
 .lens-hint {
   position: fixed;
   right: max(12px, env(safe-area-inset-right));
-  top: calc(max(12px, env(safe-area-inset-top)) + 264px);
+  top: calc(max(12px, env(safe-area-inset-top)) + 208px);
   width: min(300px, calc(100vw - 24px));
   box-sizing: border-box;
   padding: 10px 58px 10px 14px;
@@ -292,6 +285,34 @@ input:focus-visible {
   position: absolute;
   top: 4px;
   right: 4px;
+}
+
+.lens-slider {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 14px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.lens-slider input {
+  width: clamp(90px, 18vw, 180px);
+  min-height: 44px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.lens-slider output {
+  min-width: 4.2em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .panel {

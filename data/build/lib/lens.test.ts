@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { Lens, decodeLensGrids, encodeLensGrids } from '../../../app/src/globe/lens.ts';
+import {
+  Lens,
+  MORPH_OMEGA,
+  decodeLensGrids,
+  encodeLensGrids,
+} from '../../../app/src/globe/lens.ts';
 import { latLonToDir, type Vec3 } from '../../../app/src/globe/cube.ts';
 import { LENS_PARAMS, buildLens, jacobians, parseCoordinates } from './lens.ts';
 import { LENS_COLS, LENS_STEP } from '../../../app/src/globe/lens.ts';
@@ -35,7 +40,7 @@ describe('history lens warp', () => {
   const lens = buildLens(events, { ...LENS_PARAMS, degree: 8, exponent: 0.3 });
   const grids = decodeLensGrids(encodeLensGrids(lens.forward, lens.inverse));
   const view = new Lens(grids.forward, grids.inverse);
-  view.setOn(true, false);
+  view.setStrength(1, false);
 
   it('passes the limits and enlarges the busy region', () => {
     expect(lens.checks.folds).toBe(0);
@@ -48,31 +53,57 @@ describe('history lens warp', () => {
     expect(view.widthAt(latLonToDir(44, 14))).toBeGreaterThan(1.1);
   });
 
-  it('turns a true point into a drawn one and back to within 1 km', () => {
-    let worst = 0;
-    for (let lat = -88; lat <= 88; lat += 7.3)
-      for (let lon = -180; lon < 180; lon += 9.1) {
-        const d = latLonToDir(lat, lon);
-        const back = view.toTrue(view.toDrawn(d));
-        const err = Math.acos(Math.min(1, d[0] * back[0] + d[1] * back[1] + d[2] * back[2])) * KM;
-        worst = Math.max(worst, err);
-      }
-    expect(worst).toBeLessThan(1);
+  it('turns a true point into a drawn one and back to within 1 km, up to 200%', () => {
+    for (const strength of [1, 2]) {
+      view.setStrength(strength, false);
+      let worst = 0;
+      for (let lat = -88; lat <= 88; lat += 7.3)
+        for (let lon = -180; lon < 180; lon += 9.1) {
+          const d = latLonToDir(lat, lon);
+          const back = view.toTrue(view.toDrawn(d));
+          const err = Math.acos(Math.min(1, d[0] * back[0] + d[1] * back[1] + d[2] * back[2])) * KM;
+          worst = Math.max(worst, err);
+        }
+      expect(worst).toBeLessThan(1);
+    }
+    view.setStrength(1, false);
   });
 
-  it('blends from true sizes to the lens and back, on frame time', () => {
+  it('moves twice as far at 200%', () => {
+    const d = latLonToDir(44, 14);
+    const l = new Lens(grids.forward, grids.inverse);
+    l.setStrength(1, false);
+    const one = l.toDrawn(d);
+    l.setStrength(2, false);
+    const two = l.toDrawn(d);
+    const angle = (a: Vec3, b: Vec3) =>
+      Math.acos(Math.min(1, a[0] * b[0] + a[1] * b[1] + a[2] * b[2]));
+    expect(angle(d, two) / angle(d, one)).toBeCloseTo(2, 1);
+    expect(l.widthAt(d) - 1).toBeCloseTo(2 * (view.widthAt(d) - 1), 6);
+  });
+
+  it('follows the slider smoothly on frame time, without overshoot', () => {
     const l = new Lens(grids.forward, grids.inverse);
     const d: Vec3 = latLonToDir(46, 10);
     expect(l.toDrawn(d)).toEqual(d);
-    l.setOn(true);
-    l.advance(500, 1000);
-    expect(l.blend).toBeCloseTo(0.5);
-    l.setOn(false); // turns round from where it is
-    l.advance(250, 1000);
-    expect(l.blend).toBeCloseTo(0.15625);
-    expect(l.morphing).toBe(true);
-    l.advance(1000, 1000);
-    expect(l.blend).toBe(0);
+    l.setStrength(1);
+    let last = 0;
+    for (let t = 0; t < 1000; t += 16) {
+      l.advance(16, MORPH_OMEGA);
+      expect(l.blend).toBeGreaterThanOrEqual(last);
+      expect(l.blend).toBeLessThanOrEqual(1);
+      last = l.blend;
+    }
+    expect(l.blend).toBeGreaterThan(0.99);
+    // A new target during the morph turns it round from where it is.
+    l.setStrength(2);
+    const from = l.blend;
+    l.advance(16, MORPH_OMEGA);
+    expect(Math.abs(l.blend - from)).toBeLessThan(0.05);
+    l.advance(5000, MORPH_OMEGA);
+    expect(l.blend).toBe(2);
     expect(l.morphing).toBe(false);
+    l.setStrength(5);
+    expect(l.strength).toBe(2);
   });
 });

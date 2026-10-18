@@ -277,7 +277,7 @@ The camera has one fly-to operation used by bookmarks now and by events and famo
 
 ### 8.1 Screen layout
 
-- The globe fills the screen. Text on buttons, the speed selector, the date ribbon and the timeline cannot be selected, so clicking and dragging never highlights it (decided by Yang on 2026-10-17); text in the About panel and in cards can be selected. The timeline runs along the bottom. Above its left end sit the play controls: one play/pause button, the speed slider with its label and the rate readout. The top-right corner holds three buttons: bookmarks, settings and About.
+- The globe fills the screen. Text on buttons, the speed selector, the date ribbon and the timeline cannot be selected, so clicking and dragging never highlights it (decided by Yang on 2026-10-17); text in the About panel and in cards can be selected. The timeline runs along the bottom. Above its left end sit the play controls: one play/pause button, the speed slider with its label and the rate readout. The top-right corner holds three buttons: bookmarks, settings and About. The history lens slider ([history-lens.md](history-lens.md) section 1) sits at the bottom right, at the right end of that row, just above the timeline.
 - The date readout is large and clear above the timeline's playhead area, in the format of section 3.2.
 - All controls are at least 44 by 44 CSS pixels on touch devices, have visible focus outlines, and have accessible names in the current language.
 
@@ -288,7 +288,6 @@ The camera has one fly-to operation used by bookmarks now and by events and famo
 | Language | English, Deutsch | Browser language if German, otherwise English |
 | True time scale | On, Off | Off |
 | Slow down when zoomed in | On, Off | On (section 3.3) |
-| Enlarge busy regions | On, Off | On ([history-lens.md](history-lens.md); also the "True sizes" button) |
 | Show performance stats | On, Off | Off |
 
 The language names in the selector are always written in their own language. Changes apply immediately and are saved (section 9).
