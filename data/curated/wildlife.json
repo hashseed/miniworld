@@ -614,19 +614,6 @@
       "source": "Perry et al. 2014, Quaternary Science Reviews 105: moa died out within about 150 years of the first settlers, in the early 1400s; dates approximate"
     },
     {
-      "species": "haasts-eagle",
-      "model": "animal-haast-eagle",
-      "home": "Otago, New Zealand",
-      "lat": -45.2,
-      "lon": 169.8,
-      "spans": [
-        {
-          "to": 1400
-        }
-      ],
-      "source": "Encyclopaedia Britannica, Haast's eagle: died out with the moa about 1400; dates approximate"
-    },
-    {
       "species": "elephant-bird",
       "model": "animal-elephant-bird",
       "home": "Southern Madagascar",

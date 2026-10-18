@@ -54,6 +54,8 @@ interface Species {
 const MAX_LIFT = 0.1;
 /** Smallest radius around an animal that a tap hits, in CSS pixels (section 8). */
 const HIT_MIN_PX = 24;
+/** Rounds of pushing overlapping animals apart each frame (section 5). */
+const SEPARATE_PASSES = 3;
 /** The steepest an animal leans with the ground, as a slope (about 15 degrees). */
 const MAX_TILT = 0.27;
 
@@ -90,6 +92,8 @@ export class WildlifeLayer {
   private drawn: { at: THREE.Vector3; radiusKm: number; group: number }[] = [];
   private drawnCount = 0;
   private camera: THREE.Camera | undefined;
+  private ups: THREE.Vector3[] = [];
+  private halfKm: number[] = [];
 
   constructor(surface: SurfaceSource) {
     this.surface = surface;
@@ -216,6 +220,42 @@ export class WildlifeLayer {
     return best;
   }
 
+  /**
+   * Each animal's spot on the drawn globe, pushed apart from any other animal
+   * closer than their two half lengths, so no two overlap (section 5; Yang,
+   * 2026-10-18: "make sure animals don't overlap with each other"). Its place
+   * in the group is added on the true globe, where the world checked it
+   * against the mask. Birds fly above the others and are left alone. A pure
+   * function of the animals, so the same time gives the same spots.
+   */
+  private separate(animals: readonly WildAnimal[]): THREE.Vector3[] {
+    const ups = animals.map((a, i) => {
+      const v = (this.ups[i] ??= new THREE.Vector3());
+      const s = this.speciesOf(a.model);
+      v.set(...this.surface.toDrawn(this.trueDir(a, s ? this.reach(a.model, a) : 0))).normalize();
+      this.halfKm[i] = s && a.liftKm === 0 ? (s.length * s.scale * a.grow) / 2 : 0;
+      return v;
+    });
+    const push = this.v2;
+    for (let pass = 0; pass < SEPARATE_PASSES; pass++)
+      for (let i = 0; i < ups.length; i++)
+        for (let j = i + 1; j < ups.length; j++) {
+          const need = (this.halfKm[i]! + this.halfKm[j]!) / EARTH_RADIUS_KM;
+          if (need === 0) continue;
+          const a = ups[i]!;
+          const b = ups[j]!;
+          const gap = a.distanceTo(b);
+          if (gap >= need) continue;
+          // Apart along the line between them, half each; a seeded way if they coincide.
+          if (gap < 1e-9) push.set(1, 0, 0).cross(a).normalize();
+          else push.subVectors(a, b).normalize();
+          const step = (need - gap) / 2;
+          a.addScaledVector(push, step).normalize();
+          b.addScaledVector(push, -step).normalize();
+        }
+    return ups;
+  }
+
   /** Poses the animals of a day at a clock time in milliseconds. */
   update(camera: THREE.Camera, day: number, ms: number): void {
     for (const s of this.species.values()) if (s) s.count = 0;
@@ -226,14 +266,11 @@ export class WildlifeLayer {
     const animals = this.masks
       ? wildlifeAt(day, ms / 1000, WILD_GROUPS, this.masks, this.reach)
       : [];
-    for (const a of animals) {
+    const ups = this.separate(animals);
+    animals.forEach((a, ai) => {
       const s = this.speciesOf(a.model);
-      if (!s || s.count >= CAPACITY) continue;
-      // The group's spot on the drawn globe and its compass there.
-      // Its place in the group is added on the true globe, where the world checked it against the mask.
-      const up = this.up
-        .set(...this.surface.toDrawn(this.trueDir(a, this.reach(a.model, a))))
-        .normalize();
+      if (!s || s.count >= CAPACITY) return;
+      const up = this.up.copy(ups[ai]!);
       northEast(up, this.north, this.east);
       const reach = s.length * s.scale;
       const f = this.forward
@@ -252,7 +289,7 @@ export class WildlifeLayer {
       const swim = a.clip === 'swim' ? (a.rise - 0.5) * s.height * s.scale * a.grow : 0;
       this.pos.copy(up).multiplyScalar(EARTH_RADIUS_KM + ground + a.liftKm + swim);
       // Animals on the far side of the globe are skipped.
-      if (this.v2.copy(camPos).sub(this.pos).dot(up) <= 0) continue;
+      if (this.v2.copy(camPos).sub(this.pos).dot(up) <= 0) return;
 
       // Upright on the ground, whatever the camera does (Yang, 2026-10-18),
       // leaning with the slope under it; sea animals tip nose up or down as
@@ -298,7 +335,7 @@ export class WildlifeLayer {
       }
       s.count++;
       this.count++;
-    }
+    });
     for (const s of this.species.values()) {
       if (!s) continue;
       for (const p of s.parts)

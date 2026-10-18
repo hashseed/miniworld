@@ -106,6 +106,8 @@ export const WILD_MASK_N = 48;
 const WILD_MASK_MARGIN_KM = 450;
 /** Tries to find a spot on open ground before an animal stays at home. */
 const SPOT_TRIES = 16;
+/** How far a group closes up on narrow land: shares of its places in the group (section 4). */
+const PLACE_FITS = [1, 0.75, 0.55];
 
 /**
  * Where each group may stand, built from the terrain by the data build:
@@ -261,7 +263,10 @@ export function wildClearings(
     const first = Math.floor((step - 2 + shift) / period);
     const last = Math.floor((step + CLEAR_STEP_S + shift) / period) + 1;
     const spots: P2[] = [];
-    for (let k = first; k <= last; k++) spots.push(spot(seed, k, roam, masks[gi], places));
+    for (let k = first; k <= last; k++) {
+      const [x, y] = spot(seed, k, roam, masks[gi], places);
+      spots.push([x, y]);
+    }
     spots.forEach(([x, y], n) => {
       const hop = (q: P2 | undefined) => (q ? Math.sqrt((q[0] - x) ** 2 + (q[1] - y) ** 2) : 0);
       const half = Math.max(hop(spots[n - 1]), hop(spots[n + 1])) / 2;
@@ -391,49 +396,66 @@ function spot(
   roam: number,
   mask: WildMask,
   places: readonly P2[],
-): [number, number] {
+): [number, number, number] {
   const local = Math.min(LOCAL_KM, roam);
   const [mx, my] = roam > LOCAL_KM ? wanderCentre(seed, k, roam, mask) : [0, 0];
-  for (let a = 0; a < SPOT_TRIES; a++) {
-    const h = a === 0 ? 2 : 100 + 10 * a;
-    const r = local * Math.sqrt(hash01(seed, k, h));
-    const [c, s] = cosSinTurn(hash01(seed, k, h + 1));
-    const x = mx + r * c;
-    const y = my + r * s;
-    // Every animal of the group, at its place in the group, must stand on open ground.
-    if (
-      x * x + y * y <= roam * roam &&
-      places.every(([px, py]) => open(mask, roam, x + px, y + py))
-    )
-      return [x, y];
+  // On narrow land the group closes up: its places shrink until all fit.
+  for (const fit of PLACE_FITS) {
+    for (let a = 0; a < SPOT_TRIES; a++) {
+      const h = a === 0 ? 2 : 100 + 10 * a;
+      const r = local * Math.sqrt(hash01(seed, k, h));
+      const [c, s] = cosSinTurn(hash01(seed, k, h + 1));
+      const x = mx + r * c;
+      const y = my + r * s;
+      // Every animal of the group, at its place in the group, must stand on open ground.
+      if (
+        x * x + y * y <= roam * roam &&
+        places.every(([px, py]) => open(mask, roam, x + px * fit, y + py * fit))
+      )
+        return [x, y, fit];
+    }
+    const at = fallbackSpot(
+      mask,
+      roam,
+      places.map(([px, py]) => [px * fit, py * fit]),
+      [mx, my],
+      true,
+    );
+    if (at) return [at[0], at[1], fit];
   }
-  return fallbackSpot(mask, roam, places, [mx, my]);
+  const at = fallbackSpot(mask, roam, places, [mx, my], false)!;
+  return [at[0], at[1], PLACE_FITS[PLACE_FITS.length - 1]!];
 }
 
-const fallbacks = new WeakMap<Uint8Array, Map<string, P2>>();
+const fallbacks = new WeakMap<Uint8Array, Map<string, P2 | undefined>>();
 
 /**
  * Where a group grazes when no try finds open ground for all its animals:
  * the open cell nearest the wandering centre where they all fit, else the
  * open cell nearest it, else the home itself (section 4).
  */
-function fallbackSpot(mask: WildMask, roam: number, places: readonly P2[], near: P2): P2 {
+function fallbackSpot(
+  mask: WildMask,
+  roam: number,
+  places: readonly P2[],
+  near: P2,
+  allOnly: boolean,
+): P2 | undefined {
   if (!mask) return near;
   const half = roam + WILD_MASK_MARGIN_KM;
   const cell = (2 * half) / WILD_MASK_N;
   // Cached by the cell of the centre, so the search runs once per cell.
   const ci = Math.floor((near[0] + half) / cell);
   const cj = Math.floor((near[1] + half) / cell);
-  const key = `${roam}:${ci},${cj}:${places.map(([x, y]) => `${Math.round(x)},${Math.round(y)}`).join(';')}`;
+  const key = `${roam}:${allOnly}:${ci},${cj}:${places.map(([x, y]) => `${Math.round(x)},${Math.round(y)}`).join(';')}`;
   let cache = fallbacks.get(mask);
   if (!cache) fallbacks.set(mask, (cache = new Map()));
-  const hit = cache.get(key);
-  if (hit) return hit;
+  if (cache.has(key)) return cache.get(key);
   const nx = -half + (ci + 0.5) * cell;
   const ny = -half + (cj + 0.5) * cell;
-  let best: P2 = [0, 0];
+  let best: P2 | undefined = allOnly ? undefined : [0, 0];
   let bestD = Infinity;
-  for (const all of [true, false]) {
+  for (const all of allOnly ? [true] : [true, false]) {
     for (let j = 0; j < WILD_MASK_N; j++)
       for (let i = 0; i < WILD_MASK_N; i++) {
         const x = -half + (i + 0.5) * cell;
@@ -545,14 +567,18 @@ export function wildlifeAt(
       const t = seconds - lag + period * hash01(seed, 5);
       const k = Math.floor(t / period);
       const inRound = t - k * period;
+      // The group closes up on narrow land; fits[j] is how far, at the group's spot j.
+      const fits = new Map<number, number>();
       const own = (j: number): P2 => {
-        const [sx, sy] = spot(seed, j, roam, mask, places);
+        const [sx, sy, fit] = spot(seed, j, roam, mask, places);
+        fits.set(j, fit);
         const [c, sn] = cosSinTurn(hash01(seed, j, 60 + i));
-        const r = i === 0 ? 0 : MEMBER_JITTER_KM * hash01(seed, j, 70 + i);
+        const r = i === 0 ? 0 : fit * MEMBER_JITTER_KM * hash01(seed, j, 70 + i);
         const x = sx + r * c;
         const y = sy + r * sn;
+        const [px, py] = places[i]!;
         // Its own spot near the group's, unless that is off the open ground.
-        return open(mask, roam, x + places[i]![0], y + places[i]![1]) ? [x, y] : [sx, sy];
+        return open(mask, roam, x + px * fit, y + py * fit) ? [x, y] : [sx, sy];
       };
       const p0 = own(k - 1);
       const p1 = own(k);
@@ -567,6 +593,7 @@ export function wildlifeAt(
       const f = walking ? (inRound - (period - walkS)) / walkS : 0;
       const u = f * f * (3 - 2 * f);
       const [x, y] = catmullRom(p0, p1, p2, p3, u);
+      const fit = fits.get(k)! + (fits.get(k + 1)! - fits.get(k)!) * u;
       // Facing along its own curve; between walks the tangent there, so it never snaps round.
       let [hx, hy] = catmullRomTangent(p0, p1, p2, p3, u);
       // A group that stays put has no curve to face along: it faces a seeded way.
@@ -583,7 +610,7 @@ export function wildlifeAt(
         eastKm: x,
         northKm: y,
         heading: [hx / hl, hy / hl],
-        offset: offsets[i]!,
+        offset: [offsets[i]![0] * fit, offsets[i]![1] * fit],
         clip: walking ? 'walk' : 'idle',
         seconds: walking ? u * walkS : seconds + hash01(seed, 30 + i) * 0.8,
         walkS: walking ? walkS : 0,
