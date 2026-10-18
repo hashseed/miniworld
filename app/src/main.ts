@@ -12,7 +12,7 @@ import { CameraController } from './globe/cameraController.ts';
 import { Globe } from './globe/globe.ts';
 import { Foliage } from './globe/foliage.ts';
 import { Lens, MORPH_OMEGA, MORPH_OMEGA_REDUCED, decodeLensGrids } from './globe/lens.ts';
-import { lowestSeaLevel, planetAt, type PlanetState } from './globe/planet.ts';
+import { lowestSeaLevel, planetAt, type PlanetState } from './planet/state.ts';
 import { Clouds } from './globe/clouds.ts';
 import { Sky, cameraLight } from './globe/sky.ts';
 import { formatDateReadout } from './i18n/dates.ts';

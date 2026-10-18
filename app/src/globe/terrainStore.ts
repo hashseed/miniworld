@@ -12,6 +12,8 @@ import {
   type TerrainTile,
 } from '../content/formats.ts';
 import type { ChunkSource } from '../content/loader.ts';
+import type { TerrainSource } from '../planet/query.ts';
+import { bicubicBordered, bilinear } from '../planet/sample.ts';
 import {
   DATA_MAX_LEVEL,
   TILE_N,
@@ -45,7 +47,7 @@ function decodeOrBroken(buf: ArrayBuffer, file: string): TerrainTile | 'broken' 
   }
 }
 
-export class TerrainStore {
+export class TerrainStore implements TerrainSource {
   private loader: ChunkSource;
   private terrain = new Map<string, Slot<TerrainTile>>();
   private wanted = new Map<string, number>(); // tile id → priority this frame
@@ -99,21 +101,15 @@ export class TerrainStore {
     return this.terrainTile(key.level > max ? ancestorAt(key, max) : key, priority);
   }
 
-  /** Terrain height in metres at a direction from the finest loaded data tile. */
-  heightAt(dir: Vec3): number {
+  /** The finest loaded data tile holding a direction, for the planet query. */
+  dataTileAt(dir: Vec3): TerrainTile | 'deep' | undefined {
     const { face, u, v } = dirToFaceUv(dir);
     for (let level = this.dataMaxLevel; level >= 0; level--) {
-      const key = tileAt(face, u, v, level);
-      const slot = this.terrain.get(tileId(key));
-      if (slot === 'deep') return DEEP_HEIGHT;
-      if (slot && typeof slot === 'object') {
-        const n = 1 << level;
-        const fi = (((u + 1) / 2) * n - key.x) * TILE_N;
-        const fj = (((v + 1) / 2) * n - key.y) * TILE_N;
-        return bilinearBordered(slot.heights, fi, fj);
-      }
+      const slot = this.terrain.get(tileId(tileAt(face, u, v, level)));
+      if (slot === 'deep') return 'deep';
+      if (slot && typeof slot === 'object') return slot;
     }
-    return 0;
+    return undefined;
   }
 
   /**
@@ -213,54 +209,4 @@ export function sampleTile(key: TileKey, source: TerrainTile | 'deep'): TileSamp
     }
   }
   return { heights, oceanLevel, lake, rivers, flow, bed, coast };
-}
-
-function bilinear(
-  grid: ArrayLike<number>,
-  size: number,
-  fi: number,
-  fj: number,
-  stride = 1,
-  offset = 0,
-): number {
-  const i0 = Math.min(size - 2, Math.max(0, Math.floor(fi)));
-  const j0 = Math.min(size - 2, Math.max(0, Math.floor(fj)));
-  const ti = Math.min(1, Math.max(0, fi - i0));
-  const tj = Math.min(1, Math.max(0, fj - j0));
-  const at = (k: number) => grid[k * stride + offset]!;
-  const a = at(j0 * size + i0);
-  const b = at(j0 * size + i0 + 1);
-  const c = at((j0 + 1) * size + i0);
-  const d = at((j0 + 1) * size + i0 + 1);
-  return (a * (1 - ti) + b * ti) * (1 - tj) + (c * (1 - ti) + d * ti) * tj;
-}
-
-function bilinearBordered(h: Int16Array, fi: number, fj: number): number {
-  return bilinear(h, TERRAIN_BORDERED, fi + 1, fj + 1);
-}
-
-function catmullRom(p0: number, p1: number, p2: number, p3: number, t: number): number {
-  const t2 = t * t;
-  const t3 = t2 * t;
-  return (
-    0.5 *
-    (2 * p1 +
-      (-p0 + p2) * t +
-      (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
-      (-p0 + 3 * p1 - 3 * p2 + p3) * t3)
-  );
-}
-
-function bicubicBordered(h: Int16Array, fi: number, fj: number): number {
-  const B = TERRAIN_BORDERED;
-  const x = fi + 1;
-  const y = fj + 1;
-  const x1 = Math.floor(x);
-  const y1 = Math.floor(y);
-  const tx = x - x1;
-  const ty = y - y1;
-  const at = (c: number, r: number) =>
-    h[Math.min(B - 1, Math.max(0, r)) * B + Math.min(B - 1, Math.max(0, c))]!;
-  const row = (r: number) => catmullRom(at(x1 - 1, r), at(x1, r), at(x1 + 1, r), at(x1 + 2, r), tx);
-  return catmullRom(row(y1 - 1), row(y1), row(y1 + 1), row(y1 + 2), ty);
 }

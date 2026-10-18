@@ -8,15 +8,14 @@ import {
   ARID_GRID_H,
   ARID_GRID_W,
   decodeClimateSlice,
-  ICE_DISTANCE_STEP_KM,
-  ICE_DISTANCE_ZERO,
   ICE_GRID_H,
   ICE_GRID_W,
   type ClimateSlice,
 } from '../content/formats.ts';
 import type { ChunkSource } from '../content/loader.ts';
-import { dirToLatLon, type Vec3 } from '../geo/cube.ts';
-import { iceSlicePair } from './planet.ts';
+import type { IcePair, IceSource } from '../planet/query.ts';
+import { sampleGrid } from '../planet/sample.ts';
+import { iceSlicePair } from '../planet/state.ts';
 
 /** Priority of the slices that are not around the date, after the terrain in view. */
 const BACKGROUND_PRIORITY = 1e6;
@@ -27,7 +26,7 @@ export interface ClimateBlend {
   t: number;
 }
 
-export class ClimateStore {
+export class ClimateStore implements IceSource {
   private loader: ChunkSource;
   private days: number[] = [];
   private files: string[] = [];
@@ -59,20 +58,16 @@ export class ClimateStore {
     return { a: tex, b: tex, t: 0 };
   }
 
-  /** Signed distance from the ice border in km at a direction (positive inside), as drawn. */
-  iceKmAt(dir: Vec3, day: number): number {
+  /** The two loaded slices to blend at a date for the planet query; the nearest loaded one stands in. */
+  icePairAt(day: number): IcePair | undefined {
     const { ka, kb, t } = this.pair(day);
     const a = this.slices[ka];
     const b = this.slices[kb];
-    const { lat, lon } = dirToLatLon(dir);
-    const at = (s: ClimateSlice) => sampleGrid(s.ice, ICE_GRID_W, ICE_GRID_H, lat, lon);
-    let v: number;
-    if (a && b) v = at(a) + (at(b) - at(a)) * t;
-    else {
-      const near = this.nearestLoaded(day);
-      v = near === undefined ? 0 : at(this.slices[near]!);
-    }
-    return (v - ICE_DISTANCE_ZERO) * ICE_DISTANCE_STEP_KM;
+    if (a && b) return { a, b, t };
+    const near = this.nearestLoaded(day);
+    if (near === undefined) return undefined;
+    const s = this.slices[near]!;
+    return { a: s, b: s, t: 0 };
   }
 
   private pair(day: number): { ka: number; kb: number; t: number } {
@@ -128,22 +123,6 @@ export class ClimateStore {
       this.onTexture?.(this.textures[k]);
     });
   }
-}
-
-/** Bilinear sample of a global cell-centred grid, wrapping in longitude. */
-function sampleGrid(g: Uint8Array, w: number, h: number, lat: number, lon: number): number {
-  const x = ((lon + 180) / 360) * w - 0.5;
-  const y = Math.min(h - 1, Math.max(0, ((90 - lat) / 180) * h - 0.5));
-  const x0 = Math.floor(x);
-  const y0 = Math.floor(y);
-  const fx = x - x0;
-  const fy = y - y0;
-  const y1 = Math.min(h - 1, y0 + 1);
-  const c0 = ((x0 % w) + w) % w;
-  const c1 = (c0 + 1) % w;
-  const top = g[y0 * w + c0]! * (1 - fx) + g[y0 * w + c1]! * fx;
-  const bottom = g[y1 * w + c0]! * (1 - fx) + g[y1 * w + c1]! * fx;
-  return top * (1 - fy) + bottom * fy;
 }
 
 /** One RG texture on the ice grid: ice distance in red, aridity (resampled) in green. */
