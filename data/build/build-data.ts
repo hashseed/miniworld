@@ -41,6 +41,7 @@ import { erasForLanguage, validateEras, type CuratedEras } from './lib/eras.ts';
 import { buildLandmarks, placeOffWater } from './lib/landmarks.ts';
 import { buildVignettes } from './lib/vignettes.ts';
 import { openShare, wildMasks } from './lib/wildlife.ts';
+import { buildAnimals } from './lib/animals.ts';
 import { WILD_GROUPS } from '../../app/src/world/wildlife.ts';
 import { fixtureElevation } from './lib/fixture.ts';
 import { Grid, GridPyramid } from './lib/grid.ts';
@@ -217,6 +218,11 @@ const landmarkBuild = buildLandmarks({
   cutoffDay,
 });
 if (landmarkBuild.errors.length) fail(landmarkBuild.errors.join('\n'));
+const animalBuild = buildAnimals({
+  curated: join(ROOT, 'data/curated'),
+  species: new Set(WILD_GROUPS.map((g) => g.species)),
+});
+if (animalBuild.errors.length) fail(animalBuild.errors.join('\n'));
 const vignetteBuild = buildVignettes({
   curated: join(ROOT, 'data/curated'),
   lanes: new Set(eras.lanes.map((l) => l.id)),
@@ -606,6 +612,13 @@ const landmarkFiles = landmarkBuild.landmarks.map((l) => ({
   ) as Record<Language, string>,
 }));
 log(`${landmarkFiles.length} landmarks`);
+const animalFiles = animalBuild.animals.map((a) => ({
+  a,
+  text: Object.fromEntries(
+    LANGUAGES.map((lang) => [lang, output.writeJson(`animals/${a.id}-${lang}`, a.text[lang])]),
+  ) as Record<Language, string>,
+}));
+log(`${animalFiles.length} animal cards`);
 
 const index = {} as Record<Language, string>;
 for (const language of LANGUAGES) {
@@ -642,6 +655,11 @@ for (const language of LANGUAGES) {
       text: text[language],
     })),
     wildlife,
+    animals: animalFiles.map(({ a, text }) => ({
+      id: a.id,
+      title: a.text[language].title,
+      text: text[language],
+    })),
   };
   index[language] = output.writeJson(`index-${language}`, idx);
 }

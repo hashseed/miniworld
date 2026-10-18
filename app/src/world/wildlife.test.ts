@@ -11,6 +11,7 @@ import {
   encodeWildMask,
   flies,
   groupGrowth,
+  groupSpanAt,
   groupSize,
   roamOf,
   wildClearings,
@@ -177,5 +178,22 @@ describe('wildlifeAt (wildlife.md section 4)', () => {
       (i * 7) % 3 === 0 ? 1 : 0,
     );
     expect(decodeWildMask(encodeWildMask(m))).toEqual(m);
+  });
+});
+
+describe('groupSpanAt (wildlife.md section 8)', () => {
+  it('gives the span shown on a day, none for groups shown always', () => {
+    const plains = WILD_GROUPS.find((g) => g.home === 'Southern Great Plains')!;
+    expect(groupSpanAt(plains, day(1800))).toEqual({
+      from: { day: day(1700), year: 1700 },
+      to: undefined,
+    });
+    expect(groupSpanAt(plains, day(-20000))!.to!.year).toBe(-10000);
+    expect(
+      groupSpanAt(
+        WILD_GROUPS.find((g) => g.species === 'giraffe')!,
+        day(1800),
+      ),
+    ).toBe(undefined);
   });
 });

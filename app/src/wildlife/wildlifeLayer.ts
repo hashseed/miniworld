@@ -52,6 +52,8 @@ interface Species {
 
 /** How far the ground around an animal may lift it, in body heights (section 5). */
 const MAX_LIFT = 0.1;
+/** Smallest radius around an animal that a tap hits, in CSS pixels (section 8). */
+const HIT_MIN_PX = 24;
 /** The steepest an animal leans with the ground, as a slope (about 15 degrees). */
 const MAX_TILT = 0.27;
 
@@ -84,6 +86,10 @@ export class WildlifeLayer {
   private q = new THREE.Quaternion();
   private v2 = new THREE.Vector3();
   private scaleV = new THREE.Vector3();
+  /** The animals drawn last frame, for taps: middle, drawn half size in km and group index. */
+  private drawn: { at: THREE.Vector3; radiusKm: number; group: number }[] = [];
+  private drawnCount = 0;
+  private camera: THREE.Camera | undefined;
 
   constructor(surface: SurfaceSource) {
     this.surface = surface;
@@ -184,9 +190,37 @@ export class WildlifeLayer {
     );
   }
 
+  /**
+   * The group of the animal under a tap in CSS pixels, if any (section 8):
+   * the nearest whose middle lies within its drawn size on screen, at
+   * least 24 pixels.
+   */
+  hit(clientX: number, clientY: number): number | undefined {
+    const camera = this.camera;
+    if (!camera) return undefined;
+    const pxAtKm = (camera.projectionMatrix.elements[5]! * innerHeight) / 2;
+    const p = this.v2;
+    let best: number | undefined;
+    let bestD = Infinity;
+    for (let i = 0; i < this.drawnCount; i++) {
+      const d = this.drawn[i]!;
+      const distance = d.at.distanceTo(camera.position);
+      p.copy(d.at).project(camera);
+      if (p.z >= 1) continue;
+      const x = ((p.x + 1) / 2) * innerWidth;
+      const y = ((1 - p.y) / 2) * innerHeight;
+      const radius = Math.max(HIT_MIN_PX, (d.radiusKm * pxAtKm) / distance);
+      const dist = Math.hypot(clientX - x, clientY - y);
+      if (dist < radius && dist < bestD) [best, bestD] = [d.group, dist];
+    }
+    return best;
+  }
+
   /** Poses the animals of a day at a clock time in milliseconds. */
   update(camera: THREE.Camera, day: number, ms: number): void {
     for (const s of this.species.values()) if (s) s.count = 0;
+    this.camera = camera;
+    this.drawnCount = 0;
     const camPos = camera.position;
     this.count = 0;
     const animals = this.masks
@@ -240,6 +274,14 @@ export class WildlifeLayer {
       this.q.setFromRotationMatrix(this.basis.makeBasis(r, u, f));
       const size = s.scale * a.grow;
       this.root.compose(this.pos, this.q, this.scaleV.set(size, size, size));
+      const hit = (this.drawn[this.drawnCount++] ??= {
+        at: new THREE.Vector3(),
+        radiusKm: 0,
+        group: 0,
+      });
+      hit.at.copy(this.pos).addScaledVector(u, (s.height * size) / 2);
+      hit.radiusKm = (Math.max(s.height, s.length) * size) / 2;
+      hit.group = Number(a.key.split(':')[0]);
 
       // A walk lasts a whole number of strides, so the legs come to rest as it ends.
       let seconds = a.seconds;

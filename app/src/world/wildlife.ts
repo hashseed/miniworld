@@ -169,6 +169,29 @@ export function groupGrowth(g: WildGroup, day: number): number {
   return best;
 }
 
+/**
+ * The span of a group shown on a day, for its card (section 8): the first
+ * day of its first and of its last year, each only where the span has that
+ * end. Undefined for a group shown at every date.
+ */
+export function groupSpanAt(
+  g: WildGroup,
+  day: number,
+): { from?: { day: number; year: number }; to?: { day: number; year: number } } | undefined {
+  if (!g.spans) return undefined;
+  const ramp = GROW_YEARS * DAYS_PER_YEAR;
+  const span =
+    g.spans.find(
+      (s) =>
+        (s.from === undefined || day >= yearDay(s.from) - ramp) &&
+        (s.to === undefined || day <= yearDay(s.to) + ramp),
+    ) ?? g.spans[0]!;
+  return {
+    from: span.from === undefined ? undefined : { day: yearDay(span.from), year: span.from },
+    to: span.to === undefined ? undefined : { day: yearDay(span.to), year: span.to },
+  };
+}
+
 /** Number of members of a group: 2 or 3 (section 4). */
 export function groupSize(g: WildGroup, index: number): number {
   return hash01(groupSeed(g, index), 1) < 0.5 ? 2 : 3;

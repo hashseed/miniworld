@@ -8,7 +8,7 @@ Status: asked for by Yang on 2026-10-18 ("let's add typical animals to all conti
 
 - A few **groups of 2 or 3 animals** of one species, at most **2 groups per species** in the whole world at any date. Each group stays in its home area: it grazes or rests for a while, then walks a short way to a new spot, again and again. Birds fly slow loops over their home.
 - Animals are clay models like the people (milestone 2, section 13.3), drawn **not to scale, at one size at every zoom**, like trees and figures (milestone 2, section 5.1), but half as large again as the figures so they are easy to spot (Yang, 2026-10-18: "make the animals 50% larger"): 75 km per life-size metre. Their drawn size (the larger of the height and half the length) is kept between about 1.8 m and 4 m of life size (135 to 300 km on the globe), so a penguin or a parrot is still seen from orbit and a giraffe does not tower over everything. They always stand upright on the ground and never turn or tilt towards the camera (Yang, 2026-10-18: the lean of the figures looked wrong on animals), so from straight above they are seen from above.
-- Animals are only scenery: they cannot be tapped and have no cards or names on screen in this first version (section 7), so they need no localised text.
+- **Tapping an animal opens its card** (Yang, 2026-10-18: "clicking on an animal should bring up their card"), as tapping a figure or landmark does (milestone 2, section 11): see section 8.
 - **Hunting later.** Elands and wildebeest are included because hunting dioramas will use them (Yang, 2026-10-18). The wildlife groups are separate from vignette casts: a hunt is a vignette with its own animals.
 
 ## 2. Ranges change with history
@@ -189,6 +189,15 @@ Bison, horse, reindeer, mammoth, woolly rhino, cave bear, wolf, eland, gazelle a
 
 ## 7. Later
 
-- Tapping an animal to see its name and a sentence about it in English and German.
 - More species where a continent feels empty on the preview, and seasonal migrations (the wildebeest of the Serengeti).
 - Animals displaced or hunted out by people as the tree of humankind spreads (humankind.md), for example the end of the mammoths.
+
+## 8. Animal cards
+
+Tapping an animal opens a card about its species, in a panel on desktop and a bottom sheet on phones, like every card (milestone 2, section 11); it never pauses time.
+
+- **Records.** One record per species, `data/curated/animals/<species>.md`, its id equal to the `species` of the groups in `wildlife.json` (content-format.md, kind `animal`). The front matter holds `id`, `kind: animal` and `sources` (references into `sources.yaml`, at least one); the body has the usual `## en` and `## de` sections, each with the species' name as the `#` title, the card text, and an optional `### Learn more` (`### Mehr erfahren`). The data build fails when a species in `wildlife.json` has no record, a record has no group, or a record breaks the envelope rules of content-format.md section 2.
+- **Text.** Written for a reader of about 11 to 12, in a few short paragraphs: what the animal is and how big, where it lives and what it eats, one thing that makes it special, and how people met it in history. An extinct animal says when and why it died out as far as is known, with uncertain dates marked approximate and debated causes (hunting, climate) named as debated. Nothing bloody; hunting and extinction are told plainly. English and German are written together and say the same.
+- **Card.** The title, then, when the tapped group has a span in `wildlife.json`, one line on when this group is shown here, with the span that holds the current date: "Here until c. 10,700 BCE", "Here from 1885" (`Hier bis ca. 10.700 v. Chr.`, `Hier ab 1885`), marked approximate ("c.", "ca.") for years before 1500; then the text. Groups without a span have no date line.
+- **Loading.** The startup index carries, per language, each species' id and title only (a few KB); the card text is one small file per species and language, loaded when the card opens, so nothing large is downloaded at startup (spec section 10).
+- **Hit test.** A tap that hits no vignette cast or landmark is tested against the animals drawn in the frame: the nearest animal whose middle lies within its drawn size on screen (at least 24 CSS pixels) is hit, nearer animals first on a tie.

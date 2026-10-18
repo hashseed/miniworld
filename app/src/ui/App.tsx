@@ -604,9 +604,20 @@ function VignettePanel({
   const from = formatYear(dateFromDay(card.fromDay).year, lang, card.fromApproximate);
   const to = formatYear(dateFromDay(card.toDay - 1).year, lang, card.toApproximate);
   const text = card.text;
+  // An animal's card shows only the ends of its group's span (wildlife.md section 8).
+  const a = card.animal;
+  const dateLine = !a
+    ? t('vignette.span', { from, to })
+    : a.from && a.to
+      ? t('animal.span', { from, to })
+      : a.from
+        ? t('animal.from', { from })
+        : a.to
+          ? t('animal.until', { to })
+          : undefined;
   return (
     <PanelFrame title={text?.title ?? card.title} t={t} actions={actions}>
-      <p class="card-date">{t('vignette.span', { from, to })}</p>
+      {dateLine && <p class="card-date">{dateLine}</p>}
       {text ? (
         <>
           {paragraphs(text.body)}
