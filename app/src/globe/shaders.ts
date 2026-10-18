@@ -262,6 +262,8 @@ varying vec2 vFieldUv;
 // Metres of snow cap counted as one km of ice distance, so caps and ice
 // sheets share one field and one ink outline where they meet (section 5.2).
 const float CAP_KM_PER_M = ${CAP_KM_PER_M.toFixed(3)};
+// Km the ice sheets reach over the Arctic pack ice and its shores (section 5.2).
+const float POLAR_REACH_KM = 80.0;
 
 float hash3(vec3 p) {
   p = fract(p * 0.3183099 + 0.1);
@@ -406,6 +408,20 @@ void main() {
   // Ice sheets and mountain snow caps in one field (section 5.2).
   float iceKm = max(clim.x, vCap * CAP_KM_PER_M);
 #endif
+  // Arctic pack ice (section 5.2): the sea north of a wobbly edge near 78°N
+  // today, reaching 70°N at the glacial maximum.
+  float lat = degrees(asin(clamp(normalize(vTrueUp).y, -1.0, 1.0)));
+  float packEdge = mix(78.0, 70.0, glacial) + (noise3(vPattern * 0.004) - 0.5) * 4.0;
+  float packKm = (lat - packEdge) * 111.0;
+  // Past the pack edge the ice sheets reach over the pack ice and narrow
+  // strips of shore up to POLAR_REACH_KM away, so the Arctic's ice reads as
+  // one; the reach grows smoothly from nothing at the pack edge.
+  iceKm = max(iceKm, min(packKm, iceKm + POLAR_REACH_KM));
+#if defined(SEA_SURFACE) && !defined(SEA_ICE)
+  // Under the terrain's ice this surface draws nothing, so its coast lines
+  // never show through.
+  if (max(clim.x, min(packKm, clim.x + POLAR_REACH_KM)) > 0.0) discard;
+#endif
   bool hasIce = iceKm > 0.0;
   // The same water signal as the vertex shader, from the smooth fields.
   vec3 wf = waterFields(vFieldUv);
@@ -420,10 +436,6 @@ void main() {
   if (isWater && seaW > 0.0) discard;
 #endif
   bool isRiver = !isWater && !hasIce && riverF > riverThreshold;
-  // Arctic pack ice (section 5.2): the sea north of a wobbly edge near 78°N
-  // today, reaching 70°N at the glacial maximum.
-  float lat = degrees(asin(clamp(normalize(vTrueUp).y, -1.0, 1.0)));
-  float packEdge = mix(78.0, 70.0, glacial) + (noise3(vPattern * 0.004) - 0.5) * 4.0;
   bool isPack = isWater && seaW > 0.0 && lat > packEdge;
   if (isPack) {
     albedo = mix(vec3(0.93, 0.97, 1.0), vec3(0.78, 0.9, 0.98), smoothstep(1.5, 0.0, lat - packEdge));
@@ -468,7 +480,9 @@ void main() {
   float ink = inkLine(min(dot(up, viewDir), 0.25), 0.0, 5.0) * limbInk;
   // No coast line across a river mouth.
   if (riverF < riverThreshold && !hasIce) ink = max(ink, inkLine(clamp(water, -30.0, 30.0), 0.0, 1.6));
-  ink = max(ink, inkLine(clamp(iceKm, -30.0, 30.0), 0.0, 1.6));
+  // Pack ice and the ice sheets read as one ice: no line where they meet.
+  float iceInk = seaW > 0.0 ? max(iceKm, packKm) : iceKm;
+  ink = max(ink, inkLine(clamp(iceInk, -30.0, 30.0), 0.0, 1.6));
   if (isWater && seaW > 0.0) ink = max(ink, inkLine(clamp(lat - packEdge, -1.0, 1.0), 0.0, 1.6));
   if (!isWater && !hasIce) ink = max(ink, inkLine(riverF, riverThreshold, 1.4));
   if (vSkirt > 0.5) ink = 0.0;

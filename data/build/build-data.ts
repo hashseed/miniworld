@@ -120,6 +120,11 @@ RIVERS.push({ name: 'Abay', box: [33, 9, 39, 12.5] });
 const MAX_LAKE_RANK = 4;
 /** Grid spacing (degrees) of the smoothed bed under the ice sheets. */
 const ICE_BED_SPACING_DEG = 0.5;
+/**
+ * Gaussian (km) of the bed under the ice sheets, with the sea floor raised to
+ * sea level, so a sheet runs smoothly over buried coasts and straits.
+ */
+const ICE_BED_SMOOTHING_KM = 150;
 const MIN_LAKE_KM2 = 3000;
 
 const args = process.argv.slice(2);
@@ -300,7 +305,14 @@ const pyramid = new GridPyramid(relief);
 // tiles and in the ice thickness, so their surface is smooth (section 5.2).
 // It leaves out the listed mountains, so their snow caps (section 5.2) stand
 // out from it.
-const bedGrid = new GridPyramid(elevation).forSpacing(ICE_BED_SPACING_DEG);
+const bedSource = new Grid(
+  source.width,
+  source.height,
+  landSource.data.map((v) => Math.max(0, v)),
+);
+const bedGrid = new GridPyramid(smoothElevation(bedSource, ICE_BED_SMOOTHING_KM)).forSpacing(
+  ICE_BED_SPACING_DEG,
+);
 const iceBed = (lat: number, lon: number) => Math.max(0, bedGrid.bilinear(lat, lon));
 
 const lakeLevel = new Grid(
