@@ -369,6 +369,7 @@ export function buildAnimal(id: AnimalId): Model {
     case 'animal-wolf': {
       const coat = '#8d857a';
       const { mb, headAt, bodyY, back } = quadruped({
+        knee: 1.1,
         shoulder: 0.8,
         length: 1.0,
         girth: [0.2, 0.24],

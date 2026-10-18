@@ -10,6 +10,7 @@ This folder is the source of truth for what Miniworld does. Every change to beha
 | [milestone-2.md](milestone-2.md) | Detailed spec for milestone 2, First people: figures, vignettes, landmarks, migrations and cutaways |
 | [history-lens.md](history-lens.md) | Design of the default lens that draws regions with many events larger |
 | [humankind.md](humankind.md) | The tree of humankind: one first person at Lake Turkana, people stepping out of lodgings, the tree the data build computes and how to inspect it (proposed) |
+| [peopling.md](peopling.md) | How humankind leaves Africa and spreads over the world up to 9000 BCE: dated arrival points, the arrival map, canoe crossings, and adapting to each region through culture profiles and their limits |
 | [foliage.md](foliage.md) | Trees and bushes over the land, from the climate data, readable from orbit (proposed) |
 | [wildlife.md](wildlife.md) | Small groups of typical wild animals on every continent, and how their ranges change with history (proposed) |
 | [dioramas.md](dioramas.md) | Recurring dioramas (repeated vignettes) for every region and era, with their templates and scripts |

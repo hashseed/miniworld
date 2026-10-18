@@ -119,7 +119,7 @@ describe('shelters and animals', () => {
   it.each([...ANIMALS])('%s is deterministic, stands on its feet and faces +Z', (id) => {
     const m = buildAnimal(id);
     expect(positions(m)).toEqual(positions(buildAnimal(id)));
-    expect(m.triangles).toBeLessThanOrEqual(1200);
+    expect(m.triangles).toBeLessThanOrEqual(1300);
     const b = bounds(m);
     expect(b.min.y).toBeGreaterThan(-0.05);
     expect(b.min.y).toBeLessThan(0.05);

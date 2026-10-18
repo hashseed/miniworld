@@ -381,6 +381,43 @@
       "source": "IUCN Red List range map"
     },
     {
+      "species": "giant-panda",
+      "model": "animal-panda",
+      "home": "Wolong, Sichuan",
+      "lat": 31.0,
+      "lon": 103.2,
+      "roamKm": 250,
+      "source": "IUCN Red List range map, Ailuropoda melanoleuca"
+    },
+    {
+      "species": "western-gorilla",
+      "model": "animal-gorilla",
+      "home": "Odzala, Republic of the Congo",
+      "lat": 0.6,
+      "lon": 14.9,
+      "roamKm": 300,
+      "source": "IUCN Red List range map, Gorilla gorilla gorilla"
+    },
+    {
+      "species": "bornean-orangutan",
+      "model": "animal-orangutan",
+      "home": "Tanjung Puting, Borneo",
+      "lat": -2.8,
+      "lon": 111.9,
+      "roamKm": 250,
+      "source": "IUCN Red List range map, Pongo pygmaeus"
+    },
+    {
+      "species": "komodo-dragon",
+      "model": "animal-komodo",
+      "home": "Flores",
+      "lat": -8.6,
+      "lon": 120.5,
+      "roamKm": 150,
+      "size": 1,
+      "source": "IUCN Red List range map, Varanus komodoensis"
+    },
+    {
       "species": "scarlet-macaw",
       "model": "animal-parrot",
       "home": "Western Amazon",
@@ -645,6 +682,7 @@
       "home": "Tasmania",
       "lat": -42.0,
       "lon": 146.5,
+      "size": 1,
       "spans": [
         {
           "to": 1936
@@ -683,19 +721,6 @@
       "lat": 25.0,
       "lon": -72.0,
       "source": "IUCN Red List range map, Tursiops truncatus"
-    },
-    {
-      "species": "stellers-sea-cow",
-      "model": "animal-sea-cow",
-      "home": "Commander Islands",
-      "lat": 54.5,
-      "lon": 167.5,
-      "spans": [
-        {
-          "to": 1768
-        }
-      ],
-      "source": "Encyclopaedia Britannica, Steller's sea cow: found by Georg Steller in 1741, hunted out by 1768"
     }
   ]
 }

@@ -316,9 +316,9 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "f240dbbc5c35975e",
+      "geometry": "fde73bf4b9acfda8",
       "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")"
     },
     {
       "id": "animal-woolly-rhino",
@@ -326,9 +326,9 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "db31790a3f50d160",
+      "geometry": "00cff1a588a09b86",
       "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")"
     },
     {
       "id": "animal-bison",
@@ -336,9 +336,9 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "4cb4c78442701a93",
+      "geometry": "abc89d9fb054e259",
       "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")"
     },
     {
       "id": "animal-horse",
@@ -346,9 +346,9 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "f24334e53ca74d88",
+      "geometry": "499a47ae6d312f9a",
       "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")"
     },
     {
       "id": "animal-reindeer",
@@ -356,9 +356,9 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "112b2b2ba4c96d56",
+      "geometry": "2f28632d66ce4f2b",
       "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")"
     },
     {
       "id": "animal-cave-bear",
@@ -366,9 +366,9 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "8e16c72c0ab7d583",
+      "geometry": "e85abf5c3f2b7f1f",
       "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")"
     },
     {
       "id": "animal-wolf",
@@ -376,9 +376,9 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "05258403ca753ff5",
+      "geometry": "3fbce1497f45c042",
       "reviewed": "2026-10-18",
-      "note": "Shorter muzzle after Yang's review on 2026-10-18, waiting for re-approval"
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")"
     },
     {
       "id": "animal-eland",
@@ -386,9 +386,9 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "9ed52db23801d911",
+      "geometry": "69bb484a4e490b2e",
       "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")"
     },
     {
       "id": "animal-gazelle",
@@ -396,9 +396,9 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "8a589e0e5e118dc0",
+      "geometry": "4d255665664f79a3",
       "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")"
     },
     {
       "id": "animal-kangaroo",
@@ -416,8 +416,8 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "d117d7cb56f75900",
-      "note": "Wildlife (wildlife.md section 6), round feet after Yang's review on 2026-10-18, waiting for Yang's review",
+      "geometry": "baceace544b5e7ca",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {
@@ -426,8 +426,8 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "d8f28a05bb6809f1",
-      "note": "Wildlife (wildlife.md section 6), round feet after Yang's review on 2026-10-18, waiting for Yang's review",
+      "geometry": "0e075e8857227224",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {
@@ -436,8 +436,8 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "20d519731fb847eb",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "geometry": "984906a40e15dfc0",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {
@@ -446,8 +446,8 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "4ddb508ec00c4060",
-      "note": "Wildlife (wildlife.md section 6), stripes painted on after Yang's review on 2026-10-18, waiting for Yang's review",
+      "geometry": "9dff57db46f4aa99",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {
@@ -456,8 +456,8 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "5189ac3dca642659",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "geometry": "c2c8446920cf5b1a",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {
@@ -466,8 +466,8 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "5f4fb3057305c40a",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "geometry": "8d870789d4e3e424",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {
@@ -476,8 +476,8 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "bb2f2b7bad337a7e",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "geometry": "3de8588ac411b93c",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {
@@ -486,8 +486,8 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "19cbdbda1d51c150",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "geometry": "9bff995c297b8ab3",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {
@@ -496,8 +496,8 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "0ec30e8cb4be19cd",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "geometry": "8d21e97e1aabc237",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {
@@ -506,8 +506,8 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "c0cc19f2f5aa1b99",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "geometry": "a1736c3ce1c235f9",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {
@@ -516,8 +516,8 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "f4a90194793c6602",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "geometry": "4bd7e71b116389e2",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {
@@ -526,8 +526,8 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "bc14e7a8b3c3b77b",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "geometry": "eed6a660653c4eee",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {
@@ -576,8 +576,58 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "6e857bd485ab755e",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "geometry": "f4ca606550396713",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
+      "reviewed": "2026-10-18"
+    },
+    {
+      "id": "animal-panda",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "approved",
+      "geometry": "a3482de0f9e1e341",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
+      "reviewed": "2026-10-18"
+    },
+    {
+      "id": "animal-gorilla",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "approved",
+      "geometry": "0f9e9fe7f049d92a",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
+      "reviewed": "2026-10-18"
+    },
+    {
+      "id": "animal-gorilla-female",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "approved",
+      "geometry": "3f38aa47ca1aff78",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
+      "reviewed": "2026-10-18"
+    },
+    {
+      "id": "animal-orangutan",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "approved",
+      "geometry": "50d2ec6cd7bcc28e",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
+      "reviewed": "2026-10-18"
+    },
+    {
+      "id": "animal-komodo",
+      "file": "assets/src/wildAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "approved",
+      "geometry": "21fc4fda324cf228",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {
@@ -586,8 +636,8 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "bb7641731cb2fcd1",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "geometry": "987c52f1fdf50534",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {
@@ -596,8 +646,8 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "d07bda2290f1f619",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "geometry": "221180ed5fae07f8",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {
@@ -606,8 +656,8 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "64bf5c3df7742122",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "geometry": "9f03e18974d4fbff",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {
@@ -616,8 +666,8 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "8043dc6c76e1dc5c",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "geometry": "32cd798010a3f271",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {
@@ -626,8 +676,8 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "c546ec37553f14bd",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "geometry": "2807873d6de2163b",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {
@@ -636,8 +686,8 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "adeea9b6d646720b",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "geometry": "463d0408b2f54653",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {
@@ -646,8 +696,8 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "414b95d60aaf76fc",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "geometry": "64ce74cae8224f90",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {
@@ -656,8 +706,8 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "f0d38e0ece07deb5",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "geometry": "fc53b9e4cf39a272",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {
@@ -666,8 +716,8 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "e36c6138b88521df",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "geometry": "5a73c68294bdefcc",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {
@@ -716,8 +766,8 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "8cb8e3fcb67cb1ab",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "geometry": "f450a96ea7c5eff7",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {
@@ -726,8 +776,8 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "e1d08f32118e4412",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "geometry": "dc96a1a3142c0dfa",
+      "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
       "reviewed": "2026-10-18"
     },
     {

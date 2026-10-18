@@ -118,7 +118,7 @@ export class FrameLoop {
     p.foliage.clearings = [
       ...p.vignettes.clearings().map((dir) => ({ dir, km: CLEARING_KM, amount: 1 })),
       ...p.tree.clearings(),
-      ...p.wildlife.clearings(day, p.clock.ms).map((c) => ({ ...c, amount: 1 })),
+      ...p.wildlife.clearings(day, p.clock.ms, p.clock.startDay).map((c) => ({ ...c, amount: 1 })),
     ];
     p.foliage.update(p.camera, this.planet, day, u.lightDir!.value);
     p.sky.update(p.camera);
@@ -126,8 +126,9 @@ export class FrameLoop {
     p.stress?.update(now, p.globe, this.planet, p.camera, p.clock.ms);
     p.landmarks.update(p.camera, day);
     p.vignettes.update(p.camera, p.clock.ms, p.clock.startDay, u.lightDir!.value);
-    p.wildlife.update(p.camera, day, p.clock.ms);
+    // The camps first: the animals keep clear of their people (wildlife.md section 4).
     p.tree.update(p.camera, p.clock.ms, p.clock.startDay);
+    p.wildlife.update(p.camera, day, p.clock.ms, p.clock.startDay, p.tree.obstacles());
 
     this.updateStats.push(performance.now() - updateStart);
     p.renderer.info.reset();

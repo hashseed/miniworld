@@ -168,6 +168,7 @@ function aurochs(): Model {
 function smilodon(): Model {
   const coat = '#b98a52';
   const p = quadruped({
+    knee: 1.1,
     shoulder: 1.0,
     length: 1.6,
     girth: [0.34, 0.38],
@@ -282,7 +283,7 @@ function groundSloth(): Model {
           4,
         ),
         '#e6dccb',
-        s > 0 ? 'legFL' : 'legFR',
+        s > 0 ? 'lowFL' : 'lowFR',
       );
   mb.add(
     blob([0, headAt.y - 0.15, headAt.z + 0.42], [0.1, 0.1, 0.1], 5),
@@ -446,6 +447,7 @@ function thylacine(): Model {
   const length = 1.1;
   const bodyY = 0.6 - 0.24 * 0.75;
   const p = quadruped({
+    knee: 1.1,
     shoulder: 0.6,
     length,
     girth: [0.2, 0.24],

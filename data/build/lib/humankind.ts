@@ -16,6 +16,7 @@ import {
   type TreeLodging,
 } from '../../../app/src/world/tree.ts';
 import {
+  BUILD_RING_M,
   CAMP_ROOM_M,
   HEARTH_SPOTS,
   LAYOUT_KM_PER_M,
@@ -206,15 +207,18 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   /** Whether the people's spots round a hearth would all be on land (section 8.1). */
   const roomy = (lat: number, lon: number, day: Day) => {
     if (!dryAt({ lat, lon }, day)) return false;
-    // Two rings, close enough that a drawn river cannot slip between their points.
-    for (const [n, m] of [
-      [8, CAMP_ROOM_M / 2],
-      [16, CAMP_ROOM_M],
-    ] as const)
-      for (let k = 0; k < n; k++) {
-        const a = (k / n) * 2 * Math.PI;
+    // Rings every 1.5 layout metres, 40 points each, close enough that a drawn
+    // river (about 2 layout metres wide) cannot slip between their points.
+    for (let m = 1.5; m <= CAMP_ROOM_M; m += 1.5)
+      for (let k = 0; k < 40; k++) {
+        const a = (k / 40) * 2 * Math.PI;
         if (!dryAt(offset(lat, lon, m * detCos(a), m * detSin(a)), day)) return false;
       }
+    for (let k = 0; k < 40; k++) {
+      const a = (k / 40) * 2 * Math.PI;
+      const m = CAMP_ROOM_M;
+      if (!dryAt(offset(lat, lon, m * detCos(a), m * detSin(a)), day)) return false;
+    }
     return true;
   };
 
@@ -227,8 +231,12 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     const free = Array.from({ length: LODGING_SLOTS }, (_, k) => k).filter((k) => !taken.has(k));
     const dry = free.find((k) => {
       const p = slotPoint(camp.id, k);
-      const far = { x: p.x * 1.25, z: p.z * 1.25 };
-      return [p, far].every((q) => dryAt(offset(camp.lat, camp.lon, q.x, q.z), day));
+      // The lodging and the builders round it, a little past where they stand.
+      const round = Array.from({ length: 12 }, (_, j) => {
+        const a = (j / 12) * 2 * Math.PI;
+        return { x: p.x + (BUILD_RING_M + 1) * detCos(a), z: p.z + (BUILD_RING_M + 1) * detSin(a) };
+      });
+      return [p, ...round].every((q) => dryAt(offset(camp.lat, camp.lon, q.x, q.z), day));
     });
     return dry ?? free[0] ?? taken.size;
   };

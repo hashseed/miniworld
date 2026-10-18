@@ -30,10 +30,10 @@ async function main(args: string[]): Promise<void> {
   const wildlife = buildWildlifeMasks(ctx, map);
   const terrain = buildTerrain(ctx, map);
   const climate = buildClimate(ctx, map);
-  const tree = buildHumankind(ctx, map, climate);
+  const humankind = buildHumankind(ctx, map, climate);
   const lens = buildLensStage(ctx);
-  const index = buildContent(ctx, content, climate, wildlife);
-  writeManifest(ctx, { index, lens, terrain, climate, tree });
+  const index = buildContent(ctx, content, climate, wildlife, humankind.camps);
+  writeManifest(ctx, { index, lens, terrain, climate, tree: humankind.files });
 
   await output.finish();
   const brotliKb = (files: string[]) =>

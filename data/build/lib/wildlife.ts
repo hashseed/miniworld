@@ -32,6 +32,8 @@ export interface WildGround {
   height(lat: number, lon: number): number;
   /** Sea or lake at today's level. */
   wet(lat: number, lon: number): boolean;
+  /** A lake (not the sea). */
+  lake?(lat: number, lon: number): boolean;
 }
 
 function vec(x: number, y: number, z: number): Vec3Like {
@@ -183,7 +185,19 @@ export function wildMasks(groups: readonly WildGroup[], ground: WildGround): str
           const [lat, lon] = at(g, e + de, n + dn);
           return sea ? openSea(ground, g, e + de, n + dn) : openAt(ground, lat, lon, homeM);
         });
-        mask[j * WILD_MASK_N + i] = open ? 1 : 0;
+        // A land cell is also free of lakes at its corners, so lakes smaller than a cell are not walked over.
+        const dry =
+          sea ||
+          !ground.lake ||
+          (
+            [
+              [q, q],
+              [q, -q],
+              [-q, q],
+              [-q, -q],
+            ] as const
+          ).every(([de, dn]) => !ground.lake!(...at(g, e + de, n + dn)));
+        mask[j * WILD_MASK_N + i] = open && dry ? 1 : 0;
       }
     reachable(mask);
     return encodeWildMask(mask);

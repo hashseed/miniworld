@@ -132,6 +132,7 @@ export function buildContent(
   content: Content,
   climate: { seaLevel: StartupIndex['seaLevel']; iceDays: number[] },
   wildlife: string[],
+  wildlifeCamps: [number, number, number, number][],
 ): Record<Language, string> {
   const { output, log } = ctx;
   const sources: SourceInfo[] = ctx.registry
@@ -208,6 +209,7 @@ export function buildContent(
         text: text[language],
       })),
       wildlife,
+      wildlifeCamps,
       animals: animalFiles.map(({ a, text }) => ({
         id: a.id,
         title: a.text[language].title,

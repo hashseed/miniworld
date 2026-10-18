@@ -1,21 +1,29 @@
-// Draws the wildlife (spec wildlife.md, section 5): every species is a set of
-// instanced meshes, one per moving part of its model with its ink outline.
-// Each frame one copy of the model is posed per animal with the animal clips
-// and its part matrices are copied into the instances. It only draws; where
-// the animals are and what they do comes from world/wildlife.ts.
+// Draws the wildlife (spec wildlife.md, section 5): every species is one
+// instanced mesh, its model's moving parts merged, with its ink outline: two
+// draw calls a species. Each frame one copy of the model is posed per animal
+// with the animal clips and its part matrices are written into a pose texture
+// the shaders read. It only draws; where the animals are and what they do
+// comes from world/wildlife.ts.
 
 import * as THREE from 'three';
 import { drawable } from '../content/assets.ts';
 import { ANIMALS, buildAnimal, type AnimalId } from '../../../assets/src/animals.ts';
 import { animateAnimal, walkPeriod } from '../../../assets/src/clips.ts';
-import { celMaterial, inkMaterial, type Model } from '../../../assets/src/kit.ts';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { posedMaterials, type Model } from '../../../assets/src/kit.ts';
 import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 import { latLonToDir, type Vec3 } from '../geo/cube.ts';
+import { msAtDay } from '../time/rate.ts';
+import { CAMP_KEEP_OUT_KM } from '../world/treeScene.ts';
+import { NEVER } from '../world/tree.ts';
 import {
   decodeWildMask,
+  groupGrowth,
+  keepOutsOf,
   wildClearings,
   wildlifeAt,
   WILD_GROUPS,
+  type KeepOut,
   type WildAnimal,
   type WildMask,
 } from '../world/wildlife.ts';
@@ -32,19 +40,23 @@ const DRAWN_SIZE_M: Record<string, number> = {
   'animal-haast-eagle': 2.2,
   'animal-capybara': 1.2,
 };
+/** Something on the drawn globe animals keep clear of (section 4): its direction and half size in km. */
+export interface Obstacle {
+  dir: THREE.Vector3;
+  km: number;
+}
 /** Most animals of one species drawn at once. */
 const CAPACITY = 12;
 
-interface Part {
-  /** The part in the posed template, whose world matrix is the part's pose. */
-  source: THREE.Mesh;
-  cel: THREE.InstancedMesh;
-  ink: THREE.InstancedMesh;
-}
-
 interface Species {
   template: Model;
-  parts: Part[];
+  /** The parts in the posed template, whose world matrices are the parts' poses. */
+  parts: THREE.Mesh[];
+  cel: THREE.InstancedMesh;
+  ink: THREE.InstancedMesh;
+  /** Every animal's part matrices: a row per animal, four texels per part. */
+  poses: Float32Array;
+  poseTex: THREE.DataTexture;
   /** Drawn km per model metre. */
   scale: number;
   /** Body length in model metres, for spacing the group. */
@@ -71,6 +83,11 @@ export class WildlifeLayer {
   count = 0;
   /** Each group's ground mask from the startup index; nothing is drawn before it arrives. */
   private masks: WildMask[] | undefined;
+  private camps: readonly [number, number, number, number][] = [];
+  private keepOutKey = '';
+  private keepOutList: KeepOut[][] = [];
+  private clearKey = '';
+  private clearList: { dir: Vec3; km: number }[] = [];
   /**
    * One body length of a model on the true globe at a group's home: its drawn
    * length over the history lens's width there, so the group keeps its drawn
@@ -105,7 +122,43 @@ export class WildlifeLayer {
 
   /** The ground masks of the startup index, one hex string per group (section 4). */
   setMasks(hex: readonly string[]): void {
+    // Masks built for another list of groups would put animals on the wrong
+    // ground (in the sea), so data older than the app draws no wildlife.
+    if (hex.length !== WILD_GROUPS.length) {
+      console.warn(
+        `wildlife: ${hex.length} ground masks for ${WILD_GROUPS.length} groups; run build-data`,
+      );
+      return;
+    }
     this.masks = WILD_GROUPS.map((_, i) => (hex[i] ? decodeWildMask(hex[i]) : undefined));
+  }
+
+  /** The camp places of the startup index, which the groups keep clear of (section 4). */
+  setCamps(camps: readonly [number, number, number, number][]): void {
+    this.camps = camps;
+    this.keepOutKey = '';
+  }
+
+  /**
+   * Each group's keep-outs at a timeline start: the camps in clock seconds, their circle on
+   * the true globe the drawn keep-out over the lens's width at the home, like places in the
+   * group. Rebuilt only when the start or the lens changes.
+   */
+  private keepOuts(startDay: number): KeepOut[][] {
+    const widths = WILD_GROUPS.map((g) => this.surface.widthAt?.(latLonToDir(g.lat, g.lon)) ?? 1);
+    const key = `${startDay}:${widths.map((w) => w.toFixed(4)).join(',')}`;
+    if (key === this.keepOutKey) return this.keepOutList;
+    const camps = this.camps.map(([lat, lon, from, to]) => ({
+      lat,
+      lon,
+      from: msAtDay(from, startDay) / 1000,
+      to: to === NEVER ? Infinity : msAtDay(to, startDay) / 1000,
+    }));
+    this.keepOutList = WILD_GROUPS.map((g, i) =>
+      keepOutsOf(g, camps, CAMP_KEEP_OUT_KM / widths[i]!),
+    );
+    this.keepOutKey = key;
+    return this.keepOutList;
   }
 
   /** Drawn ground height in km at a point km along forward and right of an animal's middle. */
@@ -158,15 +211,24 @@ export class WildlifeLayer {
   }
 
   /** Clearings in the trees where the groups shown on a day graze around a clock time, in true directions. */
-  clearings(day: number, ms: number): { dir: Vec3; km: number }[] {
+  clearings(day: number, ms: number, startDay: number): { dir: Vec3; km: number }[] {
     if (!this.masks) return [];
+    const keepOuts = this.keepOuts(startDay);
     const drawnLength = (model: string) => {
       const s = this.speciesOf(model);
       return s ? s.length * s.scale : 0;
     };
     const width = (g: { lat: number; lon: number }) =>
       this.surface.widthAt?.(latLonToDir(g.lat, g.lon)) ?? 1;
-    return wildClearings(
+    // The clearings change once a stretch, or when a group grows in or the lens moves.
+    const key = [
+      Math.floor(ms / 1000 / 20),
+      this.keepOutKey,
+      WILD_GROUPS.map((g) => (groupGrowth(g, day) > 0 ? 1 : 0)).join(''),
+    ].join('|');
+    if (key === this.clearKey) return this.clearList;
+    this.clearKey = key;
+    this.clearList = wildClearings(
       day,
       ms / 1000,
       WILD_GROUPS,
@@ -174,7 +236,9 @@ export class WildlifeLayer {
       this.reach,
       drawnLength,
       width,
+      keepOuts,
     ).map((c) => ({ dir: this.offsetDir(c.lat, c.lon, c.eastKm, c.northKm), km: c.km }));
+    return this.clearList;
   }
 
   /** The true direction km east and north of a point. */
@@ -232,7 +296,10 @@ export class WildlifeLayer {
    * against the mask. Birds fly above the others and are left alone. A pure
    * function of the animals, so the same time gives the same spots.
    */
-  private separate(animals: readonly WildAnimal[]): THREE.Vector3[] {
+  private separate(
+    animals: readonly WildAnimal[],
+    obstacles: readonly Obstacle[],
+  ): THREE.Vector3[] {
     const ups = animals.map((a, i) => {
       const v = (this.ups[i] ??= new THREE.Vector3());
       const s = this.speciesOf(a.model);
@@ -257,20 +324,39 @@ export class WildlifeLayer {
           a.addScaledVector(push, step).normalize();
           b.addScaledVector(push, -step).normalize();
         }
+    // Then clear of people, hunted animals, lodgings and hearths, which never move (section 4).
+    for (let i = 0; i < ups.length; i++) {
+      if (this.halfKm[i] === 0) continue;
+      const a = ups[i]!;
+      for (const o of obstacles) {
+        const need = (this.halfKm[i]! + o.km) / EARTH_RADIUS_KM;
+        const gap = a.distanceTo(o.dir);
+        if (gap >= need) continue;
+        if (gap < 1e-9) push.set(1, 0, 0).cross(a).normalize();
+        else push.subVectors(a, o.dir).normalize();
+        a.addScaledVector(push, need - gap).normalize();
+      }
+    }
     return ups;
   }
 
   /** Poses the animals of a day at a clock time in milliseconds. */
-  update(camera: THREE.Camera, day: number, ms: number): void {
+  update(
+    camera: THREE.Camera,
+    day: number,
+    ms: number,
+    startDay: number,
+    obstacles: readonly Obstacle[] = [],
+  ): void {
     for (const s of this.species.values()) if (s) s.count = 0;
     this.camera = camera;
     this.drawnCount = 0;
     const camPos = camera.position;
     this.count = 0;
     const animals = this.masks
-      ? wildlifeAt(day, ms / 1000, WILD_GROUPS, this.masks, this.reach)
+      ? wildlifeAt(day, ms / 1000, WILD_GROUPS, this.masks, this.reach, this.keepOuts(startDay))
       : [];
-    const ups = this.separate(animals);
+    const ups = this.separate(animals, obstacles);
     animals.forEach((a, ai) => {
       const s = this.speciesOf(a.model);
       if (!s || s.count >= CAPACITY) return;
@@ -332,22 +418,21 @@ export class WildlifeLayer {
       }
       animateAnimal(s.template, a.clip, seconds);
       s.template.object.updateMatrixWorld(true);
-      for (const p of s.parts) {
-        this.part.multiplyMatrices(this.root, p.source.matrixWorld);
-        p.cel.setMatrixAt(s.count, this.part);
-        p.ink.setMatrixAt(s.count, this.part);
-      }
+      const row = s.count * s.parts.length * 16;
+      s.parts.forEach((p, k) => {
+        this.part.multiplyMatrices(this.root, p.matrixWorld);
+        this.part.toArray(s.poses, row + k * 16);
+      });
       s.count++;
       this.count++;
     });
     for (const s of this.species.values()) {
       if (!s) continue;
-      for (const p of s.parts)
-        for (const m of [p.cel, p.ink]) {
-          m.count = s.count;
-          m.visible = s.count > 0;
-          m.instanceMatrix.needsUpdate = true;
-        }
+      for (const m of [s.cel, s.ink]) {
+        m.count = s.count;
+        m.visible = s.count > 0;
+      }
+      if (s.count > 0) s.poseTex.needsUpdate = true;
     }
   }
 
@@ -362,24 +447,48 @@ export class WildlifeLayer {
       const box = new THREE.Box3().setFromObject(template.object);
       const sizeM = Math.max(box.max.y - box.min.y, (box.max.z - box.min.z) / 2);
       const drawnM = DRAWN_SIZE_M[model] ?? Math.min(MAX_SIZE_M, Math.max(MIN_SIZE_M, sizeM));
-      const parts: Part[] = [];
+      const parts: THREE.Mesh[] = [];
       template.object.traverse((o) => {
         const mesh = o as THREE.Mesh;
         // Ink hulls are children of their coloured mesh and share its geometry.
         if (!mesh.isMesh || (mesh.parent as THREE.Mesh).isMesh) return;
-        const make = (material: THREE.Material) => {
-          const m = new THREE.InstancedMesh(mesh.geometry, material, CAPACITY);
-          m.count = 0;
-          m.visible = false;
-          m.frustumCulled = false;
-          this.group.add(m);
-          return m;
-        };
-        parts.push({ source: mesh, cel: make(celMaterial()), ink: make(inkMaterial()) });
+        parts.push(mesh);
       });
+      // One mesh of all parts, each vertex naming its part for the pose texture.
+      const merged = mergeGeometries(
+        parts.map((mesh, k) => {
+          const g = new THREE.BufferGeometry();
+          for (const name of ['position', 'normal', 'color'])
+            g.setAttribute(name, mesh.geometry.getAttribute(name));
+          const n = mesh.geometry.getAttribute('position').count;
+          g.setAttribute('part', new THREE.BufferAttribute(new Float32Array(n).fill(k), 1));
+          return g;
+        }),
+      );
+      const poses = new Float32Array(CAPACITY * parts.length * 16);
+      const poseTex = new THREE.DataTexture(
+        poses,
+        parts.length * 4,
+        CAPACITY,
+        THREE.RGBAFormat,
+        THREE.FloatType,
+      );
+      const materials = posedMaterials(poseTex);
+      const make = (material: THREE.Material) => {
+        const m = new THREE.InstancedMesh(merged, material, CAPACITY);
+        m.count = 0;
+        m.visible = false;
+        m.frustumCulled = false;
+        this.group.add(m);
+        return m;
+      };
       s = {
         template,
         parts,
+        cel: make(materials.cel),
+        ink: make(materials.ink),
+        poses,
+        poseTex,
         scale: (KM_PER_M * drawnM) / sizeM,
         length: box.max.z - box.min.z,
         height: box.max.y - box.min.y,

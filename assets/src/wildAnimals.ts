@@ -34,6 +34,11 @@ export const WILD_ANIMALS = [
   'animal-kea',
   'animal-capybara',
   'animal-tiger',
+  'animal-panda',
+  'animal-gorilla',
+  'animal-gorilla-female',
+  'animal-orangutan',
+  'animal-komodo',
 ] as const;
 export type WildAnimalId = (typeof WILD_ANIMALS)[number];
 
@@ -83,6 +88,16 @@ export function buildWildAnimal(id: WildAnimalId): Model {
       return tiger();
     case 'animal-capybara':
       return capybara();
+    case 'animal-panda':
+      return panda();
+    case 'animal-gorilla':
+      return ape(id, { coat: '#2a2624', face: '#1f1b1a', back: '#b9b4ad', size: 1, arms: 1 });
+    case 'animal-gorilla-female':
+      return ape(id, { coat: '#2a2624', face: '#1f1b1a', size: 0.82, arms: 1 });
+    case 'animal-komodo':
+      return komodo();
+    case 'animal-orangutan':
+      return ape(id, { coat: '#b8541f', face: '#5b4636', size: 0.78, arms: 1.25, shaggy: true });
     case 'animal-kea':
       return bird(id, {
         body: '#6f7f3c',
@@ -119,7 +134,7 @@ export function ears(p: Parts, at: Vec3, radii: Vec3, colour: THREE.ColorReprese
 
 /** African elephant: big ears, tusks; Asian elephant: small ears, twin-domed head, darker. */
 function elephant(id: WildAnimalId, african: boolean): Model {
-  const coat = african ? '#8f8b86' : '#6e6866';
+  const coat = african ? '#8f8b86' : '#9a8f87';
   const p = quadruped({
     shoulder: african ? 3.2 : 2.7,
     length: african ? 3.2 : 2.9,
@@ -405,6 +420,7 @@ function wildebeest(): Model {
 
 export function lion(id: string, maned: boolean, coat = '#c9995a'): Model {
   const p = quadruped({
+    knee: 1.1,
     shoulder: maned ? 1.15 : 1.0,
     length: maned ? 1.75 : 1.55,
     girth: maned ? [0.32, 0.37] : [0.28, 0.32],
@@ -454,6 +470,7 @@ function tiger(): Model {
   const bodyY = 1.0 - 0.34 * 0.75;
   const band = (v: number) => (((Math.floor(v) % 2) + 2) % 2 === 1 ? black : undefined);
   const p = quadruped({
+    knee: 1.1,
     shoulder: 1.0,
     length,
     girth: [0.3, 0.34],
@@ -610,6 +627,156 @@ function bear(id: WildAnimalId, polar: boolean): Model {
   return mb.build(id);
 }
 
+/**
+ * A giant panda: a round white bear with black legs, a black band over the
+ * shoulders joining the front legs, black ears and black patches round the eyes,
+ * all painted on like the zebra's stripes.
+ */
+function panda(): Model {
+  const white = '#f1ede4';
+  const black = '#262220';
+  const length = 1.35;
+  const front = length / 2;
+  const p = quadruped({
+    shoulder: 0.8,
+    length,
+    girth: [0.42, 0.42],
+    leg: 0.13,
+    neck: [0.16, -0.04],
+    head: [0.27, 0.25, 0.25],
+    headDrop: 0.08,
+    coat: white,
+    legColour: black,
+    hoof: black,
+    pattern: {
+      // The saddle over the shoulders, from the front legs up and over the back.
+      body: (q) => (q.z > -length * 0.02 && q.z < length * 0.3 ? black : undefined),
+      chest: (q) => (q.z < front * 0.72 ? black : undefined),
+    },
+  });
+  const { mb, headAt, bodyY, back } = p;
+  // A short pale muzzle with a black nose, round black ears, black eye patches.
+  mb.add(blob([0, headAt.y - 0.07, headAt.z + 0.2], [0.12, 0.09, 0.1], 6), white, 'head');
+  mb.add(blob([0, headAt.y - 0.03, headAt.z + 0.29], [0.05, 0.035, 0.03], 5), black, 'head');
+  ears(p, [0.19, 0.2, -0.06], [0.08, 0.08, 0.05], black);
+  for (const s of [1, -1]) {
+    const patch = blob([0, 0, 0], [0.075, 0.1, 0.06], 6);
+    patch.rotateZ(s * 0.5);
+    patch.translate(s * 0.13, headAt.y + 0.03, headAt.z + 0.16);
+    mb.add(patch, black, 'head');
+    mb.add(
+      blob([s * 0.15, headAt.y + 0.05, headAt.z + 0.21], [0.022, 0.022, 0.015], 4),
+      white,
+      'head',
+    );
+  }
+  mb.add(blob([0, bodyY + 0.12, back * 1.02], [0.07, 0.07, 0.06], 5), white, 'tail');
+  return mb.build('animal-panda');
+}
+
+interface ApeLook {
+  coat: string;
+  face: string;
+  /** The silver saddle of a grown male gorilla. */
+  back?: string;
+  /** Scale of the whole animal. */
+  size: number;
+  /** Length of the arms against a gorilla's. */
+  arms: number;
+  /** Long hanging hair on the arms and flanks (orangutans). */
+  shaggy?: boolean;
+}
+
+/**
+ * A great ape on all fours (gorilla, orangutan): broad shoulders above narrow
+ * hips, the back sloping down to the rump, long arms walking on the knuckles,
+ * short legs, a big head with a dark bare face. Built at gorilla size and scaled.
+ */
+function ape(id: WildAnimalId, look: ApeLook): Model {
+  const k = look.size;
+  const v = (x: number, y: number, z: number): Vec3 => [x * k, y * k, z * k];
+  const r = (x: number, y: number, z: number): Vec3 => [x * k, y * k, z * k];
+  const arm = look.arms;
+  const shoulderY = 1.1 * Math.min(1.12, arm);
+  const hipY = 0.7;
+  const mb = new ModelBuilder([
+    { name: 'body', pivot: v(0, (shoulderY + hipY) / 2, 0) },
+    { name: 'head', pivot: v(0, shoulderY + 0.1, 0.45), parent: 'body' },
+    { name: 'legFL', pivot: v(0.38, shoulderY, 0.38), parent: 'body' },
+    { name: 'legFR', pivot: v(-0.38, shoulderY, 0.38), parent: 'body' },
+    { name: 'legBL', pivot: v(0.24, hipY, -0.36), parent: 'body' },
+    { name: 'legBR', pivot: v(-0.24, hipY, -0.36), parent: 'body' },
+    { name: 'tail', pivot: v(0, hipY, -0.45), parent: 'body' },
+  ]);
+  const coat = look.coat;
+  // Body: a big chest and shoulders, sloping back to a small rump.
+  const torso = blob([0, 0, 0], r(0.4, 0.38, 0.55), 8);
+  torso.rotateX(Math.atan2(shoulderY - hipY, 0.8));
+  torso.translate(...v(0, (shoulderY + hipY) / 2 - 0.02, 0.02));
+  mb.add(torso, coat, 'body');
+  mb.add(blob(v(0, shoulderY - 0.06, 0.3), r(0.5, 0.36, 0.34), 8), coat, 'body');
+  mb.add(blob(v(0, hipY + 0.02, -0.33), r(0.32, 0.3, 0.26), 7), coat, 'body');
+  if (look.back) {
+    // The silver saddle over the lower back.
+    const saddle = blob([0, 0, 0], r(0.36, 0.2, 0.36), 8);
+    saddle.rotateX(Math.atan2(shoulderY - hipY, 0.8));
+    saddle.translate(...v(0, (shoulderY + hipY) / 2 + 0.22, -0.08));
+    mb.add(saddle, look.back, 'body');
+  }
+  // Head: a domed skull (a crest on a gorilla), heavy brow, dark bare face.
+  const headAt = v(0, shoulderY + 0.12, 0.62);
+  mb.add(blob(headAt, r(0.22, 0.23, 0.21), 7), coat, 'head');
+  mb.add(blob(v(0, shoulderY + 0.32, 0.56), r(0.1, 0.12, 0.15), 6), coat, 'head');
+  mb.add(blob(v(0, shoulderY + 0.08, 0.78), r(0.16, 0.16, 0.09), 6), look.face, 'head');
+  mb.add(blob(v(0, shoulderY + 0.2, 0.78), r(0.17, 0.05, 0.06), 5), look.face, 'head');
+  mb.add(blob(v(0, shoulderY - 0.02, 0.83), r(0.12, 0.08, 0.07), 6), look.face, 'head');
+  for (const s of [1, -1]) {
+    mb.add(blob(v(s * 0.07, shoulderY + 0.15, 0.85), r(0.025, 0.025, 0.02), 4), '#f1ede4', 'head');
+    mb.add(blob(v(s * 0.07, shoulderY + 0.15, 0.86), r(0.016, 0.016, 0.016), 4), EYE, 'head');
+  }
+  // Arms long and thick, standing on the knuckles; legs short.
+  for (const [bone, s] of [
+    ['legFL', 1],
+    ['legFR', -1],
+  ] as const) {
+    const top = v(s * 0.4, shoulderY, 0.38);
+    const hand = v(s * 0.44, 0.1, 0.5);
+    mb.add(limb(top, hand, 0.13 * k, 0.1 * k, 6), coat, bone);
+    mb.add(blob(v(s * 0.44, 0.07, 0.53), r(0.1, 0.07, 0.12), 5), look.face, bone);
+    if (look.shaggy)
+      mb.add(
+        limb(v(s * 0.47, shoulderY - 0.1, 0.32), v(s * 0.5, 0.35, 0.36), 0.11 * k, 0.04 * k, 5),
+        shade(coat, -0.08),
+        bone,
+      );
+  }
+  for (const [bone, s] of [
+    ['legBL', 1],
+    ['legBR', -1],
+  ] as const) {
+    mb.add(
+      limb(v(s * 0.24, hipY, -0.36), v(s * 0.28, 0.1, -0.28), 0.12 * k, 0.09 * k, 6),
+      coat,
+      bone,
+    );
+    mb.add(blob(v(s * 0.28, 0.06, -0.2), r(0.09, 0.06, 0.15), 5), look.face, bone);
+  }
+  if (look.shaggy)
+    for (const s of [1, -1])
+      mb.add(
+        limb(
+          v(s * 0.36, (shoulderY + hipY) / 2, 0.15),
+          v(s * 0.4, hipY - 0.15, -0.05),
+          0.12 * k,
+          0.04 * k,
+          5,
+        ),
+        shade(coat, -0.08),
+        'body',
+      );
+  return mb.build(id);
+}
+
 /** A capybara: a barrel of reddish fur on short legs, no tail, a big blunt head. */
 function capybara(): Model {
   const coat = '#8a5a36';
@@ -738,6 +905,56 @@ function crocodile(): Model {
     'tail',
   );
   return mb.build('animal-crocodile');
+}
+
+/** A Komodo dragon: a big grey-brown lizard, legs sprawled, a long flat tail, a forked yellow tongue. */
+function komodo(): Model {
+  const skin = '#7a6a55';
+  const belly = '#a8977a';
+  const bodyY = 0.3;
+  const mb = new ModelBuilder([
+    { name: 'body', pivot: [0, bodyY, 0] },
+    { name: 'head', pivot: [0, bodyY + 0.04, 0.7], parent: 'body' },
+    { name: 'legFL', pivot: [0.26, bodyY, 0.45], parent: 'body' },
+    { name: 'legFR', pivot: [-0.26, bodyY, 0.45], parent: 'body' },
+    { name: 'legBL', pivot: [0.26, bodyY, -0.45], parent: 'body' },
+    { name: 'legBR', pivot: [-0.26, bodyY, -0.45], parent: 'body' },
+    { name: 'tail', pivot: [0, bodyY, -0.75], parent: 'body' },
+  ]);
+  mb.add(blob([0, bodyY, 0], [0.33, 0.22, 0.85], 8), skin, 'body');
+  mb.add(blob([0, bodyY - 0.08, 0.05], [0.27, 0.13, 0.72], 7), belly, 'body');
+  // A long neck and a blunt, rounded snout; small eyes; the forked tongue.
+  mb.add(limb([0, bodyY + 0.02, 0.6], [0, bodyY + 0.08, 0.95], 0.17, 0.13, 6), skin, 'head');
+  mb.add(blob([0, bodyY + 0.08, 1.12], [0.14, 0.11, 0.24], 7), skin, 'head');
+  for (const s of [1, -1]) {
+    mb.add(blob([s * 0.11, bodyY + 0.14, 1.06], [0.025, 0.025, 0.025], 4), EYE, 'head');
+    mb.add(
+      limb([0, bodyY + 0.03, 1.33], [s * 0.04, bodyY + 0.02, 1.48], 0.012, 0.008, 4),
+      '#e2b43a',
+      'head',
+    );
+  }
+  mb.add(
+    limb([0, bodyY + 0.04, 1.28], [0, bodyY + 0.03, 1.36], 0.016, 0.014, 4),
+    '#e2b43a',
+    'head',
+  );
+  // Legs: out to the side and down, clawed feet flat on the ground.
+  for (const [bone, x, z] of [
+    ['legFL', 1, 0.45],
+    ['legFR', -1, 0.45],
+    ['legBL', 1, -0.45],
+    ['legBR', -1, -0.45],
+  ] as const) {
+    mb.add(limb([x * 0.24, bodyY, z], [x * 0.44, 0.07, z + 0.05], 0.09, 0.07, 5), skin, bone);
+    mb.add(blob([x * 0.46, 0.04, z + 0.12], [0.09, 0.04, 0.12], 5), shade(skin, -0.25), bone);
+  }
+  mb.add(
+    horn([0, bodyY, -0.7], [0, bodyY - 0.08, -1.4], [-0.2, 0.08, -2.0], 0.2, 0.03, 6, 6),
+    skin,
+    'tail',
+  );
+  return mb.build('animal-komodo');
 }
 
 /** Emperor penguin: upright, black back, white front, yellow neck patches, flippers. */

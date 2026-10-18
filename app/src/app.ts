@@ -524,6 +524,7 @@ async function start(): Promise<void> {
     vignettes.setIndex(index.vignettes);
     landmarks.setIndex(index.landmarks);
     wildlife.setMasks(index.wildlife);
+    wildlife.setCamps(index.wildlifeCamps ?? []);
     globe.lowestSeaLevel = minSeaLevel;
     clock.configure({
       startDay: manifest.timelineStartDay,
