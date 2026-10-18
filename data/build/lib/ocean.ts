@@ -74,12 +74,24 @@ export interface InlandSea {
   box: [number, number, number, number];
 }
 
-/** Seas that are shown as water at every date (spec milestone 1, section 5.1). */
-export const INLAND_SEAS: InlandSea[] = [
-  { id: 'black-sea', lat: 43.0, lon: 34.0, level: 0, box: [27.3, 41.1, 42.0, 47.5] },
-  { id: 'caspian-sea', lat: 42.0, lon: 50.5, level: -28, box: [46.0, 36.0, 55.5, 47.5] },
-  { id: 'baltic-sea', lat: 57.0, lon: 19.5, level: 0, box: [12.9, 53.8, 30.5, 66.0] },
-];
+const isBox = (b: number[]): b is [number, number, number, number] =>
+  b.length === 4 && b[0]! < b[2]! && b[1]! < b[3]!;
+
+/** Checks the curated inland seas (data/curated/inland-seas.json). */
+export function validateInlandSeas(seas: InlandSea[]): string[] {
+  const errors: string[] = [];
+  const ids = new Set<string>();
+  for (const s of seas) {
+    if (ids.has(s.id)) errors.push(`inland sea ${s.id}: duplicate id`);
+    ids.add(s.id);
+    if (!Array.isArray(s.box) || !isBox(s.box))
+      errors.push(`inland sea ${s.id}: box must be [west, south, east, north]`);
+    else if (s.lon < s.box[0] || s.lon > s.box[2] || s.lat < s.box[1] || s.lat > s.box[3])
+      errors.push(`inland sea ${s.id}: seed outside its box`);
+    if (!Number.isFinite(s.level)) errors.push(`inland sea ${s.id}: no level`);
+  }
+  return errors;
+}
 
 /** Floods each inland sea from its seed through cells below its level. */
 export function floodInlandSeas(

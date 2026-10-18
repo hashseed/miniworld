@@ -97,6 +97,33 @@ export function smoothLine(line: number[][], rounds = 2): number[][] {
   return pts;
 }
 
+/** A curated river (data/curated/rivers.json): the Natural Earth names of its lines. */
+export interface CuratedRiver {
+  id: string;
+  names: string[];
+  box?: [number, number, number, number];
+}
+
+/** Checks the curated rivers. */
+export function validateRivers(rivers: CuratedRiver[]): string[] {
+  const errors: string[] = [];
+  const ids = new Set<string>();
+  for (const r of rivers) {
+    if (ids.has(r.id)) errors.push(`river ${r.id}: duplicate id`);
+    ids.add(r.id);
+    if (!r.names?.length) errors.push(`river ${r.id}: no names`);
+    const b = r.box;
+    if (b && !(b.length === 4 && b[0] < b[2] && b[1] < b[3]))
+      errors.push(`river ${r.id}: box must be [west, south, east, north]`);
+  }
+  return errors;
+}
+
+/** The line picks of the rivers, in their order. */
+export function riverPicks(rivers: CuratedRiver[]): RiverPick[] {
+  return rivers.flatMap((r) => r.names.map((name) => (r.box ? { name, box: r.box } : { name })));
+}
+
 export interface RiverPick {
   /** Natural Earth name of a river line. */
   name: string;
