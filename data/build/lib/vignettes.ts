@@ -30,6 +30,8 @@ const CULTURES = new Set([
 ]);
 /** Scene-marker icons the app can draw (section 7.2). */
 const ICONS = new Set(['spear']);
+/** What historians may dispute about a record (content-format section 2). */
+const DEBATED = new Set(['date', 'place', 'cause', 'numbers', 'method']);
 const LEARN_MORE: Record<Language, string> = { en: 'Learn more', de: 'Mehr erfahren' };
 
 export interface VignetteText {
@@ -456,6 +458,8 @@ function compileRecord(
   for (const r of regions) if (!inp.lanes.has(r)) e.add(`unknown region "${r}"`);
   const icon = str(y.icon) ?? '';
   if (!ICONS.has(icon)) e.add(`unknown icon "${icon}"`);
+  if (y.debated !== undefined && !DEBATED.has(str(y.debated) ?? ''))
+    e.add(`unknown debated value "${String(y.debated)}"`);
   const refs = Array.isArray(y.sources) ? y.sources : [];
   if (!refs.length) e.add('names no source');
   for (const r of refs) {

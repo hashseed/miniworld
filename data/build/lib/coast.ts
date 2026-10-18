@@ -35,7 +35,7 @@ export const NEVER_LEVEL_M = OCEAN_MIN_LEVEL + OCEAN_TOP;
 
 /**
  * Weight of the polar simplification at a latitude: 1 south of 60°S and north
- * of 80°N, 0 within 50°S..70°N, blending linearly between (section 4.2).
+ * of 72°N, 0 within 50°S..62°N, blending linearly between (section 4.2).
  */
 export function polarWeight(lat: number): number {
   if (lat <= -60) return 1;

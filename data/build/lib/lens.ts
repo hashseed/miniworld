@@ -391,13 +391,11 @@ function flow(field: DiffusionField, points: Vec3[]): void {
   const MAX_STEP_RAD = 0.002;
   let t = 0;
   field.evaluate(0);
-  const v0 = field.v.slice();
   const prev = new Float64Array(points.length * 3);
   const a: Vec3 = [0, 0, 0];
   const b: Vec3 = [0, 0, 0];
   const mid: Vec3 = [0, 0, 0];
   let vmax0 = field.vmax;
-  void v0;
   for (let step = 0; step < 20000; step++) {
     if (vmax0 < 1e-7 || t > 40) break;
     const dt = Math.min(MAX_STEP_RAD / vmax0, 0.5);

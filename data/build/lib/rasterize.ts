@@ -46,30 +46,6 @@ export function rasterizePolygon(
   }
 }
 
-/** Calls plot(c, r) along a polyline, one call per cell step. */
-export function rasterizeLine(
-  target: RasterTarget,
-  line: number[][],
-  plot: (c: number, r: number) => void,
-): void {
-  const { width, height } = target;
-  for (let i = 1; i < line.length; i++) {
-    const a = line[i - 1]!;
-    const b = line[i]!;
-    const ca = ((a[0]! + 180) / 360) * width - 0.5;
-    const ra = ((90 - a[1]!) / 180) * height - 0.5;
-    const cb = ((b[0]! + 180) / 360) * width - 0.5;
-    const rb = ((90 - b[1]!) / 180) * height - 0.5;
-    const steps = Math.max(1, Math.ceil(Math.max(Math.abs(cb - ca), Math.abs(rb - ra)) * 2));
-    for (let s = 0; s <= steps; s++) {
-      const t = s / steps;
-      const c = Math.round(ca + (cb - ca) * t);
-      const r = Math.round(ra + (rb - ra) * t);
-      if (r >= 0 && r < height) plot(((c % width) + width) % width, r);
-    }
-  }
-}
-
 export interface GeoJsonFeature {
   properties: Record<string, unknown>;
   geometry: { type: string; coordinates: unknown } | null;

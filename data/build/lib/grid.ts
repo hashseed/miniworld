@@ -99,15 +99,3 @@ export class GridPyramid {
     return best;
   }
 }
-
-/** Area of a grid cell on a sphere of the given radius (m²). */
-export function cellArea(
-  grid: { width: number; height: number },
-  r: number,
-  radius = 6371000,
-): number {
-  const d = Math.PI / grid.height;
-  const lat0 = Math.PI / 2 - r * d;
-  const lat1 = lat0 - d;
-  return radius * radius * ((2 * Math.PI) / grid.width) * (Math.sin(lat0) - Math.sin(lat1));
-}

@@ -110,11 +110,6 @@ export class VignetteLayer {
     }
   }
 
-  /** Number of stages on the current day, for tests and stats. */
-  get stageCount(): number {
-    return this.stages.size;
-  }
-
   update(
     camera: THREE.PerspectiveCamera,
     day: number,
