@@ -210,30 +210,6 @@ input:focus-visible {
   white-space: nowrap;
 }
 
-.speed {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 12px;
-  border-radius: 14px;
-  border: 1px solid var(--panel-border);
-  background: var(--panel);
-  box-shadow: var(--shadow);
-}
-
-.speed input {
-  width: 140px;
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-
-.speed-value {
-  min-width: 3.2em;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
 .timeline-wrap {
   position: relative;
   display: flex;
@@ -287,8 +263,47 @@ input:focus-visible {
   right: 4px;
 }
 
-.lens-slider {
+/* Sliders folded behind icon buttons (milestone 1, section 8.1). */
+.fold {
+  position: relative;
+  display: inline-flex;
+}
+
+.lens-fold {
   margin-left: auto;
+}
+
+.fold-panel {
+  display: none;
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  bottom: 0;
+  align-items: center;
+  /* Transparent padding bridges the gap, so the pointer can move onto the slider. */
+  padding: 0 8px;
+}
+
+.play-fold .fold-panel {
+  left: 100%;
+}
+
+.lens-fold .fold-panel {
+  right: 100%;
+}
+
+.fold.open .fold-panel,
+.fold:has(:focus-visible) .fold-panel {
+  display: flex;
+}
+
+@media (hover: hover) {
+  .fold:hover .fold-panel {
+    display: flex;
+  }
+}
+
+.fold-box {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -296,22 +311,27 @@ input:focus-visible {
   padding: 0 12px;
   border-radius: 14px;
   border: 1px solid var(--panel-border);
-  background: var(--panel);
+  /* Opaque, as it lies over the date and the globe. */
+  background: var(--panel-hover);
   box-shadow: var(--shadow);
   white-space: nowrap;
   user-select: none;
 }
 
-.lens-slider input {
-  width: clamp(90px, 18vw, 180px);
-  min-height: 44px;
-  margin: 0;
-  accent-color: var(--accent);
+.lens-fold .fold-box {
+  flex-direction: row-reverse;
 }
 
-.lens-slider output {
-  min-width: 4.2em;
-  text-align: right;
+.fold-box input {
+  width: clamp(110px, 30vw, 180px);
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.fold-box output {
+  min-width: 3.6em;
+  text-align: center;
   font-variant-numeric: tabular-nums;
 }
 

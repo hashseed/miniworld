@@ -66,12 +66,28 @@ All are npm scripts, run in the dev container or any machine with the pinned Nod
 | `npm run dev` | The dev server on port 8800 |
 | `npm run build` | Production build of app plus data into `dist/` |
 | `npm run check` | Lint, typecheck, unit and golden tests, data validation |
+| `npm run coverage` | Unit and golden tests with the coverage report and its thresholds (section 2.4) |
 | `npm run test:browser` | Playwright tests at desktop and phone sizes |
+| `npm run pool` | Runs the checks or browser tests for a commit in a worktree of the test pool (section 2.5) |
+| `npm run fixture-key` | Prints the hash of everything the fixture data build reads, the key of its cache (section 2.4) |
 | `npm run perf` | Runs the stress scene and prints the performance report (section 11.4) |
 
 ### 2.4 Continuous integration
 
-GitHub Actions runs on every pull request and on `main`: lint, typecheck, unit and golden tests, data validation against a small fixture dataset, the production build with its size check (section 10.6), and the Playwright tests in headless Chromium. CI does not judge frame rate, because CI machines are not the reference devices; it checks draw calls and triangle counts of the stress scene instead (section 11.4). The phone browser tests emulate a phone's screen size and touch input at device pixel ratio 1, because CI renders in software and a phone's full pixel density would make every test several times slower without testing anything more.
+GitHub Actions runs on every pull request and on `main`: lint, typecheck, unit and golden tests with the coverage report, data validation against a small fixture dataset, the production build with its size check (section 10.6), and the Playwright tests in headless Chromium. Three jobs run side by side so a pull request is checked in about three minutes: the static checks and unit tests; the fixture data build; and, once the data is built, the browser tests, split over five jobs (desktop and phone in two shards each, and the perf check), one test at a time, because the software renderer uses every core and two tests on one machine slow each other down more than they gain. The fixture data is cached under a hash of everything its build reads (`npm run fixture-key`), and the Playwright browser under its version, so neither is rebuilt or downloaded when nothing changed. A new push to a pull request cancels its running checks. CI does not judge frame rate, because CI machines are not the reference devices; it checks draw calls and triangle counts of the stress scene instead (section 11.4). The phone browser tests emulate a phone's screen size and touch input at device pixel ratio 1, because CI renders in software and a phone's full pixel density would make every test several times slower without testing anything more.
+
+`npm run coverage` runs the unit tests with a line and branch coverage report (`coverage/`). Its thresholds, overall and for the well-tested folders, are the coverage when they were set; a change may raise them but never lower them.
+
+### 2.5 Running tests locally
+
+Tests run in Yang's devenv container, but never in the checkout that serves the app on port 8800, which is the staging copy Yang looks at. `npm run pool -- <ref> [check|browser|all]` runs them for any commit in a pool of git worktrees beside that checkout (`../miniworld-pool/slot-<n>`, two slots by default):
+
+- A run takes a free slot under a lock, so runs from different threads never share one, checks the commit out there, and frees the slot when it ends. The lock is kept alive by a heartbeat file, so a run that is killed frees its slot a minute later. Worktrees stay for the next run.
+- Dependencies are installed only when `package-lock.json` changed since the slot's last run, with the pool's own npm cache and a time limit. The fixture data comes from a cache shared by all slots under the same key as in CI, and is built only when the key is new.
+- Each slot's browser tests start their own dev server on port 8810 + n. The browser tests never use port 8800 or a server that is already running, so they cannot test the staging copy by mistake.
+- Logs and the Playwright report of the last run are kept in the slot's `.pool/last/`. `npm run pool -- --prune` removes the slots and old caches.
+
+The browser tests read three settings from the environment: `MINIWORLD_PORT` (default 8810), `PW_WORKERS`, the number of tests at a time (default 1), and `MINIWORLD_CHROMIUM`, the path of a system Chromium for machines where Playwright's own download is not available.
 
 ## 3. Time
 
@@ -255,7 +271,7 @@ The camera has one fly-to operation used by bookmarks now and by events and famo
 - The timeline is a strip along the bottom of the screen, drawn on a canvas, with its expand button built into its left edge. It has a date readout, the playhead, a lane "World" and one lane per region in the order of spec section 7.1.
 - Lanes show the era ranges from [eras.md](eras.md). The World lane uses a fixed colour per era; regional ranges use the colour assigned to that polity in `data/curated/eras` (later shared with the border overlay). Overlapping ranges in one lane stack into sub-rows.
 - A range's label is drawn inside it when it fits, otherwise it is shortened with an ellipsis and shown in full on hover or tap, together with its dates. German labels are about a third longer, so layout never assumes English widths.
-- **Collapsed (the default on every device):** the timeline shows only the lane of the region the globe is centred on, which changes as the viewer moves the globe (decided by Yang on 2026-10-17). The region comes from a coarse region lookup table built by the data build. A button at the left edge of the timeline, inside its frame (decided by Yang on 2026-10-18), expands it to the World lane and all regional lanes, taking at most about a third of the window height on desktop and two thirds on phones, and collapses it again. The choice is saved with the settings.
+- **Collapsed (the default on every device):** the timeline shows only the lane of the region the globe is centred on, which changes as the viewer moves the globe (decided by Yang on 2026-10-17). The collapsed timeline always keeps the height of the regional lane with the most sub-rows, so moving the globe to another region never changes its height or shifts the controls above it (decided by Yang on 2026-10-18); a lane with fewer sub-rows sits at the top and leaves the rest empty. The region comes from a coarse region lookup table built by the data build. A button at the left edge of the timeline, inside its frame (decided by Yang on 2026-10-18), expands it to the World lane and all regional lanes, taking at most about a third of the window height on desktop and two thirds on phones, and collapses it again. The choice is saved with the settings.
 
 ### 7.2 Axis and zoom
 
@@ -277,7 +293,8 @@ The camera has one fly-to operation used by bookmarks now and by events and famo
 
 ### 8.1 Screen layout
 
-- The globe fills the screen. Text on buttons, the speed selector, the date ribbon and the timeline cannot be selected, so clicking and dragging never highlights it (decided by Yang on 2026-10-17); text in the About panel and in cards can be selected. The timeline runs along the bottom. Above its left end sit the play controls: one play/pause button, the speed slider with its label and the rate readout. The top-right corner holds three buttons: bookmarks, settings and About. The history lens slider ([history-lens.md](history-lens.md) section 1) sits at the bottom right, at the right end of that row, just above the timeline.
+- The globe fills the screen. Text on buttons, the speed selector, the date ribbon and the timeline cannot be selected, so clicking and dragging never highlights it (decided by Yang on 2026-10-17); text in the About panel and in cards can be selected. The timeline runs along the bottom. Above its left end sit the play controls: one play/pause button, the speed slider with its value and the rate readout. The top-right corner holds three buttons: bookmarks, settings and About. The history lens button ([history-lens.md](history-lens.md) section 1) sits at the bottom right, at the right end of that row, just above the timeline.
+- Sliders fold away behind icon buttons, so the screen stays calm (decided by Yang on 2026-10-18). The speed slider folds away behind the play/pause button and the history lens slider behind a magnifying-glass button. Pointing at a button shows a short explanation of what it does, and the slider slides out beside it while the pointer is over the button or the slider, and folds away when the pointer leaves. On touch screens, where nothing can be pointed at, tapping the button opens its slider (the play/pause button also plays or pauses), and tapping anywhere else folds it away again. A slider also opens while it has keyboard focus. The play/pause explanation is "Play history; the slider beside it sets the speed" ("Geschichte abspielen; der Regler daneben stellt die Geschwindigkeit ein"), or "Pause history; …" ("Geschichte anhalten; …") while playing.
 - The date readout is large and clear above the timeline's playhead area, in the format of section 3.2.
 - All controls are at least 44 by 44 CSS pixels on touch devices, have visible focus outlines, and have accessible names in the current language.
 

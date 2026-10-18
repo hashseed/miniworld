@@ -2,7 +2,8 @@ import { defineConfig } from 'vite';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
-// Each preview on the devenv has its own port, 8800 for main (spec section 11).
+// 8800 is the staging server; previews and test runs pick their own port
+// (spec section 11, milestone 1 section 2.5).
 const port = Number(process.env.MINIWORLD_PORT ?? 8800);
 
 export default defineConfig({
