@@ -148,11 +148,11 @@ describe('the tree scene', () => {
   });
 
   it('crosses at the pace of the walk clip', () => {
-    // 333 km at 180 km per second of watching: about 1.85 seconds between the camps.
+    // 333 km at 306 km per second of watching: about 1.1 seconds between the camps.
     const crossing = trip().filter((f) => f.scene.figures.some((g) => between(g.lon)));
     const seconds = (crossing.at(-1)!.t - crossing[0]!.t) / 1000;
-    expect(seconds).toBeGreaterThan(1.6);
-    expect(seconds).toBeLessThan(2.3);
+    expect(seconds).toBeGreaterThan(0.9);
+    expect(seconds).toBeLessThan(1.5);
   });
 
   it('never walks through the fire on the way out or in', () => {
@@ -204,6 +204,17 @@ describe('the tree scene', () => {
         if (f.clip === 'knap') knappers.add(f.id === 0 ? 'founder' : lookOf(f.id));
     expect(knappers.has('founder')).toBe(true);
     expect(knappers.has('child')).toBe(false);
+  });
+
+  it('has hunters chase a zebra or an eland, which falls where they butcher it', () => {
+    const clips = new Set<string>();
+    for (let t = ms(d0 + years(25)); t < ms(moveDay) - 10_000; t += 97)
+      for (const p of treeScene(chunk, t, d0).prey) {
+        clips.add(p.clip);
+        expect(['animal-zebra', 'animal-eland']).toContain(p.kind);
+        expect(p.x * p.x + p.z * p.z).toBeGreaterThan(60 * 60);
+      }
+    expect(clips).toEqual(new Set(['idle', 'run', 'fall']));
   });
 
   it('fells the trees where the band arrives and lets them grow back where it left', () => {

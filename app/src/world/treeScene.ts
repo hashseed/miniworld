@@ -18,8 +18,11 @@ export interface TreeChunk {
   lodgings: TreeLodging[];
 }
 
-/** Drawn kilometres per life-size metre of a figure (milestone 2, section 5.1). */
-export const FIGURE_KM_PER_M = 50;
+/**
+ * Drawn kilometres per life-size metre of a figure: 1.7 times a vignette's 50 (milestone 2,
+ * section 5.1; Yang, 2026-10-18: "make the humans and their buildings/fire places 70% larger").
+ */
+export const FIGURE_KM_PER_M = 85;
 /**
  * Figures act this many times faster than life: their clips play faster and they cover
  * ground faster, so the feet still do not slide (Yang, 2026-10-18: livelier camps).
@@ -44,7 +47,7 @@ const PACE: Record<'walk' | 'run' | 'carry', number> = {
  * Lodgings stand this far from the hearth, in layout metres; lodgings are drawn at
  * figure size, three times the layout, so the ring keeps them clear of the people.
  */
-const LODGING_RING_M = 20;
+const LODGING_RING_M = 16;
 /** Places for lodgings round a hearth, evenly spaced so lodgings never overlap. */
 export const LODGING_SLOTS = 5;
 /** Spots for figures at a hearth: an inner ring and an outer ring, spaced so figures never overlap. */
@@ -58,9 +61,9 @@ const OUTER_ORDER = [0, 6, 3, 9, 1, 7, 4, 10, 2, 8, 5, 11];
 /** Paths keep this far from the middle of the hearth, in layout metres, so nobody walks through the fire. */
 const FIRE_CLEAR_M = 3;
 /** Figures leave and enter a camp at this distance from its hearth, between the people and the lodgings. */
-const GATE_M = 12;
+const GATE_M = 11;
 /** The farthest out anyone goes, in layout metres; the build measures land this far out. */
-export const MAX_OUTING_M = 80;
+export const MAX_OUTING_M = 90;
 /** The build prefers camp spots with land all round out to this many layout metres, past the people's spots. */
 export const CAMP_ROOM_M = OUTER_M + 2;
 /** Figures change between idle and work every 20 to 40 seconds of life, sped up by TEMPO. */
@@ -72,6 +75,18 @@ const TURN_MS = 60_000 / TEMPO;
 const GATHER_MS = 9000 / TEMPO;
 const BUTCHER_MS = Math.round(4000 / TEMPO);
 const LOOK_MS = Math.round(4000 / TEMPO);
+/**
+ * Prey of a hunt grazes this far out in its hunter's lane, flees to this far when the hunter
+ * runs at it and falls there; the hunter stops short of it to butcher (layout metres).
+ */
+const PREY_GRAZE_M = 64;
+const PREY_FALL_M = 72;
+const PREY_REACH_M = PREY_FALL_M + 4;
+/** Prey fades in when the hunter sets out and out once the meat is carried off. */
+const PREY_FADE_MS = 400;
+/** The animals the first people hunt (wildlife.md section 6 models). */
+const PREY_KINDS = ['animal-zebra', 'animal-eland'] as const;
+
 /** Clip changes ease over this long (milestone 2, section 5.3). */
 export const BLEND_MS = 350;
 /** The band takes this long to build a new lodging, about a year of history. */
@@ -79,7 +94,7 @@ export const BUILD_MS = Math.round(8000 / TEMPO);
 /** And this long to take one down before it leaves. */
 export const TAKE_DOWN_MS = Math.round(5000 / TEMPO);
 /** Builders stand this far from the middle of the lodging they build, in layout metres. */
-const BUILD_RING_M = 7;
+export const BUILD_RING_M = 5;
 /**
  * Trees at a camp are felled over this long when the band arrives (half a year), and grow
  * back over this long after it leaves (about five years).
@@ -115,6 +130,19 @@ export interface FigurePose extends Placed {
   from?: { clip: TreeClip; clipMs: number; weight: number };
 }
 
+export type PreyClip = 'idle' | 'run' | 'fall';
+
+/** An animal of a hunt: it grazes, flees when the hunter runs at it, falls and is butchered. */
+export interface PreyPose extends Placed {
+  /** The hunter's id and the turn of the hunt, unique while it is shown. */
+  id: string;
+  kind: (typeof PREY_KINDS)[number];
+  clip: PreyClip;
+  clipMs: number;
+  /** 0 to 1, fading in and out. */
+  visibility: number;
+}
+
 export interface LodgingPose extends Placed {
   id: number;
   kind: string;
@@ -139,6 +167,7 @@ export interface ClearingPose {
 
 export interface TreeScene {
   figures: FigurePose[];
+  prey: PreyPose[];
   lodgings: LodgingPose[];
   hearths: HearthPose[];
   clearings: ClearingPose[];
@@ -411,7 +440,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       appears.set(id, c.end + Math.ceil(routeLength(route(c.entry, work)) / PACE.walk));
     }
 
-  const scene: TreeScene = { figures: [], lodgings: [], hearths: [], clearings: [] };
+  const scene: TreeScene = { figures: [], prey: [], lodgings: [], hearths: [], clearings: [] };
   // Each place a camp stands: from the first lodging up to the last one gone.
   const places = new Map<
     string,
@@ -465,7 +494,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     if (ms < born || (f.lost !== NEVER && ms >= at(f.lost))) continue;
     let i = 0;
     while (i + 1 < f.homes.length && at(f.homes[i + 1]![0]) <= ms) i++;
-    const pose = poseAt(f, i, ms);
+    const pose = poseAt(f, i, ms, scene.prey);
     if (pose) scene.figures.push(pose);
   }
   return scene;
@@ -503,7 +532,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     return figureSpot(f.homes[i]![2], home.camp);
   }
 
-  function poseAt(f: TreeFigure, i: number, ms: number): FigurePose | undefined {
+  function poseAt(f: TreeFigure, i: number, ms: number, preys: PreyPose[]): FigurePose | undefined {
     const home = lodgings.get(f.homes[i]![1]);
     if (!home) return undefined;
     const look = lookOf(f.id);
@@ -585,10 +614,12 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       const turnStart = k * TURN_MS - shift;
       const outing = outingOf(f.id, look, k);
       const trip = new Itinerary(turnStart, spot);
+      let hunt: { chase: number; caught: number; done: number; grazing: Pt; falls: Pt } | undefined;
       const s = f.homes[i]![2];
       // Outings stay on land: each goes only as far as its gap has land, or not at all.
       const room = outingRoom(s, home);
-      const kind = outing === 'hunt' && room < 64 ? (room >= 30 ? 'gather' : 'rest') : outing;
+      const kind =
+        outing === 'hunt' && room < PREY_REACH_M ? (room >= 30 ? 'gather' : 'rest') : outing;
       const sure = kind === 'gather' && room < 30 ? (room >= 16 ? 'stroll' : 'rest') : kind;
       const go = sure === 'stroll' && room < 13 ? 'rest' : sure;
       if (go === 'gather') {
@@ -596,12 +627,15 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
         trip.go(far).stay(trip.t + GATHER_MS, 'work', { x: far.x * 2, z: far.z * 2 });
         trip.go(spot, 'carry');
       } else if (go === 'hunt') {
-        const near = outingPoint(s, home.camp, 50);
-        const far = outingPoint(s, home.camp, 64);
-        trip
-          .go(near)
-          .go(far, 'run')
-          .stay(trip.t + BUTCHER_MS, 'work', { x: far.x * 2, z: far.z * 2 });
+        // Walk out, run at the grazing animal as it flees, butcher it where it falls.
+        const grazing = outingPoint(s, home.camp, PREY_GRAZE_M);
+        const falls = outingPoint(s, home.camp, PREY_FALL_M);
+        trip.go(outingPoint(s, home.camp, 48));
+        const chase = trip.t;
+        trip.go(outingPoint(s, home.camp, PREY_FALL_M - 3), 'run');
+        const caught = trip.t;
+        trip.stay(trip.t + BUTCHER_MS, 'work', falls);
+        hunt = { chase, caught, done: trip.t, grazing, falls };
         trip.go(spot, 'carry');
       } else if (go === 'stroll') {
         const far = outingPoint(s, home.camp, 13);
@@ -614,6 +648,42 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
         plan.stay(turnStart, 'rest');
         plan.legs.push(...trip.legs);
         plan.t = trip.t;
+        if (hunt && ms < hunt.done + PREY_FADE_MS) {
+          const kind = PREY_KINDS[hash32(f.id, k, 79) % PREY_KINDS.length]!;
+          const prey = { id: `${f.id}:${k}`, kind, lat: base.lat, lon: base.lon };
+          const out = towards(hunt.grazing.x, hunt.grazing.z, hunt.falls.x, hunt.falls.z);
+          if (ms < hunt.chase)
+            // Grazing side on to the camp until the hunter runs at it.
+            preys.push({
+              ...prey,
+              ...hunt.grazing,
+              dirX: -out.dirZ,
+              dirZ: out.dirX,
+              clip: 'idle',
+              clipMs: ms - turnStart,
+              visibility: Math.min(1, (ms - turnStart) / PREY_FADE_MS),
+            });
+          else if (ms < hunt.caught) {
+            const t = (ms - hunt.chase) / (hunt.caught - hunt.chase);
+            preys.push({
+              ...prey,
+              x: hunt.grazing.x + (hunt.falls.x - hunt.grazing.x) * t,
+              z: hunt.grazing.z + (hunt.falls.z - hunt.grazing.z) * t,
+              ...out,
+              clip: 'run',
+              clipMs: ms - hunt.chase,
+              visibility: 1,
+            });
+          } else
+            preys.push({
+              ...prey,
+              ...hunt.falls,
+              ...out,
+              clip: 'fall',
+              clipMs: ms - hunt.caught,
+              visibility: Math.min(1, (hunt.done + PREY_FADE_MS - ms) / PREY_FADE_MS),
+            });
+        }
       }
     }
     plan.stay(Infinity, 'rest');

@@ -19,7 +19,13 @@ import {
   type Placed,
   type TreeChunk,
 } from '../world/treeScene.ts';
-import { buildLodging, buildProp, buildTreeFigure, type TreeActor } from '../vignettes/figures.ts';
+import {
+  buildLodging,
+  buildProp,
+  buildTreeFigure,
+  buildTreePrey,
+  type TreeActor,
+} from '../vignettes/figures.ts';
 import type { StandIn } from '../vignettes/standIns.ts';
 import type { SurfaceSource } from '../vignettes/vignetteLayer.ts';
 
@@ -35,6 +41,7 @@ export class TreeLayer {
   private figures = new Map<number, TreeActor>();
   private lodgings = new Map<number, StandIn | undefined>();
   private hearths = new Map<number, StandIn | undefined>();
+  private prey = new Map<string, StandIn | undefined>();
   private camera: THREE.PerspectiveCamera | undefined;
   private cleared: Clearing[] = [];
   private basis = new THREE.Matrix4();
@@ -98,6 +105,23 @@ export class TreeLayer {
     }
     this.prune(this.figures, seen);
 
+    const hunted = new Set<string>();
+    for (const p of scene.prey) {
+      hunted.add(p.id);
+      if (!this.prey.has(p.id)) {
+        const animal = buildTreePrey(p.kind);
+        if (animal) this.group.add(animal.root);
+        this.prey.set(p.id, animal);
+      }
+      const animal = this.prey.get(p.id);
+      if (!animal || !this.place(animal.root, p)) continue;
+      animal.root.visible = p.visibility > 0;
+      animal.setFade?.(p.visibility);
+      animal.root.scale.setScalar(FIGURE_KM_PER_M);
+      animal.pose(p.clip, (p.clipMs * TEMPO) / 1000);
+    }
+    this.prune(this.prey, hunted);
+
     seen.clear();
     for (const l of scene.lodgings) {
       seen.add(l.id);
@@ -158,10 +182,11 @@ export class TreeLayer {
     this.prune(this.figures, new Set());
     this.prune(this.lodgings, new Set());
     this.prune(this.hearths, new Set());
+    this.prune(this.prey, new Set());
     this.cleared = [];
   }
 
-  private prune<T extends StandIn | undefined>(objects: Map<number, T>, keep: Set<number>): void {
+  private prune<K, T extends StandIn | undefined>(objects: Map<K, T>, keep: Set<K>): void {
     for (const [id, o] of objects) {
       if (keep.has(id)) continue;
       if (o) {
