@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ANIMALS } from '../../../assets/src/animals.ts';
+import { detCos, RAD } from '../core/detmath.ts';
 import { latLonToDir } from '../geo/cube.ts';
 import { EARTH_RADIUS_KM } from '../geo/earth.ts';
 import { astronomicalYear, dayOfYearStart } from '../time/calendar.ts';
@@ -13,7 +14,9 @@ import {
   groupGrowth,
   groupSpanAt,
   groupSize,
+  keepOutsOf,
   roamOf,
+  type KeepOut,
   wildClearings,
   wildMaskCell,
   wildlifeAt,
@@ -171,6 +174,46 @@ describe('wildlifeAt (wildlife.md section 4)', () => {
         // The curve between open spots may bow a little beyond them.
         expect(a.eastKm).toBeGreaterThan(-40 - 0.2 * roamOf(g));
       }
+  });
+
+  it('keeps clear of a camp while it stands and walks round it without jumping (section 4)', () => {
+    const gi = WILD_GROUPS.findIndex((g) => g.species === 'plains-zebra');
+    // A camp right where the group grazes at 500 s, standing from 400 to 900 s.
+    const at = wildlifeAt(day(1500), 500).find((a) => a.key === `${gi}:0`)!;
+    const camp: KeepOut = { x: at.eastKm, y: at.northKm, r: 300, from: 400, to: 900 };
+    const keepOuts = WILD_GROUPS.map((_, i) => (i === gi ? [camp] : []));
+    const last = new Map<string, [number, number]>();
+    for (let t = 300; t < 1000; t += 0.25)
+      for (const a of wildlifeAt(day(1500), t, WILD_GROUPS, [], () => 0, keepOuts)) {
+        if (!a.key.startsWith(`${gi}:`)) continue;
+        const d = Math.sqrt((a.eastKm - camp.x) ** 2 + (a.northKm - camp.y) ** 2);
+        if (t >= camp.from && t < camp.to) expect(d).toBeGreaterThan(camp.r - 1e-6);
+        const before = last.get(a.key);
+        if (before)
+          expect(
+            Math.sqrt((a.eastKm - before[0]) ** 2 + (a.northKm - before[1]) ** 2),
+          ).toBeLessThan(60); // a brisk walk away, never a jump of hundreds of km
+        last.set(a.key, [a.eastKm, a.northKm]);
+      }
+  });
+
+  it("lays a camp on the plane at a group's home", () => {
+    const g = WILD_GROUPS.find((w) => w.species === 'giraffe')!;
+    const [k] = keepOutsOf(
+      g,
+      [{ lat: Math.round(g.lat * 1e6), lon: Math.round((g.lon + 2) * 1e6), from: 0, to: 9 }],
+      500,
+    );
+    const east = 2 * 111.195 * detCos(g.lat * RAD);
+    expect(k!.x).toBeCloseTo(east, -1);
+    expect(Math.abs(k!.y)).toBeLessThan(10);
+    expect(
+      keepOutsOf(
+        WILD_GROUPS.find((w) => flies(w))!,
+        [],
+        500,
+      ),
+    ).toEqual([]);
   });
 
   it('round-trips a mask through its hex string', () => {

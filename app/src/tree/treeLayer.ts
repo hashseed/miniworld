@@ -28,6 +28,13 @@ import {
 } from '../vignettes/figures.ts';
 import type { StandIn } from '../vignettes/standIns.ts';
 import type { SurfaceSource } from '../vignettes/vignetteLayer.ts';
+import type { Obstacle } from '../wildlife/wildlifeLayer.ts';
+
+/** Half sizes of what wild animals keep clear of, in life-size metres (wildlife.md section 4). */
+const FIGURE_HALF_M = 0.4;
+const PREY_HALF_M = 1.3;
+const LODGING_HALF_M = 1.4;
+const HEARTH_HALF_M = 1;
 
 export class TreeLayer {
   readonly group = new THREE.Group();
@@ -44,6 +51,8 @@ export class TreeLayer {
   private prey = new Map<string, StandIn | undefined>();
   private camera: THREE.PerspectiveCamera | undefined;
   private cleared: Clearing[] = [];
+  private blocking: Obstacle[] = [];
+  private blocked = 0;
   private basis = new THREE.Matrix4();
   private turn = new THREE.Quaternion();
   private yAxis = new THREE.Vector3(0, 1, 0);
@@ -67,6 +76,18 @@ export class TreeLayer {
     this.windows = windows;
   }
 
+  /** Where the people, their prey, lodgings and hearths stand now, for the animals to keep clear of. */
+  obstacles(): Obstacle[] {
+    return this.blocking.slice(0, this.blocked);
+  }
+
+  /** Notes an object just placed as one the animals keep clear of. */
+  private block(root: THREE.Object3D, halfM: number): void {
+    const o = (this.blocking[this.blocked++] ??= { dir: new THREE.Vector3(), km: 0 });
+    o.dir.copy(root.position).normalize();
+    o.km = halfM * FIGURE_KM_PER_M;
+  }
+
   /** Where the trees make way for camps now, for the foliage. */
   clearings(): Clearing[] {
     return this.cleared;
@@ -74,6 +95,7 @@ export class TreeLayer {
 
   update(camera: THREE.PerspectiveCamera, ms: number, startDay: number): void {
     this.camera = camera;
+    this.blocked = 0;
     const day = dayAtMs(ms, startDay);
     let w = -1;
     while (w + 1 < this.windows.length && this.windows[w + 1]! <= day) w++;
@@ -96,6 +118,7 @@ export class TreeLayer {
         this.group.add(actor.root);
       }
       if (!this.place(actor.root, f)) continue;
+      this.block(actor.root, FIGURE_HALF_M);
       actor.root.scale.setScalar(FIGURE_KM_PER_M);
       // Clips play TEMPO times faster, matching the faster pace on the ground.
       const sec = (clipMs: number) => (clipMs * TEMPO) / 1000;
@@ -116,6 +139,7 @@ export class TreeLayer {
       const animal = this.prey.get(p.id);
       if (!animal || !this.place(animal.root, p)) continue;
       animal.root.visible = p.visibility > 0;
+      if (animal.root.visible) this.block(animal.root, PREY_HALF_M);
       animal.setFade?.(p.visibility);
       animal.root.scale.setScalar(FIGURE_KM_PER_M);
       animal.pose(p.clip, (p.clipMs * TEMPO) / 1000);
@@ -132,6 +156,7 @@ export class TreeLayer {
       }
       const prop = this.lodgings.get(l.id);
       if (!prop || !this.place(prop.root, l)) continue;
+      this.block(prop.root, LODGING_HALF_M);
       // While the band builds it, the lodging goes up step by step, or rises whole.
       if (prop.setBuilt) {
         prop.setBuilt(l.built);
@@ -160,7 +185,8 @@ export class TreeLayer {
       }
       const prop = this.hearths.get(h.camp);
       if (!prop) continue;
-      this.place(prop.root, { lat: h.lat, lon: h.lon, x: 0, z: 0, dirX: 1, dirZ: 0 });
+      if (this.place(prop.root, { lat: h.lat, lon: h.lon, x: 0, z: 0, dirX: 1, dirZ: 0 }))
+        this.block(prop.root, HEARTH_HALF_M);
       prop.root.scale.setScalar(FIGURE_KM_PER_M);
       // The fire flickers with the clock, so a paused world holds still.
       prop.pose('idle', ms / 1000);

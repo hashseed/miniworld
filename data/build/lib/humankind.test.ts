@@ -242,7 +242,7 @@ describe('camps by a river', () => {
 describe('the canonical tree', () => {
   it('keeps its hash, so any change to the rules is seen', () => {
     const hash = createHash('sha256').update(JSON.stringify(tree)).digest('hex').slice(0, 16);
-    expect(hash).toBe('f07c14e72b93b24c');
+    expect(hash).toBe('dc2a6b281e1aa4bd');
   });
 });
 

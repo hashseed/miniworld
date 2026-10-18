@@ -212,7 +212,7 @@ describe('the tree scene', () => {
       for (const p of treeScene(chunk, t, d0).prey) {
         clips.add(p.clip);
         expect(['animal-zebra', 'animal-eland']).toContain(p.kind);
-        expect(p.x * p.x + p.z * p.z).toBeGreaterThan(60 * 60);
+        expect(p.x * p.x + p.z * p.z).toBeGreaterThan(30 * 30);
       }
     expect(clips).toEqual(new Set(['idle', 'run', 'fall']));
   });

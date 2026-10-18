@@ -63,7 +63,7 @@ const FIRE_CLEAR_M = 3;
 /** Figures leave and enter a camp at this distance from its hearth, between the people and the lodgings. */
 const GATE_M = 11;
 /** The farthest out anyone goes, in layout metres; the build measures land this far out. */
-export const MAX_OUTING_M = 90;
+export const MAX_OUTING_M = 50;
 /** The build prefers camp spots with land all round out to this many layout metres, past the people's spots. */
 export const CAMP_ROOM_M = OUTER_M + 2;
 /** Figures change between idle and work every 20 to 40 seconds of life, sped up by TEMPO. */
@@ -79,9 +79,12 @@ const LOOK_MS = Math.round(4000 / TEMPO);
  * Prey of a hunt grazes this far out in its hunter's lane, flees to this far when the hunter
  * runs at it and falls there; the hunter stops short of it to butcher (layout metres).
  */
-const PREY_GRAZE_M = 64;
-const PREY_FALL_M = 72;
+const PREY_GRAZE_M = 34;
+const PREY_FALL_M = 40;
 const PREY_REACH_M = PREY_FALL_M + 4;
+/** Gatherers pick this far out, and hunters walk this far before they run (layout metres). */
+const GATHER_M = 22;
+const STALK_M = 26;
 /** Prey fades in when the hunter sets out and out once the meat is carried off. */
 const PREY_FADE_MS = 400;
 /** The animals the first people hunt (wildlife.md section 6 models). */
@@ -103,6 +106,11 @@ const FELL_MS = 1200;
 const REGROW_MS = 12_000;
 /** Plants keep this far from a hearth while the camp stands, in drawn kilometres. */
 export const CAMP_CLEARING_KM = (LODGING_RING_M + 6) * LAYOUT_KM_PER_M;
+/**
+ * Wild animals keep this far from a hearth while its camp stands, in drawn kilometres
+ * (wildlife.md section 4): the lodgings' ring, a lodging's width and a margin.
+ */
+export const CAMP_KEEP_OUT_KM = (LODGING_RING_M + 8) * LAYOUT_KM_PER_M;
 /** Moves shorter than this are within the camp and not walked. */
 const SAME_PLACE_KM = 1;
 const KM_PER_DEG = 111.195;
@@ -390,9 +398,9 @@ function outingOf(id: number, look: FigureLook, turn: number): Outing {
   const roll = hash01(id, turn, 71);
   const [hunt, gather, stroll] =
     look === 'man'
-      ? [0.3, 0.15, 0.15]
+      ? [0.45, 0.1, 0.1]
       : look === 'founder'
-        ? [0.2, 0.25, 0.1]
+        ? [0.3, 0.2, 0.1]
         : look === 'woman'
           ? [0, 0.4, 0.15]
           : [0, 0.25, 0.3];
@@ -619,18 +627,18 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       // Outings stay on land: each goes only as far as its gap has land, or not at all.
       const room = outingRoom(s, home);
       const kind =
-        outing === 'hunt' && room < PREY_REACH_M ? (room >= 30 ? 'gather' : 'rest') : outing;
-      const sure = kind === 'gather' && room < 30 ? (room >= 16 ? 'stroll' : 'rest') : kind;
+        outing === 'hunt' && room < PREY_REACH_M ? (room >= GATHER_M ? 'gather' : 'rest') : outing;
+      const sure = kind === 'gather' && room < GATHER_M ? (room >= 16 ? 'stroll' : 'rest') : kind;
       const go = sure === 'stroll' && room < 13 ? 'rest' : sure;
       if (go === 'gather') {
-        const far = outingPoint(s, home.camp, 30);
+        const far = outingPoint(s, home.camp, GATHER_M);
         trip.go(far).stay(trip.t + GATHER_MS, 'work', { x: far.x * 2, z: far.z * 2 });
         trip.go(spot, 'carry');
       } else if (go === 'hunt') {
         // Walk out, run at the grazing animal as it flees, butcher it where it falls.
         const grazing = outingPoint(s, home.camp, PREY_GRAZE_M);
         const falls = outingPoint(s, home.camp, PREY_FALL_M);
-        trip.go(outingPoint(s, home.camp, 48));
+        trip.go(outingPoint(s, home.camp, STALK_M));
         const chase = trip.t;
         trip.go(outingPoint(s, home.camp, PREY_FALL_M - 3), 'run');
         const caught = trip.t;
