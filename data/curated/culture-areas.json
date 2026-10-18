@@ -1,0 +1,36 @@
+{
+  "description": "Provisional culture areas for the tree of humankind until the culture profile records exist (spec humankind.md, section 5). Per culture, its density (milestone 2, section 3.3) and one polygon per snapshot, as [longitude, latitude] points; a snapshot holds from its date (years before 1950, approximate) until the next one. The habitat at each date (land, no ice, no desert, not high mountains) cuts the polygon down to where people could live, so it only needs to keep out the land a culture had not reached.",
+  "areas": [
+    {
+      "culture": "african-stone-age",
+      "density": "low",
+      "snapshots": [
+        {
+          "fromBP": 71950,
+          "label": "Africa south of the Sahara band, without Arabia and Madagascar",
+          "source": "Blome et al. 2012, The environmental context for the origins of modern human diversity: a synthesis of regional variability in African climate 150,000-30,000 years ago, Journal of Human Evolution 62; Scerri et al. 2018, Did our species evolve in subdivided populations across Africa, and why does it matter?, Trends in Ecology and Evolution 33",
+          "ring": [
+            [-20, 18],
+            [38.6, 18],
+            [39.6, 15.5],
+            [41.6, 14],
+            [43.2, 12.4],
+            [51.5, 11.8],
+            [52.5, 11.5],
+            [46, -2],
+            [41.5, -10],
+            [41.2, -16],
+            [37, -24],
+            [34, -27],
+            [28, -36],
+            [15, -36],
+            [8, -18],
+            [5, -2],
+            [-5, 2],
+            [-20, 5]
+          ]
+        }
+      ]
+    }
+  ]
+}

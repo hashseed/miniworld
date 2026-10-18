@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { DAYS_PER_YEAR, TIMELINE_START } from '../../../app/src/time/calendar.ts';
 import { NEVER, aliveOn, homeOn, lineage } from '../../../app/src/world/tree.ts';
@@ -131,5 +132,12 @@ describe('the tree of humankind', () => {
           l.built >= after ? 1_500 : Infinity,
         );
     expect(t.moments.some((m) => m.kind === 'camp-moved-away')).toBe(true);
+  });
+});
+
+describe('the canonical tree', () => {
+  it('keeps its hash, so any change to the rules is seen', () => {
+    const hash = createHash('sha256').update(JSON.stringify(tree)).digest('hex').slice(0, 16);
+    expect(hash).toBe('1e7e84b1da9f94d4');
   });
 });

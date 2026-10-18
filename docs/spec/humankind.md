@@ -123,6 +123,8 @@ The build steps through time in steps of 25 years of history (**Proposed**; one 
 
 The tree is computed by the data build (`npm run build-data`), in a step after the culture areas, migrations, settlements and events are validated.
 
+Until the culture profile records of milestone 2 exist, the build reads the areas it needs from `data/curated/culture-areas.json`: per culture, its density and one polygon per snapshot date, each with a source. The first entry is `african-stone-age` in Africa south of the Sahara band, without Arabia and Madagascar; the habitat (land at the date, no ice, aridity under 0.8, below 3,500 m, **Proposed**) cuts it down to where people could live. The build writes the whole tree to `data/build/tree/tree.json` (git-ignored) for the commands of section 6, alongside the chunks the app loads.
+
 - **Deterministic.** The build uses only whole-number arithmetic, the hash of `app/src/core/hash.ts` and the deterministic maths of `app/src/core/detmath.ts` (milestone 2 section 2.3), never `Math.random` or the wall clock. The same inputs give a byte-identical tree on every machine, and a test stores the hash of the canonical serialisation.
 - **Output.** Figures and lodgings are split into chunks by place and time window like all other content (spec section 10): a figure belongs to every chunk whose tile it lives in during that time window. Branches are small and go into a single chunk loaded with the first figures. Rough size (**Proposed** estimate): under 1 MB compressed for the whole of history.
 - **Checks.** The build fails when any of these is false:
