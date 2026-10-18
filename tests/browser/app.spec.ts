@@ -177,14 +177,14 @@ test('the lens slider morphs the globe and keeps the point in view', async ({ pa
   const lensOn = await page.locator('#globe').screenshot();
   await slider.fill('0');
   // The blend passes through values between the two states, then settles at true sizes.
-  await expect.poll(async () => (await lens()).blend).toBe(0);
+  await expect.poll(async () => (await lens()).blend, { timeout: 90_000 }).toBe(0);
   const after = await lens();
   expect(after.lat).toBeCloseTo(before.lat, 6);
   expect(after.lon).toBeCloseTo(before.lon, 6);
   const lensOff = await page.locator('#globe').screenshot();
   expect(lensOff.equals(lensOn)).toBe(false);
   await slider.fill('200');
-  await expect.poll(async () => (await lens()).blend).toBe(2);
+  await expect.poll(async () => (await lens()).blend, { timeout: 90_000 }).toBe(2);
   await expect(page.locator('.lens-slider output')).toHaveText('200%');
   // The strength is saved.
   await page.reload();

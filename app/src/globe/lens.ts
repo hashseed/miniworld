@@ -270,7 +270,8 @@ export class Lens {
       this.blend = Math.max(0, Math.min(MAX_STRENGTH, this.blend));
       this.velocity = 0;
     }
-    if (Math.abs(this.blend - this.target) < 1e-4 && Math.abs(this.velocity) < 1e-3) {
+    // Within a thousandth of the strength the rest is invisible, so it snaps.
+    if (Math.abs(this.blend - this.target) < 1e-3 && Math.abs(this.velocity) < 1e-2) {
       this.blend = this.target;
       this.velocity = 0;
     }
