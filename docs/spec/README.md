@@ -7,6 +7,9 @@ This folder is the source of truth for what Miniworld does. Every change to beha
 | [spec.md](spec.md) | Vision, time model, globe, history data, events, people, interface, localisation, visual style, architecture, content delivery, development environment, licences |
 | [milestones.md](milestones.md) | Build order, scope and exit criteria for each milestone, and the definition of done |
 | [milestone-1.md](milestone-1.md) | Detailed spec for milestone 1, Globe and time |
+| [milestone-2.md](milestone-2.md) | Detailed spec for milestone 2, First people: figures, vignettes, landmarks, migrations and cutaways |
+| [history-lens.md](history-lens.md) | Design of the default lens that draws regions with many events larger |
+| [dioramas.md](dioramas.md) | Recurring dioramas (repeated vignettes) for every region and era, with their templates and scripts |
 | [content-format.md](content-format.md) | How content records are written, validated, indexed and fed into the app |
 | [eras.md](eras.md) | Era and empire ranges shown as coloured bands on the timeline |
 | [events.md](events.md) | The first list of world events and how each appears on the globe, and natural disasters, epidemics and famines |
