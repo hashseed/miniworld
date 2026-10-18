@@ -31,6 +31,16 @@
       "note": "Approved by Yang from the review sheets"
     },
     {
+      "id": "figure-first-person",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson with founder",
+      "status": "approved",
+      "geometry": "2f816fb1aea9cf9d",
+      "note": "Approved by Yang from the review sheets and the motion film",
+      "reviewed": "2026-10-18"
+    },
+    {
       "id": "figure-neanderthal-man",
       "file": "assets/src/people.ts",
       "kind": "figure",

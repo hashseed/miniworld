@@ -18,7 +18,6 @@ import {
   BookmarkIcon,
   CloseIcon,
   CompassIcon,
-  FastForwardIcon,
   TiltFlatterIcon,
   TiltSteeperIcon,
   FollowIcon,
@@ -28,7 +27,9 @@ import {
   LensIcon,
   PauseIcon,
   PlayIcon,
-  SnailIcon,
+  TurtleIcon,
+  WalkerIcon,
+  HorseIcon,
 } from './icons.tsx';
 
 interface Props {
@@ -224,7 +225,7 @@ function PlayControls({
   );
 }
 
-const SPEED_ICONS = { snail: SnailIcon, regular: PlayIcon, fast: FastForwardIcon };
+const SPEED_ICONS = { snail: TurtleIcon, regular: WalkerIcon, fast: HorseIcon };
 
 function SpeedIcon({ mode }: { mode: SpeedMode }) {
   const Icon = SPEED_ICONS[mode];

@@ -12,17 +12,43 @@ export const PauseIcon = () => (
   </svg>
 );
 
-/** Snail mode: a snail with a spiral shell. */
-export const SnailIcon = () => (
+/** Snail mode: a turtle. */
+export const TurtleIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M10 6a6 6 0 016 6v5H3v-1h2.1A6 6 0 0110 6zm0 3a3 3 0 00-3 3h2a1 1 0 112 0 2 2 0 01-4 0H5a4 4 0 008 0 3 3 0 00-3-3zm7 4l2-5h1.2l-1.5 4h.3l1.7-4H21l-2 5.6V17h2v1h-4z" />
+    <path d="M3 15a8 7 0 0116 0zM2 15h18v1.6H2zM4.5 16h2.6v3.2H4.5zM14 16h2.6v3.2H14zM3 15.4l-2.4 1.8 2.6-.2zM17.5 13h2.5v2.2h-2.5zM21 10.8a2.2 2.2 0 110 4.4 2.2 2.2 0 010-4.4z" />
   </svg>
 );
 
-/** Fast forward: a double arrow. */
-export const FastForwardIcon = () => (
+/** Regular mode: a walking person. */
+export const WalkerIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M3 5v14l9-7zM12 5v14l9-7z" />
+    <circle cx="12.5" cy="3.8" r="2.3" />
+    <g
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2.4"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M12.3 8l-1.2 6M11.1 14l-2.4 3.4L7.3 21M11.1 14l2.6 3.4 1.8 3.6M12.1 9l-2.8 2.6-.8 2.6M12.1 9l2.4 2.4 2.2 1.2" />
+    </g>
+  </svg>
+);
+
+/** Fast forward: a galloping horse. */
+export const HorseIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <ellipse cx="10.5" cy="11" rx="6" ry="3.2" />
+    <path d="M13.5 9l3.6-5.4h1.8l3 3.2-1 1.3-2.4-.9-2 4z" />
+    <g
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M15 12.5l3.4 2-0.2 1.6M14 13l1.6 3.4 2.6 1M7 12.5l-3 2.6-1.8.2M8 13.2l-1.4 3.4-2 1.8M4.8 9.6c-1.6-.2-2.6 1-3 2.6" />
+    </g>
   </svg>
 );
 
