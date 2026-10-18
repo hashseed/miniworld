@@ -33,6 +33,7 @@ The milestone proves the technical foundations every later milestone builds on: 
 
 ```
 app/              the browser app
+  src/main.ts     entry point; app.ts builds the state and scene and implements the actions, loop.ts runs the frame loop, input.ts handles the keyboard
   src/core/       deterministic hash and noise, small shared store, camera type (no engine-dependent maths)
   src/geo/        cube-sphere quadtree, Earth constants, local compass frame; shared with the data build
   src/time/       dates, historical clock, life clock, formatting
@@ -45,7 +46,7 @@ app/              the browser app
   src/world/      the world query: pure functions from date and life clock to what is shown
   src/vignettes/  drawing vignettes (milestone 2, section 18)
   src/perf/       stress scene, fixed quality level, dynamic resolution, stats overlay
-  src/dev/        development pages, such as the asset sheet
+  src/dev/        development pages, such as the asset sheet, and the stress scene's camera path
   messages/       en.json, de.json
   public/         files served as they are: the service worker and the built data
 assets/           code that generates the models (assets/src) and the asset sheet
