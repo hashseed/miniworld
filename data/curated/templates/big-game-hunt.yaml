@@ -1,38 +1,92 @@
-# Hunters stalk a herd, drive one animal into a trap, bring it down and
-# carry the meat home (docs/spec/milestone-2.md section 18.6). Used by
-# mammoth-hunt; other hunts fill the same parameters.
+# A band walks in and pitches its tents, its hunters surround a grazing
+# animal, chase it and bring it down with volleys of spears, cut it up and
+# carry the meat to the camp fire; then the band eats, strikes its tents and
+# walks off (docs/spec/milestone-2.md section 18.6). Played once over each
+# instance's span, from an empty stage to an empty stage (section 6.5). Used
+# by mammoth-hunt; other hunts fill the same parameters. Every group has marks
+# of its own so the enlarged figures never overlap (section 5.1).
 id: big-game-hunt
 params: { hunters: culture, prey: animal }
-loop: 120 s
+once: 118 s
 stage:
-  radius: 80 m
+  radius: 40 m
   marks:
-    camp: [-35, 0]
-    lookout: [-15, 10]
-    herd: [30, 0]
-    flank-left: [25, 22]
-    flank-right: [25, -22]
-    trap: [-5, -3]
-    trap-left: [-7, 10]
-    trap-right: [0, -15]
-    edge: [60, 20]
+    tent-a: [-30, 11]
+    tent-b: [-30, -11]
+    fire: [-22, 0]
+    family-in: [-37, -6]
+    left-in: [-34, 18]
+    right-in: [-34, -18]
+    prey-in: [36, -6]
+    family-home: [-30, 0]
+    pitch-a: [-21, 12]
+    pitch-b: [-21, -12]
+    prey-graze: [14, -8]
+    flank-left: [0, 22]
+    flank-right: [0, -26]
+    rush-left: [10, 10]
+    rush-right: [8, -24]
+    dodge-1: [24, -2]
+    rush-left-2: [24, 8]
+    rush-right-2: [6, -10]
+    dodge-2: [20, -18]
+    dodge-3: [16, 0]
+    butcher-left: [21, 1]
+    butcher-right: [11, 1]
+    drop-left: [-17, 6]
+    drop-right: [-17, -6]
+  props:
+    tent-a: { shelter: $hunters, at: tent-a, face: fire }
+    tent-b: { shelter: $hunters, at: tent-b, face: fire }
+    fire: { asset: prop-hearth, at: fire }
 cast:
-  family: { culture: $hunters, role: gatherer, count: 3, at: camp }
-  scouts: { culture: $hunters, role: hunter, count: 2, at: camp }
-  hunters-left: { culture: $hunters, role: hunter, count: 3, at: camp }
-  hunters-right: { culture: $hunters, role: hunter, count: 3, at: camp }
-  prey: { animal: $prey, count: 1, at: herd }
-  herd: { animal: $prey, count: 2, at: herd }
+  family: { culture: $hunters, role: gatherer, count: 3, at: family-in }
+  hunters-left: { culture: $hunters, role: hunter, count: 2, at: left-in }
+  hunters-right: { culture: $hunters, role: hunter, count: 2, at: right-in }
+  prey: { animal: $prey, count: 1, at: prey-in }
 beats:
-  - { at: 0, family: { work-at: camp }, scouts: { walk-to: lookout } }
-  - { at: 16, scouts: { point: herd } }
-  - { at: 18, hunters-left: { walk-to: flank-left }, hunters-right: { walk-to: flank-right } }
-  - { at: 66, hunters-left: { run-to: trap-left }, hunters-right: { run-to: trap-right } }
-  - { at: 66, prey: { run-to: trap }, herd: { run-to: edge } }
-  - { at: 76, hunters-left: { throw-at: prey }, hunters-right: { throw-at: prey } }
-  - { at: 79, prey: fall }
-  - { at: 83, hunters-left: { work-at: trap }, hunters-right: { work-at: trap } }
-  - { at: 84, herd: { walk-to: herd } }
-  - { at: 92, hunters-left: { carry-to: camp }, hunters-right: { carry-to: camp } }
-  - { at: 92, scouts: { walk-to: camp } }
-  - { at: 105, prey: appear }
+  # The mammoth wanders in and grazes; the band arrives and pitches camp.
+  - { at: 0, prey: appear }
+  - { at: 2, prey: { walk-to: prey-graze } }
+  - { at: 4, family: appear }
+  - { at: 5, hunters-left: appear }
+  - { at: 6, hunters-right: appear }
+  - { at: 7, family: { work-at: family-home } }
+  - { at: 8, hunters-left: { work-at: pitch-a }, hunters-right: { work-at: pitch-b } }
+  - { at: 12, tent-a: show, tent-b: show }
+  - { at: 18, fire: show }
+  # The hunters creep around the grazing mammoth, then charge.
+  - { at: 21, hunters-left: { point: prey } }
+  - { at: 22, hunters-left: { walk-to: flank-left }, hunters-right: { walk-to: flank-right } }
+  - { at: 29, hunters-left: { point: prey } }
+  - { at: 30, hunters-left: { run-to: rush-left }, hunters-right: { run-to: rush-right } }
+  - { at: 30, prey: { run-to: dodge-1 } }
+  - { at: 31.5, hunters-left: { throw-at: prey } }
+  - { at: 32, hunters-right: { throw-at: prey } }
+  - { at: 33.3, prey: struggle }
+  - { at: 35.5, prey: { run-to: dodge-2 } }
+  - { at: 35.5, hunters-left: { run-to: rush-left-2 }, hunters-right: { run-to: rush-right-2 } }
+  - { at: 37.5, hunters-right: { throw-at: prey } }
+  - { at: 38, hunters-left: { throw-at: prey } }
+  - { at: 39, prey: struggle }
+  - { at: 41.5, prey: { run-to: dodge-3 } }
+  - { at: 43.5, hunters-left: { throw-at: prey } }
+  - { at: 44, hunters-right: { throw-at: prey } }
+  - { at: 45, prey: struggle }
+  - { at: 47, prey: fall }
+  # It is down: they cheer, cut it up and carry the meat to the fire.
+  - { at: 48, hunters-left: cheer, hunters-right: cheer, family: cheer }
+  - { at: 51, hunters-left: { work-at: butcher-left }, hunters-right: { work-at: butcher-right } }
+  - { at: 51, family: { work-at: family-home } }
+  - { at: 53, prey: cut-up }
+  - { at: 65, hunters-left: { carry-to: drop-left }, hunters-right: { carry-to: drop-right } }
+  - { at: 77, family: cheer }
+  - { at: 79, family: { work-at: family-home } }
+  - { at: 79, hunters-left: { work-at: drop-left }, hunters-right: { work-at: drop-right } }
+  # After the meal the band puts out the fire, strikes its tents and walks off.
+  - { at: 96, fire: hide }
+  - { at: 97, hunters-left: { work-at: pitch-a }, hunters-right: { work-at: pitch-b } }
+  - { at: 100, tent-a: hide, tent-b: hide }
+  - { at: 105, family: { walk-to: family-in } }
+  - { at: 107, hunters-left: { walk-to: left-in }, hunters-right: { walk-to: right-in } }
+  - { at: 113, family: vanish, hunters-left: vanish, hunters-right: vanish }

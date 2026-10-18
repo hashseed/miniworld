@@ -107,11 +107,12 @@ export class FrameLoop {
     u.screenUp!.value.set(e[4]!, e[5]!, e[6]!);
     u.time!.value = p.clock.lifeMs / 1000;
     p.globe.update(p.camera, innerHeight, this.planet, day);
+    p.foliage.clearings = p.vignettes.clearings();
     p.foliage.update(p.camera, this.planet, day, u.lightDir!.value);
     p.sky.update(p.camera);
     p.clouds.update(p.camera, p.clock.lifeMs, u.lightDir!.value);
     p.stress?.update(now, p.globe, this.planet, p.camera, p.clock.lifeMs);
-    p.vignettes.update(p.camera, day, p.clock.lifeMs, u.lightDir!.value);
+    p.vignettes.update(p.camera, day, p.clock.vignetteMs, u.lightDir!.value);
 
     p.renderer.info.reset();
     p.frames.render(p.scene, p.camera);

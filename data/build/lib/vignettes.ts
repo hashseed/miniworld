@@ -9,10 +9,12 @@ import { parse } from 'yaml';
 import { LANGUAGES, type Language } from '../../../app/src/i18n/messages.ts';
 import { DAYS_PER_YEAR, astronomicalYear, dayOfYearStart } from '../../../app/src/time/calendar.ts';
 import {
+  PROP_VERBS,
   VERBS,
   loopErrors,
   type CompiledAction,
   type CompiledGroup,
+  type CompiledProp,
   type CompiledTemplate,
   type CompiledVignette,
   type Verb,
@@ -124,7 +126,7 @@ export function compileTemplate(
     e.add('must be a map');
     return { params, errors: e.list };
   }
-  unknownFields(e, 'template', y, ['id', 'params', 'loop', 'stage', 'cast', 'beats']);
+  unknownFields(e, 'template', y, ['id', 'params', 'loop', 'once', 'stage', 'cast', 'beats']);
   const id = str(y.id);
   if (id !== basename(file, '.yaml')) e.add(`id "${id}" must equal the file name`);
   if (isMap(y.params))
@@ -133,10 +135,13 @@ export function compileTemplate(
       else e.add(`parameter ${k} has unknown kind "${String(v)}"`);
     }
   else e.add('params must be a map');
-  const loopS = quantity(y.loop, 's');
-  if (!loopS) e.add('loop must be like "120 s"');
+  // A script plays once over each instance's span, or loops (section 6.5).
+  const once = y.once !== undefined;
+  const loopS = quantity(once ? y.once : y.loop, 's');
+  if (once && y.loop !== undefined) e.add('a template has either once or loop, not both');
+  else if (!loopS) e.add('once or loop must be like "120 s"');
   const stage = isMap(y.stage) ? y.stage : {};
-  unknownFields(e, 'stage', stage, ['radius', 'marks']);
+  unknownFields(e, 'stage', stage, ['radius', 'marks', 'props']);
   const radiusM = quantity(stage.radius, 'm');
   if (!radiusM) e.add('stage.radius must be like "80 m"');
   const marks: Record<string, [number, number]> = {};
@@ -152,6 +157,37 @@ export function compileTemplate(
       marks[k] = [Math.round(x * 100), Math.round(z * 100)];
     }
   else e.add('stage.marks must be a map');
+
+  const props: CompiledProp[] = [];
+  if (stage.props !== undefined && !isMap(stage.props)) e.add('stage.props must be a map');
+  if (isMap(stage.props))
+    for (const [name, v] of Object.entries(stage.props)) {
+      if (!isMap(v)) {
+        e.add(`prop ${name} must be a map`);
+        continue;
+      }
+      unknownFields(e, `prop ${name}`, v, ['shelter', 'asset', 'at', 'face']);
+      const shelter = str(v.shelter);
+      const asset = str(v.asset);
+      if (shelter !== undefined) {
+        if (!shelter.startsWith('$') || params[shelter.slice(1)] !== 'culture')
+          e.add(`prop ${name} needs shelter: $param naming a culture parameter`);
+      } else if (!asset) e.add(`prop ${name} needs a shelter or an asset`);
+      const at = str(v.at);
+      if (!at || !marks[at]) e.add(`prop ${name} stands at unknown mark "${at}"`);
+      const face = str(v.face);
+      if (v.face !== undefined && (!face || !marks[face]))
+        e.add(`prop ${name} faces unknown mark "${face}"`);
+      const prop: CompiledProp = {
+        name,
+        kind: shelter !== undefined ? 'shelter' : 'asset',
+        look: shelter ?? asset ?? '',
+        at: at ?? '',
+        actions: [],
+      };
+      if (face) prop.face = face;
+      props.push(prop);
+    }
 
   const groups: CompiledGroup[] = [];
   if (isMap(y.cast))
@@ -200,7 +236,8 @@ export function compileTemplate(
       }
       for (const [groupName, action] of Object.entries(beat)) {
         if (groupName === 'at') continue;
-        const group = groups.find((g) => g.name === groupName);
+        const group =
+          groups.find((g) => g.name === groupName) ?? props.find((p) => p.name === groupName);
         if (!group) {
           e.add(`beat at ${at} s names unknown group "${groupName}"`);
           continue;
@@ -214,6 +251,11 @@ export function compileTemplate(
         }
         if (!verb || !(verb in VERBS)) {
           e.add(`beat at ${at} s uses unknown action "${verb ?? JSON.stringify(action)}"`);
+          continue;
+        }
+        const isProp = props.includes(group as CompiledProp);
+        if (isProp !== PROP_VERBS.has(verb as Verb)) {
+          e.add(`beat at ${at} s: ${groupName} cannot ${verb}`);
           continue;
         }
         const takes = VERBS[verb as Verb];
@@ -231,15 +273,17 @@ export function compileTemplate(
       }
     }
   else e.add('beats must be a list');
-  for (const g of groups) g.actions.sort((a, b) => a.atMs - b.atMs);
+  for (const g of [...groups, ...props]) g.actions.sort((a, b) => a.atMs - b.atMs);
 
   if (e.list.length) return { params, errors: e.list };
   const template: CompiledTemplate = {
     id: id!,
     loopMs: Math.round(loopS! * 1000),
+    once,
     radiusCm: Math.round(radiusM! * 100),
     marks,
     groups,
+    props,
   };
   for (const msg of loopErrors(template)) e.add(msg);
   return { template, params, errors: e.list };
@@ -298,6 +342,8 @@ function parseText(e: Errors, body: string): Record<Language, VignetteText> | un
 
 export interface VignetteInputs {
   curated: string;
+  /** Folder of the records; `<curated>/vignettes` unless a test passes its fixtures. */
+  records?: string;
   lanes: Set<string>;
   animals: Set<string>;
   startDay: number;
@@ -327,7 +373,7 @@ export function buildVignettes(inp: VignetteInputs): {
     ? (parse(readFileSync(sourcesFile, 'utf8'), { schema: 'failsafe' }) as Yaml)
     : {};
   const vignettes: BuiltVignette[] = [];
-  const vdir = join(inp.curated, 'vignettes');
+  const vdir = inp.records ?? join(inp.curated, 'vignettes');
   if (existsSync(vdir))
     for (const f of readdirSync(vdir)
       .filter((n) => n.endsWith('.md'))
@@ -465,6 +511,9 @@ function compileRecord(
   const template: CompiledTemplate = {
     ...t.template,
     groups: t.template.groups.map((g) => ({ ...g, look: filled[g.look.slice(1)]! })),
+    props: t.template.props.map((p) =>
+      p.kind === 'shelter' ? { ...p, look: filled[p.look.slice(1)]! } : p,
+    ),
   };
   return {
     structure: {

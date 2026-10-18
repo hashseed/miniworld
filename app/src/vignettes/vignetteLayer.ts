@@ -1,44 +1,57 @@
 // Draws vignettes on the globe (spec milestone 2, sections 5.1 and 18): asks
 // the player which instances stand on the current day, places a stage of
-// stand-ins at each site and poses them from the life clock. Close up the
-// stage is at the miniature factor; further out it grows so its cast stays
-// visible and moving up to orbit. It only draws; the player decides everything.
+// figures, props and spears at each site and poses them at the instance's
+// phase. Like the trees, a stage keeps one drawn size at every zoom, large
+// enough to be seen moving from orbit. It only draws; the player decides everything.
 
 import * as THREE from 'three';
 import type { ContentLoader } from '../content/loader.ts';
 import type { VignetteEntry } from '../content/types.ts';
 import { latLonToDir, type Vec3 } from '../geo/cube.ts';
 import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
-import { MIN_DISTANCE_KM } from '../globe/cameraController.ts';
 import {
   buildMembers,
+  buildProps,
+  buildSpears,
   instancesAt,
   phaseOf,
   posesAt,
+  propPosesAt,
+  spearsAt,
   type CompiledVignette,
   type Instance,
   type Member,
+  type PropTrack,
+  type Spear,
 } from '../world/vignette.ts';
-import { buildActor, lightModels } from './figures.ts';
+import { buildActor, buildProp, buildSpearObject, lightModels } from './figures.ts';
 import type { StandIn } from './standIns.ts';
 
-/** People and everything they make are drawn 90 times life size (section 5.1). */
-const MINIATURE = 90;
-/** Life-size metres to drawn kilometres at the miniature factor. */
-const M_TO_KM = MINIATURE / 1000;
-/** Smallest on-screen height of an adult figure, in CSS pixels (section 5.1). */
-const FIGURE_MIN_PX = 22;
-/** From afar, an animal is drawn at most this many times an adult's height (section 5.1). */
+/** Drawn kilometres per life-size metre of a figure, at every zoom (section 5.1). */
+const FIGURE_KM_PER_M = 50;
+/** Figures are drawn this many times larger than the stage layout (section 5.1). */
+const OVERSIZE = 3;
+/** Drawn kilometres per life-size metre of the stage layout. */
+const LAYOUT_KM_PER_M = FIGURE_KM_PER_M / OVERSIZE;
+/** An animal is drawn at most this many times an adult's height (section 5.1). */
 const ANIMAL_MAX_ADULTS = 1.6;
 const ADULT_M = 1.75;
-/** From afar, figures are drawn at most this many times larger than the stage layout (section 5.1). */
-const MAX_OVERSIZE = 6;
-/** From afar, figures lean up to this far (radians) towards the top of the screen, like pop-up cut-outs. */
+/** Figures lean up to this far (radians) towards the top of the screen when seen from above, like pop-up cut-outs. */
 const MAX_LEAN = 1.15;
 /** Taps within this many pixels of a cast member count as hits. */
 const HIT_PX = 26;
-/** Distance the camera flies down to on a double-tap: the closest zoom (milestone 1, section 6.1). */
-const FLY_ALTITUDE_KM = MIN_DISTANCE_KM;
+/** Altitude the camera flies down to on a double-tap: the whole stage in view. */
+const FLY_ALTITUDE_KM = 2000;
+/** A spear leaves the hand this high and arcs up by this share of its flight, in figure metres. */
+const SPEAR_HAND_M = 1.7;
+const SPEAR_ARC = 0.15;
+
+/** What every instance of a vignette record shares: built once per structure file. */
+interface Script {
+  members: Member[];
+  props: PropTrack[];
+  spears: Spear[];
+}
 
 export interface SurfaceSource {
   /** Drawn surface height in km over a drawn direction. */
@@ -54,6 +67,11 @@ interface Stage {
   /** Holds the actors, each placed in world coordinates on the globe. */
   cast: THREE.Group;
   actors: StandIn[];
+  script: Script;
+  /** Prop models; undefined for a prop without an approved model. */
+  props: (StandIn | undefined)[];
+  /** One object per spear; in flight it hangs in the cast, stuck it rides its target's back. */
+  spears: THREE.Group[];
   /** The site in true coordinates; the stage stands at its drawn position. */
   trueDir: Vec3;
   up: THREE.Vector3;
@@ -75,12 +93,13 @@ export class VignetteLayer {
   private entries: VignetteEntry[] = [];
   private structures = new Map<string, CompiledVignette>();
   private requested = new Set<string>();
-  private members = new Map<string, Member[]>();
+  private scripts = new Map<string, Script>();
   private stages = new Map<string, Stage>();
   private light = new THREE.DirectionalLight(0xffffff, 2.2);
   private ambient = new THREE.AmbientLight(0xffffff, 0.9);
   private camera: THREE.PerspectiveCamera | undefined;
-  private lifeMs = 0;
+  private day = 0;
+  private vignetteMs = 0;
   private down: { x: number; y: number; t: number } | undefined;
   private basis = new THREE.Matrix4();
   private turn = new THREE.Quaternion();
@@ -92,6 +111,7 @@ export class VignetteLayer {
   private v6 = new THREE.Vector3();
   private v7 = new THREE.Vector3();
   private yAxis = new THREE.Vector3(0, 1, 0);
+  private leanQ = new THREE.Quaternion();
 
   private readonly element: HTMLElement;
 
@@ -111,14 +131,20 @@ export class VignetteLayer {
     }
   }
 
+  /** True directions of the stages standing now, for the foliage's clearings. */
+  clearings(): Vec3[] {
+    return [...this.stages.values()].map((s) => s.trueDir);
+  }
+
   update(
     camera: THREE.PerspectiveCamera,
     day: number,
-    lifeMs: number,
+    vignetteMs: number,
     lightDir: THREE.Vector3,
   ): void {
     this.camera = camera;
-    this.lifeMs = lifeMs;
+    this.day = day;
+    this.vignetteMs = vignetteMs;
     this.light.position.copy(lightDir);
     this.light.target.position.set(0, 0, 0);
     if (this.element instanceof HTMLCanvasElement) lightModels(lightDir, camera, this.element);
@@ -143,20 +169,12 @@ export class VignetteLayer {
       this.stages.delete(id);
     }
 
-    // CSS pixels per kilometre at one kilometre's distance.
-    const pxAtKm = (camera.projectionMatrix.elements[5]! * innerHeight) / 2;
     for (const stage of this.stages.values()) {
       this.place(stage);
       const toCam = this.v1.copy(camera.position).sub(stage.centre);
-      const distance = toCam.length();
       const facing = toCam.dot(stage.up) > 0;
       stage.cast.visible = facing;
-      if (!facing) continue;
-      // Section 5.1: figures and layout keep their minimum sizes on screen.
-      const kmPerPx = distance / pxAtKm;
-      const figureKmPerM = Math.max(M_TO_KM, (FIGURE_MIN_PX * kmPerPx) / ADULT_M);
-      const layoutKmPerM = Math.max(M_TO_KM, figureKmPerM / MAX_OVERSIZE);
-      this.pose(stage, lifeMs, figureKmPerM, layoutKmPerM, pxAtKm);
+      if (facing) this.pose(stage);
     }
   }
 
@@ -170,17 +188,35 @@ export class VignetteLayer {
   }
 
   private makeStage(entry: VignetteEntry, v: CompiledVignette, instance: Instance): Stage {
-    let members = this.members.get(entry.structure);
-    if (!members) {
-      members = buildMembers(v.template);
-      this.members.set(entry.structure, members);
+    let script = this.scripts.get(entry.structure);
+    if (!script) {
+      const members = buildMembers(v.template);
+      script = {
+        members,
+        props: buildProps(v.template),
+        spears: buildSpears(v.template, members),
+      };
+      this.scripts.set(entry.structure, script);
     }
+    const { members } = script;
     const cast = new THREE.Group();
     const actors = members.map((m) => {
       const key = `${instance.id}:${m.group}:${m.index}`;
       const actor = buildActor(m.kind, m.look, key, m.index, m.role);
       cast.add(actor.root);
       return actor;
+    });
+    const props = script.props.map((p) => {
+      const prop = buildProp(p.kind, p.look);
+      if (prop) cast.add(prop.root);
+      return prop;
+    });
+    const spears = script.spears.map(() => {
+      const pivot = new THREE.Group();
+      pivot.add(buildSpearObject());
+      pivot.visible = false;
+      cast.add(pivot);
+      return pivot;
     });
     this.group.add(cast);
     const stage: Stage = {
@@ -189,6 +225,9 @@ export class VignetteLayer {
       members,
       cast,
       actors,
+      script,
+      props,
+      spears,
       trueDir: latLonToDir(instance.site.lat / 1e6, instance.site.lon / 1e6),
       up: new THREE.Vector3(),
       east: new THREE.Vector3(),
@@ -213,71 +252,171 @@ export class VignetteLayer {
   }
 
   /**
-   * Poses every actor. Each stands on the ground at its own point of the
-   * globe, upright there, so a stage grown to hundreds of kilometres still
-   * follows the curve of the Earth.
+   * Poses every actor, prop and spear. Each stands on the ground at its own
+   * point of the globe, upright there, so a stage grown to hundreds of
+   * kilometres still follows the curve of the Earth.
    */
-  private pose(
-    stage: Stage,
-    lifeMs: number,
-    figureKmPerM: number,
-    layoutKmPerM: number,
-    pxAtKm: number,
-  ): void {
+  private pose(stage: Stage): void {
     const v = this.structures.get(stage.entry.structure);
     if (!v) return;
-    const poses = posesAt(v.template, stage.members, stage.instance, lifeMs);
-    // Section 5.1: the further the figures are enlarged, the more they lean, up to MAX_LEAN.
-    const grown = Math.min(1, Math.max(0, Math.log(figureKmPerM / M_TO_KM) / Math.log(8)));
-    const screenUp = this.v6.setFromMatrixColumn(this.camera!.matrixWorld, 1);
+    const phase = phaseOf(v.template, stage.instance, this.day, this.vignetteMs);
     const steep = Math.max(
       0,
       this.v7.copy(this.camera!.position).sub(stage.centre).normalize().dot(stage.up),
     );
-    const lean = MAX_LEAN * grown * steep;
-    const dir = this.v2;
-    const north = this.v3;
-    const east = this.v4;
+    const lean = MAX_LEAN * steep;
+    const poses = posesAt(stage.instance, stage.members, phase);
     for (let i = 0; i < poses.length; i++) {
       const p = poses[i]!;
       const actor = stage.actors[i]!;
-      actor.root.visible = p.visibility > 0;
+      // Entering and leaving fade (appear, vanish); falling and cut-up sink into the ground.
+      const fade = p.fade ? p.visibility : 1;
+      actor.root.visible = p.visibility > 0 && (fade >= 0.5 || !!actor.setFade);
       if (!actor.root.visible) continue;
-      const eastKm = (p.x / 100) * layoutKmPerM;
-      const northKm = (p.z / 100) * layoutKmPerM;
-      dir
-        .copy(stage.up)
-        .multiplyScalar(EARTH_RADIUS_KM)
-        .addScaledVector(stage.east, eastKm)
-        .addScaledVector(stage.north, northKm)
-        .normalize();
-      northEast(dir, north, east);
-      // Local frame x east, y up, z south; then turn to face along (dirX east, dirZ north).
-      actor.root.quaternion.setFromRotationMatrix(this.basis.makeBasis(east, dir, north.negate()));
-      actor.root.quaternion.multiply(
-        this.turn.setFromAxisAngle(this.yAxis, Math.atan2(p.dirZ, p.dirX)),
-      );
-      if (lean > 0) {
-        // Tip the figure over its feet towards the top of the screen, so it is seen from the side.
-        const leanTo = this.v1.copy(screenUp).addScaledVector(dir, -screenUp.dot(dir));
-        if (leanTo.lengthSq() > 1e-8) {
-          leanTo.normalize();
-          const tipped = this.v5.copy(dir).multiplyScalar(Math.cos(lean));
-          tipped.addScaledVector(leanTo, Math.sin(lean));
-          actor.root.quaternion.premultiply(this.turn.setFromUnitVectors(dir, tipped));
-        }
-      }
-      // Big animals shrink towards ANIMAL_MAX_ADULTS as the cast grows, so people stay readable.
-      const cap = Math.min(1, (ANIMAL_MAX_ADULTS * ADULT_M) / actor.height);
-      const ground = this.surface.surfaceKm([dir.x, dir.y, dir.z]);
-      actor.root.position.copy(dir).multiplyScalar(EARTH_RADIUS_KM + ground);
-      // The minimum size holds for each figure at its own distance, not only at the stage centre.
-      const own = (FIGURE_MIN_PX * actor.root.position.distanceTo(this.camera!.position)) / pxAtKm;
-      const scale = Math.max(figureKmPerM, own / ADULT_M) * (1 + (cap - 1) * grown);
-      const sink = (1 - p.visibility) * actor.height * scale;
-      actor.root.position.addScaledVector(dir, -sink);
+      actor.setFade?.(fade);
+      const scale = FIGURE_KM_PER_M * this.cap(actor);
+      this.stand(stage, actor.root, p.x, p.z, p.dirX, p.dirZ, lean);
+      const sink = p.fade ? 0 : (1 - p.visibility) * actor.height * scale;
+      actor.root.position.addScaledVector(this.v2, -sink);
       actor.root.scale.setScalar(scale);
       actor.pose(p.clip, p.clipMs / 1000);
+    }
+    const props = propPosesAt(stage.instance, stage.script.props, phase);
+    for (let i = 0; i < props.length; i++) {
+      const p = props[i]!;
+      const prop = stage.props[i];
+      if (!prop) continue;
+      // Put up and taken down: it fades in and out.
+      prop.root.visible = p.visibility > 0;
+      if (!prop.root.visible) continue;
+      prop.setFade?.(p.visibility);
+      // Props stand flat on the ground: only people and animals lean like pop-up cut-outs.
+      this.stand(stage, prop.root, p.x, p.z, p.dirX, p.dirZ, 0);
+      prop.root.scale.setScalar(FIGURE_KM_PER_M);
+    }
+    this.poseSpears(stage, phase, lean);
+  }
+
+  /** An animal is drawn at most ANIMAL_MAX_ADULTS adults tall, so people stay readable. */
+  private cap(actor: StandIn): number {
+    return Math.min(1, (ANIMAL_MAX_ADULTS * ADULT_M) / actor.height);
+  }
+
+  /**
+   * Stands an object on the ground at a stage point, upright there and facing
+   * along (dirX east, dirZ north), tipped towards the top of the screen by the
+   * lean. Leaves the ground direction in v2 and the lean turn in leanQ.
+   */
+  private stand(
+    stage: Stage,
+    root: THREE.Object3D,
+    x: number,
+    z: number,
+    dirX: number,
+    dirZ: number,
+    lean: number,
+  ): void {
+    const dir = this.ground(stage, x, z);
+    const north = this.v3;
+    const east = this.v4;
+    northEast(dir, north, east);
+    // Local frame x east, y up, z south; then turn to face along (dirX east, dirZ north).
+    root.quaternion.setFromRotationMatrix(this.basis.makeBasis(east, dir, north.negate()));
+    root.quaternion.multiply(this.turn.setFromAxisAngle(this.yAxis, Math.atan2(dirZ, dirX)));
+    this.leanAt(dir, lean);
+    root.quaternion.premultiply(this.leanQ);
+    root.position
+      .copy(dir)
+      .multiplyScalar(EARTH_RADIUS_KM + this.surface.surfaceKm([dir.x, dir.y, dir.z]));
+  }
+
+  /** The up direction of the globe under a stage point, in v2. */
+  private ground(stage: Stage, x: number, z: number): THREE.Vector3 {
+    return this.v2
+      .copy(stage.up)
+      .multiplyScalar(EARTH_RADIUS_KM)
+      .addScaledVector(stage.east, (x / 100) * LAYOUT_KM_PER_M)
+      .addScaledVector(stage.north, (z / 100) * LAYOUT_KM_PER_M)
+      .normalize();
+  }
+
+  /** Sets leanQ: the turn that tips "up" at a ground direction towards the top of the screen. */
+  private leanAt(dir: THREE.Vector3, lean: number): void {
+    this.leanQ.identity();
+    if (lean <= 0) return;
+    const screenUp = this.v6.setFromMatrixColumn(this.camera!.matrixWorld, 1);
+    const leanTo = this.v1.copy(screenUp).addScaledVector(dir, -screenUp.dot(dir));
+    if (leanTo.lengthSq() < 1e-8) return;
+    leanTo.normalize();
+    const tipped = this.v5.copy(dir).multiplyScalar(Math.cos(lean));
+    tipped.addScaledVector(leanTo, Math.sin(lean));
+    this.leanQ.setFromUnitVectors(dir, tipped);
+  }
+
+  /** Spears in the air arc from hand to target; landed ones ride their target's back. */
+  private poseSpears(stage: Stage, phase: number, lean: number): void {
+    const spears = spearsAt(stage.instance, stage.script.spears, phase);
+    for (let i = 0; i < spears.length; i++) {
+      const sp = spears[i]!;
+      const pivot = stage.spears[i]!;
+      const mesh = pivot.children[0]!;
+      if (sp.stuck) {
+        const target = stage.actors[sp.stuck.target]!;
+        const back = target.back;
+        if (!back) {
+          pivot.visible = false;
+          continue;
+        }
+        if (pivot.parent !== back.bone) {
+          back.bone.add(pivot);
+          const b = back.box;
+          const u = sp.stuck.spot / 1000;
+          const side = (sp.stuck.spot % 2 ? 1 : -1) * 0.25 * (b.max.x - b.min.x);
+          pivot.position.set(
+            side,
+            b.max.y * 0.92,
+            b.min.z + (b.max.z - b.min.z) * (0.2 + 0.55 * u),
+          );
+          // Tip in the body, shaft out, up and back, leaning a little to one side.
+          pivot.rotation.set(Math.PI - 0.55, 0, side > 0 ? -0.35 : 0.35);
+          pivot.scale.setScalar(1 / this.cap(target));
+          mesh.position.set(0, -2.0, 0);
+        }
+        pivot.visible = true;
+        continue;
+      }
+      if (pivot.parent !== stage.cast) {
+        stage.cast.add(pivot);
+        pivot.rotation.set(0, 0, 0);
+        mesh.position.set(0, -1.1, 0);
+      }
+      const f = sp.flying;
+      pivot.visible = !!f;
+      if (!f) continue;
+      const s = stage.script.spears[i]!;
+      const target = stage.actors[s.target]!;
+      const dist = Math.sqrt((s.x1 - s.x0) ** 2 + (s.z1 - s.z0) ** 2);
+      const flatKm = (dist / 100) * LAYOUT_KM_PER_M;
+      const h0 = SPEAR_HAND_M * FIGURE_KM_PER_M;
+      const h1 = target.height * this.cap(target) * 0.75 * FIGURE_KM_PER_M;
+      const arc = SPEAR_ARC * flatKm;
+      const h = h0 + (h1 - h0) * f.f + 4 * f.f * (1 - f.f) * arc;
+      const dh = h1 - h0 + arc * 4 * (1 - 2 * f.f);
+      const dir = this.ground(stage, f.x, f.z);
+      const north = this.v3;
+      const east = this.v4;
+      northEast(dir, north, east);
+      this.leanAt(dir, lean);
+      const ahead = this.v5.copy(east).multiplyScalar(f.dirX).addScaledVector(north, f.dirZ);
+      const tangent = ahead.multiplyScalar(flatKm).addScaledVector(dir, dh).normalize();
+      const lift = this.v7.copy(dir).multiplyScalar(h).applyQuaternion(this.leanQ);
+      tangent.applyQuaternion(this.leanQ);
+      pivot.quaternion.setFromUnitVectors(this.yAxis, tangent);
+      pivot.position
+        .copy(dir)
+        .multiplyScalar(EARTH_RADIUS_KM + this.surface.surfaceKm([dir.x, dir.y, dir.z]))
+        .add(lift);
+      pivot.scale.setScalar(FIGURE_KM_PER_M);
     }
   }
 
@@ -297,6 +436,8 @@ export class VignetteLayer {
       lon: number;
       actor?: [number, number];
       heightPx?: number;
+      /** Drawn height of that hunter in kilometres. */
+      heightKm?: number;
       /** Loop phase in milliseconds at the last frame. */
       phase?: number;
       cast: number[];
@@ -308,7 +449,8 @@ export class VignetteLayer {
       stages: [...this.stages.values()].map((stage) => {
         let actor: [number, number] | undefined;
         let heightPx: number | undefined;
-        // The tallest hunter: an adult, so it shows the minimum figure size.
+        let heightKm: number | undefined;
+        // A hunter: an adult, so it shows the figure size.
         const first = stage.actors.find(
           (a, i) => a.root.visible && stage.members[i]!.role === 'hunter',
         );
@@ -317,7 +459,8 @@ export class VignetteLayer {
           actor = [((p.x + 1) / 2) * innerWidth, ((1 - p.y) / 2) * innerHeight];
           const distance = first.root.position.distanceTo(camera.position);
           const pxAtKm = (camera.projectionMatrix.elements[5]! * innerHeight) / 2;
-          heightPx = (first.height * first.root.scale.x * pxAtKm) / distance;
+          heightKm = first.height * first.root.scale.x;
+          heightPx = (heightKm * pxAtKm) / distance;
         }
         return {
           id: stage.instance.id,
@@ -325,9 +468,10 @@ export class VignetteLayer {
           lon: stage.instance.site.lon / 1e6,
           actor,
           heightPx,
+          heightKm,
           phase: (() => {
             const v = this.structures.get(stage.entry.structure);
-            return v ? phaseOf(v.template, stage.instance, this.lifeMs) : undefined;
+            return v ? phaseOf(v.template, stage.instance, this.day, this.vignetteMs) : undefined;
           })(),
           cast: stage.actors.flatMap((a) => [
             a.root.position.x,

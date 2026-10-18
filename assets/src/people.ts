@@ -105,9 +105,10 @@ export const LOOKS: Record<Profile, ProfileLook> = {
     hair: DARK_HAIR,
     top: { man: 'tunic', woman: 'tunic', child: 'tunic' },
     bottom: { man: 'trousers', woman: 'trousers', child: 'trousers' },
-    hide: ['#9a6e45', '#8a5f3a', '#a97c50'],
-    trim: '#e8dcc4',
-    beads: '#f0e6cf',
+    // Light buckskin with white fur trim, so people stand out from the dark mammoths (Yang, 2026-10-18).
+    hide: ['#dcb98a', '#e6cba0', '#cfa774'],
+    trim: '#fbf8f2',
+    beads: '#ffffff',
     boots: true,
     tools: { man: 'spear-thrower', woman: 'needle', child: 'none' },
   },
@@ -769,4 +770,15 @@ export function posePerson(m: Model, pose: Pose, phase = 0.25): void {
       set('head', 0, 0.3);
       break;
   }
+}
+
+/**
+ * A hunter's spear on its own, as it flies and sticks in a target (spec
+ * milestone 2, section 18.3): the same shaft and flint tip the hunter holds,
+ * shaft along +Y from y = 0, tip up at about 2.2 m.
+ */
+export function buildSpear(): Model {
+  const mb = new ModelBuilder([{ name: 'tool', pivot: [0, 0, 0] }]);
+  addTool(mb, 'spear', [0, 0.6, 0], 1);
+  return mb.build('spear');
 }

@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import type { Model } from './kit.ts';
 
 export type Clip =
-  'idle' | 'walk' | 'run' | 'carry' | 'work' | 'point' | 'throw' | 'cheer' | 'fall';
+  'idle' | 'walk' | 'run' | 'carry' | 'work' | 'point' | 'throw' | 'cheer' | 'struggle' | 'fall';
 
 /** Seconds into the throw gesture when the spear leaves the hand. */
 export const THROW_RELEASE = 0.55;
@@ -202,6 +202,21 @@ export function animateAnimal(m: Model, clip: Clip, seconds: number): void {
       gait(0.55 * stride, 0.55);
       rot('head', -0.1);
       break;
+    case 'struggle': {
+      // Hit and struggling: rears up, tosses its head and stamps, again and again.
+      const p = seconds / (1.4 * stride);
+      const rear = Math.max(0, Math.sin(p * TAU));
+      const stamp = Math.sin(p * TAU * 3) * (1 - rear);
+      body.rotation.x = -0.38 * rear;
+      body.position.y = rest.y * (1 + 0.18 * rear);
+      rot('legFL', -0.9 * rear + 0.25 * stamp);
+      rot('legFR', -0.7 * rear - 0.25 * stamp);
+      rot('legBL', 0.35 * rear);
+      rot('legBR', 0.35 * rear);
+      rot('head', -0.45 * rear + 0.15 * Math.sin(p * TAU * 2), 0.3 * Math.sin(p * TAU));
+      rot('tail', 0, 0.6 * Math.sin(p * TAU * 4));
+      break;
+    }
     case 'fall': {
       // Rolls onto its side while sinking over 3 s; nothing more is shown.
       const f = smooth(seconds / 3);
