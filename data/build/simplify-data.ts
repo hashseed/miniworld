@@ -24,9 +24,9 @@ import { readEtopo } from './lib/readers.ts';
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const SOURCES_JSON = join(ROOT, 'data/sources.json');
 
-// The timeline opens at 50,000 BCE (51,950 years before 1950): keep every
+// The timeline starts at 70,000 BCE (71,950 years before 1950): keep every
 // layer from the last one at or before that onwards.
-const OLDEST_BP = 51_950;
+const OLDEST_BP = 71_950;
 
 interface Entry {
   id: string;

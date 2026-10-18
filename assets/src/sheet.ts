@@ -6,7 +6,14 @@ import * as THREE from 'three';
 import { cameraLight } from '../../app/src/globe/sky.ts';
 import { ModelBuilder, blob, lightUniforms, type Model } from './kit.ts';
 import { PROFILES, buildPerson, posePerson, type Kind, type Pose } from './people.ts';
-import { SHELTERS, buildShelter, buildHearth, CAMP_SHELTER } from './shelters.ts';
+import {
+  SHELTERS,
+  buildShelter,
+  buildHearth,
+  buildSteps,
+  CAMP_SHELTER,
+  setBuilt,
+} from './shelters.ts';
 import { ANIMALS, PREHISTORIC_ANIMALS, buildAnimal, type AnimalId } from './animals.ts';
 import { WILD_ANIMALS } from './wildAnimals.ts';
 import { EXTINCT_ANIMALS } from './extinctAnimals.ts';
@@ -234,6 +241,24 @@ function singleSheet(): void {
   camera.lookAt(0, size.y * 0.4, 0);
 }
 
+/** A shelter going up, step by step, from the frame to the finished shelter. */
+function buildSheet(): void {
+  const id = (params.get('id') ?? 'shelter-grass-hut') as (typeof SHELTERS)[number];
+  const stages = [0.25, 0.5, 0.75, 1];
+  stages.forEach((built, i) => {
+    const x = (i - (stages.length - 1) / 2) * 3.4;
+    ground(x, 0, 1.6, GROUND['african-stone-age']);
+    const m = place(buildShelter(id), x, 0, 0.3);
+    setBuilt(buildSteps(m), built);
+    labels.push({ text: `${Math.round(built * 100)}%`, at: new THREE.Vector3(x, 2.3, 0) });
+  });
+  const ref = buildPerson({ profile: 'african-stone-age', kind: 'woman' });
+  posePerson(ref, 'stand');
+  place(ref, 6.6, 0.4, -0.4);
+  camera.position.set(0, 5.5, 13);
+  camera.lookAt(0, 0.6, 0);
+}
+
 /** Frames of one clip side by side, seen from the side, for reviewing motion on a still image. */
 function clipsSheet(): void {
   const frames: Record<string, number[]> = {
@@ -369,6 +394,7 @@ const sheets: Record<string, () => void> = {
   clips: clipsSheet,
   'clips-animal': clipsAnimalSheet,
   single: singleSheet,
+  build: buildSheet,
   people: peopleSheet,
   turnaround: turnaroundSheet,
   camp: campSheet,

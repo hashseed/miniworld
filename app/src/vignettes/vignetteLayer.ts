@@ -227,7 +227,7 @@ export class VignetteLayer {
     const cast = new THREE.Group();
     const actors = members.map((m) => {
       const key = `${instance.id}:${m.group}:${m.index}`;
-      const actor = buildActor(m.kind, m.look, key, m.index, m.role);
+      const actor = buildActor(m.kind, m.look, key, m.index, m);
       cast.add(actor.root);
       return actor;
     });
@@ -503,10 +503,8 @@ export class VignetteLayer {
         let actor: [number, number] | undefined;
         let heightPx: number | undefined;
         let heightKm: number | undefined;
-        // A hunter: an adult, so it shows the figure size.
-        const first = stage.actors.find(
-          (a, i) => a.root.visible && stage.members[i]!.role === 'hunter',
-        );
+        // A role played by men: an adult, so it shows the figure size.
+        const first = stage.actors.find((a, i) => a.root.visible && stage.members[i]!.man);
         if (camera && stage.cast.visible && first) {
           const p = first.root.position.clone().project(camera);
           actor = [((p.x + 1) / 2) * innerWidth, ((1 - p.y) / 2) * innerHeight];

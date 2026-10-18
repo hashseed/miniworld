@@ -6,7 +6,7 @@
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
       "status": "approved",
-      "geometry": "11011ddfc6460f83",
+      "geometry": "0397d125aefb210a",
       "reviewed": "2026-10-18",
       "note": "Approved by Yang from the review sheets"
     },
@@ -16,7 +16,7 @@
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
       "status": "approved",
-      "geometry": "ba8dbaa78df4b8bb",
+      "geometry": "d7b68ac9d158d9f3",
       "reviewed": "2026-10-18",
       "note": "Approved by Yang from the review sheets"
     },
@@ -26,7 +26,7 @@
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
       "status": "approved",
-      "geometry": "52554196fd088236",
+      "geometry": "86bf36a6322b731b",
       "reviewed": "2026-10-18",
       "note": "Approved by Yang from the review sheets"
     },
@@ -36,7 +36,7 @@
       "kind": "figure",
       "generated": "Modelling script, buildPerson with founder",
       "status": "approved",
-      "geometry": "2f816fb1aea9cf9d",
+      "geometry": "6b013819aba41345",
       "note": "Approved by Yang from the review sheets and the motion film",
       "reviewed": "2026-10-18"
     },
@@ -256,7 +256,7 @@
       "kind": "shelter",
       "generated": "Modelling script",
       "status": "approved",
-      "geometry": "57d7f179e49e878e",
+      "geometry": "cb8946bce782372f",
       "reviewed": "2026-10-18",
       "note": "Approved by Yang from the review sheets"
     },
@@ -306,7 +306,7 @@
       "kind": "prop",
       "generated": "Modelling script",
       "status": "approved",
-      "geometry": "23b69ea0c42492a6",
+      "geometry": "1933ccaef7f6390d",
       "reviewed": "2026-10-18",
       "note": "Approved by Yang from the review sheets"
     },
@@ -375,7 +375,8 @@
       "file": "assets/src/animals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
+      "status": "approved",
+      "geometry": "05258403ca753ff5",
       "reviewed": "2026-10-18",
       "note": "Shorter muzzle after Yang's review on 2026-10-18, waiting for re-approval"
     },
@@ -414,280 +415,350 @@
       "file": "assets/src/wildAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Wildlife (wildlife.md section 6), round feet after Yang's review on 2026-10-18, waiting for Yang's review"
+      "status": "approved",
+      "geometry": "d117d7cb56f75900",
+      "note": "Wildlife (wildlife.md section 6), round feet after Yang's review on 2026-10-18, waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-asian-elephant",
       "file": "assets/src/wildAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Wildlife (wildlife.md section 6), round feet after Yang's review on 2026-10-18, waiting for Yang's review"
+      "status": "approved",
+      "geometry": "d8f28a05bb6809f1",
+      "note": "Wildlife (wildlife.md section 6), round feet after Yang's review on 2026-10-18, waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-giraffe",
       "file": "assets/src/wildAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "20d519731fb847eb",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-zebra",
       "file": "assets/src/wildAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Wildlife (wildlife.md section 6), stripes painted on after Yang's review on 2026-10-18, waiting for Yang's review"
+      "status": "approved",
+      "geometry": "4ddb508ec00c4060",
+      "note": "Wildlife (wildlife.md section 6), stripes painted on after Yang's review on 2026-10-18, waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-wildebeest",
       "file": "assets/src/wildAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "5189ac3dca642659",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-lion",
       "file": "assets/src/wildAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "5f4fb3057305c40a",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-lioness",
       "file": "assets/src/wildAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "bb2f2b7bad337a7e",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-camel",
       "file": "assets/src/wildAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "19cbdbda1d51c150",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-yak",
       "file": "assets/src/wildAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "0ec30e8cb4be19cd",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-brown-bear",
       "file": "assets/src/wildAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "c0cc19f2f5aa1b99",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-polar-bear",
       "file": "assets/src/wildAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "f4a90194793c6602",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-guanaco",
       "file": "assets/src/wildAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "bc14e7a8b3c3b77b",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-crocodile",
       "file": "assets/src/wildAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "94dc46502b3142b1",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-penguin",
       "file": "assets/src/wildAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "ba2ade2bb159ff90",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-parrot",
       "file": "assets/src/wildAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "347b30a36c91b899",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-kea",
       "file": "assets/src/wildAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "e3f741d3f7dac9a3",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-capybara",
       "file": "assets/src/wildAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "6e857bd485ab755e",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-tiger",
       "file": "assets/src/wildAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "bb7641731cb2fcd1",
+      "note": "Wildlife (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-giant-deer",
       "file": "assets/src/extinctAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "d07bda2290f1f619",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-aurochs",
       "file": "assets/src/extinctAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "64bf5c3df7742122",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-cave-lion",
       "file": "assets/src/extinctAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "8043dc6c76e1dc5c",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-smilodon",
       "file": "assets/src/extinctAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "c546ec37553f14bd",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-mastodon",
       "file": "assets/src/extinctAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "adeea9b6d646720b",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-ground-sloth",
       "file": "assets/src/extinctAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "414b95d60aaf76fc",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-glyptodon",
       "file": "assets/src/extinctAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "f0d38e0ece07deb5",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-diprotodon",
       "file": "assets/src/extinctAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "e36c6138b88521df",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-moa",
       "file": "assets/src/extinctAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "66dfffde4c360e41",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-haast-eagle",
       "file": "assets/src/extinctAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "b11f51e54cd23f4e",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-elephant-bird",
       "file": "assets/src/extinctAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "05a84114ee9cdc99",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-dodo",
       "file": "assets/src/extinctAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "a1a5f3b566c459e5",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-quagga",
       "file": "assets/src/extinctAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "8cb8e3fcb67cb1ab",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-thylacine",
       "file": "assets/src/extinctAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "e1d08f32118e4412",
+      "note": "Extinct megafauna (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-whale",
       "file": "assets/src/seaAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Sea animals (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "30a9ee23f92704ec",
+      "note": "Sea animals (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-dolphin",
       "file": "assets/src/seaAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Sea animals (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "162d9a6ee20cf379",
+      "note": "Sea animals (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "animal-sea-cow",
       "file": "assets/src/seaAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Sea animals (wildlife.md section 6), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "29fd61f16a95b844",
+      "note": "Sea animals (wildlife.md section 6), waiting for Yang's review",
+      "reviewed": "2026-10-18"
     },
     {
       "id": "plant-rainforest",

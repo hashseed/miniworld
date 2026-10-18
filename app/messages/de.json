@@ -71,5 +71,8 @@
   "vignette.span": "Gezeigt von {from} bis {to}",
   "vignette.learnMore": "Mehr erfahren",
   "vignette.loading": "Wird geladen …",
-  "vignette.failed": "Dieser Text konnte nicht geladen werden."
+  "vignette.failed": "Dieser Text konnte nicht geladen werden.",
+  "date.bce": "v. Chr.",
+  "date.ce": "n. Chr.",
+  "date.approximate": "ca."
 }

@@ -10,3 +10,4 @@ perf-report*.json
 app/.vite/
 coverage/
 .env.local
+data/build/tree/

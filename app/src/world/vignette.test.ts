@@ -24,7 +24,6 @@ const hunt = buildVignettes({
   curated: CURATED,
   records: RECORDS,
   lanes,
-  animals: new Set(['woolly-mammoth']),
   startDay: TIMELINE_START,
   cutoffDay: 0,
 }).vignettes.find((v) => v.structure.id === 'mammoth-hunt')!.structure;
@@ -34,7 +33,6 @@ const giza = buildLandmarks({ curated: GIZA, lanes, startDay: TIMELINE_START, cu
 const pyramids = buildVignettes({
   curated: GIZA,
   lanes,
-  animals: new Set(),
   startDay: TIMELINE_START,
   cutoffDay: 0,
   landmarkParts: new Map(giza.landmarks.map((l) => [l.structure.id, l.parts])),

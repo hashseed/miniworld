@@ -26,6 +26,7 @@ import { LandmarkLayer } from './landmarks/landmarkLayer.ts';
 import { VignetteLayer } from './vignettes/vignetteLayer.ts';
 import { WildlifeLayer } from './wildlife/wildlifeLayer.ts';
 import { OPENING_DAY, TIMELINE_START } from './time/calendar.ts';
+import { TreeLayer } from './tree/treeLayer.ts';
 import { Clock } from './time/clock.ts';
 import { Timeline } from './timeline/timeline.ts';
 import { App } from './ui/App.tsx';
@@ -45,7 +46,14 @@ import { groupSpanAt, WILD_GROUPS } from './world/wildlife.ts';
 
 const params = new URLSearchParams(location.search);
 const STRESS = params.get('scene') === 'stress';
-const DEFAULT_CAMERA: CameraState = { lat: 25, lon: 30, altitudeKm: 14000, heading: 0, tilt: 0 };
+/** The first view: the first person's camp at Lake Turkana (spec humankind.md, section 7). */
+const DEFAULT_CAMERA: CameraState = {
+  lat: 3.95,
+  lon: 36.2,
+  altitudeKm: 1500,
+  heading: 0,
+  tilt: 0,
+};
 const VIEW_SAVE_MS = 2000;
 
 const isPhone =
@@ -150,7 +158,11 @@ const wildlife = new WildlifeLayer({
   toDrawn: (d) => globe.lens.toDrawn(d),
   widthAt: (d) => globe.lens.widthAt(d),
 });
-scene.add(landmarks.group, vignettes.group, wildlife.group);
+const tree = new TreeLayer(loader, {
+  surfaceKm: surface.surfaceKm,
+  toDrawn: (d) => globe.lens.toDrawn(d),
+});
+scene.add(landmarks.group, vignettes.group, wildlife.group, tree.group);
 vignettes.onOpen = (entry) => void openVignette(entry);
 // A tap that misses every cast may land on a landmark, then on an animal, which open their cards the same way.
 vignettes.onMiss = (x, y) => {
@@ -186,6 +198,7 @@ const loop = new FrameLoop(
     vignettes,
     landmarks,
     wildlife,
+    tree,
     hot,
     stress: STRESS ? new StressRun(scene) : undefined,
     isPhone,
@@ -496,6 +509,7 @@ async function start(): Promise<void> {
   render(h(App, { store: ui, hot, i18n, actions }), document.getElementById('ui')!);
   try {
     const manifest = await loader.init();
+    tree.setChunks(manifest.tree?.files ?? [], manifest.windows);
     // The lens grids load with the startup index; the first frame needs both.
     const [loadedIndex, lensBytes] = await Promise.all([
       loader.index(i18n.language),
@@ -588,6 +602,7 @@ if (import.meta.env.DEV)
       vignettes,
       landmarks,
       wildlife,
+      tree,
       controller,
       clock,
       loader,

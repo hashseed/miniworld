@@ -19,6 +19,7 @@ import { planetAt, type PlanetState } from './planet/state.ts';
 import type { Clock } from './time/clock.ts';
 import type { HotState } from './ui/state.ts';
 import type { LandmarkLayer } from './landmarks/landmarkLayer.ts';
+import type { TreeLayer } from './tree/treeLayer.ts';
 import type { VignetteLayer } from './vignettes/vignetteLayer.ts';
 import type { WildlifeLayer } from './wildlife/wildlifeLayer.ts';
 
@@ -37,6 +38,7 @@ export interface LoopParts {
   vignettes: VignetteLayer;
   landmarks: LandmarkLayer;
   wildlife: WildlifeLayer;
+  tree: TreeLayer;
   hot: Store<HotState>;
   stress: StressRun | undefined;
   isPhone: boolean;
@@ -114,8 +116,9 @@ export class FrameLoop {
     u.time!.value = (p.clock.ms % 3_600_000) / 1000;
     p.globe.update(p.camera, innerHeight, this.planet, day);
     p.foliage.clearings = [
-      ...p.vignettes.clearings().map((dir) => ({ dir, km: CLEARING_KM })),
-      ...p.wildlife.clearings(day, p.clock.ms),
+      ...p.vignettes.clearings().map((dir) => ({ dir, km: CLEARING_KM, amount: 1 })),
+      ...p.tree.clearings(),
+      ...p.wildlife.clearings(day, p.clock.ms).map((c) => ({ ...c, amount: 1 })),
     ];
     p.foliage.update(p.camera, this.planet, day, u.lightDir!.value);
     p.sky.update(p.camera);
@@ -124,6 +127,7 @@ export class FrameLoop {
     p.landmarks.update(p.camera, day);
     p.vignettes.update(p.camera, p.clock.ms, p.clock.startDay, u.lightDir!.value);
     p.wildlife.update(p.camera, day, p.clock.ms);
+    p.tree.update(p.camera, p.clock.ms, p.clock.startDay);
 
     this.updateStats.push(performance.now() - updateStart);
     p.renderer.info.reset();

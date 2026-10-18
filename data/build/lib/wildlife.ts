@@ -18,6 +18,8 @@ import { EARTH_RADIUS_KM, northEast, type Vec3Like } from '../../../app/src/geo/
 
 /** Sea animals keep to water at least this deep (metres), sea at every date (section 4). */
 export const SEA_DEPTH_M = 300;
+/** ... and stay at least this far from any land (km; Yang, 2026-10-18: "sea cows are too close the land"). */
+export const SEA_COAST_KM = 150;
 /** Open ground lies at most this far above the home (metres). */
 export const RISE_M = 500;
 /** ... and climbs at most this much between points this far apart (metres, km). */
@@ -107,6 +109,32 @@ function reachable(mask: Uint8Array): void {
   mask.set(seen);
 }
 
+/** Whether a point is open sea, deep enough and at least SEA_COAST_KM from any land. */
+function openSea(ground: WildGround, g: WildGroup, east: number, north: number): boolean {
+  const deep = (e: number, n: number) => {
+    const [lat, lon] = at(g, e, n);
+    return ground.wet(lat, lon) && ground.height(lat, lon) < -SEA_DEPTH_M;
+  };
+  if (!deep(east, north)) return false;
+  const d = SEA_COAST_KM;
+  const r = d * 0.7071;
+  return (
+    [
+      [d, 0],
+      [-d, 0],
+      [0, d],
+      [0, -d],
+      [r, r],
+      [r, -r],
+      [-r, r],
+      [-r, -r],
+    ] as const
+  ).every(([de, dn]) => {
+    const [lat, lon] = at(g, east + de, north + dn);
+    return ground.wet(lat, lon);
+  });
+}
+
 /** Whether a point is open lowland for a group whose home stands at homeM. */
 function openAt(ground: WildGround, lat: number, lon: number, homeM: number): boolean {
   if (ground.wet(lat, lon)) return false;
@@ -153,9 +181,7 @@ export function wildMasks(groups: readonly WildGroup[], ground: WildGround): str
           ] as const
         ).every(([de, dn]) => {
           const [lat, lon] = at(g, e + de, n + dn);
-          return sea
-            ? ground.wet(lat, lon) && ground.height(lat, lon) < -SEA_DEPTH_M
-            : openAt(ground, lat, lon, homeM);
+          return sea ? openSea(ground, g, e + de, n + dn) : openAt(ground, lat, lon, homeM);
         });
         mask[j * WILD_MASK_N + i] = open ? 1 : 0;
       }

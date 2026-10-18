@@ -14,12 +14,13 @@
     "fetch-data": "node data/build/fetch-data.ts",
     "simplify-data": "node data/build/simplify-data.ts",
     "build-data": "node data/build/build-data.ts",
+    "tree": "node data/build/tree.ts",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
-    "golden": "vitest run app/src/planet/golden.test.ts",
+    "golden": "vitest run app/src/planet/golden.test.ts data/build/pipeline.test.ts",
     "check": "npm run lint && npm run typecheck && npm run test",
     "test:browser": "playwright test",
     "pool": "node scripts/pool.ts",
@@ -49,6 +50,7 @@
     "typescript-eslint": "8.71.2",
     "vite": "8.3.4",
     "vitest": "5.0.5",
-    "yaml": "2.9.1"
+    "yaml": "2.9.1",
+    "zod": "4.6.5"
   }
 }

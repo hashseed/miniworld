@@ -21,7 +21,7 @@ import {
 } from '../content/formats.ts';
 import type { ChunkSource } from '../content/loader.ts';
 import type { Manifest } from '../content/types.ts';
-import { TILE_N, faceUvToDir, type TileKey } from '../geo/cube.ts';
+import { DATA_MAX_LEVEL, TILE_N, faceUvToDir, type TileKey } from '../geo/cube.ts';
 import { CANCEL_AFTER_FRAMES, MAX_DATA_TILES, TerrainStore, sampleTile } from './terrainStore.ts';
 
 const B = TERRAIN_BORDERED;
@@ -121,7 +121,7 @@ describe('sampleTile', () => {
 
 /** A chunk source whose requests the test answers by hand. */
 class FakeSource implements ChunkSource {
-  manifest = { layers: { terrain: { maxLevel: 6 } } } as unknown as Manifest;
+  manifest = { layers: { terrain: { maxLevel: DATA_MAX_LEVEL } } } as unknown as Manifest;
   requests: {
     file: string;
     priority: number;
@@ -150,7 +150,21 @@ class FakeSource implements ChunkSource {
 const settle = () => new Promise((r) => setTimeout(r, 0));
 
 describe('TerrainStore', () => {
-  const key = { face: 2, level: 6, x: 5, y: 9 };
+  const key = { face: 2, level: 5, x: 5, y: 9 };
+
+  it('samples rendered tiles from data that ends at level 5', () => {
+    expect(DATA_MAX_LEVEL).toBe(5);
+    const src = new FakeSource();
+    const store = new TerrainStore(src);
+    expect(store.dataMaxLevel).toBe(5);
+    expect(store.dataKeyFor(key)).toEqual(key);
+    // A build with fewer levels samples deeper tiles from their deepest ancestor.
+    src.manifest = { layers: { terrain: { maxLevel: 4 } } } as unknown as Manifest;
+    expect(store.dataKeyFor(key)).toEqual({ face: 2, level: 4, x: 2, y: 4 });
+    // A manifest claiming more levels than the app knows is capped.
+    src.manifest = { layers: { terrain: { maxLevel: 6 } } } as unknown as Manifest;
+    expect(store.dataMaxLevel).toBe(DATA_MAX_LEVEL);
+  });
 
   it('asks once per tile and keeps what arrives', async () => {
     const src = new FakeSource();
@@ -223,7 +237,7 @@ describe('TerrainStore', () => {
     const root = { face: 0, level: 0, x: 0, y: 0 };
     const keys = [root];
     for (let n = 0; n < MAX_DATA_TILES + 10; n++)
-      keys.push({ face: 1, level: 6, x: n % 64, y: Math.floor(n / 64) });
+      keys.push({ face: 1 + (n >> 10), level: 5, x: n % 32, y: (n >> 5) % 32 });
     for (const k of keys) store.terrainTile(k, 1);
     src.requests.forEach((r, n) => r.answer(copy(encodeTerrainTile(rampTile(keys[n]!)))));
     await settle();

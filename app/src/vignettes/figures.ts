@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { drawable } from '../content/assets.ts';
 import { ANIMALS, buildAnimal, type AnimalId } from '../../../assets/src/animals.ts';
-import { animateAnimal, animatePerson } from '../../../assets/src/clips.ts';
+import { animateAnimal, animatePerson, blendPerson } from '../../../assets/src/clips.ts';
 import { lightUniforms, type Model } from '../../../assets/src/kit.ts';
 import { buildProp as buildCastProp, PROPS, type PropId } from '../../../assets/src/landmarks.ts';
 import {
@@ -16,23 +16,25 @@ import {
   type Profile,
   type Tool,
 } from '../../../assets/src/people.ts';
-import { buildHearth, buildShelter, CAMP_SHELTER } from '../../../assets/src/shelters.ts';
+import {
+  buildHearth,
+  buildShelter,
+  CAMP_SHELTER,
+  buildSteps,
+  flickerHearth,
+  setBuilt,
+  SHELTERS,
+  type ShelterId,
+} from '../../../assets/src/shelters.ts';
 import { hashString } from '../core/hash.ts';
-import type { Clip } from '../world/vignette.ts';
+import type { CastRules, Clip } from '../world/vignette.ts';
 import { buildStandIn, type StandIn } from './standIns.ts';
 
 /** The family at a camp: a woman, a child and a man, then repeating. */
 const FAMILY: Kind[] = ['woman', 'child', 'man'];
-/** Roles always played by a man of the profile (the building crews of giza.md section 11). */
-const MEN = new Set(['hunter', 'worker', 'overseer', 'scribe']);
-/** Tools held by roles instead of the profile's own. */
-const ROLE_TOOLS: Record<string, Tool> = { hunter: 'spear', overseer: 'staff', scribe: 'palette' };
-
-/** Content animal ids that differ from the model ids. */
-const ANIMAL_MODELS: Record<string, AnimalId> = { 'woolly-mammoth': 'animal-mammoth' };
-
+/** An animal's model is animal-<id> (content-format.md section 1). */
 function animalModel(look: string): AnimalId | undefined {
-  const id = ANIMAL_MODELS[look] ?? `animal-${look}`;
+  const id = `animal-${look}`;
   return (ANIMALS as readonly string[]).includes(id) ? (id as AnimalId) : undefined;
 }
 
@@ -88,7 +90,7 @@ export function buildActor(
   look: string,
   key: string,
   index: number,
-  role?: string,
+  rules: CastRules = {},
 ): StandIn {
   if (kind === 'prop') {
     if ((PROPS as readonly string[]).includes(look) && drawable.has(look)) {
@@ -116,19 +118,19 @@ export function buildActor(
     }
   } else if ((PROFILES as readonly string[]).includes(look)) {
     const profile = look as Profile;
-    const person: Kind = role && MEN.has(role) ? 'man' : FAMILY[index % FAMILY.length]!;
+    // The role's cast rules (vocab/roles.yaml) say who plays it and what it holds.
+    const person: Kind = rules.man ? 'man' : FAMILY[index % FAMILY.length]!;
     if (drawable.has(`figure-${profile}-${person}`)) {
       const model = buildPerson({
         profile,
         kind: person,
         variant: hashString(key) % 997,
-        // Hunters carry the spear they throw; overseers a staff, scribes a palette.
-        tool: role ? ROLE_TOOLS[role] : undefined,
+        tool: rules.tool as Tool | undefined,
       });
       return wrap(model, (clip, s) => animatePerson(model, clip, s));
     }
   }
-  return buildStandIn(kind, look, key, role);
+  return buildStandIn(kind, look, key, rules);
 }
 
 /** Points the models' shared studio light and ink at this frame. */
@@ -153,7 +155,10 @@ export function buildProp(kind: 'shelter' | 'asset', look: string): StandIn | un
   if (kind === 'shelter') {
     const id = CAMP_SHELTER[look as Profile];
     if (id && drawable.has(id)) model = buildShelter(id);
-  } else if (look === 'prop-hearth' && drawable.has(look)) model = buildHearth();
+  } else if (look === 'prop-hearth' && drawable.has(look)) {
+    const hearth = buildHearth();
+    return wrap(hearth, (_clip, seconds) => flickerHearth(hearth, seconds));
+  }
   if (!model) return undefined;
   return wrap(model, () => {});
 }
@@ -161,4 +166,43 @@ export function buildProp(kind: 'shelter' | 'asset', look: string): StandIn | un
 /** A thrown spear, shaft along +Y with the tip up, at life size. */
 export function buildSpearObject(): THREE.Object3D {
   return buildSpear().object;
+}
+
+/** A figure of the tree of humankind (spec humankind.md, section 8.1). */
+export interface TreeActor extends StandIn {
+  /** Poses a change of clip under way: `weight` 0 shows `from`, 1 shows `to`. */
+  blend(from: Clip, fromSeconds: number, to: Clip, toSeconds: number, weight: number): void;
+}
+
+/**
+ * Builds a figure of the tree: the first person with her own look, or a
+ * woman, man or child of the culture; a stand-in while the model is not approved.
+ */
+export function buildTreeFigure(
+  look: 'founder' | 'woman' | 'man' | 'child',
+  id: number,
+  profile: Profile = 'african-stone-age',
+): TreeActor {
+  const asset = look === 'founder' ? 'figure-first-person' : `figure-${profile}-${look}`;
+  if (drawable.has(asset)) {
+    const model = buildPerson(
+      look === 'founder'
+        ? { profile: 'african-stone-age', kind: 'woman', founder: true }
+        : { profile, kind: look, variant: id % 997 },
+    );
+    const actor = wrap(model, (clip, s) => animatePerson(model, clip, s));
+    return { ...actor, blend: (a, as, b, bs, w) => blendPerson(model, a, as, b, bs, w) };
+  }
+  const standIn = buildStandIn('human', profile, `tree:${id}`, undefined);
+  return { ...standIn, blend: (_a, _as, b, bs) => standIn.pose(b, bs) };
+}
+
+/** A lodging of the tree by its asset id, facing +X like the stage, or undefined without an approved model. */
+export function buildLodging(kind: string): StandIn | undefined {
+  if (!(SHELTERS as readonly string[]).includes(kind) || !drawable.has(kind)) return undefined;
+  const model = buildShelter(kind as ShelterId);
+  const steps = buildSteps(model);
+  const prop = wrap(model, () => {});
+  if (!steps.length) return prop;
+  return { ...prop, setBuilt: (built: number) => setBuilt(steps, built) };
 }

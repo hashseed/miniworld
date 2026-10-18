@@ -27,7 +27,11 @@ const KM_PER_M = 75;
 const MIN_SIZE_M = 1.8;
 const MAX_SIZE_M = 4;
 /** Drawn sizes that differ from the rule above (section 5). */
-const DRAWN_SIZE_M: Record<string, number> = { 'animal-kea': 1.2, 'animal-haast-eagle': 2.2 };
+const DRAWN_SIZE_M: Record<string, number> = {
+  'animal-kea': 1.2,
+  'animal-haast-eagle': 2.2,
+  'animal-capybara': 1.2,
+};
 /** Most animals of one species drawn at once. */
 const CAPACITY = 12;
 

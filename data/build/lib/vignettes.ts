@@ -7,11 +7,11 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { parse } from 'yaml';
 import { PROPS } from '../../../assets/src/landmarks.ts';
+import en from '../../../app/messages/en.json' with { type: 'json' };
+import de from '../../../app/messages/de.json' with { type: 'json' };
 import { LANGUAGES, type Language } from '../../../app/src/i18n/messages.ts';
 import { DAYS_PER_YEAR, astronomicalYear, dayOfYearStart } from '../../../app/src/time/calendar.ts';
 import {
-  PROP_VERBS,
-  VERBS,
   loopErrors,
   type CompiledAction,
   type CompiledGroup,
@@ -21,14 +21,17 @@ import {
   type Verb,
 } from '../../../app/src/world/vignette.ts';
 import { PROFILES } from '../../../app/src/world/cultures.ts';
+import { repoVocab, type Vocab } from './vocab.ts';
 
 const CULTURES = new Set<string>(PROFILES);
-/** Scene-marker icons the app can draw (section 7.2). */
-export const ICONS = new Set(['spear', 'pyramid']);
 /** What historians may dispute about a record (content-format section 2). */
 const DEBATED = new Set(['date', 'place', 'cause', 'numbers', 'method']);
 type ParamKind = 'culture' | 'animal' | 'prop';
-const LEARN_MORE: Record<Language, string> = { en: 'Learn more', de: 'Mehr erfahren' };
+/** The record heading over the "Learn more" text, as the card labels it (content-format section 2). */
+const LEARN_MORE: Record<Language, string> = {
+  en: en['vignette.learnMore'],
+  de: de['vignette.learnMore'],
+};
 
 export interface VignetteText {
   title: string;
@@ -115,6 +118,7 @@ export function parseDate(
 export function compileTemplate(
   file: string,
   text: string,
+  vocab: Pick<Vocab, 'actions' | 'roles'> = repoVocab(),
 ): { template?: CompiledTemplate; params: Record<string, ParamKind>; errors: string[] } {
   const e = new Errors(`templates/${basename(file)}`);
   const params: Record<string, ParamKind> = {};
@@ -229,6 +233,9 @@ export function compileTemplate(
         e.add(`cast ${name} needs a whole count of at least 1`);
       const at = str(v.at);
       if (!at || !marks[at]) e.add(`cast ${name} starts at unknown mark "${at}"`);
+      const role = str(v.role);
+      const rules = role === undefined ? undefined : vocab.roles[role];
+      if (role !== undefined && !rules) e.add(`cast ${name} has unknown role "${role}"`);
       // A fixed offset from the group's marks, such as haulers ahead of their sledge.
       const ox = Array.isArray(v.offset) ? num(v.offset[0]) : undefined;
       const oz = Array.isArray(v.offset) ? num(v.offset[1]) : undefined;
@@ -238,7 +245,10 @@ export function compileTemplate(
         name,
         kind: kind ?? 'human',
         look: ref ?? '',
-        role: str(v.role),
+        ...(role !== undefined ? { role } : {}),
+        // The role's cast rules travel with the group (milestone 2, section 18.1).
+        ...(rules?.man ? { man: true as const } : {}),
+        ...(rules?.tool ? { tool: rules.tool } : {}),
         count: count ?? 1,
         at: at ?? '',
         ...(ox !== undefined && oz !== undefined && (ox || oz)
@@ -275,16 +285,17 @@ export function compileTemplate(
           verb = Object.keys(action)[0];
           object = str(Object.values(action)[0]);
         }
-        if (!verb || !(verb in VERBS)) {
+        const rule = verb === undefined ? undefined : vocab.actions[verb];
+        if (!verb || !rule) {
           e.add(`beat at ${at} s uses unknown action "${verb ?? JSON.stringify(action)}"`);
           continue;
         }
         const isProp = props.includes(group as CompiledProp);
-        if (isProp !== PROP_VERBS.has(verb as Verb)) {
+        if (isProp !== (rule.for === 'prop')) {
           e.add(`beat at ${at} s: ${groupName} cannot ${verb}`);
           continue;
         }
-        const takes = VERBS[verb as Verb];
+        const takes = rule.object;
         if (takes === 'mark' && (!object || !marks[object]))
           e.add(`beat at ${at} s: ${verb} needs a mark, got "${object}"`);
         if (
@@ -373,7 +384,8 @@ export interface VignetteInputs {
   /** Folder of the records; `<curated>/vignettes` unless a test passes its fixtures. */
   records?: string;
   lanes: Set<string>;
-  animals: Set<string>;
+  /** The vocabularies; the repository's unless a test passes its own. */
+  vocab?: Vocab;
   startDay: number;
   cutoffDay: number;
   /** Landmark parts a singular vignette can build, by landmark and part (giza.md section 11.4). */
@@ -402,7 +414,7 @@ export function buildVignettes(inp: VignetteInputs): {
     for (const f of readdirSync(tdir)
       .filter((n) => n.endsWith('.yaml'))
       .sort()) {
-      const r = compileTemplate(f, readFileSync(join(tdir, f), 'utf8'));
+      const r = compileTemplate(f, readFileSync(join(tdir, f), 'utf8'), inp.vocab);
       errors.push(...r.errors);
       if (r.template) templates.set(r.template.id, { template: r.template, params: r.params });
     }
@@ -465,7 +477,8 @@ function compileRecord(
       const v = str(withMap[p]);
       if (!v) e.add(`parameter ${p} is not filled`);
       else if (kind === 'culture' && !CULTURES.has(v)) e.add(`unknown culture "${v}"`);
-      else if (kind === 'animal' && !inp.animals.has(v)) e.add(`unknown animal "${v}"`);
+      else if (kind === 'animal' && !(inp.vocab ?? repoVocab()).animals[v])
+        e.add(`unknown animal "${v}"`);
       else if (kind === 'prop' && !(PROPS as readonly string[]).includes(v))
         e.add(`unknown prop "${v}"`);
       else filled[p] = v;
@@ -543,7 +556,7 @@ function compileRecord(
     : [str(y.region) ?? ''];
   for (const r of regions) if (!inp.lanes.has(r)) e.add(`unknown region "${r}"`);
   const icon = str(y.icon) ?? '';
-  if (!ICONS.has(icon)) e.add(`unknown icon "${icon}"`);
+  if (!(inp.vocab ?? repoVocab()).icons[icon]) e.add(`unknown icon "${icon}"`);
   if (y.debated !== undefined && !DEBATED.has(str(y.debated) ?? ''))
     e.add(`unknown debated value "${String(y.debated)}"`);
   const refs = Array.isArray(y.sources) ? y.sources : [];

@@ -4,7 +4,10 @@
 import { createHash } from 'node:crypto';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { brotliCompressSync, constants } from 'node:zlib';
+import { promisify } from 'node:util';
+import { brotliCompress, constants } from 'node:zlib';
+
+const compress = promisify(brotliCompress);
 
 export function contentHash(bytes: Uint8Array): string {
   return createHash('sha256').update(bytes).digest('hex').slice(0, 16);
@@ -15,8 +18,10 @@ export class Output {
   rawBytes = 0;
   compressedBytes = 0;
   files = 0;
-  /** Compressed size per file, for budgets. */
+  /** Compressed size per file, for budgets; complete after finish(). */
   readonly sizes = new Map<string, number>();
+  /** Brotli copies being written, on Node's thread pool. */
+  private pending: Promise<void>[] = [];
 
   constructor(root: string) {
     this.root = root;
@@ -40,16 +45,25 @@ export class Output {
     const path = join(this.root, name);
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, bytes);
-    const br = brotliCompressSync(bytes, {
-      params: {
-        [constants.BROTLI_PARAM_QUALITY]: 9,
-        [constants.BROTLI_PARAM_SIZE_HINT]: bytes.length,
-      },
-    });
-    writeFileSync(`${path}.br`, br);
     this.rawBytes += bytes.length;
-    this.compressedBytes += br.length;
     this.files++;
-    this.sizes.set(name, br.length);
+    this.pending.push(
+      compress(bytes, {
+        params: {
+          [constants.BROTLI_PARAM_QUALITY]: 9,
+          [constants.BROTLI_PARAM_SIZE_HINT]: bytes.length,
+        },
+      }).then((br) => {
+        writeFileSync(`${path}.br`, br);
+        this.compressedBytes += br.length;
+        this.sizes.set(name, br.length);
+      }),
+    );
+  }
+
+  /** Waits for every Brotli copy to be written. */
+  async finish(): Promise<void> {
+    await Promise.all(this.pending);
+    this.pending = [];
   }
 }

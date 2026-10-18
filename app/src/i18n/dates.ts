@@ -2,6 +2,8 @@
 // Intl.DateTimeFormat does not handle years before 1 CE well, so years and
 // eras are formatted here.
 
+import en from '../../messages/en.json' with { type: 'json' };
+import de from '../../messages/de.json' with { type: 'json' };
 import { dateFromDay, type Day } from '../time/calendar.ts';
 import { dateTimeFormat, numberFormat } from './intl.ts';
 import type { Language } from './messages.ts';
@@ -23,9 +25,15 @@ export function formatYearNumber(year: number, language: Language): string {
   return year >= 10000 ? formatNumber(year, language) : String(year);
 }
 
+const eraWords = (m: typeof en) => ({
+  bce: m['date.bce'],
+  ce: m['date.ce'],
+  approx: m['date.approximate'],
+});
+/** Era words from the message files, so the dates are localised like every other string. */
 const ERA_WORDS: Record<Language, { bce: string; ce: string; approx: string }> = {
-  en: { bce: 'BCE', ce: 'CE', approx: 'c.' },
-  de: { bce: 'v. Chr.', ce: 'n. Chr.', approx: 'ca.' },
+  en: eraWords(en),
+  de: eraWords(de),
 };
 
 /** Formats an astronomical year, e.g. -752 → "753 BCE", 79 → "79 CE", 1492 → "1492". */

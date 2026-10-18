@@ -4,6 +4,12 @@
 import { readFileSync } from 'node:fs';
 import { readExtract } from './extract.ts';
 import { Grid } from './grid.ts';
+import type { GeoJsonFeature } from './rasterize.ts';
+
+/** The features of a GeoJSON file, such as a Natural Earth layer. */
+export function readFeatures(path: string): GeoJsonFeature[] {
+  return (JSON.parse(readFileSync(path, 'utf8')) as { features: GeoJsonFeature[] }).features;
+}
 
 /** ETOPO 2022 60 arc-second bedrock elevation GeoTIFF → whole metres. */
 export async function readEtopo(path: string): Promise<Grid> {

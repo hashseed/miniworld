@@ -61,10 +61,10 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test('first view opens at 50,000 BCE within the data budget', async ({ page }) => {
+test('first view opens at 70,000 BCE within the data budget', async ({ page }) => {
   await page.addInitScript(() => performance.setResourceTimingBufferSize(10_000));
   await open(page);
-  await expect(page.getByTestId('date')).toHaveText('50,000 BCE');
+  await expect(page.getByTestId('date')).toHaveText('70,000 BCE');
   // Only data requested before the first view counts; plants load after it.
   const paths = await page.evaluate(() => {
     const mark = performance.getEntriesByName('miniworld:first-view')[0]!;
@@ -95,7 +95,7 @@ test('language switch changes every string without a reload', async ({ page }) =
   await page.getByRole('button', { name: en['menu.settings'] }).click();
   await page.locator('select').first().selectOption('de');
   await expect(page.locator('html')).toHaveAttribute('lang', 'de');
-  await expect(page.getByTestId('date')).toHaveText('50.000 v. Chr.');
+  await expect(page.getByTestId('date')).toHaveText('70.000 v. Chr.');
   await expect(page).toHaveTitle(de['app.title']!);
   const text = await page.evaluate(() => {
     const labels = [...document.querySelectorAll('[aria-label],[title]')].map(
