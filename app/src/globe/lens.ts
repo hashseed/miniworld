@@ -359,6 +359,14 @@ export class Lens {
     return 1 + (sampleScalar(this.width, d) - 1) * this.blend;
   }
 
+  /**
+   * Width factor of the warp as built (strength 100 %), whatever the current
+   * blend: tiles are refined by it, so moving the slider never re-picks them.
+   */
+  builtWidthAt(d: Vec3): number {
+    return sampleScalar(this.width, d);
+  }
+
   /** Largest width factor anywhere, for conservative bounds. */
   get maxWidth(): number {
     return Math.max(1, 1 + (this.widest - 1) * this.blend);

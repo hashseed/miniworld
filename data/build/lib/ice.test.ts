@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { climateStepYears, monotoneCubic, seaLevelCurve, sliceDay } from './ice.ts';
+import { climateStepYears, closeIce, monotoneCubic, seaLevelCurve, sliceDay } from './ice.ts';
 
 describe('ice steps', () => {
   it("takes the climate data's steps from the one before the start to today", () => {
@@ -32,5 +32,32 @@ describe('monotone cubic', () => {
       expect(y).toBeLessThanOrEqual(0);
       prev = y;
     }
+  });
+});
+
+describe('closeIce', () => {
+  const w = 720;
+  const h = 360;
+  const block = (c0: number, c1: number) => {
+    const m = new Uint8Array(w * h);
+    for (let r = 40; r < 60; r++) for (let c = c0; c < c1; c++) m[r * w + c] = 1;
+    return m;
+  };
+
+  it('merges ice sheets with a narrow gap and keeps wide gaps', () => {
+    const m = block(100, 140);
+    for (let r = 40; r < 60; r++) for (let c = 143; c < 180; c++) m[r * w + c] = 1;
+    for (let r = 40; r < 60; r++) for (let c = 200; c < 240; c++) m[r * w + c] = 1;
+    closeIce(m, w, h, () => false);
+    expect(m[50 * w + 141]).toBe(1);
+    expect(m[50 * w + 190]).toBe(0);
+  });
+
+  it('fills a narrow strip of land between ice and sea and runs a little over the sea', () => {
+    const m = block(100, 140);
+    closeIce(m, w, h, (i) => i % w >= 145);
+    expect(m[50 * w + 142]).toBe(1);
+    expect(m[50 * w + 145]).toBe(1);
+    expect(m[50 * w + 155]).toBe(0);
   });
 });

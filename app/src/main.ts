@@ -301,12 +301,23 @@ const actions: Actions = {
   },
 };
 
+/**
+ * An experimental build shown for feedback carries a short description from
+ * VITE_BUILD_LABEL in front of the title (spec section 11); main has none.
+ */
+const BUILD_LABEL: string = (import.meta.env.VITE_BUILD_LABEL as string | undefined) ?? '';
+
+function tabTitle(): string {
+  const title = i18n.t('app.title');
+  return BUILD_LABEL ? `${BUILD_LABEL} · ${title}` : title;
+}
+
 async function switchLanguage(lang: Settings['language']): Promise<void> {
   // Keep the old strings until the other language's index has arrived.
   const next = await loader.index(lang);
   i18n.set(lang);
   document.documentElement.lang = lang;
-  document.title = i18n.t('app.title');
+  document.title = tabTitle();
   index = next;
   timeline?.setIndex(next);
   vignettes.setIndex(next.vignettes);
@@ -517,7 +528,7 @@ function syncUi(now: number): void {
 
 async function start(): Promise<void> {
   document.documentElement.lang = i18n.language;
-  document.title = i18n.t('app.title');
+  document.title = tabTitle();
   render(h(App, { store: ui, i18n, actions }), document.getElementById('ui')!);
   try {
     const manifest = await loader.init();

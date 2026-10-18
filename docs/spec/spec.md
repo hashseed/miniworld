@@ -279,6 +279,7 @@ Development happens in Yang's devenv Docker container, the local development con
 - The Node version is pinned in `.nvmrc` and in `engines` in `package.json`; every other tool is a dev dependency installed by `npm ci`, so nothing project-specific is installed globally.
 - `npm run dev` starts the dev server on port 8800 (http://localhost:8800), serving the app with hot reload and the locally built content chunks under the same origin. It listens on all interfaces so the app can be opened from outside the container through its published port.
 - Scripts for the data build, tests and asset pipeline are npm scripts.
+- Changes that need Yang's feedback run on the devenv first, before a pull request and its CI. Such an experimental build is started with a short description in `VITE_BUILD_LABEL` (for example `VITE_BUILD_LABEL="Smoother continents" npm run dev`), which the app puts in front of the browser tab title; builds of `main` have none. Several previews can run side by side: `MINIWORLD_PORT` sets the dev server's port, 8800 for `main` and 8801 to 8809 for previews, each from its own worktree.
 
 ## 12. Development process
 

@@ -7,6 +7,7 @@
 import * as THREE from 'three';
 import type { ContentLoader } from '../content/loader.ts';
 import type { VignetteEntry } from '../content/types.ts';
+import { MIN_DISTANCE_KM } from '../globe/cameraController.ts';
 import { latLonToDir, type Vec3 } from '../globe/cube.ts';
 import { EARTH_RADIUS_KM } from '../globe/tileMesh.ts';
 import {
@@ -36,8 +37,8 @@ const MAX_OVERSIZE = 6;
 const MAX_LEAN = 1.15;
 /** Taps within this many pixels of a cast member count as hits. */
 const HIT_PX = 26;
-/** Altitude the camera flies down to on a double-tap: the whole stage in view. */
-const FLY_ALTITUDE_KM = 12;
+/** Distance the camera flies down to on a double-tap: the closest zoom (milestone 1, section 6.1). */
+const FLY_ALTITUDE_KM = MIN_DISTANCE_KM;
 
 export interface SurfaceSource {
   /** Drawn surface height in km over a drawn direction. */

@@ -9,7 +9,7 @@ import {
   ICE_GRID_W,
 } from '../../../app/src/content/formats.ts';
 import { blurFieldPolar } from './coast.ts';
-import { signedDistanceKm } from './distance.ts';
+import { distanceKm, signedDistanceKm } from './distance.ts';
 import { dayFromDate } from '../../../app/src/time/calendar.ts';
 
 export function sliceDay(yearsBP: number): number {
@@ -85,6 +85,18 @@ export const ICE_BORDER_POLAR_SIGMA_KM = 60;
 export const ICE_BORDER_ANTARCTIC_SIGMA_KM = 120;
 /** Smoothed thickness (m) from which a place counts as covered by ice. */
 export const ICE_COVER_M = 60;
+/**
+ * Gaps up to twice this many km between ice, or between ice and the sea, are
+ * filled with ice (a morphological closing), so neighbouring ice sheets merge
+ * into one and reach the coast instead of leaving narrow strips (section 5.2).
+ */
+export const ICE_MERGE_KM = 80;
+/**
+ * Ice reaches this many km out over the sea from where it meets it, so its
+ * smoothed border lies offshore and no strip of bare coast shows between the
+ * ice and the sea (section 5.2).
+ */
+export const ICE_SHELF_KM = 50;
 
 /**
  * Ice cover at a date on the global ice grid (section 5.2), as the smoothed
@@ -92,6 +104,7 @@ export const ICE_COVER_M = 60;
  */
 export function iceGrid(
   thicknessAt: (lats: Float64Array, lons: Float64Array) => Uint16Array,
+  isSea: (lat: number, lon: number) => boolean = () => false,
 ): Uint8Array {
   const w = ICE_GRID_W;
   const h = ICE_GRID_H;
@@ -105,6 +118,7 @@ export function iceGrid(
   const thickness = thicknessAt(lats, lons);
   const mask = new Uint8Array(w * h);
   for (let i = 0; i < w * h; i++) mask[i] = thickness[i]! >= ICE_COVER_M ? 1 : 0;
+  closeIce(mask, w, h, (i) => isSea(lats[i]!, lons[i]!));
   // Clamped a little beyond the stored range, so the blur sees a plain field.
   const sdf = signedDistanceKm(mask, w, h).map((v) => Math.max(-200, Math.min(1000, v)));
   const smooth = blurFieldPolar(
@@ -122,4 +136,33 @@ export function iceGrid(
       Math.min(255, Math.round(ICE_DISTANCE_ZERO + smooth[i]! / ICE_DISTANCE_STEP_KM)),
     );
   return out;
+}
+
+/**
+ * Fills gaps narrower than 2 × ICE_MERGE_KM between ice, or between ice and
+ * the sea, with ice: the ice together with the sea is grown by ICE_MERGE_KM
+ * and shrunk back again, and only land is added, so the sea stays open; then
+ * the ice runs ICE_SHELF_KM out over the sea it meets.
+ */
+export function closeIce(
+  mask: Uint8Array,
+  w: number,
+  h: number,
+  isSea: (index: number) => boolean,
+): void {
+  const n = w * h;
+  const sea = new Uint8Array(n);
+  const seed = new Uint8Array(n);
+  for (let i = 0; i < n; i++) {
+    sea[i] = isSea(i) ? 1 : 0;
+    seed[i] = mask[i] || sea[i] ? 1 : 0;
+  }
+  const grown = new Uint8Array(n);
+  const out = distanceKm(seed, w, h);
+  for (let i = 0; i < n; i++) grown[i] = out[i]! <= ICE_MERGE_KM ? 0 : 1; // outside the grown area
+  const back = distanceKm(grown, w, h);
+  for (let i = 0; i < n; i++) if (!mask[i] && !sea[i] && back[i]! > ICE_MERGE_KM) mask[i] = 1;
+  // The ice runs on a little over the sea it meets.
+  const shelf = distanceKm(mask, w, h);
+  for (let i = 0; i < n; i++) if (sea[i] && shelf[i]! <= ICE_SHELF_KM) mask[i] = 1;
 }

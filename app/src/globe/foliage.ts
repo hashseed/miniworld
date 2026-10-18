@@ -22,6 +22,7 @@ import { plantGeometry } from './foliageModels.ts';
 import { EXAGGERATION, LAND_LIFT_M, type Globe } from './globe.ts';
 import { iceSlicePair, type PlanetState } from './planet.ts';
 import { foliageFragment, foliageVertex } from './shaders.ts';
+import { CAP_KM_PER_M, snowCap } from './snowCap.ts';
 import { sampleTile, type TileSamples } from './terrainStore.ts';
 import { EARTH_RADIUS_KM } from './tileMesh.ts';
 
@@ -266,6 +267,9 @@ export class Foliage {
       const height = bilinearBordered(s.heights, fi, fj);
       const { lat, lon } = dirToLatLon(dir);
       if (height > treeLine(lat)) return;
+      // Clear of the mountain snow caps as of the ice (section 5.2).
+      const cap = snowCap(height, bilinear(s.bed, fi, fj), Math.abs(lat), planet.glacialIndex);
+      if (cap * CAP_KM_PER_M > -ICE_CLEARANCE_KM) return;
       if (this.globe.climate.iceKmAt(dir, day) > -ICE_CLEARANCE_KM) return;
       // Between two slices each slot switches at its own hashed moment.
       const code = this.cell(h(4) < t ? sb : sa, lat, lon);

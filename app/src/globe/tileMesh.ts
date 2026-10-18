@@ -56,6 +56,30 @@ export function indexFor(flip: boolean, step = 1): THREE.BufferAttribute {
   return attr;
 }
 
+/**
+ * The coast distance's change from sample (ia, ja) to (ib, jb), as a vector
+ * along that step in km per km.
+ */
+function coastSlope(
+  coast: ArrayLike<number>,
+  dirs: Float64Array,
+  ia: number,
+  ja: number,
+  ib: number,
+  jb: number,
+  R: number,
+): [number, number, number] {
+  const a = ((ja + 1) * B + (ia + 1)) * 3;
+  const b = ((jb + 1) * B + (ib + 1)) * 3;
+  const dx = (dirs[b]! - dirs[a]!) * R;
+  const dy = (dirs[b + 1]! - dirs[a + 1]!) * R;
+  const dz = (dirs[b + 2]! - dirs[a + 2]!) * R;
+  const len2 = dx * dx + dy * dy + dz * dz;
+  if (len2 <= 0) return [0, 0, 0];
+  const k = (coast[jb * S + ib]! - coast[ja * S + ia]!) / len2;
+  return [dx * k, dy * k, dz * k];
+}
+
 /** Ocean level (m) above which a sample is land at every date. */
 const NEVER_SEA_M = 10;
 
@@ -124,6 +148,7 @@ export function buildTileGeometry(
   const extra = new Uint8Array(TILE_VERTS * 4);
   const flow = new Int8Array(TILE_VERTS * 2);
   const fieldUv = new Uint16Array(TILE_VERTS * 2);
+  const coastGrad = new Int8Array(TILE_VERTS * 4);
   const fieldData = new Uint16Array(S * S * 4);
 
   const pa = [0, 0, 0];
@@ -180,6 +205,16 @@ export function buildTileGeometry(
       extra[v * 4] = Math.round(Math.min(1, samples.lake[v]!) * 255);
       extra[v * 4 + 1] = Math.round(Math.min(1, samples.rivers[v]!) * 255);
       extra[v * 4 + 3] = Math.round(samples.coast[v]!); // km from today's coast
+      // Gradient of the coast distance along the ground (km per km), so the
+      // shader can shade its rounded coast edge exactly (section 4.2).
+      const i0 = Math.max(0, i - 1);
+      const i1 = Math.min(TILE_N, i + 1);
+      const j0 = Math.max(0, j - 1);
+      const j1 = Math.min(TILE_N, j + 1);
+      const gi = coastSlope(samples.coast, dirs, i0, j, i1, j, R);
+      const gj = coastSlope(samples.coast, dirs, i, j0, i, j1, R);
+      for (let a = 0; a < 3; a++)
+        coastGrad[v * 4 + a] = Math.round(Math.max(-1, Math.min(1, gi[a]! + gj[a]!)) * 127);
       flow[v * 2] = Math.round(samples.flow[v * 2]! * 127);
       flow[v * 2 + 1] = Math.round(samples.flow[v * 2 + 1]! * 127);
     }
@@ -201,6 +236,7 @@ export function buildTileGeometry(
       extra[dst * 4 + 2] = 255;
       flow.copyWithin(dst * 2, src * 2, src * 2 + 2);
       fieldUv.copyWithin(dst * 2, src * 2, src * 2 + 2);
+      coastGrad.copyWithin(dst * 4, src * 4, src * 4 + 4);
     }
 
   const geometry = new THREE.BufferGeometry();
@@ -210,6 +246,7 @@ export function buildTileGeometry(
   geometry.setAttribute('extra', new THREE.BufferAttribute(extra, 4, true));
   geometry.setAttribute('flow', new THREE.BufferAttribute(flow, 2, true));
   geometry.setAttribute('fieldUv', new THREE.BufferAttribute(fieldUv, 2, true));
+  geometry.setAttribute('coastGrad', new THREE.BufferAttribute(coastGrad, 4, true));
   // Winding: the cross product of +i and +j must point outward.
   geometry.setIndex(indexFor(flipCheck < 0));
 

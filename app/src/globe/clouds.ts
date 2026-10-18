@@ -12,6 +12,9 @@ export const CLOUD_COUNT = 30;
 const PUFFS = 7;
 /** Height of the cloud centres above sea level, in km on the exaggerated globe. */
 export const CLOUD_ALTITUDE_KM = 650;
+/** Camera altitudes (km) below which the clouds are gone, and above which they are fully drawn. */
+const CLOUD_GONE_KM = 3000;
+const CLOUD_FULL_KM = 5000;
 /** One full trip around the globe takes this long on the life clock. */
 const ORBIT_MS = 30 * 60 * 1000;
 
@@ -81,12 +84,9 @@ export class Clouds {
     u.screenUp!.value.set(e[4]!, e[5]!, e[6]!);
     u.cameraWorld!.value.copy(camera.position);
     const altitude = camera.position.length() - EARTH_RADIUS_KM;
-    // Fade out as the camera comes down to the clouds, so low views stay clear.
-    u.fade!.value = THREE.MathUtils.smoothstep(
-      altitude,
-      CLOUD_ALTITUDE_KM * 1.6,
-      CLOUD_ALTITUDE_KM * 3.5,
-    );
+    // Fade out as the camera comes closer, gone about when Europe fills the
+    // screen, so close views stay clear (section 4.5).
+    u.fade!.value = THREE.MathUtils.smoothstep(altitude, CLOUD_GONE_KM, CLOUD_FULL_KM);
     this.mesh.visible = u.fade!.value > 0.01;
     if (!this.mesh.visible || lifeMs === this.lastLifeMs) return;
     this.lastLifeMs = lifeMs;

@@ -6,7 +6,7 @@ export const FACE_COUNT = 6;
 /** Intervals per tile edge; a tile has (TILE_N + 1)² samples. */
 export const TILE_N = 32;
 /** Deepest level stored in data; deeper tiles interpolate it. */
-export const DATA_MAX_LEVEL = 6;
+export const DATA_MAX_LEVEL = 5;
 
 export type Vec3 = [number, number, number];
 

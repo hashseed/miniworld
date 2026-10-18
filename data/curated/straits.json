@@ -1,5 +1,5 @@
 {
-  "description": "Straits the coast smoothing must keep open (spec milestone 1, section 5.1). Each line runs from one sea to the other through the strait; sill is the depth in metres of the shallowest point on the deepest way through, approximate.",
+  "description": "Straits the coast smoothing must keep open (spec milestone 1, section 5.1). Each line runs from one sea to the other through the strait; sill is the depth in metres of the shallowest point on the deepest way through, approximate; coreKm widens the always-open core for a narrow sea such as the Sea of Marmara.",
   "straits": [
     {
       "id": "gibraltar",
@@ -29,6 +29,21 @@
         [27.2, 40.6]
       ],
       "source": "Encyclopaedia Britannica, Dardanelles: https://www.britannica.com/place/Dardanelles"
+    },
+    {
+      "id": "marmara",
+      "name": "Sea of Marmara",
+      "sill": -65,
+      "coreKm": 25,
+      "line": [
+        [27.2, 40.6],
+        [27.6, 40.68],
+        [28.0, 40.74],
+        [28.5, 40.8],
+        [28.85, 40.85],
+        [29.0, 40.95]
+      ],
+      "source": "Encyclopaedia Britannica, Sea of Marmara: https://www.britannica.com/place/Sea-of-Marmara"
     },
     {
       "id": "bosporus",
