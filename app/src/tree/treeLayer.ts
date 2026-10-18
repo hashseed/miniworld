@@ -108,10 +108,15 @@ export class TreeLayer {
       const prop = this.lodgings.get(l.id);
       if (!prop || !this.place(prop.root, l, false)) continue;
       prop.setFade?.(l.fade);
-      // While the band builds it, the lodging rises from the ground and spreads to its full size.
-      const rise = l.built * l.built * (3 - 2 * l.built);
-      const wide = FIGURE_KM_PER_M * (0.5 + 0.5 * rise);
-      prop.root.scale.set(wide, FIGURE_KM_PER_M * Math.max(0.04, rise), wide);
+      // While the band builds it, the lodging goes up step by step, or rises whole.
+      if (prop.setBuilt) {
+        prop.setBuilt(l.built);
+        prop.root.scale.setScalar(FIGURE_KM_PER_M);
+      } else {
+        const rise = l.built * l.built * (3 - 2 * l.built);
+        const wide = FIGURE_KM_PER_M * (0.5 + 0.5 * rise);
+        prop.root.scale.set(wide, FIGURE_KM_PER_M * Math.max(0.04, rise), wide);
+      }
     }
     this.prune(this.lodgings, seen);
 

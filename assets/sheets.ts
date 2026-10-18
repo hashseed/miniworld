@@ -18,6 +18,7 @@ const sheets: [string, string][] = [
   ),
   ['clips-mammoth', 'sheet=clips-animal&id=animal-mammoth'],
   ['shelters', 'sheet=shelters'],
+  ['build-grass-hut', 'sheet=build&id=shelter-grass-hut'],
   ['animals-large', 'sheet=animals&set=large'],
   ['animals-small', 'sheet=animals&set=small'],
   ...['animal-mammoth', 'animal-horse', 'animal-reindeer', 'shelter-mammoth-bone-hut'].map(

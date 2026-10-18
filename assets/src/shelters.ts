@@ -1,6 +1,7 @@
 // Shelters and camp props of the first culture profiles (spec milestone 2,
 // section 13.3). Life size in metres, door facing +Z.
 
+import * as THREE from 'three';
 import {
   type Model,
   type Vec3,
@@ -28,6 +29,9 @@ export const SHELTERS = [
 ] as const;
 export type ShelterId = (typeof SHELTERS)[number];
 
+/** Bones named this and a number are the steps of putting a shelter up, in order. */
+export const BUILD_BONE = 'build-';
+
 /** The shelter of each hunter-gatherer profile's camp; later profiles live in towns. */
 export const CAMP_SHELTER: Partial<Record<Profile, ShelterId>> = {
   'african-stone-age': 'shelter-grass-hut',
@@ -51,6 +55,37 @@ const ring = (n: number, r: number, y: number, f: (p: Vec3, a: number, i: number
     f([Math.sin(a) * r, y, Math.cos(a) * r], a, i);
   }
 };
+
+/**
+ * Turns a two-sided sheet into one side facing away from the shelter's middle, with
+ * normals pointing out, so a shell of sheets shades like a dome.
+ */
+function outward(g: THREE.BufferGeometry): THREE.BufferGeometry {
+  const p = g.getAttribute('position');
+  const n = new Float32Array(p.count * 3);
+  const v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    v.set(p.getX(i), p.getY(i) * 0.7, p.getZ(i)).normalize();
+    n.set([v.x, v.y, v.z], i * 3);
+  }
+  g.setAttribute('normal', new THREE.BufferAttribute(n, 3));
+  // Keep only the side that faces out: the clay shader flips the normal of back faces.
+  const index = g.getIndex()!.array;
+  const kept: number[] = [];
+  const a = new THREE.Vector3();
+  const b = new THREE.Vector3();
+  const c = new THREE.Vector3();
+  for (let t = 0; t < index.length; t += 3) {
+    const [i, j, k] = [index[t]!, index[t + 1]!, index[t + 2]!];
+    a.fromBufferAttribute(p, i);
+    b.fromBufferAttribute(p, j).sub(a);
+    c.fromBufferAttribute(p, k).sub(a);
+    b.cross(c);
+    if (b.dot(v.set(n[i * 3]!, n[i * 3 + 1]!, n[i * 3 + 2]!)) > 0) kept.push(i, j, k);
+  }
+  g.setIndex(kept);
+  return g;
+}
 
 export function buildShelter(id: ShelterId): Model {
   const mb = new ModelBuilder();
@@ -150,28 +185,80 @@ export function buildShelter(id: ShelterId): Model {
       break;
     }
     case 'shelter-grass-hut': {
-      // A low dome of bent branches, thatched in overlapping rings of grass.
-      const layers = 5;
-      for (let i = 0; i < layers; i++) {
-        const y0 = (i / layers) * 1.8;
-        const r0 = 2.0 * Math.cos(Math.asin(Math.min(0.98, y0 / 1.9)));
-        const y1 = y0 + 0.5;
-        const r1 = 2.0 * Math.cos(Math.asin(Math.min(0.98, y1 / 1.9))) + 0.12;
+      // A forager's brush hut, as the Hadza and San build in an afternoon and leave when they
+      // move on: a small dome of bent branches with bundles of grass laid loosely over it.
+      // Each step of building is its own bone (BUILD_BONE), so a band puts it up in order:
+      // the frame first, then the grass from the ground up (spec humankind.md, section 8.1).
+      const R = 1.2;
+      const H = 1.35;
+      const step = (k: number, y: number) => {
+        mb.bone({ name: `${BUILD_BONE}${k}`, pivot: [0, y, 0] });
+        return `${BUILD_BONE}${k}`;
+      };
+      const dome = (a: number, t: number, out = 1): Vec3 => {
+        const r = R * out * Math.cos((t * Math.PI) / 2);
+        return [Math.sin(a) * r, H * out * Math.sin((t * Math.PI) / 2), Math.cos(a) * r];
+      };
+      // The frame: branches pushed into the ground and bent over, their tips poking out on
+      // top; none stands in the doorway.
+      const frame = step(0, 0);
+      ring(7, 1, 0, (_p, a0) => {
+        const a = a0 + Math.PI / 7;
+        const bend = a + 0.25;
+        mb.add(rod(dome(a, 0, 0.92), dome(a, 0.4, 0.92), 0.045, 4), POLE, frame);
+        mb.add(rod(dome(a, 0.4, 0.92), dome((a + bend) / 2, 0.8, 0.92), 0.04, 4), POLE, frame);
         mb.add(
-          lathe(
-            [
-              [r0 + 0.16, y0 - 0.04],
-              [r1, y1],
-              [Math.max(0.05, r1 - 0.3), y1 + 0.02],
-            ],
-            [0, 0, 0],
-            11,
-          ),
-          shade(THATCH, (i % 2) * 0.08 - 0.05),
+          rod(dome((a + bend) / 2, 0.8, 0.92), dome(bend + Math.PI, 0.86, 1.15), 0.035, 4),
+          POLE,
+          frame,
         );
-      }
-      mb.add(blob([0, 2.05, 0], [0.35, 0.25, 0.35], 6), shade(THATCH, -0.15));
-      mb.add(blob([0, 0.55, 1.75], [0.42, 0.55, 0.2], 7), DOOR);
+      });
+      // The grass: armfuls laid on the frame in three overlapping rows from the ground up,
+      // their ends hanging ragged, leaving the doorway open.
+      const rows: [number, number, number][] = [
+        [0, 0.45, 8],
+        [0.33, 0.75, 7],
+        [0.62, 1, 5],
+      ];
+      rows.forEach(([t0, t1, n], j) => {
+        const bone = step(j + 1, Math.max(0, dome(0, t0)[1] - 0.1));
+        for (let i = 0; i < n; i++) {
+          const mid = ((i + 0.5 * j) / n) * Math.PI * 2;
+          const fromDoor = Math.abs(Math.atan2(Math.sin(mid), Math.cos(mid)));
+          if (j < 2 && fromDoor < 0.45) continue;
+          const half = (Math.PI / n) * 1.25;
+          const cols = 7;
+          const top: Vec3[] = [];
+          const bottom: Vec3[] = [];
+          for (let k = 0; k < cols; k++) {
+            const a = mid - half + (2 * half * k) / (cols - 1);
+            top.push(dome(a, Math.min(0.97, t1), 1.0));
+            const b = dome(a, t0, 1.1 + 0.03 * j);
+            const tip = k % 2 === 1 ? 0.16 + 0.05 * Math.sin(i * 2.1 + k + j) : 0;
+            bottom.push([b[0], Math.max(0.02, b[1] - tip), b[2]]);
+          }
+          mb.add(
+            outward(sheet([top, bottom])),
+            shade(THATCH, 0.12 * Math.sin(i * 2.3 + j) - 0.06 * j),
+            bone,
+          );
+        }
+        if (j === 0) mb.add(blob(dome(0, 0.25, 0.95), [0.3, 0.42, 0.12], 6), DOOR, bone);
+        if (j === rows.length - 1)
+          mb.add(
+            lathe(
+              [
+                [0.45, 0],
+                [0.25, 0.14],
+                [0.02, 0.2],
+              ],
+              [0, H * 0.93, 0],
+              7,
+            ),
+            shade(THATCH, -0.1),
+            bone,
+          );
+      });
       break;
     }
     case 'shelter-lean-to': {
@@ -302,6 +389,24 @@ export function buildShelter(id: ShelterId): Model {
     }
   }
   return mb.build(id);
+}
+
+/** The building steps of a shelter in order, or none when it is shown only whole. */
+export function buildSteps(model: Model): THREE.Object3D[] {
+  return [...model.bones]
+    .filter(([name]) => name.startsWith(BUILD_BONE))
+    .sort(([a], [b]) => Number(a.slice(BUILD_BONE.length)) - Number(b.slice(BUILD_BONE.length)))
+    .map(([, bone]) => bone);
+}
+
+/** Shows a shelter put up as far as `built` (0 to 1): each step takes an equal share and grows up from its base. */
+export function setBuilt(steps: THREE.Object3D[], built: number): void {
+  steps.forEach((bone, k) => {
+    const t = Math.min(1, Math.max(0, built * steps.length - k));
+    bone.visible = t > 0;
+    const e = t * t * (3 - 2 * t);
+    bone.scale.set(0.9 + 0.1 * e, Math.max(0.02, e), 0.9 + 0.1 * e);
+  });
 }
 
 /** A ring of stones with a cartoon fire. */

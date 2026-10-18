@@ -413,7 +413,7 @@ The first models are the people, shelters and animals of the seven culture profi
 | `shelter-hide-tent` | Cone of poles covered in sewn hides, smoke hole at the top | `ice-age-hunter`, `steppe-beringia-hunter` |
 | `shelter-mammoth-bone-hut` | Dome of mammoth jaws, tusks and long bones over a hide cover (Mezhyrich, Ukraine, c. 13,000 BCE) | `ice-age-hunter` on the plains of Ukraine |
 | `shelter-windbreak` | Hide stretched on a curved row of poles, as at the mouth of a rock shelter | `neanderthal` |
-| `shelter-grass-hut` | Low dome of bent branches thatched with grass | `african-stone-age` |
+| `shelter-grass-hut` | Small brush hut of mobile foragers, as the Hadza and San build in an afternoon: a dome of bent branches about 2.4 m across, grass laid loosely over it in three ragged rows, branch tips poking out on top; built in steps (frame, then the grass from the ground up), see [humankind.md](humankind.md) section 8.1 (changed by Yang on 2026-10-18: nomads build light huts, not a settled thatched dome) | `african-stone-age` |
 | `shelter-lean-to` | Sloping roof of branches and leaves on two forked posts | `coastal-asia-hunter` |
 | `shelter-bark` | Curved sheets of bark over a frame of bent saplings | `first-australians` |
 | `shelter-natufian-house` | Round house sunk into the ground on a ring of stones, with a brush roof (Ain Mallaha) | `natufian` |

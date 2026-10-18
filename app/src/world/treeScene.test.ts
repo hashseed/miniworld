@@ -98,7 +98,7 @@ describe('the tree scene', () => {
       expect(f.lon).toBe(39);
       // Facing the hut, close by it.
       expect(f.dirX * (hut.x - f.x) + f.dirZ * (hut.z - f.z)).toBeGreaterThan(0);
-      expect((hut.x - f.x) ** 2 + (hut.z - f.z) ** 2).toBeLessThan(9 ** 2);
+      expect((hut.x - f.x) ** 2 + (hut.z - f.z) ** 2).toBeLessThan(7.5 ** 2);
     }
     const rising = building.lodgings[0]!;
     expect(rising.built).toBeGreaterThan(0);

@@ -55,6 +55,8 @@ export interface StandIn {
   pose(clip: Clip, seconds: number): void;
   /** Fades the model in or out, 0 to 1; without it, the actor is shown or hidden. */
   setFade?(fade: number): void;
+  /** Puts a shelter up step by step, 0 to 1; without it, the shelter is shown whole. */
+  setBuilt?(built: number): void;
   /** Where spears stick: the body bone and its extent in the bone's own space. */
   back?: { bone: THREE.Object3D; box: THREE.Box3 };
 }

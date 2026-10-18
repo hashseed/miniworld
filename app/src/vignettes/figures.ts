@@ -20,6 +20,8 @@ import {
   buildHearth,
   buildShelter,
   CAMP_SHELTER,
+  buildSteps,
+  setBuilt,
   SHELTERS,
   type ShelterId,
 } from '../../../assets/src/shelters.ts';
@@ -201,5 +203,9 @@ export function buildTreeFigure(
 /** A lodging of the tree by its asset id, facing +X like the stage, or undefined without an approved model. */
 export function buildLodging(kind: string): StandIn | undefined {
   if (!(SHELTERS as readonly string[]).includes(kind) || !drawable.has(kind)) return undefined;
-  return wrap(buildShelter(kind as ShelterId), () => {});
+  const model = buildShelter(kind as ShelterId);
+  const steps = buildSteps(model);
+  const prop = wrap(model, () => {});
+  if (!steps.length) return prop;
+  return { ...prop, setBuilt: (built: number) => setBuilt(steps, built) };
 }

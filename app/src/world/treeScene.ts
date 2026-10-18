@@ -43,7 +43,7 @@ const FADE_MS = 1500;
 /** The band takes this long to build a new lodging, about three years of history. */
 export const BUILD_MS = 8000;
 /** Builders stand this far from the middle of the lodging they build, in layout metres. */
-const BUILD_RING_M = 8;
+const BUILD_RING_M = 7;
 /** Moves shorter than this are within the camp and not walked. */
 const SAME_PLACE_KM = 1;
 const KM_PER_DEG = 111.195;
@@ -163,8 +163,8 @@ function comeOutMs(figure: number, lodging: number): number {
 function buildSpot(figure: number, lodging: number): { x: number; z: number } {
   const hut = lodgingSpot(lodging);
   const toHearth = Math.sqrt(hut.x * hut.x + hut.z * hut.z);
-  // Spread over the half of the ring that faces the hearth, by hash.
-  const a = (hash01(figure, lodging, 67) - 0.5) * Math.PI;
+  // Spread over the part of the ring that faces the hearth, by hash.
+  const a = (hash01(figure, lodging, 67) - 0.5) * 0.75 * Math.PI;
   const c = detCos(a);
   const sn = detSin(a);
   const ux = -hut.x / toHearth;
