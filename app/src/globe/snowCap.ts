@@ -13,7 +13,8 @@ export const CAP_KM_PER_M = 0.1;
 export const SNOW_GLACIAL_SHIFT_DEG = 12;
 /** The snow line: [absolute latitude, metres], flat outside the table. */
 export const SNOW_LINE: [number, number][] = [
-  [28, 2000],
+  [20, 3600],
+  [28, 3000],
   [36, 1600],
   [46, 1500],
   [65, 800],

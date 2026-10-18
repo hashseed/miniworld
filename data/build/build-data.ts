@@ -18,6 +18,7 @@ import {
   encodeTerrainTile,
   OCEAN_MIN_LEVEL,
   OCEAN_NEVER,
+  OCEAN_SCALE,
   PART_LEVEL,
 } from '../../app/src/content/formats.ts';
 import {
@@ -275,12 +276,17 @@ const ocean = new Grid(
 );
 log(`ocean mask grid ${conn.width} × ${conn.height}, ${straits.straits.length} straits`);
 
-// Dry land below sea level that never joins the ocean (such as the Jordan
-// rift with the Dead Sea, or the Qattara Depression) is raised to sea level
-// before smoothing, so it never shows as a steep, jagged pit (section 4.2).
+// Ground below sea level that is never drawn as sea is raised to sea level
+// before smoothing, so it never shows as a steep, jagged pit: dry land that
+// never joins the ocean (such as the Jordan rift with the Dead Sea, or the
+// Qattara Depression), and the ends of narrow gulfs that the smoothed coast
+// closes even today (such as the head of the Gulf of Suez) (section 4.2).
 const landSource = new Grid(source.width, source.height, Int16Array.from(source.data));
-for (let i = 0; i < landSource.data.length; i++)
-  if (connection.data[i] === OCEAN_NEVER && landSource.data[i]! < 0) landSource.data[i] = 0;
+for (let i = 0; i < landSource.data.length; i++) {
+  const neverSea =
+    connection.data[i] === OCEAN_NEVER || OCEAN_MIN_LEVEL + ocean.data[i]! / OCEAN_SCALE > 0;
+  if (neverSea && landSource.data[i]! < 0) landSource.data[i] = 0;
+}
 const elevation = blendPolar(
   smoothElevation(landSource, SMOOTHING_KM),
   smoothElevation(landSource, POLAR_SMOOTHING_KM),
