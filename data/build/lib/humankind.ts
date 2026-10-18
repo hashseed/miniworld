@@ -9,12 +9,13 @@ import { detCos, detSin, RAD } from '../../../app/src/core/detmath.ts';
 import { DAYS_PER_YEAR, type Day } from '../../../app/src/time/calendar.ts';
 import {
   NEVER,
+  aliveOn,
   type MomentKind,
   type Tree,
   type TreeFigure,
   type TreeLodging,
 } from '../../../app/src/world/tree.ts';
-import type { TreeChunk } from '../../../app/src/world/treeScene.ts';
+import { HEARTH_SPOTS, LODGING_SLOTS, type TreeChunk } from '../../../app/src/world/treeScene.ts';
 
 export type Density = 'sparse' | 'low' | 'medium';
 
@@ -159,6 +160,25 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     return best;
   };
 
+  /** The lowest place round the hearth that none of the camp's standing lodgings takes. */
+  const freeSlot = (camp: Camp): number => {
+    const taken = new Set(camp.lodgings.map((l) => tree.lodgings[l]!.slot));
+    let slot = 0;
+    while (taken.has(slot)) slot++;
+    return slot;
+  };
+
+  /** The lowest spot at a camp's hearth that none of its people takes, the mover aside. */
+  const freeSpot = (campId: number, mover = NEVER): number => {
+    const taken = new Set<number>();
+    for (const l of camps[campId]!.lodgings)
+      for (const f of residents.get(l) ?? [])
+        if (f !== mover) taken.add(tree.figures[f]!.homes.at(-1)![2]);
+    let spot = 0;
+    while (taken.has(spot)) spot++;
+    return spot;
+  };
+
   const newFigure = (parent: number, born: Day, branch: number, lodging: number): TreeFigure => {
     const f: TreeFigure = {
       id: tree.figures.length,
@@ -166,7 +186,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       born,
       branch,
       depth: parent === NEVER ? 0 : tree.figures[parent]!.depth + 1,
-      homes: [[born, lodging]],
+      homes: [[born, lodging, freeSpot(tree.lodgings[lodging]!.camp)]],
       lost: NEVER,
     };
     tree.figures.push(f);
@@ -183,6 +203,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       built: day,
       gone: NEVER,
       builder,
+      slot: freeSlot(camp),
       kind: s.lodgingKind,
     };
     tree.lodgings.push(l);
@@ -197,7 +218,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     const list = residents.get(from)!;
     list.splice(list.indexOf(figure), 1);
     residents.get(to)!.push(figure);
-    tree.figures[figure]!.homes.push([day, to]);
+    tree.figures[figure]!.homes.push([day, to, freeSpot(tree.lodgings[to]!.camp, figure)]);
     if (list.length === 0) {
       const old = tree.lodgings[from]!;
       old.gone = day;
@@ -347,6 +368,35 @@ export function checkTree(tree: Tree, s: TreeSettings, habitat: Habitat): string
     for (let i = 1; i < f.homes.length; i++)
       if (f.homes[i]![0] < f.homes[i - 1]![0]) problems.push(`figure ${f.id} moves back in time`);
   }
+  // Lodgings and figures each have a place of their own at their camp (section 8.1).
+  const spotOn = (f: TreeFigure, day: Day) => {
+    let at: [Day, number, number] | undefined;
+    for (const h of f.homes) if (h[0] <= day) at = h;
+    return at;
+  };
+  for (const l of tree.lodgings) {
+    if (l.slot >= LODGING_SLOTS) problems.push(`lodging ${l.id} has no place round the hearth`);
+    const clash = tree.lodgings.find(
+      (o) =>
+        o.id < l.id &&
+        o.camp === l.camp &&
+        o.slot === l.slot &&
+        o.built <= l.built &&
+        (o.gone === NEVER || o.gone > l.built),
+    );
+    if (clash) problems.push(`lodgings ${clash.id} and ${l.id} stand in the same place`);
+  }
+  for (const f of tree.figures)
+    for (const [day, lodging, spot] of f.homes) {
+      if (spot >= HEARTH_SPOTS) problems.push(`figure ${f.id} has no spot at the hearth`);
+      const camp = tree.lodgings[lodging]!.camp;
+      for (const o of tree.figures) {
+        if (o.id === f.id || !aliveOn(o, day) || o.born > day) continue;
+        const at = spotOn(o, day);
+        if (at && at[2] === spot && tree.lodgings[at[1]]!.camp === camp)
+          problems.push(`figures ${o.id} and ${f.id} share a spot on day ${day}`);
+      }
+    }
   for (const l of tree.lodgings) {
     const lat = l.lat / 1e6;
     const lon = l.lon / 1e6;

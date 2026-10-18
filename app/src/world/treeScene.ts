@@ -28,9 +28,17 @@ const WALK_KM_PER_MS = (WALK_M_PER_S * FIGURE_KM_PER_M) / 1000;
  * metres; lodgings are drawn at figure size, three times the layout, so the ring keeps
  * them clear of the people at the hearth.
  */
-const LODGING_RING_M = 14;
-const SPOT_NEAR_M = 3;
-const SPOT_FAR_M = 6;
+const LODGING_RING_M = 20;
+/** Places for lodgings round a hearth, evenly spaced so lodgings never overlap. */
+export const LODGING_SLOTS = 5;
+/** Spots for figures at a hearth: an inner ring and an outer ring, spaced so figures never overlap. */
+const INNER_SPOTS = 8;
+const INNER_M = 5;
+const OUTER_SPOTS = 12;
+const OUTER_M = 8.5;
+export const HEARTH_SPOTS = INNER_SPOTS + OUTER_SPOTS;
+const INNER_ORDER = [0, 4, 2, 6, 1, 5, 3, 7];
+const OUTER_ORDER = [0, 6, 3, 9, 1, 7, 4, 10, 2, 8, 5, 11];
 /** The camp layout is drawn three times smaller than the figures (milestone 2, section 5.1). */
 export const LAYOUT_KM_PER_M = FIGURE_KM_PER_M / 3;
 /** Figures change between idle and work every 20 to 40 seconds of watching. */
@@ -106,16 +114,23 @@ function distanceKm(a: TreeLodging, b: TreeLodging): number {
   return Math.sqrt(x * x + y * y) * KM_PER_DEG;
 }
 
-/** Where a lodging stands around its hearth, in layout metres, and its door towards the hearth. */
-export function lodgingSpot(id: number): { x: number; z: number } {
-  const a = hash01(id, 41) * 2 * Math.PI;
+/**
+ * Where a lodging stands around its hearth, in layout metres, by its slot: the camp's
+ * slots are evenly spaced, turned by the camp's hash. Its door faces the hearth.
+ */
+export function lodgingSpot(l: TreeLodging): { x: number; z: number } {
+  const a = (hash01(l.camp, 41) + l.slot / LODGING_SLOTS) * 2 * Math.PI;
   return { x: LODGING_RING_M * detCos(a), z: LODGING_RING_M * detSin(a) };
 }
 
-/** A figure's own spot near the hearth, in layout metres. */
-export function figureSpot(id: number): { x: number; z: number } {
-  const a = hash01(id, 43) * 2 * Math.PI;
-  const r = SPOT_NEAR_M + (SPOT_FAR_M - SPOT_NEAR_M) * hash01(id, 47);
+/** A figure's own spot at the hearth of a camp, in layout metres: the inner ring first, then the outer. */
+export function figureSpot(spot: number, camp: number): { x: number; z: number } {
+  const inner = spot < INNER_SPOTS;
+  // Spots fill in an order that keeps a small band spread round the fire.
+  const k = (inner ? INNER_ORDER : OUTER_ORDER)[inner ? spot : spot - INNER_SPOTS]!;
+  const n = inner ? INNER_SPOTS : OUTER_SPOTS;
+  const r = inner ? INNER_M : OUTER_M;
+  const a = (hash01(camp, 43) + (k + (inner ? 0 : 0.5)) / n) * 2 * Math.PI;
   return { x: r * detCos(a), z: r * detSin(a) };
 }
 
@@ -151,20 +166,14 @@ function walkMs(from: TreeLodging, to: TreeLodging): number {
   return km < SAME_PLACE_KM ? 0 : Math.ceil(km / WALK_KM_PER_MS);
 }
 
-/** How long a new figure takes to walk from its lodging's door to its spot. */
-function comeOutMs(figure: number, lodging: number): number {
-  const door = lodgingSpot(lodging);
-  const spot = figureSpot(figure);
-  const m = Math.sqrt((spot.x - door.x) ** 2 + (spot.z - door.z) ** 2);
-  return Math.ceil((m * LAYOUT_KM_PER_M) / WALK_KM_PER_MS);
-}
-
-/** Where a figure stands while it helps build a lodging: around it, on the hearth's side. */
-function buildSpot(figure: number, lodging: number): { x: number; z: number } {
+/**
+ * Where a builder stands while the band builds a lodging: around it on the hearth's
+ * side, the `k`-th of `n` builders, evenly spread so they never overlap.
+ */
+function buildSpot(k: number, n: number, lodging: TreeLodging): { x: number; z: number } {
   const hut = lodgingSpot(lodging);
   const toHearth = Math.sqrt(hut.x * hut.x + hut.z * hut.z);
-  // Spread over the part of the ring that faces the hearth, by hash.
-  const a = (hash01(figure, lodging, 67) - 0.5) * 0.75 * Math.PI;
+  const a = n > 1 ? (k / (n - 1) - 0.5) * 0.75 * Math.PI : 0;
   const c = detCos(a);
   const sn = detSin(a);
   const ux = -hut.x / toHearth;
@@ -198,13 +207,19 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       appears.set(id, at(day) + walkMs(from, to));
     }
 
+  // The builders of each lodging: the figures moving in on the day it is built, by id.
+  const builders = new Map<number, number[]>();
+  for (const f of chunk.figures)
+    for (const [day, id] of f.homes)
+      if (lodgings.get(id)?.built === day) builders.set(id, [...(builders.get(id) ?? []), f.id]);
+
   const scene: TreeScene = { figures: [], lodgings: [], hearths: [] };
   const camps = new Map<number, HearthPose>();
   for (const l of chunk.lodgings) {
     const shown = appears.get(l.id)!;
     const gone = l.gone === NEVER ? Infinity : at(l.gone);
     if (ms < shown || ms >= gone + FADE_MS) continue;
-    const spot = lodgingSpot(l.id);
+    const spot = lodgingSpot(l);
     const fade = Math.min(1, ms < gone ? 1 : 1 - (ms - gone) / FADE_MS);
     scene.lodgings.push({
       id: l.id,
@@ -229,7 +244,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     while (i + 1 < f.homes.length && at(f.homes[i + 1]![0]) <= ms) i++;
     const home = lodgings.get(f.homes[i]![1]);
     if (!home) continue;
-    const spot = figureSpot(f.id);
+    const spot = figureSpot(f.homes[i]![2], home.camp);
     const pose: FigurePose = {
       id: f.id,
       look: lookOf(f.id),
@@ -246,7 +261,10 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     // Figures that move in on the day their lodging is built help build it.
     const shown = appears.get(home.id)!;
     const builds = f.homes[i]![0] === home.built && shown > 0;
-    const work = builds ? buildSpot(f.id, home.id) : spot;
+    const crew = builders.get(home.id) ?? [f.id];
+    const work = builds ? buildSpot(crew.indexOf(f.id), crew.length, home) : spot;
+    const door = lodgingSpot(home);
+    const comeOut = strollMs(door, spot);
     const buildEnd = shown + BUILD_MS;
     const back = builds ? strollMs(work, spot) : 0;
     if (prev && ms < left + travel) {
@@ -260,10 +278,9 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       Object.assign(pose, towards(0, 0, east, deg(home.lat) - deg(prev.lat)));
       pose.clip = 'walk';
       pose.clipMs = ms - left;
-    } else if (i === 0 && born > 0 && ms < born + comeOutMs(f.id, home.id)) {
+    } else if (i === 0 && born > 0 && ms < born + comeOut) {
       // Coming out of the door of its lodging and walking to its spot.
-      const door = lodgingSpot(home.id);
-      const t = (ms - born) / comeOutMs(f.id, home.id);
+      const t = (ms - born) / comeOut;
       pose.x = door.x + (spot.x - door.x) * t;
       pose.z = door.z + (spot.z - door.z) * t;
       Object.assign(pose, towards(door.x, door.z, spot.x, spot.z));
@@ -273,7 +290,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       // Building: at the lodging, facing it, at work; a builder from nearby first walks over.
       const from = prev ? { x: work.x, z: work.z } : spot;
       const reach = prev ? left + travel : left + strollMs(spot, work);
-      const hut = lodgingSpot(home.id);
+      const hut = door;
       if (ms < reach) {
         const t = (ms - left) / (reach - left);
         pose.x = from.x + (work.x - from.x) * t;
@@ -307,7 +324,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
         : prev
           ? left + travel
           : born > 0
-            ? born + comeOutMs(f.id, home.id)
+            ? born + comeOut
             : -BLEND_MS;
       Object.assign(pose, activity(f.id, ms));
       // Ease from walking into standing on arrival.

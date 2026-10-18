@@ -138,10 +138,47 @@ describe('the tree of humankind', () => {
   });
 });
 
+describe('the camp scene', () => {
+  it('never puts two standing figures or two lodgings on top of each other', () => {
+    const whole = {
+      fromDay: settings.startDay,
+      toDay: settings.endDay,
+      figures: tree.figures,
+      lodgings: tree.lodgings,
+    };
+    // Figures stand at least 2 layout metres apart, lodgings (about 10 across) 12.
+    const apart = <T extends { lat: number; lon: number; x: number; z: number }>(
+      list: T[],
+      min: number,
+    ) => {
+      for (let i = 0; i < list.length; i++)
+        for (let j = i + 1; j < list.length; j++) {
+          const [a, b] = [list[i]!, list[j]!];
+          if (a.lat !== b.lat || a.lon !== b.lon) continue;
+          expect((a.x - b.x) ** 2 + (a.z - b.z) ** 2).toBeGreaterThanOrEqual(min * min);
+        }
+    };
+    const end = msAtDay(settings.endDay, settings.startDay);
+    // Every so often, and through the building of the first lodgings.
+    const times: number[] = [];
+    for (let ms = 0; ms < end; ms += 49_999) times.push(ms);
+    for (const l of tree.lodgings.slice(0, 80))
+      for (let k = 0; k < 12; k++) times.push(msAtDay(l.built, settings.startDay) + k * 1_500);
+    for (const ms of times) {
+      const s = treeScene(whole, ms, settings.startDay);
+      apart(
+        s.figures.filter((f) => f.clip !== 'walk'),
+        2,
+      );
+      apart(s.lodgings, 12);
+    }
+  });
+});
+
 describe('the canonical tree', () => {
   it('keeps its hash, so any change to the rules is seen', () => {
     const hash = createHash('sha256').update(JSON.stringify(tree)).digest('hex').slice(0, 16);
-    expect(hash).toBe('7ee1b529804fcdcc');
+    expect(hash).toBe('3ddfe0bf66925870');
   });
 });
 

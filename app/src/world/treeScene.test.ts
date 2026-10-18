@@ -22,8 +22,8 @@ const chunk: TreeChunk = {
       branch: 0,
       depth: 0,
       homes: [
-        [d0, 0],
-        [moveDay, 1],
+        [d0, 0, 0],
+        [moveDay, 1, 0],
       ],
       lost: NEVER,
     },
@@ -34,14 +34,24 @@ const chunk: TreeChunk = {
       branch: 0,
       depth: 1,
       homes: [
-        [d0 + years(20), 0],
-        [moveDay, 1],
+        [d0 + years(20), 0, 1],
+        [moveDay, 1, 1],
       ],
       lost: NEVER,
     },
   ],
   lodgings: [
-    { id: 0, camp: 0, lat: 0, lon: 36_000_000, built: d0, gone: moveDay, builder: 0, kind: 'hut' },
+    {
+      id: 0,
+      camp: 0,
+      lat: 0,
+      lon: 36_000_000,
+      built: d0,
+      gone: moveDay,
+      builder: 0,
+      slot: 0,
+      kind: 'hut',
+    },
     {
       id: 1,
       camp: 0,
@@ -50,6 +60,7 @@ const chunk: TreeChunk = {
       built: moveDay,
       gone: NEVER,
       builder: 0,
+      slot: 0,
       kind: 'hut',
     },
   ],
@@ -92,7 +103,7 @@ describe('the tree scene', () => {
     const left = ms(moveDay);
     // Arrival after about 5.5 seconds; then 8 seconds of building.
     const building = treeScene(chunk, left + 8000, d0);
-    const hut = lodgingSpot(1);
+    const hut = lodgingSpot(chunk.lodgings[1]!);
     for (const f of building.figures) {
       expect(f.clip).toBe('work');
       expect(f.lon).toBe(39);

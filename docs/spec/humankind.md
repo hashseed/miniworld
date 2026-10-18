@@ -35,7 +35,7 @@ Every ordinary figure that ever appears is one row:
 | `id` | Whole number, in the order the figures appear (the first person is 0). Replaces the camp-and-index id of milestone 2 section 5.4 |
 | `parent` | The figure it came from; none only for the roots |
 | `born` | Clock time at which it steps out of its lodging (a whole millisecond, so a whole day follows from it) |
-| `home` | Its lodgings over time: a list of (clock time, lodging id); it walks from one to the next when the camp moves (section 4.4) |
+| `home` | Its lodgings over time: a list of (clock time, lodging id, spot); it walks from one to the next when the camp moves (section 4.4). The spot is its own place at the camp's hearth, the lowest one no other figure of the camp holds when it moves in (section 8.1) |
 | `branch` | The branch it belongs to (section 3.3), inherited from its parent unless it founds a new one |
 | `depth` | Number of steps from its root: a measure of how far the family has come, not a count of real generations |
 | `lost` | Clock time and the event id if it is lost to war, famine, epidemic or disaster; empty otherwise |
@@ -54,6 +54,7 @@ Every place people live is a lodging: a tent, a grass hut or lean-to at first, l
 | `at` | Position in whole microdegrees (milestone 2 section 2.3) |
 | `built`, `gone` | Clock times at which it is put up and taken down or abandoned |
 | `builder` | The figure who builds it; it walks there and the building beat plays (section 4.3) |
+| `slot` | Its place round the camp's hearth, the lowest one no other standing lodging of the camp holds (section 8.1) |
 | `kinds` | Its model over time: a list of (clock time, kind), so a hut can be rebuilt as a house where the people stay |
 | `capacity` | How many figures it holds (section 4.1) |
 
@@ -132,6 +133,7 @@ Until the culture profile records of milestone 2 exist, the build reads the area
   - every lodging stands on land that is habitable at its date for its whole life, and no two camps are closer than the spacing allows;
   - no figure lives outside a culture area that allows people there at the date, and no branch reaches a continent before its migration does (milestone 2 section 3.1);
   - each camp's figure count stays within its target, apart from losses still recovering;
+  - no two standing lodgings of a camp share a slot and no two figures living in a camp share a spot (section 8.1);
   - the tree has exactly two roots, and every figure reaches one of them through its parents.
 
 ## 6. Keeping track: reasoning about the tree
@@ -176,11 +178,11 @@ While the tree is small (only Africa, a few hundred figures), its chunks are spl
 
 ### 8.1 Drawing a camp
 
-A camp is drawn like a vignette stage (milestone 2 section 5.1), at the same scales: figures 50 km per metre, the layout 3 times smaller. The hearth stands at the camp's point; each lodging stands on a ring around it (14 layout metres, so lodgings drawn at figure size stay clear of the people, **Proposed**) at an angle chosen by the hash of its id, with its door towards the hearth; each figure has its own spot near the hearth, also by hash, and changes between `idle` and `work` every 20 to 40 seconds of watching, easing from one clip to the next (milestone 2 section 5.3). All of it is a pure function of the clock time:
+A camp is drawn like a vignette stage (milestone 2 section 5.1), at the same scales: figures 50 km per metre, the layout 3 times smaller. The hearth stands at the camp's point; each lodging stands on a ring around it (20 layout metres, so lodgings drawn at figure size stay clear of the people, **Proposed**) in one of five evenly spaced places, its `slot`, turned by the hash of the camp, with its door towards the hearth; each figure stands at its own spot by the hearth, one of 8 on an inner ring (5 layout metres, filled opposite sides first so a small band spreads round the fire) and then 12 on an outer ring (8.5 layout metres), spaced so that figures leaning towards the camera do not cover each other, and changes between `idle` and `work` every 20 to 40 seconds of watching, easing from one clip to the next (milestone 2 section 5.3). No two lodgings and no two standing figures ever overlap (Yang, 2026-10-18): the build hands out slots and spots so that none is shared, and checks it (section 5). All of it is a pure function of the clock time:
 
 - **Coming out.** A new figure appears in the door of its lodging when it is born and walks to its spot.
 - **Walking.** When a figure's home moves to a lodging somewhere else (the camp moves, or a group buds off), it walks there from the moment of the move, at the pace its stride gives at its drawn size so its feet do not slide, about 5 to 10 seconds of watching for a move of a few hundred kilometres. A new lodging appears when its builder arrives, and an old one is taken down (fades out) when its last figure leaves.
-- **Building.** The figures that move into a new lodging on the day it is built build it together: when the builder arrives, they gather round it on the hearth's side, clear of its walls, face it and work (`work` clip) while it goes up over 8 seconds of watching (about three years): a lodging model with building steps (bones `build-0`, `build-1`, ... in milestone 2 section 13.3) shows them in order, each growing up from its base in an equal share of the time, so the brush hut gets its frame of bent branches first and then its grass from the ground up; a model without steps rises whole. Then the builders walk to their own spots (decided by Yang on 2026-10-18: the band builds its huts, frame and walls first, then the roof).
+- **Building.** The figures that move into a new lodging on the day it is built build it together: when the builder arrives, they gather round it on the hearth's side, clear of its walls and evenly spread so they do not overlap, face it and work (`work` clip) while it goes up over 8 seconds of watching (about three years): a lodging model with building steps (bones `build-0`, `build-1`, ... in milestone 2 section 13.3) shows them in order, each growing up from its base in an equal share of the time, so the brush hut gets its frame of bent branches first and then its grass from the ground up; a model without steps rises whole. Then the builders walk to their own spots (decided by Yang on 2026-10-18: the band builds its huts, frame and walls first, then the roof).
 - **Facing the camera.** Figures lean towards the camera like pop-up cut-outs and keep their size at every zoom, as on stages.
 
 ## 9. Open questions for Yang

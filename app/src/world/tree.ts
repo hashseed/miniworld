@@ -16,8 +16,11 @@ export interface TreeFigure {
   branch: number;
   /** Steps from its root through its parents. */
   depth: number;
-  /** Its lodgings over time, as [day, lodging id] from the day it moves in. */
-  homes: [Day, number][];
+  /**
+   * Its lodgings over time, as [day, lodging id, spot] from the day it moves in; the
+   * spot is its own place at the camp's hearth, free of everyone else's (section 8.1).
+   */
+  homes: [Day, number, number][];
   /** The day it is lost to an event, or NEVER. */
   lost: Day;
 }
@@ -32,6 +35,8 @@ export interface TreeLodging {
   /** The day it is taken down or abandoned, or NEVER. */
   gone: Day;
   builder: number;
+  /** Its place on the ring round the camp's hearth, free of the camp's other lodgings (section 8.1). */
+  slot: number;
   /** Asset id of its model, from the architecture set of its culture. */
   kind: string;
 }
