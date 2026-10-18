@@ -2,7 +2,7 @@
 // 4.2 and 5.2): an eight-neighbour chamfer transform with each row's own
 // east-west cell size, run twice so it wraps round the antimeridian.
 
-const KM_PER_DEG = 111.32;
+import { KM_PER_DEG } from '../../../app/src/geo/earth.ts';
 
 /** Distance in km from every cell to the nearest seed cell (0 on seeds). */
 export function distanceKm(seed: Uint8Array, w: number, h: number): Float32Array {

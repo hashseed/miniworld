@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
@@ -55,5 +56,29 @@ describe('vignette formats', () => {
     const r = compileTemplate('big-game-hunt.yaml', bad);
     expect(r.errors.join('\n')).toMatch(/prey #0 ends away from its starting mark/);
     expect(r.errors.join('\n')).toMatch(/prey #0 ends hidden/);
+  });
+
+  it('rejects an unknown icon or debated value', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'vignettes-'));
+    try {
+      cpSync(join(CURATED, 'templates'), join(dir, 'templates'), { recursive: true });
+      cpSync(join(CURATED, 'sources.yaml'), join(dir, 'sources.yaml'));
+      mkdirSync(join(dir, 'vignettes'));
+      const record = readFileSync(join(CURATED, 'vignettes/mammoth-hunt.md'), 'utf8')
+        .replace('icon: spear', 'icon: rocket')
+        .replace('debated: method', 'debated: everything');
+      writeFileSync(join(dir, 'vignettes/mammoth-hunt.md'), record);
+      const r = buildVignettes({
+        curated: dir,
+        lanes: new Set(['europe']),
+        animals: new Set(['woolly-mammoth']),
+        startDay: TIMELINE_START,
+        cutoffDay: 0,
+      });
+      expect(r.errors.join('\n')).toMatch(/unknown icon "rocket"/);
+      expect(r.errors.join('\n')).toMatch(/unknown debated value "everything"/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

@@ -1,5 +1,6 @@
 // Lakes and rivers from Natural Earth (spec milestone 1, section 4.3).
 
+import { KM_PER_DEG } from '../../../app/src/geo/earth.ts';
 import { readFileSync } from 'node:fs';
 import { OCEAN_RANGE } from '../../../app/src/content/formats.ts';
 import { forCellsNearLine } from './coast.ts';
@@ -10,13 +11,6 @@ import {
   rasterizePolygon,
   type GeoJsonFeature,
 } from './rasterize.ts';
-
-export interface WaterLayers {
-  /** Surface level in metres for lake cells, or NO_LAKE. */
-  lakeLevel: Int16Array;
-  /** River strength 0..255 per cell. */
-  rivers: Uint8Array;
-}
 
 export const NO_LAKE = -32768;
 
@@ -90,8 +84,6 @@ export function riverCoreKm(rank: number): number {
 
 /** Width in km over which a river's field falls from 1 to 0 at its banks. */
 export const RIVER_FALLOFF_KM = 30;
-
-const KM_PER_DEG = 111.32;
 
 /** Two rounds of Chaikin corner cutting, so river lines come out as smooth curves. */
 export function smoothLine(line: number[][], rounds = 2): number[][] {
@@ -394,6 +386,6 @@ class MinHeap {
 function cellAreaKm2(g: { width: number; height: number }, i: number): number {
   const r = Math.floor(i / g.width);
   const lat = 90 - ((r + 0.5) * 180) / g.height;
-  const side = (180 / g.height) * 111.32;
+  const side = (180 / g.height) * KM_PER_DEG;
   return side * side * Math.cos((lat * Math.PI) / 180);
 }

@@ -33,20 +33,30 @@ The milestone proves the technical foundations every later milestone builds on: 
 
 ```
 app/              the browser app
+  src/core/       deterministic hash and noise, small shared store, camera type (no engine-dependent maths)
+  src/geo/        cube-sphere quadtree, Earth constants, local compass frame; shared with the data build
   src/time/       dates, historical clock, life clock, formatting
-  src/globe/      terrain, water, ice, sky, camera
+  src/globe/      terrain, water, ice, sky, clouds, foliage, history lens, camera
   src/timeline/   canvas timeline
-  src/ui/         Preact shell, settings, bookmarks
+  src/ui/         Preact shell, settings, bookmarks, saved state
   src/i18n/       message loading, plural rules, date and number formatting
-  src/content/    manifest, chunk loader, service worker
-  src/perf/       stress scene, quality settings, dynamic resolution, stats overlay
+  src/content/    manifest, chunk loader, binary formats
+  src/world/      the world query: pure functions from date and life clock to what is shown
+  src/vignettes/  drawing vignettes (milestone 2, section 18)
+  src/perf/       stress scene, fixed quality level, dynamic resolution, stats overlay
+  src/dev/        development pages, such as the asset sheet
   messages/       en.json, de.json
+  public/         files served as they are: the service worker and the built data
+assets/           code that generates the models (assets/src) and the asset sheet
 data/
   sources/        simplified extracts of the source datasets used, with their licence texts
   curated/        hand-curated records, such as eras (format in content-format.md)
-  schema/         one schema per content kind, shared by the data build and the app
+  schema/         one schema per content kind, shared by the data build and the app (planned)
   build/          Node scripts for the offline data build
   assets/         asset manifest and approved assets
+  out/            downloads and build caches (not committed)
+tests/browser/    Playwright tests
+scripts/          development tools, such as the test pool (section 2.5)
 dist/             build output (not committed)
 ```
 
@@ -70,6 +80,7 @@ All are npm scripts, run in the dev container or any machine with the pinned Nod
 | `npm run test:browser` | Playwright tests at desktop and phone sizes |
 | `npm run pool` | Runs the checks or browser tests for a commit in a worktree of the test pool (section 2.5) |
 | `npm run fixture-key` | Prints the hash of everything the fixture data build reads, the key of its cache (section 2.4) |
+| `npm run notices` | Regenerates `app/public/third-party-notices.txt` from the licences of the runtime dependencies (spec section 13) |
 | `npm run perf` | Runs the stress scene and prints the performance report (section 11.4) |
 
 ### 2.4 Continuous integration
@@ -196,7 +207,7 @@ Every source must meet the data licence policy in [spec.md](spec.md#13-licences)
 - **The sea is completely flat** (decided by Yang on 2026-10-17). It is drawn as its own surface exactly at the date's sea level (a few metres below, so it never fights the land for depth), covering every terrain tile with a coarse grid of its own (8 × 8 cells per tile). On tiles that are sea at every date, the sea surface also carries the ice over the sea (section 4.2). The terrain surface leaves out every point the smooth ocean field (section 5.1) marks as sea, and its sea floor and the foot of its coast lie below the sea surface, so the water never slopes up a shore or follows the relief. The coastline is where the smooth field crosses the sea level, drawn with its ink line on both surfaces. A sea that the ocean reaches inside a lake basin (such as the Baltic) is sea and lies at the sea level too. The sea has one colour at every depth, with no lighter shallows along the coasts (decided by Yang on 2026-10-17). Lakes and rivers use the same blue (decided by Yang on 2026-10-18; first a slightly lighter blue).
 - The sea is a bright, saturated blue that looks like glossy plastic, with a lighter sheen towards the globe's edge but no reflection of the light.
 - **Waves and texture** (decided by Yang on 2026-10-17). The open sea carries a stylised cartoon pattern rather than a flat colour: soft lighter ripple bands of long wavelength (several times the spacing of the first version, decided by Yang on 2026-10-17) that drift slowly, small white wave crests scattered over the water that appear and fade, and a gentle swell in the shading. The pattern lives in world space so it stays put as the camera moves, and its scale adapts to the distance so it reads from orbit and close up. It does not mark depth, so there are still no lighter shallows. The large lakes and inland seas, such as the Black Sea and the Caspian, carry the same waves (decided by Yang on 2026-10-17); since only lakes of at least 3,000 km² are drawn, every drawn lake has them. Rivers stay without waves.
-- The waves are animated by the life clock. Animation stops when everything is frozen.
+- The waves are animated by the life clock. Animation stops when history is paused.
 
 ### 4.5 Sky and horizon
 
@@ -230,7 +241,7 @@ Sea level, ice and deserts come from published reconstructions (decided by Yang 
 ### 5.2 Ice sheets
 
 - **Data.** Where the ice is comes from the grounded ice thickness of PaleoMIST 1.0 (0.25°, every 2,500 years from 52,500 years ago to today). Only whether a place is covered matters, not how thick the ice is (decided by Yang on 2026-10-17: the 14 MB of ice data was far too much). **Climate slices**: for each time step of the climate data (every 1,000 to 2,000 years, the ice interpolated linearly between its own steps), the data build makes one small global file on a 0.5° latitude-longitude grid holding the ice cover and, on a 1° grid, the aridity (section 4.3). Ice is covered where the smoothed thickness (below) reaches 60 m. Gaps up to 200 km between two sheets, over land or sea, are then filled (a morphological closing of the ice by 100 km), so neighbouring sheets such as those of the Canadian Arctic and Greenland merge; gaps up to 200 km of land between ice and the sea are filled too (a closing of the ice together with the sea that adds only land); and the ice runs 80 km out over the sea it meets, so no strip of bare coast shows between ice and sea (decided by Yang on 2026-10-18: "how come the ice sheet in the arctic does not merge", "ice sheets should merge"). Since the smoothing below can reopen a filled gap next to open water, the smoothed cover is closed once more, and around what that adds the field takes the lightly smoothed (25 km) distance of the closed cover where it is larger; the file stores the signed distance from the ice border in steps of 4 km (positive inside the ice, from 128 km outside to 892 km inside), smoothed with a Gaussian of 30 km (60 km in the polar regions and 120 km south of 60°S), so the border is a smooth curve and small ice-free patches inside a sheet do not show. Between two slices the renderer blends the distances, so the border moves smoothly as the ice grows and melts.
-- **Smooth domes** (decided by Yang on 2026-10-17: the ice sheets were not smooth, "fewer polygons!"). The ice surface is drawn from the distance alone: it stands on the heavily smoothed bed that the terrain tiles carry (the elevation with the sea floor raised to sea level, smoothed with a Gaussian of 150 km and averaged to 0.5°), so a sheet runs smoothly over buried coasts and straits and rises from its border like a dome, 1,200 m × (1 − e^(−d / 250 km)) at d km inside, at the relief's exaggeration. The relief under the ice is hidden, and the ice rises from the sea or the land, over the first 120 km, so the sheets are plain smooth domes with gentle edges, shaded by their own surface, with no walls where they meet the sea or the land. The polar regions (north of 74°N and south of 62°S) are drawn with tiles no finer than level 4, since their smoothing leaves no detail for finer tiles.
+- **Smooth domes** (decided by Yang on 2026-10-17: the ice sheets were not smooth, "fewer polygons!"). The ice surface is drawn from the distance alone: it stands on the heavily smoothed bed that the terrain tiles carry (the elevation averaged to about 0.5°, never below the sea level) and rises from its border like a dome, 1,200 m × (1 − e^(−d / 250 km)) at d km inside, at the relief's exaggeration. The relief under the ice is hidden, and the ice rises from the sea or the land, over the first 120 km, so the sheets are plain smooth domes with gentle edges, shaded by their own surface, with no walls where they meet the sea or the land. The polar regions (north of 74°N and south of 62°S) are drawn with tiles no finer than level 4, since their smoothing leaves no detail for finer tiles.
 - The land surface stays today's: the sinking of the land under the ice is not shown, so ice is drawn on today's bedrock.
 - **Glacial index.** The ratio of the date's sea level to the lowest sea level of the curve, from 0 (today) to 1 (glacial maximum), drives the climate band in section 4.3.
 - The ice border is drawn where the blended distance crosses zero, sampled per pixel, so it is a smooth curve with a smooth ink outline rather than following the vertex grid (decided by Yang on 2026-10-17).
@@ -320,6 +331,7 @@ A bookmark stores a date and a camera position under a name the viewer types, de
 
 - Every UI string lives in `app/messages/en.json` and `app/messages/de.json` under the same keys. Messages use ICU-style placeholders and plural forms, resolved with `Intl.PluralRules`. A small in-house formatter is used instead of a library, to keep the bundle small; it covers placeholders and plural forms only.
 - `npm run check` fails when a key exists in one language and not the other, when a message is empty, or when a component contains a string literal that is shown to the viewer. Textures and generated images carry no text.
+- The interface and the timeline use the Fredoka web font (variable weight, Latin and Latin Extended, so German umlauts and ß are covered), bundled with the app from `@fontsource-variable/fredoka` under the SIL Open Font License 1.1 (spec section 13), with `system-ui` as the fallback.
 - Numbers use `Intl.NumberFormat` for the active language. Dates use the in-house formatting of section 3.2, because `Intl.DateTimeFormat` does not handle years before 1 CE or the BCE suffixes well.
 - Switching language changes every visible string at once, including the timeline labels, tick labels, the rate readout, tooltips, accessible names, the About panel and the page title, without a reload and without changing date, camera or play state. The `lang` attribute of the page follows the language.
 - The light index (section 10.2) is per language; switching language loads the other language's index if it is not cached and keeps the old strings visible until it arrives.
@@ -366,7 +378,9 @@ In this milestone the shipped layers are `terrain` (place only) and the climate 
 
 - The loader requests chunks for the tiles in view and their neighbours. It loads the two climate slices around the date first, then every other slice in the background, nearest in time first, so the whole history of ice and deserts is ready soon after start (about 600 KB in all).
 - While scrubbing it fetches only chunks for the window under the playhead once the playhead has rested there for 200 ms, so a fast drag across history does not queue hundreds of requests.
-- At most six requests run at once; requests for tiles that left the view are cancelled.
+- At most six requests run at once, the most urgent first. Every frame, waiting terrain requests take the priority of their tile in the current view, and a request whose tile has been out of view for half a second is cancelled, whether it is still waiting or already running.
+- A failed request is retried with growing pauses: not before 1 second has passed, then 2, 4 and so on up to 60 seconds, so a lost connection does not turn into a storm of requests and loading resumes by itself when the connection returns. A file the server says does not exist (HTTP 404 or 410) is not asked for again until the app is reloaded. A cancelled request is not a failure.
+- If the other language's index cannot be loaded when the language is switched, the app stays in the current language and the language setting goes back to it, so the setting always shows the language on screen; switching again tries again.
 
 ### 10.5 Formats
 
@@ -414,7 +428,7 @@ The budget is spec section 9's: 60 fps average and never below 30 fps on the ref
 
 ### 11.2 Quality
 
-There is one fixed quality (decided by Yang on 2026-10-18, first three tiers chosen by a benchmark at first start: "the other modes are untested"), and no quality setting:
+There is one fixed quality and no quality setting (decided by Yang on 2026-10-18, replacing three tiers chosen by a benchmark at first start: "the other modes are untested"):
 
 | | |
 | --- | --- |
@@ -445,7 +459,7 @@ The stress scene proves the figure-heavy targets before any content exists and s
 
 ## 12. Assets in this milestone
 
-The only shipped assets are the six terrain textures, the water normal map and the ice texture. The interface icons are simple shapes drawn in code (SVG), and the interface uses the system font, so neither needs an approval or a licence entry. Each is generated and listed in `data/assets/manifest.json` with: id, file, kind, how it was generated, status (`generated`, `approved`, `rejected`), the date it was reviewed and a note. Until Yang approves an asset, the app uses a flat-coloured stand-in of the same size in development, and the production build fails if an unapproved asset is referenced. A dedicated font chosen for young readers may replace the system font in a later milestone; it would then be listed with the data sources.
+The only shipped assets are the six terrain textures, the water normal map and the ice texture. The interface icons are simple shapes drawn in code (SVG), and the interface uses the Fredoka web font (section 8.4), so neither needs an approval. Each is generated and listed in `data/assets/manifest.json` with: id, file, kind, how it was generated, status (`generated`, `approved`, `rejected`), the date it was reviewed and a note; a model built by code also records the hash of the geometry that was approved (milestone 2, section 13.3). Until Yang approves an asset, the app uses a flat-coloured stand-in of the same size in development, and the production build fails if an unapproved asset is referenced.
 
 ## 13. Tests
 
@@ -458,6 +472,7 @@ The only shipped assets are the six terrain textures, the water normal map and t
 | Localisation tests | Same keys in both message files, no empty messages, no viewer-facing literals in components |
 | Data validation | Section 10.8 on the fixture dataset in CI and the full dataset locally |
 | Pipeline tests | Chunk keys, hashing, manifest, the test layer in both languages |
+| Loader tests | With a fake server and clock: at most six requests at once and most urgent first, new priorities, cancelling, the growing retry pauses, no second request for a missing file, a failed index retried; terrain tiles cancelled when out of view; every binary format round-trips and refuses a file of the wrong length (section 10) |
 | Browser tests | Desktop and phone sizes: first view loads within the size budget; timeline scrubbing changes the date and coastline; language switch changes every string without reload; settings and bookmarks survive a reload; camera controls with mouse, touch emulation and keyboard |
 | Performance check | Stress scene draw calls and triangles (section 11.4) |
 
@@ -476,7 +491,7 @@ The definition of done in [milestones.md](milestones.md#definition-of-done-every
 
 ## 15. Out of scope
 
-Figures other than the stress-scene placeholders, the world query in the Web Worker, settlements, events and event markers on the timeline, borders and place names, info cards, regional vegetation such as the Green Sahara, sinking and rebound of land under the ice, vanished lakes, and offline use beyond what the service worker cache gives for free.
+Figures other than the stress-scene placeholders, the world query in the Web Worker, settlements, events and event markers on the timeline, borders and place names, info cards, regional vegetation other than the climate colouring of section 4.3 (which includes the Green Sahara), sinking and rebound of land under the ice, vanished lakes, and offline use beyond what the service worker cache gives for free.
 
 ## 16. Decisions
 

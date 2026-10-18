@@ -1,11 +1,19 @@
 // Binary chunk formats shared by the data build and the app
 // (spec milestone 1, section 10.5). All numbers are little-endian.
 
-import { TILE_N, type TileKey } from '../globe/cube.ts';
+import { TILE_N, type TileKey } from '../geo/cube.ts';
 
 /** Samples per terrain tile edge, including a one-sample border for normals. */
 export const TERRAIN_BORDERED = TILE_N + 3;
 export const TERRAIN_SAMPLES = TILE_N + 1;
+
+/**
+ * Terrain heights are clamped to this depth (m); a tile entirely at it has no
+ * file and is listed as deep in the manifest (section 10.1).
+ */
+export const DEEP_HEIGHT = -1000;
+/** Tiles at and above this level are listed in the manifest itself, deeper ones in a part file per tile of this level (section 10.1). */
+export const PART_LEVEL = 2;
 
 /**
  * Ocean channel: values 0..OCEAN_TOP × OCEAN_SCALE give the sea level
@@ -44,17 +52,20 @@ export interface TerrainTile {
   /**
    * Distance from today's smoothed coast in km per sample, TERRAIN_SAMPLES²,
    * 0 at sea and 255 for 255 km or more: land rises no faster than a rounded
-   * clay edge allows near the sea (section 4.4).
+   * clay edge allows near the sea (section 4.2).
    */
   coast: Uint8Array;
 }
 
 const TERRAIN_MAGIC = 0x3554574d; // "MWT5"
+/** Bytes of a terrain tile file: header, heights, then nine bytes per sample. */
+export const TERRAIN_TILE_BYTES =
+  16 + TERRAIN_BORDERED * TERRAIN_BORDERED * 2 + TERRAIN_SAMPLES * TERRAIN_SAMPLES * 9;
 
 export function encodeTerrainTile(t: TerrainTile): Uint8Array {
   const hb = TERRAIN_BORDERED * TERRAIN_BORDERED * 2;
   const sb = TERRAIN_SAMPLES * TERRAIN_SAMPLES;
-  const buf = new ArrayBuffer(16 + hb + sb * 9);
+  const buf = new ArrayBuffer(TERRAIN_TILE_BYTES);
   const dv = new DataView(buf);
   dv.setUint32(0, TERRAIN_MAGIC, true);
   dv.setUint8(4, t.key.level);
@@ -74,6 +85,8 @@ export function encodeTerrainTile(t: TerrainTile): Uint8Array {
 }
 
 export function decodeTerrainTile(bytes: ArrayBuffer): TerrainTile {
+  if (bytes.byteLength !== TERRAIN_TILE_BYTES)
+    throw new Error(`Terrain tile of ${bytes.byteLength} bytes, expected ${TERRAIN_TILE_BYTES}`);
   const dv = new DataView(bytes);
   if (dv.getUint32(0, true) !== TERRAIN_MAGIC) throw new Error('Not a terrain tile');
   const key = {
@@ -143,6 +156,8 @@ export function encodeClimateSlice(c: ClimateSlice): Uint8Array {
 }
 
 export function decodeClimateSlice(bytes: ArrayBuffer): ClimateSlice {
+  if (bytes.byteLength !== 16 + ICE_GRID_W * ICE_GRID_H + ARID_GRID_W * ARID_GRID_H)
+    throw new Error(`Climate slice of ${bytes.byteLength} bytes`);
   const dv = new DataView(bytes);
   if (dv.getUint32(0, true) !== CLIMATE_MAGIC) throw new Error('Not a climate slice');
   if (dv.getUint16(8, true) !== ICE_GRID_W || dv.getUint16(12, true) !== ARID_GRID_W)
@@ -199,6 +214,8 @@ export function encodeFoliageSlice(f: FoliageSlice): Uint8Array {
 }
 
 export function decodeFoliageSlice(bytes: ArrayBuffer): FoliageSlice {
+  if (bytes.byteLength !== 12 + 2 * FOLIAGE_GRID_W * FOLIAGE_GRID_H)
+    throw new Error(`Foliage slice of ${bytes.byteLength} bytes`);
   const dv = new DataView(bytes);
   if (dv.getUint32(0, true) !== FOLIAGE_MAGIC) throw new Error('Not a foliage slice');
   if (dv.getUint16(8, true) !== FOLIAGE_GRID_W || dv.getUint16(10, true) !== FOLIAGE_GRID_H)

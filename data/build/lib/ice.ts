@@ -52,7 +52,7 @@ export function monotoneCubic(xs: number[], ys: number[]): (x: number) => number
 
 export const SEA_LEVEL_STEP_YEARS = 100;
 
-/** Sea level sampled every 100 years from startDay to endDay (spec section 5.1). */
+/** Sea level sampled every 100 years from startDay to endDay (spec milestone 1, section 5.1). */
 export function seaLevelCurve(
   points: [number, number][],
   startDay: number,
@@ -163,7 +163,10 @@ export function closeIce(
   const seed = new Uint8Array(n);
   for (let i = 0; i < n; i++) seed[i] = mask[i] || sea[i] ? 1 : 0;
   const coastal = closing(seed, w, h, ICE_MERGE_KM);
-  for (let i = 0; i < n; i++) if (coastal[i] && !sea[i]) mask[i] = 1;
+  // Only next to ice, so narrow islands and peninsulas far from it stay bare.
+  const toSheet = distanceKm(mask, w, h);
+  for (let i = 0; i < n; i++)
+    if (coastal[i] && !sea[i] && toSheet[i]! <= 2 * ICE_MERGE_KM) mask[i] = 1;
   if (!shelf) return;
   // The ice runs on a little over the sea it meets.
   const toIce = distanceKm(mask, w, h);

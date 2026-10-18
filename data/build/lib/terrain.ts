@@ -9,16 +9,15 @@ import {
   tileSampleUv,
   type TileKey,
   type Vec3,
-} from '../../../app/src/globe/cube.ts';
+} from '../../../app/src/geo/cube.ts';
 import {
+  DEEP_HEIGHT,
   TERRAIN_BORDERED,
   TERRAIN_SAMPLES,
   type TerrainTile,
 } from '../../../app/src/content/formats.ts';
 import type { Grid, GridPyramid } from './grid.ts';
 import { NO_LAKE } from './water.ts';
-
-export const DEEP_CLAMP = -1000;
 
 export interface TerrainInputs {
   heights: GridPyramid;
@@ -35,7 +34,7 @@ export interface TerrainInputs {
   flowSin: Grid<Uint8Array>;
   /** Smoothed bed under the ice sheets, in metres (section 5.2). */
   bed: (lat: number, lon: number) => number;
-  /** Distance from today's smoothed coast in km, 0..255 (section 4.4). */
+  /** Distance from today's smoothed coast in km, 0..255 (section 4.2). */
   coast: Grid<Uint8Array>;
 }
 
@@ -71,7 +70,7 @@ export function buildTerrainTile(key: TileKey, inputs: TerrainInputs): TerrainTi
         bed[s] = Math.round(inputs.bed(lat, lon));
         coast[s] = Math.round(inputs.coast.bilinear(lat, lon));
       }
-      heights[(j + 1) * TERRAIN_BORDERED + (i + 1)] = Math.max(DEEP_CLAMP, Math.round(height));
+      heights[(j + 1) * TERRAIN_BORDERED + (i + 1)] = Math.max(DEEP_HEIGHT, Math.round(height));
     }
   }
   return { key, heights, ocean, lakes, rivers, flow, bed, coast };
@@ -79,7 +78,7 @@ export function buildTerrainTile(key: TileKey, inputs: TerrainInputs): TerrainTi
 
 /** True when a tile is entirely clamped deep ocean, so it needs no file. */
 export function isDeepTile(t: TerrainTile): boolean {
-  for (let k = 0; k < t.heights.length; k++) if (t.heights[k]! > DEEP_CLAMP) return false;
+  for (let k = 0; k < t.heights.length; k++) if (t.heights[k]! > DEEP_HEIGHT) return false;
   for (let k = 0; k < t.ocean.length; k++)
     if (t.ocean[k] !== 0 || t.lakes[k] !== 0 || t.rivers[k] !== 0) return false;
   return true;

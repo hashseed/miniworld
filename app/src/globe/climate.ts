@@ -14,8 +14,8 @@ import {
   ICE_GRID_W,
   type ClimateSlice,
 } from '../content/formats.ts';
-import type { ContentLoader } from '../content/loader.ts';
-import { dirToLatLon, type Vec3 } from './cube.ts';
+import type { ChunkSource } from '../content/loader.ts';
+import { dirToLatLon, type Vec3 } from '../geo/cube.ts';
 import { iceSlicePair } from './planet.ts';
 
 /** Priority of the slices that are not around the date, after the terrain in view. */
@@ -28,7 +28,7 @@ export interface ClimateBlend {
 }
 
 export class ClimateStore {
-  private loader: ContentLoader;
+  private loader: ChunkSource;
   private days: number[] = [];
   private files: string[] = [];
   private slices: (ClimateSlice | undefined)[] = [];
@@ -40,7 +40,7 @@ export class ClimateStore {
   /** Called with each new texture, so it can be uploaded before it is needed. */
   onTexture?: (texture: THREE.Texture) => void;
 
-  constructor(loader: ContentLoader) {
+  constructor(loader: ChunkSource) {
     this.loader = loader;
     this.empty = new THREE.DataTexture(new Uint8Array([0, 0]), 1, 1, THREE.RGFormat);
     this.empty.needsUpdate = true;
@@ -73,10 +73,6 @@ export class ClimateStore {
       v = near === undefined ? 0 : at(this.slices[near]!);
     }
     return (v - ICE_DISTANCE_ZERO) * ICE_DISTANCE_STEP_KM;
-  }
-
-  get loadedCount(): number {
-    return this.slices.filter(Boolean).length;
   }
 
   private pair(day: number): { ka: number; kb: number; t: number } {
@@ -120,7 +116,13 @@ export class ClimateStore {
         this.requested[k] = false;
         return;
       }
-      const slice = decodeClimateSlice(buf);
+      let slice: ClimateSlice;
+      try {
+        slice = decodeClimateSlice(buf);
+      } catch (e) {
+        console.error(`${this.files[k]}: ${(e as Error).message}`); // stays requested: not asked for again
+        return;
+      }
       this.slices[k] = slice;
       this.textures[k] = climateTexture(slice);
       this.onTexture?.(this.textures[k]);

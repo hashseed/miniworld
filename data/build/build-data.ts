@@ -5,6 +5,7 @@
 //
 // Usage: node data/build/build-data.ts [--fixture] [--max-level N]
 
+import { KM_PER_DEG } from '../../app/src/geo/earth.ts';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
@@ -17,6 +18,7 @@ import {
   encodeTerrainTile,
   OCEAN_MIN_LEVEL,
   OCEAN_NEVER,
+  PART_LEVEL,
 } from '../../app/src/content/formats.ts';
 import {
   chunkKey,
@@ -30,7 +32,7 @@ import {
   tilePath,
   TILE_N,
   type TileKey,
-} from '../../app/src/globe/cube.ts';
+} from '../../app/src/geo/cube.ts';
 import { LANGUAGES, type Language } from '../../app/src/i18n/messages.ts';
 import { TIMELINE_START, continuousYear, dayFromDate } from '../../app/src/time/calendar.ts';
 import { buildWatchTable, yearAtSeconds, totalSeconds } from '../../app/src/time/watchTable.ts';
@@ -96,7 +98,6 @@ const OUT = join(ROOT, 'app/public/data');
 
 /** Watching seconds per content time window (spec milestone 1, section 10.3). */
 export const WINDOW_SECONDS = 2460;
-const PART_LEVEL = 2;
 /** Simplified map (spec milestone 1, section 4.2). */
 const SMOOTHING_KM = 80;
 const POLAR_SMOOTHING_KM = 150;
@@ -120,11 +121,6 @@ RIVERS.push({ name: 'Abay', box: [33, 9, 39, 12.5] });
 const MAX_LAKE_RANK = 4;
 /** Grid spacing (degrees) of the smoothed bed under the ice sheets. */
 const ICE_BED_SPACING_DEG = 0.5;
-/**
- * Gaussian (km) of the bed under the ice sheets, with the sea floor raised to
- * sea level, so a sheet runs smoothly over buried coasts and straits.
- */
-const ICE_BED_SMOOTHING_KM = 150;
 const MIN_LAKE_KM2 = 3000;
 
 const args = process.argv.slice(2);
@@ -305,14 +301,7 @@ const pyramid = new GridPyramid(relief);
 // tiles and in the ice thickness, so their surface is smooth (section 5.2).
 // It leaves out the listed mountains, so their snow caps (section 5.2) stand
 // out from it.
-const bedSource = new Grid(
-  source.width,
-  source.height,
-  landSource.data.map((v) => Math.max(0, v)),
-);
-const bedGrid = new GridPyramid(smoothElevation(bedSource, ICE_BED_SMOOTHING_KM)).forSpacing(
-  ICE_BED_SPACING_DEG,
-);
+const bedGrid = new GridPyramid(elevation).forSpacing(ICE_BED_SPACING_DEG);
 const iceBed = (lat: number, lon: number) => Math.max(0, bedGrid.bilinear(lat, lon));
 
 const lakeLevel = new Grid(
@@ -371,7 +360,7 @@ function place(layer: LayerOut, key: TileKey): { chunks: Record<string, string>;
 // Coarse levels sample a coast prefiltered for their spacing (section 4.2).
 const coarse = new Map<number, Grid<Uint16Array>>();
 for (let level = 0; level <= maxLevel; level++) {
-  const spacingKm = ((90 / (1 << level)) * 111.32) / TILE_N;
+  const spacingKm = ((90 / (1 << level)) * KM_PER_DEG) / TILE_N;
   if (spacingKm < COARSE_MIN_SPACING_KM) break;
   coarse.set(
     level,

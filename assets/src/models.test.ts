@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import manifest from '../../data/assets/manifest.json';
 import { ANIMALS, buildAnimal } from './animals.ts';
+import { MODELS, geometryHash } from './approval.ts';
 import { THROW_RELEASE, animateAnimal, animatePerson, type Clip } from './clips.ts';
 import type { Model } from './kit.ts';
 import { PROFILES, buildPerson, type Kind } from './people.ts';
@@ -179,15 +180,27 @@ describe('clips', () => {
 });
 
 describe('asset manifest', () => {
-  const entries = new Map(manifest.assets.map((a) => [a.id, a.status]));
-  const ids = [
-    ...people.map(({ profile, kind }) => `figure-${profile}-${kind}`),
-    ...SHELTERS,
-    'prop-hearth',
-    ...ANIMALS,
-  ];
+  const entries = new Map(
+    manifest.assets.map((a) => [a.id, a as { status: string; geometry?: string }]),
+  );
 
-  it.each(ids)('%s is listed and approved', (id) => {
-    expect(entries.get(id)).toBe('approved');
+  it.each(Object.keys(MODELS))('%s is approved with the geometry it has now', (id) => {
+    const entry = entries.get(id);
+    expect(entry?.status).toBe('approved');
+    // A changed model needs Yang's approval again; then `npm run approve-assets -- <id>`.
+    expect(geometryHash(MODELS[id]!()), `${id} changed since it was approved`).toBe(
+      entry?.geometry,
+    );
+  });
+
+  it('hashes the geometry, not the last bits of the arithmetic', () => {
+    const a = buildHearth().object;
+    const b = buildHearth().object;
+    const mesh = b.getObjectByProperty('isMesh', true) as THREE.Mesh;
+    const pos = mesh.geometry.getAttribute('position');
+    pos.setX(0, pos.getX(0) + 1e-7);
+    expect(geometryHash(b)).toBe(geometryHash(a));
+    pos.setX(0, pos.getX(0) + 0.01);
+    expect(geometryHash(b)).not.toBe(geometryHash(a));
   });
 });

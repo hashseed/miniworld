@@ -1,4 +1,4 @@
-// Browser tests of milestone 1 (spec section 13), at desktop and phone sizes.
+// Browser tests (spec milestone 1, section 13), at desktop and phone sizes.
 
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync, statSync } from 'node:fs';

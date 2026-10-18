@@ -9,7 +9,7 @@ import {
   FOLIAGE_GRID_W,
   type FoliageSlice,
 } from '../content/formats.ts';
-import type { ContentLoader } from '../content/loader.ts';
+import type { ChunkSource } from '../content/loader.ts';
 import { hash01, valueNoise } from '../core/hash.ts';
 import {
   FACE_COUNT,
@@ -21,7 +21,7 @@ import {
   tileSampleUv,
   type TileKey,
   type Vec3,
-} from './cube.ts';
+} from '../geo/cube.ts';
 import { BUSH, isDry, KINDS, PALM, pickKind, recipeOf } from './foliageKinds.ts';
 import { plantGeometry } from './foliageModels.ts';
 import { EXAGGERATION, LAND_LIFT_M, type Globe } from './globe.ts';
@@ -29,7 +29,7 @@ import { iceSlicePair, type PlanetState } from './planet.ts';
 import { foliageFragment, foliageVertex } from './shaders.ts';
 import { CAP_KM_PER_M, snowCap } from './snowCap.ts';
 import { sampleTile, type TileSamples } from './terrainStore.ts';
-import { EARTH_RADIUS_KM } from './tileMesh.ts';
+import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 
 /**
  * Slots (section 4): with the true sizes, plants stand about one per
@@ -103,7 +103,7 @@ export class Foliage {
   readonly group = new THREE.Group();
   readonly material: THREE.ShaderMaterial;
   private globe: Globe;
-  private loader: ContentLoader;
+  private loader: ChunkSource;
   private meshes: THREE.InstancedMesh[] = [];
   private keys: TileKey[] = [];
   private days: number[] = [];
@@ -118,7 +118,7 @@ export class Foliage {
   /** Set once the first view is ready; until then nothing is loaded or drawn. */
   active = false;
 
-  constructor(globe: Globe, loader: ContentLoader) {
+  constructor(globe: Globe, loader: ChunkSource) {
     this.globe = globe;
     this.loader = loader;
     this.material = new THREE.ShaderMaterial({
@@ -227,7 +227,12 @@ export class Foliage {
         this.requested[k] = false;
         return;
       }
-      this.slices[k] = decodeFoliageSlice(buf);
+      try {
+        this.slices[k] = decodeFoliageSlice(buf);
+      } catch (e) {
+        console.error(`${this.files[k]}: ${(e as Error).message}`); // stays requested: not asked for again
+        return;
+      }
       this.lastKey = '';
     });
   }
@@ -258,12 +263,12 @@ export class Foliage {
     const drawn = lens.toDrawn(p.dir);
     const up = new THREE.Vector3(drawn[0], drawn[1], drawn[2]);
     const pos = up.clone().multiplyScalar(EARTH_RADIUS_KM + p.groundKm * width - size * 0.06);
-    const east = new THREE.Vector3(-up.z, 0, up.x);
-    if (east.lengthSq() < 1e-6) east.set(1, 0, 0);
-    east.normalize();
-    const north = new THREE.Vector3().crossVectors(east, up);
+    const north = new THREE.Vector3();
+    const east = new THREE.Vector3();
+    northEast(up, north, east);
+    // x west, y up, z south: the plants were placed facing this way when approved.
     const q = new THREE.Quaternion().setFromRotationMatrix(
-      new THREE.Matrix4().makeBasis(east, up, north),
+      new THREE.Matrix4().makeBasis(east.negate(), up, north.negate()),
     );
     q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), p.turn));
     out.compose(pos, q, new THREE.Vector3(size, size, size));

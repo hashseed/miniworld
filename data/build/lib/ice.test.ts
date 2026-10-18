@@ -84,4 +84,11 @@ describe('closeIce', () => {
     expect(field[50 * w + 141]).toBeGreaterThan(0);
     expect(field[50 * w + 250]).toBe(-100);
   });
+
+  it('leaves a narrow island far from the ice bare', () => {
+    const m = new Uint8Array(w * h);
+    const island = (i: number) => i % w >= 300 && i % w < 304;
+    closeIce(m, w, h, (i) => !island(i));
+    expect(m[50 * w + 302]).toBe(0);
+  });
 });

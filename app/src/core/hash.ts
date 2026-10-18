@@ -33,6 +33,43 @@ export function valueNoise(x: number, y: number, seed: number): number {
   return (a * (1 - sx) + b * sx) * (1 - sy) + (c * (1 - sx) + d * sx) * sy;
 }
 
+/**
+ * Integer lattice hash in [0, 1) for valueNoise3. It differs from hash01, but
+ * the approved models were shaped with it, so it stays (milestone 2, section 13.3).
+ */
+function lattice(x: number, y: number, z: number, seed: number): number {
+  let h =
+    Math.imul(x, 0x8da6b343) ^
+    Math.imul(y, 0xd8163841) ^
+    Math.imul(z, 0xcb1ab31f) ^
+    Math.imul(seed, 0x165667b1);
+  h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d);
+  h = Math.imul(h ^ (h >>> 12), 0x297a2d39);
+  return ((h ^ (h >>> 15)) >>> 0) / 4294967296;
+}
+
+/** Smooth 3D value noise in [-1, 1], used to shape the clay models. */
+export function valueNoise3(x: number, y: number, z: number, seed = 0): number {
+  const xi = Math.floor(x),
+    yi = Math.floor(y),
+    zi = Math.floor(z);
+  const f = (t: number) => t * t * (3 - 2 * t);
+  const u = f(x - xi),
+    v = f(y - yi),
+    w = f(z - zi);
+  const l = (a: number, b: number, t: number) => a + (b - a) * t;
+  const c = (dx: number, dy: number, dz: number) => lattice(xi + dx, yi + dy, zi + dz, seed);
+  return (
+    l(
+      l(l(c(0, 0, 0), c(1, 0, 0), u), l(c(0, 1, 0), c(1, 1, 0), u), v),
+      l(l(c(0, 0, 1), c(1, 0, 1), u), l(c(0, 1, 1), c(1, 1, 1), u), v),
+      w,
+    ) *
+      2 -
+    1
+  );
+}
+
 /** 32-bit FNV-1a hash of a string's UTF-16 code units, for stable ids. */
 export function hashString(s: string): number {
   let h = 0x811c9dc5;

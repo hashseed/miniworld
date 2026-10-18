@@ -3,7 +3,8 @@
 // computed world (section 10.7).
 
 import type { Language } from '../i18n/messages.ts';
-import { ancestorAt, tilePath, type TileKey } from '../globe/cube.ts';
+import { ancestorAt, tilePath, type TileKey } from '../geo/cube.ts';
+import { PART_LEVEL } from './formats.ts';
 import {
   chunkKey,
   type LayerManifest,
@@ -13,9 +14,35 @@ import {
 } from './types.ts';
 
 const MAX_CONCURRENT = 6;
-const PART_LEVEL = 2;
+/** First pause after a failed request; it doubles with every failure up to RETRY_MAX_MS (section 10.4). */
+const RETRY_BASE_MS = 1000;
+const RETRY_MAX_MS = 60_000;
 
 export type ChunkState = 'missing' | 'deep' | 'loading' | 'ready' | 'none';
+
+/** What the renderers need from the loader: the manifest, chunk lookup and the request queue. */
+export interface ChunkSource {
+  readonly manifest: Manifest;
+  lookup(
+    layerName: string,
+    key: TileKey,
+    window: string,
+    language?: string,
+  ): string | 'deep' | 'none' | undefined;
+  fetchChunk(
+    file: string,
+    priority: number,
+    signal?: AbortSignal,
+  ): Promise<ArrayBuffer | undefined>;
+  setPriority(file: string, priority: number): void;
+}
+
+export interface LoaderOptions {
+  /** The fetch to use; tests pass a fake. */
+  fetch?: typeof fetch;
+  /** Milliseconds on a steady clock; tests pass a fake. Never part of the world. */
+  now?: () => number;
+}
 
 interface Request {
   url: string;
@@ -24,7 +51,16 @@ interface Request {
   resolve: (buf: ArrayBuffer | undefined) => void;
 }
 
-export class ContentLoader {
+interface Failure {
+  count: number;
+  /** No new request before this time; Infinity for files that do not exist. */
+  retryAt: number;
+}
+
+/** Thrown for a file that failed recently and is waiting for its retry time. */
+export class RetryLaterError extends Error {}
+
+export class ContentLoader implements ChunkSource {
   readonly base: string;
   manifest!: Manifest;
   /** Bytes transferred so far, for the first-view budget and stats. */
@@ -35,13 +71,18 @@ export class ContentLoader {
   private partData = new Map<string, PartFile>();
   private queue: Request[] = [];
   private active = 0;
+  private failures = new Map<string, Failure>();
+  private fetchFn: typeof fetch;
+  private now: () => number;
 
-  constructor(base = 'data/') {
+  constructor(base = 'data/', options: LoaderOptions = {}) {
     this.base = base;
+    this.fetchFn = options.fetch ?? ((input, init) => fetch(input, init));
+    this.now = options.now ?? (() => performance.now());
   }
 
   async init(): Promise<Manifest> {
-    const res = await fetch(`${this.base}manifest.json`, { cache: 'no-cache' });
+    const res = await this.fetchFn(`${this.base}manifest.json`, { cache: 'no-cache' });
     if (!res.ok) throw new Error(`Manifest not found (${res.status})`);
     this.manifest = (await res.json()) as Manifest;
     return this.manifest;
@@ -51,6 +92,10 @@ export class ContentLoader {
     let p = this.indexCache.get(language);
     if (!p) {
       p = this.fetchJson<StartupIndex>(this.manifest.index[language]);
+      // A failed index is forgotten, so the next call asks again.
+      p.catch(() => {
+        if (this.indexCache.get(language) === p) this.indexCache.delete(language);
+      });
       this.indexCache.set(language, p);
     }
     return p;
@@ -108,26 +153,35 @@ export class ContentLoader {
     priority: number,
     signal?: AbortSignal,
   ): Promise<ArrayBuffer | undefined> {
+    const url = this.base + file;
+    if (this.waiting(url) || signal?.aborted) return Promise.resolve(undefined);
     return new Promise((resolve) => {
       const controller = new AbortController();
       signal?.addEventListener('abort', () => controller.abort());
-      this.queue.push({ url: this.base + file, priority, controller, resolve });
+      this.queue.push({ url, priority, controller, resolve });
       this.pump();
     });
   }
 
-  /** Changes priorities and drops requests for tiles no longer wanted. */
-  reprioritise(priorityOf: (url: string) => number | undefined): void {
-    this.queue = this.queue.filter((r) => {
-      const p = priorityOf(r.url);
-      if (p === undefined) {
-        r.controller.abort();
-        r.resolve(undefined);
-        return false;
-      }
-      r.priority = p;
-      return true;
-    });
+  /** Gives the waiting requests for a file a new priority (lower first). */
+  setPriority(file: string, priority: number): void {
+    const url = this.base + file;
+    for (const r of this.queue) if (r.url === url) r.priority = priority;
+  }
+
+  /** True while a file that failed waits for its retry time (section 10.4). */
+  private waiting(url: string): boolean {
+    const f = this.failures.get(url);
+    return f !== undefined && this.now() < f.retryAt;
+  }
+
+  private failed(url: string, status?: number): void {
+    const count = (this.failures.get(url)?.count ?? 0) + 1;
+    const retryAt =
+      status === 404 || status === 410
+        ? Infinity
+        : this.now() + Math.min(RETRY_MAX_MS, RETRY_BASE_MS * 2 ** (count - 1));
+    this.failures.set(url, { count, retryAt });
   }
 
   get pending(): number {
@@ -145,14 +199,23 @@ export class ContentLoader {
         continue;
       }
       this.active++;
-      fetch(req.url, { signal: req.controller.signal })
+      this.fetchFn(req.url, { signal: req.controller.signal })
         .then(async (res) => {
-          if (!res.ok) throw new Error(`${res.status} ${req.url}`);
+          if (!res.ok) {
+            this.failed(req.url, res.status);
+            req.resolve(undefined);
+            return;
+          }
           const buf = await res.arrayBuffer();
           this.bytesLoaded += buf.byteLength;
+          this.failures.delete(req.url);
           req.resolve(buf);
         })
-        .catch(() => req.resolve(undefined))
+        .catch(() => {
+          // A cancelled request is not a failure.
+          if (!req.controller.signal.aborted) this.failed(req.url);
+          req.resolve(undefined);
+        })
         .finally(() => {
           this.active--;
           this.pump();
@@ -167,18 +230,37 @@ export class ContentLoader {
 
   /** Fetches a whole file at startup, outside the chunk queue. */
   async fetchBytes(file: string): Promise<Uint8Array> {
-    const res = await fetch(this.base + file);
-    if (!res.ok) throw new Error(`${res.status} ${file}`);
-    const buf = await res.arrayBuffer();
-    this.bytesLoaded += buf.byteLength;
-    return new Uint8Array(buf);
+    return new Uint8Array(await this.fetchWhole(file, (res) => res.arrayBuffer()));
   }
 
   private async fetchJson<T>(file: string): Promise<T> {
-    const res = await fetch(this.base + file);
-    if (!res.ok) throw new Error(`${res.status} ${file}`);
-    const text = await res.text();
-    this.bytesLoaded += text.length;
-    return JSON.parse(text) as T;
+    return JSON.parse(await this.fetchWhole(file, (res) => res.text())) as T;
+  }
+
+  /**
+   * Fetches a whole file outside the queue, under the same retry rules: a
+   * file that failed recently rejects with RetryLaterError until its time.
+   */
+  private async fetchWhole<T extends string | ArrayBuffer>(
+    file: string,
+    read: (res: Response) => Promise<T>,
+  ): Promise<T> {
+    const url = this.base + file;
+    if (this.waiting(url)) throw new RetryLaterError(`retry later: ${file}`);
+    let res: Response;
+    try {
+      res = await this.fetchFn(url);
+    } catch (e) {
+      this.failed(url);
+      throw e;
+    }
+    if (!res.ok) {
+      this.failed(url, res.status);
+      throw new Error(`${res.status} ${file}`);
+    }
+    const body = await read(res);
+    this.bytesLoaded += typeof body === 'string' ? body.length : body.byteLength;
+    this.failures.delete(url);
+    return body;
   }
 }

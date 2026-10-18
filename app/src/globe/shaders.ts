@@ -12,6 +12,15 @@ import { LENS_COLS, LENS_ROWS, LENS_STEP } from './lens.ts';
 import { CAP_KM_PER_M, snowGlsl } from './snowCap.ts';
 
 /**
+ * Ice sheets rise from their border as smooth domes, ICE_DOME_M at most,
+ * reaching 63% of it ICE_DOME_KM inside; the relief under them is hidden over
+ * the first ICE_HIDE_KM (section 5.2). Used by the shader and by globe.ts.
+ */
+export const ICE_DOME_M = 1200;
+export const ICE_DOME_KM = 250;
+export const ICE_HIDE_KM = 120;
+
+/**
  * The history lens in GLSL (history-lens.md, section 4): the forward grid
  * read with the same bilinear lookup as lens.ts, blended with the identity.
  */
@@ -88,18 +97,16 @@ ${snowGlsl}
 
 // How far below the sea level the flat sea surface lies (section 4.4).
 const float SEA_DROP = 3.0;
-// Ice sheets rise from their border as smooth domes, ICE_DOME_M at most,
-// reaching 63% of it ICE_DOME_KM inside; the relief under them is hidden
-// over the first ICE_HIDE_KM (section 5.2).
-const float ICE_DOME_M = 1200.0;
-const float ICE_DOME_KM = 250.0;
-const float ICE_HIDE_KM = 120.0;
+// Ice domes (section 5.2), from the constants at the top of this file.
+const float ICE_DOME_M = ${ICE_DOME_M}.0;
+const float ICE_DOME_KM = ${ICE_DOME_KM}.0;
+const float ICE_HIDE_KM = ${ICE_HIDE_KM}.0;
 // Spacing (km) of the climate samples that give the ice surface its slope.
 const float ICE_GRAD_KM = 20.0;
 // Near the sea, land may rise at most coastCap(d) metres at d km from today's
 // coast (after a flat beach), so at 100x relief every coast and ice margin is
 // a rounded clay edge rather than a wall; further inland the cap grows fast
-// enough to leave mountains alone (section 4.4).
+// enough to leave mountains alone (section 4.2).
 const float COAST_BEACH_KM = ${COAST_BEACH_KM.toFixed(3)};
 const float COAST_SLOPE = ${COAST_SLOPE.toFixed(3)}; // m per km at the coast
 const float COAST_CURVE = ${COAST_CURVE.toFixed(3)}; // extra m per km²
@@ -239,7 +246,6 @@ uniform float time;
 uniform vec3 cameraWorld;
 uniform float limbInk; // 1 draws the globe's outline, 0 in low views (section 4.5)
 uniform float riverThreshold;
-uniform float waterDetail; // 0 low, 1 medium, 2 high
 uniform float seaLevel;
 uniform sampler2D fields; // ocean level (m), lake field, river field per tile sample
 ${climateGlsl}
@@ -444,13 +450,11 @@ void main() {
     // One glossy colour for the sea, lakes and rivers, with no shallows (section 4.4).
     albedo = vec3(0.08, 0.44, 0.86);
     n = up;
-    if (waterDetail > 0.5) {
-      float w = sin(dot(vWorld, vec3(3.1, 1.7, 2.3)) + time * 1.3) + sin(dot(vWorld, vec3(-1.9, 2.8, 1.1)) + time * 0.9);
-      n = normalize(up + (vec3(sin(time + vWorld.x * 2.0), 0.0, cos(time * 0.8 + vWorld.z * 2.0)) * 0.02) * w);
-    }
+    float w = sin(dot(vWorld, vec3(3.1, 1.7, 2.3)) + time * 1.3) + sin(dot(vWorld, vec3(-1.9, 2.8, 1.1)) + time * 0.9);
+    n = normalize(up + (vec3(sin(time + vWorld.x * 2.0), 0.0, cos(time * 0.8 + vWorld.z * 2.0)) * 0.02) * w);
     // Cartoon waves on the sea and the large lakes (section 4.4), in world space, at a scale that follows the distance.
     if (!isRiver) {
-      float t = waterDetail > 0.5 ? time : 0.0;
+      float t = time;
       float lod = log2(max(length(cameraWorld - vWorld), 1.0) / 40.0);
       float l0 = floor(lod);
       float s0 = pow(2.0, l0);
@@ -459,7 +463,7 @@ void main() {
     }
     // Pulses flowing down the river towards its mouth (section 4.3).
     if (isRiver) {
-      float t = waterDetail > 0.5 ? time * 0.8 : 0.0;
+      float t = time * 0.8;
       float pulse = dot(vFlow, vec2(cos(t), -sin(t)));
       albedo = mix(albedo, vec3(0.78, 0.92, 1.0), smoothstep(0.2, 1.0, pulse) * 0.5);
     }
