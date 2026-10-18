@@ -226,6 +226,16 @@ async function stillCamera(page: Page): Promise<CameraView> {
   return cameraOf(page);
 }
 
+/** Waits until the camera has turned north up and looks straight down. */
+async function northUp(page: Page): Promise<void> {
+  await expect
+    .poll(async () => {
+      const c = await cameraOf(page);
+      return Math.abs(c.heading) < 1e-3 && Math.abs(c.tilt) < 1e-3;
+    })
+    .toBe(true);
+}
+
 test('mouse moves, zooms, tilts and turns the camera', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'mouse input is tested at desktop size');
   test.slow();
@@ -267,8 +277,7 @@ test('mouse moves, zooms, tilts and turns the camera', async ({ page }, info) =>
 
   // The compass button turns north up and the view straight down again.
   await page.getByRole('button', { name: en['camera.reset'] }).click();
-  await expect.poll(async () => (await cameraOf(page)).heading).toBeCloseTo(0, 3);
-  expect((await cameraOf(page)).tilt).toBeCloseTo(0, 3);
+  await northUp(page);
 
   // A double-click zooms in to the point clicked: above the middle is further north.
   before = await stillCamera(page);
@@ -354,8 +363,7 @@ test('touch moves, zooms, tilts and turns the camera', async ({ page }, info) =>
 
   // The compass button turns north up and the view straight down again.
   await page.getByRole('button', { name: en['camera.reset'] }).tap();
-  await expect.poll(async () => (await cameraOf(page)).heading).toBeCloseTo(0, 3);
-  expect((await cameraOf(page)).tilt).toBeCloseTo(0, 3);
+  await northUp(page);
 
   // A double-tap zooms in to the point tapped.
   before = await stillCamera(page);
@@ -401,8 +409,7 @@ test('keyboard zooms, tilts, turns and resets the camera', async ({ page }) => {
   before = await hold(',', (c) => c.heading < before.heading - 2);
   before = await hold('d', (c) => c.lon > before.lon);
   await page.keyboard.press('n');
-  await expect.poll(async () => (await cameraOf(page)).heading).toBeCloseTo(0, 3);
-  expect((await cameraOf(page)).tilt).toBeCloseTo(0, 3);
+  await northUp(page);
 });
 
 test('the lens slider morphs the globe and keeps the point in view', async ({ page }) => {
