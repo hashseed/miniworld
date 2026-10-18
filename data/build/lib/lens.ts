@@ -4,6 +4,7 @@
 // 2004) solved with spherical harmonics, so it has no seam at the date line
 // or the poles. Writes a forward and an inverse grid and checks the limits.
 
+import { EARTH_RADIUS_KM } from '../../../app/src/geo/earth.ts';
 import {
   LENS_COLS,
   LENS_POINTS,
@@ -12,9 +13,8 @@ import {
   gridPointDir,
   sampleGrid,
 } from '../../../app/src/globe/lens.ts';
-import type { Vec3 } from '../../../app/src/globe/cube.ts';
+import type { Vec3 } from '../../../app/src/geo/cube.ts';
 
-const EARTH_RADIUS_KM = 6371;
 const DEG = Math.PI / 180;
 
 export interface LensParams {

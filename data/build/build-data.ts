@@ -5,6 +5,7 @@
 //
 // Usage: node data/build/build-data.ts [--fixture] [--max-level N]
 
+import { KM_PER_DEG } from '../../app/src/geo/earth.ts';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
@@ -17,6 +18,7 @@ import {
   encodeTerrainTile,
   OCEAN_MIN_LEVEL,
   OCEAN_NEVER,
+  PART_LEVEL,
 } from '../../app/src/content/formats.ts';
 import {
   chunkKey,
@@ -24,7 +26,7 @@ import {
   type StartupIndex,
   type SourceInfo,
 } from '../../app/src/content/types.ts';
-import { ancestorAt, tilePath, TILE_N, type TileKey } from '../../app/src/globe/cube.ts';
+import { ancestorAt, tilePath, TILE_N, type TileKey } from '../../app/src/geo/cube.ts';
 import { LANGUAGES, type Language } from '../../app/src/i18n/messages.ts';
 import { TIMELINE_START, continuousYear, dayFromDate } from '../../app/src/time/calendar.ts';
 import { buildWatchTable, yearAtSeconds, totalSeconds } from '../../app/src/time/watchTable.ts';
@@ -89,7 +91,6 @@ const OUT = join(ROOT, 'app/public/data');
 
 /** Watching seconds per content time window (spec milestone 1, section 10.3). */
 export const WINDOW_SECONDS = 2460;
-const PART_LEVEL = 2;
 /** Simplified map (spec milestone 1, section 4.2). */
 const SMOOTHING_KM = 40;
 const POLAR_SMOOTHING_KM = 150;
@@ -330,7 +331,7 @@ function place(layer: LayerOut, key: TileKey): { chunks: Record<string, string>;
 // Coarse levels sample a coast prefiltered for their spacing (section 4.2).
 const coarse = new Map<number, Grid<Uint16Array>>();
 for (let level = 0; level <= maxLevel; level++) {
-  const spacingKm = ((90 / (1 << level)) * 111.32) / TILE_N;
+  const spacingKm = ((90 / (1 << level)) * KM_PER_DEG) / TILE_N;
   if (spacingKm < COARSE_MIN_SPACING_KM) break;
   coarse.set(
     level,

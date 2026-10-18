@@ -4,7 +4,7 @@
 // forward (true to drawn) and one inverse (drawn to true), and is blended
 // with the identity by the strength the slider sets (section 4.1).
 
-import type { Vec3 } from './cube.ts';
+import type { Vec3 } from '../geo/cube.ts';
 
 /** Grid spacing in degrees and the number of points per row and column. */
 export const LENS_STEP = 2;

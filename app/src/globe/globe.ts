@@ -15,21 +15,19 @@ import {
   tileSampleUv,
   type TileKey,
   type Vec3,
-} from './cube.ts';
+} from '../geo/cube.ts';
 import { ClimateStore } from './climate.ts';
 import { LENS_COLS, LENS_ROWS, Lens } from './lens.ts';
 import type { PlanetState } from './planet.ts';
-import { terrainFragment, terrainVertex } from './shaders.ts';
-import { EARTH_RADIUS_KM, buildTileGeometry, indexFor } from './tileMesh.ts';
+import { ICE_DOME_KM, ICE_DOME_M, terrainFragment, terrainVertex } from './shaders.ts';
+import { buildTileGeometry, indexFor } from './tileMesh.ts';
+import { EARTH_RADIUS_KM } from '../geo/earth.ts';
 import { sampleTile, TerrainStore } from './terrainStore.ts';
 import type { TerrainTile } from '../content/formats.ts';
 
 export const EXAGGERATION = 100;
 /** Every land vertex stands this many metres above its height (section 4.2). */
 export const LAND_LIFT_M = 250;
-/** Ice dome height and scale; match the shader (section 5.2). */
-const ICE_DOME_M = 1200;
-const ICE_DOME_KM = 250;
 export const MAX_RENDER_LEVEL = 9;
 /** Meshes kept beyond those touched this frame; touched meshes are never evicted. */
 const MAX_CACHED_MESHES = 1500;

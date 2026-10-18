@@ -15,7 +15,7 @@ import {
   type ClimateSlice,
 } from '../content/formats.ts';
 import type { ContentLoader } from '../content/loader.ts';
-import { dirToLatLon, type Vec3 } from './cube.ts';
+import { dirToLatLon, type Vec3 } from '../geo/cube.ts';
 import { iceSlicePair } from './planet.ts';
 
 /** Priority of the slices that are not around the date, after the terrain in view. */

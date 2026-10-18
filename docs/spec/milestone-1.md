@@ -33,7 +33,8 @@ The milestone proves the technical foundations every later milestone builds on: 
 
 ```
 app/              the browser app
-  src/core/       deterministic hash, small shared store
+  src/core/       deterministic hash and noise, small shared store, camera type (no engine-dependent maths)
+  src/geo/        cube-sphere quadtree, Earth constants, local compass frame; shared with the data build
   src/time/       dates, historical clock, life clock, formatting
   src/globe/      terrain, water, ice, sky, clouds, foliage, history lens, camera
   src/timeline/   canvas timeline

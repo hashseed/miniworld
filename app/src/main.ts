@@ -7,7 +7,7 @@ import { h, render } from 'preact';
 import { ContentLoader } from './content/loader.ts';
 import type { StartupIndex, VignetteEntry } from './content/types.ts';
 import { Store } from './core/store.ts';
-import { latLonToDir } from './globe/cube.ts';
+import { latLonToDir } from './geo/cube.ts';
 import { CameraController } from './globe/cameraController.ts';
 import { Globe } from './globe/globe.ts';
 import { Foliage } from './globe/foliage.ts';
@@ -36,9 +36,9 @@ import {
   saveSettings,
   saveView,
   MAX_BOOKMARKS,
-  type CameraState,
   type Settings,
 } from './ui/storage.ts';
+import type { CameraState } from './core/camera.ts';
 
 const params = new URLSearchParams(location.search);
 const STRESS = params.get('scene') === 'stress';

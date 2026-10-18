@@ -17,17 +17,9 @@ import {
   type CompiledVignette,
   type Verb,
 } from '../../../app/src/world/vignette.ts';
+import { PROFILES } from '../../../app/src/world/cultures.ts';
 
-/** Culture profiles of milestone 2 (section 4), until culture records exist. */
-const CULTURES = new Set([
-  'african-stone-age',
-  'neanderthal',
-  'coastal-asia-hunter',
-  'first-australians',
-  'ice-age-hunter',
-  'steppe-beringia-hunter',
-  'natufian',
-]);
+const CULTURES = new Set<string>(PROFILES);
 /** Scene-marker icons the app can draw (section 7.2). */
 const ICONS = new Set(['spear']);
 /** What historians may dispute about a record (content-format section 2). */

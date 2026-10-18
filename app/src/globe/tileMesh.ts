@@ -13,10 +13,9 @@ import {
   tileSampleUv,
   type TileKey,
   type Vec3,
-} from './cube.ts';
+} from '../geo/cube.ts';
+import { EARTH_RADIUS_KM } from '../geo/earth.ts';
 import type { TileSamples } from './terrainStore.ts';
-
-export const EARTH_RADIUS_KM = 6371;
 
 const S = TERRAIN_SAMPLES;
 const B = TERRAIN_BORDERED;
