@@ -512,7 +512,7 @@ The player understands these verbs from section 6.4 and the additions in [dioram
 | `cut-up` | A fallen animal is cut up: it sinks into the ground and disappears over 12 seconds | fall, held |
 | `appear` | Reappears at its starting mark, rising from the ground over 2 seconds | idle |
 
-Members of a group stand in a formation around their target: a grid ⌈√*n*⌉ members wide across the stage's z axis, 2.5 m apart for people and 14 m for animals, centred on the mark, so members of a group never overlap. Each group has marks of its own, and a test checks that no two members ever overlap (section 18.7). A moving group faces its direction of travel; a waiting group keeps its last heading.
+Members of a group are scattered loosely around their target, not in a formation (Yang, 2026-10-18: people are scattered while hunting): each member has its own cell of a grid ⌈√*n*⌉ cells wide across the stage's z axis, cells 1.6 steps apart (a step is 2.5 m for people and 14 m for animals), and stands at a spot in its cell offset by up to 0.3 steps in each direction, chosen by the hash of the group, the member and the beat. Each move picks new spots, so a group never moves as a block, and two members of a group are never closer than one step. Each group has marks of its own, and a test checks that no two members ever overlap (section 18.7). A moving group faces its direction of travel; a waiting group keeps its last heading.
 
 ### 18.4 The vignette layer
 

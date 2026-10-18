@@ -57,8 +57,10 @@ const APPEAR_MS = 2000;
 const GESTURE_MS = 3000;
 /** A member closer than this to its target does not walk there first. */
 const NEAR_CM = 50;
-/** Formation spacing between members (section 18.3). */
+/** Closest two members of a group come: one step (section 18.3). */
 const SPACING_CM = { human: 250, animal: 1400 };
+/** Grid cells are this many steps apart; spots wander 0.3 steps within them. */
+const CELL_STEPS = 1.6;
 
 export interface CompiledAction {
   atMs: number;
@@ -194,10 +196,13 @@ export interface Member {
 }
 
 /**
- * Formation offset of member i of n in a group, in centimetres: a grid
- * ⌈√n⌉ members wide across z, centred on the mark, so members never overlap.
+ * Where member i of a group stands around its target, in centimetres: its own
+ * cell of a grid ⌈√n⌉ cells wide across z, cells 1.6 steps apart, at a spot
+ * offset by up to 0.3 steps chosen by hash for each beat, so members are
+ * scattered, never move as a block and are never closer than one step.
+ * Beat 0 is the member's home spot.
  */
-export function formationOffset(group: CompiledGroup, i: number): [number, number] {
+export function formationOffset(group: CompiledGroup, i: number, beat = 0): [number, number] {
   let cols = 1;
   while (cols * cols < group.count) cols++;
   const rows = Math.ceil(group.count / cols);
@@ -205,7 +210,13 @@ export function formationOffset(group: CompiledGroup, i: number): [number, numbe
   const inRow = row === rows - 1 ? group.count - row * cols : cols;
   const col = i - row * cols;
   const step = SPACING_CM[group.kind];
-  return [Math.round((row - (rows - 1) / 2) * step), Math.round((col - (inRow - 1) / 2) * step)];
+  const h = hashString(group.name);
+  const jitter = (k: number) =>
+    group.count === 1 ? 0 : ((hash32(h, i, beat, k) % 601) / 1000 - 0.3) * step;
+  return [
+    Math.round((row - (rows - 1) / 2) * step * CELL_STEPS + jitter(1)),
+    Math.round((col - (inRow - 1) / 2) * step * CELL_STEPS + jitter(2)),
+  ];
 }
 
 function posAt(s: Segment, t: number): [number, number] {
@@ -247,7 +258,8 @@ export function buildMembers(t: CompiledTemplate): Member[] {
       const [ox, oz] = formationOffset(g, i);
       const home: [number, number] = [start[0] + ox, start[1] + oz];
       const segs: Segment[] = [rest(0, home[0], home[1], 'idle', 1)];
-      for (const a of g.actions) {
+      for (let k = 0; k < g.actions.length; k++) {
+        const a = g.actions[k]!;
         // Cut the timeline at the action: drop what was planned after it.
         while (segs.length > 1 && segs[segs.length - 1]!.t0 >= a.atMs) segs.pop();
         const last = segs[segs.length - 1]!;
@@ -259,8 +271,10 @@ export function buildMembers(t: CompiledTemplate): Member[] {
         const speed = SPEED_CM_S[a.verb];
         if (speed !== undefined) {
           const m = t.marks[a.object!]!;
-          const tx = m[0] + ox;
-          const tz = m[1] + oz;
+          // A new spot near each mark; back home, the home spot, so the loop closes.
+          const [sx, sz] = a.object === g.at ? [ox, oz] : formationOffset(g, i, k + 1);
+          const tx = m[0] + sx;
+          const tz = m[1] + sz;
           const dist = Math.sqrt((tx - x) * (tx - x) + (tz - z) * (tz - z));
           let t0 = a.atMs;
           if (dist > NEAR_CM || a.verb !== 'work-at') {
