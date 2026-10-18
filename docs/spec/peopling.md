@@ -1,19 +1,19 @@
 # Peopling the world
 
-This is the design of how humankind leaves Africa and reaches every habitable part of the globe, and how people adapt to each new land on the way. It continues [humankind.md](humankind.md), which grows the tree of humankind inside Africa, and replaces the migration rules of [milestone-2.md](milestone-2.md#9-migrations) section 9. Where they disagree, fix whichever is wrong in the same pull request. Decisions marked **Proposed** are defaults chosen so work can start and are open for Yang to change.
+This is the design of how humankind leaves Africa and reaches every part of the globe it reached before 9000 BCE, and how people adapt to each new land on the way. It continues [humankind.md](humankind.md), which grows the tree of humankind inside Africa, and replaces the migration rules of [milestone-2.md](milestone-2.md#9-migrations) section 9. Where they disagree, fix whichever is wrong in the same pull request. Decisions marked **Proposed** are defaults chosen so work can start and are open for Yang to change.
 
-Asked for by Yang on 2026-10-18: "humanity migrates out of Africa and populates the entire world. They will have to adapt to the respective regions." Routes and dates follow mainstream archaeology and genetics; dates that are argued about are marked as debated on the timeline and the cards, and the card names the older claims.
+Asked for by Yang on 2026-10-18: "humanity migrates out of Africa and populates the entire world. They will have to adapt to the respective regions." Decided by Yang on 2026-10-18, on the first draft: the tree of humankind is extended for this purpose; the plan ends at 9000 BCE, before farming begins (the Neolithic, milestone 3); sea crossings are made in small boats, canoes; Denisovans and *Homo floresiensis* are not shown. The cold and height limits (section 5.2), the new profiles and the first dogs (section 5) are part of the plan as drafted. Routes and dates follow mainstream archaeology and genetics; dates that are argued about are marked as debated on the timeline and the cards, and the card names the older claims.
 
 ## 1. The idea in one paragraph
 
-After the prologue has filled Africa (humankind.md section 4.2), the tree keeps growing the way it always has: a full camp sends two or three people off to found a new camp. What changes is where they may go. A small table of dated **arrival points**, each a real site with a source (the first people in Arabia, on Sumatra, in Australia, in Bulgaria, in Siberia, in Chile), says when people first reached each part of the world; the data build turns it into an **arrival map** that opens the land a little at a time, so the tree can only spread where and when people really did. A strait wider than people can wade is crossed by raft only at a listed **crossing**. And a band can only live where its way of life lets it: in light clothing it cannot camp in the cold north, without the know-how of the high plateau it cannot camp at 4,500 m, without boats it cannot reach an island. Each new land therefore comes with an **adaptation**, a culture profile with its own clothes, shelters, tools, food and animals, so the people who walk into Ice Age Europe come out of their huts in sewn fur clothes and hunt reindeer, and those who reach New Guinea build bark shelters and dig yams. Every arrival and every adaptation is a key moment on the timeline with a card in English and German.
+After the prologue has filled Africa (humankind.md section 4.2), the tree keeps growing the way it always has: a full camp sends two or three people off to found a new camp. What changes is where they may go. A small table of dated **arrival points**, each a real site with a source (the first people in Arabia, on Sumatra, in Australia, in Bulgaria, in Siberia, in Chile), says when people first reached each part of the world; the data build turns it into an **arrival map** that opens the land a little at a time, so the tree can only spread where and when people really did. A strait wider than people can wade is crossed in small canoes, only at a listed **crossing**. And a band can only live where its way of life lets it: in light clothing it cannot camp in the cold north, without the know-how of the high plateau it cannot camp at 4,500 m, without boats it cannot reach an island. Each new land therefore comes with an **adaptation**, a culture profile with its own clothes, shelters, tools, food and animals, so the people who walk into Ice Age Europe come out of their huts in sewn fur clothes and hunt reindeer, and those who reach New Guinea build bark shelters and dig yams. Every arrival and every adaptation is a key moment on the timeline with a card in English and German.
 
 ## 2. Accuracy
 
 - **One figure stands for many people** (spec section 2.4), so a camp founded at an arrival point stands for the first people of a whole region, not for one family. The arrival card says so where it matters ("People had been moving along these coasts for thousands of years...").
 - **Arrival dates are the earliest well-accepted evidence**, not the first footstep. People were often there a little earlier. Where an older date is claimed but argued about, the timeline uses the accepted one and the card names the older one as debated, as already done for Madjedbebe (humankind.md section 7).
 - **Earlier groups whose lines died out** are mentioned on the cards and not drawn: modern humans in the Levant about 180,000 to 90,000 years ago (Misliya, Skhul, Qafzeh) and possibly in Greece and southern China.
-- **Other humans.** Neanderthals are the second tree (humankind.md section 3.5). Denisovans in Asia and the small *Homo floresiensis* on Flores are named on cards only, because too little of them has been found to model them truthfully (**Proposed**). The Denisovan card says that people of New Guinea and Australia and of Tibet carry some of their genes, and that the Tibetan gene for breathing thin air came from them (Huerta-Sánchez et al. 2014, *Nature* 512).
+- **Other humans.** Neanderthals are the second tree (humankind.md section 3.5). Denisovans and *Homo floresiensis* are not shown, on the globe or on cards (decided by Yang on 2026-10-18).
 - **No conquest story.** Arriving people meet Neanderthals in western Asia and Europe; the card says the two lived side by side for thousands of years and had children together, and that the reasons the Neanderthals disappeared are still debated. Nobody is shown fighting.
 - **Body and way of life.** The cards say that people adapted mostly through what they made and knew (clothes, fire, shelters, boats, tools, knowledge of plants and animals), and only slowly and a little in their bodies: skin colour over many thousands of years (milestone 2 section 13.3), and the breathing of high-altitude peoples.
 - **Nothing is named after a later people.** A camp of 40,000 BCE in Europe is "Ice Age hunters", never "Germans" or "Europeans"; the first Americans are "the first people of the Americas", ancestors of the Indigenous peoples of the Americas, as the card says.
@@ -71,25 +71,9 @@ Dates and sources in these tables are drafted from the overview literature and a
 
 When the ice sheets melt after about 15,000 BCE, people follow the edge of the ice into land that was empty: northern Europe and Britain (about 13,000 BCE), Scandinavia (Norway's coast about 9500 BCE, Bang-Andersen 2012, *Norwegian Archaeological Review* 45), and the north of Canada. These need no arrival point: the land was inside the culture areas before the ice came, so the arrival map has already opened it, and camps return as soon as the habitat allows (section 5).
 
-### 3.5 The last lands (later milestones)
+### 3.5 After 9000 BCE
 
-After 9000 BCE the remaining lands are reached by sea, and they are arrivals of the milestone that covers their date ([milestones.md](milestones.md)), shown as Voyage events with the same mechanism. They are listed here so the plan is complete.
-
-| Id | Date | Who and where | Source to check |
-| --- | --- | --- | --- |
-| `caribbean` | c. 5000 BCE | First islanders reach Cuba and Hispaniola from Central or South America | Napolitano et al. 2019, *Science Advances* 5 |
-| `paleo-inuit` | c. 3000 to 2500 BCE | People of the Arctic Small Tool tradition cross the Arctic to Greenland | Raghavan et al. 2014, *Science* 345 |
-| `marianas` | c. 1500 BCE | Sailors from the Philippines reach the Mariana Islands, the longest sea voyage of its time | Carson et al. 2013, *Journal of Island and Coastal Archaeology* 8 |
-| `lapita` | c. 1350 to 800 BCE | The Lapita people sail from the Bismarcks to Vanuatu, New Caledonia, Fiji, Tonga and Samoa | Bedford, Spriggs and Regenvanu 2006, *Antiquity* 80; Burley et al. 2012, *PLoS ONE* 7 |
-| `canary-islands` | c. 1 CE, debated | Berber-speaking North Africans settle the Canary Islands | Fregel et al. 2019, *PLoS ONE* 14 |
-| `madagascar` | c. 500 CE | Austronesian sailors from Borneo and Bantu-speaking Africans settle Madagascar; older visits debated | Crowther et al. 2016, *PNAS* 113 |
-| `faroes-iceland` | c. 800 to 874 CE | Norse settlers reach the Faroes and Iceland (Irish monks perhaps earlier) | Church et al. 2013, *Quaternary Science Reviews* 77 |
-| `east-polynesia` | c. 1000 to 1200 CE | Polynesian voyagers reach the Society and Cook Islands, Hawaii and Rapa Nui; contact with South America about 1200 | Wilmshurst et al. 2011, *PNAS* 108; Ioannidis et al. 2020, *Nature* 583 |
-| `thule` | c. 1200 CE | The Thule people, ancestors of the Inuit, spread from Alaska to Greenland | Friesen and Arnold 2008, *American Antiquity* 73 |
-| `aotearoa` | c. 1250 to 1300 CE | Polynesians reach New Zealand, the last large land to be settled | Wilmshurst et al. 2008, *PNAS* 105 |
-| `empty-islands` | 1400s to 1800s | Islands nobody lived on before Europeans: Azores (1427), Cape Verde (1462), St Helena (1502), Mauritius (1638), Falklands (1764) | Each island's standard history |
-
-Antarctica stays without camps for the whole timeline; its first landings and research stations, if shown, are ordinary events.
+This plan ends at 9000 BCE, before farming begins (decided by Yang on 2026-10-18). The lands reached later, all of them by sea or across the Arctic (the Caribbean, the Arctic of Canada and Greenland, the islands of the Pacific, Madagascar, Iceland and New Zealand), get their own plan with the milestones of their dates ([milestones.md](milestones.md)). Antarctica stays without camps for the whole timeline.
 
 ## 4. The arrival map
 
@@ -109,7 +93,7 @@ A **culture profile** (milestone 2 section 4) is how people live in one kind of 
 | Id | Profile | Area and span (approximate) | Look and life | Typical activities | Prey and animals |
 | --- | --- | --- | --- | --- | --- |
 | `african-stone-age` | African hunter-gatherers | Africa, whole span | Unchanged (milestone 2 section 4); bone harpoons on lakes and rivers | Gathering, hunting with spears and bows, fishing, shellfish, beads | Eland, gazelle, zebra, wildebeest, fish |
-| `coastal-asia-hunter` | Hunter-gatherers of southern Asia | Arabia, India, Sundaland, southern China | Unchanged | Fishing, shellfish, gathering, rafts | Fish, deer, wild pig |
+| `coastal-asia-hunter` | Hunter-gatherers of southern Asia | Arabia, India, Sundaland, southern China | Unchanged | Fishing, shellfish, gathering, paddling canoes | Fish, deer, wild pig |
 | `west-asia-hunter` (new) | Hunters of western and central Asia | The Levant, Anatolia, the Zagros, the Caucasus and the lands east to the Altai, c. 48,000 to 12,500 BCE, then `natufian` in the Levant | Fitted hide clothes, hide tents and rock shelters | Hunting gazelle, wild goat and horse, knapping long blades, beads of shell | Gazelle, wild goat, horse |
 | `first-australians` | First Australians | Sahul, including New Guinea | Unchanged; in New Guinea no cloaks, bark and leaf shelters, digging for yams and gathering pandanus nuts in the highlands | Gathering, hunting, fishing, grinding seeds, rock painting, burning grass | Kangaroo, fish |
 | `ice-age-hunter` | Ice-age hunters of Europe | Europe, c. 45,000 to 9000 BCE (extended from 10,000 BCE, so Europe does not stand empty before milestone 3) | Unchanged | Unchanged | Reindeer, horse, mammoth, bison |
@@ -128,7 +112,7 @@ Each profile carries **limits** that, together with the land, ice and desert of 
 | --- | --- | --- |
 | `coldestC` | The lowest annual mean temperature (Beyer et al. 2020, BIO1, already in `data/sources/beyer-2020/`) at which camps may stand | Light clothing and hide cloaks (`african-stone-age`, `coastal-asia-hunter`): 5 °C; cloaks and fitted clothes (`first-australians`, with possum-skin cloaks in the south, `west-asia-hunter`, `east-asia-hunter`, `first-americans`, `natufian`): 0 °C; tailored furs sewn with eyed needles (`ice-age-hunter`, `steppe-beringia-hunter`): −15 °C |
 | `highestM` | The highest ground for camps, replacing the single 3,500 m of humankind.md section 5 | 3,500 m; 4,800 m for the people of the Tibetan Plateau from c. 38,000 BCE and of the Andes from c. 10,500 BCE |
-| `crossing` | The widest water a band can cross by boat (section 6) | Rafts, about 100 km, for every profile that lives on a coast; long-distance canoes from the later milestones |
+| `crossing` | The widest water a band can cross by boat (section 6) | Small canoes, about 100 km, for every profile that lives on a coast |
 
 The values are tuned so that every arrival point of section 3 is habitable on its date (the check of section 4) and so that, during the coldest part of the last Ice Age (about 24,000 to 17,000 BCE), the camps of northern Europe and Siberia pull back south into the refuges where archaeology finds people: southwest France and Spain, Italy, the Balkans, Ukraine and southern Siberia. This comes from the climate data, not from extra rules: the camps move away from cold land as they move away from rising sea (humankind.md section 4.4), and come back when it warms.
 
@@ -147,9 +131,9 @@ Some adaptations are worth a card of their own. They are events of type Inventio
 | Id | Date | Place | en | de | Source to check |
 | --- | --- | --- | --- | --- | --- |
 | `bows-and-arrows` | c. 62,000 BCE | Sibudu, South Africa | Bows and arrows | Pfeil und Bogen | Lombard and Phillipson 2010, *Antiquity* 84 (already a dated variant) |
-| `rafts-to-sahul` | c. 50,000 BCE | Timor Sea | The first sea voyages | Die ersten Seereisen | Bird et al. 2019, *Scientific Reports* 9 |
+| `boats-to-sahul` | c. 50,000 BCE | Timor Sea | The first sea voyages | Die ersten Seereisen | Bird et al. 2019, *Scientific Reports* 9; Kaifu et al. 2020, *Scientific Reports* 10 (a dugout canoe paddled from Taiwan to Yonaguni in 2019 to test such a voyage) |
 | `ground-axes` | c. 45,000 BCE | Kimberley, Australia | Axes with ground edges | Geschliffene Beile | Hiscock et al. 2016, *Australian Archaeology* 82 |
-| `eyed-needles` | c. 38,000 BCE | Denisova Cave, Altai | Sewing with eyed needles | Nähen mit Öhrnadeln | Gilligan 2010, *Journal of Archaeological Method and Theory* 17 |
+| `eyed-needles` | c. 38,000 BCE | Altai, southern Siberia | Sewing with eyed needles | Nähen mit Öhrnadeln | Gilligan 2010, *Journal of Archaeological Method and Theory* 17 |
 | `ice-age-music` | c. 40,000 BCE | Swabian Jura | The first flutes | Die ersten Flöten | Higham et al. 2012, *Journal of Human Evolution* 62 |
 | `living-high` | c. 38,000 BCE | Nwya Devu, Tibet | Living on the roof of the world | Leben auf dem Dach der Welt | Zhang et al. 2018, *Science* 362 |
 | `obsidian-voyages` | c. 36,000 BCE | Kōzushima, Japan | Sailing for stone | Mit dem Boot nach Stein | Ikeya 2015, in *Emergence and Diversity of Modern Human Behavior in Paleolithic Asia* |
@@ -169,7 +153,7 @@ Hunting outings (humankind.md section 8.1) show no prey yet. With this plan each
 
 ## 6. Crossing water
 
-Low sea levels joined many lands that are islands today: Sunda (Sumatra, Java, Borneo to Asia), Sahul (New Guinea and Tasmania to Australia), Beringia (Siberia to Alaska), Britain and Doggerland, and Japan's main islands to each other. The sea level curve of milestone 1 already draws these, so walking across them needs nothing new. Where water remained, people crossed it by raft or boat, and only at listed **crossings** (`data/curated/crossings.json`, **Proposed**), like the straits of `straits.json`:
+Low sea levels joined many lands that are islands today: Sunda (Sumatra, Java, Borneo to Asia), Sahul (New Guinea and Tasmania to Australia), Beringia (Siberia to Alaska), Britain and Doggerland, and Japan's main islands to each other. The sea level curve of milestone 1 already draws these, so walking across them needs nothing new. Where water remained, people crossed it in small boats, and only at listed **crossings** (`data/curated/crossings.json`, **Proposed**), like the straits of `straits.json`:
 
 | Id | Route | Width at the time, approximate | Date |
 | --- | --- | --- | --- |
@@ -180,7 +164,7 @@ Low sea levels joined many lands that are islands today: Sunda (Sumatra, Java, B
 | `korea-japan` | Korea to Kyushu | About 20 to 40 km | c. 36,000 BCE |
 | `channel-islands` | California coast to Santa Rosae | About 10 km | c. 11,000 BCE |
 
-- **On screen.** A band budding across a crossing walks to the shore, builds a raft (a new model `prop-raft` of lashed bamboo or logs, **Proposed**), and paddles across with the `paddle` clip (milestone 2 section 5.3), using the raft-crossing template of milestone 2 section 9 for the drawing. It lands, carries the raft up the beach and builds its camp. The crossing takes about a minute of watching (25 years, **Proposed**), far longer than life, so it can be seen, as stretched events are (milestone 2 section 6.7).
+- **On screen.** A band budding across a crossing walks to the shore, where its people make small canoes, one for every two or three of them (a new model `prop-canoe`, **Proposed**: a short dugout of a hollowed log, or bark sewn over a frame of bent sticks, with simple paddles; decided by Yang on 2026-10-18: small boats, canoes), and paddle across with the `paddle` clip (milestone 2 section 5.3). They land, pull the canoes up the beach and build their camp; the canoes stay on the shore of a coastal camp while it stands. The crossing takes about a minute of watching (25 years, **Proposed**), far longer than life, so it can be seen, as stretched events are (milestone 2 section 6.7). The card says that no boat this old has survived, so nobody knows exactly what they looked like, and that the oldest boat ever found, the Pesse canoe from the Netherlands, is a dugout of about 8000 BCE.
 - **The rule.** The tree's rule that the way to a new camp is land all the way (humankind.md section 4.1) stays; a crossing is the one exception, and only for a profile whose `crossing` is at least the crossing's width at the date.
 - **Gibraltar** is not a crossing: there is no accepted evidence that people crossed it before the Neolithic.
 
@@ -188,7 +172,7 @@ Low sea levels joined many lands that are islands today: Sunda (Sumatra, Java, B
 
 - **The route overlay.** While a route's front is moving, its dotted line is drawn from the last point reached to the next, with the next point's name (spec section 7.2). Finished stretches fade out.
 - **Key moments.** Every arrival point and adaptation moment is a mark on the timeline with an icon (Migration, Voyage or Invention or idea), and double-clicking it flies to the first camp there at its date (milestone 2 section 10). They make the long stretches between 60,000 and 9000 BCE (about 34 hours at regular speed) easy to jump through.
-- **Cards.** Each arrival card says who arrived, how (on foot along the coast, by raft, over the land bridge), what was new about the land (colder, higher, forest, desert) and how people lived there, in two or three sentences at an 11 to 12-year-old reading level, in English and German, with its source. Drafts for the first and the most important ones:
+- **Cards.** Each arrival card says who arrived, how (on foot along the coast, by canoe, over the land bridge), what was new about the land (colder, higher, forest, desert) and how people lived there, in two or three sentences at an 11 to 12-year-old reading level, in English and German, with its source. Drafts for the first and the most important ones:
   - `bab-el-mandeb` en: "Small groups cross the narrow sea between Africa and Arabia. The sea was lower then, so it was only a few kilometres wide. Their children's children walk on along the coasts, collecting shellfish and fishing, and in about 10,000 years their families reach Australia."
   - `bab-el-mandeb` de: "Kleine Gruppen überqueren das schmale Meer zwischen Afrika und Arabien. Der Meeresspiegel lag damals tiefer, darum war es nur wenige Kilometer breit. Die Kinder ihrer Kinder wandern die Küsten entlang weiter, sammeln Muscheln und fischen, und in etwa 10.000 Jahren erreichen ihre Familien Australien."
   - `europe` en: "People from western Asia reach Europe. It is much colder than today, and Neanderthals have lived here for a very long time. The newcomers sew fitted fur clothes and hunt reindeer and horses. For a few thousand years both kinds of people live in Europe, and some have children together."
@@ -210,23 +194,19 @@ Low sea levels joined many lands that are islands today: Sunda (Sumatra, Java, B
 
 Each step is a slice with its own preview for Yang (feedback first), after the camps of humankind.md settle:
 
-1. **Arrival map and southern route**: arrival points of section 3.1, the `bab-el-mandeb` and Wallacea crossings with rafts, `coastal-asia-hunter` and `first-australians` camps; people reach Sahul.
+1. **Arrival map and southern route**: arrival points of section 3.1, the `bab-el-mandeb` and Wallacea crossings with canoes, `coastal-asia-hunter` and `first-australians` camps; people reach Sahul.
 2. **North and west**: `west-asia-hunter`, `ice-age-hunter`, `steppe-beringia-hunter` and `east-asia-hunter` with the cold limits, the change of clothes, Neanderthals meeting modern humans and disappearing, the Ice Age retreat and return.
 3. **The Americas**: Beringia, the coast route, `first-americans`, the ice-free corridor.
 4. **Adaptation moments, prey and dogs**, and the route overlay and cards.
-5. **The last lands** (section 3.5) with the milestones of their dates.
 
-New models (the men, women and children of three profiles, `shelter-monte-verde-hut`, `prop-raft`, `animal-dog`) go to Yang for approval in the step that first needs them.
+New models (the men, women and children of three profiles, `shelter-monte-verde-hut`, `prop-canoe`, `animal-dog`) go to Yang for approval in the step that first needs them.
 
 ## 10. Changes to the rest of the spec
 
-- [milestone-2.md](milestone-2.md) section 9: the front comes from the arrival map of section 4; the walking families are replaced by the tree's budding bands; rafts follow section 6. Section 4 gains the three new profiles and the limits; `ice-age-hunter` runs to 9000 BCE. Section 13.3 gains the new models. Section 12's migration dates are kept and refined by section 3 (southern Siberia now from c. 43,000 BCE; Arctic Siberia at c. 30,000 BCE as before).
+- [milestone-2.md](milestone-2.md) section 9: the front comes from the arrival map of section 4; the walking families are replaced by the tree's budding bands; the raft crossings become canoe crossings at the listed crossings of section 6. Section 4 gains the three new profiles and the limits; `ice-age-hunter` runs to 9000 BCE. Section 13.3 gains the new models. Section 12's migration dates are kept and refined by section 3 (southern Siberia now from c. 43,000 BCE; Arctic Siberia at c. 30,000 BCE as before).
 - [humankind.md](humankind.md) section 4: camps may only stand on land the arrival map has opened and within their profile's limits; the 3,500 m height limit becomes the profile's `highestM`.
 - [events.md](events.md): the three migration events stay; the arrival points and adaptation moments are added as events when their records are written.
 
 ## 11. Open questions for Yang
 
-1. **Scope.** This plan covers the whole world, from the Bab-el-Mandeb at 60,000 BCE to New Zealand at about 1300 CE; the first four steps belong to milestone 2 and end at 9000 BCE (**Proposed**). Is that the right reach for now?
-2. **Limits drive the spread.** Should a band really be unable to camp in land too cold or too high for its way of life (section 5.2), so the Ice Age visibly pushes people south and adaptations open the north? (**Proposed**: yes.)
-3. **New profiles and dogs.** Three new profiles with their models, and the first dogs at c. 13,000 BCE instead of milestone 3 (sections 5.1 and 5.4). (**Proposed**: yes.)
-4. **Other humans.** Denisovans and *Homo floresiensis* as cards only, without figures (section 2). (**Proposed**: cards only.)
+None at the moment.
