@@ -15,3 +15,78 @@ pitulko-2004:
   author: Vladimir V. Pitulko and others
   publisher: Science 303, 52–56
   year: 2004
+britannica:
+  title: Encyclopaedia Britannica (online edition)
+  publisher: Encyclopaedia Britannica, Inc.
+  url: https://www.britannica.com
+  note: Records name the article in their note.
+shaw-2000:
+  title: The Oxford History of Ancient Egypt
+  author: Ian Shaw (editor)
+  publisher: Oxford University Press
+  year: 2000
+van-de-mieroop-2016:
+  title: A History of the Ancient Near East, ca. 3000–323 BC (third edition)
+  author: Marc Van De Mieroop
+  publisher: Wiley-Blackwell
+  year: 2016
+mithen-2003:
+  title: 'After the Ice: A Global Human History, 20,000–5000 BC'
+  author: Steven Mithen
+  publisher: Weidenfeld & Nicolson
+  year: 2003
+cunliffe-1994:
+  title: The Oxford Illustrated Prehistory of Europe
+  author: Barry Cunliffe (editor)
+  publisher: Oxford University Press
+  year: 1994
+wragg-sykes-2020:
+  title: 'Kindred: Neanderthal Life, Love, Death and Art'
+  author: Rebecca Wragg Sykes
+  publisher: Bloomsbury Sigma
+  year: 2020
+anthony-2007:
+  title: 'The Horse, the Wheel, and Language: How Bronze-Age Riders from the Eurasian Steppes Shaped the Modern World'
+  author: David W. Anthony
+  publisher: Princeton University Press
+  year: 2007
+cunliffe-2019:
+  title: 'The Scythians: Nomad Warriors of the Steppe'
+  author: Barry Cunliffe
+  publisher: Oxford University Press
+  year: 2019
+golden-2011:
+  title: Central Asia in World History
+  author: Peter B. Golden
+  publisher: Oxford University Press
+  year: 2011
+iliffe-2007:
+  title: 'Africans: The History of a Continent (second edition)'
+  author: John Iliffe
+  publisher: Cambridge University Press
+  year: 2007
+slavevoyages:
+  title: Trans-Atlantic Slave Trade Database
+  author: SlaveVoyages consortium
+  publisher: Emory University
+  url: https://www.slavevoyages.org
+singh-2008:
+  title: 'A History of Ancient and Early Medieval India: From the Stone Age to the 12th Century'
+  author: Upinder Singh
+  publisher: Pearson Longman
+  year: 2008
+higham-2014:
+  title: 'Early Mainland Southeast Asia: From First Humans to Angkor'
+  author: Charles Higham
+  publisher: River Books
+  year: 2014
+osborne-2016:
+  title: 'Southeast Asia: An Introductory History (twelfth edition)'
+  author: Milton Osborne
+  publisher: Allen & Unwin
+  year: 2016
+kirch-2017:
+  title: 'On the Road of the Winds: An Archaeological History of the Pacific Islands before European Contact (revised edition)'
+  author: Patrick Vinton Kirch
+  publisher: University of California Press
+  year: 2017

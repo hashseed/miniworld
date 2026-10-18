@@ -24,6 +24,12 @@ export const RoleSchema = z.strictObject({
 });
 export const RolesSchema = vocab(RoleSchema);
 
+export const RegionsSchema = vocab(labels);
+/** Timeline lanes from top to bottom: a lane of its own, or a region's lane. */
+export const LanesSchema = z.array(
+  z.union([z.strictObject({ id, en: label, de: label }), z.strictObject({ region: id })]),
+);
+
 export const AnimalsSchema = vocab(labels);
 export const IconsSchema = vocab(labels);
 

@@ -3,11 +3,21 @@
 // language at the end (spec milestone 1, section 10; milestone 2, section 18).
 
 import { join } from 'node:path';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { parse as parseYaml } from 'yaml';
 import type { SourceInfo, StartupIndex } from '../../../app/src/content/types.ts';
 import { LANGUAGES, type Language } from '../../../app/src/i18n/messages.ts';
 import { TIMELINE_START } from '../../../app/src/time/calendar.ts';
 import { AXIS_K_YEARS } from '../../../app/src/time/axis.ts';
-import { erasForLanguage, validateEras, type CuratedEras } from '../lib/eras.ts';
+import {
+  checkEraList,
+  erasForLanguage,
+  parseEra,
+  readLanes,
+  validateEras,
+  type CuratedEra,
+  type CuratedEras,
+} from '../lib/eras.ts';
 import { buildLandmarks } from '../lib/landmarks.ts';
 import { regionGrid } from '../lib/regions.ts';
 import { buildVignettes } from '../lib/vignettes.ts';
@@ -16,6 +26,8 @@ import { ROOT, type BuildContext, type WriteContext } from './context.ts';
 
 export interface Content {
   eras: CuratedEras;
+  /** Region ids of vocab/regions.yaml, in order. */
+  regions: string[];
   landmarks: ReturnType<typeof buildLandmarks>['landmarks'];
   vignettes: ReturnType<typeof buildVignettes>['vignettes'];
 }
@@ -23,9 +35,49 @@ export interface Content {
 /** Reads and validates the curated content; fails the build on any error. */
 export function validateContent(ctx: BuildContext): Content {
   const { cutoffDay, fail } = ctx;
-  const eras = ctx.curated<CuratedEras>('eras.json');
-  const eraErrors = validateEras(eras, TIMELINE_START, cutoffDay);
+  const curated = join(ROOT, 'data/curated');
+  const read = (path: string) => readFileSync(join(curated, path), 'utf8');
+  const laneVocab = readLanes(read('vocab/regions.yaml'), read('vocab/lanes.yaml'));
+  if (laneVocab.errors.length) fail(laneVocab.errors.join('\n'));
+  const sources = parseYaml(read('sources.yaml'), { schema: 'failsafe' }) as Parameters<
+    typeof parseEra
+  >[2]['sources'];
+  const eraErrors: string[] = [];
+  const eraList: CuratedEra[] = [];
+  const eraDir = join(curated, 'eras');
+  for (const f of (existsSync(eraDir) ? readdirSync(eraDir) : [])
+    .filter((n) => n.endsWith('.md'))
+    .sort()) {
+    const r = parseEra(f, read(`eras/${f}`), {
+      lanes: new Set(laneVocab.lanes.map((l) => l.id)),
+      sources,
+      startDay: TIMELINE_START,
+      cutoffDay,
+    });
+    eraErrors.push(...r.errors);
+    if (r.era) eraList.push(r.era);
+  }
+  eraErrors.push(...validateEras(eraList));
+  const lanePosition = new Map(laneVocab.lanes.map((l, i) => [l.id, i]));
+  // Chronological within each lane, lanes from top to bottom.
+  eraList.sort(
+    (a, b) =>
+      lanePosition.get(a.lane)! - lanePosition.get(b.lane)! ||
+      a.fromDay - b.fromDay ||
+      a.toDay - b.toDay ||
+      (a.id < b.id ? -1 : 1),
+  );
+  if (!eraErrors.length)
+    eraErrors.push(
+      ...checkEraList(
+        readFileSync(join(ROOT, 'docs/spec/eras.md'), 'utf8'),
+        laneVocab.lanes,
+        eraList,
+      ),
+    );
   if (eraErrors.length) fail(eraErrors.join('\n'));
+  const eras: CuratedEras = { lanes: laneVocab.lanes, eras: eraList };
+  const regions = laneVocab.regions.map((r) => r.id);
 
   const vocab = ((): Vocab => {
     try {
@@ -36,7 +88,7 @@ export function validateContent(ctx: BuildContext): Content {
   })();
   const landmarkBuild = buildLandmarks({
     curated: join(ROOT, 'data/curated'),
-    lanes: new Set(eras.lanes.map((l) => l.id)),
+    lanes: new Set(regions),
     vocab,
     startDay: TIMELINE_START,
     cutoffDay,
@@ -44,7 +96,7 @@ export function validateContent(ctx: BuildContext): Content {
   if (landmarkBuild.errors.length) fail(landmarkBuild.errors.join('\n'));
   const vignetteBuild = buildVignettes({
     curated: join(ROOT, 'data/curated'),
-    lanes: new Set(eras.lanes.map((l) => l.id)),
+    lanes: new Set(regions),
     vocab,
     startDay: TIMELINE_START,
     cutoffDay,
@@ -57,7 +109,7 @@ export function validateContent(ctx: BuildContext): Content {
         fail(
           `landmarks/${l.structure.id}.md: build of ${p.name} names unknown vignette "${p.build.vignette}"`,
         );
-  return { eras, landmarks: landmarkBuild.landmarks, vignettes: vignetteBuild.vignettes };
+  return { eras, regions, landmarks: landmarkBuild.landmarks, vignettes: vignetteBuild.vignettes };
 }
 
 /** Writes the vignettes, landmarks and the startup index per language; returns the index files. */
@@ -66,7 +118,7 @@ export function buildContent(
   content: Content,
   climate: { seaLevel: StartupIndex['seaLevel']; iceDays: number[] },
 ): Record<Language, string> {
-  const { output, log, cutoffDay } = ctx;
+  const { output, log } = ctx;
   const sources: SourceInfo[] = ctx.registry
     .filter((s) => !(ctx.fixture && s.id === 'etopo-2022'))
     .map((s) => ({
@@ -96,16 +148,18 @@ export function buildContent(
     ) as Record<Language, string>,
   }));
   log(`${landmarkFiles.length} landmarks`);
+  log(`${content.eras.eras.length} eras in ${content.eras.lanes.length} lanes`);
 
+  const grid = regionGrid(content.regions);
   const index = {} as Record<Language, string>;
   for (const language of LANGUAGES) {
     const idx: StartupIndex = {
       language,
-      ...erasForLanguage(content.eras, language, TIMELINE_START, cutoffDay),
+      ...erasForLanguage(content.eras, language),
       axisYears: AXIS_K_YEARS,
       seaLevel: climate.seaLevel,
       iceSlices: climate.iceDays,
-      regions: regionGrid(),
+      regions: grid,
       sources,
       events: [],
       people: [],
