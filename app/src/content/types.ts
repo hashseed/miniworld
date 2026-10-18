@@ -70,7 +70,8 @@ export interface StartupIndex {
   language: Language;
   lanes: { id: string; label: string }[];
   eras: EraRecord[];
-  watchTable: { startYear: number; stepYears: number; seconds: number[] };
+  /** The constant k of the logarithmic timeline axis, in years (milestone 1, section 7.2). */
+  axisYears: number;
   seaLevel: { startDay: number; stepDays: number; metres: number[] };
   /** Days of the climate slices (ice and deserts), ascending, as in the manifest. */
   iceSlices: number[];

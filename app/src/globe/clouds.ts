@@ -1,6 +1,6 @@
 // Puffy cartoon clouds floating around the toy planet (spec milestone 1,
 // section 4.5). Each cloud is a cluster of soft balls placed by a seeded
-// hash; the clouds drift on the life clock and carry no weather meaning.
+// hash; the clouds drift on the clock and carry no weather meaning.
 // All of them are one instanced mesh, so they cost one draw call.
 
 import * as THREE from 'three';
@@ -12,7 +12,7 @@ export const CLOUD_COUNT = 30;
 const PUFFS = 7;
 /** Height of the cloud centres above sea level, in km on the exaggerated globe. */
 export const CLOUD_ALTITUDE_KM = 650;
-/** One full trip around the globe takes this long on the life clock. */
+/** One full trip around the globe takes this long on the clock. */
 const ORBIT_MS = 30 * 60 * 1000;
 
 export interface Puff {
@@ -52,7 +52,7 @@ export class Clouds {
   readonly material: THREE.ShaderMaterial;
   private puffs = cloudPuffs();
   private matrix = new THREE.Matrix4();
-  private lastLifeMs = -1;
+  private lastClockMs = -1;
 
   constructor() {
     this.material = new THREE.ShaderMaterial({
@@ -74,7 +74,7 @@ export class Clouds {
     this.mesh.renderOrder = 2;
   }
 
-  update(camera: THREE.Camera, lifeMs: number, lightDir: THREE.Vector3): void {
+  update(camera: THREE.Camera, clockMs: number, lightDir: THREE.Vector3): void {
     const u = this.material.uniforms;
     u.lightDir!.value.copy(lightDir);
     const e = camera.matrixWorld.elements;
@@ -88,8 +88,8 @@ export class Clouds {
       CLOUD_ALTITUDE_KM * 3.5,
     );
     this.mesh.visible = u.fade!.value > 0.01;
-    if (!this.mesh.visible || lifeMs === this.lastLifeMs) return;
-    this.lastLifeMs = lifeMs;
+    if (!this.mesh.visible || clockMs === this.lastClockMs) return;
+    this.lastClockMs = clockMs;
 
     const centre = new THREE.Vector3();
     const east = new THREE.Vector3();
@@ -104,7 +104,7 @@ export class Clouds {
       if (puff.cloud !== current) {
         current = puff.cloud;
         const { lat, lon, speed } = cloudPlace(puff.cloud);
-        const drift = ((lifeMs * speed) / ORBIT_MS) * 360;
+        const drift = ((clockMs * speed) / ORBIT_MS) * 360;
         const phi = THREE.MathUtils.degToRad(lat);
         const lambda = THREE.MathUtils.degToRad(lon + drift);
         up.set(Math.cos(phi) * Math.sin(lambda), Math.sin(phi), Math.cos(phi) * Math.cos(lambda));

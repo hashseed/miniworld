@@ -329,6 +329,38 @@ input:focus-visible {
   cursor: pointer;
 }
 
+/* The three speed modes (milestone 1, section 3.3). */
+.speed-modes {
+  display: flex;
+  gap: 4px;
+}
+
+.speed-mode {
+  box-shadow: none;
+}
+
+.speed-mode[aria-checked='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text, #fff);
+}
+
+.speed-mode svg,
+.speed-badge svg {
+  fill: currentColor;
+}
+
+.speed-badge {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+}
+
+.speed-badge svg {
+  width: 14px;
+  height: 14px;
+}
+
 .fold-box output {
   min-width: 3.6em;
   text-align: center;

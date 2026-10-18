@@ -1,9 +1,10 @@
 // The vignette player (spec milestone 2, sections 6 and 18.5): pure functions
-// from a compiled vignette, the day and the vignette clock to instances and the
-// poses of their cast, props and spears. No state, no engine-dependent maths: only integers,
+// from a compiled vignette and the clock to instances and the poses of their
+// cast, props and spears. No state, no engine-dependent maths: only integers,
 // + − × ÷ and Math.sqrt, so every device computes the same scene.
 
 import { hash32, hashString } from '../core/hash.ts';
+import { dayAtMs, msAtDay } from '../time/rate.ts';
 
 export type Verb =
   | 'wait'
@@ -111,7 +112,7 @@ export interface CompiledProp {
 
 export interface CompiledTemplate {
   id: string;
-  /** Script length; with once, played once over each instance's shown span. */
+  /** Script length in milliseconds of clock time; with once, played once per instance. */
   loopMs: number;
   once: boolean;
   radiusCm: number;
@@ -146,10 +147,12 @@ export interface Instance {
   id: string;
   recordId: string;
   site: CompiledSite;
-  /** The instance's shown span: its period, clipped to the record's span. */
+  /** The instance's period, clipped to the record's span. */
   fromDay: number;
   toDay: number;
-  offsetMs: number;
+  /** The instance's shown span on the clock (section 6.5), in whole milliseconds. */
+  startMs: number;
+  endMs: number;
   /** Stage orientation: the compass direction of +x as (east, north). */
   orient: [number, number];
 }
@@ -166,13 +169,37 @@ const ORIENTATIONS: [number, number][] = [
   [R, -R],
 ];
 
-/** The instances of a repeated vignette standing on a day (section 18.5). */
-export function instancesAt(v: CompiledVignette, day: number): Instance[] {
-  if (day < v.fromDay || day >= v.toDay) return [];
-  const seed = hashString(v.id);
-  const period = Math.floor((day - v.fromDay) / v.periodDays);
+/** The instances of a repeated vignette shown at a clock time (section 18.5). */
+export function instancesAt(v: CompiledVignette, ms: number, startDay: number): Instance[] {
+  const day = dayAtMs(ms, startDay);
+  if (day < v.fromDay) return [];
+  const loopMs = v.template.loopMs;
+  const out: Instance[] = [];
+  // An instance can run past its period when the period is shorter than its script.
+  let period = Math.floor((Math.min(day, v.toDay - 1) - v.fromDay) / v.periodDays);
+  for (; period >= 0; period--) {
+    const periodStart = msAtDay(v.fromDay + period * v.periodDays, startDay);
+    const periodMs = msAtDay(v.fromDay + (period + 1) * v.periodDays, startDay) - periodStart;
+    if (periodStart + Math.max(periodMs, 2 * loopMs) <= ms) break;
+    for (const i of periodInstances(v, period, startDay))
+      if (i.startMs <= ms && ms < i.endMs) out.push(i);
+  }
+  return out;
+}
+
+/**
+ * The instances of one period (section 6.6): each starts at the period's start
+ * plus a hashed offset and lasts its script once, or as many whole loops as fit
+ * before the period's end, at least one.
+ */
+export function periodInstances(v: CompiledVignette, period: number, startDay: number): Instance[] {
   const fromDay = v.fromDay + period * v.periodDays;
+  if (period < 0 || fromDay >= v.toDay) return [];
   const toDay = Math.min(fromDay + v.periodDays, v.toDay);
+  const periodStart = msAtDay(fromDay, startDay);
+  const periodMs = msAtDay(toDay, startDay) - periodStart;
+  const t = v.template;
+  const seed = hashString(v.id);
   const candidates = v.sites.filter(
     (s) => (s.fromDay ?? -Infinity) <= fromDay && (s.toDay ?? Infinity) > fromDay,
   );
@@ -181,13 +208,24 @@ export function instancesAt(v: CompiledVignette, day: number): Instance[] {
     const pick = hash32(seed, period, k) % candidates.length;
     const site = candidates.splice(pick, 1)[0]!;
     const h = hash32(seed, period, k, 7);
+    let offset: number;
+    let length: number;
+    if (t.once) {
+      const room = periodMs - t.loopMs;
+      offset = room > 0 ? h % (room + 1) : 0;
+      length = t.loopMs;
+    } else {
+      offset = periodMs > t.loopMs ? h % t.loopMs : 0;
+      length = Math.max(1, Math.floor((periodMs - offset) / t.loopMs)) * t.loopMs;
+    }
     out.push({
       id: `${v.id}:${period}:${k}`,
       recordId: v.id,
       site,
       fromDay,
       toDay,
-      offsetMs: h % v.template.loopMs,
+      startMs: periodStart + offset,
+      endMs: periodStart + offset + length,
       orient: ORIENTATIONS[hash32(h, 11) % 8]!,
     });
   }
@@ -447,22 +485,13 @@ export interface Pose {
 
 /**
  * The phase of an instance in whole milliseconds of its script (section 6.5):
- * a script played once maps the shown span onto its length; a loop repeats on
- * the vignette clock.
+ * the clock time since the start of its shown span, once or modulo the loop.
  */
-export function phaseOf(
-  t: CompiledTemplate,
-  instance: Instance,
-  day: number,
-  vignetteMs: number,
-): number {
-  if (t.once) {
-    const span = instance.toDay - instance.fromDay;
-    const p = Math.floor(((day - instance.fromDay) * t.loopMs) / span);
-    return p < 0 ? 0 : p >= t.loopMs ? t.loopMs - 1 : p;
-  }
-  const p = (vignetteMs + instance.offsetMs) % t.loopMs;
-  return p < 0 ? p + t.loopMs : p;
+export function phaseOf(t: CompiledTemplate, instance: Instance, ms: number): number {
+  const p = ms - instance.startMs;
+  if (t.once) return p < 0 ? 0 : p >= t.loopMs ? t.loopMs - 1 : p;
+  const q = p % t.loopMs;
+  return q < 0 ? q + t.loopMs : q;
 }
 
 /** Every cast member's pose for an instance at a phase (section 18.5). */

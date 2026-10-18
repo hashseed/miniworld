@@ -26,7 +26,7 @@ export function attachKeys(t: KeyTargets): void {
       t.clock.togglePlay();
     } else if (e.key === '[' || e.key === ']') {
       e.preventDefault();
-      t.clock.setSpeedLog2(t.clock.speedLog2 + (e.key === ']' ? 1 : -1));
+      t.clock.stepSpeed(e.key === ']' ? 1 : -1);
     } else if ((e.key === 'Home' || e.key === 'End') && target !== t.timelineCanvas()) {
       e.preventDefault();
       t.clock.setDay(e.key === 'Home' ? t.clock.startDay : t.clock.endDay);

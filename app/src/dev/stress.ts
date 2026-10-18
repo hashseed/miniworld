@@ -67,12 +67,12 @@ export class StressRun {
     globe: Globe,
     planet: PlanetState,
     camera: THREE.Camera,
-    lifeMs: number,
+    clockMs: number,
   ): void {
     const centre = latLonToDir(STRESS_CENTRE.lat, STRESS_CENTRE.lon);
     const ground = globe.surfaceAtTrue(centre, planet);
     if (ground > 0 || globe.drawnTiles > 0) this.scene.setGround(ground);
     this.scene.place(new THREE.Vector3(...globe.lens.toDrawn(centre)));
-    this.scene.update(camera, lifeMs, now);
+    this.scene.update(camera, clockMs, now);
   }
 }
