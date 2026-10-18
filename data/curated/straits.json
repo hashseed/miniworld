@@ -89,6 +89,61 @@
       "source": "Encyclopaedia Britannica, Strait of Messina: https://www.britannica.com/place/Strait-of-Messina"
     },
     {
+      "id": "otranto",
+      "name": "Strait of Otranto",
+      "sill": -780,
+      "line": [
+        [19.1, 39.6],
+        [18.95, 40.0],
+        [18.9, 40.3],
+        [18.65, 40.75],
+        [18.2, 41.2],
+        [17.8, 41.5]
+      ],
+      "source": "Encyclopaedia Britannica, Strait of Otranto: https://www.britannica.com/place/Strait-of-Otranto",
+      "coreKm": 30
+    },
+    {
+      "id": "adriatic-south",
+      "name": "Southern Adriatic",
+      "sill": -170,
+      "coreKm": 60,
+      "line": [
+        [18.2, 41.3],
+        [17.6, 41.65],
+        [17.0, 42.05],
+        [16.2, 42.55],
+        [15.5, 43.0]
+      ],
+      "source": "Encyclopaedia Britannica, Adriatic Sea: https://www.britannica.com/place/Adriatic-Sea"
+    },
+    {
+      "id": "adriatic-middle",
+      "name": "Middle Adriatic",
+      "sill": -75,
+      "coreKm": 45,
+      "line": [
+        [15.5, 43.0],
+        [14.9, 43.45],
+        [14.35, 43.85],
+        [13.8, 44.3]
+      ],
+      "source": "Encyclopaedia Britannica, Adriatic Sea: https://www.britannica.com/place/Adriatic-Sea"
+    },
+    {
+      "id": "adriatic-north",
+      "name": "Northern Adriatic",
+      "sill": -35,
+      "coreKm": 45,
+      "line": [
+        [13.8, 44.3],
+        [13.25, 44.9],
+        [13.05, 45.3],
+        [13.4, 45.6]
+      ],
+      "source": "Encyclopaedia Britannica, Adriatic Sea: https://www.britannica.com/place/Adriatic-Sea"
+    },
+    {
       "id": "bonifacio",
       "name": "Strait of Bonifacio",
       "sill": -50,
