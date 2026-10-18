@@ -15,8 +15,6 @@
   "timeline.label": "Zeitleiste",
   "timeline.trueScale": "Echter Zeitmaßstab",
   "timeline.follow": "Dem Zeitpunkt folgen",
-  "timeline.zoomIn": "Zeitleiste vergrößern",
-  "timeline.zoomOut": "Zeitleiste verkleinern",
   "timeline.expand": "Alle Regionen zeigen",
   "timeline.collapse": "Nur diese Region zeigen",
   "timeline.eraTooltip": "{name}: {from} bis {to}",

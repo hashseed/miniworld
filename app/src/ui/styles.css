@@ -243,21 +243,55 @@ input:focus-visible {
 
 .timeline-wrap {
   position: relative;
+  display: flex;
   border-radius: var(--radius);
   overflow: hidden;
   border: 1px solid var(--panel-border);
   box-shadow: var(--shadow);
+  background: var(--panel);
 }
 
-.timeline-wrap canvas {
+/* The expand button is the timeline's left edge (milestone 1, section 7.1). */
+.timeline-expand {
+  flex: none;
+  width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 10px 0 0;
+  border: 0;
+  border-right: 1px solid var(--panel-border);
+  background: var(--panel);
+  color: inherit;
+  cursor: pointer;
+}
+
+.timeline-expand[aria-pressed='true'] {
+  background: var(--accent-soft);
+}
+
+.timeline-expand svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+.timeline-canvas {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.timeline-canvas canvas {
   display: block;
   width: 100%;
 }
 
-.timeline-tools {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+.timeline-follow {
+  position: absolute;
+  top: 4px;
+  right: 4px;
 }
 
 .panel {

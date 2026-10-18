@@ -253,16 +253,16 @@ The camera has one fly-to operation used by bookmarks now and by events and famo
 
 ### 7.1 Layout
 
-- The timeline is a strip along the bottom of the screen, drawn on a canvas, with HTML controls beside it. It has a date readout, the playhead, a lane "World" and one lane per region in the order of spec section 7.1.
+- The timeline is a strip along the bottom of the screen, drawn on a canvas, with its expand button built into its left edge. It has a date readout, the playhead, a lane "World" and one lane per region in the order of spec section 7.1.
 - Lanes show the era ranges from [eras.md](eras.md). The World lane uses a fixed colour per era; regional ranges use the colour assigned to that polity in `data/curated/eras` (later shared with the border overlay). Overlapping ranges in one lane stack into sub-rows.
 - A range's label is drawn inside it when it fits, otherwise it is shortened with an ellipsis and shown in full on hover or tap, together with its dates. German labels are about a third longer, so layout never assumes English widths.
-- **Collapsed (the default on every device):** the timeline shows only the lane of the region the globe is centred on, which changes as the viewer moves the globe (decided by Yang on 2026-10-17). The region comes from a coarse region lookup table built by the data build. A button expands the timeline to the World lane and all regional lanes, taking at most about a third of the window height on desktop and two thirds on phones, and collapses it again. The choice is saved with the settings.
+- **Collapsed (the default on every device):** the timeline shows only the lane of the region the globe is centred on, which changes as the viewer moves the globe (decided by Yang on 2026-10-17). The region comes from a coarse region lookup table built by the data build. A button at the left edge of the timeline, inside its frame (decided by Yang on 2026-10-18), expands it to the World lane and all regional lanes, taking at most about a third of the window height on desktop and two thirds on phones, and collapses it again. The choice is saved with the settings.
 
 ### 7.2 Axis and zoom
 
 - The default axis is the watching-time axis (section 3.3): each period is as wide as its watching time at ×1. The toggle "True time scale" switches to a linear axis in years, where all of written history is a thin sliver at the right end. The switch animates over about half a second and keeps the playhead in place.
-- The timeline zooms from the whole of history down to about a single year across its width: scroll wheel or pinch over the timeline, plus zoom buttons. Tick labels adapt to the zoom (10,000 years, 1,000 years, 100 years, 10 years, 1 year) and are formatted per language.
-- By default the visible window follows the playhead while playing; dragging the timeline background pans it and stops following until the play button or a "follow" button is pressed.
+- The timeline zooms from the whole of history down to about a single year across its width: scroll wheel or pinch over the timeline. There are no zoom buttons (removed by Yang on 2026-10-18). Tick labels adapt to the zoom (10,000 years, 1,000 years, 100 years, 10 years, 1 year) and are formatted per language.
+- By default the visible window follows the playhead while playing; dragging the timeline background pans it and stops following until the play button or a "follow" button is pressed. The follow button sits at the right edge inside the timeline and shows only while the timeline is not following.
 
 ### 7.3 Scrubbing
 

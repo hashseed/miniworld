@@ -15,8 +15,6 @@
   "timeline.label": "Timeline",
   "timeline.trueScale": "True time scale",
   "timeline.follow": "Follow the playhead",
-  "timeline.zoomIn": "Zoom timeline in",
-  "timeline.zoomOut": "Zoom timeline out",
   "timeline.expand": "Show all regions",
   "timeline.collapse": "Show only this region",
   "timeline.eraTooltip": "{name}: {from} to {to}",

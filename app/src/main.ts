@@ -295,9 +295,6 @@ const actions: Actions = {
   deleteBookmark: (id) => setBookmarks(ui.value.bookmarks.filter((b) => b.id !== id)),
   resetCamera: () => controller.resetOrientation(),
   tiltCamera: (degrees) => controller.tiltBy(degrees),
-  zoomTimeline: (factor) => {
-    timeline?.zoomBy(factor);
-  },
   followPlayhead: () => timeline?.setFollow(true),
   toggleLanes: () => {
     actions.setSetting('timelineExpanded', !ui.value.settings.timelineExpanded);

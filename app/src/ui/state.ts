@@ -59,7 +59,6 @@ export interface Actions {
   resetCamera(): void;
   /** Positive degrees tilt towards the horizon. */
   tiltCamera(degrees: number): void;
-  zoomTimeline(factor: number): void;
   followPlayhead(): void;
   toggleLanes(): void;
   remeasure(): void;

@@ -22,10 +22,8 @@ import {
   GearIcon,
   InfoIcon,
   LanesIcon,
-  MinusIcon,
   PauseIcon,
   PlayIcon,
-  PlusIcon,
 } from './icons.tsx';
 
 interface Props {
@@ -188,44 +186,7 @@ export function App({ store, i18n, actions }: Props) {
               : stateText}
           </span>
         </div>
-        <div class="timeline-tools">
-          <button
-            class="btn"
-            aria-label={t('timeline.zoomIn')}
-            title={t('timeline.zoomIn')}
-            onClick={() => actions.zoomTimeline(0.5)}
-          >
-            <PlusIcon />
-          </button>
-          <button
-            class="btn"
-            aria-label={t('timeline.zoomOut')}
-            title={t('timeline.zoomOut')}
-            onClick={() => actions.zoomTimeline(2)}
-          >
-            <MinusIcon />
-          </button>
-          {!s.follow && (
-            <button
-              class="btn"
-              aria-label={t('timeline.follow')}
-              title={t('timeline.follow')}
-              onClick={() => actions.followPlayhead()}
-            >
-              <FollowIcon />
-            </button>
-          )}
-          <button
-            class="btn"
-            aria-label={s.settings.timelineExpanded ? t('timeline.collapse') : t('timeline.expand')}
-            title={s.settings.timelineExpanded ? t('timeline.collapse') : t('timeline.expand')}
-            aria-pressed={s.settings.timelineExpanded}
-            onClick={() => actions.toggleLanes()}
-          >
-            <LanesIcon />
-          </button>
-        </div>
-        <TimelineCanvas t={t} actions={actions} />
+        <TimelineCanvas s={s} t={t} actions={actions} />
       </div>
     </>
   );
@@ -233,7 +194,7 @@ export function App({ store, i18n, actions }: Props) {
 
 type T = I18n['t'];
 
-function TimelineCanvas({ t, actions }: { t: T; actions: Actions }) {
+function TimelineCanvas({ s, t, actions }: { s: UiState; t: T; actions: Actions }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     actions.attachTimeline(ref.current);
@@ -241,13 +202,34 @@ function TimelineCanvas({ t, actions }: { t: T; actions: Actions }) {
   }, [actions]);
   return (
     <div class="timeline-wrap">
-      <canvas
-        ref={ref}
-        tabIndex={0}
-        role="slider"
-        aria-label={t('timeline.label')}
-        data-testid="timeline"
-      />
+      <button
+        class="timeline-expand"
+        aria-label={s.settings.timelineExpanded ? t('timeline.collapse') : t('timeline.expand')}
+        title={s.settings.timelineExpanded ? t('timeline.collapse') : t('timeline.expand')}
+        aria-pressed={s.settings.timelineExpanded}
+        onClick={() => actions.toggleLanes()}
+      >
+        <LanesIcon />
+      </button>
+      <div class="timeline-canvas">
+        <canvas
+          ref={ref}
+          tabIndex={0}
+          role="slider"
+          aria-label={t('timeline.label')}
+          data-testid="timeline"
+        />
+        {!s.follow && (
+          <button
+            class="btn timeline-follow"
+            aria-label={t('timeline.follow')}
+            title={t('timeline.follow')}
+            onClick={() => actions.followPlayhead()}
+          >
+            <FollowIcon />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
