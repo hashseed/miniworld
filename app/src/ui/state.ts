@@ -2,6 +2,7 @@
 
 import type { SourceInfo } from '../content/types.ts';
 import type { PlayState } from '../time/clock.ts';
+import type { SpeedMode } from '../time/speed.ts';
 import type { Bookmark, Settings } from './storage.ts';
 
 export type Panel = 'none' | 'settings' | 'bookmarks' | 'about' | 'vignette';
@@ -26,8 +27,7 @@ export interface VignetteCard {
 export interface HotState {
   day: number;
   playState: PlayState;
-  /** Base-2 logarithm of the speed multiplier, −6 to 6. */
-  speedLog2: number;
+  speedMode: SpeedMode;
   yearsPerMinute: number;
   scrubbing: boolean;
   stats: { fps: number; avg: number; p99: number; calls: number; triangles: number; scale: number };
@@ -53,8 +53,7 @@ export interface UiState {
 export interface Actions {
   play(): void;
   pause(): void;
-  /** Sets the speed slider; `release` snaps it to ×1 when close. */
-  setSpeed(log2: number, release?: boolean): void;
+  setSpeed(mode: SpeedMode): void;
   setPanel(panel: Panel): void;
   setSetting<K extends keyof Settings>(key: K, value: Settings[K]): void;
   addBookmark(): void;

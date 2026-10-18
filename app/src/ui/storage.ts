@@ -3,14 +3,16 @@
 
 import type { CameraState } from '../core/camera.ts';
 import type { Language } from '../i18n/messages.ts';
+import { TIMELINE_START } from '../time/calendar.ts';
 import type { PlayState } from '../time/clock.ts';
+import { msAtDay } from '../time/rate.ts';
+import { isSpeedMode, type SpeedMode } from '../time/speed.ts';
 
 export interface Settings {
   language: Language;
   /** Timeline shows every lane instead of only the region under the globe centre. */
   timelineExpanded: boolean;
   trueTimeScale: boolean;
-  slowWhenZoomed: boolean;
   showStats: boolean;
   /**
    * Strength of the history lens in whole percent, 0 (true sizes) to 200;
@@ -22,25 +24,29 @@ export interface Settings {
 }
 
 export interface ViewState {
-  day: number;
+  /** Clock time in whole milliseconds (spec milestone 1, section 3.3). */
+  ms: number;
   camera: CameraState;
   playState: PlayState;
-  /** Base-2 logarithm of the speed multiplier, −6 to 6. */
-  speedLog2: number;
+  speedMode: SpeedMode;
 }
 
 export interface Bookmark {
   id: string;
   name: string;
-  day: number;
+  /** Clock time in whole milliseconds. */
+  ms: number;
   camera: CameraState;
 }
 
 const KEYS = {
   settings: 'miniworld.settings.v1',
-  view: 'miniworld.view.v1',
-  bookmarks: 'miniworld.bookmarks.v1',
+  view: 'miniworld.view.v2',
+  bookmarks: 'miniworld.bookmarks.v2',
 } as const;
+
+/** Version 1 saved a day; it becomes the clock time at which that day begins. */
+const LEGACY = { view: 'miniworld.view.v1', bookmarks: 'miniworld.bookmarks.v1' } as const;
 
 export const MAX_BOOKMARKS = 200;
 
@@ -81,7 +87,6 @@ export function loadSettings(defaults: Settings): Settings {
     language: v.language === 'en' || v.language === 'de' ? v.language : defaults.language,
     timelineExpanded: isBool(v.timelineExpanded) ? v.timelineExpanded : defaults.timelineExpanded,
     trueTimeScale: isBool(v.trueTimeScale) ? v.trueTimeScale : defaults.trueTimeScale,
-    slowWhenZoomed: isBool(v.slowWhenZoomed) ? v.slowWhenZoomed : defaults.slowWhenZoomed,
     showStats: isBool(v.showStats) ? v.showStats : defaults.showStats,
     lensStrength: lensStrengthOf(v, defaults.lensStrength),
     lensHintSeen: isBool(v.lensHintSeen) ? v.lensHintSeen : defaults.lensHintSeen,
@@ -101,15 +106,21 @@ export function saveSettings(s: Settings): void {
 }
 
 export function loadView(): ViewState | undefined {
-  const v = read(KEYS.view);
+  const v = read(KEYS.view) ?? read(LEGACY.view);
   if (!isObj(v)) return undefined;
   const camera = validCamera(v.camera);
-  if (!camera || !isNum(v.day) || !Number.isInteger(v.day)) return undefined;
-  // Views saved before the speed slider kept an index into ×¼, ×½, ×1, ×2, ×4, ×16.
-  const legacy = isNum(v.speedIndex) ? [-2, -1, 0, 1, 2, 4][v.speedIndex] : undefined;
-  const speedLog2 = isNum(v.speedLog2) ? v.speedLog2 : (legacy ?? 0);
+  const ms = clockMsOf(v);
+  if (!camera || ms === undefined) return undefined;
+  const speedMode = isSpeedMode(v.speedMode) ? v.speedMode : 'regular';
   const playState: PlayState = 'paused'; // never resume running unattended
-  return { day: v.day, camera, playState, speedLog2 };
+  return { ms, camera, playState, speedMode };
+}
+
+/** A record's clock time, or the start of its day for version 1. */
+function clockMsOf(v: Record<string, unknown>): number | undefined {
+  if (isNum(v.ms) && Number.isInteger(v.ms) && v.ms >= 0) return v.ms;
+  if (isNum(v.day)) return Math.max(0, msAtDay(Math.floor(v.day), TIMELINE_START));
+  return undefined;
 }
 
 export function saveView(view: ViewState): void {
@@ -117,15 +128,16 @@ export function saveView(view: ViewState): void {
 }
 
 export function loadBookmarks(): Bookmark[] {
-  const v = read(KEYS.bookmarks);
+  const v = read(KEYS.bookmarks) ?? read(LEGACY.bookmarks);
   if (!Array.isArray(v)) return [];
   const out: Bookmark[] = [];
   for (const b of v) {
     if (!isObj(b)) continue;
     const camera = validCamera(b.camera);
-    if (!camera || typeof b.id !== 'string' || typeof b.name !== 'string' || !isNum(b.day))
+    const ms = clockMsOf(b);
+    if (!camera || typeof b.id !== 'string' || typeof b.name !== 'string' || ms === undefined)
       continue;
-    out.push({ id: b.id, name: b.name.slice(0, 120), day: Math.floor(b.day), camera });
+    out.push({ id: b.id, name: b.name.slice(0, 120), ms, camera });
   }
   return out.slice(0, MAX_BOOKMARKS);
 }

@@ -22,7 +22,7 @@ attribute float vid;
 attribute vec4 inst;   // x, z (km), heading, seed
 attribute vec3 tint;
 uniform sampler2D anim;
-uniform float time;     // life clock in seconds
+uniform float time;     // clock time in seconds, wrapped to an hour
 uniform float scale;
 varying vec3 vColour;
 varying float vShade;
@@ -195,8 +195,8 @@ export class StressScene {
     this.lastSort = -1e9;
   }
 
-  update(camera: THREE.Camera, lifeMs: number, nowMs: number): void {
-    this.material.uniforms.time!.value = lifeMs / 1000;
+  update(camera: THREE.Camera, clockMs: number, nowMs: number): void {
+    this.material.uniforms.time!.value = (clockMs % 3_600_000) / 1000;
     if (nowMs - this.lastSort < 500) return;
     this.lastSort = nowMs;
     // Pick the figures nearest the camera to animate; the rest become marks.

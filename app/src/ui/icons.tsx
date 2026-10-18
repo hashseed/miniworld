@@ -12,6 +12,20 @@ export const PauseIcon = () => (
   </svg>
 );
 
+/** Snail mode: a snail with a spiral shell. */
+export const SnailIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M10 6a6 6 0 016 6v5H3v-1h2.1A6 6 0 0110 6zm0 3a3 3 0 00-3 3h2a1 1 0 112 0 2 2 0 01-4 0H5a4 4 0 008 0 3 3 0 00-3-3zm7 4l2-5h1.2l-1.5 4h.3l1.7-4H21l-2 5.6V17h2v1h-4z" />
+  </svg>
+);
+
+/** Fast forward: a double arrow. */
+export const FastForwardIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M3 5v14l9-7zM12 5v14l9-7z" />
+  </svg>
+);
+
 export const BookmarkIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M6 3h12v18l-6-4-6 4z" />

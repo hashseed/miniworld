@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { TIMELINE_START, astronomicalYear, dayOfYearStart } from '../time/calendar.ts';
 import { buildLandmarks } from '../../../data/build/lib/landmarks.ts';
+import { msAtDay } from '../time/rate.ts';
 import { buildVignettes } from '../../../data/build/lib/vignettes.ts';
 import {
   buildMembers,
   buildProps,
   buildSpears,
   instancesAt,
+  periodInstances,
   loopErrors,
   phaseOf,
   posesAt,
@@ -41,38 +43,57 @@ const khufu = pyramids.find((v) => v.structure.id === 'khufu-pyramid-building')!
 const menkaure = pyramids.find((v) => v.structure.id === 'menkaure-pyramid-building')!.structure;
 const bce = (y: number) => dayOfYearStart(astronomicalYear(y, 'BCE'));
 const T = hunt.template;
+/** The hunt of the 1,000-year period that contains a year. */
+const huntOf = (y: number) =>
+  periodInstances(hunt, Math.floor((bce(y) - hunt.fromDay) / hunt.periodDays), TIMELINE_START)[0]!;
+const msOf = (day: number) => msAtDay(day, TIMELINE_START);
 
 describe('vignette player', () => {
   it('has no instance outside the span', () => {
-    expect(instancesAt(hunt, bce(43001))).toEqual([]);
-    expect(instancesAt(hunt, hunt.toDay)).toEqual([]);
-    expect(instancesAt(hunt, bce(43000))).toHaveLength(1);
-    expect(instancesAt(hunt, hunt.toDay - 1)).toHaveLength(1);
+    const at = (ms: number) => instancesAt(hunt, ms, TIMELINE_START);
+    expect(at(msOf(bce(43001)))).toEqual([]);
+    const first = huntOf(43000);
+    expect(first.startMs).toBeGreaterThanOrEqual(msOf(hunt.fromDay));
+    expect(at(first.startMs)).toHaveLength(1);
+    expect(at(first.startMs - 1)).toEqual([]);
+    expect(at(first.endMs)).toEqual([]);
+    const last = huntOf(10001);
+    expect(last.endMs).toBeLessThanOrEqual(msOf(hunt.toDay));
+    // A last period cut short by the span's end may run its script just past it, never longer.
+    expect(at(msOf(hunt.toDay) + T.loopMs)).toEqual([]);
   });
 
-  it('picks one site per period and respects site dates', () => {
-    for (let y = 43000; y > 10000; y -= 250) {
-      const list = instancesAt(hunt, bce(y));
-      expect(list).toHaveLength(1);
-      for (const i of list) expect(i.site.fromDay ?? -Infinity).toBeLessThanOrEqual(i.fromDay);
+  it('plays one hunt per period at a hashed moment, respecting site dates', () => {
+    for (let y = 43000; y > 10000; y -= 1000) {
+      const i = huntOf(y);
+      expect(i.site.fromDay ?? -Infinity).toBeLessThanOrEqual(i.fromDay);
+      expect(i.endMs - i.startMs).toBe(T.loopMs);
+      expect(i.startMs).toBeGreaterThanOrEqual(msOf(i.fromDay));
+      expect(i.endMs).toBeLessThanOrEqual(msOf(i.toDay));
+      expect(instancesAt(hunt, i.startMs + 5000, TIMELINE_START).map((x) => x.id)).toEqual([i.id]);
     }
   });
 
-  it('plays the script once over the shown span (section 6.5)', () => {
-    const inst = instancesAt(hunt, bce(25000))[0]!;
+  it('plays the script once over its shown span (section 6.5)', () => {
+    const inst = huntOf(25000);
     expect(T.once).toBe(true);
-    expect(phaseOf(T, inst, inst.fromDay, 999)).toBe(0);
-    expect(phaseOf(T, inst, inst.toDay - 1, 0)).toBe(T.loopMs - 1);
-    const mid = inst.fromDay + Math.floor((inst.toDay - inst.fromDay) / 2);
-    const p = phaseOf(T, inst, mid, 0);
-    expect(Math.abs(p - T.loopMs / 2)).toBeLessThan(10);
-    // The vignette clock has no say in a script played once.
-    expect(phaseOf(T, inst, mid, 123456)).toBe(p);
+    expect(phaseOf(T, inst, inst.startMs)).toBe(0);
+    expect(phaseOf(T, inst, inst.startMs + 37000)).toBe(37000);
+    expect(phaseOf(T, inst, inst.endMs - 1)).toBe(T.loopMs - 1);
+  });
+
+  it('repeats a loop in whole loops from its first beat', () => {
+    const looping = { ...hunt, template: { ...T, once: false } };
+    const i = periodInstances(looping, 18, TIMELINE_START)[0]!;
+    expect(i.startMs - msOf(i.fromDay)).toBeLessThan(T.loopMs);
+    expect((i.endMs - i.startMs) % T.loopMs).toBe(0);
+    expect(i.endMs).toBeLessThanOrEqual(msOf(i.toDay));
+    expect(phaseOf(looping.template, i, i.startMs + T.loopMs + 5)).toBe(5);
   });
 
   it('starts and ends with an empty stage', () => {
     expect(loopErrors(T)).toEqual([]);
-    const inst = instancesAt(hunt, bce(25000))[0]!;
+    const inst = huntOf(25000);
     const members = buildMembers(T);
     const props = buildProps(T);
     for (const phase of [0, T.loopMs - 1]) {
@@ -107,7 +128,7 @@ describe('vignette player', () => {
     // Props are obstacles of their drawn radius: a tent 6 m, the fire 2.5 m, plus a body.
     const propGap = (look: string, kind: string) =>
       (look === 'prop-hearth' ? 250 : 600) + (kind === 'human' ? 100 : 500);
-    const inst = instancesAt(hunt, bce(25000))[0]!;
+    const inst = huntOf(25000);
     const members = buildMembers(T);
     const props = buildProps(T);
     const clashes: string[] = [];
@@ -132,7 +153,7 @@ describe('vignette player', () => {
   });
 
   it('throws spears that fly to the mammoth and stick until it is cut up', () => {
-    const inst = instancesAt(hunt, bce(25000))[0]!;
+    const inst = huntOf(25000);
     const members = buildMembers(T);
     const spears = buildSpears(T, members);
     expect(spears).toHaveLength(12);
@@ -152,14 +173,16 @@ describe('vignette player', () => {
     const summary: string[] = [];
     const members = buildMembers(T);
     for (const y of [42500, 30000, 25000, 12000]) {
-      for (const inst of instancesAt(hunt, bce(y))) {
-        summary.push(`${y} BCE ${inst.id} ${inst.site.name} orient ${inst.orient}`);
-        const span = inst.toDay - inst.fromDay;
+      for (const inst of [huntOf(y)]) {
+        summary.push(
+          `${y} BCE ${inst.id} ${inst.site.name} orient ${inst.orient} at ${inst.startMs}`,
+        );
+        const span = inst.endMs - inst.startMs;
         for (const k of [0, 1, 2, 3])
           for (const p of posesAt(
             inst,
             members,
-            phaseOf(T, inst, inst.fromDay + Math.floor((span * k) / 4) + 37, 0),
+            phaseOf(T, inst, inst.startMs + Math.floor((span * k) / 4) + 37),
           ))
             summary.push(
               `  ${k}/4 ${p.group}#${p.index} ${p.x},${p.z} ${p.clip} ${p.clipMs} ${p.visibility.toFixed(3)} ${p.dirX.toFixed(4)},${p.dirZ.toFixed(4)}`,
@@ -169,16 +192,20 @@ describe('vignette player', () => {
     expect(summary.join('\n')).toMatchSnapshot();
   });
 
-  it('stands a singular vignette once over its whole span, facing east', () => {
-    expect(instancesAt(khufu, khufu.fromDay - 1)).toEqual([]);
-    expect(instancesAt(khufu, khufu.toDay)).toEqual([]);
-    const first = instancesAt(khufu, khufu.fromDay);
-    const last = instancesAt(khufu, khufu.toDay - 1);
+  it('stands a singular vignette once from the start of its span, facing east', () => {
+    const at = (ms: number) => instancesAt(khufu, ms, TIMELINE_START);
+    const start = msOf(khufu.fromDay);
+    expect(at(start - 1)).toEqual([]);
+    const first = at(start);
     expect(first).toHaveLength(1);
-    expect(last).toEqual(first);
     expect(first[0]!.fromDay).toBe(khufu.fromDay);
     expect(first[0]!.toDay).toBe(khufu.toDay);
+    expect(first[0]!.startMs).toBe(start);
     expect(first[0]!.orient).toEqual([1, 0]);
+    // About 30 years pass in 72 seconds, less than one loop, so it plays one whole loop.
+    expect(first[0]!.endMs - start).toBe(khufu.template.loopMs);
+    expect(at(start + khufu.template.loopMs - 1)).toEqual(first);
+    expect(at(start + khufu.template.loopMs)).toEqual([]);
   });
 
   it('scales the building stage to each pyramid and closes the loop at every size', () => {
@@ -186,15 +213,16 @@ describe('vignette player', () => {
     expect(k).toBeCloseTo(103.4 / 230.3, 2);
     for (const v of [khufu, menkaure]) {
       expect(loopErrors(v.template)).toEqual([]);
-      const inst = instancesAt(v, v.fromDay)[0]!;
+      const inst = instancesAt(v, msOf(v.fromDay), TIMELINE_START)[0]!;
       const members = buildMembers(v.template);
-      const at = (ms: number) => posesAt(inst, members, phaseOf(v.template, inst, v.fromDay, ms));
+      const at = (ms: number) =>
+        posesAt(inst, members, phaseOf(v.template, inst, inst.startMs + ms));
       expect(at(5000)).toEqual(at(5000 + v.template.loopMs));
     }
   });
 
   it('carries blocks to the foot of the pyramid and sets them there, never climbing it', () => {
-    const inst = instancesAt(khufu, khufu.fromDay)[0]!;
+    const inst = instancesAt(khufu, msOf(khufu.fromDay), TIMELINE_START)[0]!;
     const members = buildMembers(khufu.template);
     const at = (s: number) =>
       posesAt(inst, members, s * 1000).find((p) => p.group === 'carrier-west')!;

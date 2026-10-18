@@ -25,7 +25,7 @@ function world(page: Page) {
     const m = (
       globalThis as unknown as {
         __miniworld: {
-          clock: { day: number; playState: string };
+          clock: { day: number; playState: string; yearsPerMinute: number };
           globe: { material: { uniforms: { seaLevel: { value: number } } } };
           controller: { state: { lat: number; lon: number } };
         };
@@ -34,6 +34,7 @@ function world(page: Page) {
     return {
       day: m.clock.day,
       playState: m.clock.playState,
+      yearsPerMinute: m.clock.yearsPerMinute,
       seaLevel: m.globe.material.uniforms.seaLevel.value,
       lat: m.controller.state.lat,
       lon: m.controller.state.lon,
@@ -52,7 +53,6 @@ test.beforeEach(async ({ page }) => {
           language: 'en',
           timelineExpanded: false,
           trueTimeScale: false,
-          slowWhenZoomed: true,
           showStats: false,
         }),
       );
@@ -115,7 +115,7 @@ test('language switch changes every string without a reload', async ({ page }) =
 test('settings and bookmarks survive a reload', async ({ page }) => {
   await open(page);
   await page.getByRole('button', { name: en['menu.settings'] }).click();
-  await page.getByLabel(en['settings.slowWhenZoomed']!).uncheck();
+  await page.getByLabel(en['settings.trueTimeScale']!).check();
   await page.getByRole('button', { name: en['dialog.close'] }).click();
   await page.getByRole('button', { name: en['timeline.expand'] }).click();
   await page.getByRole('button', { name: en['menu.bookmarks'] }).click();
@@ -127,7 +127,7 @@ test('settings and bookmarks survive a reload', async ({ page }) => {
   await expect(page.locator('.bookmark')).toHaveCount(1);
   await page.getByRole('button', { name: en['dialog.close'] }).click();
   await page.getByRole('button', { name: en['menu.settings'] }).click();
-  await expect(page.getByLabel(en['settings.slowWhenZoomed']!)).not.toBeChecked();
+  await expect(page.getByLabel(en['settings.trueTimeScale']!)).toBeChecked();
   await page.getByRole('button', { name: en['dialog.close'] }).click();
   await expect(page.getByRole('button', { name: en['timeline.collapse'] })).toBeVisible();
 });
@@ -207,24 +207,30 @@ test('the lens slider morphs the globe and keeps the point in view', async ({ pa
   expect((await lens()).blend).toBe(2);
 });
 
-test('the speed slider folds behind the play button', async ({ page }, info) => {
+test('the speed modes fold behind the play button', async ({ page }, info) => {
   await open(page);
-  const speed = page.getByTestId('speed');
+  const snail = page.getByTestId('speed-snail');
   const play = page.getByRole('button', { name: en['controls.play'] });
-  await expect(speed).toBeHidden();
+  await expect(snail).toBeHidden();
   await expect(play).toHaveAttribute('title', en['controls.playHint']!);
   if (info.project.name === 'phone') {
-    // Tapping plays and opens the slider; a tap elsewhere folds it away.
+    // Tapping plays and opens the modes; a tap elsewhere folds them away.
     await play.tap();
-    await expect(speed).toBeVisible();
+    await expect(snail).toBeVisible();
+    await snail.tap();
     await page.touchscreen.tap(200, 300);
-    await expect(speed).toBeHidden();
+    await expect(snail).toBeHidden();
   } else {
     await play.hover();
-    await expect(speed).toBeVisible();
+    await expect(snail).toBeVisible();
+    await snail.click();
     await page.mouse.move(640, 200);
-    await expect(speed).toBeHidden();
+    await expect(snail).toBeHidden();
   }
+  // Folded, the button shows the chosen mode, and history runs at 25 / 8 years a minute.
+  await expect(page.getByTestId('speed-badge')).toBeVisible();
+  await expect(page.getByTestId('speed-snail')).toHaveAttribute('aria-checked', 'true');
+  expect((await world(page)).yearsPerMinute).toBe(25 / 8);
 });
 
 test('the lens hint shows once until closed', async ({ page }) => {
