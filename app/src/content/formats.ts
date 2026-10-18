@@ -166,3 +166,42 @@ function rowDeltas(g: Uint8Array, w: number, direction: 1 | -1): Uint8Array {
   }
   return out;
 }
+
+/**
+ * Foliage slices (spec foliage.md, section 2): one global file per climate
+ * step with a byte per 0.5° cell (globe/foliageKinds.ts), latitude-longitude
+ * from 90°N to 60°S, row 0 at the north pole. South of it nothing grows.
+ */
+export const FOLIAGE_GRID_W = 720;
+export const FOLIAGE_GRID_H = 300;
+export const FOLIAGE_SOUTH = -60;
+
+export interface FoliageSlice {
+  day: number;
+  cells: Uint8Array;
+}
+
+const FOLIAGE_MAGIC = 0x3146574d; // "MWF1"
+
+export function encodeFoliageSlice(f: FoliageSlice): Uint8Array {
+  const n = FOLIAGE_GRID_W * FOLIAGE_GRID_H;
+  const out = new Uint8Array(12 + n);
+  const dv = new DataView(out.buffer);
+  dv.setUint32(0, FOLIAGE_MAGIC, true);
+  dv.setInt32(4, f.day, true);
+  dv.setUint16(8, FOLIAGE_GRID_W, true);
+  dv.setUint16(10, FOLIAGE_GRID_H, true);
+  out.set(f.cells, 12);
+  return out;
+}
+
+export function decodeFoliageSlice(bytes: ArrayBuffer): FoliageSlice {
+  const dv = new DataView(bytes);
+  if (dv.getUint32(0, true) !== FOLIAGE_MAGIC) throw new Error('Not a foliage slice');
+  if (dv.getUint16(8, true) !== FOLIAGE_GRID_W || dv.getUint16(10, true) !== FOLIAGE_GRID_H)
+    throw new Error('Unexpected foliage grid');
+  return {
+    day: dv.getInt32(4, true),
+    cells: new Uint8Array(bytes.slice(12, 12 + FOLIAGE_GRID_W * FOLIAGE_GRID_H)),
+  };
+}

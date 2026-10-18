@@ -2,7 +2,7 @@
 
 Without plants the globe looks empty. Foliage covers the land with a few big chunky clay trees and bushes that read from orbit as forests, savannas and taiga, with open ground between them for the people and stories of later milestones. Like the ground and the ice, foliage is a pure function of the date: it follows the climate data through the ice age, the Green Sahara and the drying of the deserts.
 
-Status: **Proposed** (Yang asked for foliage on 2026-10-18). Everything here is a proposal until Yang approves it, apart from the decisions marked as Yang's. Previews of a prototype on the real globe are in `/mnt/project-files/foliage/` in the project; the current ones, with few big trees, are in `foliage/v2-big-trees/`.
+Status: approved by Yang on 2026-10-18 and built, apart from the parts marked **Proposed** or **Later**. Previews of a prototype on the real globe are in `/mnt/project-files/foliage/` in the project; the current ones, with few big trees, are in `foliage/v2-big-trees/`.
 
 ## 1. What the viewer sees
 
@@ -23,7 +23,7 @@ Foliage needs no new source. It comes from data already in the repository:
 | Green Sahara | The humid periods of `data/curated/humid-periods.json` (milestone 1, section 4.3): where they raise the precipitation over a desert, the biome becomes savanna |
 | Sea, lakes, rivers, ice and height | The terrain tiles and climate slices the globe already draws |
 
-**Foliage slices.** For each time step of the climate slices, the data build makes one small global foliage grid on the 0.5° grid of the biome data: per cell, the foliage class after the overrides below (one byte). Cells without biome data (the sea of the time, and south of 60°S) take the class of the nearest land within three cells, so coasts that the simplified map draws further out than the data still get trees. The grid goes into the climate slice of the same step, so it loads and blends with the ice and the deserts and needs no requests of its own. Expected size: about 10 KB per step, under 400 KB for all 38.
+**Foliage slices.** For each time step of the climate slices, the data build makes one small global foliage grid on the 0.5° grid of the biome data: per cell, the foliage class after the overrides below (one byte). Cells without biome data (the sea of the time, and south of 60°S) take the class of the nearest land within three cells, so coasts that the simplified map draws further out than the data still get trees. Each grid is its own small file, listed in the manifest beside the climate slices with the same days, and loaded the same way: the two slices around the date first, the rest in the background. Size: about 17 KB per step after Brotli, about 630 KB for all 38.
 
 **Overrides**, each a curated file with a source, like the Green Sahara:
 
@@ -51,14 +51,14 @@ Desert, barren land, the colder tundra classes and land ice have no plants. Shar
 
 ## 4. Placement
 
-- **One fixed grid of slots.** The land is divided into placement slots on the cube-sphere quadtree: each level-4 tile holds 4 × 4 slots, about 150 km apart on the true globe (about 25,000 slots on the whole Earth, of which a few thousand hold a plant). Each slot holds at most one plant, placed at a hashed spot inside its cell. Its crown is about 1.1 times the slot spacing (varied by ±20%), scaled with the history lens's local width, so trees in enlarged regions are drawn larger and keep the same share of the land. A dense forest has a tree in nearly every slot, with small gaps; an open savanna or a Mediterranean woodland has wide gaps. The Iberian peninsula holds about 24 slots, of which about 15 hold a tree.
+- **One fixed grid of slots.** The land is divided into placement slots on the cube-sphere quadtree: each level-4 tile holds 8 × 8 slots, about 78 km apart on the true globe. With the true sizes, one slot in four is used (the hash of the slot decides which), so plants stand about 150 km apart. Each used slot holds at most one plant, placed at a hashed spot inside its cell, with a crown about 1.1 times 150 km (varied by ±20%). A dense forest has a tree in nearly every used slot, with small gaps; an open savanna or a Mediterranean woodland has wide gaps. With the true sizes the Iberian peninsula holds about 24 used slots, of which about 15 hold a tree.
+- **More plants where the lens enlarges the land** (decided by Yang on 2026-10-18). Plants keep their drawn size whatever the history lens does. Where the lens enlarges the land by an area factor A, the share of slots used grows to A / 4 (up to all of them), so the drawn spacing of plants stays the same and enlarged regions get more plants, not bigger ones. Which slots are used is decided by their hash, so the plants are the same for every viewer at the same lens strength. As the lens strength changes, plants pop in and out; this is wanted (Yang, 2026-10-18).
 - **Deterministic.** Each slot's position within its cell, its plant kind roll, size, tint and turn come from a seeded hash of the slot's quadtree key, never from `Math.random`, so every viewer sees the same trees on the same date.
-- **No popping.** Since the slots do not change with the zoom, moving the camera never adds or removes trees. When the date changes, between two foliage slices each slot switches from the old class to the new one at its own hashed moment, by shrinking and growing, and a tree that the rising sea, a lake, a river or the ice reaches shrinks away rather than disappearing.
+- **Date changes.** Moving the camera never adds or removes plants. When the date changes, between two foliage slices each slot switches from the old class to the new one at its own hashed moment, by shrinking and growing, and a tree that the rising sea, a lake, a river or the ice reaches shrinks away rather than disappearing.
 - **Soft edges.** Classes are looked up with a small wobble of the position (seeded value noise of about half a cell), so forest edges are irregular curves rather than 0.5° steps.
 - **Where plants never stand:** on the sea of the date, lakes and rivers (their fields above about 0.4), within 2.5 km of the coast (so no tree hangs over the beach), on ice (within 25 km of the ice border), and above the tree line, which runs at about 3,800 m in the tropics and falls by about 75 m per degree of latitude beyond 25°.
-- **Green banks.** Where a drawn river crosses desert or dry shrubland (and no humid period makes it green), palms stand on both banks. The 150 km slots are too coarse to follow a river, so desert rivers get their own row of palm slots along each bank, about 80 km apart, with palms about half the size of other trees.
+- **Green banks.** Where a drawn river crosses desert or dry shrubland (and no humid period makes it green), palms stand on both banks. The 150 km spacing is too coarse to follow a river, so each level-4 tile also has a finer grid of 12 × 12 palm slots (about 52 km apart); where one falls on a desert river bank (river field above about 0.03), it holds a palm with a share of 40% times the lens's area factor. Palms are about half the size of other trees.
 - **On the drawn ground.** Every plant stands on the ground exactly as the terrain draws it at the date (sea level, coastal rounding, lift and exaggeration), using the same height function as the terrain, and through the history lens like everything else. It sinks a little into the ground so it never floats on a slope.
-- **On terrace tops.** The land is drawn as stacked height layers, like a contour model (Yang, 2026-10-18; milestone 1, section 4.2). A plant stands on the flat top of its layer and keeps clear of the layer's edge by about half its crown, so no tree hangs over a step or stands on a riser. To do this, placement needs the layer and the distance to the nearest layer edge at each spot, from the same terrain data.
 - **Room for people.** From milestone 2, plants are left out where a camp, vignette or landmark stands, so dioramas are never buried in trees.
 
 ## 5. Look
@@ -66,7 +66,7 @@ Desert, barren land, the colder tundra classes and land ice have no plants. Shar
 - Plants follow the toy-planet style of spec section 8: chunky rounded clay shapes made of a few balls and cones, flat cel-shaded colours in three bands lit like the terrain, with no outlines (decided by Yang on 2026-10-18).
 - Colours are rich and saturated, like the ground: bright greens for broadleaf, deep greens for rainforest, blue-green for conifers, olive for acacia and grey-green for the Mediterranean trees. Each tree has a small hashed variation of size and shade so forests do not look stamped.
 - Each model has up to about 400 triangles (crown balls with 80 faces each), since there are few trees and each is large on screen. A simpler far model (balls with 20 faces) may be added if the budget needs it.
-- Trees sway very gently on the life clock, as one shared vertex animation, and stand still when everything is frozen; the low tier shows them still. (Proposed; can be dropped if it costs too much.)
+- **Later:** trees may sway very gently on the life clock, standing still when everything is frozen.
 
 ## 6. The ground under the plants
 
@@ -75,26 +75,25 @@ The ground painting of milestone 1 (section 4.3) gets two changes from the same 
 - Under forest classes the ground turns to the darker forest-floor green, so the gaps between trees are not steppe-coloured. In the prototype the taiga stands on golden steppe ground, which looks wrong.
 - Along desert rivers, a green strip of about 15 to 25 km either side of the water is painted as grass under the palms, so the green ribbon of the Nile reads from orbit; so it shows between the palms.
 
-Both follow the layered look: the forest-floor and grass colours are painted on the flat layer tops, and the risers keep the terrain's own colour. These touch the terrain shader, which belongs to the milestone 1 work; they are made together with that work.
+These touch the terrain shader, which belongs to the milestone 1 work; they are made together with that work.
 
 ## 7. Performance
 
 With few, fixed trees, foliage is cheap. The terrain is also being simplified (Yang, 2026-10-18: a layered height map), so the whole globe stays at about 800,000 triangles or fewer on screen.
 
-- Only the slots on the visible side of the globe are drawn; at most about 1,500 plants are in view, whatever the zoom.
+- Only the slots on the visible side of the globe are drawn; at most about 2,500 plants are in view, whatever the zoom.
 - All plants are instanced: one draw call per kind, 8 draw calls in all.
 - Placement runs once per level-4 tile and date step and is cached; the camera moving never recomputes it.
-- Proposed limit: 300,000 foliage triangles per frame on high, 150,000 on low (the low tier uses the simpler far model).
+- Proposed limit: 400,000 foliage triangles per frame on high, 200,000 on low (the low tier would use the simpler far model).
 
-Prototype measurements (headless Chromium, 1280 × 800, no outlines, terrain as merged on 2026-10-18):
+Measurements of the built foliage with the history lens on (headless Chromium, 1280 × 800, terrain as merged on 2026-10-18; the whole frame's triangles):
 
-| View | Plants | Foliage triangles | Terrain and the rest |
-| --- | --- | --- | --- |
-| Africa and Europe from orbit, 1 CE | 1,480 | 255,000 | 294,000 |
-| Green Sahara from orbit, 6000 BCE | 1,440 | 247,000 | 310,000 |
-| Ice-age Europe from 9,000 km | 840 | 102,000 | 531,000 |
-| Iberia from 3,000 km | 1,130 | 202,000 | 305,000 |
-| Tilted view over the Alps from 1,500 km | 525 | 80,000 | 677,000 |
+| View | Plants | Triangles in the frame |
+| --- | --- | --- |
+| Africa and Europe from orbit, 1 CE | 2,190 | 683,000 |
+| Iberia from 3,000 km | 1,570 | 590,000 |
+| Tilted view over the Nile from 1,200 km | 760 | 875,000 |
+| Tilted view over the Alps from 1,500 km | 1,000 | 843,000 |
 
 ## 8. Later
 
@@ -103,10 +102,9 @@ Prototype measurements (headless Chromium, 1280 × 800, no outlines, terrain as 
 
 ## 9. Assets
 
-The tree models are generated assets: each kind is reviewed by Yang and only `approved` models ship (spec section 8). The prototype models in the previews are plain shapes made in code, for judging the overall look, density and colours only.
+The plant models are simple shapes built in code (balls, cones and strips with flat colours), like the clouds, so they are not asset files and need no entry in the asset manifest. Yang reviews them on previews: the look was approved on 2026-10-18 ("commit this"), with arched palm fronds asked for and added.
 
-## 10. Questions for Yang
+## 10. Open questions
 
-- Is the new tree size and spacing right (about 15 trees in Iberia)?
-- Should foliage be built now, ahead of the rest of milestone 2, together with the terrain simplification? (Proposed: yes.)
 - Ice-age Europe: thin the model's taiga to open woodland as section 2 proposes, or keep the data as it is?
+- The darker ground under forests and the green strip along desert rivers (section 6) wait for the terrain work.

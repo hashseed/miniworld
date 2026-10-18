@@ -12,6 +12,7 @@ import {
   ARID_GRID_H,
   ARID_GRID_W,
   encodeClimateSlice,
+  encodeFoliageSlice,
   encodeTerrainTile,
   OCEAN_MIN_LEVEL,
   OCEAN_NEVER,
@@ -40,6 +41,7 @@ import {
   type HumidPeriod,
 } from './lib/climate.ts';
 import { readExtract } from './lib/extract.ts';
+import { foliageGrid } from './lib/foliage.ts';
 import { checkLicences, type SourceEntry } from './lib/licence.ts';
 import { floodInlandSeas, INLAND_SEAS, oceanConnection } from './lib/ocean.ts';
 import { buildLens, LENS_PARAMS, parseCoordinates } from './lib/lens.ts';
@@ -377,6 +379,23 @@ for (const bp of climateYears) {
   climateFiles.push(output.write(`climate/${bp}`, 'bin', encodeClimateSlice(slice)));
 }
 const climateBytes = climateFiles.reduce((n, f) => n + (output.sizes.get(f) ?? 0), 0);
+// One foliage slice per climate step (spec foliage.md, section 2): the biome
+// class per 0.5° cell, with the humid periods turning dry land to savanna.
+const biomeJson =
+  sourceFiles('beyer-2020').find((p) => p.endsWith('/biome.json')) ?? fail('beyer-2020: no biome');
+const biome = readExtract(biomeJson.replace(/\.json$/, ''));
+const foliageFiles = climateYears.map((bp) =>
+  output.write(
+    `foliage/${bp}`,
+    'bin',
+    encodeFoliageSlice({
+      day: sliceDay(bp),
+      cells: foliageGrid(biome, precipitation, humid.periods, bp),
+    }),
+  ),
+);
+const foliageBytes = foliageFiles.reduce((n, f) => n + (output.sizes.get(f) ?? 0), 0);
+log(`${foliageFiles.length} foliage slices, ${(foliageBytes / 1000).toFixed(0)} KB Brotli`);
 log(
   `${climateFiles.length} climate slices, ${(climateBytes / 1000).toFixed(0)} KB Brotli; lowest sea level ${Math.min(...seaLevel.metres)} m`,
 );
@@ -483,6 +502,7 @@ const manifest: Manifest = {
     terrain: finishLayer('terrain', terrain, 0, maxLevel, false),
   },
   climate: { days: iceDays, files: climateFiles },
+  foliage: { days: iceDays, files: foliageFiles },
 };
 output.writeNamed('manifest.json', new TextEncoder().encode(JSON.stringify(manifest)));
 
