@@ -54,6 +54,8 @@ export class Timeline {
   /** Lanes shown; undefined shows all. */
   visibleLanes: string[] | undefined;
   private rowH = 16;
+  /** Most rows of any lane, reserved while a single lane is shown. */
+  private maxLaneRows = 1;
   private drag:
     | { kind: 'scrub' | 'pan' | 'tap'; x: number; a0: number; a1: number; moved: boolean }
     | undefined;
@@ -168,6 +170,7 @@ export class Timeline {
 
   private layoutLanes(): void {
     this.lanes = this.buildLanes(this.visibleLanes);
+    this.maxLaneRows = Math.max(1, ...this.buildLanes(undefined).map((l) => l.rows));
   }
 
   /** Height all lanes need at the smallest readable row height. */
@@ -203,7 +206,10 @@ export class Timeline {
 
   /** Height the timeline needs at the current row height. */
   desiredHeight(maxHeight: number): number {
-    const rows = this.lanes.reduce((n, l) => n + l.rows, 0);
+    // A single lane (collapsed) reserves room for the lane with the most rows, so
+    // switching regions never changes the height.
+    const rows =
+      this.lanes.length === 1 ? this.maxLaneRows : this.lanes.reduce((n, l) => n + l.rows, 0);
     const gaps = this.lanes.length * 3;
     this.rowH = Math.max(
       MIN_ROW_H,
