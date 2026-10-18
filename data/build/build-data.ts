@@ -7,7 +7,7 @@
 
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import {
   ARID_GRID_H,
@@ -429,8 +429,10 @@ log(
 // --- History lens -------------------------------------------------------------
 
 // The warp comes from the coordinates in the spec's event lists (spec
-// history-lens.md, section 2). It takes a while to compute, so it is kept in
-// data/out/lens/ by a hash of its inputs and rebuilt only when they change.
+// history-lens.md, section 2). It takes a while to compute. The approved warp
+// is kept in data/curated/lens/ so that builds and CI read it instead of
+// computing it; any other warp is kept in data/out/lens/ by a hash of its
+// inputs and of the lens code, and rebuilt only when they change.
 const SPEC = join(ROOT, 'docs/spec');
 const eventFiles = [
   join(SPEC, 'events.md'),
@@ -445,13 +447,16 @@ const lensVersion = createHash('sha256')
   .update(JSON.stringify({ points: eventPoints, params: LENS_PARAMS }))
   .digest('hex')
   .slice(0, 12);
-const lensCache = join(ROOT, 'data/out/lens', `${lensVersion}.bin`);
+const lensCode = sha256(join(ROOT, 'data/build/lib/lens.ts')).slice(0, 12);
+const approvedLens = join(ROOT, 'data/curated/lens', `${lensVersion}.bin`);
+const lensCache = join(ROOT, 'data/out/lens', `${lensVersion}-${lensCode}.bin`);
 let lensBytes: Uint8Array;
 let lensExponent: number;
-if (existsSync(lensCache)) {
-  lensBytes = new Uint8Array(readFileSync(lensCache));
-  lensExponent = Number(readFileSync(`${lensCache}.exponent`, 'utf8'));
-  log(`history lens ${lensVersion} from the cache, exponent ${lensExponent}`);
+const lensStored = [approvedLens, lensCache].find((f) => existsSync(f));
+if (lensStored) {
+  lensBytes = new Uint8Array(readFileSync(lensStored));
+  lensExponent = Number(readFileSync(`${lensStored}.exponent`, 'utf8'));
+  log(`history lens ${lensVersion} from ${relative(ROOT, lensStored)}, exponent ${lensExponent}`);
 } else {
   const lens = buildLens(eventPoints, LENS_PARAMS, log);
   lensBytes = encodeLensGrids(lens.forward, lens.inverse);
@@ -476,20 +481,21 @@ if (existsSync(lensCache)) {
   );
 }
 // The before-and-after preview Yang approves before a new warp ships (section 3).
-const lensPreview = join(ROOT, 'data/out/lens', `preview-${lensVersion}.svg`);
-if (!existsSync(lensPreview))
-  writeFileSync(
-    lensPreview,
-    lensPreviewSvg(neFile('ne_10m_land.geojson'), decodeLensGrids(lensBytes).forward),
-  );
 const curatedLens = JSON.parse(readFileSync(join(ROOT, 'data/curated/lens.json'), 'utf8')) as {
   approvedVersion: string;
 };
-if (curatedLens.approvedVersion !== lensVersion)
+if (curatedLens.approvedVersion !== lensVersion) {
+  const lensPreview = join(ROOT, 'data/out/lens', `preview-${lensVersion}.svg`);
+  if (!existsSync(lensPreview))
+    writeFileSync(
+      lensPreview,
+      lensPreviewSvg(neFile('ne_10m_land.geojson'), decodeLensGrids(lensBytes).forward),
+    );
   log(
     `history lens ${lensVersion} is not approved yet (approved: ${curatedLens.approvedVersion}); ` +
       `preview in ${lensPreview}`,
   );
+}
 const lensFile = output.write('lens', 'bin', lensBytes);
 
 // --- Index and manifest ---------------------------------------------------------
