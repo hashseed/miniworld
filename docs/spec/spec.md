@@ -54,17 +54,17 @@ Each ordinary figure is a persistent individual who stays on screen across centu
 
 ### 2.5 Range and start
 
-The timeline runs from about 70,000 BCE (modern humans leaving Africa) to 26 December 1991, the day the Soviet Union was dissolved, which ends the Cold War. That date is the content cutoff, fixed for every build: no event, war, border, building or era on the globe or the timeline goes past it, and an event or war that began before it but mostly happened after it is left out. A card may say in a sentence what happened next, such as Nelson Mandela becoming president in 1994, but the world itself stops at the cutoff. The app opens at 50,000 BCE, in the middle of the last ice age, with modern humans already spreading out of Africa.
+The timeline runs from about 70,000 BCE (modern humans leaving Africa) to 26 December 1991, the day the Soviet Union was dissolved, which ends the Cold War (decided by Yang on 2026-10-17). That date is the content cutoff, fixed for every build: no event, war, border, building or era on the globe or the timeline goes past it, and an event or war that began before it but mostly happened after it is left out. A card may say in a sentence what happened next, such as Nelson Mandela becoming president in 1994, but the world itself stops at the cutoff. The app opens at 50,000 BCE, in the middle of the last ice age, with modern humans already spreading out of Africa.
 
-### 2.6 Day and night
+### 2.6 Lighting
 
-A gentle day and night cycle runs on the life clock, about 4 real minutes per day, with a setting to keep it always day. Seasons are not cycled, since a year passes in seconds at most rates; regional climate and long-term changes such as the ice age are shown instead.
+There is no day and night cycle: the globe is always evenly lit, like a model under studio lights (decided by Yang on 2026-10-17). Seasons are not cycled either, since a year passes in seconds at most rates; regional climate and long-term changes such as the ice age are shown instead.
 
 ## 3. The globe
 
 The world is the real Earth with accurate continents, coasts, mountains and rivers, but everything people make is drawn as a miniature far larger than true scale. A true-scale person would be invisible from any height that shows a landscape, so the globe uses two scales at once.
 
-- **Geography at true proportions.** Landmasses, coastlines, rivers and lakes sit in their real places (the history lens below changes their drawn size, not their order or shape). Elevation is exaggerated (12 times to start, tunable between about 10 and 20) so mountains and valleys read clearly when you are close.
+- **Geography at true proportions.** Landmasses, coastlines, rivers and lakes sit in their real places (the history lens below changes their drawn size, not their order or shape). Elevation is exaggerated 100 times (decided by Yang on 2026-10-17, tunable) so mountains and valleys read clearly, even from orbit.
 - **People and buildings as miniatures.** Figures, houses, ships and monuments are scaled up by a fixed factor so a village reads clearly from a low camera. A settlement is drawn as a representative cluster: a Neolithic village is 5 to 15 huts, Rome at its height a few hundred buildings around its real landmarks. Cluster size follows the real population.
 - **History lens.** By default the globe draws regions with many events, such as Europe and the Nile valley, larger and empty regions such as the open oceans smaller, so the busy places have room. Shapes and neighbours stay recognisable, everything stays in its real place relative to the land, and a button "True sizes" shows the real proportions. The lens is applied only when the world is drawn, never in the world itself; the design is in [history-lens.md](history-lens.md).
 - **Camera range.** You zoom continuously from a view of the whole planet down to a close-up where a dozen figures fill the screen. Close to the ground the curved horizon gives the Populous: The Beginning look naturally.
@@ -186,7 +186,9 @@ With no simulation state to keep, browser local storage holds only small things:
 
 ## 8. Visual style
 
-The target is the look of Warcraft III: stylised, chunky proportions, hand-painted textures and warm lighting, with more geometry than the flat low-poly Populous models. Figures have slightly large heads and hands so roles and tools read from a distance.
+The target is a toy planet (decided by Yang on 2026-10-17, from a reference picture of a stylised miniature globe): the Earth as a handmade model of clay and glossy plastic, with saturated colours, chunky raised continents standing above a glossy blue sea, puffy cartoon clouds floating around it, studio light, cel shading with dark ink outlines, and a soft pastel background. It should feel whimsical and full of character, never clean or clinical. Miniatures have chunky proportions and more geometry than the flat low-poly Populous models, with the warmth of Warcraft III. Figures have slightly large heads and hands so roles and tools read from a distance.
+
+Whimsy never bends the facts: buildings, landmarks, ships and vehicles appear only where and when they really existed, so the toy planet at 50,000 BCE has ice, land and sea but no Eiffel Tower. Decorations that carry no historical claim, such as clouds, fish and whales, may appear at any time.
 
 | Asset | Detail at the closest zoom | Notes |
 | --- | --- | --- |
@@ -286,7 +288,7 @@ The spec comes first, always: every change to behaviour, content or data format 
 
 **Code.** Miniworld is closed source. The code, spec and assets are proprietary, with all rights reserved, as stated in `LICENSE` at the root of the repository; the repository stays private. `package.json` is marked `"private": true` with the licence `UNLICENSED`. Third-party libraries the app includes must have permissive licences (such as MIT, BSD, ISC, Apache-2.0 or Zlib) that allow use in closed-source software; their notices are collected into a third-party notices file shipped with the app.
 
-**Data.** Every dataset used must be freely available and usable commercially, and a copy of the data actually used is kept in the repository under `data/sources/` with its licence text, so the app never depends on a source staying online.
+**Data.** Every dataset used must be freely available and usable commercially, and the data actually used is kept in the repository under `data/sources/` with its licence text, so the app never depends on a source staying online. Only small simplified extracts are kept (the variables, times and resolution the app needs), not the full original downloads; the original URLs and checksums are recorded so the extracts can be remade (decided by Yang on 2026-10-17).
 
 - Allowed without asking: public domain, CC0, CC BY (any version), ODC-BY, and US government works.
 - Needs Yang's decision for each case: share-alike licences (CC BY-SA, ODbL) and copyleft licences (GPL), whose conditions can reach our own derived data.

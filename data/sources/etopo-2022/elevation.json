@@ -1,0 +1,14 @@
+{
+  "source": "etopo-2022",
+  "variable": "elevation",
+  "description": "Bedrock elevation and sea floor depth relative to today’s sea level, mean of each cell",
+  "units": "m",
+  "type": "int16",
+  "scale": 1,
+  "width": 5400,
+  "height": 2700,
+  "registration": "cell",
+  "west": -180,
+  "north": 90,
+  "cellDegrees": 0.06666666666666667
+}

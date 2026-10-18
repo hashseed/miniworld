@@ -1,0 +1,1897 @@
+{
+  "description": "Era and empire ranges for the timeline, from docs/spec/eras.md.",
+  "lanes": [
+    {
+      "id": "world",
+      "label": {
+        "en": "World",
+        "de": "Welt"
+      }
+    },
+    {
+      "id": "europe",
+      "label": {
+        "en": "Europe and Mediterranean",
+        "de": "Europa und Mittelmeer"
+      }
+    },
+    {
+      "id": "mena",
+      "label": {
+        "en": "Middle East and North Africa",
+        "de": "Naher Osten und Nordafrika"
+      }
+    },
+    {
+      "id": "africa",
+      "label": {
+        "en": "Sub-Saharan Africa",
+        "de": "Afrika südlich der Sahara"
+      }
+    },
+    {
+      "id": "southAsia",
+      "label": {
+        "en": "South Asia",
+        "de": "Südasien"
+      }
+    },
+    {
+      "id": "eastAsia",
+      "label": {
+        "en": "East Asia",
+        "de": "Ostasien"
+      }
+    },
+    {
+      "id": "americas",
+      "label": {
+        "en": "Americas",
+        "de": "Amerika"
+      }
+    },
+    {
+      "id": "oceania",
+      "label": {
+        "en": "Oceania",
+        "de": "Ozeanien"
+      }
+    }
+  ],
+  "eras": [
+    {
+      "id": "paleolithic",
+      "lane": "world",
+      "from": {
+        "start": true
+      },
+      "to": {
+        "year": 10000,
+        "era": "BCE",
+        "approximate": true
+      },
+      "color": "#b08a5a",
+      "label": {
+        "en": "Paleolithic",
+        "de": "Altsteinzeit"
+      },
+      "source": {
+        "title": "Paleolithic (period)",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "neolithic",
+      "lane": "world",
+      "from": {
+        "year": 10000,
+        "era": "BCE",
+        "approximate": true
+      },
+      "to": {
+        "year": 3300,
+        "era": "BCE",
+        "approximate": true
+      },
+      "color": "#8fa04f",
+      "label": {
+        "en": "Neolithic",
+        "de": "Jungsteinzeit"
+      },
+      "source": {
+        "title": "Neolithic (period)",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "bronze-age",
+      "lane": "world",
+      "from": {
+        "year": 3300,
+        "era": "BCE",
+        "approximate": true
+      },
+      "to": {
+        "year": 1200,
+        "era": "BCE",
+        "approximate": true
+      },
+      "color": "#c8893a",
+      "label": {
+        "en": "Bronze Age",
+        "de": "Bronzezeit"
+      },
+      "source": {
+        "title": "Bronze Age (period)",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "iron-age",
+      "lane": "world",
+      "from": {
+        "year": 1200,
+        "era": "BCE",
+        "approximate": true
+      },
+      "to": {
+        "year": 500,
+        "era": "BCE",
+        "approximate": true
+      },
+      "color": "#7d7f86",
+      "label": {
+        "en": "Iron Age",
+        "de": "Eisenzeit"
+      },
+      "source": {
+        "title": "Iron Age (period)",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "antiquity",
+      "lane": "world",
+      "from": {
+        "year": 800,
+        "era": "BCE",
+        "approximate": true
+      },
+      "to": {
+        "year": 500,
+        "era": "CE",
+        "approximate": true
+      },
+      "color": "#b5553f",
+      "label": {
+        "en": "Antiquity",
+        "de": "Antike"
+      },
+      "source": {
+        "title": "Antiquity (period)",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "middle-ages",
+      "lane": "world",
+      "from": {
+        "year": 500,
+        "era": "CE",
+        "approximate": true
+      },
+      "to": {
+        "year": 1500,
+        "era": "CE",
+        "approximate": true
+      },
+      "color": "#5b6fa8",
+      "label": {
+        "en": "Middle Ages",
+        "de": "Mittelalter"
+      },
+      "source": {
+        "title": "Middle Ages (period)",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "early-modern",
+      "lane": "world",
+      "from": {
+        "year": 1500,
+        "era": "CE",
+        "approximate": true
+      },
+      "to": {
+        "year": 1800,
+        "era": "CE",
+        "approximate": true
+      },
+      "color": "#3f8f8a",
+      "label": {
+        "en": "Early Modern Period",
+        "de": "Frühe Neuzeit"
+      },
+      "source": {
+        "title": "Early Modern Period (period)",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "modern-era",
+      "lane": "world",
+      "from": {
+        "year": 1800,
+        "era": "CE",
+        "approximate": true
+      },
+      "to": {
+        "year": 1914,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#8a5aa3",
+      "label": {
+        "en": "Modern Era",
+        "de": "Moderne"
+      },
+      "source": {
+        "title": "Modern Era (period)",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "world-wars",
+      "lane": "world",
+      "from": {
+        "year": 1914,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1945,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#a33f4f",
+      "label": {
+        "en": "Age of the World Wars",
+        "de": "Zeitalter der Weltkriege"
+      },
+      "source": {
+        "title": "Age of the World Wars (period)",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "cold-war",
+      "lane": "world",
+      "from": {
+        "year": 1945,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1991,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#4f6a8a",
+      "label": {
+        "en": "Post-war and Cold War",
+        "de": "Nachkriegszeit und Kalter Krieg"
+      },
+      "source": {
+        "title": "Post-war and Cold War (period)",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "present",
+      "lane": "world",
+      "from": {
+        "year": 1991,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "today": true
+      },
+      "color": "#3f8f5a",
+      "label": {
+        "en": "Present",
+        "de": "Gegenwart"
+      },
+      "source": {
+        "title": "Present (period)",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "minoan",
+      "lane": "europe",
+      "from": {
+        "year": 2000,
+        "era": "BCE",
+        "approximate": true
+      },
+      "to": {
+        "year": 1450,
+        "era": "BCE",
+        "approximate": true
+      },
+      "color": "#2c7f7a",
+      "label": {
+        "en": "Minoan civilisation",
+        "de": "Minoische Kultur"
+      },
+      "source": {
+        "title": "Minoan civilisation",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "mycenaean",
+      "lane": "europe",
+      "from": {
+        "year": 1600,
+        "era": "BCE",
+        "approximate": true
+      },
+      "to": {
+        "year": 1100,
+        "era": "BCE",
+        "approximate": true
+      },
+      "color": "#3a6ea5",
+      "label": {
+        "en": "Mycenaean civilisation",
+        "de": "Mykenische Kultur"
+      },
+      "source": {
+        "title": "Mycenaean civilisation",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "ancient-greece",
+      "lane": "europe",
+      "from": {
+        "year": 800,
+        "era": "BCE",
+        "approximate": true
+      },
+      "to": {
+        "year": 146,
+        "era": "BCE",
+        "approximate": false
+      },
+      "color": "#c0504d",
+      "label": {
+        "en": "Ancient Greece",
+        "de": "Antikes Griechenland"
+      },
+      "source": {
+        "title": "Ancient Greece",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "roman-kingdom",
+      "lane": "europe",
+      "from": {
+        "year": 753,
+        "era": "BCE",
+        "approximate": false
+      },
+      "to": {
+        "year": 509,
+        "era": "BCE",
+        "approximate": false
+      },
+      "color": "#f79646",
+      "label": {
+        "en": "Roman Kingdom",
+        "de": "Römische Königszeit"
+      },
+      "source": {
+        "title": "Roman Kingdom",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "roman-republic",
+      "lane": "europe",
+      "from": {
+        "year": 509,
+        "era": "BCE",
+        "approximate": false
+      },
+      "to": {
+        "year": 27,
+        "era": "BCE",
+        "approximate": false
+      },
+      "color": "#c23b7a",
+      "label": {
+        "en": "Roman Republic",
+        "de": "Römische Republik"
+      },
+      "source": {
+        "title": "Roman Republic",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "roman-principate",
+      "lane": "europe",
+      "from": {
+        "year": 27,
+        "era": "BCE",
+        "approximate": false
+      },
+      "to": {
+        "year": 284,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#2e8b57",
+      "label": {
+        "en": "Roman Empire (Principate)",
+        "de": "Römisches Kaiserreich (Prinzipat)"
+      },
+      "source": {
+        "title": "Roman Empire (Principate)",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "late-antiquity",
+      "lane": "europe",
+      "from": {
+        "year": 284,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 476,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#4bacc6",
+      "label": {
+        "en": "Late Antiquity",
+        "de": "Spätantike"
+      },
+      "source": {
+        "title": "Late Antiquity",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "migration-period",
+      "lane": "europe",
+      "from": {
+        "year": 375,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 568,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#5e8c31",
+      "label": {
+        "en": "Migration Period",
+        "de": "Völkerwanderung"
+      },
+      "source": {
+        "title": "Migration Period",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "byzantine",
+      "lane": "europe",
+      "from": {
+        "year": 395,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1453,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#8b3a3a",
+      "label": {
+        "en": "Byzantine Empire",
+        "de": "Byzantinisches Reich"
+      },
+      "source": {
+        "title": "Byzantine Empire",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "frankish",
+      "lane": "europe",
+      "from": {
+        "year": 481,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 843,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#8064a2",
+      "label": {
+        "en": "Frankish Empire",
+        "de": "Frankenreich"
+      },
+      "source": {
+        "title": "Frankish Empire",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "viking-age",
+      "lane": "europe",
+      "from": {
+        "year": 793,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1066,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#7a4f9e",
+      "label": {
+        "en": "Viking Age",
+        "de": "Wikingerzeit"
+      },
+      "source": {
+        "title": "Viking Age",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "holy-roman-empire",
+      "lane": "europe",
+      "from": {
+        "year": 962,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1806,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#6b8e23",
+      "label": {
+        "en": "Holy Roman Empire",
+        "de": "Heiliges Römisches Reich"
+      },
+      "source": {
+        "title": "Holy Roman Empire",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "renaissance",
+      "lane": "europe",
+      "from": {
+        "year": 1400,
+        "era": "CE",
+        "approximate": true
+      },
+      "to": {
+        "year": 1600,
+        "era": "CE",
+        "approximate": true
+      },
+      "color": "#9bbb59",
+      "label": {
+        "en": "Renaissance",
+        "de": "Renaissance"
+      },
+      "source": {
+        "title": "Renaissance",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "reformation",
+      "lane": "europe",
+      "from": {
+        "year": 1517,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1648,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#b5651d",
+      "label": {
+        "en": "Reformation and Wars of Religion",
+        "de": "Reformation und Glaubenskriege"
+      },
+      "source": {
+        "title": "Reformation and Wars of Religion",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "enlightenment",
+      "lane": "europe",
+      "from": {
+        "year": 1680,
+        "era": "CE",
+        "approximate": true
+      },
+      "to": {
+        "year": 1800,
+        "era": "CE",
+        "approximate": true
+      },
+      "color": "#a67c00",
+      "label": {
+        "en": "Enlightenment",
+        "de": "Aufklärung"
+      },
+      "source": {
+        "title": "Enlightenment",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "industrial-revolution",
+      "lane": "europe",
+      "from": {
+        "year": 1760,
+        "era": "CE",
+        "approximate": true
+      },
+      "to": {
+        "year": 1840,
+        "era": "CE",
+        "approximate": true
+      },
+      "color": "#4f81bd",
+      "label": {
+        "en": "Industrial Revolution",
+        "de": "Industrielle Revolution"
+      },
+      "source": {
+        "title": "Industrial Revolution",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "sumer",
+      "lane": "mena",
+      "from": {
+        "year": 3100,
+        "era": "BCE",
+        "approximate": true
+      },
+      "to": {
+        "year": 2334,
+        "era": "BCE",
+        "approximate": false
+      },
+      "color": "#4bacc6",
+      "label": {
+        "en": "Sumerian city-states",
+        "de": "Sumerische Stadtstaaten"
+      },
+      "source": {
+        "title": "Sumerian city-states",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "egypt-old-kingdom",
+      "lane": "mena",
+      "from": {
+        "year": 2686,
+        "era": "BCE",
+        "approximate": true
+      },
+      "to": {
+        "year": 2181,
+        "era": "BCE",
+        "approximate": true
+      },
+      "color": "#5e8c31",
+      "label": {
+        "en": "Egypt: Old Kingdom",
+        "de": "Ägypten: Altes Reich"
+      },
+      "source": {
+        "title": "Egypt: Old Kingdom",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "akkad",
+      "lane": "mena",
+      "from": {
+        "year": 2334,
+        "era": "BCE",
+        "approximate": true
+      },
+      "to": {
+        "year": 2154,
+        "era": "BCE",
+        "approximate": true
+      },
+      "color": "#8b3a3a",
+      "label": {
+        "en": "Akkadian Empire",
+        "de": "Akkadisches Reich"
+      },
+      "source": {
+        "title": "Akkadian Empire",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "egypt-middle-kingdom",
+      "lane": "mena",
+      "from": {
+        "year": 2055,
+        "era": "BCE",
+        "approximate": true
+      },
+      "to": {
+        "year": 1650,
+        "era": "BCE",
+        "approximate": true
+      },
+      "color": "#8064a2",
+      "label": {
+        "en": "Egypt: Middle Kingdom",
+        "de": "Ägypten: Mittleres Reich"
+      },
+      "source": {
+        "title": "Egypt: Middle Kingdom",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "old-babylonian",
+      "lane": "mena",
+      "from": {
+        "year": 1894,
+        "era": "BCE",
+        "approximate": true
+      },
+      "to": {
+        "year": 1595,
+        "era": "BCE",
+        "approximate": true
+      },
+      "color": "#7a4f9e",
+      "label": {
+        "en": "Old Babylonian Empire",
+        "de": "Altbabylonisches Reich"
+      },
+      "source": {
+        "title": "Old Babylonian Empire",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "egypt-new-kingdom",
+      "lane": "mena",
+      "from": {
+        "year": 1550,
+        "era": "BCE",
+        "approximate": true
+      },
+      "to": {
+        "year": 1069,
+        "era": "BCE",
+        "approximate": true
+      },
+      "color": "#6b8e23",
+      "label": {
+        "en": "Egypt: New Kingdom",
+        "de": "Ägypten: Neues Reich"
+      },
+      "source": {
+        "title": "Egypt: New Kingdom",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "neo-assyrian",
+      "lane": "mena",
+      "from": {
+        "year": 911,
+        "era": "BCE",
+        "approximate": false
+      },
+      "to": {
+        "year": 609,
+        "era": "BCE",
+        "approximate": false
+      },
+      "color": "#9bbb59",
+      "label": {
+        "en": "Neo-Assyrian Empire",
+        "de": "Neuassyrisches Reich"
+      },
+      "source": {
+        "title": "Neo-Assyrian Empire",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "achaemenid",
+      "lane": "mena",
+      "from": {
+        "year": 550,
+        "era": "BCE",
+        "approximate": false
+      },
+      "to": {
+        "year": 330,
+        "era": "BCE",
+        "approximate": false
+      },
+      "color": "#b5651d",
+      "label": {
+        "en": "Achaemenid Persian Empire",
+        "de": "Perserreich der Achämeniden"
+      },
+      "source": {
+        "title": "Achaemenid Persian Empire",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "ptolemaic",
+      "lane": "mena",
+      "from": {
+        "year": 305,
+        "era": "BCE",
+        "approximate": false
+      },
+      "to": {
+        "year": 30,
+        "era": "BCE",
+        "approximate": false
+      },
+      "color": "#a67c00",
+      "label": {
+        "en": "Ptolemaic Kingdom",
+        "de": "Ptolemäerreich"
+      },
+      "source": {
+        "title": "Ptolemaic Kingdom",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "sasanian",
+      "lane": "mena",
+      "from": {
+        "year": 224,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 651,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#4f81bd",
+      "label": {
+        "en": "Sasanian Empire",
+        "de": "Sasanidenreich"
+      },
+      "source": {
+        "title": "Sasanian Empire",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "caliphates",
+      "lane": "mena",
+      "from": {
+        "year": 632,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1258,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#2c7f7a",
+      "label": {
+        "en": "Caliphates",
+        "de": "Kalifate"
+      },
+      "source": {
+        "title": "Caliphates",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "ottoman",
+      "lane": "mena",
+      "from": {
+        "year": 1299,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1922,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#3a6ea5",
+      "label": {
+        "en": "Ottoman Empire",
+        "de": "Osmanisches Reich"
+      },
+      "source": {
+        "title": "Ottoman Empire",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "bantu-expansion",
+      "lane": "africa",
+      "from": {
+        "year": 1500,
+        "era": "BCE",
+        "approximate": true
+      },
+      "to": {
+        "year": 500,
+        "era": "CE",
+        "approximate": true
+      },
+      "color": "#2c7f7a",
+      "label": {
+        "en": "Bantu expansion",
+        "de": "Bantu-Expansion"
+      },
+      "source": {
+        "title": "Bantu expansion",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "kush",
+      "lane": "africa",
+      "from": {
+        "year": 1070,
+        "era": "BCE",
+        "approximate": true
+      },
+      "to": {
+        "year": 350,
+        "era": "CE",
+        "approximate": true
+      },
+      "color": "#3a6ea5",
+      "label": {
+        "en": "Kingdom of Kush",
+        "de": "Königreich Kusch"
+      },
+      "source": {
+        "title": "Kingdom of Kush",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "aksum",
+      "lane": "africa",
+      "from": {
+        "year": 100,
+        "era": "CE",
+        "approximate": true
+      },
+      "to": {
+        "year": 940,
+        "era": "CE",
+        "approximate": true
+      },
+      "color": "#c0504d",
+      "label": {
+        "en": "Kingdom of Aksum",
+        "de": "Königreich Aksum"
+      },
+      "source": {
+        "title": "Kingdom of Aksum",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "ghana",
+      "lane": "africa",
+      "from": {
+        "year": 300,
+        "era": "CE",
+        "approximate": true
+      },
+      "to": {
+        "year": 1100,
+        "era": "CE",
+        "approximate": true
+      },
+      "color": "#f79646",
+      "label": {
+        "en": "Ghana Empire",
+        "de": "Ghanareich"
+      },
+      "source": {
+        "title": "Ghana Empire",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "great-zimbabwe",
+      "lane": "africa",
+      "from": {
+        "year": 1100,
+        "era": "CE",
+        "approximate": true
+      },
+      "to": {
+        "year": 1450,
+        "era": "CE",
+        "approximate": true
+      },
+      "color": "#c23b7a",
+      "label": {
+        "en": "Great Zimbabwe",
+        "de": "Groß-Simbabwe"
+      },
+      "source": {
+        "title": "Great Zimbabwe",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "mali",
+      "lane": "africa",
+      "from": {
+        "year": 1235,
+        "era": "CE",
+        "approximate": true
+      },
+      "to": {
+        "year": 1670,
+        "era": "CE",
+        "approximate": true
+      },
+      "color": "#2e8b57",
+      "label": {
+        "en": "Mali Empire",
+        "de": "Malireich"
+      },
+      "source": {
+        "title": "Mali Empire",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "songhai",
+      "lane": "africa",
+      "from": {
+        "year": 1464,
+        "era": "CE",
+        "approximate": true
+      },
+      "to": {
+        "year": 1591,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#4bacc6",
+      "label": {
+        "en": "Songhai Empire",
+        "de": "Songhaireich"
+      },
+      "source": {
+        "title": "Songhai Empire",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "colonial-africa",
+      "lane": "africa",
+      "from": {
+        "year": 1881,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1975,
+        "era": "CE",
+        "approximate": true
+      },
+      "color": "#5e8c31",
+      "label": {
+        "en": "Colonial rule",
+        "de": "Kolonialherrschaft"
+      },
+      "source": {
+        "title": "Colonial rule",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "indus",
+      "lane": "southAsia",
+      "from": {
+        "year": 3300,
+        "era": "BCE",
+        "approximate": true
+      },
+      "to": {
+        "year": 1300,
+        "era": "BCE",
+        "approximate": true
+      },
+      "color": "#5e8c31",
+      "label": {
+        "en": "Indus Valley civilisation",
+        "de": "Indus-Kultur"
+      },
+      "source": {
+        "title": "Indus Valley civilisation",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "vedic",
+      "lane": "southAsia",
+      "from": {
+        "year": 1500,
+        "era": "BCE",
+        "approximate": true
+      },
+      "to": {
+        "year": 500,
+        "era": "BCE",
+        "approximate": true
+      },
+      "color": "#8b3a3a",
+      "label": {
+        "en": "Vedic period",
+        "de": "Vedische Zeit"
+      },
+      "source": {
+        "title": "Vedic period",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "maurya",
+      "lane": "southAsia",
+      "from": {
+        "year": 322,
+        "era": "BCE",
+        "approximate": false
+      },
+      "to": {
+        "year": 185,
+        "era": "BCE",
+        "approximate": false
+      },
+      "color": "#8064a2",
+      "label": {
+        "en": "Maurya Empire",
+        "de": "Maurya-Reich"
+      },
+      "source": {
+        "title": "Maurya Empire",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "gupta",
+      "lane": "southAsia",
+      "from": {
+        "year": 320,
+        "era": "CE",
+        "approximate": true
+      },
+      "to": {
+        "year": 550,
+        "era": "CE",
+        "approximate": true
+      },
+      "color": "#7a4f9e",
+      "label": {
+        "en": "Gupta Empire",
+        "de": "Gupta-Reich"
+      },
+      "source": {
+        "title": "Gupta Empire",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "delhi-sultanate",
+      "lane": "southAsia",
+      "from": {
+        "year": 1206,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1526,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#6b8e23",
+      "label": {
+        "en": "Delhi Sultanate",
+        "de": "Sultanat von Delhi"
+      },
+      "source": {
+        "title": "Delhi Sultanate",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "mughal",
+      "lane": "southAsia",
+      "from": {
+        "year": 1526,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1857,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#9bbb59",
+      "label": {
+        "en": "Mughal Empire",
+        "de": "Mogulreich"
+      },
+      "source": {
+        "title": "Mughal Empire",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "british-raj",
+      "lane": "southAsia",
+      "from": {
+        "year": 1858,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1947,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#b5651d",
+      "label": {
+        "en": "British Raj",
+        "de": "Britisch-Indien"
+      },
+      "source": {
+        "title": "British Raj",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "shang",
+      "lane": "eastAsia",
+      "from": {
+        "year": 1600,
+        "era": "BCE",
+        "approximate": true
+      },
+      "to": {
+        "year": 1046,
+        "era": "BCE",
+        "approximate": false
+      },
+      "color": "#7a4f9e",
+      "label": {
+        "en": "Shang dynasty",
+        "de": "Shang-Dynastie"
+      },
+      "source": {
+        "title": "Shang dynasty",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "zhou",
+      "lane": "eastAsia",
+      "from": {
+        "year": 1046,
+        "era": "BCE",
+        "approximate": false
+      },
+      "to": {
+        "year": 256,
+        "era": "BCE",
+        "approximate": false
+      },
+      "color": "#6b8e23",
+      "label": {
+        "en": "Zhou dynasty",
+        "de": "Zhou-Dynastie"
+      },
+      "source": {
+        "title": "Zhou dynasty",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "qin",
+      "lane": "eastAsia",
+      "from": {
+        "year": 221,
+        "era": "BCE",
+        "approximate": false
+      },
+      "to": {
+        "year": 206,
+        "era": "BCE",
+        "approximate": false
+      },
+      "color": "#9bbb59",
+      "label": {
+        "en": "Qin dynasty",
+        "de": "Qin-Dynastie"
+      },
+      "source": {
+        "title": "Qin dynasty",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "han",
+      "lane": "eastAsia",
+      "from": {
+        "year": 206,
+        "era": "BCE",
+        "approximate": false
+      },
+      "to": {
+        "year": 220,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#b5651d",
+      "label": {
+        "en": "Han dynasty",
+        "de": "Han-Dynastie"
+      },
+      "source": {
+        "title": "Han dynasty",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "three-kingdoms",
+      "lane": "eastAsia",
+      "from": {
+        "year": 220,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 280,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#a67c00",
+      "label": {
+        "en": "Three Kingdoms",
+        "de": "Drei Reiche"
+      },
+      "source": {
+        "title": "Three Kingdoms",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "sui",
+      "lane": "eastAsia",
+      "from": {
+        "year": 581,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 618,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#4f81bd",
+      "label": {
+        "en": "Sui dynasty",
+        "de": "Sui-Dynastie"
+      },
+      "source": {
+        "title": "Sui dynasty",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "tang",
+      "lane": "eastAsia",
+      "from": {
+        "year": 618,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 907,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#2c7f7a",
+      "label": {
+        "en": "Tang dynasty",
+        "de": "Tang-Dynastie"
+      },
+      "source": {
+        "title": "Tang dynasty",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "heian",
+      "lane": "eastAsia",
+      "from": {
+        "year": 794,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1185,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#3a6ea5",
+      "label": {
+        "en": "Heian period (Japan)",
+        "de": "Heian-Zeit (Japan)"
+      },
+      "source": {
+        "title": "Heian period (Japan)",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "song",
+      "lane": "eastAsia",
+      "from": {
+        "year": 960,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1279,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#c0504d",
+      "label": {
+        "en": "Song dynasty",
+        "de": "Song-Dynastie"
+      },
+      "source": {
+        "title": "Song dynasty",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "mongol",
+      "lane": "eastAsia",
+      "from": {
+        "year": 1206,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1368,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#f79646",
+      "label": {
+        "en": "Mongol Empire",
+        "de": "Mongolisches Reich"
+      },
+      "source": {
+        "title": "Mongol Empire",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "yuan",
+      "lane": "eastAsia",
+      "from": {
+        "year": 1271,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1368,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#c23b7a",
+      "label": {
+        "en": "Yuan dynasty",
+        "de": "Yuan-Dynastie"
+      },
+      "source": {
+        "title": "Yuan dynasty",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "ming",
+      "lane": "eastAsia",
+      "from": {
+        "year": 1368,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1644,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#2e8b57",
+      "label": {
+        "en": "Ming dynasty",
+        "de": "Ming-Dynastie"
+      },
+      "source": {
+        "title": "Ming dynasty",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "edo",
+      "lane": "eastAsia",
+      "from": {
+        "year": 1603,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1868,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#4bacc6",
+      "label": {
+        "en": "Edo period (Japan)",
+        "de": "Edo-Zeit (Japan)"
+      },
+      "source": {
+        "title": "Edo period (Japan)",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "qing",
+      "lane": "eastAsia",
+      "from": {
+        "year": 1644,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1912,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#5e8c31",
+      "label": {
+        "en": "Qing dynasty",
+        "de": "Qing-Dynastie"
+      },
+      "source": {
+        "title": "Qing dynasty",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "roc",
+      "lane": "eastAsia",
+      "from": {
+        "year": 1912,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1949,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#8b3a3a",
+      "label": {
+        "en": "Republic of China",
+        "de": "Republik China"
+      },
+      "source": {
+        "title": "Republic of China",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "prc",
+      "lane": "eastAsia",
+      "from": {
+        "year": 1949,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "today": true
+      },
+      "color": "#8064a2",
+      "label": {
+        "en": "People's Republic of China",
+        "de": "Volksrepublik China"
+      },
+      "source": {
+        "title": "People's Republic of China",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "olmec",
+      "lane": "americas",
+      "from": {
+        "year": 1200,
+        "era": "BCE",
+        "approximate": true
+      },
+      "to": {
+        "year": 400,
+        "era": "BCE",
+        "approximate": true
+      },
+      "color": "#7a4f9e",
+      "label": {
+        "en": "Olmec civilisation",
+        "de": "Olmekische Kultur"
+      },
+      "source": {
+        "title": "Olmec civilisation",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "teotihuacan",
+      "lane": "americas",
+      "from": {
+        "year": 100,
+        "era": "BCE",
+        "approximate": true
+      },
+      "to": {
+        "year": 550,
+        "era": "CE",
+        "approximate": true
+      },
+      "color": "#6b8e23",
+      "label": {
+        "en": "Teotihuacan",
+        "de": "Teotihuacán"
+      },
+      "source": {
+        "title": "Teotihuacan",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "classic-maya",
+      "lane": "americas",
+      "from": {
+        "year": 250,
+        "era": "CE",
+        "approximate": true
+      },
+      "to": {
+        "year": 900,
+        "era": "CE",
+        "approximate": true
+      },
+      "color": "#9bbb59",
+      "label": {
+        "en": "Classic Maya",
+        "de": "Klassische Maya-Zeit"
+      },
+      "source": {
+        "title": "Classic Maya",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "cahokia",
+      "lane": "americas",
+      "from": {
+        "year": 1050,
+        "era": "CE",
+        "approximate": true
+      },
+      "to": {
+        "year": 1350,
+        "era": "CE",
+        "approximate": true
+      },
+      "color": "#b5651d",
+      "label": {
+        "en": "Cahokia",
+        "de": "Cahokia"
+      },
+      "source": {
+        "title": "Cahokia",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "aztec",
+      "lane": "americas",
+      "from": {
+        "year": 1428,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1521,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#a67c00",
+      "label": {
+        "en": "Aztec Empire",
+        "de": "Aztekenreich"
+      },
+      "source": {
+        "title": "Aztec Empire",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "inca",
+      "lane": "americas",
+      "from": {
+        "year": 1438,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1533,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#4f81bd",
+      "label": {
+        "en": "Inca Empire",
+        "de": "Inkareich"
+      },
+      "source": {
+        "title": "Inca Empire",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "colonial-americas",
+      "lane": "americas",
+      "from": {
+        "year": 1492,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1825,
+        "era": "CE",
+        "approximate": true
+      },
+      "color": "#2c7f7a",
+      "label": {
+        "en": "Colonial period",
+        "de": "Kolonialzeit"
+      },
+      "source": {
+        "title": "Colonial period",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "lapita",
+      "lane": "oceania",
+      "from": {
+        "year": 1600,
+        "era": "BCE",
+        "approximate": true
+      },
+      "to": {
+        "year": 500,
+        "era": "BCE",
+        "approximate": true
+      },
+      "color": "#b5651d",
+      "label": {
+        "en": "Lapita culture",
+        "de": "Lapita-Kultur"
+      },
+      "source": {
+        "title": "Lapita culture",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "polynesian-settlement",
+      "lane": "oceania",
+      "from": {
+        "year": 1000,
+        "era": "CE",
+        "approximate": true
+      },
+      "to": {
+        "year": 1300,
+        "era": "CE",
+        "approximate": true
+      },
+      "color": "#a67c00",
+      "label": {
+        "en": "Polynesian settlement",
+        "de": "Besiedlung Polynesiens"
+      },
+      "source": {
+        "title": "Polynesian settlement",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    },
+    {
+      "id": "colonial-oceania",
+      "lane": "oceania",
+      "from": {
+        "year": 1788,
+        "era": "CE",
+        "approximate": false
+      },
+      "to": {
+        "year": 1901,
+        "era": "CE",
+        "approximate": false
+      },
+      "color": "#4f81bd",
+      "label": {
+        "en": "Colonial period",
+        "de": "Kolonialzeit"
+      },
+      "source": {
+        "title": "Colonial period",
+        "publisher": "Encyclopaedia Britannica"
+      }
+    }
+  ]
+}

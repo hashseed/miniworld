@@ -1,0 +1,175 @@
+{
+  "description": "Every source dataset the data build reads. npm run fetch-data downloads the originals into data/out/<id>/ and checks them against download.sha256; npm run simplify-data turns them into the small extracts kept under data/sources/<id>/, listed in files with their checksums. Licences must meet spec section 13.",
+  "sources": [
+    {
+      "id": "etopo-2022",
+      "title": "ETOPO 2022 Global Relief Model, 60 arc-second bedrock elevation, averaged to 4 arc-minutes",
+      "role": "elevation",
+      "licence": "CC0-1.0",
+      "citation": "NOAA National Centers for Environmental Information. 2022: ETOPO 2022 15 Arc-Second Global Relief Model. NOAA National Centers for Environmental Information. https://doi.org/10.25921/fd45-gt74",
+      "url": "https://doi.org/10.25921/fd45-gt74",
+      "download": {
+        "url": "https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO2022/data/60s/60s_bed_elev_gtif/ETOPO_2022_v1_60s_N90W180_bed.tif",
+        "files": ["ETOPO_2022_v1_60s_N90W180_bed.tif"],
+        "sha256": {
+          "ETOPO_2022_v1_60s_N90W180_bed.tif": "a2cc72f8a4292dee928f439069457cdefc1fba319876807c626edce40258ba7a"
+        }
+      },
+      "files": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "2d97641aa606728a694acdd3502e3250e74c94a51231741271001f32f934bdb3",
+          "bytes": 602
+        },
+        {
+          "path": "elevation.json",
+          "sha256": "5f61957257d107c6213cd82142232d39731471e318b71ebc794025a5f700fb06",
+          "bytes": 344
+        },
+        {
+          "path": "elevation.bin.br",
+          "sha256": "f5228875393052254c2fbfa9020aff2442138483d1293d6a9647d0cadb3be965",
+          "bytes": 17329267
+        }
+      ]
+    },
+    {
+      "id": "natural-earth",
+      "title": "Natural Earth 1:10m physical vectors, version 5.1.2",
+      "role": "water",
+      "licence": "LicenseRef-Public-Domain",
+      "citation": "Made with Natural Earth. Free vector and raster map data @ naturalearthdata.com.",
+      "url": "https://www.naturalearthdata.com",
+      "download": {
+        "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/",
+        "files": [
+          "ne_10m_lakes.geojson",
+          "ne_10m_rivers_lake_centerlines.geojson",
+          "ne_10m_land.geojson"
+        ],
+        "sha256": {
+          "ne_10m_lakes.geojson": "2d036f53dedec578001c5c30c2959ee7d4eebc1306900fa4367c49929ec8f2d9",
+          "ne_10m_rivers_lake_centerlines.geojson": "bb854a900ecbd3b408df46d5e16e3e0f974ba55993f9d8b5c26e855273c0905a",
+          "ne_10m_land.geojson": "1ac90796408bc6ad6911d69448485d3c4dbf2190370080368a09976e1c9f7416"
+        }
+      },
+      "files": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "2631b5b39b6d1acc56de75235109b5af2dbb4b0ac5a127b6f06185977247fd4b",
+          "bytes": 4636
+        },
+        {
+          "path": "ne_10m_lakes.geojson",
+          "sha256": "2d036f53dedec578001c5c30c2959ee7d4eebc1306900fa4367c49929ec8f2d9",
+          "bytes": 5043554
+        },
+        {
+          "path": "ne_10m_rivers_lake_centerlines.geojson",
+          "sha256": "bb854a900ecbd3b408df46d5e16e3e0f974ba55993f9d8b5c26e855273c0905a",
+          "bytes": 7307743
+        },
+        {
+          "path": "ne_10m_land.geojson",
+          "sha256": "1ac90796408bc6ad6911d69448485d3c4dbf2190370080368a09976e1c9f7416",
+          "bytes": 10157965
+        }
+      ]
+    },
+    {
+      "id": "paleomist-1.0",
+      "title": "PaleoMIST 1.0 global ice sheet reconstruction for the past 80,000 years",
+      "role": "ice-sea-level",
+      "licence": "CC-BY-4.0",
+      "citation": "Gowan, E. J. et al. (2021): A new global ice sheet reconstruction for the past 80 000 years. Nature Communications 12, 1199. Data: Gowan, E. J. (2019), PANGAEA, https://doi.org/10.1594/PANGAEA.905800",
+      "url": "https://doi.org/10.1594/PANGAEA.905800",
+      "download": {
+        "url": "https://hs.pangaea.de/Maps/Global_Ice_Sheets/Gowan_ice_reconstruction.zip",
+        "archive": "zip",
+        "note": "Extract ice_reconstruction/global_grid/reconstruction_0.25_degree.nc from the archive into data/out/paleomist-1.0/, for example: unzip -j data/out/paleomist-1.0/paleomist-1.0.zip ice_reconstruction/global_grid/reconstruction_0.25_degree.nc -d data/out/paleomist-1.0",
+        "sha256": {
+          "paleomist-1.0.zip": "e413799140fa1062bfe1c6ae6e4f9ce983e13553c6fa12866f4804bd633cdd57"
+        }
+      },
+      "files": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "944b712086353b8f9736b23295b889b0ff4411570c4a198d2abf9177c74a28e2",
+          "bytes": 1286
+        },
+        {
+          "path": "ice_thickness.json",
+          "sha256": "bb3309c10e4df594a5778111a3c4f3287d9ff0f16a641b003c83e5d269927b9e",
+          "bytes": 523
+        },
+        {
+          "path": "ice_thickness.bin.br",
+          "sha256": "734186ebb445974f704ff6bb4a5a89d20741ffddabce3df018780761f07d284f",
+          "bytes": 4118156
+        },
+        {
+          "path": "sea_level.json",
+          "sha256": "52fb59a6576cd1b3488359f7703cfa47a9ce38f4c9a090cf9f40ecac0628021d",
+          "bytes": 569
+        },
+        {
+          "path": "sea_level.bin.br",
+          "sha256": "28fbde214e9e54e43296f844ab4f01a11f3e95198518540913b3c104a1b94679",
+          "bytes": 1853126
+        }
+      ]
+    },
+    {
+      "id": "beyer-2020",
+      "title": "Late Quaternary climate, bioclimate and vegetation (Beyer, Krapp and Manica 2020), v1.0",
+      "role": "climate",
+      "licence": "CC-BY-4.0",
+      "citation": "Beyer, R. M., Krapp, M. and Manica, A. (2020): High-resolution terrestrial climate, bioclimate and vegetation for the last 120,000 years. Scientific Data 7, 236. Data: figshare, https://doi.org/10.6084/m9.figshare.12293345",
+      "url": "https://doi.org/10.6084/m9.figshare.12293345",
+      "download": {
+        "url": "https://ndownloader.figshare.com/files/22659026",
+        "files": ["LateQuaternary_Environment.nc"],
+        "sha256": {
+          "LateQuaternary_Environment.nc": "7312280854bab9e95f8721c80050c0889b29ad3087a00bd264e7500d33d19857"
+        }
+      },
+      "files": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "965368fbe06ab624e790be4774546eb53bfb02ed93e94de57cc82befab28b2fa",
+          "bytes": 1207
+        },
+        {
+          "path": "biome.json",
+          "sha256": "69e5dc0e83557d221262e059b76b2aaf2fdb46ca319f6d6d2367bfbf08fc015e",
+          "bytes": 704
+        },
+        {
+          "path": "biome.bin.br",
+          "sha256": "c00115f63009ba68c512a38f2a11f3e0c586ae7dd3fa8b05718e7050cddb825f",
+          "bytes": 303363
+        },
+        {
+          "path": "BIO1.json",
+          "sha256": "0419ae07ed25f433d20ddb5b3b39b2a52494cf2ff82a79a2de86ab9882dff199",
+          "bytes": 716
+        },
+        {
+          "path": "BIO1.bin.br",
+          "sha256": "a898eb853e782827a24e957f1eb12f156d4329477247f51f0450ae7dd77beda9",
+          "bytes": 2356796
+        },
+        {
+          "path": "BIO12.json",
+          "sha256": "5d4647ebd364fb75bf5dc0299b5c1be805cf92e56c765c472d6c0989cc73e47f",
+          "bytes": 711
+        },
+        {
+          "path": "BIO12.bin.br",
+          "sha256": "b62e2364d0a9be3b22eb6398eebf0da13c6f2a85ab723ada619366f7e9b1cac4",
+          "bytes": 3481349
+        }
+      ]
+    }
+  ]
+}
