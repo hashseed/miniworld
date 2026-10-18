@@ -102,7 +102,7 @@ Measurements of the built foliage with the history lens on (headless Chromium, 1
 
 ## 9. Assets
 
-The plant models are simple shapes built in code (balls, cones and strips with flat colours), like the clouds, so they are not asset files and need no entry in the asset manifest. Yang reviews them on previews: the look was approved on 2026-10-18 ("commit this"), with arched palm fronds asked for and added.
+The plant models are built in code from simple shapes (balls, cones and strips with flat colours) in `app/src/globe/foliageModels.ts`, like the prehistoric figures, and each kind is listed in `data/assets/manifest.json`. Yang approved the look from previews on 2026-10-18 ("commit this"), asking for arched palm fronds at the same triangle count, which were added.
 
 ## 10. Open questions
 
