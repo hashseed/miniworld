@@ -358,9 +358,4 @@ export class Lens {
     if (this.blend <= 0) return 1;
     return 1 + (sampleScalar(this.width, d) - 1) * this.blend;
   }
-
-  /** Largest width factor anywhere, for conservative bounds. */
-  get maxWidth(): number {
-    return Math.max(1, 1 + (this.widest - 1) * this.blend);
-  }
 }

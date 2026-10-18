@@ -92,10 +92,6 @@ export class Timeline {
     this.transition = animate ? { from, start: performance.now() } : undefined;
   }
 
-  get trueScale(): boolean {
-    return this.mode === 'true';
-  }
-
   // --- Axis ------------------------------------------------------------------
 
   private axis(day: number, mode: Mode): number {
@@ -168,12 +164,6 @@ export class Timeline {
 
   private layoutLanes(): void {
     this.lanes = this.buildLanes(this.visibleLanes);
-  }
-
-  /** Height all lanes need at the smallest readable row height. */
-  fullHeight(): number {
-    const lanes = this.buildLanes(undefined);
-    return RULER_H + lanes.reduce((n, l) => n + l.rows, 0) * MIN_ROW_H + lanes.length * 3 + 4;
   }
 
   private buildLanes(show: string[] | undefined): LaneLayout[] {
@@ -333,7 +323,7 @@ export class Timeline {
       const step =
         NICE_STEPS.find((s) => s / yearsPerPx >= 90) ?? NICE_STEPS[NICE_STEPS.length - 1]!;
       let next = Math.ceil((hy + 1e-6) / step) * step;
-      if (next === 0) next = step > 1 ? 1 : 1;
+      if (next === 0) next = 1; // there is no year 0
       out.push(next);
       hy = next;
     }
@@ -390,7 +380,7 @@ export class Timeline {
       c.setPointerCapture(e.pointerId);
       this.pinch.set(e.pointerId, e.clientX);
       if (this.pinch.size === 2) {
-        this.endDrag(false);
+        this.endDrag();
         const xs = [...this.pinch.values()];
         this.pinchStart = {
           dist: Math.abs(xs[1]! - xs[0]!),
@@ -445,7 +435,7 @@ export class Timeline {
         if (era) this.tooltip = { text: this.eraText(era), x, y, until: performance.now() + 4000 };
         else this.clock.setDay(this.dayAtX(x));
       }
-      this.endDrag(true);
+      this.endDrag();
     };
     c.addEventListener('pointerup', up);
     c.addEventListener('pointercancel', up);
@@ -488,9 +478,8 @@ export class Timeline {
     });
   }
 
-  private endDrag(release: boolean): void {
-    if (this.drag?.kind === 'scrub' && release) this.clock.endScrub();
-    else if (this.drag?.kind === 'scrub') this.clock.endScrub();
+  private endDrag(): void {
+    if (this.drag?.kind === 'scrub') this.clock.endScrub();
     this.drag = undefined;
   }
 

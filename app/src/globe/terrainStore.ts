@@ -30,8 +30,6 @@ export class TerrainStore {
   private loader: ContentLoader;
   private terrain = new Map<string, Slot<TerrainTile>>();
   private wanted = new Map<string, number>(); // url → priority this frame
-  /** Incremented whenever new data arrives, so meshes know to rebuild. */
-  version = 0;
 
   constructor(loader: ContentLoader) {
     this.loader = loader;
@@ -61,7 +59,6 @@ export class TerrainStore {
         return;
       }
       this.terrain.set(id, decodeTerrainTile(buf));
-      this.version++;
     });
     return undefined;
   }
@@ -100,12 +97,6 @@ export class TerrainStore {
   /** Drops queued requests for tiles that are no longer wanted. */
   endFrame(): void {
     this.wanted.clear();
-  }
-
-  get loadedTiles(): number {
-    let n = 0;
-    for (const v of this.terrain.values()) if (typeof v === 'object') n++;
-    return n;
   }
 }
 

@@ -75,10 +75,6 @@ export class ClimateStore {
     return (v - ICE_DISTANCE_ZERO) * ICE_DISTANCE_STEP_KM;
   }
 
-  get loadedCount(): number {
-    return this.slices.filter(Boolean).length;
-  }
-
   private pair(day: number): { ka: number; kb: number; t: number } {
     // The manifest arrives after construction; take the slice list on first use.
     if (this.days.length === 0 && this.loader.manifest) {

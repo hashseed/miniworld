@@ -11,13 +11,6 @@ import {
   type GeoJsonFeature,
 } from './rasterize.ts';
 
-export interface WaterLayers {
-  /** Surface level in metres for lake cells, or NO_LAKE. */
-  lakeLevel: Int16Array;
-  /** River strength 0..255 per cell. */
-  rivers: Uint8Array;
-}
-
 export const NO_LAKE = -32768;
 
 function readFeatures(path: string): GeoJsonFeature[] {

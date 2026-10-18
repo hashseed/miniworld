@@ -44,7 +44,7 @@ export interface TerrainTile {
   /**
    * Distance from today's smoothed coast in km per sample, TERRAIN_SAMPLES²,
    * 0 at sea and 255 for 255 km or more: land rises no faster than a rounded
-   * clay edge allows near the sea (section 4.4).
+   * clay edge allows near the sea (section 4.2).
    */
   coast: Uint8Array;
 }

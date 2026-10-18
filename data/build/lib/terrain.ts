@@ -35,7 +35,7 @@ export interface TerrainInputs {
   flowSin: Grid<Uint8Array>;
   /** Smoothed bed under the ice sheets, in metres (section 5.2). */
   bed: (lat: number, lon: number) => number;
-  /** Distance from today's smoothed coast in km, 0..255 (section 4.4). */
+  /** Distance from today's smoothed coast in km, 0..255 (section 4.2). */
   coast: Grid<Uint8Array>;
 }
 

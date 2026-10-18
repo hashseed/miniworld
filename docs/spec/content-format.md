@@ -82,7 +82,7 @@ Der Vesuv bricht aus und begräbt die Stadt Pompeji unter Asche. ...
 | `where` | yes for events, people, places, routes, landmarks and vignettes | Place (section 4). |
 | `region` | yes, except culture | One or more region ids from `vocab/regions.yaml` (the timeline's regional lanes); used for the timeline, the phone lane filter and the coverage report. |
 | `sources` | yes | One or more references into `sources.yaml`, each with an optional note such as a page or letter number. |
-| `debated` | no | What historians dispute: `date`, `place`, `cause` or `numbers`. The card says so in plain words. |
+| `debated` | no | What historians dispute: `date`, `place`, `cause`, `numbers` or `method` (how something was done, such as whether people killed mammoths or collected the bones of dead ones). The data build fails on any other value. The card says so in plain words. |
 | `tags`, `links` | no | Tag ids, and links to other records by kind and id. |
 | `aliases` | no | Former ids. |
 

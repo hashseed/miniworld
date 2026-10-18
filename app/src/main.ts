@@ -119,7 +119,7 @@ scene.add(sky.dome, globe.group, clouds.mesh, foliage.group);
 
 let index: StartupIndex | undefined;
 let minSeaLevel = -130;
-let planet: PlanetState = { seaLevel: 0, glacialIndex: 0, iceA: 0, iceB: 0, iceT: 0 };
+let planet: PlanetState = { seaLevel: 0, glacialIndex: 0 };
 const surface = {
   surfaceKm: (dir: [number, number, number]) => (index ? globe.surfaceKm(dir, planet) : 0),
 };
@@ -155,7 +155,7 @@ const stats = new FrameStats(600);
 /** Applies the one fixed quality (section 11.2). */
 function applyQuality(): void {
   const q = QUALITY;
-  globe.quality = { errorTargetPx: q.errorTargetPx, waterDetail: q.waterDetail };
+  globe.quality = { errorTargetPx: q.errorTargetPx };
   dynres.configure(Math.min(q.renderScaleCap, devicePixelRatio || 1), targetFrameMs(isPhone));
   dynres.scale = Math.min(q.renderScaleCap, devicePixelRatio || 1);
   frames.setSize(innerWidth, innerHeight, dynres.scale);

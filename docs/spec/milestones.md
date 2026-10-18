@@ -66,7 +66,7 @@ Detailed spec: [milestone-2.md](milestone-2.md).
 
 - Opening at 50,000 BCE shows bands of people at work in Africa and spreading along the coasts of Asia.
 - Scrubbing from 70,000 to 9000 BCE shows people reaching Sahul, Europe, Siberia and finally the Americas.
-- Pausing history keeps people and vignettes going; freezing everything stops them mid-step.
+- Pausing history stops people and vignettes mid-step, and playing goes on from there.
 - Lascaux opens as a cutaway, and Göbekli Tepe rises over its real span and can be found from orbit.
 - Golden snapshots match on two different machines.
 
