@@ -418,14 +418,20 @@ loop.afterFrame = (now) => {
     persistView();
   }
 };
+let lastSavedView = '';
+/** Saves the view when it has changed since it was last saved. */
 function persistView(): void {
   if (STRESS || !index) return;
-  saveView({
+  const view = {
     ms: clock.ms,
     camera: { ...controller.state },
     playState: clock.playState,
     speedMode: clock.speedMode,
-  });
+  };
+  const key = JSON.stringify(view);
+  if (key === lastSavedView) return;
+  lastSavedView = key;
+  saveView(view);
 }
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') persistView();
