@@ -400,20 +400,26 @@ for (const bp of climateYears) {
 }
 const climateBytes = climateFiles.reduce((n, f) => n + (output.sizes.get(f) ?? 0), 0);
 // One foliage slice per climate step (spec foliage.md, section 2): the biome
-// class per 0.5° cell, with the humid periods turning dry land to savanna.
+// class per 0.5° cell, with the humid periods turning dry land to savanna, and
+// the tree density near the ice sheets and in cold or dry climates.
 const biomeJson =
   sourceFiles('beyer-2020').find((p) => p.endsWith('/biome.json')) ?? fail('beyer-2020: no biome');
 const biome = readExtract(biomeJson.replace(/\.json$/, ''));
-const foliageFiles = climateYears.map((bp) =>
-  output.write(
+const foliageInputs = {
+  biome,
+  precipitation,
+  temperature: stack('beyer-2020', 'BIO1'),
+  ice: iceStack,
+  periods: humid.periods,
+};
+const foliageFiles = climateYears.map((bp) => {
+  const grid = foliageGrid(foliageInputs, bp);
+  return output.write(
     `foliage/${bp}`,
     'bin',
-    encodeFoliageSlice({
-      day: sliceDay(bp),
-      cells: foliageGrid(biome, precipitation, humid.periods, bp),
-    }),
-  ),
-);
+    encodeFoliageSlice({ day: sliceDay(bp), cells: grid.classes, density: grid.density }),
+  );
+});
 const foliageBytes = foliageFiles.reduce((n, f) => n + (output.sizes.get(f) ?? 0), 0);
 log(`${foliageFiles.length} foliage slices, ${(foliageBytes / 1000).toFixed(0)} KB Brotli`);
 log(
