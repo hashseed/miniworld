@@ -1,12 +1,12 @@
 // Terrain, water and ice in one shader (spec milestone 1, sections 4.3, 4.4,
 // 5.2). Water is drawn where the ocean mask says the sea reaches at the
-// date's sea level, by lifting those vertices to the sea surface; ice lifts
-// the surface by its thickness, and land stands a fixed step above the sea
+// date's sea level, by lifting those vertices to the sea surface; ice sheets
+// are smooth domes over the ice cover, and land stands a fixed step above the sea
 // so continents read as toy slabs (section 4.2). The look is a toy planet
 // under studio lights (sections 3.6 and 4.3); the land colours are painted
 // directly until textures are approved (section 12).
 
-import { TERRAIN_SAMPLES } from '../content/formats.ts';
+import { ICE_DISTANCE_STEP_KM, ICE_DISTANCE_ZERO, TERRAIN_SAMPLES } from '../content/formats.ts';
 import { LENS_COLS, LENS_ROWS, LENS_STEP } from './lens.ts';
 
 /**
@@ -47,29 +47,55 @@ vec3 rotateTo(vec3 v, vec3 a, vec3 b) {
 }
 `;
 
+/**
+ * The date's ice and deserts from the two global climate slices around it
+ * (section 5.2), blended by climateT: the signed distance from the ice
+ * border in km (positive inside) and the aridity from 0 to 1.
+ */
+const climateGlsl = /* glsl */ `
+uniform sampler2D climateA;
+uniform sampler2D climateB;
+uniform float climateT;
+vec2 climateAt(vec3 up) {
+  float lon = atan(up.x, up.z);
+  float lat = asin(clamp(up.y, -1.0, 1.0));
+  vec2 uv = vec2(lon * 0.15915494 + 0.5, 0.5 - lat * 0.31830989);
+  vec2 c = mix(texture2D(climateA, uv).rg, texture2D(climateB, uv).rg, climateT);
+  return vec2((c.r * 255.0 - ${ICE_DISTANCE_ZERO}.0) * ${ICE_DISTANCE_STEP_KM}.0, c.g);
+}
+`;
+
 export const terrainVertex = /* glsl */ `
 #include <common>
 #include <logdepthbuf_pars_vertex>
 
-attribute vec2 elev;   // height (m), smoothed sea level at which the sample is sea (m)
-attribute vec4 extra;  // lake field, river field, skirt, unused (0..1)
+attribute vec3 elev;   // height (m), smoothed sea level at which the sample is sea (dm), smoothed bed (m)
+attribute vec4 extra;  // lake field, river field, skirt, km from today's coast / 255
 attribute vec2 flow;   // river flow phase as cosine and sine (-1..1)
-attribute vec4 ice;    // ice thickness at slice A and B (m), aridity at A and B (0..1000)
 attribute vec2 fieldUv; // texel centre of this sample in the tile's field texture
 
 uniform float seaLevel;
 uniform float exaggeration;
-uniform float iceT;
+${climateGlsl}
 uniform float skirtDepth;
 uniform float landLift; // metres every land vertex stands above its height
 ${lensChunk}
 
-// How far below the sea level the flat sea surface lies, and the width of
-// the flat beach (in metres of the smoothed coast level) before the land
-// rises, so the slope lies wholly on land and is never cut by the coastline
-// (section 4.4).
+// How far below the sea level the flat sea surface lies (section 4.4).
 const float SEA_DROP = 3.0;
-const float COAST_BEACH = 15.0;
+// Ice sheets rise from their border as smooth domes, ICE_DOME_M at most,
+// reaching 63% of it ICE_DOME_KM inside; the relief under them is hidden
+// over the first ICE_HIDE_KM (section 5.2).
+const float ICE_DOME_M = 1200.0;
+const float ICE_DOME_KM = 250.0;
+const float ICE_HIDE_KM = 120.0;
+// Near the sea, land may rise at most coastCap(d) metres at d km from today's
+// coast (after a flat beach), so at 100x relief every coast and ice margin is
+// a rounded clay edge rather than a wall; further inland the cap grows fast
+// enough to leave mountains alone (section 4.4).
+const float COAST_BEACH_KM = 2.0;
+const float COAST_SLOPE = 12.0; // m per km at the coast
+const float COAST_CURVE = 0.15; // extra m per km²
 
 varying vec3 vWorld;
 varying vec3 vUp;
@@ -77,12 +103,10 @@ varying vec3 vTrueUp;
 varying vec3 vPattern;
 varying vec3 vNormal;
 varying float vWater;
-varying float vIce;
 varying float vHeight;
 varying float vRiver;
 varying float vLake;
 varying float vSkirt;
-varying float vArid;
 varying vec2 vFlow;
 varying vec2 vFieldUv;
 
@@ -92,7 +116,7 @@ void main() {
   float h = elev.x;
   float oceanLevel = elev.y * 0.1; // stored in decimetres
   float lake = extra.x;
-  float iceM = mix(ice.x, ice.y, iceT);
+  float iceKm = climateAt(up).x;
 
   // Both the ocean level and the lake field are smooth, so the water signal
   // below crosses zero along smooth curves (sections 4.3 and 5.1). Where the
@@ -103,30 +127,34 @@ void main() {
   bool isLake = !sea && lake > 0.5;
   float water = sea ? seaWater : isLake ? lakeWater : max(seaWater, lakeWater);
   float surface = h;
-  float ramp = 1.0;
   if (sea) {
     // The terrain's sea is left out; the flat sea surface lies just below
     // (section 4.4), so coast triangles never dip under it on the land side.
     surface = seaLevel;
   } else if (!isLake) {
-    // Land rises from the coast in a soft, rounded bevel, like the edge of a
-    // clay slab: the smoothed coast can leave sea floor on the land side, and
-    // land near the coast is eased down to the sea, so there are no cliffs.
-    ramp = smoothstep(COAST_BEACH, COAST_BEACH + 35.0, -seaWater);
-    surface = seaLevel + (max(surface, seaLevel) - seaLevel) * ramp;
+    // The smoothed coast can leave sea floor on the land side.
+    surface = max(surface, seaLevel);
   }
-  if (iceM > 1.0) {
-    float top = h + iceM;
-    if (sea && top < seaLevel + 1.0) {
-      // Floating ice shelf: show a thin raised sheet on the sea.
-      surface = seaLevel + min(iceM * 0.1, 80.0);
-    } else {
-      surface = max(surface, top);
-    }
+  if (!sea) {
+    surface += landLift;
+    // Rounded clay edge: the rise above the sea (relief and lift together)
+    // is softly capped by the distance from the coast, so coasts slope down
+    // to the sea instead of standing as walls (section 4.2).
+    float d = max(extra.w * 255.0 - COAST_BEACH_KM, 0.0);
+    float cap = d * (COAST_SLOPE + COAST_CURVE * d) + 1e-3;
+    float rise = max(surface - seaLevel, 0.0);
+    float q = rise / cap;
+    surface = seaLevel + rise * inversesqrt(sqrt(1.0 + q * q * q * q));
+  }
+  float sheet = smoothstep(0.0, ICE_HIDE_KM, iceKm);
+  if (sheet > 0.0) {
+    // The ice sheets are smooth domes on the smoothed bed, rising from their
+    // border, so they hide the relief and meet sea and land without walls.
+    float dome = ICE_DOME_M * (1.0 - exp(-iceKm / ICE_DOME_KM));
+    float top = max(elev.z, seaLevel) + landLift + dome;
+    surface = mix(surface, top, sheet);
     water = min(water, -1.0);
   }
-  if (isLake) surface += landLift;
-  else if (!sea) surface += landLift * ramp;
   surface -= extra.z * skirtDepth;
 #ifdef SEA_SURFACE
   surface = seaLevel - SEA_DROP;
@@ -149,12 +177,10 @@ void main() {
   vPattern = world0.xyz + up * lift;
   vNormal = rotateTo(normalize(normal), up, drawnUp);
   vWater = water;
-  vIce = iceM;
   vHeight = h;
   vRiver = extra.y;
   vLake = lake;
   vSkirt = extra.z;
-  vArid = mix(ice.z, ice.w, iceT) * 0.001;
   vFlow = flow;
   vFieldUv = fieldUv;
   #include <logdepthbuf_vertex>
@@ -174,6 +200,7 @@ uniform float riverThreshold;
 uniform float waterDetail; // 0 low, 1 medium, 2 high
 uniform float seaLevel;
 uniform sampler2D fields; // ocean level (m), lake field, river field per tile sample
+${climateGlsl}
 
 varying vec3 vWorld;
 varying vec3 vUp;
@@ -181,12 +208,10 @@ varying vec3 vTrueUp;
 varying vec3 vPattern;
 varying vec3 vNormal;
 varying float vWater;
-varying float vIce;
 varying float vHeight;
 varying float vRiver;
 varying float vLake;
 varying float vSkirt;
-varying float vArid;
 varying vec2 vFlow;
 varying vec2 vFieldUv;
 
@@ -204,7 +229,7 @@ float noise3(vec3 x) {
              mix(mix(hash3(i + vec3(0,0,1)), hash3(i + vec3(1,0,1)), f.x), mix(hash3(i + vec3(0,1,1)), hash3(i + vec3(1,1,1)), f.x), f.y), f.z);
 }
 
-vec3 landColour(vec3 n, vec3 up) {
+vec3 landColour(vec3 n, vec3 up, float arid) {
   // Climate follows the true latitude, not the drawn one.
   float lat = degrees(asin(clamp(normalize(vTrueUp).y, -1.0, 1.0)));
   float alat = abs(lat);
@@ -229,8 +254,8 @@ vec3 landColour(vec3 n, vec3 up) {
   c = mix(c, steppe, smoothstep(56.0, 62.0, coldLat));
   c = mix(c, tundra, smoothstep(62.0, 68.0, coldLat));
   // Deserts come from the desert model, which follows their wet and dry phases.
-  c = mix(c, steppe, smoothstep(0.05, 0.4, vArid + (v - 0.5) * 0.2) * 0.7);
-  c = mix(c, sand, smoothstep(0.45, 0.75, vArid + (v - 0.5) * 0.25));
+  c = mix(c, steppe, smoothstep(0.05, 0.4, arid + (v - 0.5) * 0.2) * 0.7);
+  c = mix(c, sand, smoothstep(0.45, 0.75, arid + (v - 0.5) * 0.25));
   // Mountains turn to rock towards the snow line and carry glacier caps on
   // their steep tops (section 4.3). The line follows the smoothed heights:
   // about 4600 m in the tropics, falling to 1000 m towards the poles and in
@@ -260,7 +285,6 @@ float waveLayer(vec3 p, float scale, float t) {
 }
 
 const vec3 INK = vec3(0.23, 0.15, 0.11);
-const float ICE_EDGE = 60.0;
 
 const float FIELD_SIZE = ${TERRAIN_SAMPLES}.0;
 
@@ -338,16 +362,16 @@ void main() {
     n = normalize(mix(n, dn, smoothstep(0.25, 0.6, 1.0 - dot(dn, up)) * nearCoast));
   vec3 albedo;
 
-  // Ice starts at ICE_EDGE metres of interpolated thickness, so its border is a
-  // smooth curve rather than the staircase of the vertex grid.
-  // The sea surface has no ice of its own: its coarse grid would draw
-  // stepped ice edges, and shelves and ice on land belong to the terrain.
+  // The ice border is where the blended distance crosses zero, per pixel, so
+  // it is a smooth curve. The sea surface has no ice of its own: its coarse
+  // grid would draw stepped edges, and the ice belongs to the terrain.
+  vec2 clim = climateAt(normalize(vTrueUp));
 #ifdef SEA_SURFACE
-  float iceM = 0.0;
+  float iceKm = -100.0;
 #else
-  float iceM = vIce;
+  float iceKm = clim.x;
 #endif
-  bool hasIce = iceM > ICE_EDGE;
+  bool hasIce = iceKm > 0.0;
   // The same water signal as the vertex shader, from the smooth fields.
   vec3 wf = waterFields(vFieldUv);
   float lakeF = wf.y;
@@ -355,8 +379,6 @@ void main() {
   float seaW = seaLevel - wf.x;
   float lakeW = (lakeF - 0.5) * 80.0;
   float water = seaW > 0.0 ? seaW : lakeF > 0.5 ? lakeW : max(seaW, lakeW);
-  // Only ice thicker than the edge counts: the thin fringe the polar
-  // smoothing spreads over the sea stays sea.
   bool isWater = water > 0.0 && !hasIce;
 #ifndef SEA_SURFACE
   // The sea is the flat sea surface's (section 4.4); the terrain leaves it out.
@@ -398,10 +420,12 @@ void main() {
     float sheen = pow(1.0 - clamp(dot(up, viewDir), 0.0, 1.0), 2.5);
     albedo = mix(albedo, vec3(0.55, 0.82, 1.0), sheen * 0.55);
   } else if (hasIce) {
-    float edge = 1.0 - smoothstep(20.0, 400.0, iceM);
+    // Plain ice, shaded by its own smooth surface rather than the relief below.
+    n = normalize(up + dn);
+    float edge = 1.0 - smoothstep(0.0, 60.0, iceKm);
     albedo = mix(vec3(0.97, 0.99, 1.0), vec3(0.78, 0.9, 0.98), edge);
   } else {
-    albedo = landColour(smoothN, up);
+    albedo = landColour(smoothN, up, clim.y);
   }
 
   vec3 colour = studio(albedo, n, viewDir);
@@ -410,7 +434,7 @@ void main() {
   float ink = inkLine(min(dot(up, viewDir), 0.25), 0.0, 5.0);
   // No coast line across a river mouth.
   if (riverF < riverThreshold && !hasIce) ink = max(ink, inkLine(clamp(water, -30.0, 30.0), 0.0, 1.6));
-  ink = max(ink, inkLine(clamp(iceM, 0.0, ICE_EDGE * 2.0), ICE_EDGE, 1.6));
+  ink = max(ink, inkLine(clamp(iceKm, -30.0, 30.0), 0.0, 1.6));
   if (isWater && seaW > 0.0) ink = max(ink, inkLine(clamp(lat - packEdge, -1.0, 1.0), 0.0, 1.6));
   if (!isWater && !hasIce) ink = max(ink, inkLine(riverF, riverThreshold, 1.4));
   if (vSkirt > 0.5) ink = 0.0;

@@ -142,6 +142,20 @@
       "source": "Encyclopaedia Britannica, Great Belt: https://www.britannica.com/place/Great-Belt"
     },
     {
+      "id": "kattegat",
+      "name": "Skagerrak and Kattegat between Jutland and Sweden",
+      "sill": -40,
+      "line": [
+        [9.6, 58.0],
+        [10.6, 57.95],
+        [11.2, 57.6],
+        [11.45, 57.1],
+        [11.4, 56.6],
+        [11.6, 56.2]
+      ],
+      "source": "Encyclopaedia Britannica, Kattegat: https://www.britannica.com/place/Kattegat"
+    },
+    {
       "id": "bering",
       "name": "Bering Strait",
       "sill": -50,
@@ -293,6 +307,18 @@
         [-155.6, 20.7]
       ],
       "source": "Encyclopaedia Britannica, Hawaii Island: https://www.britannica.com/place/Hawaii-island; the channel is about 2,000 m deep"
+    },
+    {
+      "id": "corsica-channel",
+      "name": "Corsica Channel",
+      "sill": -400,
+      "line": [
+        [9.75, 43.6],
+        [9.8, 43.0],
+        [9.85, 42.5],
+        [9.9, 42.0]
+      ],
+      "source": "Encyclopaedia Britannica, Corsica: https://www.britannica.com/place/Corsica-island-France; the channel to Tuscany is several hundred metres deep, so Corsica was never joined to Italy"
     }
   ]
 }

@@ -1,0 +1,40 @@
+{
+  "description": "Wet phases the climate data misses, added to its annual precipitation (spec milestone 1, section 4.3). Within the region, precipitation is raised to at least the profile's value at that latitude times the strength at that date; outside it fades over feather degrees. Dates are years before 1950 and approximate.",
+  "periods": [
+    {
+      "id": "african-humid-period",
+      "name": "African Humid Period (Green Sahara and Green Arabia)",
+      "region": {
+        "west": -18,
+        "south": 12,
+        "east": 60,
+        "north": 33
+      },
+      "featherDegrees": 3,
+      "profile": [
+        [12, 600],
+        [20, 600],
+        [25, 450],
+        [29, 300],
+        [32, 150],
+        [33, 0]
+      ],
+      "strength": [
+        [15200, 0],
+        [14600, 1],
+        [12900, 1],
+        [12600, 0.5],
+        [11900, 0.5],
+        [11000, 1],
+        [6000, 1],
+        [5500, 0.7],
+        [4800, 0]
+      ],
+      "sources": [
+        "deMenocal, P. et al. 2000. Abrupt onset and termination of the African Humid Period: rapid climate responses to gradual insolation forcing. Quaternary Science Reviews 19, 347-361. https://doi.org/10.1016/S0277-3791(99)00081-5",
+        "Tierney, J. E., Pausata, F. S. R. and deMenocal, P. B. 2017. Rainfall regimes of the Green Sahara. Science Advances 3, e1601503. https://doi.org/10.1126/sciadv.1601503",
+        "Shanahan, T. M. et al. 2015. The time-transgressive termination of the African Humid Period. Nature Geoscience 8, 140-144. https://doi.org/10.1038/ngeo2329"
+      ]
+    }
+  ]
+}

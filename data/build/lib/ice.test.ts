@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { iceStepYears, monotoneCubic, seaLevelCurve, sliceDay } from './ice.ts';
+import { climateStepYears, monotoneCubic, seaLevelCurve, sliceDay } from './ice.ts';
 
 describe('ice steps', () => {
-  it('steps every 1,000 years back to the start', () => {
-    const years = iceStepYears(sliceDay(51950));
-    expect(years[0]).toBe(52000);
-    expect(years[years.length - 1]).toBe(0);
+  it("takes the climate data's steps from the one before the start to today", () => {
+    const years = climateStepYears([54000, 52000, 50000, 2000, 1000, 0], sliceDay(51950));
+    expect(years).toEqual([52000, 50000, 2000, 1000, 0]);
   });
 
   it('samples the sea-level curve every 100 years', () => {

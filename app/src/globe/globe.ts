@@ -4,13 +4,13 @@
 
 import * as THREE from 'three';
 import type { ContentLoader } from '../content/loader.ts';
-import { ICE_LEVEL } from '../content/formats.ts';
 import {
   DATA_MAX_LEVEL,
   FACE_COUNT,
   TILE_N,
   childKeys,
   dirToFaceUv,
+  dirToLatLon,
   faceUvToDir,
   tileAngularSize,
   tileAt,
@@ -19,16 +19,20 @@ import {
   type TileKey,
   type Vec3,
 } from './cube.ts';
+import { ClimateStore } from './climate.ts';
 import { LENS_COLS, LENS_ROWS, Lens } from './lens.ts';
-import { windowAt, type PlanetState } from './planet.ts';
+import type { PlanetState } from './planet.ts';
 import { terrainFragment, terrainVertex } from './shaders.ts';
-import { EARTH_RADIUS_KM, TILE_VERTS, buildTileGeometry } from './tileMesh.ts';
-import { sampleIce, sampleTile, TerrainStore } from './terrainStore.ts';
+import { EARTH_RADIUS_KM, buildTileGeometry } from './tileMesh.ts';
+import { sampleTile, TerrainStore } from './terrainStore.ts';
 import type { TerrainTile } from '../content/formats.ts';
 
 export const EXAGGERATION = 100;
 /** Every land vertex stands this many metres above its height (section 4.2). */
 export const LAND_LIFT_M = 250;
+/** Ice dome height and scale; match the shader (section 5.2). */
+const ICE_DOME_M = 1200;
+const ICE_DOME_KM = 250;
 export const MAX_RENDER_LEVEL = 9;
 /** Meshes kept beyond those touched this frame; touched meshes are never evicted. */
 const MAX_CACHED_MESHES = 1500;
@@ -60,9 +64,6 @@ interface TileEntry {
   centre: THREE.Vector3;
   radius: number;
   dataVersion: number;
-  iceStamp: string;
-  /** Face coordinates per vertex, for ice sampling. */
-  uv: Float32Array;
   lastUsed: number;
 }
 
@@ -77,6 +78,8 @@ export class Globe {
   /** The flat sea surface over every tile, sharing the terrain's uniforms (section 4.4). */
   readonly seaMaterial: THREE.ShaderMaterial;
   readonly store: TerrainStore;
+  /** Ice and deserts for the whole planet, per time step (section 5.2). */
+  readonly climate: ClimateStore;
   private loader: ContentLoader;
   private tiles = new Map<string, TileEntry>();
   private frame = 0;
@@ -84,13 +87,8 @@ export class Globe {
   quality: GlobeQuality = { errorTargetPx: 2.5, waterDetail: 1 };
   /** Tiles drawn last frame. */
   drawnTiles = 0;
-  private iceWindow = 0;
-  /**
-   * The ice the globe shows: the slices, blend and time window. A new pair
-   * of slices is shown only once every drawn tile has its chunks, so the
-   * whole globe changes at once instead of tile by tile (section 10.7).
-   */
-  private shownIce = { iceA: NaN, iceB: NaN, iceT: 0, window: 0 };
+  /** The date of the last update, for surface queries. */
+  private day = 0;
   private maxHeights = new WeakMap<TerrainTile, number>();
   /** The history lens; the identity until the warp has loaded (history-lens.md). */
   lens = Lens.identity();
@@ -99,6 +97,7 @@ export class Globe {
   constructor(loader: ContentLoader) {
     this.loader = loader;
     this.store = new TerrainStore(loader);
+    this.climate = new ClimateStore(loader);
     this.material = new THREE.ShaderMaterial({
       vertexShader: terrainVertex,
       fragmentShader: terrainFragment,
@@ -106,7 +105,9 @@ export class Globe {
       uniforms: {
         seaLevel: { value: 0 },
         exaggeration: { value: EXAGGERATION },
-        iceT: { value: 0 },
+        climateA: { value: null },
+        climateB: { value: null },
+        climateT: { value: 0 },
         skirtDepth: { value: 200 },
         landLift: { value: LAND_LIFT_M },
         lightDir: { value: new THREE.Vector3(0, 0, 1) },
@@ -166,7 +167,14 @@ export class Globe {
     this.frame++;
     this.buildsThisFrame = 0;
     const u = this.material.uniforms;
+    this.day = day;
     u.seaLevel!.value = planet.seaLevel;
+    // The whole planet's ice and deserts change at once, from the slices
+    // around the date (section 7.3).
+    const climate = this.climate.blend(day);
+    u.climateA!.value = climate.a;
+    u.climateB!.value = climate.b;
+    u.climateT!.value = climate.t;
     u.glacial!.value = planet.glacialIndex;
     u.cameraWorld!.value.copy(camera.position);
     u.waterDetail!.value = this.quality.waterDetail;
@@ -184,7 +192,6 @@ export class Globe {
     const pxPerRad = viewportHeight / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
     const camDir = camPos.clone().normalize();
     const horizon = Math.acos(Math.min(1, EARTH_RADIUS_KM / camDist));
-    const iceWindow = windowAt(this.loader.manifest.windows, day);
 
     // Ice can stand up to about 4 km on land during glacials.
     const iceRoom = planet.glacialIndex > 0.02 ? 4000 : 0;
@@ -235,7 +242,7 @@ export class Globe {
       const errorPx = (errorKm / dist) * pxPerRad;
       const priority = dist + key.level;
 
-      const wantsSplit = key.level < MAX_RENDER_LEVEL && errorPx > this.quality.errorTargetPx;
+      const wantsSplit = key.level < maxLevelAt(trueCentre) && errorPx > this.quality.errorTargetPx;
       if (wantsSplit) {
         const children = childKeys(key);
         // Split only when every child has a mesh; otherwise draw this tile and build them.
@@ -263,24 +270,6 @@ export class Globe {
     for (let face = 0; face < FACE_COUNT; face++) visit({ face, level: 0, x: 0, y: 0 });
 
     for (const e of this.tiles.values()) e.mesh.visible = false;
-    const shown = this.shownIce;
-    if (planet.iceA !== shown.iceA || planet.iceB !== shown.iceB || iceWindow !== shown.window) {
-      let ready = true;
-      for (let k = 0; k < selected.length; k++)
-        if (!this.iceChunks(selected[k]!.key, iceWindow, priorities[k]!)) ready = false;
-      if (ready)
-        this.shownIce = {
-          iceA: planet.iceA,
-          iceB: planet.iceB,
-          iceT: planet.iceT,
-          window: iceWindow,
-        };
-    } else {
-      shown.iceT = planet.iceT;
-    }
-    this.iceWindow = this.shownIce.window;
-    u.iceT!.value = this.shownIce.iceT;
-    for (let k = 0; k < selected.length; k++) this.updateIce(selected[k]!, priorities[k]!);
     for (const e of selected) e.mesh.visible = true;
     this.drawnTiles = selected.length;
     this.store.endFrame();
@@ -340,104 +329,16 @@ export class Globe {
     mesh.matrixAutoUpdate = false;
     mesh.updateMatrix();
     this.group.add(mesh);
-    // Face coordinates of each vertex (skirts copy their edge vertex).
-    const uv = new Float32Array(TILE_VERTS * 2);
-    const S = TILE_N + 1;
-    for (let j = 0; j <= TILE_N; j++)
-      for (let i = 0; i <= TILE_N; i++) {
-        const p = tileSampleUv(key, i, j);
-        uv[(j * S + i) * 2] = p.u;
-        uv[(j * S + i) * 2 + 1] = p.v;
-      }
-    const edges = [
-      (t: number) => t,
-      (t: number) => TILE_N * S + t,
-      (t: number) => t * S,
-      (t: number) => t * S + TILE_N,
-    ];
-    for (let e = 0; e < 4; e++)
-      for (let t = 0; t <= TILE_N; t++)
-        uv.copyWithin((S * S + e * S + t) * 2, edges[e]!(t) * 2, edges[e]!(t) * 2 + 2);
     const entry: TileEntry = {
       key,
       mesh,
       centre: g.centre,
       radius: g.radius,
       dataVersion: 0,
-      iceStamp: '',
-      uv,
       lastUsed: this.frame,
     };
     this.tiles.set(id, entry);
     return entry;
-  }
-
-  /** The ice chunks a render tile needs for a window, or undefined while any is loading. */
-  private iceChunks(
-    key: TileKey,
-    window: number,
-    priority: number,
-  ): Map<string, ReturnType<TerrainStore['iceChunk']>> | undefined {
-    const iceKeys = new Map<string, TileKey>();
-    if (key.level >= ICE_LEVEL) {
-      const shift = key.level - ICE_LEVEL;
-      const k = { face: key.face, level: ICE_LEVEL, x: key.x >> shift, y: key.y >> shift };
-      iceKeys.set(tileId(k), k);
-    } else {
-      const span = 1 << (ICE_LEVEL - key.level);
-      for (let y = 0; y < span; y++)
-        for (let x = 0; x < span; x++) {
-          const k = { face: key.face, level: ICE_LEVEL, x: key.x * span + x, y: key.y * span + y };
-          iceKeys.set(tileId(k), k);
-        }
-    }
-    const chunks = new Map<string, ReturnType<TerrainStore['iceChunk']>>();
-    let ready = true;
-    for (const [id, k] of iceKeys) {
-      const c = this.store.iceChunk(k, window, priority);
-      if (c === undefined) ready = false;
-      else chunks.set(id, c);
-    }
-    return ready ? chunks : undefined;
-  }
-
-  /** Fills the tile's ice attribute for the shown pair of slices, when the chunks are loaded. */
-  private updateIce(entry: TileEntry, priority: number): void {
-    const planet = this.shownIce;
-    const stamp = `${planet.iceA}:${planet.iceB}`;
-    if (entry.iceStamp === stamp) return;
-    const key = entry.key;
-    const chunks = this.iceChunks(key, planet.window, priority);
-    if (!chunks) return; // keep the previous ice until everything has arrived
-    const attr = entry.mesh.geometry.getAttribute('ice') as THREE.BufferAttribute;
-    const arr = attr.array as Uint16Array;
-    const n = 1 << ICE_LEVEL;
-    // Ice tiles this render tile covers; vertices on its edge stay in them, so
-    // no edge reads a neighbouring ice tile that was never loaded.
-    const shift = key.level - ICE_LEVEL;
-    const x0 = shift >= 0 ? key.x >> shift : key.x << -shift;
-    const y0 = shift >= 0 ? key.y >> shift : key.y << -shift;
-    const span = shift >= 0 ? 1 : 1 << -shift;
-    for (let v = 0; v < TILE_VERTS; v++) {
-      const u = entry.uv[v * 2]!;
-      const w = entry.uv[v * 2 + 1]!;
-      const ix = Math.min(x0 + span - 1, Math.max(x0, Math.floor(((u + 1) / 2) * n)));
-      const iy = Math.min(y0 + span - 1, Math.max(y0, Math.floor(((w + 1) / 2) * n)));
-      const chunk = chunks.get(`${key.face}-${ICE_LEVEL}-${ix}-${iy}`);
-      const o = v * 4;
-      if (!chunk || chunk === 'none') {
-        arr.fill(0, o, o + 4);
-        continue;
-      }
-      const ia = chunk.days.indexOf(planet.iceA);
-      const ib = chunk.days.indexOf(planet.iceB);
-      arr[o] = ia >= 0 ? sampleIce(chunk, ia, u, w) : 0;
-      arr[o + 1] = ib >= 0 ? sampleIce(chunk, ib, u, w) : arr[o]!;
-      arr[o + 2] = ia >= 0 ? sampleIce(chunk, ia, u, w, chunk.aridity) : 0;
-      arr[o + 3] = ib >= 0 ? sampleIce(chunk, ib, u, w, chunk.aridity) : arr[o + 2]!;
-    }
-    attr.needsUpdate = true;
-    entry.iceStamp = stamp;
   }
 
   private evict(): void {
@@ -464,22 +365,15 @@ export class Globe {
 
   /** Drawn surface height in km above the sphere over a true direction. */
   surfaceAtTrue(dir: Vec3, planet: PlanetState): number {
-    const h = this.store.heightAt(dir) + this.iceAt(dir, planet);
+    const h = this.store.heightAt(dir);
     // Approximates the ocean mask by height: land stands on its lift above the sea.
-    const top = h > planet.seaLevel ? h + LAND_LIFT_M : planet.seaLevel;
+    let top = h > planet.seaLevel ? h + LAND_LIFT_M : planet.seaLevel;
+    const iceKm = this.climate.iceKmAt(dir, this.day);
+    if (iceKm > 0) {
+      const dome = ICE_DOME_M * (1 - Math.exp(-iceKm / ICE_DOME_KM));
+      top = Math.max(top, Math.max(h, planet.seaLevel) + LAND_LIFT_M + dome);
+    }
     return top * EXAGGERATION * 0.001 * this.lens.widthAt(dir);
-  }
-
-  /** Ice thickness in metres at a direction, blended like the shader; 0 until the chunk is loaded. */
-  private iceAt(dir: Vec3, planet: PlanetState): number {
-    const { face, u, v } = dirToFaceUv(dir);
-    const chunk = this.store.iceChunk(tileAt(face, u, v, ICE_LEVEL), this.iceWindow, 0);
-    if (!chunk || chunk === 'none') return 0;
-    const ia = chunk.days.indexOf(planet.iceA);
-    const ib = chunk.days.indexOf(planet.iceB);
-    const a = ia >= 0 ? sampleIce(chunk, ia, u, v) : 0;
-    const b = ib >= 0 ? sampleIce(chunk, ib, u, v) : a;
-    return a + (b - a) * planet.iceT;
   }
 
   /** The tile at the deepest data level under a direction, for tests and tools. */
@@ -498,6 +392,16 @@ const CORNERS = [
 
 function angleBetween(a: Vec3, b: Vec3): number {
   return Math.acos(Math.max(-1, Math.min(1, a[0] * b[0] + a[1] * b[1] + a[2] * b[2])));
+}
+
+/**
+ * Deepest render level for a tile centre: the polar regions are smoothed so
+ * much that finer tiles would add triangles without detail (section 4.2).
+ */
+const POLAR_MAX_LEVEL = 4;
+function maxLevelAt(d: Vec3): number {
+  const { lat } = dirToLatLon(d);
+  return lat > 74 || lat < -62 ? POLAR_MAX_LEVEL : MAX_RENDER_LEVEL;
 }
 
 function camDirOf(d: Vec3): THREE.Vector3 {

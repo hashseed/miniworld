@@ -36,14 +36,25 @@ export interface TerrainTile {
   rivers: Uint8Array;
   /** River flow phase as cosine and sine, 128 ± 127, interleaved per sample. */
   flow: Uint8Array;
+  /**
+   * Heavily smoothed bed height in metres per sample, TERRAIN_SAMPLES²: the
+   * ground the ice sheets stand on, so their surface is smooth (section 5.2).
+   */
+  bed: Int16Array;
+  /**
+   * Distance from today's smoothed coast in km per sample, TERRAIN_SAMPLES²,
+   * 0 at sea and 255 for 255 km or more: land rises no faster than a rounded
+   * clay edge allows near the sea (section 4.4).
+   */
+  coast: Uint8Array;
 }
 
-const TERRAIN_MAGIC = 0x3354574d; // "MWT3"
+const TERRAIN_MAGIC = 0x3554574d; // "MWT5"
 
 export function encodeTerrainTile(t: TerrainTile): Uint8Array {
   const hb = TERRAIN_BORDERED * TERRAIN_BORDERED * 2;
   const sb = TERRAIN_SAMPLES * TERRAIN_SAMPLES;
-  const buf = new ArrayBuffer(16 + hb + sb * 6);
+  const buf = new ArrayBuffer(16 + hb + sb * 9);
   const dv = new DataView(buf);
   dv.setUint32(0, TERRAIN_MAGIC, true);
   dv.setUint8(4, t.key.level);
@@ -57,6 +68,8 @@ export function encodeTerrainTile(t: TerrainTile): Uint8Array {
   out.set(t.lakes, 16 + hb + sb * 2);
   out.set(t.rivers, 16 + hb + sb * 3);
   out.set(t.flow, 16 + hb + sb * 4);
+  new Int16Array(buf, 16 + hb + sb * 6, sb).set(t.bed);
+  out.set(t.coast, 16 + hb + sb * 8);
   return out;
 }
 
@@ -78,66 +91,78 @@ export function decodeTerrainTile(bytes: ArrayBuffer): TerrainTile {
     lakes: new Uint8Array(bytes, 16 + hb + sb * 2, sb),
     rivers: new Uint8Array(bytes, 16 + hb + sb * 3, sb),
     flow: new Uint8Array(bytes, 16 + hb + sb * 4, sb * 2),
+    bed: new Int16Array(bytes.slice(16 + hb + sb * 6, 16 + hb + sb * 8)),
+    coast: new Uint8Array(bytes, 16 + hb + sb * 8, sb),
   };
 }
 
-/** Ice tiles use a coarser grid (spec milestone 1, section 5.2). */
-export const ICE_LEVEL = 3;
-export const ICE_N = 32;
-export const ICE_SAMPLES = ICE_N + 1;
+/**
+ * Climate slices (spec milestone 1, sections 4.3 and 5.2): one global file
+ * per time step with the ice border distance on a 0.5° grid and the aridity
+ * on a 1° grid, both latitude-longitude, row 0 at the north pole.
+ */
+export const ICE_GRID_W = 720;
+export const ICE_GRID_H = 360;
+export const ARID_GRID_W = 360;
+export const ARID_GRID_H = 180;
+/**
+ * Km per step of the stored ice distance, and the byte of the ice border:
+ * the distance runs from 128 km outside the ice to 892 km inside.
+ */
+export const ICE_DISTANCE_STEP_KM = 4;
+export const ICE_DISTANCE_ZERO = 32;
+/** Levels the aridity is stored at, so the slices stay small. */
+export const ARIDITY_LEVELS = 16;
 
-export interface IceChunk {
-  key: TileKey;
-  /** Day of each slice, ascending. */
-  days: number[];
-  /** Ice thickness in metres per slice, ICE_SAMPLES² each. */
-  thickness: Uint16Array[];
-  /** Aridity per slice from 0 (green) to 1000 (full desert), ICE_SAMPLES² each (section 4.3). */
-  aridity: Uint16Array[];
+export interface ClimateSlice {
+  day: number;
+  /** Signed distance from the ice border, 32 + km / 4, positive inside the ice. */
+  ice: Uint8Array;
+  /** Aridity from 0 (green) to 255 (full desert). */
+  aridity: Uint8Array;
 }
 
-const ICE_MAGIC = 0x3245434d; // "MCE2", thickness then aridity
+const CLIMATE_MAGIC = 0x3143574d; // "MWC1"
 
-export function encodeIceChunk(c: IceChunk): Uint8Array {
-  const per = ICE_SAMPLES * ICE_SAMPLES;
-  const header = 16 + c.days.length * 4;
-  const buf = new ArrayBuffer(header + c.days.length * per * 4);
-  const dv = new DataView(buf);
-  dv.setUint32(0, ICE_MAGIC, true);
-  dv.setUint8(4, c.key.level);
-  dv.setUint8(5, c.key.face);
-  dv.setUint16(6, c.days.length, true);
-  dv.setUint32(8, c.key.x, true);
-  dv.setUint32(12, c.key.y, true);
-  c.days.forEach((d, i) => dv.setInt32(16 + i * 4, d, true));
-  c.thickness.forEach((t, i) => new Uint16Array(buf, header + i * per * 2, per).set(t));
-  const aridityStart = header + c.days.length * per * 2;
-  c.aridity.forEach((a, i) => new Uint16Array(buf, aridityStart + i * per * 2, per).set(a));
-  return new Uint8Array(buf);
+export function encodeClimateSlice(c: ClimateSlice): Uint8Array {
+  const ib = ICE_GRID_W * ICE_GRID_H;
+  const ab = ARID_GRID_W * ARID_GRID_H;
+  const out = new Uint8Array(16 + ib + ab);
+  const dv = new DataView(out.buffer);
+  dv.setUint32(0, CLIMATE_MAGIC, true);
+  dv.setInt32(4, c.day, true);
+  dv.setUint16(8, ICE_GRID_W, true);
+  dv.setUint16(10, ICE_GRID_H, true);
+  dv.setUint16(12, ARID_GRID_W, true);
+  dv.setUint16(14, ARID_GRID_H, true);
+  // Each row is stored as differences from its left neighbour, so the
+  // smooth fields compress well.
+  out.set(rowDeltas(c.ice, ICE_GRID_W, 1), 16);
+  out.set(rowDeltas(c.aridity, ARID_GRID_W, 1), 16 + ib);
+  return out;
 }
 
-export function decodeIceChunk(bytes: ArrayBuffer): IceChunk {
+export function decodeClimateSlice(bytes: ArrayBuffer): ClimateSlice {
   const dv = new DataView(bytes);
-  if (dv.getUint32(0, true) !== ICE_MAGIC) throw new Error('Not an ice chunk');
-  const count = dv.getUint16(6, true);
-  const key = {
-    level: dv.getUint8(4),
-    face: dv.getUint8(5),
-    x: dv.getUint32(8, true),
-    y: dv.getUint32(12, true),
+  if (dv.getUint32(0, true) !== CLIMATE_MAGIC) throw new Error('Not a climate slice');
+  if (dv.getUint16(8, true) !== ICE_GRID_W || dv.getUint16(12, true) !== ARID_GRID_W)
+    throw new Error('Unexpected climate grid');
+  const ib = ICE_GRID_W * ICE_GRID_H;
+  const ab = ARID_GRID_W * ARID_GRID_H;
+  return {
+    day: dv.getInt32(4, true),
+    ice: rowDeltas(new Uint8Array(bytes, 16, ib), ICE_GRID_W, -1),
+    aridity: rowDeltas(new Uint8Array(bytes, 16 + ib, ab), ARID_GRID_W, -1),
   };
-  const per = ICE_SAMPLES * ICE_SAMPLES;
-  const header = 16 + count * 4;
-  const days: number[] = [];
-  const thickness: Uint16Array[] = [];
-  const aridity: Uint16Array[] = [];
-  const aridityStart = header + count * per * 2;
-  for (let i = 0; i < count; i++) {
-    days.push(dv.getInt32(16 + i * 4, true));
-    thickness.push(new Uint16Array(bytes.slice(header + i * per * 2, header + (i + 1) * per * 2)));
-    aridity.push(
-      new Uint16Array(bytes.slice(aridityStart + i * per * 2, aridityStart + (i + 1) * per * 2)),
-    );
+}
+
+/** Row deltas modulo 256: direction 1 encodes, -1 decodes. */
+function rowDeltas(g: Uint8Array, w: number, direction: 1 | -1): Uint8Array {
+  const out = new Uint8Array(g.length);
+  for (let i = 0; i < g.length; i++) {
+    if (i % w === 0) out[i] = g[i]!;
+    else if (direction === 1) out[i] = (g[i]! - g[i - 1]!) & 255;
+    else out[i] = (g[i]! + out[i - 1]!) & 255;
   }
-  return { key, days, thickness, aridity };
+  return out;
 }

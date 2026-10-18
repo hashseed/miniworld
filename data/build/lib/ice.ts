@@ -1,13 +1,16 @@
-// Ice chunks and the sea-level curve (spec milestone 1, sections 5, 5.1 and
-// 5.2): time steps, ice tile samples and chunk packing. The values come from
-// the reconstructions read in climate.ts.
+// Climate slices and the sea-level curve (spec milestone 1, sections 5, 5.1
+// and 5.2): time steps, the global ice cover grid and the sea-level curve.
+// The values come from the reconstructions read in climate.ts.
 
-import { ICE_LEVEL, ICE_N, ICE_SAMPLES, type IceChunk } from '../../../app/src/content/formats.ts';
-import { dirToLatLon, faceUvToDir, type TileKey, type Vec3 } from '../../../app/src/globe/cube.ts';
+import {
+  ICE_DISTANCE_STEP_KM,
+  ICE_DISTANCE_ZERO,
+  ICE_GRID_H,
+  ICE_GRID_W,
+} from '../../../app/src/content/formats.ts';
+import { blurFieldPolar } from './coast.ts';
+import { signedDistanceKm } from './distance.ts';
 import { dayFromDate } from '../../../app/src/time/calendar.ts';
-
-/** Model time step in years (spec section 5.2). */
-export const ICE_STEP_YEARS = 1000;
 
 export function sliceDay(yearsBP: number): number {
   return dayFromDate(1950 - yearsBP, 1, 1);
@@ -68,72 +71,55 @@ export function seaLevelCurve(
   return { startDay, stepDays, metres };
 }
 
-/** Model dates from the step at or before startDay to today. */
-export function iceStepYears(startDay: number): number[] {
-  let oldest = 0;
-  while (sliceDay(oldest) > startDay) oldest += ICE_STEP_YEARS;
-  const years: number[] = [];
-  for (let bp = oldest; bp >= 0; bp -= ICE_STEP_YEARS) years.push(bp);
-  return years;
+/** The climate data's steps (years BP, descending) from the one at or before startDay to today. */
+export function climateStepYears(available: number[], startDay: number): number[] {
+  const years = [...available].sort((x, y) => y - x);
+  let first = years.findIndex((bp) => sliceDay(bp) > startDay);
+  if (first < 0) first = years.length;
+  return years.slice(Math.max(0, first - 1));
 }
 
-/** Latitude and longitude of every sample of an ice tile. */
-export function iceTilePoints(key: TileKey): { lats: Float64Array; lons: Float64Array } {
-  const lats = new Float64Array(ICE_SAMPLES * ICE_SAMPLES);
-  const lons = new Float64Array(ICE_SAMPLES * ICE_SAMPLES);
-  const dir: Vec3 = [0, 0, 0];
-  const size = 2 / (1 << key.level);
-  for (let j = 0; j <= ICE_N; j++) {
-    for (let i = 0; i <= ICE_N; i++) {
-      const u = -1 + (key.x + i / ICE_N) * size;
-      const v = -1 + (key.y + j / ICE_N) * size;
-      faceUvToDir(key.face, u, v, dir);
-      const { lat, lon } = dirToLatLon(dir);
-      lats[j * ICE_SAMPLES + i] = lat;
-      lons[j * ICE_SAMPLES + i] = lon;
-    }
-  }
-  return { lats, lons };
-}
-
-export function* iceTileKeys(): Generator<TileKey> {
-  const n = 1 << ICE_LEVEL;
-  for (let face = 0; face < 6; face++)
-    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) yield { face, level: ICE_LEVEL, x, y };
-}
+/** Smoothing sigmas (km) of the ice border: everywhere, polar and Antarctic (section 5.2). */
+export const ICE_BORDER_SIGMA_KM = 30;
+export const ICE_BORDER_POLAR_SIGMA_KM = 60;
+export const ICE_BORDER_ANTARCTIC_SIGMA_KM = 120;
+/** Smoothed thickness (m) from which a place counts as covered by ice. */
+export const ICE_COVER_M = 60;
 
 /**
- * Splits one tile's ice into chunks per time window. Each window's chunk holds
- * the steps inside the window plus the nearest step on each side, so any date
- * in the window can be interpolated from one chunk. `days` ascend.
+ * Ice cover at a date on the global ice grid (section 5.2), as the smoothed
+ * signed distance from the ice border in bytes of ICE_DISTANCE_STEP_KM.
  */
-export function iceChunksForTile(
-  key: TileKey,
-  days: number[],
-  samples: Uint16Array[],
-  aridity: Uint16Array[],
-  windows: number[],
-  endDay: number,
-): Map<number, IceChunk> {
-  const result = new Map<number, IceChunk>();
-  for (let w = 0; w < windows.length; w++) {
-    const start = windows[w]!;
-    const end = windows[w + 1] ?? endDay + 1;
-    let first = days.findIndex((d) => d >= start);
-    if (first < 0) first = days.length - 1;
-    first = Math.max(0, first - 1);
-    let last = days.findIndex((d) => d >= end);
-    if (last < 0) last = days.length - 1;
-    const picked: number[] = [];
-    for (let k = first; k <= last; k++) picked.push(k);
-    const empty = (a: Uint16Array[]) => picked.every((k) => a[k]!.every((t) => t === 0));
-    if (empty(samples) && empty(aridity)) continue;
-    result.set(w, {
-      key,
-      days: picked.map((k) => days[k]!),
-      thickness: picked.map((k) => samples[k]!),
-      aridity: picked.map((k) => aridity[k]!),
-    });
-  }
-  return result;
+export function iceGrid(
+  thicknessAt: (lats: Float64Array, lons: Float64Array) => Uint16Array,
+): Uint8Array {
+  const w = ICE_GRID_W;
+  const h = ICE_GRID_H;
+  const lats = new Float64Array(w * h);
+  const lons = new Float64Array(w * h);
+  for (let r = 0; r < h; r++)
+    for (let c = 0; c < w; c++) {
+      lats[r * w + c] = 90 - ((r + 0.5) * 180) / h;
+      lons[r * w + c] = -180 + ((c + 0.5) * 360) / w;
+    }
+  const thickness = thicknessAt(lats, lons);
+  const mask = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) mask[i] = thickness[i]! >= ICE_COVER_M ? 1 : 0;
+  // Clamped a little beyond the stored range, so the blur sees a plain field.
+  const sdf = signedDistanceKm(mask, w, h).map((v) => Math.max(-200, Math.min(1000, v)));
+  const smooth = blurFieldPolar(
+    sdf,
+    w,
+    h,
+    ICE_BORDER_SIGMA_KM,
+    ICE_BORDER_POLAR_SIGMA_KM,
+    ICE_BORDER_ANTARCTIC_SIGMA_KM,
+  );
+  const out = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++)
+    out[i] = Math.max(
+      0,
+      Math.min(255, Math.round(ICE_DISTANCE_ZERO + smooth[i]! / ICE_DISTANCE_STEP_KM)),
+    );
+  return out;
 }

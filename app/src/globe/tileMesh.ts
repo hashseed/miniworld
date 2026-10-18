@@ -1,7 +1,8 @@
 // Geometry for one terrain tile (spec milestone 1, section 4.2): a grid of
 // (TILE_N + 1)² vertices plus skirts that hide cracks between levels.
 // Positions are relative to the tile centre for precision; heights, ocean
-// levels and ice are attributes the shader turns into the visible surface.
+// levels and coast distances are attributes the shader turns into the
+// visible surface; ice and deserts come from the global climate slices.
 
 import * as THREE from 'three';
 import { TERRAIN_BORDERED, TERRAIN_SAMPLES } from '../content/formats.ts';
@@ -100,10 +101,9 @@ export function buildTileGeometry(
 
   const position = new Float32Array(TILE_VERTS * 3);
   const normal = new Int8Array(TILE_VERTS * 4);
-  const elev = new Int16Array(TILE_VERTS * 2);
+  const elev = new Int16Array(TILE_VERTS * 3);
   const extra = new Uint8Array(TILE_VERTS * 4);
   const flow = new Int8Array(TILE_VERTS * 2);
-  const ice = new Uint16Array(TILE_VERTS * 4); // ice A, ice B, aridity A, aridity B
   const fieldUv = new Uint16Array(TILE_VERTS * 2);
   const fieldData = new Uint16Array(S * S * 4);
 
@@ -149,9 +149,10 @@ export function buildTileGeometry(
       normal[v * 4] = Math.round((nx / len) * 127);
       normal[v * 4 + 1] = Math.round((ny / len) * 127);
       normal[v * 4 + 2] = Math.round((nz / len) * 127);
-      elev[v * 2] = Math.round(h);
+      elev[v * 3] = Math.round(h);
       // Decimetres, so flat coasts do not move in whole-metre steps.
-      elev[v * 2 + 1] = Math.max(-30000, Math.min(30000, Math.round(samples.oceanLevel[v]! * 10)));
+      elev[v * 3 + 1] = Math.max(-30000, Math.min(30000, Math.round(samples.oceanLevel[v]! * 10)));
+      elev[v * 3 + 2] = Math.round(samples.bed[v]!);
       fieldUv[v * 2] = Math.round(((i + 0.5) / S) * 65535);
       fieldUv[v * 2 + 1] = Math.round(((j + 0.5) / S) * 65535);
       fieldData[v * 4] = THREE.DataUtils.toHalfFloat(samples.oceanLevel[v]!);
@@ -159,6 +160,7 @@ export function buildTileGeometry(
       fieldData[v * 4 + 2] = THREE.DataUtils.toHalfFloat(Math.min(1, samples.rivers[v]!));
       extra[v * 4] = Math.round(Math.min(1, samples.lake[v]!) * 255);
       extra[v * 4 + 1] = Math.round(Math.min(1, samples.rivers[v]!) * 255);
+      extra[v * 4 + 3] = Math.round(samples.coast[v]!); // km from today's coast
       flow[v * 2] = Math.round(samples.flow[v * 2]! * 127);
       flow[v * 2 + 1] = Math.round(samples.flow[v * 2 + 1]! * 127);
     }
@@ -175,7 +177,7 @@ export function buildTileGeometry(
       const dst = GRID_VERTS + e * S + t;
       position.copyWithin(dst * 3, src * 3, src * 3 + 3);
       normal.copyWithin(dst * 4, src * 4, src * 4 + 4);
-      elev.copyWithin(dst * 2, src * 2, src * 2 + 2);
+      elev.copyWithin(dst * 3, src * 3, src * 3 + 3);
       extra.copyWithin(dst * 4, src * 4, src * 4 + 4);
       extra[dst * 4 + 2] = 255;
       flow.copyWithin(dst * 2, src * 2, src * 2 + 2);
@@ -185,13 +187,10 @@ export function buildTileGeometry(
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.BufferAttribute(position, 3));
   geometry.setAttribute('normal', new THREE.BufferAttribute(normal, 4, true));
-  geometry.setAttribute('elev', new THREE.BufferAttribute(elev, 2, false));
+  geometry.setAttribute('elev', new THREE.BufferAttribute(elev, 3, false));
   geometry.setAttribute('extra', new THREE.BufferAttribute(extra, 4, true));
   geometry.setAttribute('flow', new THREE.BufferAttribute(flow, 2, true));
   geometry.setAttribute('fieldUv', new THREE.BufferAttribute(fieldUv, 2, true));
-  const iceAttr = new THREE.BufferAttribute(ice, 4, false);
-  iceAttr.setUsage(THREE.DynamicDrawUsage);
-  geometry.setAttribute('ice', iceAttr);
   // Winding: the cross product of +i and +j must point outward.
   geometry.setIndex(indexFor(flipCheck < 0));
 
