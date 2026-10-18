@@ -353,6 +353,6 @@ describe('asset manifest', () => {
 
   it('only models waiting for review are not approved', () => {
     const waiting = Object.keys(MODELS).filter((id) => entries.get(id)?.status !== 'approved');
-    expect(waiting.every((id) => /^(stone-sledge|figure-first-person)$/.test(id))).toBe(true);
+    expect(waiting.every((id) => /^stone-sledge$/.test(id))).toBe(true);
   });
 });
