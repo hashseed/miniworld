@@ -84,6 +84,7 @@ With few, fixed trees, foliage is cheap. The terrain is also being simplified (Y
 - Only the slots on the visible side of the globe are drawn; at most about 2,500 plants are in view, whatever the zoom.
 - All plants are instanced: one draw call per kind, 8 draw calls in all.
 - Placement runs once per level-4 tile and date step and is cached; the camera moving never recomputes it.
+- Foliage starts loading only once the first view is ready (its foliage slices and the level-4 terrain tiles it places plants on, about 600 KB for a whole hemisphere), so it stays outside the first view's data budget (milestone 1, section 10.6) and the plants appear a moment after the globe.
 - Proposed limit: 400,000 foliage triangles per frame on high, 200,000 on low (the low tier would use the simpler far model).
 
 Measurements of the built foliage with the history lens on (headless Chromium, 1280 × 800, terrain as merged on 2026-10-18; the whole frame's triangles):

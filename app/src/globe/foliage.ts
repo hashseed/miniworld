@@ -94,6 +94,8 @@ export class Foliage {
   private lastKey = '';
   /** Plants drawn last frame. */
   count = 0;
+  /** Set once the first view is ready; until then nothing is loaded or drawn. */
+  active = false;
 
   constructor(globe: Globe, loader: ContentLoader) {
     this.globe = globe;
@@ -129,6 +131,7 @@ export class Foliage {
     const e = camera.matrixWorld.elements;
     u.screenUp!.value.set(e[4]!, e[5]!, e[6]!);
     u.cameraWorld!.value.copy(camera.position);
+    if (!this.active) return;
 
     if (this.days.length === 0 && this.loader.manifest?.foliage) {
       this.days = this.loader.manifest.foliage.days;

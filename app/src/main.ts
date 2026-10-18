@@ -613,6 +613,8 @@ async function start(): Promise<void> {
     requestAnimationFrame(frame);
     await firstView();
     ui.update({ ready: true });
+    // Plants load after the first view, outside its data budget (spec foliage.md, section 7).
+    foliage.active = true;
     const needsBench =
       !STRESS &&
       ui.value.settings.quality === 'auto' &&
