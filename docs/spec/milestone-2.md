@@ -140,8 +140,8 @@ Every vignette is one of three forms (decided by Yang):
 To keep vignettes clean, the stage and script live in a reusable **template**, and the vignette record only says where, when, and what fills the template's parameters. A typical vignette record is ten lines of fields plus its card text. Templates hold no viewer text, so they are plain YAML files in `data/curated/templates/` ([content-format.md](content-format.md#1-records)). A template has:
 
 - **Parameters**: named slots filled by the record, such as the cultures of raiders and villagers, or the ship.
-- **Stage**: the size of the stage, its orientation rule, named **marks** (positions in centimetres at life size around the stage centre) with what must be under each (land, water, coast), and the **props** with the asset or parameter they show.
-- **Cast**: named groups, each with a culture (or parameter), role, count and starting mark.
+- **Stage**: the size of the stage, its orientation rule, named **marks** (positions in metres at life size around the stage centre, stored as whole centimetres) with what must be under each (land, water, coast), and the **props** with the asset or parameter they show.
+- **Cast**: named groups, each with a culture or an animal (or a parameter for either), role, count and starting mark. Animals, such as the hunted mammoth, are cast members like people and move by the same actions.
 - **Beats**: the script, a list of steps at times on the loop, each giving a group or prop an action from the vocabulary (section 6.4).
 - **Loop**: its length in life-clock seconds.
 
@@ -242,7 +242,7 @@ A repeated vignette's span is cut into periods of `repeat.per` (for example 10 y
 
 - `places`: place records, by id or tag (such as every coastal settlement standing at that date);
 - `camps`: the camps of a culture in the area (for hunts, fishing and other everyday stories of hunter-gatherers); the camp's band becomes the cast where the template's roles match;
-- `points`: hashed points in the area that meet the template's mark rules;
+- `points`: hashed points in the area that meet the template's mark rules, or a curated list of candidate points (each optionally with its own `from` and `to`), from which the hash picks;
 - `routes`: route records, for ships, caravans, trains and aircraft; each instance travels one route, with small stages at its two ends ([dioramas.md](dioramas.md#1-rules) section 1).
 
 A site is only used when every mark of the template lands on what it needs at the date (water, coast or land); otherwise the hash moves on to the next candidate, so the result stays deterministic. Instances do not overlap at one site.
@@ -407,3 +407,81 @@ The definition of done in [milestones.md](milestones.md#definition-of-done-every
 3. Making figures, props and landmarks with modelling scripts and reviewing them on generated sheets (section 13.1).
 4. Neanderthals as their own profile in the first milestone with people (section 4).
 5. The arrival of people in the Americas shown at c. 14,000 BCE, with the earlier dates (such as the White Sands footprints, about 21,000 BCE) mentioned as debated on the card.
+
+## 18. First slice: the mammoth hunt
+
+Decided by Yang on 2026-10-18: the mammoth hunt (`mammoth-hunt` in [dioramas.md](dioramas.md#5-europe-and-mediterranean)) is built first, on top of milestone 1, as the worked example of how a diorama is stored as data files and played by a small engine. It proves the template and record formats, their data build step, the deterministic player and the loop on the life clock before the rest of this milestone exists. Everything not listed here stays as specified above and is built with the milestone.
+
+### 18.1 What the slice builds
+
+| Part | In the slice | Later in this milestone |
+| --- | --- | --- |
+| Template and record | `data/curated/templates/big-game-hunt.yaml` and `data/curated/vignettes/mammoth-hunt.md`, in the formats of section 18.2 | More templates and records (section 12) |
+| Data build | Parses, validates and compiles them into the vignette layer of section 18.4 | Unchanged |
+| Player | Pure functions in `app/src/world/` (section 18.5), called on the main thread | Called from the world query in the Web Worker (section 2) |
+| Sites | A curated list of candidate points (section 6.6) | Camps of the hunting cultures (section 3.2) |
+| Figures and animals | Flat-coloured, cel-shaded stand-ins built from simple shapes, posed on the main thread | Approved assets, rig and GPU clips (sections 5 and 13) |
+| Scene marker and card | A marker badge from orbit (section 7.2); tapping it opens the record's card in English or German; double-tapping flies down to the stage | Unchanged |
+
+Stand-ins are allowed because no asset is approved yet (section 13.2): they are drawn at the right size in plain colours and are replaced by approved assets later without changing any data.
+
+### 18.2 File formats
+
+**Template** (`data/curated/templates/<id>.yaml`, YAML 1.2 read with the failsafe schema, so every scalar is a string that the build converts by its field):
+
+| Field | Meaning |
+| --- | --- |
+| `id` | Equal to the file name |
+| `params` | Map of parameter name to kind: `culture` or `animal` |
+| `loop` | Loop length, such as `90 s` |
+| `stage.radius` | Radius at life size, such as `150 m` |
+| `stage.marks` | Map of mark name to `[x, z]` in metres at life size; +x points along the stage's orientation, +z to its left |
+| `cast` | Map of group name to `{ culture: $param, role, count, at }` or `{ animal: $param, count, at }` |
+| `beats` | List of `{ at: <seconds>, <group>: <action> }`; an action is a bare verb (`point`) or `{ <verb>: <mark or group> }` |
+
+**Vignette record** (`data/curated/vignettes/<id>.md`): the envelope of [content-format.md](content-format.md#2-the-record-envelope) section 2 with `kind: vignette`, plus `template`, `with` (the template's parameters), and for a repeated vignette `repeat: { per: <years> years, count, sites: { points: [...] } }`. Each candidate point is `{ name, at: [lat, lon] }` with optional `from` and `to`. Dates are written as in the spec lists, such as `c. 43,000 BCE`. The text has the fixed headings `## en` and `## de`, each with a `#` title, the card text and an optional `### Learn more` (German `### Mehr erfahren`).
+
+### 18.3 Verbs of the slice
+
+The player understands these verbs from section 6.4 and the additions in [dioramas.md](dioramas.md#3-additions-to-the-action-vocabulary) section 3; any other verb fails the build.
+
+| Verb | Movement | Clip |
+| --- | --- | --- |
+| `wait` | Stays | idle |
+| `walk-to`, `run-to`, `carry-to` | To a mark at 1.4, 4.5 or 1.1 m/s at life size, then idle | walk, run or carry, then idle |
+| `work-at` | Walks to a mark if not there, then works | walk, then crouch-work |
+| `point`, `throw-at`, `cheer` | Stays, facing the target group if one is named | point, throw or cheer |
+| `fall` | Sinks into the ground and disappears over 3 seconds | fall |
+| `appear` | Reappears at its starting mark, rising from the ground over 2 seconds | idle |
+
+Members of a group stand in a formation around their target: member *i* of *n* gets an offset of up to 1.5 m × √*n* chosen by the hash of the group name and *i*. A moving group faces its direction of travel; a waiting group keeps its last heading.
+
+### 18.4 The vignette layer
+
+The data build writes one structure file per vignette record, content-hashed: the compiled template (marks in whole centimetres, beats in whole milliseconds, each group's action list) and the record's dates as whole days, its period in whole days, its candidate sites in whole microdegrees, and the scene-marker icon. It writes one text file per record and language with the title, card text and "Learn more". The startup index gains a `vignettes` list with each record's id, span and icon and the names of its structure and text files, about 100 bytes per record; the structure file is fetched when the date first comes within the span, and the text file when the card opens.
+
+### 18.5 The player
+
+The player is three pure functions of their inputs, with no state:
+
+- **Instances.** For a record and a day: the period number is ⌊(day − from) / period⌋; for each of `count` slots, the hash of the record id, the period and the slot picks a site among the candidates valid at the period's start, never the same site twice in one period. An instance is shown for its whole period (its shown span), which at the rate of the deep past is about 30 seconds at ×1, as section 6.7 asks. Each instance gets an id, a phase offset (the hash of its id, modulo the loop) and an orientation, one of eight compass directions chosen by hash.
+- **Pose.** For an instance and a life-clock time: phase = (life clock + offset) modulo the loop, then for every cast member its stage position in centimetres, heading as a direction (two numbers, never an angle), clip, time into the clip, and a visibility between 0 and 1 (for `fall` and `appear`).
+- **Loop check.** Runs a template through one loop and lists every group that does not end where it started (section 6.5); the data build fails on any.
+
+The player uses only integer and `+ − × ÷` arithmetic plus `Math.sqrt` (section 2.3), and the lint rule forbidding engine-dependent maths applies to `app/src/world/`. Loading never changes it: the instances and poses are the same whether or not a structure file has arrived; an instance whose file has not arrived is simply not drawn yet.
+
+### 18.6 The mammoth hunt
+
+- **Cast:** two scouts and two flanks of three hunters each (`ice-age-hunter`), three family members at the camp, one mammoth to be hunted and two more of its herd. Stand-ins: hunters in brown and ochre fur with spears, the mammoths dark reddish brown with tusks and a high domed head, at the miniature factor of section 5.1.
+- **Script (90 s loop):** the family works at the camp throughout; the scouts walk to a lookout and point at the herd; the two flanks creep wide around the herd; at the signal the hunters run in, the herd runs off one edge of the stage and the hunted mammoth runs into a boggy hollow; spears are thrown and it falls; the hunters cut the meat and carry it back to the camp; the herd wanders back and a new mammoth appears among them, so the loop closes.
+- **Sites, from c. 43,000 to c. 10,000 BCE, one period per 1,000 years, two instances per period:** Geißenklösterle (Swabian Jura), Krems-Wachtberg, Dolní Věstonice, Předmostí, Kostenki, Sungir, Yana in Siberia from c. 30,000 BCE and Mal'ta near Lake Baikal from c. 22,000 BCE. The card says that how often people killed mammoths, rather than collecting the bones of dead ones, is debated.
+
+### 18.7 Tests
+
+| Test | Checks |
+| --- | --- |
+| Formats | The template and record parse; unknown verbs, marks, groups and parameters, missing languages and dates outside the timeline fail with a clear message |
+| Loop | The hunt's loop closes; a broken copy of the template fails the check |
+| Golden poses | Instances at four fixed days and member poses at life clock 0, 37,000 and 3,600,000 ms, stored as a readable snapshot |
+| Expected answers | No instance before 43,000 BCE or after 10,000 BCE; no Siberian site before its own start date; two different sites per period; the pose at *t* equals the pose at *t* plus the loop length |
+| Browser | At a fixed date the marker is visible from orbit; double-clicking it flies down to the hunt and the hunters move; pausing history keeps them moving and freezing stops them |
