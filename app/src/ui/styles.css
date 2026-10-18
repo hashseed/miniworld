@@ -289,11 +289,17 @@ input:focus-visible {
   top: auto;
   bottom: 100%;
   left: 0;
+  right: 0;
   padding: 0 0 8px;
 }
 
+/* No box around the speed modes: the bare buttons stand over the play button. */
 .play-fold .fold-box {
-  padding: 6px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
 }
 
 .lens-fold .fold-panel {
@@ -343,10 +349,11 @@ input:focus-visible {
   /* Snail nearest the play button, fast forward at the top. */
   flex-direction: column-reverse;
   gap: 4px;
+  width: 100%;
 }
 
 .speed-mode {
-  box-shadow: none;
+  width: 100%;
 }
 
 .speed-mode[aria-checked='true'] {
