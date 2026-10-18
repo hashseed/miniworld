@@ -9,7 +9,7 @@ import {
   FOLIAGE_GRID_W,
   type FoliageSlice,
 } from '../content/formats.ts';
-import type { ContentLoader } from '../content/loader.ts';
+import type { ChunkSource } from '../content/loader.ts';
 import { hash01, valueNoise } from '../core/hash.ts';
 import {
   FACE_COUNT,
@@ -102,7 +102,7 @@ export class Foliage {
   readonly group = new THREE.Group();
   readonly material: THREE.ShaderMaterial;
   private globe: Globe;
-  private loader: ContentLoader;
+  private loader: ChunkSource;
   private meshes: THREE.InstancedMesh[] = [];
   private keys: TileKey[] = [];
   private days: number[] = [];
@@ -117,7 +117,7 @@ export class Foliage {
   /** Set once the first view is ready; until then nothing is loaded or drawn. */
   active = false;
 
-  constructor(globe: Globe, loader: ContentLoader) {
+  constructor(globe: Globe, loader: ChunkSource) {
     this.globe = globe;
     this.loader = loader;
     this.material = new THREE.ShaderMaterial({
@@ -226,7 +226,12 @@ export class Foliage {
         this.requested[k] = false;
         return;
       }
-      this.slices[k] = decodeFoliageSlice(buf);
+      try {
+        this.slices[k] = decodeFoliageSlice(buf);
+      } catch (e) {
+        console.error(`${this.files[k]}: ${(e as Error).message}`); // stays requested: not asked for again
+        return;
+      }
       this.lastKey = '';
     });
   }

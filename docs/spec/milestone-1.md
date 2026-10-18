@@ -375,7 +375,9 @@ In this milestone the shipped layers are `terrain` (place only) and the climate 
 
 - The loader requests chunks for the tiles in view and their neighbours. It loads the two climate slices around the date first, then every other slice in the background, nearest in time first, so the whole history of ice and deserts is ready soon after start (about 600 KB in all).
 - While scrubbing it fetches only chunks for the window under the playhead once the playhead has rested there for 200 ms, so a fast drag across history does not queue hundreds of requests.
-- At most six requests run at once; requests for tiles that left the view are cancelled.
+- At most six requests run at once, the most urgent first. Every frame, waiting terrain requests take the priority of their tile in the current view, and a request whose tile has been out of view for half a second is cancelled, whether it is still waiting or already running.
+- A failed request is retried with growing pauses: not before 1 second has passed, then 2, 4 and so on up to 60 seconds, so a lost connection does not turn into a storm of requests and loading resumes by itself when the connection returns. A file the server says does not exist (HTTP 404 or 410) is not asked for again until the app is reloaded. A cancelled request is not a failure.
+- If the other language's index cannot be loaded when the language is switched, the app stays in the current language and the language setting goes back to it, so the setting always shows the language on screen; switching again tries again.
 
 ### 10.5 Formats
 
@@ -467,6 +469,7 @@ The only shipped assets are the six terrain textures, the water normal map and t
 | Localisation tests | Same keys in both message files, no empty messages, no viewer-facing literals in components |
 | Data validation | Section 10.8 on the fixture dataset in CI and the full dataset locally |
 | Pipeline tests | Chunk keys, hashing, manifest, the test layer in both languages |
+| Loader tests | With a fake server and clock: at most six requests at once and most urgent first, new priorities, cancelling, the growing retry pauses, no second request for a missing file, a failed index retried; terrain tiles cancelled when out of view; every binary format round-trips and refuses a file of the wrong length (section 10) |
 | Browser tests | Desktop and phone sizes: first view loads within the size budget; timeline scrubbing changes the date and coastline; language switch changes every string without reload; settings and bookmarks survive a reload; camera controls with mouse, touch emulation and keyboard |
 | Performance check | Stress scene draw calls and triangles (section 11.4) |
 
