@@ -276,6 +276,7 @@ export function forCellsNearLine(
 /**
  * Lowers every cell along each strait to at most its sill depth, about one
  * cell either side, so the flood fill finds the way through (section 5.1).
+ * Changes the grid in place.
  */
 export function carveStraits(g: Grid<GridData>, straits: Strait[]): void {
   const reach = Math.max(STRAIT_CARVE_KM, (360 / g.width) * KM_PER_DEG);

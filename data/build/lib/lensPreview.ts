@@ -2,9 +2,9 @@
 // section 3): today's land in true and in drawn positions on two
 // equirectangular maps, with a 30-degree graticule, for Yang to approve.
 
-import { readFileSync } from 'node:fs';
 import { sampleGrid } from '../../../app/src/globe/lens.ts';
 import type { Vec3 } from '../../../app/src/geo/cube.ts';
+import type { GeoJsonFeature } from './rasterize.ts';
 
 const W = 1440;
 const H = 720;
@@ -12,12 +12,10 @@ const DEG = Math.PI / 180;
 
 type Ring = [number, number][];
 
-function landRings(path: string): Ring[] {
-  const geo = JSON.parse(readFileSync(path, 'utf8')) as {
-    features: { geometry: { type: string; coordinates: unknown } }[];
-  };
+function landRings(land: GeoJsonFeature[]): Ring[] {
   const rings: Ring[] = [];
-  for (const f of geo.features) {
+  for (const f of land) {
+    if (!f.geometry) continue;
     const polys =
       f.geometry.type === 'Polygon'
         ? [f.geometry.coordinates as Ring[]]
@@ -55,8 +53,8 @@ function pathOf(points: [number, number][], dy: number): string {
   return s;
 }
 
-export function lensPreviewSvg(landPath: string, forward: Float64Array): string {
-  const rings = landRings(landPath);
+export function lensPreviewSvg(land: GeoJsonFeature[], forward: Float64Array): string {
+  const rings = landRings(land);
   const parts: string[] = [];
   const panel = (
     dy: number,

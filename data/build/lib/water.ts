@@ -1,7 +1,6 @@
 // Lakes and rivers from Natural Earth (spec milestone 1, section 4.3).
 
 import { KM_PER_DEG } from '../../../app/src/geo/earth.ts';
-import { readFileSync } from 'node:fs';
 import { OCEAN_RANGE } from '../../../app/src/content/formats.ts';
 import { forCellsNearLine } from './coast.ts';
 import type { Grid, GridData } from './grid.ts';
@@ -14,10 +13,6 @@ import {
 
 export const NO_LAKE = -32768;
 
-function readFeatures(path: string): GeoJsonFeature[] {
-  return (JSON.parse(readFileSync(path, 'utf8')) as { features: GeoJsonFeature[] }).features;
-}
-
 /**
  * Rasterises lakes onto the grid. Natural Earth has no lake levels, so each
  * lake's surface is taken as the 20th percentile of the heights of the cells
@@ -25,7 +20,7 @@ function readFeatures(path: string): GeoJsonFeature[] {
  */
 export function rasterizeLakes(
   heights: Grid<GridData>,
-  lakesPath: string,
+  lakeFeatures: GeoJsonFeature[],
   out: Int16Array,
   maxRank = Infinity,
   minAreaKm2 = 0,
@@ -33,7 +28,7 @@ export function rasterizeLakes(
   const { width: w, height: h } = heights;
   let count = 0;
   const inside = new Uint8Array(w * h);
-  for (const f of readFeatures(lakesPath)) {
+  for (const f of lakeFeatures) {
     if (Number(f.properties['scalerank'] ?? 10) > maxRank) continue;
     for (const poly of featurePolygons(f)) {
       const cells: number[] = [];
@@ -136,7 +131,7 @@ const MOUTH_OVERRUN_CELLS = 4;
  */
 export function rasterizeRivers(
   target: { width: number; height: number },
-  riversPath: string,
+  riverFeatures: GeoJsonFeature[],
   out: Uint8Array,
   picks: RiverPick[],
   context?: RiverContext,
@@ -225,7 +220,7 @@ export function rasterizeRivers(
     return path.length > 1 ? path : undefined;
   };
 
-  for (const f of readFeatures(riversPath)) {
+  for (const f of riverFeatures) {
     const name = String(f.properties['name'] ?? '');
     const rank = Number(f.properties['scalerank'] ?? 10);
     const lines = featureLines(f).filter((line) =>

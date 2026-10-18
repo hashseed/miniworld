@@ -1,0 +1,110 @@
+// Climate stage of the data build: the sea-level curve, and one climate and
+// one foliage slice per step of the climate data (spec milestone 1, sections
+// 4.3 and 5.2; foliage.md, section 2).
+
+import {
+  ARID_GRID_H,
+  ARID_GRID_W,
+  encodeClimateSlice,
+  encodeFoliageSlice,
+  OCEAN_MIN_LEVEL,
+  OCEAN_NEVER,
+  type ClimateSlice,
+} from '../../../app/src/content/formats.ts';
+import type { StartupIndex } from '../../../app/src/content/types.ts';
+import { TIMELINE_START } from '../../../app/src/time/calendar.ts';
+import { aridityGrid, iceThickness, meanSeaLevel, TimeStack } from '../lib/climate.ts';
+import { polarWeight } from '../lib/coast.ts';
+import { readExtract } from '../lib/extract.ts';
+import { foliageGrid } from '../lib/foliage.ts';
+import { climateStepYears, iceGrid, seaLevelCurve, sliceDay } from '../lib/ice.ts';
+import type { WriteContext } from './context.ts';
+import type { WorldMap } from './terrain.ts';
+
+export interface Climate {
+  seaLevel: StartupIndex['seaLevel'];
+  /** Mean sea level (m) on a day, from the curve. */
+  seaLevelAt(day: number): number;
+  /** Day of each climate slice, ascending. */
+  iceDays: number[];
+  slices: ClimateSlice[];
+  climateFiles: string[];
+  foliageFiles: string[];
+}
+
+export function buildClimate(ctx: WriteContext, map: WorldMap): Climate {
+  const { output, log, fail } = ctx;
+  const { connection, iceBed, humidPeriods } = map;
+  const stack = (id: string, name: string) => {
+    const json =
+      ctx.sourceFiles(id).find((p) => p.endsWith(`/${name}.json`)) ?? fail(`${id}: no ${name}`);
+    const { header, data } = readExtract(json.replace(/\.json$/, ''));
+    return new TimeStack(header, data);
+  };
+  const iceStack = stack('paleomist-1.0', 'ice_thickness');
+  const precipitation = stack('beyer-2020', 'BIO12');
+  const seaPoints = meanSeaLevel(stack('paleomist-1.0', 'sea_level'), (lat, lon) => {
+    const v = connection.nearest(lat, lon);
+    return v !== OCEAN_NEVER && OCEAN_MIN_LEVEL + v <= 0;
+  });
+  const seaLevel = seaLevelCurve(seaPoints, TIMELINE_START, ctx.cutoffDay);
+  const seaLevelAt = (day: number) =>
+    seaLevel.metres[
+      Math.max(
+        0,
+        Math.min(
+          seaLevel.metres.length - 1,
+          Math.round((day - seaLevel.startDay) / seaLevel.stepDays),
+        ),
+      )
+    ]!;
+  // One global climate slice per step of the climate data (section 5.2): the
+  // ice cover as a smoothed border distance, and the aridity with the humid
+  // periods the data misses (section 4.3).
+  const climateYears = climateStepYears(precipitation.yearsBP, TIMELINE_START);
+  const iceDays = climateYears.map(sliceDay); // ascending, as the years descend
+  const climateFiles: string[] = [];
+  const slices: ClimateSlice[] = [];
+  for (const bp of climateYears) {
+    const slice = {
+      day: sliceDay(bp),
+      ice: iceGrid(
+        (lats, lons) =>
+          iceThickness(iceStack, lats, lons, bp, { bed: iceBed, weight: polarWeight }),
+        (lat, lon) => {
+          const v = connection.nearest(lat, lon);
+          return v !== OCEAN_NEVER && OCEAN_MIN_LEVEL + v <= seaLevelAt(sliceDay(bp));
+        },
+      ),
+      aridity: aridityGrid(precipitation, humidPeriods, ARID_GRID_W, ARID_GRID_H, bp),
+    };
+    slices.push(slice);
+    climateFiles.push(output.write(`climate/${bp}`, 'bin', encodeClimateSlice(slice)));
+  }
+  // One foliage slice per climate step (spec foliage.md, section 2): the biome
+  // class per 0.5° cell, with the humid periods turning dry land to savanna,
+  // and the tree density near the ice sheets and in cold or dry climates.
+  const biomeJson =
+    ctx.sourceFiles('beyer-2020').find((p) => p.endsWith('/biome.json')) ??
+    fail('beyer-2020: no biome');
+  const biome = readExtract(biomeJson.replace(/\.json$/, ''));
+  const foliageInputs = {
+    biome,
+    precipitation,
+    temperature: stack('beyer-2020', 'BIO1'),
+    ice: iceStack,
+    periods: humidPeriods,
+  };
+  const foliageFiles = climateYears.map((bp) => {
+    const grid = foliageGrid(foliageInputs, bp);
+    return output.write(
+      `foliage/${bp}`,
+      'bin',
+      encodeFoliageSlice({ day: sliceDay(bp), cells: grid.classes, density: grid.density }),
+    );
+  });
+  log(
+    `${climateFiles.length} climate and foliage slices; lowest sea level ${Math.min(...seaLevel.metres)} m`,
+  );
+  return { seaLevel, seaLevelAt, iceDays, slices, climateFiles, foliageFiles };
+}
