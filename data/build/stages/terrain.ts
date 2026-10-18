@@ -15,7 +15,12 @@ import { ancestorAt, tilePath, TILE_N, type TileKey } from '../../../app/src/geo
 import { fixtureElevation } from '../lib/fixture.ts';
 import { Grid, GridPyramid } from '../lib/grid.ts';
 import { placeOffWater } from '../lib/landmarks.ts';
-import { floodInlandSeas, INLAND_SEAS, oceanConnection } from '../lib/ocean.ts';
+import {
+  floodInlandSeas,
+  oceanConnection,
+  validateInlandSeas,
+  type InlandSea,
+} from '../lib/ocean.ts';
 import { readElevation, readFeatures } from '../lib/readers.ts';
 import {
   enlargeIslands,
@@ -50,7 +55,9 @@ import {
   rasterizeLakes,
   rasterizeRivers,
   riverFlow,
-  type RiverPick,
+  riverPicks,
+  validateRivers,
+  type CuratedRiver,
 } from '../lib/water.ts';
 import { validateHumidPeriods, type HumidPeriod } from '../lib/climate.ts';
 import type { Content } from './content.ts';
@@ -61,21 +68,6 @@ const SMOOTHING_KM = 80;
 const POLAR_SMOOTHING_KM = 150;
 /** Smoothing of the listed mountain ranges, which keep more of their shape. */
 const RANGE_SMOOTHING_KM = 25;
-// Only a short list of the rivers history needs most (decided by Yang on
-// 2026-10-17), by their Natural Earth names, including local spellings.
-const AMAZON_BASIN: [number, number, number, number] = [-80, -20, -45, 6];
-const RIVERS: RiverPick[] = [
-  ...['Nile', 'Rosetta Branch', 'Damietta Branch'],
-  ...['El Bahr el Abyad', 'El Bahr el Azraq'],
-  ...['Euphrates', 'Firat', 'Al Furat', 'Tigris', 'Dicle', 'Shatt al Arab'],
-  ...['Indus', 'Ganges', 'Huang', 'Yangtze', 'Chang Jiang', 'Mekong'],
-  ...['Danube', 'Donau', 'Bratul Chillia', 'Bratul Sulina', 'Bratul Sfintu Gheorghe'],
-  ...['Rhine', 'Rhein', 'Rhin', 'Waal', 'Volga', 'Mississippi', 'Congo', 'Niger'],
-  ...['Amazonas', 'Madeira', 'Xingu', 'Tapajós'],
-].map((name) => ({ name }));
-RIVERS.push({ name: 'Negro', box: AMAZON_BASIN });
-// The Blue Nile up to Lake Tana.
-RIVERS.push({ name: 'Abay', box: [33, 9, 39, 12.5] });
 const MAX_LAKE_RANK = 4;
 /** Grid spacing (degrees) of the smoothed bed under the ice sheets. */
 const ICE_BED_SPACING_DEG = 0.5;
@@ -124,12 +116,16 @@ export function buildMap(ctx: BuildContext): WorldMap {
   const removedAreas = ctx.curated<{ areas: RemovedArea[] }>('removed-areas.json').areas;
   const mountains = ctx.curated<{ mountains: Mountain[] }>('mountains.json').mountains;
   const humidPeriods = ctx.curated<{ periods: HumidPeriod[] }>('humid-periods.json').periods;
+  const curatedRivers = ctx.curated<{ rivers: CuratedRiver[] }>('rivers.json').rivers;
+  const inlandSeas = ctx.curated<{ seas: InlandSea[] }>('inland-seas.json').seas;
   const mapErrors = [
     ...validateHumidPeriods(humidPeriods),
     ...validateStraits(straits),
     ...validateIslands(keptIslands),
     ...validateRemovedAreas(removedAreas),
     ...validateMountains(mountains),
+    ...validateRivers(curatedRivers),
+    ...validateInlandSeas(inlandSeas),
   ];
   if (mapErrors.length) fail(mapErrors.join('\n'));
 
@@ -191,7 +187,7 @@ export function buildMap(ctx: BuildContext): WorldMap {
     MAX_LAKE_RANK,
     MIN_LAKE_KM2,
   );
-  floodInlandSeas(conn, INLAND_SEAS, (i, level) => (lakeLevel.data[i] = level));
+  floodInlandSeas(conn, inlandSeas, (i, level) => (lakeLevel.data[i] = level));
   const lakes = new Grid(conn.width, conn.height, smoothLakes(lakeLevel, NO_LAKE));
   joinInlandSeas(ocean.data, connection, lakes.data);
   const coast = new Grid(conn.width, conn.height, coastDistance(ocean));
@@ -207,7 +203,7 @@ export function buildMap(ctx: BuildContext): WorldMap {
     conn,
     readFeatures(neFile('ne_10m_rivers_lake_centerlines.geojson')),
     rivers.data,
-    RIVERS,
+    riverPicks(curatedRivers),
     riverContext,
   );
   const flow = riverFlow(conn, rivers.data, riverContext);

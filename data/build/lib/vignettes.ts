@@ -7,6 +7,8 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { parse } from 'yaml';
 import { PROPS } from '../../../assets/src/landmarks.ts';
+import en from '../../../app/messages/en.json' with { type: 'json' };
+import de from '../../../app/messages/de.json' with { type: 'json' };
 import { LANGUAGES, type Language } from '../../../app/src/i18n/messages.ts';
 import { DAYS_PER_YEAR, astronomicalYear, dayOfYearStart } from '../../../app/src/time/calendar.ts';
 import {
@@ -28,7 +30,11 @@ export const ICONS = new Set(['spear', 'pyramid']);
 /** What historians may dispute about a record (content-format section 2). */
 const DEBATED = new Set(['date', 'place', 'cause', 'numbers', 'method']);
 type ParamKind = 'culture' | 'animal' | 'prop';
-const LEARN_MORE: Record<Language, string> = { en: 'Learn more', de: 'Mehr erfahren' };
+/** The record heading over the "Learn more" text, as the card labels it (content-format section 2). */
+const LEARN_MORE: Record<Language, string> = {
+  en: en['vignette.learnMore'],
+  de: de['vignette.learnMore'],
+};
 
 export interface VignetteText {
   title: string;

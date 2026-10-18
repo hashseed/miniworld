@@ -68,5 +68,8 @@
   "vignette.span": "Shown from {from} to {to}",
   "vignette.learnMore": "Learn more",
   "vignette.loading": "Loading…",
-  "vignette.failed": "This text could not be loaded."
+  "vignette.failed": "This text could not be loaded.",
+  "date.bce": "BCE",
+  "date.ce": "CE",
+  "date.approximate": "c."
 }
