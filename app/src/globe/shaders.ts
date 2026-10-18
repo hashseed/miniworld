@@ -146,19 +146,22 @@ void main() {
     float q = rise / cap;
     surface = seaLevel + rise * inversesqrt(sqrt(1.0 + q * q * q * q));
   }
+  // The ice sheets are smooth domes on the smoothed bed, rising from their
+  // border, so they hide the relief and meet sea and land without walls.
   float sheet = smoothstep(0.0, ICE_HIDE_KM, iceKm);
+  float iceTop = max(elev.z, seaLevel) + landLift + ICE_DOME_M * (1.0 - exp(-max(iceKm, 0.0) / ICE_DOME_KM));
   if (sheet > 0.0) {
-    // The ice sheets are smooth domes on the smoothed bed, rising from their
-    // border, so they hide the relief and meet sea and land without walls.
-    float dome = ICE_DOME_M * (1.0 - exp(-iceKm / ICE_DOME_KM));
-    float top = max(elev.z, seaLevel) + landLift + dome;
-    surface = mix(surface, top, sheet);
+    surface = mix(surface, iceTop, sheet);
     water = min(water, -1.0);
   }
-  surface -= extra.z * skirtDepth;
 #ifdef SEA_SURFACE
   surface = seaLevel - SEA_DROP;
+#ifdef SEA_ICE
+  // A tile that is sea at every date carries the ice over the sea itself.
+  surface = mix(surface, iceTop, sheet);
 #endif
+#endif
+  surface -= extra.z * skirtDepth;
 
   // The history lens moves the vertex to its drawn position and scales its
   // relief with the local width (history-lens.md, section 4).
@@ -363,10 +366,10 @@ void main() {
   vec3 albedo;
 
   // The ice border is where the blended distance crosses zero, per pixel, so
-  // it is a smooth curve. The sea surface has no ice of its own: its coarse
-  // grid would draw stepped edges, and the ice belongs to the terrain.
+  // it is a smooth curve. The sea surface of a tile with land leaves the ice
+  // to the terrain; on a tile that is sea at every date it draws the ice.
   vec2 clim = climateAt(normalize(vTrueUp));
-#ifdef SEA_SURFACE
+#if defined(SEA_SURFACE) && !defined(SEA_ICE)
   float iceKm = -100.0;
 #else
   float iceKm = clim.x;

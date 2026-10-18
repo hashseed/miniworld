@@ -612,6 +612,7 @@ async function start(): Promise<void> {
     globe.setLens(new Lens(grids.forward, grids.inverse));
     minSeaLevel = lowestSeaLevel(index.seaLevel);
     vignettes.setIndex(index.vignettes);
+    globe.lowestSeaLevel = minSeaLevel;
     const startDay = STRESS ? STRESS_DAY : (savedView?.day ?? OPENING_DAY);
     clock.configure({
       startDay: manifest.timelineStartDay,

@@ -24,32 +24,40 @@ const GRID_VERTS = S * S;
 const SKIRT_VERTS = 4 * S;
 export const TILE_VERTS = GRID_VERTS + SKIRT_VERTS;
 
-let sharedIndex: Map<boolean, THREE.BufferAttribute> | undefined;
+const sharedIndex = new Map<string, THREE.BufferAttribute>();
 
-function indexFor(flip: boolean): THREE.BufferAttribute {
-  sharedIndex ??= new Map();
-  const cached = sharedIndex.get(flip);
+/**
+ * Triangles over every step-th vertex of the grid, with skirts along the
+ * edges at the same step (section 4.2).
+ */
+export function indexFor(flip: boolean, step = 1): THREE.BufferAttribute {
+  const id = `${flip}:${step}`;
+  const cached = sharedIndex.get(id);
   if (cached) return cached;
   const idx: number[] = [];
   const quad = (a: number, b: number, c: number, d: number) => {
     if (flip) idx.push(a, c, b, b, c, d);
     else idx.push(a, b, c, b, d, c);
   };
-  for (let j = 0; j < TILE_N; j++)
-    for (let i = 0; i < TILE_N; i++)
-      quad(j * S + i, j * S + i + 1, (j + 1) * S + i, (j + 1) * S + i + 1);
+  for (let j = 0; j < TILE_N; j += step)
+    for (let i = 0; i < TILE_N; i += step)
+      quad(j * S + i, j * S + i + step, (j + step) * S + i, (j + step) * S + i + step);
   // Skirts: edges in order bottom, top, left, right.
   const edge = (k: number) => GRID_VERTS + k;
-  for (let i = 0; i < TILE_N; i++) {
-    quad(edge(i), edge(i + 1), i, i + 1); // bottom (j = 0)
-    quad(TILE_N * S + i, TILE_N * S + i + 1, edge(S + i), edge(S + i + 1)); // top
-    quad(edge(2 * S + i), i * S, edge(2 * S + i + 1), (i + 1) * S); // left (i = 0)
-    quad(i * S + TILE_N, edge(3 * S + i), (i + 1) * S + TILE_N, edge(3 * S + i + 1)); // right
+  for (let i = 0; i < TILE_N; i += step) {
+    const n = i + step;
+    quad(edge(i), edge(n), i, n); // bottom (j = 0)
+    quad(TILE_N * S + i, TILE_N * S + n, edge(S + i), edge(S + n)); // top
+    quad(edge(2 * S + i), i * S, edge(2 * S + n), n * S); // left (i = 0)
+    quad(i * S + TILE_N, edge(3 * S + i), n * S + TILE_N, edge(3 * S + n)); // right
   }
   const attr = new THREE.BufferAttribute(new Uint16Array(idx), 1);
-  sharedIndex.set(flip, attr);
+  sharedIndex.set(id, attr);
   return attr;
 }
+
+/** Ocean level (m) above which a sample is land at every date. */
+const NEVER_SEA_M = 10;
 
 export interface TileGeometry {
   geometry: THREE.BufferGeometry;
@@ -64,13 +72,24 @@ export interface TileGeometry {
   radius: number;
   minHeight: number;
   maxHeight: number;
+  /** Sea at every date, with no lake or river: drawn as the sea surface alone. */
+  alwaysSea: boolean;
+  /** Land at every date: needs no sea surface. */
+  neverSea: boolean;
+  /** True when the winding of the grid is flipped. */
+  flip: boolean;
 }
 
-/** Builds a tile's geometry from its samples at the given elevation exaggeration. */
+/**
+ * Builds a tile's geometry from its samples at the given elevation
+ * exaggeration; samples below the lowest sea level of the timeline are sea
+ * at every date.
+ */
 export function buildTileGeometry(
   key: TileKey,
   samples: TileSamples,
   exaggeration: number,
+  lowestSeaLevel = -130,
 ): TileGeometry {
   const R = EARTH_RADIUS_KM;
   const k = exaggeration * 0.001;
@@ -203,5 +222,23 @@ export function buildTileGeometry(
   fields.wrapS = THREE.ClampToEdgeWrapping;
   fields.wrapT = THREE.ClampToEdgeWrapping;
   fields.needsUpdate = true;
-  return { geometry, fields, centre, radius, minHeight: minH, maxHeight: maxH };
+  let alwaysSea = true;
+  let neverSea = true;
+  for (let v = 0; v < S * S; v++) {
+    const level = samples.oceanLevel[v]!;
+    if (level >= lowestSeaLevel || samples.lake[v]! > 0 || samples.rivers[v]! > 0)
+      alwaysSea = false;
+    if (level <= NEVER_SEA_M) neverSea = false;
+  }
+  return {
+    geometry,
+    fields,
+    centre,
+    radius,
+    minHeight: minH,
+    maxHeight: maxH,
+    alwaysSea,
+    neverSea,
+    flip: flipCheck < 0,
+  };
 }
