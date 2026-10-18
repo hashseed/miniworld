@@ -23,7 +23,7 @@ import { ClimateStore } from './climate.ts';
 import { LENS_COLS, LENS_ROWS, Lens } from './lens.ts';
 import type { PlanetState } from './planet.ts';
 import { terrainFragment, terrainVertex } from './shaders.ts';
-import { EARTH_RADIUS_KM, buildTileGeometry } from './tileMesh.ts';
+import { EARTH_RADIUS_KM, buildTileGeometry, indexFor } from './tileMesh.ts';
 import { sampleTile, TerrainStore } from './terrainStore.ts';
 import type { TerrainTile } from '../content/formats.ts';
 
@@ -37,26 +37,10 @@ export const MAX_RENDER_LEVEL = 9;
 /** Meshes kept beyond those touched this frame; touched meshes are never evicted. */
 const MAX_CACHED_MESHES = 1500;
 
-/** Cells per side of a tile's flat sea grid (section 4.4). */
-const SEA_CELLS = 8;
-let seaIndexCache: THREE.BufferAttribute | undefined;
-/** Triangles of the sea grid over a tile's vertex grid, every TILE_N / SEA_CELLS vertices. */
-function seaIndex(): THREE.BufferAttribute {
-  if (seaIndexCache) return seaIndexCache;
-  const S = TILE_N + 1;
-  const step = TILE_N / SEA_CELLS;
-  const idx: number[] = [];
-  for (let j = 0; j < SEA_CELLS; j++)
-    for (let i = 0; i < SEA_CELLS; i++) {
-      const a = j * step * S + i * step;
-      const b = a + step;
-      const c = a + step * S;
-      const d = c + step;
-      idx.push(a, c, b, b, c, d);
-    }
-  seaIndexCache = new THREE.BufferAttribute(new Uint16Array(idx), 1);
-  return seaIndexCache;
-}
+/** Vertex step of a tile's flat sea grid: 8 × 8 cells (section 4.4). */
+const SEA_STEP = TILE_N / 8;
+/** Vertex step of polar tiles with a coast, whose relief is smoothed away (section 4.2). */
+const POLAR_STEP = 2;
 
 interface TileEntry {
   key: TileKey;
@@ -77,6 +61,8 @@ export class Globe {
   readonly material: THREE.ShaderMaterial;
   /** The flat sea surface over every tile, sharing the terrain's uniforms (section 4.4). */
   readonly seaMaterial: THREE.ShaderMaterial;
+  /** The sea surface of tiles that are sea at every date, carrying ice over the sea. */
+  readonly seaIceMaterial: THREE.ShaderMaterial;
   readonly store: TerrainStore;
   /** Ice and deserts for the whole planet, per time step (section 5.2). */
   readonly climate: ClimateStore;
@@ -87,6 +73,8 @@ export class Globe {
   quality: GlobeQuality = { errorTargetPx: 2.5, waterDetail: 1 };
   /** Tiles drawn last frame. */
   drawnTiles = 0;
+  /** Lowest sea level of the timeline (m); below it a place is sea at every date. */
+  lowestSeaLevel = -130;
   /** The date of the last update, for surface queries. */
   private day = 0;
   private maxHeights = new WeakMap<TerrainTile, number>();
@@ -130,6 +118,13 @@ export class Globe {
       side: THREE.DoubleSide,
       uniforms: this.material.uniforms,
       defines: { SEA_SURFACE: 1 },
+    });
+    this.seaIceMaterial = new THREE.ShaderMaterial({
+      vertexShader: terrainVertex,
+      fragmentShader: terrainFragment,
+      side: THREE.DoubleSide,
+      uniforms: this.material.uniforms,
+      defines: { SEA_SURFACE: 1, SEA_ICE: 1 },
     });
   }
 
@@ -302,28 +297,38 @@ export class Globe {
     if (this.buildsThisFrame >= 12 && key.level > 1) return undefined;
     this.buildsThisFrame++;
     const samples = sampleTile(key, source);
-    const g = buildTileGeometry(key, samples, EXAGGERATION);
-    const mesh = new THREE.Mesh(g.geometry, this.material);
-    // The material is shared; each tile binds its own field texture.
+    const g = buildTileGeometry(key, samples, EXAGGERATION, this.lowestSeaLevel);
+    // A tile that is sea at every date is its flat sea surface alone, which
+    // also carries ice over the sea; polar tiles use a coarser grid; a tile
+    // that is never sea needs no sea surface (section 4.2).
+    const c = tileSampleUv(key, TILE_N / 2, TILE_N / 2);
+    const polar = maxLevelAt(faceUvToDir(key.face, c.u, c.v)) === POLAR_MAX_LEVEL;
+    if (g.alwaysSea) g.geometry.setIndex(indexFor(g.flip, SEA_STEP));
+    else if (polar) g.geometry.setIndex(indexFor(g.flip, g.neverSea ? SEA_STEP : POLAR_STEP));
+    const material = g.alwaysSea ? this.seaIceMaterial : this.material;
+    const mesh = new THREE.Mesh(g.geometry, material);
+    // The materials share their uniforms; each tile binds its own field texture.
     mesh.onBeforeRender = () => {
       this.material.uniforms.fields!.value = g.fields;
-      this.material.uniformsNeedUpdate = true;
+      material.uniformsNeedUpdate = true;
     };
     mesh.userData.fields = g.fields;
-    // The flat sea: the same vertices on a coarse grid, a child so it shares
-    // the tile's placement and visibility.
-    const seaGeometry = new THREE.BufferGeometry();
-    for (const [name, attr] of Object.entries(g.geometry.attributes))
-      seaGeometry.setAttribute(name, attr);
-    seaGeometry.setIndex(seaIndex());
-    const sea = new THREE.Mesh(seaGeometry, this.seaMaterial);
-    sea.onBeforeRender = () => {
-      this.material.uniforms.fields!.value = g.fields;
-      this.seaMaterial.uniformsNeedUpdate = true;
-    };
-    sea.frustumCulled = false;
-    sea.matrixAutoUpdate = false;
-    mesh.add(sea);
+    if (!g.alwaysSea && !g.neverSea) {
+      // The flat sea: the same vertices on a coarse grid, a child so it shares
+      // the tile's placement and visibility.
+      const seaGeometry = new THREE.BufferGeometry();
+      for (const [name, attr] of Object.entries(g.geometry.attributes))
+        seaGeometry.setAttribute(name, attr);
+      seaGeometry.setIndex(indexFor(g.flip, SEA_STEP));
+      const sea = new THREE.Mesh(seaGeometry, this.seaMaterial);
+      sea.onBeforeRender = () => {
+        this.material.uniforms.fields!.value = g.fields;
+        this.seaMaterial.uniformsNeedUpdate = true;
+      };
+      sea.frustumCulled = false;
+      sea.matrixAutoUpdate = false;
+      mesh.add(sea);
+    }
     mesh.position.copy(g.centre);
     mesh.frustumCulled = false;
     mesh.matrixAutoUpdate = false;
