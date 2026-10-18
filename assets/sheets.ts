@@ -12,6 +12,7 @@ const sheets: [string, string][] = [
   ['people', 'sheet=people'],
   ['first-person', 'sheet=founder'],
   ['first-person-camp', 'sheet=founder-camp'],
+  ['first-person-motion', 'sheet=founder-motion'],
   ...['idle', 'walk', 'run', 'carry', 'work', 'point', 'throw', 'cheer'].map(
     (c): [string, string] => [`clip-${c}`, `sheet=clips&clip=${c}`],
   ),

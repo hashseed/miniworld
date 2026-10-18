@@ -111,6 +111,13 @@ From orbit an adult is then about 15 pixels tall on a desktop screen; close to t
 
 Clips are baked into an animation texture and played on the GPU (milestone 1 section 11.4). The first clip set: idle, walk, run, carry, crouch-work, knap, scrape, dig, gather, throw, stab-thrust, paint, tend-fire, sit, talk, point, wave, paddle, haul, lift, sleep, sink (for figures lost to an effect), play (children). Clips have no blood or wounds in any form. Every action in the vignette vocabulary (section 6.4) maps to one or more clips.
 
+**Fluid motion** (Yang, 2026-10-18: "make sure her movements are fluid"). Every clip is smooth in angle and in speed, so no joint snaps:
+
+- **Planted feet.** The stepping clips (walk, run, carry, haul) turn the standing leg at an even pace while its foot is down and swing the other leg forward on a smooth curve that leaves and meets the stance at the same speed. A figure playing one moves at that clip's **gait speed** (`gaitSpeed` in `assets/src/clips.ts`, from the leg length and the clip's stride: about 1.1 m/s walking for an adult woman), so the standing foot stays where it was put down instead of sliding. The hips rise over the standing leg, dip as a heel comes down, and turn and roll a little with each stride; the torso turns against the hips and the head keeps looking ahead; lower arms trail the upper arms.
+- **Easing between clips.** A change of clip never cuts: over 0.35 s (`BLEND_SECONDS`) every joint angle and the speed ease from the old clip into the new one. Held and carried things switch half way through.
+- **Checked by tests.** Moving at the gait speed, the standing foot of walk, carry and haul stays within 5 cm of where it was put down and of the ground; across every change between two clips, no body part turns faster than 30 radians per second at 60 frames per second (the snap of a throw is the one faster movement, as in life).
+- The review sheet `founder-motion` (`asset-sheet.html?sheet=founder-motion`) shows the first person walking in, working at the hearth, standing, walking on and throwing; `window.setFrame(seconds)` poses it at any moment, so a short film for review is recorded frame by frame.
+
 ### 5.4 Tasks
 
 Ordinary figures live in their camp. Each figure's id is the hash of its camp and its index in the band, so it stays the same as long as the camp stands. Clock time is cut into **slots** of 10 to 30 seconds per figure (length from a hash of figure id and slot number). In each slot the figure picks a task from its profile's activity mix (hash of figure id and slot), walks to the matching work spot, works there and may carry something back. Gatherers and hunters may walk out of the camp and return within one slot. The worker turns the slot's task into segments (section 2.2).
