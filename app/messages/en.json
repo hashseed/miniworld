@@ -1,7 +1,6 @@
 {
   "app.title": "Miniworld",
   "app.loading": "Loading the world…",
-  "app.preparing": "Finding the best picture quality for this device…",
   "app.fixtureNotice": "Test data: the landscape is invented until the real elevation data is added.",
   "app.error": "The world could not be loaded. Please reload the page.",
   "controls.play": "Play",
@@ -37,16 +36,10 @@
   "dialog.close": "Close",
   "settings.title": "Settings",
   "settings.language": "Language",
-  "settings.quality": "Picture quality",
-  "settings.quality.auto": "Automatic ({tier})",
-  "settings.quality.high": "High",
-  "settings.quality.medium": "Medium",
-  "settings.quality.low": "Low",
   "settings.trueTimeScale": "True time scale",
   "settings.slowWhenZoomed": "Slow down when zoomed in",
   "settings.showStats": "Show performance stats",
   "settings.historyLens": "Enlarge busy regions",
-  "settings.remeasure": "Measure quality again",
   "bookmarks.title": "Bookmarks",
   "bookmarks.add": "Bookmark this moment",
   "bookmarks.empty": "No bookmarks yet. Bookmark a moment to come back to it later.",
@@ -71,7 +64,6 @@
   "stats.drawCalls": "Draw calls",
   "stats.triangles": "Triangles",
   "stats.renderScale": "Render scale",
-  "stats.tier": "Quality",
   "stats.report": "Save report",
   "stress.title": "Stress scene"
 }

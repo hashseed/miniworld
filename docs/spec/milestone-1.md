@@ -19,7 +19,7 @@ The milestone proves the technical foundations every later milestone builds on: 
 | Interface shell | Controls, settings, bookmarks, English and German | 8 |
 | Saved state | Settings, last date, camera, bookmarks in local storage | 9 |
 | Content pipeline | Manifest, startup index, chunks, hashing, service worker | 10 |
-| Performance | Stress scene, quality tiers, dynamic resolution | 11 |
+| Performance | Stress scene, fixed quality, dynamic resolution | 11 |
 
 ## 2. Project setup
 
@@ -39,7 +39,7 @@ app/              the browser app
   src/ui/         Preact shell, settings, bookmarks
   src/i18n/       message loading, plural rules, date and number formatting
   src/content/    manifest, chunk loader, service worker
-  src/perf/       stress scene, quality tiers, dynamic resolution, stats overlay
+  src/perf/       stress scene, quality settings, dynamic resolution, stats overlay
   messages/       en.json, de.json
 data/
   sources/        simplified extracts of the source datasets used, with their licence texts
@@ -152,7 +152,7 @@ Every source must meet the data licence policy in [spec.md](spec.md#13-licences)
 
 ### 4.2 Terrain
 
-- The globe is a unit cube projected onto a sphere (with an equal-angle warp so tiles are similar in size), each face split into a quadtree. Every tile is a grid of 33 × 33 vertices with skirts to hide cracks between levels (decided by Yang on 2026-10-17, first 65 × 65: the map is deliberately simple, and the terrain should stay at about 800,000 triangles or fewer on screen). Tiles are refined by screen-space error: a tile splits when its geometric error, estimated as half its vertex spacing, would exceed the error target of the current quality tier in CSS pixels (section 11.2). A tile splits only once all four children are ready to draw, so the ground never shows holes while loading. The tile meshes are kept in a cache of about 1,500; every mesh the current frame draws or checks (the drawn tiles, their parents and the children waiting to be drawn) is kept, and only meshes the frame did not touch are evicted, oldest first, so a full cache never makes tiles flicker between levels. When a coarser tile is wanted but not built yet, its finer children keep being drawn until it is.
+- The globe is a unit cube projected onto a sphere (with an equal-angle warp so tiles are similar in size), each face split into a quadtree. Every tile is a grid of 33 × 33 vertices with skirts to hide cracks between levels (decided by Yang on 2026-10-17, first 65 × 65: the map is deliberately simple, and the terrain should stay at about 800,000 triangles or fewer on screen). Tiles are refined by screen-space error: a tile splits when its geometric error, estimated as half its vertex spacing, would exceed the terrain error target in CSS pixels (section 11.2). A tile splits only once all four children are ready to draw, so the ground never shows holes while loading. The tile meshes are kept in a cache of about 1,500; every mesh the current frame draws or checks (the drawn tiles, their parents and the children waiting to be drawn) is kept, and only meshes the frame did not touch are evicted, oldest first, so a full cache never makes tiles flicker between levels. When a coarser tile is wanted but not built yet, its finer children keep being drawn until it is.
 - **Cheaper tiles where there is little to draw** (decided by Yang on 2026-10-18: Antarctica seen from above needed about 700,000 triangles and 520 draw calls, most of them for the empty Southern Ocean around it). A tile that is sea at every date (its smoothed coast level below the lowest sea level of the timeline at every sample, with no lake or river) is drawn as its flat sea surface alone, on an 8 × 8 grid with skirts, which also carries any ice lying over the sea; it costs one draw call and about 200 triangles. Tiles in the polar regions (north of 74°N and south of 62°S), whose relief is smoothed away (section 4.2), use every second vertex (16 × 16 cells). A tile that is land at every date (its coast level above +10 m at every sample) draws no sea surface. Neighbouring tiles with different grids are joined by their skirts.
 - The data build produces one heightmap per tile down to level 5 (tiles of roughly 300 km with samples about 10 km apart). The map is smoothed far more than that (section 4.2), so a deeper level would add size without adding information. Rendered tiles go down to level 9 (samples about 600 m apart); deeper levels are refined from their data ancestor by bicubic interpolation when the tile is built, so the ground never shows staircases at the closest zoom. Normals are computed from the heights when a tile is built rather than stored.
 - Heights are stored in whole metres as 16-bit integers with an offset, compressed per tile (section 10.5). The data build clamps the deep ocean floor below −1,000 m, which is never visible and saves space.
@@ -180,7 +180,6 @@ Every source must meet the data licence policy in [spec.md](spec.md#13-licences)
 - The sea is a bright, saturated blue that looks like glossy plastic, with a lighter sheen towards the globe's edge but no reflection of the light.
 - **Waves and texture** (decided by Yang on 2026-10-17). The open sea carries a stylised cartoon pattern rather than a flat colour: soft lighter ripple bands of long wavelength (several times the spacing of the first version, decided by Yang on 2026-10-17) that drift slowly, small white wave crests scattered over the water that appear and fade, and a gentle swell in the shading. The pattern lives in world space so it stays put as the camera moves, and its scale adapts to the distance so it reads from orbit and close up. It does not mark depth, so there are still no lighter shallows. The large lakes and inland seas, such as the Black Sea and the Caspian, carry the same waves (decided by Yang on 2026-10-17); since only lakes of at least 3,000 km² are drawn, every drawn lake has them. Rivers stay without waves.
 - The waves are animated by the life clock. Animation stops when everything is frozen.
-- The low tier keeps the static pattern but drops the animation.
 
 ### 4.5 Sky and horizon
 
@@ -288,7 +287,6 @@ The camera has one fly-to operation used by bookmarks now and by events and famo
 | Setting | Values | Default |
 | --- | --- | --- |
 | Language | English, Deutsch | Browser language if German, otherwise English |
-| Quality | Automatic, High, Medium, Low | Automatic (section 11.2) |
 | True time scale | On, Off | Off |
 | Slow down when zoomed in | On, Off | On (section 3.3) |
 | Enlarge busy regions | On, Off | On ([history-lens.md](history-lens.md); also the "True sizes" button) |
@@ -321,7 +319,6 @@ Local storage holds only small things (spec section 7.6). Each key is versioned 
 | `miniworld.settings.v1` | The settings of section 8.2 | On change |
 | `miniworld.view.v1` | Last date (day integer), camera target, distance, tilt and heading, play state and speed | At most once every 2 seconds, and when the page is hidden |
 | `miniworld.bookmarks.v1` | Up to 200 bookmarks: id, name, date, camera | On change |
-| `miniworld.perf.v1` | Result of the first-start benchmark (section 11.2) and the device it was measured on | After the benchmark |
 
 On start, the saved date and camera are restored; a saved play state of *playing* is restored as *history paused*, so the world does not run on while nobody is watching. Saved state never affects what the world looks like at a given date: it only chooses which date and view to show.
 
@@ -371,9 +368,9 @@ The first view of the globe at 50,000 BCE on a phone must need at most about 3 M
 | Manifest and one language's index | 200 KB |
 | Terrain tiles for the first view | 1.5 MB |
 | Climate slices for the first view | 50 KB |
-| Terrain textures (low tier) | 500 KB |
+| Terrain textures | 500 KB |
 
-`npm run build` fails when JavaScript and CSS exceed their budget. A browser test loads the first view at a phone size and quality tier with an empty cache and fails when the total transfer exceeds 3 MB.
+`npm run build` fails when JavaScript and CSS exceed their budget. A browser test loads the first view at a phone size with an empty cache and fails when the total transfer exceeds 3 MB.
 
 ### 10.7 Determinism while loading
 
@@ -397,22 +394,24 @@ The budget is spec section 9's: 60 fps average and never below 30 fps on the ref
 
 **Reference devices**, chosen by Yang: the first Apple silicon MacBook (MacBook Air with M1, 2020) running current Chrome and Safari as the laptop, and a Google Pixel 9 running current Chrome as the phone. Safari on iPhone is also tested for correctness.
 
-### 11.2 Quality tiers
+### 11.2 Quality
 
-| | High | Medium | Low |
-| --- | --- | --- | --- |
-| Render scale cap | Device pixel ratio up to 2 | Up to 1.5 | Up to 1 |
-| Terrain error target | 1.5 px | 2.5 px | 4 px |
-| Terrain texture resolution | Full | Half | Quarter |
-| Water | Animated wave pattern | Animated wave pattern | Static wave pattern |
-| Anti-aliasing | MSAA 4× | FXAA | None |
-| Animated figures (stress scene) | 5,000 | 3,000 | 1,500 |
+There is one fixed quality (decided by Yang on 2026-10-18, first three tiers chosen by a benchmark at first start: "the other modes are untested"), and no quality setting:
 
-On first start, after the first view has loaded, the app renders the stress scene off-screen for about 3 seconds behind the loading screen and picks the highest tier whose frame time fits the device's budget. The result is saved (section 9) and re-measured only when the device or browser changes, or from the settings. Choosing a tier in the settings overrides the automatic choice.
+| | |
+| --- | --- |
+| Render scale cap | Device pixel ratio up to 2 |
+| Terrain error target | 1.5 px |
+| Terrain texture resolution | Full |
+| Water | Animated wave pattern |
+| Anti-aliasing | MSAA 4× |
+| Animated figures (stress scene) | 5,000 |
+
+When a device cannot keep up, dynamic resolution (section 11.3) lowers the render scale.
 
 ### 11.3 Dynamic resolution
 
-The renderer tracks an average of recent frame times. When it rises above the target (16.7 ms on desktop, 33 ms on phones) for half a second, the render scale drops by a step of 10 %, down to half of the tier's cap; when frame time stays well below the target for 3 seconds, it rises a step again. The interface is drawn at full resolution regardless.
+The renderer tracks an average of recent frame times. When it rises above the target (16.7 ms on desktop, 33 ms on phones) for half a second, the render scale drops by a step of 10 %, down to half of the cap (section 11.2); when frame time stays well below the target for 3 seconds, it rises a step again. The interface is drawn at full resolution regardless.
 
 ### 11.4 Stress scene
 
@@ -420,10 +419,10 @@ The stress scene proves the figure-heavy targets before any content exists and s
 
 - Opened with `?scene=stress` in the URL; not reachable from the interface.
 - A fixed camera path over the Nile delta at close zoom, then out to orbit and back down, about 60 seconds long, with the date fixed at 1 CE and the life clock running.
-- 20,000 placeholder figures over an area of about 30 × 30 km, of which up to the tier's animated-figure limit are drawn as animated figures near the camera and the rest as simple coloured marks. 1,000 placeholder buildings of about 2,000 triangles each.
+- 20,000 placeholder figures over an area of about 30 × 30 km, of which up to the animated-figure limit (section 11.2) are drawn as animated figures near the camera and the rest as simple coloured marks. 1,000 placeholder buildings of about 2,000 triangles each.
 - Placeholder figures are a simple humanoid of about 700 triangles on one shared skeleton, with three baked animations (walk, work, idle) played from an animation texture on the GPU, drawn with instancing: the technique real figures will use in milestone 2. They are coloured by a hash of their index, and their positions and animations come from a seeded hash of index and life-clock slot, never from `Math.random`.
 - The placeholders are generated in code as plain shapes, not shipped assets, so they need no approval; they never appear outside the stress scene.
-- A stats overlay (also available in the normal app from the settings) shows frame time with its average and 99th percentile, draw calls, triangles, render scale and tier.
+- A stats overlay (also available in the normal app from the settings) shows frame time with its average and 99th percentile, draw calls, triangles and render scale.
 - `npm run perf` runs the camera path in Chromium and writes a report: average fps, 99th percentile frame time, maximum draw calls and triangles per frame. On a reference device the same report is produced from a button in the overlay, so results can be recorded from a real phone. CI runs the scene headless and fails only when draw calls or triangles exceed the budget, since its frame times mean nothing.
 
 ## 12. Assets in this milestone

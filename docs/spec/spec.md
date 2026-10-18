@@ -198,7 +198,7 @@ Whimsy never bends the facts: buildings, landmarks, ships and vehicles appear on
 | Animals, ships, vehicles | 300 to 3,000 triangles | Reused across cultures with texture variants |
 | Terrain | Splat-mapped painted tiles (grass, soil, sand, rock, snow, fields) | Fields, roads and town ground painted from data |
 
-Every asset has two or three lower levels of detail, and at globe zoom figures become small coloured marks. Quality tiers (high, medium, low) are picked automatically from the device and can be changed in the settings; phones default to low or medium.
+Every asset has two or three lower levels of detail, and at globe zoom figures become small coloured marks. There is one fixed quality level and no quality setting (decided by Yang on 2026-10-18); dynamic resolution keeps slower devices smooth.
 
 **Asset production.** Assets are generated rather than bought or commissioned, and Yang reviews every generated asset before it is used. The modular approach (one skeleton, culture-specific parts, building kits) keeps the roughly 40 culture profiles affordable. Each asset carries a review status (`generated`, `approved`, `rejected`) in the asset manifest, and the app only ships approved assets.
 
@@ -243,7 +243,7 @@ flowchart LR
 - Draw calls per frame: at most about 300 on desktop and 150 on phones; figures, buildings and vegetation are always instanced.
 - Visible animated figures: about 5,000 on desktop and 1,500 on phones before LOD swaps them for simpler marks.
 - World query in the worker: under 8 ms per update, so the main thread only renders.
-- Quality tiers (section 8) are chosen from a short benchmark on first start; dynamic resolution lowers the render scale when frame time rises.
+- One fixed quality level (section 8); dynamic resolution lowers the render scale when frame time rises.
 - A stress scene (thousands of figures over a dense city at close zoom) runs in milestone 1 to prove these targets before content work starts, and stays in the test suite as a performance check.
 
 **Tests.** Golden snapshot tests compute the scene for a list of fixed dates and places and compare it to a stored result; any difference must be intended. Data validation runs in the same suite, and browser tests check the timeline and the camera fly-to on desktop and phone sizes.

@@ -4,12 +4,8 @@
 import type { Language } from '../i18n/messages.ts';
 import type { PlayState } from '../time/clock.ts';
 
-export type QualitySetting = 'auto' | 'high' | 'medium' | 'low';
-export type Tier = 'high' | 'medium' | 'low';
-
 export interface Settings {
   language: Language;
-  quality: QualitySetting;
   /** Timeline shows every lane instead of only the region under the globe centre. */
   timelineExpanded: boolean;
   trueTimeScale: boolean;
@@ -43,16 +39,10 @@ export interface Bookmark {
   camera: CameraState;
 }
 
-export interface PerfResult {
-  tier: Tier;
-  device: string;
-}
-
 const KEYS = {
   settings: 'miniworld.settings.v1',
   view: 'miniworld.view.v1',
   bookmarks: 'miniworld.bookmarks.v1',
-  perf: 'miniworld.perf.v1',
 } as const;
 
 export const MAX_BOOKMARKS = 200;
@@ -92,9 +82,6 @@ export function loadSettings(defaults: Settings): Settings {
   if (!isObj(v)) return defaults;
   return {
     language: v.language === 'en' || v.language === 'de' ? v.language : defaults.language,
-    quality: ['auto', 'high', 'medium', 'low'].includes(v.quality as string)
-      ? (v.quality as QualitySetting)
-      : defaults.quality,
     timelineExpanded: isBool(v.timelineExpanded) ? v.timelineExpanded : defaults.timelineExpanded,
     trueTimeScale: isBool(v.trueTimeScale) ? v.trueTimeScale : defaults.trueTimeScale,
     slowWhenZoomed: isBool(v.slowWhenZoomed) ? v.slowWhenZoomed : defaults.slowWhenZoomed,
@@ -138,16 +125,4 @@ export function loadBookmarks(): Bookmark[] {
 
 export function saveBookmarks(list: Bookmark[]): void {
   write(KEYS.bookmarks, list.slice(0, MAX_BOOKMARKS));
-}
-
-export function loadPerf(): PerfResult | undefined {
-  const v = read(KEYS.perf);
-  if (!isObj(v)) return undefined;
-  if (!['high', 'medium', 'low'].includes(v.tier as string) || typeof v.device !== 'string')
-    return undefined;
-  return { tier: v.tier as Tier, device: v.device };
-}
-
-export function savePerf(p: PerfResult): void {
-  write(KEYS.perf, p);
 }

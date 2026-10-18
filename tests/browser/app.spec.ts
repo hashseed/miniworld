@@ -14,9 +14,9 @@ const de = JSON.parse(readFileSync(`${root}/app/messages/de.json`, 'utf8')) as R
   string
 >;
 
-/** Opens the app without the first-start benchmark and waits for the first view. */
-async function open(page: Page, query = ''): Promise<void> {
-  await page.goto(`/?nobench${query}`);
+/** Opens the app and waits for the first view. */
+async function open(page: Page): Promise<void> {
+  await page.goto('/');
   await expect(page.locator('.overlay')).toHaveCount(0, { timeout: 60_000 });
 }
 
@@ -50,7 +50,6 @@ test.beforeEach(async ({ page }) => {
         'miniworld.settings.v1',
         JSON.stringify({
           language: 'en',
-          quality: 'low',
           timelineExpanded: false,
           trueTimeScale: false,
           slowWhenZoomed: true,
