@@ -484,7 +484,8 @@ function firstView(): Promise<void> {
     let last = -1;
     const check = () => {
       const tiles = globe.drawnTiles;
-      if (tiles > 0 && tiles === last && loader.pending === 0) stable++;
+      if (tiles > 0 && tiles === last && loader.pending === 0 && globe.pendingBuilds === 0)
+        stable++;
       else stable = 0;
       last = tiles;
       if (stable > 10 || performance.now() - begin > 8000) resolve();
