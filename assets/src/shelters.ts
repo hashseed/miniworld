@@ -214,7 +214,7 @@ export function buildShelter(id: ShelterId): Model {
         );
       });
       // The grass: armfuls laid on the frame in three overlapping rows from the ground up,
-      // their ends hanging ragged, leaving the doorway open.
+      // their ends hanging ragged, leaving the doorway open in the bottom row.
       const rows: [number, number, number][] = [
         [0, 0.45, 8],
         [0.33, 0.75, 7],
@@ -225,7 +225,7 @@ export function buildShelter(id: ShelterId): Model {
         for (let i = 0; i < n; i++) {
           const mid = ((i + 0.5 * j) / n) * Math.PI * 2;
           const fromDoor = Math.abs(Math.atan2(Math.sin(mid), Math.cos(mid)));
-          if (j < 2 && fromDoor < 0.45) continue;
+          if (j === 0 && fromDoor < 0.4) continue;
           const half = (Math.PI / n) * 1.25;
           const cols = 7;
           const top: Vec3[] = [];
@@ -243,7 +243,15 @@ export function buildShelter(id: ShelterId): Model {
             bone,
           );
         }
-        if (j === 0) mb.add(blob(dome(0, 0.25, 0.95), [0.3, 0.42, 0.12], 6), DOOR, bone);
+        // A closed band of grass under each row, so no gap shows the ground or the frame.
+        const band: [number, number][] = [];
+        for (let k = 0; k <= 2; k++) {
+          const p = dome(0, t0 + ((Math.min(0.97, t1) - t0) * k) / 2, 0.97);
+          band.push([Math.max(0.05, p[2]), p[1]]);
+        }
+        mb.add(lathe(band, [0, 0, 0], 9), shade(THATCH, -0.12), bone);
+        // The doorway: a low, shadowed opening under the grass.
+        if (j === 0) mb.add(blob(dome(0, 0.2, 0.99), [0.3, 0.36, 0.08], 6), '#5b3b26', bone);
         if (j === rows.length - 1)
           mb.add(
             lathe(
@@ -409,6 +417,14 @@ export function setBuilt(steps: THREE.Object3D[], built: number): void {
   });
 }
 
+/** The flames of the hearth: base, tip, radius and colour; each is its own bone so it can flicker. */
+const FLAMES: [Vec3, Vec3, number, string][] = [
+  [[0, 0.05, 0], [0.04, 0.95, 0.02], 0.3, '#f08a2c'],
+  [[0.13, 0.05, 0.06], [0.2, 0.62, 0.08], 0.17, '#f6b23b'],
+  [[-0.12, 0.05, -0.04], [-0.18, 0.66, -0.05], 0.16, '#f6b23b'],
+  [[0, 0.05, 0.04], [0.0, 0.45, 0.05], 0.15, '#ffe08a'],
+];
+
 /** A ring of stones with a cartoon fire. */
 export function buildHearth(): Model {
   const mb = new ModelBuilder();
@@ -417,9 +433,21 @@ export function buildHearth(): Model {
   );
   mb.add(rod([-0.35, 0.08, -0.1], [0.35, 0.16, 0.12], 0.06, 5), '#5a3a22');
   mb.add(rod([0.3, 0.08, -0.2], [-0.25, 0.16, 0.2], 0.06, 5), '#6a4528');
-  mb.add(cone([0, 0.05, 0], [0.04, 0.95, 0.02], 0.3, 7), '#f08a2c');
-  mb.add(cone([0.13, 0.05, 0.06], [0.2, 0.62, 0.08], 0.17, 6), '#f6b23b');
-  mb.add(cone([-0.12, 0.05, -0.04], [-0.18, 0.66, -0.05], 0.16, 6), '#f6b23b');
-  mb.add(cone([0, 0.05, 0.04], [0.0, 0.45, 0.05], 0.15, 6), '#ffe08a');
+  FLAMES.forEach(([base, tip, r, colour], i) => {
+    mb.bone({ name: `flame-${i}`, pivot: base });
+    mb.add(cone(base, tip, r, i === 0 ? 7 : 6), colour, `flame-${i}`);
+  });
   return mb.build('prop-hearth');
+}
+
+/** Lets the hearth's flames flicker: each stretches, squashes and sways at its own pace. */
+export function flickerHearth(model: Model, seconds: number): void {
+  FLAMES.forEach((_f, i) => {
+    const flame = model.bones.get(`flame-${i}`);
+    if (!flame) return;
+    const t = seconds * (5.1 + 1.7 * i) + i * 1.9;
+    const lick = Math.sin(t) * 0.6 + Math.sin(t * 2.3 + 0.7) * 0.4;
+    flame.scale.set(1 - 0.08 * lick, 1 + 0.22 * lick, 1 - 0.08 * lick);
+    flame.rotation.z = 0.12 * Math.sin(t * 0.7 + i);
+  });
 }

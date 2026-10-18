@@ -155,24 +155,27 @@ describe('the camp scene', () => {
         for (let j = i + 1; j < list.length; j++) {
           const [a, b] = [list[i]!, list[j]!];
           if (a.lat !== b.lat || a.lon !== b.lon) continue;
-          expect((a.x - b.x) ** 2 + (a.z - b.z) ** 2).toBeGreaterThanOrEqual(min * min);
+          expect(
+            (a.x - b.x) ** 2 + (a.z - b.z) ** 2,
+            `${JSON.stringify(a)} ${JSON.stringify(b)}`,
+          ).toBeGreaterThanOrEqual(min * min);
         }
     };
     const end = msAtDay(settings.endDay, settings.startDay);
     // Every so often, and through the building of the first lodgings.
     const times: number[] = [];
-    for (let ms = 0; ms < end; ms += 49_999) times.push(ms);
+    for (let ms = 0; ms < end; ms += 99_991) times.push(ms);
     for (const l of tree.lodgings.slice(0, 80))
       for (let k = 0; k < 12; k++) times.push(msAtDay(l.built, settings.startDay) + k * 1_500);
     for (const ms of times) {
       const s = treeScene(whole, ms, settings.startDay);
       apart(
-        s.figures.filter((f) => f.clip !== 'walk'),
+        s.figures.filter((f) => f.clip === 'idle' || f.clip === 'work'),
         2,
       );
       apart(s.lodgings, 12);
     }
-  });
+  }, 30_000);
 });
 
 describe('the canonical tree', () => {

@@ -9,7 +9,7 @@ import type { Store } from './core/store.ts';
 import type { StressRun } from './dev/stress.ts';
 import type { CameraController } from './globe/cameraController.ts';
 import type { Clouds } from './globe/clouds.ts';
-import type { Foliage } from './globe/foliage.ts';
+import { CLEARING_KM, type Foliage } from './globe/foliage.ts';
 import type { Globe } from './globe/globe.ts';
 import { MORPH_OMEGA, MORPH_OMEGA_REDUCED } from './globe/lens.ts';
 import { cameraLight, type Sky } from './globe/sky.ts';
@@ -113,7 +113,10 @@ export class FrameLoop {
     // Wrapped to an hour so the shader's float keeps millisecond precision.
     u.time!.value = (p.clock.ms % 3_600_000) / 1000;
     p.globe.update(p.camera, innerHeight, this.planet, day);
-    p.foliage.clearings = [...p.vignettes.clearings(), ...p.tree.clearings()];
+    p.foliage.clearings = [
+      ...p.vignettes.clearings().map((dir) => ({ dir, km: CLEARING_KM, amount: 1 })),
+      ...p.tree.clearings(),
+    ];
     p.foliage.update(p.camera, this.planet, day, u.lightDir!.value);
     p.sky.update(p.camera);
     p.clouds.update(p.camera, p.clock.ms, u.lightDir!.value);

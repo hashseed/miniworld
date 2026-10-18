@@ -6,10 +6,12 @@
 
 import * as THREE from 'three';
 import type { ContentLoader } from '../content/loader.ts';
-import { latLonToDir, type Vec3 } from '../geo/cube.ts';
+import { latLonToDir } from '../geo/cube.ts';
 import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 import { dayAtMs } from '../time/rate.ts';
+import type { Clearing } from '../globe/foliage.ts';
 import {
+  CAMP_CLEARING_KM,
   FIGURE_KM_PER_M,
   LAYOUT_KM_PER_M,
   treeScene,
@@ -36,7 +38,7 @@ export class TreeLayer {
   private lodgings = new Map<number, StandIn | undefined>();
   private hearths = new Map<number, StandIn | undefined>();
   private camera: THREE.PerspectiveCamera | undefined;
-  private hearthDirs: Vec3[] = [];
+  private cleared: Clearing[] = [];
   private basis = new THREE.Matrix4();
   private turn = new THREE.Quaternion();
   private leanQ = new THREE.Quaternion();
@@ -61,9 +63,9 @@ export class TreeLayer {
     this.windows = windows;
   }
 
-  /** True directions of the hearths standing now, for the foliage's clearings. */
-  clearings(): Vec3[] {
-    return this.hearthDirs;
+  /** Where the trees make way for camps now, for the foliage. */
+  clearings(): Clearing[] {
+    return this.cleared;
   }
 
   update(camera: THREE.PerspectiveCamera, ms: number, startDay: number): void {
@@ -107,7 +109,6 @@ export class TreeLayer {
       }
       const prop = this.lodgings.get(l.id);
       if (!prop || !this.place(prop.root, l, false)) continue;
-      prop.setFade?.(l.fade);
       // While the band builds it, the lodging goes up step by step, or rises whole.
       if (prop.setBuilt) {
         prop.setBuilt(l.built);
@@ -121,10 +122,14 @@ export class TreeLayer {
     this.prune(this.lodgings, seen);
 
     seen.clear();
-    this.hearthDirs = [];
+    this.cleared = scene.clearings.map((c) => ({
+      dir: latLonToDir(c.lat, c.lon),
+      km: CAMP_CLEARING_KM,
+      amount: c.amount,
+      felling: c.felling,
+    }));
     for (const h of scene.hearths) {
       seen.add(h.camp);
-      this.hearthDirs.push(latLonToDir(h.lat, h.lon));
       if (!this.hearths.has(h.camp)) {
         const prop = buildProp('asset', 'prop-hearth');
         if (prop) this.group.add(prop.root);
@@ -134,6 +139,8 @@ export class TreeLayer {
       if (!prop) continue;
       this.place(prop.root, { lat: h.lat, lon: h.lon, x: 0, z: 0, dirX: 1, dirZ: 0 }, false);
       prop.root.scale.setScalar(FIGURE_KM_PER_M);
+      // The fire flickers with the clock, so a paused world holds still.
+      prop.pose('idle', ms / 1000);
     }
     this.prune(this.hearths, seen);
   }
@@ -152,7 +159,7 @@ export class TreeLayer {
     this.prune(this.figures, new Set());
     this.prune(this.lodgings, new Set());
     this.prune(this.hearths, new Set());
-    this.hearthDirs = [];
+    this.cleared = [];
   }
 
   private prune<T extends StandIn | undefined>(objects: Map<number, T>, keep: Set<number>): void {

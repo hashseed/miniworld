@@ -1,7 +1,8 @@
 // What the tree of humankind shows at a clock time (spec humankind.md,
 // section 8.1): the hearths and lodgings of the camps standing, and every
-// figure at its spot, coming out of its lodging, or walking to a new home.
-// A pure function of the tree chunk and the clock time.
+// figure at its spot, coming out of its lodging, building or taking down a
+// lodging, off gathering or hunting, or walking to a new home. A pure
+// function of the tree chunk and the clock time.
 
 import { hash01, hash32 } from '../core/hash.ts';
 import { detCos, detSin, RAD } from '../core/detmath.ts';
@@ -21,12 +22,22 @@ export interface TreeChunk {
 export const FIGURE_KM_PER_M = 50;
 /** A figure's walking pace in life-size metres per second, matching the walk clip's stride. */
 export const WALK_M_PER_S = 1.2;
+/** Running and carrying paces, matching those clips' strides at the same leg length. */
+const RUN_M_PER_S = 4.2;
+const CARRY_M_PER_S = 0.87;
+/** The camp layout is drawn three times smaller than the figures (milestone 2, section 5.1). */
+export const LAYOUT_KM_PER_M = FIGURE_KM_PER_M / 3;
 /** Drawn kilometres a figure covers per millisecond of watching. */
 const WALK_KM_PER_MS = (WALK_M_PER_S * FIGURE_KM_PER_M) / 1000;
+/** Layout metres covered per millisecond of watching, by clip. */
+const PACE: Record<'walk' | 'run' | 'carry', number> = {
+  walk: (WALK_M_PER_S * 3) / 1000,
+  run: (RUN_M_PER_S * 3) / 1000,
+  carry: (CARRY_M_PER_S * 3) / 1000,
+};
 /**
- * Lodgings stand this far from the hearth, figures between these distances, in layout
- * metres; lodgings are drawn at figure size, three times the layout, so the ring keeps
- * them clear of the people at the hearth.
+ * Lodgings stand this far from the hearth, in layout metres; lodgings are drawn at
+ * figure size, three times the layout, so the ring keeps them clear of the people.
  */
 const LODGING_RING_M = 20;
 /** Places for lodgings round a hearth, evenly spaced so lodgings never overlap. */
@@ -39,25 +50,39 @@ const OUTER_M = 8.5;
 export const HEARTH_SPOTS = INNER_SPOTS + OUTER_SPOTS;
 const INNER_ORDER = [0, 4, 2, 6, 1, 5, 3, 7];
 const OUTER_ORDER = [0, 6, 3, 9, 1, 7, 4, 10, 2, 8, 5, 11];
-/** The camp layout is drawn three times smaller than the figures (milestone 2, section 5.1). */
-export const LAYOUT_KM_PER_M = FIGURE_KM_PER_M / 3;
+/** Paths keep this far from the middle of the hearth, in layout metres, so nobody walks through the fire. */
+const FIRE_CLEAR_M = 3;
 /** Figures change between idle and work every 20 to 40 seconds of watching. */
 const ACTIVITY_MIN_MS = 20_000;
 const ACTIVITY_SPREAD_MS = 20_000;
+/** Each figure plans its day in turns of this long: an outing, a stroll or a rest. */
+const TURN_MS = 60_000;
+/** How long gatherers pick, hunters butcher and strollers look about at the far end. */
+const GATHER_MS = 9000;
+const BUTCHER_MS = 4000;
+const LOOK_MS = 4000;
 /** Clip changes ease over this long (milestone 2, section 5.3). */
 export const BLEND_MS = 350;
-/** Lodgings fade out over this long when taken down. */
-const FADE_MS = 1500;
 /** The band takes this long to build a new lodging, about three years of history. */
 export const BUILD_MS = 8000;
+/** And this long to take one down before it leaves. */
+export const TAKE_DOWN_MS = 5000;
 /** Builders stand this far from the middle of the lodging they build, in layout metres. */
 const BUILD_RING_M = 7;
+/**
+ * Trees at a camp are felled over this long when the band arrives (half a year), and grow
+ * back over this long after it leaves (about five years).
+ */
+const FELL_MS = 1200;
+const REGROW_MS = 12_000;
+/** Plants keep this far from a hearth while the camp stands, in drawn kilometres. */
+export const CAMP_CLEARING_KM = (LODGING_RING_M + 6) * LAYOUT_KM_PER_M;
 /** Moves shorter than this are within the camp and not walked. */
 const SAME_PLACE_KM = 1;
 const KM_PER_DEG = 111.195;
 
 export type FigureLook = 'founder' | 'woman' | 'man' | 'child';
-export type TreeClip = 'idle' | 'work' | 'walk';
+export type TreeClip = 'idle' | 'work' | 'walk' | 'run' | 'carry';
 
 /** A point of the scene: a place on the globe, and an offset there in layout metres east and north. */
 export interface Placed {
@@ -82,9 +107,7 @@ export interface FigurePose extends Placed {
 export interface LodgingPose extends Placed {
   id: number;
   kind: string;
-  /** 0 to 1 while it is taken down. */
-  fade: number;
-  /** 0 to 1 while the band builds it: how far it has risen from the ground. */
+  /** 0 to 1: how far it is put up, while the band builds it or takes it down. */
   built: number;
 }
 
@@ -94,10 +117,20 @@ export interface HearthPose {
   lon: number;
 }
 
+/** Where the trees make way for a camp: 1 cleared, 0 grown back. */
+export interface ClearingPose {
+  lat: number;
+  lon: number;
+  amount: number;
+  /** True while the trees are being felled, false while they grow back. */
+  felling: boolean;
+}
+
 export interface TreeScene {
   figures: FigurePose[];
   lodgings: LodgingPose[];
   hearths: HearthPose[];
+  clearings: ClearingPose[];
 }
 
 /** The look of a figure: the first person keeps hers; the others are women, men and children. */
@@ -114,23 +147,44 @@ function distanceKm(a: TreeLodging, b: TreeLodging): number {
   return Math.sqrt(x * x + y * y) * KM_PER_DEG;
 }
 
+interface Pt {
+  x: number;
+  z: number;
+}
+
+/** The turn of a camp's ring of places, by its hash. */
+const campTurn = (camp: number) => hash01(camp, 41);
+
 /**
  * Where a lodging stands around its hearth, in layout metres, by its slot: the camp's
  * slots are evenly spaced, turned by the camp's hash. Its door faces the hearth.
  */
-export function lodgingSpot(l: TreeLodging): { x: number; z: number } {
-  const a = (hash01(l.camp, 41) + l.slot / LODGING_SLOTS) * 2 * Math.PI;
+export function lodgingSpot(l: TreeLodging): Pt {
+  const a = (campTurn(l.camp) + l.slot / LODGING_SLOTS) * 2 * Math.PI;
   return { x: LODGING_RING_M * detCos(a), z: LODGING_RING_M * detSin(a) };
 }
 
 /** A figure's own spot at the hearth of a camp, in layout metres: the inner ring first, then the outer. */
-export function figureSpot(spot: number, camp: number): { x: number; z: number } {
+export function figureSpot(spot: number, camp: number): Pt {
   const inner = spot < INNER_SPOTS;
   // Spots fill in an order that keeps a small band spread round the fire.
   const k = (inner ? INNER_ORDER : OUTER_ORDER)[inner ? spot : spot - INNER_SPOTS]!;
   const n = inner ? INNER_SPOTS : OUTER_SPOTS;
   const r = inner ? INNER_M : OUTER_M;
   const a = (hash01(camp, 43) + (k + (inner ? 0 : 0.5)) / n) * 2 * Math.PI;
+  return { x: r * detCos(a), z: r * detSin(a) };
+}
+
+/**
+ * A point out from the hearth through a gap between the lodgings, for a figure's own
+ * outings: the gap and the lane in it come from its spot, which no one else in the camp
+ * has, so two figures never head for the same place.
+ */
+function outingPoint(spot: number, camp: number, distance: number): Pt {
+  const gap = spot % LODGING_SLOTS;
+  const lane = Math.floor(spot / LODGING_SLOTS);
+  const a = (campTurn(camp) + (gap + 0.5) / LODGING_SLOTS) * 2 * Math.PI + (lane - 1.5) * 0.1;
+  const r = distance + 3.5 * lane;
   return { x: r * detCos(a), z: r * detSin(a) };
 }
 
@@ -167,10 +221,10 @@ function walkMs(from: TreeLodging, to: TreeLodging): number {
 }
 
 /**
- * Where a builder stands while the band builds a lodging: around it on the hearth's
- * side, the `k`-th of `n` builders, evenly spread so they never overlap.
+ * Where a figure stands while the band builds or takes down a lodging: around it on the
+ * hearth's side, the `k`-th of `n`, evenly spread so they never overlap.
  */
-function buildSpot(k: number, n: number, lodging: TreeLodging): { x: number; z: number } {
+function buildSpot(k: number, n: number, lodging: TreeLodging): Pt {
   const hut = lodgingSpot(lodging);
   const toHearth = Math.sqrt(hut.x * hut.x + hut.z * hut.z);
   const a = n > 1 ? (k / (n - 1) - 0.5) * 0.75 * Math.PI : 0;
@@ -184,10 +238,104 @@ function buildSpot(k: number, n: number, lodging: TreeLodging): { x: number; z: 
   };
 }
 
-/** Milliseconds to walk between two points of a camp, in layout metres. */
-function strollMs(a: { x: number; z: number }, b: { x: number; z: number }): number {
-  const m = Math.sqrt((b.x - a.x) ** 2 + (b.z - a.z) ** 2);
-  return Math.ceil((m * LAYOUT_KM_PER_M) / WALK_KM_PER_MS);
+/**
+ * The way from a to b within a camp: straight, or round the fire by a point beside it
+ * when the straight line would pass through it.
+ */
+function route(a: Pt, b: Pt): Pt[] {
+  const dx = b.x - a.x;
+  const dz = b.z - a.z;
+  const len2 = dx * dx + dz * dz;
+  if (len2 < 1e-9) return [a, b];
+  const t = Math.min(1, Math.max(0, -(a.x * dx + a.z * dz) / len2));
+  const cx = a.x + dx * t;
+  const cz = a.z + dz * t;
+  const d = Math.sqrt(cx * cx + cz * cz);
+  if (d >= FIRE_CLEAR_M || t <= 0 || t >= 1) return [a, b];
+  // Step round on the side the line already passes, or to its left when it hits the middle.
+  const len = Math.sqrt(len2);
+  const [sx, sz] = d > 1e-6 ? [cx / d, cz / d] : [-dz / len, dx / len];
+  const r = FIRE_CLEAR_M * 1.3;
+  return [a, { x: sx * r, z: sz * r }, b];
+}
+
+function routeLength(points: Pt[]): number {
+  let m = 0;
+  for (let i = 1; i < points.length; i++)
+    m += Math.sqrt((points[i]!.x - points[i - 1]!.x) ** 2 + (points[i]!.z - points[i - 1]!.z) ** 2);
+  return m;
+}
+
+/** A stretch of a figure's time at a camp: walking a route, or standing at a point. */
+interface Leg {
+  start: number;
+  end: number;
+  clip: TreeClip | 'rest';
+  route: Pt[];
+  /** What a standing figure faces. */
+  face?: Pt;
+}
+
+/** Builds a figure's legs one after another from a point and a time. */
+class Itinerary {
+  legs: Leg[] = [];
+  t: number;
+  at: Pt;
+  constructor(t: number, at: Pt) {
+    this.t = t;
+    this.at = at;
+  }
+  go(to: Pt, clip: 'walk' | 'run' | 'carry' = 'walk'): this {
+    const way = route(this.at, to);
+    const m = routeLength(way);
+    if (m < 1e-6) return this;
+    const end = this.t + Math.ceil(m / PACE[clip]);
+    this.legs.push({ start: this.t, end, clip, route: way });
+    this.t = end;
+    this.at = to;
+    return this;
+  }
+  stay(until: number, clip: TreeClip | 'rest', face?: Pt): this {
+    if (until <= this.t) return this;
+    this.legs.push({ start: this.t, end: until, clip, route: [this.at], face });
+    this.t = until;
+    return this;
+  }
+}
+
+/** The point a fraction of the way along a route, and the direction it goes there. */
+function along(way: Pt[], f: number): Pt & { dirX: number; dirZ: number } {
+  if (way.length === 1) return { ...way[0]!, dirX: 0, dirZ: 0 };
+  let left = routeLength(way) * f;
+  for (let i = 1; i < way.length; i++) {
+    const [a, b] = [way[i - 1]!, way[i]!];
+    const m = Math.sqrt((b.x - a.x) ** 2 + (b.z - a.z) ** 2);
+    if (left <= m || i === way.length - 1) {
+      const t = m < 1e-9 ? 1 : Math.min(1, left / m);
+      return { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t, ...towards(a.x, a.z, b.x, b.z) };
+    }
+    left -= m;
+  }
+  return { ...way.at(-1)!, dirX: 0, dirZ: 0 };
+}
+
+type Outing = 'rest' | 'gather' | 'hunt' | 'stroll';
+
+/** What a figure does in one of its turns: men and the first person hunt, everyone gathers and strolls. */
+function outingOf(id: number, look: FigureLook, turn: number): Outing {
+  const roll = hash01(id, turn, 71);
+  const [hunt, gather, stroll] =
+    look === 'man'
+      ? [0.3, 0.15, 0.15]
+      : look === 'founder'
+        ? [0.2, 0.25, 0.1]
+        : look === 'woman'
+          ? [0, 0.4, 0.15]
+          : [0, 0.25, 0.3];
+  if (roll < hunt) return 'hunt';
+  if (roll < hunt + gather) return 'gather';
+  if (roll < hunt + gather + stroll) return 'stroll';
+  return 'rest';
 }
 
 /** Everything the tree shows at a clock time (section 8.1). */
@@ -206,21 +354,44 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       if (!to || !from || to.builder !== f.id || day !== to.built) continue;
       appears.set(id, at(day) + walkMs(from, to));
     }
+  // When each lodging's people start taking it down, so it is gone by the day they leave.
+  const takeDown = (l: TreeLodging) =>
+    l.gone === NEVER
+      ? Infinity
+      : Math.max(appears.get(l.id)! + BUILD_MS, at(l.gone) - TAKE_DOWN_MS);
 
-  // The builders of each lodging: the figures moving in on the day it is built, by id.
+  // The builders of each lodging (moving in on the day it is built) and the figures that
+  // take it down (leaving on the day it is gone), by id.
   const builders = new Map<number, number[]>();
+  const takers = new Map<number, number[]>();
   for (const f of chunk.figures)
-    for (const [day, id] of f.homes)
-      if (lodgings.get(id)?.built === day) builders.set(id, [...(builders.get(id) ?? []), f.id]);
+    f.homes.forEach(([day, id], i) => {
+      const l = lodgings.get(id);
+      if (!l) return;
+      if (l.built === day) builders.set(id, [...(builders.get(id) ?? []), f.id]);
+      const next = f.homes[i + 1];
+      if (next && l.gone === next[0]) takers.set(id, [...(takers.get(id) ?? []), f.id]);
+    });
 
-  const scene: TreeScene = { figures: [], lodgings: [], hearths: [] };
-  const camps = new Map<number, HearthPose>();
+  const scene: TreeScene = { figures: [], lodgings: [], hearths: [], clearings: [] };
+  // Each place a camp stands: from the first lodging up to the last one gone.
+  const places = new Map<
+    string,
+    { camp: number; lat: number; lon: number; from: number; to: number }
+  >();
   for (const l of chunk.lodgings) {
     const shown = appears.get(l.id)!;
     const gone = l.gone === NEVER ? Infinity : at(l.gone);
-    if (ms < shown || ms >= gone + FADE_MS) continue;
+    const key = `${l.camp}:${l.lat}:${l.lon}`;
+    const p = places.get(key);
+    if (p) {
+      p.from = Math.min(p.from, shown);
+      p.to = Math.max(p.to, gone);
+    } else
+      places.set(key, { camp: l.camp, lat: deg(l.lat), lon: deg(l.lon), from: shown, to: gone });
+    if (ms < shown || ms >= gone) continue;
     const spot = lodgingSpot(l);
-    const fade = Math.min(1, ms < gone ? 1 : 1 - (ms - gone) / FADE_MS);
+    const down = takeDown(l);
     scene.lodgings.push({
       id: l.id,
       kind: l.kind,
@@ -228,114 +399,170 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       lon: deg(l.lon),
       ...spot,
       ...towards(spot.x, spot.z, 0, 0),
-      fade,
-      // Lodgings standing when the timeline starts are already up.
-      built: shown <= 0 ? 1 : Math.min(1, (ms - shown) / BUILD_MS),
+      // Lodgings standing when the timeline starts are already up; then built, then taken down.
+      built:
+        ms >= down
+          ? Math.max(0, 1 - (ms - down) / (at(l.gone) - down))
+          : shown <= 0
+            ? 1
+            : Math.min(1, (ms - shown) / BUILD_MS),
     });
-    if (ms < gone && !camps.has(l.camp))
-      camps.set(l.camp, { camp: l.camp, lat: deg(l.lat), lon: deg(l.lon) });
   }
-  scene.hearths = [...camps.values()];
+  for (const p of places.values()) {
+    if (ms >= p.from && ms < p.to && !scene.hearths.some((h) => h.camp === p.camp))
+      scene.hearths.push({ camp: p.camp, lat: p.lat, lon: p.lon });
+    const amount =
+      ms < p.from
+        ? 0
+        : ms < p.to
+          ? p.from <= 0
+            ? 1
+            : Math.min(1, (ms - p.from) / FELL_MS)
+          : 1 - (ms - p.to) / REGROW_MS;
+    if (amount > 0) scene.clearings.push({ lat: p.lat, lon: p.lon, amount, felling: ms < p.to });
+  }
 
   for (const f of chunk.figures) {
     const born = at(f.born);
     if (ms < born || (f.lost !== NEVER && ms >= at(f.lost))) continue;
     let i = 0;
     while (i + 1 < f.homes.length && at(f.homes[i + 1]![0]) <= ms) i++;
+    const pose = poseAt(f, i, ms);
+    if (pose) scene.figures.push(pose);
+  }
+  return scene;
+
+  /** Where a figure stands at the end of its stay in its `i`-th home: at its spot, or where it took the lodging down. */
+  function endOfStay(f: TreeFigure, i: number): Pt {
+    const home = lodgings.get(f.homes[i]![1])!;
+    const crew = takers.get(home.id);
+    if (crew?.includes(f.id)) return buildSpot(crew.indexOf(f.id), crew.length, home);
+    return figureSpot(f.homes[i]![2], home.camp);
+  }
+
+  function poseAt(f: TreeFigure, i: number, ms: number): FigurePose | undefined {
     const home = lodgings.get(f.homes[i]![1]);
-    if (!home) continue;
+    if (!home) return undefined;
+    const look = lookOf(f.id);
     const spot = figureSpot(f.homes[i]![2], home.camp);
-    const pose: FigurePose = {
-      id: f.id,
-      look: lookOf(f.id),
-      lat: deg(home.lat),
-      lon: deg(home.lon),
-      ...spot,
-      ...towards(spot.x, spot.z, 0, 0),
-      clip: 'idle',
-      clipMs: 0,
-    };
+    const base = { id: f.id, look, lat: deg(home.lat), lon: deg(home.lon) };
     const prev = i > 0 ? lodgings.get(f.homes[i - 1]![1]) : undefined;
     const left = at(f.homes[i]![0]);
     const travel = prev ? walkMs(prev, home) : 0;
+    const born = at(f.born);
     // Figures that move in on the day their lodging is built help build it.
     const shown = appears.get(home.id)!;
     const builds = f.homes[i]![0] === home.built && shown > 0;
     const crew = builders.get(home.id) ?? [f.id];
     const work = builds ? buildSpot(crew.indexOf(f.id), crew.length, home) : spot;
-    const door = lodgingSpot(home);
-    const comeOut = strollMs(door, spot);
-    const buildEnd = shown + BUILD_MS;
-    const back = builds ? strollMs(work, spot) : 0;
+    const hut = lodgingSpot(home);
+
     if (prev && ms < left + travel) {
-      // On the way to the new home: across the map, from the old spot to the new one.
+      // On the way to the new home: across the map, from where it left off to where it arrives.
       const t = (ms - left) / travel;
-      pose.lat = deg(prev.lat) + (deg(home.lat) - deg(prev.lat)) * t;
-      pose.lon = deg(prev.lon) + (deg(home.lon) - deg(prev.lon)) * t;
-      pose.x = spot.x + (work.x - spot.x) * t;
-      pose.z = spot.z + (work.z - spot.z) * t;
+      const from = endOfStay(f, i - 1);
       const east = (deg(home.lon) - deg(prev.lon)) * detCos(deg(home.lat) * RAD);
-      Object.assign(pose, towards(0, 0, east, deg(home.lat) - deg(prev.lat)));
-      pose.clip = 'walk';
-      pose.clipMs = ms - left;
-    } else if (i === 0 && born > 0 && ms < born + comeOut) {
-      // Coming out of the door of its lodging and walking to its spot.
-      const t = (ms - born) / comeOut;
-      pose.x = door.x + (spot.x - door.x) * t;
-      pose.z = door.z + (spot.z - door.z) * t;
-      Object.assign(pose, towards(door.x, door.z, spot.x, spot.z));
-      pose.clip = 'walk';
-      pose.clipMs = ms - born;
-    } else if (builds && ms < buildEnd) {
-      // Building: at the lodging, facing it, at work; a builder from nearby first walks over.
-      const from = prev ? { x: work.x, z: work.z } : spot;
-      const reach = prev ? left + travel : left + strollMs(spot, work);
-      const hut = door;
-      if (ms < reach) {
-        const t = (ms - left) / (reach - left);
-        pose.x = from.x + (work.x - from.x) * t;
-        pose.z = from.z + (work.z - from.z) * t;
-        Object.assign(pose, towards(from.x, from.z, work.x, work.z));
-        pose.clip = 'walk';
-        pose.clipMs = ms - left;
-      } else {
-        pose.x = work.x;
-        pose.z = work.z;
-        Object.assign(pose, towards(work.x, work.z, hut.x, hut.z));
-        pose.clip = 'work';
-        pose.clipMs = ms - reach;
-        if (ms - reach < BLEND_MS)
-          pose.from = { clip: 'walk', clipMs: ms - left, weight: (ms - reach) / BLEND_MS };
-      }
-    } else if (builds && ms < buildEnd + back) {
-      // The lodging is up: back from it to its own spot by the hearth.
-      const t = (ms - buildEnd) / back;
-      pose.x = work.x + (spot.x - work.x) * t;
-      pose.z = work.z + (spot.z - work.z) * t;
-      Object.assign(pose, towards(work.x, work.z, spot.x, spot.z));
-      pose.clip = 'walk';
-      pose.clipMs = ms - buildEnd;
-      if (ms - buildEnd < BLEND_MS)
-        pose.from = { clip: 'work', clipMs: ms - shown, weight: (ms - buildEnd) / BLEND_MS };
-    } else {
-      // Figures there when the timeline starts are already at their spots.
-      const arrived = builds
-        ? buildEnd + back
-        : prev
-          ? left + travel
-          : born > 0
-            ? born + comeOut
-            : -BLEND_MS;
-      Object.assign(pose, activity(f.id, ms));
-      // Ease from walking into standing on arrival.
-      if (ms - arrived < BLEND_MS)
-        pose.from = {
-          clip: 'walk',
-          clipMs: ms - (builds ? buildEnd : prev ? left : born),
-          weight: (ms - arrived) / BLEND_MS,
-        };
+      return {
+        ...base,
+        lat: deg(prev.lat) + (deg(home.lat) - deg(prev.lat)) * t,
+        lon: deg(prev.lon) + (deg(home.lon) - deg(prev.lon)) * t,
+        x: from.x + (work.x - from.x) * t,
+        z: from.z + (work.z - from.z) * t,
+        ...towards(0, 0, east, deg(home.lat) - deg(prev.lat)),
+        clip: 'walk',
+        clipMs: ms - left,
+      };
     }
-    scene.figures.push(pose);
+
+    // The stay, leg by leg: arriving, building, outings and rests, taking down.
+    const plan =
+      prev && travel > 0
+        ? new Itinerary(left + travel, work)
+        : prev
+          ? new Itinerary(left, endOfStay(f, i - 1))
+          : i === 0 && born > 0
+            ? new Itinerary(born, hut)
+            : new Itinerary(-Infinity, spot);
+    if (builds) {
+      plan.go(work).stay(shown + BUILD_MS, 'work', hut);
+      plan.go(spot);
+    } else plan.go(spot);
+    const free = plan.t;
+    const next = f.homes[i + 1];
+    const leave = next ? at(next[0]) : f.lost !== NEVER ? at(f.lost) : Infinity;
+    const takeCrew = takers.get(home.id);
+    const takes = !!takeCrew?.includes(f.id) && home.gone !== NEVER;
+    const takeSpot = takes ? buildSpot(takeCrew!.indexOf(f.id), takeCrew!.length, home) : spot;
+    const takeStart = takes ? takeDown(home) : leave;
+    const busy = takes
+      ? takeStart - Math.ceil(routeLength(route(spot, takeSpot)) / PACE.walk)
+      : leave;
+
+    if (ms >= busy && takes) {
+      plan.stay(Math.max(free, busy), 'rest').go(takeSpot).stay(leave, 'work', hut);
+    } else if (ms >= free) {
+      // Turns of the day: an outing that fits before it must be busy again, or a rest.
+      const shift = hash32(f.id, 73) % TURN_MS;
+      const k = Math.floor((ms + shift) / TURN_MS);
+      const turnStart = k * TURN_MS - shift;
+      const outing = outingOf(f.id, look, k);
+      const trip = new Itinerary(turnStart, spot);
+      const s = f.homes[i]![2];
+      if (outing === 'gather') {
+        const far = outingPoint(s, home.camp, 30);
+        trip.go(far).stay(trip.t + GATHER_MS, 'work', { x: far.x * 2, z: far.z * 2 });
+        trip.go(spot, 'carry');
+      } else if (outing === 'hunt') {
+        const near = outingPoint(s, home.camp, 50);
+        const far = outingPoint(s, home.camp, 64);
+        trip
+          .go(near)
+          .go(far, 'run')
+          .stay(trip.t + BUTCHER_MS, 'work', { x: far.x * 2, z: far.z * 2 });
+        trip.go(spot, 'carry');
+      } else if (outing === 'stroll') {
+        const far = outingPoint(s, home.camp, 13);
+        trip
+          .go(far)
+          .stay(trip.t + LOOK_MS, 'idle', { x: far.x * 2, z: far.z * 2 })
+          .go(spot);
+      }
+      if (outing !== 'rest' && turnStart >= free && trip.t <= Math.min(busy, turnStart + TURN_MS)) {
+        plan.stay(turnStart, 'rest');
+        plan.legs.push(...trip.legs);
+        plan.t = trip.t;
+      }
+    }
+    plan.stay(Infinity, 'rest');
+
+    // The leg under way, eased from the one before.
+    const n = plan.legs.findIndex((l) => ms < l.end);
+    const leg = plan.legs[n]!;
+    const before = plan.legs[n - 1];
+    const f01 =
+      leg.end === Infinity || leg.end === leg.start ? 0 : (ms - leg.start) / (leg.end - leg.start);
+    const p = along(leg.route, f01);
+    const face = leg.face
+      ? towards(p.x, p.z, leg.face.x, leg.face.z)
+      : p.dirX || p.dirZ
+        ? { dirX: p.dirX, dirZ: p.dirZ }
+        : towards(p.x, p.z, 0, 0);
+    const motion =
+      leg.clip === 'rest'
+        ? activity(f.id, ms)
+        : { clip: leg.clip, clipMs: ms - (leg.start === -Infinity ? 0 : leg.start) };
+    const pose: FigurePose = { ...base, x: p.x, z: p.z, ...face, ...motion };
+    if (before && ms - leg.start < BLEND_MS && before.clip !== leg.clip && before.clip !== 'rest')
+      pose.from = {
+        clip: before.clip,
+        clipMs: ms - before.start,
+        weight: (ms - leg.start) / BLEND_MS,
+      };
+    else if (before?.clip === 'rest' && ms - leg.start < BLEND_MS && leg.clip !== 'rest') {
+      const was = activity(f.id, leg.start).clip;
+      if (was !== leg.clip)
+        pose.from = { clip: was, clipMs: ms - leg.start, weight: (ms - leg.start) / BLEND_MS };
+    }
+    return pose;
   }
-  return scene;
 }

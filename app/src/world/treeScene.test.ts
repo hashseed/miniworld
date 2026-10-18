@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { DAYS_PER_YEAR, TIMELINE_START } from '../time/calendar.ts';
 import { msAtDay } from '../time/rate.ts';
 import { NEVER } from './tree.ts';
-import { BLEND_MS, BUILD_MS, lodgingSpot, lookOf, treeScene, type TreeChunk } from './treeScene.ts';
+import {
+  BLEND_MS,
+  BUILD_MS,
+  TAKE_DOWN_MS,
+  lodgingSpot,
+  lookOf,
+  treeScene,
+  type TreeChunk,
+} from './treeScene.ts';
 
 const d0 = TIMELINE_START;
 const years = (y: number) => Math.round(y * DAYS_PER_YEAR);
@@ -146,6 +154,40 @@ describe('the tree scene', () => {
       }
     }
     expect(eased).toBeGreaterThan(0);
+  });
+
+  it('takes the old hut down before the band leaves', () => {
+    const left = ms(moveDay);
+    const hut = treeScene(chunk, left - TAKE_DOWN_MS / 2, d0);
+    const old = hut.lodgings.find((l) => l.id === 0)!;
+    expect(old.built).toBeGreaterThan(0);
+    expect(old.built).toBeLessThan(1);
+    for (const f of hut.figures) expect(f.clip).toBe('work');
+    expect(treeScene(chunk, left + 10, d0).lodgings.some((l) => l.id === 0)).toBe(false);
+  });
+
+  it('sends people out gathering or hunting and keeps every path clear of the fire', () => {
+    let out = 0;
+    for (let t = ms(d0 + years(25)); t < ms(moveDay) - 10_000; t += 500)
+      for (const f of treeScene(chunk, t, d0).figures) {
+        if (f.lon !== 36) continue;
+        const r2 = f.x ** 2 + f.z ** 2;
+        expect(r2).toBeGreaterThanOrEqual(2.9 ** 2);
+        if (r2 > 25 ** 2) out++;
+      }
+    expect(out).toBeGreaterThan(0);
+  });
+
+  it('fells the trees where the band arrives and lets them grow back where it left', () => {
+    const left = ms(moveDay);
+    const later = treeScene(chunk, left + 9000, d0).clearings;
+    const there = later.find((c) => c.lon === 39)!;
+    expect(there.felling).toBe(true);
+    expect(there.amount).toBe(1);
+    const back = later.find((c) => c.lon === 36)!;
+    expect(back.felling).toBe(false);
+    expect(back.amount).toBeGreaterThan(0);
+    expect(back.amount).toBeLessThan(1);
   });
 
   it('is the same at the same clock time', () => {
