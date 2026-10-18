@@ -4,8 +4,8 @@ The first list of world events, in chronological order, with the title the app s
 
 | Date | Event | Place | Coordinates | Type | What you see |
 | --- | --- | --- | --- | --- | --- |
-| c. 70,000 BCE | Modern humans leave Africa | East Africa to Arabia | 12.60, 43.30 (start of the route, bab-el-mandeb crossing) | Migration | Small bands spread along coasts over thousands of years |
-| c. 60,000–50,000 BCE | First people reach Australia | Sunda to Sahul | -12.50, 132.90 (early site madjedbebe, arrival region) | Voyage | Rafts cross narrow straits between islands (date debated) |
+| c. 60,000 BCE | Modern humans leave Africa | East Africa to Arabia | 12.60, 43.30 (start of the route, bab-el-mandeb crossing) | Migration | Small bands spread along coasts over thousands of years |
+| c. 50,000 BCE | First people reach Australia | Sunda to Sahul | -12.50, 132.90 (early site madjedbebe, arrival region) | Voyage | Rafts cross narrow straits between islands (date debated; some sites may be older) |
 | c. 15,000 BCE | Lascaux cave paintings | Dordogne, France | 45.05, 1.17 | Invention or idea | Figures paint animals by torchlight in a cave |
 | c. 14,000 BCE | People reach the Americas | Beringia | 65.00, -168.00 (centre of the beringia land bridge) | Migration | Groups cross the land bridge and move south (date debated, possibly earlier) |
 | c. 9500 BCE | Building of Göbekli Tepe | Southeast Anatolia | 37.22, 38.92 | Construction | Hunter-gatherers raise carved stone pillars in rings |
@@ -73,7 +73,7 @@ The first list of world events, in chronological order, with the title the app s
 
 ## Natural disasters, epidemics and famines
 
-Nature shaped history as much as kings and armies did: ice ages opened land bridges, droughts ended empires, eruptions darkened the sky for years and plagues changed whole continents. This list covers the disasters a child should meet on the globe, from the start of the app at 50,000 BCE to the end of the timeline in 1991. Each has an English and a German title.
+Nature shaped history as much as kings and armies did: ice ages opened land bridges, droughts ended empires, eruptions darkened the sky for years and plagues changed whole continents. This list covers the disasters a child should meet on the globe, from the start of the timeline at 70,000 BCE to the end of the timeline in 1991. Each has an English and a German title.
 
 **How events were chosen.** An event is on the list if at least one of these is true: it changed the course of history (an empire weakened, people moved, a new country formed); it is a record (largest eruption, strongest earthquake ever measured); it led to new knowledge or protection (seismology, sewers, flood barriers); or it is widely taught in English- or German-speaking schools. The list is spread across the world and across time, and is weighted towards events that can be shown clearly on the globe.
 

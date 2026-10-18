@@ -9,6 +9,7 @@ This folder is the source of truth for what Miniworld does. Every change to beha
 | [milestone-1.md](milestone-1.md) | Detailed spec for milestone 1, Globe and time |
 | [milestone-2.md](milestone-2.md) | Detailed spec for milestone 2, First people: figures, vignettes, landmarks, migrations and cutaways |
 | [history-lens.md](history-lens.md) | Design of the default lens that draws regions with many events larger |
+| [humankind.md](humankind.md) | The tree of humankind: one first person at Lake Turkana, people stepping out of lodgings, the tree the data build computes and how to inspect it (proposed) |
 | [foliage.md](foliage.md) | Trees and bushes over the land, from the climate data, readable from orbit (proposed) |
 | [dioramas.md](dioramas.md) | Recurring dioramas (repeated vignettes) for every region and era, with their templates and scripts |
 | [giza.md](giza.md) | The pyramids of Giza: the landmark, its building dioramas and the dioramas around it across the ages (proposed) |

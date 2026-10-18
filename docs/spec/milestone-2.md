@@ -2,18 +2,18 @@
 
 This is the detailed spec for the second milestone in [milestones.md](milestones.md#2-first-people). It refines [spec.md](spec.md) for what milestone 2 builds; where the two disagree, fix whichever is wrong in the same pull request. Decisions marked **Proposed** are defaults chosen so work can start and are open for Yang to change; the open questions are in section 17.
 
-**Goal:** the first living humans, and the systems that let small stories play out on the globe. A viewer opens the app at 50,000 BCE and sees camps of people at work in Africa, along the coasts of Asia, in Sahul and in Europe, where Neanderthals still live. Families walk out of Africa along the coasts. On the steppe a band of hunters stalks a mammoth, over and over for as long as its era lasts. Zooming in on Lascaux opens the hill like a dollhouse, and painters are at work inside by torchlight. At about 9500 BCE the stone rings of Göbekli Tepe rise in southeastern Anatolia. Tapping any figure explains what it is doing, in English or German.
+**Goal:** the first living humans, and the systems that let small stories play out on the globe. A viewer opens the app at 70,000 BCE on a single person by Lake Turkana in Kenya, who builds a grass hut and hunts; new people step out of the hut, and camp by camp her family fills Africa ([humankind.md](humankind.md)). At 50,000 BCE there are camps of people at work in Africa, along the coasts of Asia, in Sahul and in Europe, where Neanderthals still live. Families walk out of Africa along the coasts. On the steppe a band of hunters stalks a mammoth, over and over for as long as its era lasts. Zooming in on Lascaux opens the hill like a dollhouse, and painters are at work inside by torchlight. At about 9500 BCE the stone rings of Göbekli Tepe rise in southeastern Anatolia. Tapping any figure explains what it is doing, in English or German.
 
 The milestone proves the world query in its Web Worker, figures driven by the clock (spec section 2.1), cross-device determinism, and four systems every later milestone reuses: **vignettes** (small staged stories that loop), **landmarks** (recognisable buildings that rise over their real years), **migrations**, and **cutaways** for things too small to see from above.
 
-Decided by Yang on 2026-10-17: no population model is needed for this milestone (where people live comes from culture areas and migrations, section 3); vignettes, landmarks, migrations and a way to show small-scale scenes are the core of the milestone; vignettes come in three forms: repeated, singular and long, and short but stretched so they can be watched (section 6).
+Decided by Yang on 2026-10-17: no population model is needed for this milestone (where people live comes from culture areas and migrations, section 3); vignettes, landmarks, migrations and a way to show small-scale scenes are the core of the milestone (on 2026-10-18 Yang added the tree of humankind of [humankind.md](humankind.md), which decides where figures come from; there is still no population data); vignettes come in three forms: repeated, singular and long, and short but stretched so they can be watched (section 6).
 
 ## 1. Deliverables at a glance
 
 | Area | Delivered | Section |
 | --- | --- | --- |
 | World query | Scene from the clock and view in a Web Worker; deterministic arithmetic | 2 |
-| Where people live | Culture areas by date, camps, density without a population model | 3 |
+| Where people live | Culture areas by date, camps, density without population data; the tree of humankind from the first person to 9000 BCE | 3, [humankind.md](humankind.md) |
 | Culture profiles | Seven hunter-gatherer profiles from Africa to the Americas | 4 |
 | Figures | Rig, parts, animations, tasks and levels of detail | 5 |
 | Vignettes | Templates, records, scripts, looping, repeats, stretching | 6 |
@@ -52,7 +52,7 @@ A full world query for the densest view of this milestone takes under 8 ms on th
 
 ## 3. Where people live
 
-There is no population model in this milestone (decided by Yang). Where people live, and roughly how many there are, comes from the culture profiles and migrations.
+There is no population data in this milestone (decided by Yang). Where people live, and roughly how many there are, comes from the culture profiles and migrations. Which figures live there, in which lodgings, and which figure each came from is decided by the tree of humankind ([humankind.md](humankind.md)), which the data build computes from these areas and densities.
 
 ### 3.1 Culture areas
 
@@ -62,13 +62,13 @@ The data build checks that every culture area at every snapshot is consistent wi
 
 ### 3.2 Camps
 
-People live in camps. The world is divided into **camp cells** (quadtree tiles at level 7, about 75 km across). For each cell and **residence window** (1,000 years before 10,000 BCE, **Proposed**), a hash decides whether the cell holds a camp, given the culture's density (section 3.3), and where in the cell it stands. Candidate spots are scored: near a river, lake or coast is better, steep or high ground is worse; the hash picks among the best few, so camps cluster along water as they did. When a residence window ends, the band moves: the old camp fades out and a new one fades in elsewhere in the cell over a few seconds of watching time.
+People live in camps. Camps are founded by the tree of humankind ([humankind.md](humankind.md#4-how-the-tree-grows) section 4), which replaces the camp cells and fades of earlier drafts: a camp stands at least one camp spacing from the next (section 3.3), at a spot scored for being near a river, lake or coast and away from steep or high ground, so camps cluster along water as they did. At the end of each **residence window** (1,000 years before 10,000 BCE, **Proposed**) a band takes down its shelters, walks to a new spot nearby and builds them again; it never fades out and back in.
 
 A camp has a hearth, two to five shelters from the culture's architecture set, work spots (knapping stone, drying rack, hide frame, wood pile) and a ring of paths, laid out from the camp's hash. From orbit each camp shows as a small puff of hearth smoke, so inhabited land reads at a glance.
 
 ### 3.3 Density
 
-Each culture area per period carries a `density` of `sparse`, `low` or `medium`, which sets the share of cells with a camp (**Proposed**: 1 in 12, 1 in 6 and 1 in 3) and the band size shown in a camp (**Proposed**: 6 to 10, 8 to 14 and 10 to 18 figures). These are visual densities, not population counts: the card for a camp says that a band was usually 20 to 50 people and that the whole world then held perhaps a few million. HYDE takes over as the population source from 10,000 BCE in later milestones (spec section 4).
+Each culture area per period carries a `density` of `sparse`, `low` or `medium`, which sets the spacing between camps (**Proposed**: about 900, 600 and 400 km, [humankind.md](humankind.md#41-targets) section 4.1) and the band size shown in a camp (**Proposed**: 6 to 10, 8 to 14 and 10 to 18 figures). These are visual densities, not population counts: the card for a camp says that a band was usually 20 to 50 people and that the whole world then held perhaps a few million. HYDE takes over as the population source from 10,000 BCE in later milestones (spec section 4).
 
 ## 4. Culture profiles of this milestone
 
@@ -77,7 +77,7 @@ Each culture area per period carries a `density` of `sparse`, `low` or `medium`,
 | `african-stone-age` | African hunter-gatherers (Middle and Later Stone Age) | Africa, start of timeline to the end of this milestone | Light clothing of hide, ostrich-eggshell beads, grass shelters | Gathering plants, hunting with spears and later bows, collecting shellfish on the coasts, knapping stone, tending fire, making beads |
 | `neanderthal` | Neanderthals | Europe and western Asia, start of timeline to c. 38,000 BCE | Stockier build, heavy fur wraps, hide shelters and rock overhangs | Hunting with thrusting spears, scraping hides, knapping stone, tending fire |
 | `coastal-asia-hunter` | Hunter-gatherers of southern and eastern Asia | Arabia, the coasts of India, Sundaland and East Asia, from the arrival of modern humans | Light hide and plant-fibre clothing, lean-to shelters | Fishing and collecting shellfish, gathering, hunting, knapping stone, making rafts on the coasts |
-| `first-australians` | First Australians | Sahul, from c. 60,000 to 50,000 BCE (arrival debated) | Possum-skin cloaks in the south, bark shelters, ochre body paint | Gathering, hunting, fishing, grinding seeds, painting on rock, burning grass to renew it |
+| `first-australians` | First Australians | Sahul, from c. 50,000 BCE (arrival debated, possibly earlier) | Possum-skin cloaks in the south, bark shelters, ochre body paint | Gathering, hunting, fishing, grinding seeds, painting on rock, burning grass to renew it |
 | `ice-age-hunter` | Ice-age hunters of Europe | Europe, c. 43,000 to 10,000 BCE | Tailored fur clothing sewn with bone needles, hide tents, mammoth-bone huts on the plains of Ukraine | Hunting reindeer, horse and mammoth, sewing, carving figurines, painting in caves, knapping stone |
 | `steppe-beringia-hunter` | Mammoth hunters of Siberia and Beringia, and the first Americans | Siberia from c. 30,000 BCE, Beringia, the Americas from c. 14,000 BCE (date debated) | Heavy fur clothing, hide tents, fluted spear points in the Americas | Hunting mammoth, bison and caribou, fishing, sewing, knapping stone |
 | `natufian` | Natufians and the builders of Göbekli Tepe | The Levant and upper Mesopotamia, c. 12,500 to 8800 BCE | Round stone-based huts, the first villages of hunter-gatherers | Harvesting wild cereals with sickles, grinding grain, hunting gazelle, carving stone; builders at Göbekli Tepe |
@@ -113,7 +113,7 @@ Clips are baked into an animation texture and played on the GPU (milestone 1 sec
 
 ### 5.4 Tasks
 
-Ordinary figures live in their camp. Each figure's id is the hash of its camp and its index in the band, so it stays the same as long as the camp stands. Clock time is cut into **slots** of 10 to 30 seconds per figure (length from a hash of figure id and slot number). In each slot the figure picks a task from its profile's activity mix (hash of figure id and slot), walks to the matching work spot, works there and may carry something back. Gatherers and hunters may walk out of the camp and return within one slot. The worker turns the slot's task into segments (section 2.2).
+Ordinary figures live in their camp. Each figure's id is its id in the tree of humankind ([humankind.md](humankind.md#31-figures) section 3.1), so it stays the same for as long as the figure lives, wherever its camp moves. Clock time is cut into **slots** of 10 to 30 seconds per figure (length from a hash of figure id and slot number). In each slot the figure picks a task from its profile's activity mix (hash of figure id and slot), walks to the matching work spot, works there and may carry something back. Gatherers and hunters may walk out of the camp and return within one slot. The worker turns the slot's task into segments (section 2.2).
 
 ### 5.5 Levels of detail
 
@@ -359,7 +359,7 @@ Card texts come from text chunks loaded when the card opens (content-format sect
 | Kind | Records |
 | --- | --- |
 | Culture profiles | The seven of section 4 |
-| Migrations (events) | Out of Africa (c. 70,000 BCE, from East Africa across the Bab-el-Mandeb and along the coasts of Arabia and India to Sundaland); first people reach Sahul (c. 60,000 to 50,000 BCE, debated; Voyage); modern humans reach Europe (c. 45,000 BCE) and East Asia (c. 43,000 BCE, debated); into Siberia and Beringia (c. 30,000 BCE); people reach the Americas (c. 14,000 BCE, debated and possibly earlier; then south along the Pacific coast and through the opening ice-free corridor) |
+| Migrations (events) | Out of Africa (c. 60,000 BCE, after the tree has filled Africa, from East Africa across the Bab-el-Mandeb and along the coasts of Arabia and India to Sundaland); first people reach Sahul (c. 50,000 BCE, older dates such as Madjedbebe debated; Voyage); modern humans reach Europe (c. 45,000 BCE) and East Asia (c. 43,000 BCE, debated); into Siberia and Beringia (c. 30,000 BCE); people reach the Americas (c. 14,000 BCE, debated and possibly earlier; then south along the Pacific coast and through the opening ice-free corridor) |
 | Vignettes | Mammoth hunt (repeated, camps of `ice-age-hunter` and `steppe-beringia-hunter`); shellfish gathering at the shore (repeated, coastal camps of `african-stone-age` and `coastal-asia-hunter`); raft crossing to Sahul (repeated along the crossing); painters at Lascaux (singular, cutaway, c. 15,000 BCE); building Göbekli Tepe (singular and long, c. 9500 to 8000 BCE) |
 | Landmarks | Göbekli Tepe; Lascaux cave, as a cutaway landmark whose painted walls grow by stage |
 | Events | Those above from [events.md](events.md) (Modern humans leave Africa, First people reach Australia, Lascaux cave paintings, People reach the Americas, Building of Göbekli Tepe), plus the eruption of the Phlegraean Fields (c. 37,900 BCE) as a card on the timeline only, without its presenter |
@@ -444,7 +444,7 @@ The budget of spec section 9 holds with this milestone's content. Two new scenes
 | Deterministic maths | `detmath` against `Math` within its stated error over the whole input range, and fixed outputs for fixed inputs stored as golden values |
 | Lint | No engine-dependent maths functions in `app/src/world/` and `app/src/core/` |
 | Schema and validation | Templates, vignettes, landmarks, cultures and migrations (section 6.9); every loop closes; culture areas agree with migrations |
-| Golden scenes | For a fixed list of cases (clock time, view): the scene's camps, figure ids, roles, tasks, segment end points and vignette phases, stored as a readable summary and a hash of the canonical serialisation. Cases: East Africa and the Bab-el-Mandeb at 50,000 BCE; the Danube at 40,000 BCE; Sahul at 45,000 BCE; Beringia and the Great Plains at 30,000 and 12,000 BCE; Lascaux at 15,000 BCE; Göbekli Tepe at 9200 BCE; each at the clock time at which its date begins, and 37,000 ms and 1,800,000 ms later |
+| Golden scenes | For a fixed list of cases (clock time, view): the scene's camps, figure ids, roles, tasks, segment end points and vignette phases, stored as a readable summary and a hash of the canonical serialisation. Cases: Lake Turkana at 70,000 BCE (clock time 0) and at 69,000 BCE; Africa at 62,000 BCE; East Africa and the Bab-el-Mandeb at 50,000 BCE; the Danube at 40,000 BCE; Sahul at 45,000 BCE; Beringia and the Great Plains at 30,000 and 12,000 BCE; Lascaux at 15,000 BCE; Göbekli Tepe at 9200 BCE; each at the clock time at which its date begins, and 37,000 ms and 1,800,000 ms later |
 | Expected answers | No people in the Americas at 30,000 BCE; no Neanderthals after 38,000 BCE; Sahul inhabited at 45,000 BCE; no camp on sea, ice or deep desert at any golden case; a repeated vignette instance shows the same pose at clock time t and t plus its loop length while both lie in its shown span, and starts at its first beat |
 | Cross-browser | The golden scenes computed in Chromium, Firefox and WebKit through Playwright, in the worker, must match the stored results exactly |
 | Browser tests | Pausing history stops figures and vignettes mid-step; tapping a figure opens its card in both languages; double-clicking the Göbekli Tepe event flies there and shows the building site |
@@ -455,7 +455,7 @@ The budget of spec section 9 holds with this milestone's content. Two new scenes
 
 | Criterion (from [milestones.md](milestones.md#2-first-people)) | Checked by |
 | --- | --- |
-| Opening at 50,000 BCE shows bands of people at work in Africa and spreading along the coasts of Asia | Golden scenes; screenshots at the golden cases for review; Yang watches on desktop and phone |
+| Opening at 70,000 BCE shows the first person at Lake Turkana building a hut and hunting, and by 50,000 BCE bands of people at work in Africa and spreading along the coasts of Asia | Golden scenes; the tree checks and report ([humankind.md](humankind.md#5-the-tree-build) sections 5 and 6); screenshots at the golden cases for review; Yang watches on desktop and phone |
 | Scrubbing from 70,000 to 9000 BCE shows people leaving Africa and reaching Sahul, Europe, Siberia and finally the Americas | Expected-answer tests; Yang watches a scrub |
 | A repeated, a singular and a stretched vignette play while history runs and stop mid-beat when it is paused | Browser tests; Yang watches the mammoth hunt and the Göbekli Tepe building site |
 | Lascaux can be found from orbit by its marker and opens as a cutaway | Browser test; Yang review |
