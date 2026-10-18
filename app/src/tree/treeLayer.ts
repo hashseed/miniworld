@@ -1,8 +1,8 @@
 // Draws the tree of humankind on the globe (spec humankind.md, section 8.1):
 // loads the tree chunk of the time window in view, asks the scene who stands
 // where at the clock time, and places hearths, lodgings and figures like a
-// vignette stage: one drawn size at every zoom, figures leaning towards the
-// camera. It only draws; the scene decides everything.
+// vignette stage: one drawn size at every zoom, upright on the ground whatever
+// the camera does. It only draws; the scene decides everything.
 
 import * as THREE from 'three';
 import type { ContentLoader } from '../content/loader.ts';
@@ -23,9 +23,6 @@ import { buildLodging, buildProp, buildTreeFigure, type TreeActor } from '../vig
 import type { StandIn } from '../vignettes/standIns.ts';
 import type { SurfaceSource } from '../vignettes/vignetteLayer.ts';
 
-/** Figures lean up to this far (radians) towards the top of the screen when seen from above. */
-const MAX_LEAN = 1.15;
-
 export class TreeLayer {
   readonly group = new THREE.Group();
 
@@ -42,7 +39,6 @@ export class TreeLayer {
   private cleared: Clearing[] = [];
   private basis = new THREE.Matrix4();
   private turn = new THREE.Quaternion();
-  private leanQ = new THREE.Quaternion();
   private yAxis = new THREE.Vector3(0, 1, 0);
   private up = new THREE.Vector3();
   private east = new THREE.Vector3();
@@ -92,7 +88,7 @@ export class TreeLayer {
         this.figures.set(f.id, actor);
         this.group.add(actor.root);
       }
-      if (!this.place(actor.root, f, true)) continue;
+      if (!this.place(actor.root, f)) continue;
       actor.root.scale.setScalar(FIGURE_KM_PER_M);
       // Clips play TEMPO times faster, matching the faster pace on the ground.
       const sec = (clipMs: number) => (clipMs * TEMPO) / 1000;
@@ -111,7 +107,7 @@ export class TreeLayer {
         this.lodgings.set(l.id, prop);
       }
       const prop = this.lodgings.get(l.id);
-      if (!prop || !this.place(prop.root, l, false)) continue;
+      if (!prop || !this.place(prop.root, l)) continue;
       // While the band builds it, the lodging goes up step by step, or rises whole.
       if (prop.setBuilt) {
         prop.setBuilt(l.built);
@@ -140,7 +136,7 @@ export class TreeLayer {
       }
       const prop = this.hearths.get(h.camp);
       if (!prop) continue;
-      this.place(prop.root, { lat: h.lat, lon: h.lon, x: 0, z: 0, dirX: 1, dirZ: 0 }, false);
+      this.place(prop.root, { lat: h.lat, lon: h.lon, x: 0, z: 0, dirX: 1, dirZ: 0 });
       prop.root.scale.setScalar(FIGURE_KM_PER_M);
       // The fire flickers with the clock, so a paused world holds still.
       prop.pose('idle', ms / 1000);
@@ -180,10 +176,10 @@ export class TreeLayer {
 
   /**
    * Stands an object on the ground at a point of the scene, upright there and
-   * facing along its direction; figures lean towards the top of the screen.
+   * facing along its direction, whatever the camera does.
    * Returns false, and hides it, when it is on the far side of the globe.
    */
-  private place(root: THREE.Object3D, p: Placed, lean: boolean): boolean {
+  private place(root: THREE.Object3D, p: Placed): boolean {
     const { up, east, north, dir } = this;
     up.set(...this.surface.toDrawn(latLonToDir(p.lat, p.lon))).normalize();
     northEast(up, north, east);
@@ -202,24 +198,6 @@ export class TreeLayer {
     // Local frame x east, y up, z south; then turn to face along (dirX east, dirZ north).
     root.quaternion.setFromRotationMatrix(this.basis.makeBasis(this.e2, dir, this.n2.negate()));
     root.quaternion.multiply(this.turn.setFromAxisAngle(this.yAxis, Math.atan2(p.dirZ, p.dirX)));
-    if (lean) {
-      const steep = Math.max(0, toCam.normalize().dot(dir));
-      this.leanAt(dir, MAX_LEAN * steep);
-      root.quaternion.premultiply(this.leanQ);
-    }
     return true;
-  }
-
-  /** Sets leanQ: the turn that tips "up" at a ground direction towards the top of the screen. */
-  private leanAt(dir: THREE.Vector3, lean: number): void {
-    this.leanQ.identity();
-    if (lean <= 0) return;
-    const screenUp = this.v2.setFromMatrixColumn(this.camera!.matrixWorld, 1);
-    const leanTo = this.v1.copy(screenUp).addScaledVector(dir, -screenUp.dot(dir));
-    if (leanTo.lengthSq() < 1e-8) return;
-    leanTo.normalize();
-    const tipped = this.v2.copy(dir).multiplyScalar(Math.cos(lean));
-    tipped.addScaledVector(leanTo, Math.sin(lean));
-    this.leanQ.setFromUnitVectors(dir, tipped);
   }
 }

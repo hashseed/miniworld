@@ -34,6 +34,8 @@ export interface HabitatInputs {
   /** Whether a lake covers a point; rivers do not stop camps. */
   isLake(lat: number, lon: number): boolean;
   isRiver(lat: number, lon: number): boolean;
+  /** Whether a river is drawn at a point, with a little of its bank (spec humankind.md, section 8.1). */
+  inRiver(lat: number, lon: number): boolean;
   /** Ground height in metres. */
   elevation(lat: number, lon: number): number;
 }
@@ -90,6 +92,7 @@ export function climateHabitat(input: HabitatInputs): Habitat {
 
   return {
     habitable,
+    dry: (lat, lon) => !input.inRiver(lat, lon),
     score: (lat, lon, day) =>
       0.4 * (1 - aridity(lat, lon, day)) +
       0.3 * (1 - Math.min(1, Math.max(0, input.elevation(lat, lon)) / 3000)) +

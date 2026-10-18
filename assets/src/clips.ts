@@ -13,6 +13,7 @@ export type Clip =
   | 'carry'
   | 'haul'
   | 'work'
+  | 'knap'
   | 'point'
   | 'throw'
   | 'cheer'
@@ -97,8 +98,14 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
     clip !== 'carry' &&
     clip !== 'haul' &&
     clip !== 'work' &&
+    clip !== 'knap' &&
     !(clip === 'throw' && t >= THROW_RELEASE);
   bone('load').visible = clip === 'carry';
+  // Knapping stones, on the models of cultures that knap.
+  for (const name of ['knap', 'hammer']) {
+    const stone = m.bones.get(name);
+    if (stone) stone.visible = clip === 'knap';
+  }
 
   const hipRest = (bone('hips').userData.rest as THREE.Vector3).y;
   // A planted gait (Yang, 2026-10-18: fluid movements). While a foot is on the
@@ -215,6 +222,25 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
       rot('armLowerR', -0.5 + 0.2 * s);
       rot('armUpperL', -0.8, 0, 0.2);
       rot('armLowerL', -0.4);
+      break;
+    }
+    case 'knap': {
+      // Kneeling, a hand axe held on the knee, struck with quick blows of a
+      // hammerstone; now and then a look at the edge.
+      const u = t / 0.7 - Math.floor(t / 0.7);
+      const raise = (0.5 - 0.5 * Math.cos(TAU * u)) ** 2;
+      const look = Math.max(0, Math.sin((t / 6) * TAU)) ** 4;
+      lift(-0.38 * (bone('hips').userData.rest as THREE.Vector3).y);
+      rot('legUpperL', -1.45);
+      rot('legLowerL', 1.5);
+      rot('legUpperR', -0.35);
+      rot('legLowerR', 2.2);
+      rot('torso', 0.45 - 0.15 * look);
+      rot('head', -0.35 + 0.1 * look);
+      rot('armUpperL', -0.75 - 0.35 * look, 0, -0.4);
+      rot('armLowerL', -0.9 - 0.3 * look);
+      rot('armUpperR', -0.75 - 0.5 * raise * (1 - look), 0, 0.4);
+      rot('armLowerR', -0.9 - 0.5 * raise * (1 - look));
       break;
     }
     case 'point': {

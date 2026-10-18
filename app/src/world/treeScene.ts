@@ -93,7 +93,7 @@ const SAME_PLACE_KM = 1;
 const KM_PER_DEG = 111.195;
 
 export type FigureLook = 'founder' | 'woman' | 'man' | 'child';
-export type TreeClip = 'idle' | 'work' | 'walk' | 'run' | 'carry';
+export type TreeClip = 'idle' | 'work' | 'knap' | 'walk' | 'run' | 'carry';
 
 /** A point of the scene: a place on the globe, and an offset there in layout metres east and north. */
 export interface Placed {
@@ -221,12 +221,22 @@ function towards(x0: number, z0: number, x1: number, z1: number, fx = 1, fz = 0)
   return len < 1e-9 ? { dirX: fx, dirZ: fz } : { dirX: dx / len, dirZ: dz / len };
 }
 
-/** The idle or work clip of a figure at a clock time, with the one it eases out of. */
-function activity(id: number, ms: number): Pick<FigurePose, 'clip' | 'clipMs' | 'from'> {
+/**
+ * What a figure does at its spot by the fire at a clock time, with the clip it eases out of:
+ * stands, tends the fire, or (grown-ups) knaps a stone hand axe.
+ */
+function activity(
+  id: number,
+  ms: number,
+  knaps: boolean,
+): Pick<FigurePose, 'clip' | 'clipMs' | 'from'> {
   const period = ACTIVITY_MIN_MS + (hash32(id, 53) % ACTIVITY_SPREAD_MS);
   const shifted = ms + (hash32(id, 59) % period);
   const k = Math.floor(shifted / period);
-  const clipOf = (n: number): TreeClip => (hash32(id, n, 61) % 3 === 0 ? 'work' : 'idle');
+  const clipOf = (n: number): TreeClip => {
+    const h = hash32(id, n, 61) % 6;
+    return h < 2 ? 'work' : h < 4 && knaps ? 'knap' : 'idle';
+  };
   const clip = clipOf(k);
   const clipMs = shifted - k * period;
   const prev = clipOf(k - 1);
@@ -622,7 +632,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
         : towards(p.x, p.z, 0, 0);
     const motion =
       leg.clip === 'rest'
-        ? activity(f.id, ms)
+        ? activity(f.id, ms, look !== 'child')
         : { clip: leg.clip, clipMs: ms - (leg.start === -Infinity ? 0 : leg.start) };
     const pose: FigurePose = { ...base, x: p.x, z: p.z, ...face, ...motion };
     if (before && ms - leg.start < BLEND_MS && before.clip !== leg.clip && before.clip !== 'rest')
@@ -632,7 +642,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
         weight: (ms - leg.start) / BLEND_MS,
       };
     else if (before?.clip === 'rest' && ms - leg.start < BLEND_MS && leg.clip !== 'rest') {
-      const was = activity(f.id, leg.start).clip;
+      const was = activity(f.id, leg.start, look !== 'child').clip;
       if (was !== leg.clip)
         pose.from = { clip: was, clipMs: ms - leg.start, weight: (ms - leg.start) / BLEND_MS };
     }

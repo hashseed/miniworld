@@ -197,6 +197,15 @@ describe('the tree scene', () => {
     expect(out).toBeGreaterThan(0);
   });
 
+  it('has grown-ups knap stone hand axes by the fire, but not children', () => {
+    const knappers = new Set<string>();
+    for (let t = ms(d0 + years(25)); t < ms(moveDay) - 10_000; t += 997)
+      for (const f of treeScene(chunk, t, d0).figures)
+        if (f.clip === 'knap') knappers.add(f.id === 0 ? 'founder' : lookOf(f.id));
+    expect(knappers.has('founder')).toBe(true);
+    expect(knappers.has('child')).toBe(false);
+  });
+
   it('fells the trees where the band arrives and lets them grow back where it left', () => {
     const left = ms(moveDay);
     const later = treeScene(chunk, left + 9000, d0).clearings;
