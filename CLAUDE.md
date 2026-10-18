@@ -10,7 +10,7 @@ The spec in `docs/spec/` is the source of truth. Before implementing any change 
 
 - Local development happens in Yang's devenv Docker container, which Claude Code controls remotely. Run commands there with `npm run …`; nothing project-specific is installed globally.
 - `npm run dev` serves the app on port 8800 (http://localhost:8800), listening on all interfaces so it is reachable from outside the container.
-- The devenv checkout that serves port 8800 is Yang's staging copy: never run tests in it. Run them with `npm run pool -- <ref> [check|browser|all]`, which uses a pool of git worktrees beside it with their own ports (spec milestone 1, section 2.5).
+- The devenv has one checkout, `~/workspace/miniworld`, used for development: work on a branch there, serve it with `npm run dev` on port 8800 for Yang to look at, and run `npm run check` there. No git worktrees, no test pool and no staging watcher (spec section 11, milestone 1 section 2.5).
 
 ## Rules that are easy to break
 

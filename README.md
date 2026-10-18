@@ -19,5 +19,5 @@ Checks and tests:
 ```sh
 npm run check                     # lint, typecheck, unit tests
 npm run coverage                  # unit tests with the coverage report
-npm run pool -- HEAD all          # all tests in a separate worktree (spec milestone 1, section 2.5)
+npm run test:browser              # browser tests on fixture data (spec milestone 1, section 2.5)
 ```

@@ -2,8 +2,8 @@ import { defineConfig, devices } from '@playwright/test';
 
 // Browser tests (spec milestone 1, section 13) run against the dev server
 // with the fixture data built by `npm run build-data -- --fixture`.
-// They start their own server on MINIWORLD_PORT, never on the staging port
-// 8800, and run PW_WORKERS tests at a time (spec milestone 1, section 2.5).
+// They start their own server on MINIWORLD_PORT, never on the dev server's
+// port 8800, and run PW_WORKERS tests at a time (spec milestone 1, section 2.5).
 const port = Number(process.env.MINIWORLD_PORT ?? 8810);
 const baseURL = `http://localhost:${port}`;
 const workers = Number(process.env.PW_WORKERS ?? 1);
