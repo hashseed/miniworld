@@ -3,7 +3,12 @@
 // slots about 150 km apart. Each kind is one instanced mesh.
 
 import * as THREE from 'three';
-import { decodeFoliageSlice, FOLIAGE_GRID_H, FOLIAGE_GRID_W } from '../content/formats.ts';
+import {
+  decodeFoliageSlice,
+  FOLIAGE_GRID_H,
+  FOLIAGE_GRID_W,
+  type FoliageSlice,
+} from '../content/formats.ts';
 import type { ContentLoader } from '../content/loader.ts';
 import { hash01, valueNoise } from '../core/hash.ts';
 import {
@@ -17,7 +22,7 @@ import {
   type TileKey,
   type Vec3,
 } from './cube.ts';
-import { isDry, KINDS, PALM, pickKind, recipeOf } from './foliageKinds.ts';
+import { BUSH, isDry, KINDS, PALM, pickKind, recipeOf } from './foliageKinds.ts';
 import { plantGeometry } from './foliageModels.ts';
 import { EXAGGERATION, LAND_LIFT_M, type Globe } from './globe.ts';
 import { iceSlicePair, type PlanetState } from './planet.ts';
@@ -27,20 +32,22 @@ import { EARTH_RADIUS_KM } from './tileMesh.ts';
 
 /**
  * Slots (section 4): with the true sizes, plants stand about one per
- * SLOTS × SLOTS cell of each tile at this level, about 150 km apart. The
- * slots lie on a finer grid of TREE_SLOTS, and where the history lens
- * enlarges the land more of them hold a plant, so plants keep their drawn
- * size and spacing.
+ * (tile / SLOTS)² of each tile at this level, about 260 km apart. The slots
+ * lie on a finer grid of TREE_SLOTS, and where the history lens enlarges the
+ * land more of them hold a plant, so plants keep their drawn size and spacing.
  */
 export const SLOT_LEVEL = 4;
-export const SLOTS = 4;
+export const SLOTS = 2.4;
 const TREE_SLOTS = 8;
 /** Desert rivers get a finer row of palm slots (section 4). */
 const PALM_SLOTS = 12;
-/** Palm crowns relative to the main slot spacing. */
-const PALM_SCALE = 0.55;
+/** Palm crowns relative to the main slot spacing: palms are as big as other trees. */
+const PALM_SCALE = 1;
 /** Share of the palm slots on a desert river bank that hold a palm, at true size. */
-const PALM_SHARE = 0.4;
+const PALM_SHARE = 0.1;
+/** Smallest plant and size range, relative to the kind's size (section 4). */
+const SIZE_MIN = 0.6;
+const SIZE_RANGE = 0.8;
 /** Crown width relative to the slot spacing, per kind. */
 const KIND_SCALE = [1.15, 1.05, 0.85, 1.1, 1.0, 0.85, 0.65, 0.6];
 const CROWN = 1.1;
@@ -50,6 +57,10 @@ const MAX_WATER_FIELD = 0.42;
 const ICE_CLEARANCE_KM = 25;
 /** River field of the bank band that gets palms in dry land. */
 const BANK_FIELD = 0.03;
+/** Range of the slot hash over which a plant grows in as the lens raises its share. */
+const GROW_ROLL = 0.02;
+/** Share of the trees removed by a low tree density that become bushes. */
+const THINNED_BUSH = 0.25;
 /** Most plants of one kind in view; at most about 1,500 plants are on the visible side. */
 const CAPACITY = 4000;
 /** Coast cap of the terrain shader (milestone-1.md, section 4.2). */
@@ -57,9 +68,18 @@ const COAST_BEACH_KM = 2;
 const COAST_SLOPE = 12;
 const COAST_CURVE = 0.15;
 
+/** A plant a slot can hold; whether it shows, and where, depends on the lens. */
 interface Plant {
   kind: number;
-  matrix: THREE.Matrix4;
+  /** True direction of its spot. */
+  dir: Vec3;
+  /** Crown size in km and drawn ground height in km before the lens's width factor. */
+  size: number;
+  groundKm: number;
+  /** The slot's hash and its share of used slots at true size (section 4). */
+  roll: number;
+  share: number;
+  turn: number;
   tint: number;
 }
 
@@ -87,7 +107,7 @@ export class Foliage {
   private keys: TileKey[] = [];
   private days: number[] = [];
   private files: string[] = [];
-  private slices: (Uint8Array | undefined)[] = [];
+  private slices: (FoliageSlice | undefined)[] = [];
   private requested: boolean[] = [];
   private samples = new Map<string, TileSamples>();
   private placed = new Map<string, Plant[]>();
@@ -161,13 +181,14 @@ export class Foliage {
       return Math.acos(Math.max(-1, Math.min(1, dot))) < horizon;
     });
     // Plants change only with the slices, the sea level and the lens, never with the camera alone.
-    const state = `${ka}:${kb}:${t.toFixed(3)}:${planet.seaLevel.toFixed(1)}:${lens.blend.toFixed(3)}`;
-    const frameKey = `${state}|${visible.map(tileId).join(',')}|${this.placed.size}`;
+    const state = `${ka}:${kb}:${t.toFixed(3)}:${planet.seaLevel.toFixed(1)}`;
+    const frameKey = `${state}|${lens.blend}|${visible.map(tileId).join(',')}|${this.placed.size}`;
     if (frameKey === this.lastKey) return;
     this.lastKey = frameKey;
 
     const counts = this.meshes.map(() => 0);
     const tint = new THREE.Color();
+    const m = new THREE.Matrix4();
     for (const key of visible) {
       const id = `${tileId(key)}|${state}`;
       let plants = this.placed.get(id);
@@ -177,10 +198,10 @@ export class Foliage {
         this.placed.set(id, plants);
       }
       for (const p of plants) {
-        const mesh = this.meshes[p.kind]!;
         const n = counts[p.kind]!;
-        if (n >= CAPACITY) continue;
-        mesh.setMatrixAt(n, p.matrix);
+        if (n >= CAPACITY || !this.matrixOf(p, m)) continue;
+        const mesh = this.meshes[p.kind]!;
+        mesh.setMatrixAt(n, m);
         mesh.setColorAt(n, tint.setScalar(p.tint));
         counts[p.kind] = n + 1;
       }
@@ -205,20 +226,47 @@ export class Foliage {
         this.requested[k] = false;
         return;
       }
-      this.slices[k] = decodeFoliageSlice(buf).cells;
+      this.slices[k] = decodeFoliageSlice(buf);
       this.lastKey = '';
     });
   }
 
-  /** The stored foliage byte at a point, looked up with a wobble so forest edges are soft. */
-  private cell(cells: Uint8Array, lat: number, lon: number): number {
+  /** The foliage cell of a point, looked up with a wobble so forest edges are soft, or -1. */
+  private cell(lat: number, lon: number): number {
     const jl = (valueNoise(lon * 1.7, lat * 1.7, 5) - 0.5) * 0.9;
     const jo = (valueNoise(lon * 1.7, lat * 1.7, 9) - 0.5) * 0.9;
     const r = Math.floor((90 - (lat + jl)) / 0.5);
-    if (r < 0 || r >= FOLIAGE_GRID_H) return 0;
+    if (r < 0 || r >= FOLIAGE_GRID_H) return -1;
     const c =
       ((Math.floor((lon + jo + 180) / 0.5) % FOLIAGE_GRID_W) + FOLIAGE_GRID_W) % FOLIAGE_GRID_W;
-    return cells[r * FOLIAGE_GRID_W + c]!;
+    return r * FOLIAGE_GRID_W + c;
+  }
+
+  /**
+   * A plant's drawn transform at the current lens, or false when its slot is
+   * not used. Enlarged land holds more plants: a slot is used when its hash
+   * is below the share of slots the lens's area factor asks for, and a plant
+   * grows in smoothly as the share passes its hash.
+   */
+  private matrixOf(p: Plant, out: THREE.Matrix4): boolean {
+    const lens = this.globe.lens;
+    const width = lens.widthAt(p.dir);
+    const grow = Math.min(1, (p.share * width * width - p.roll) / GROW_ROLL);
+    if (grow <= 0) return false;
+    const size = p.size * grow;
+    const drawn = lens.toDrawn(p.dir);
+    const up = new THREE.Vector3(drawn[0], drawn[1], drawn[2]);
+    const pos = up.clone().multiplyScalar(EARTH_RADIUS_KM + p.groundKm * width - size * 0.06);
+    const east = new THREE.Vector3(-up.z, 0, up.x);
+    if (east.lengthSq() < 1e-6) east.set(1, 0, 0);
+    east.normalize();
+    const north = new THREE.Vector3().crossVectors(east, up);
+    const q = new THREE.Quaternion().setFromRotationMatrix(
+      new THREE.Matrix4().makeBasis(east, up, north),
+    );
+    q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), p.turn));
+    out.compose(pos, q, new THREE.Vector3(size, size, size));
+    return true;
   }
 
   /** Plants of one slot tile, or undefined while its terrain is not loaded. */
@@ -226,8 +274,8 @@ export class Foliage {
     key: TileKey,
     planet: PlanetState,
     day: number,
-    sa: Uint8Array,
-    sb: Uint8Array,
+    sa: FoliageSlice,
+    sb: FoliageSlice,
     t: number,
   ): Plant[] | undefined {
     const sid = tileId(key);
@@ -255,47 +303,37 @@ export class Foliage {
       if (coastKm < MIN_COAST_KM) return;
       const uv = tileSampleUv(key, fi, fj);
       const dir = faceUvToDir(key.face, uv.u, uv.v) as Vec3;
-      // Enlarged land holds more plants: a slot is used when its hash is
-      // below the share of slots the lens's local area factor asks for.
-      const lens = this.globe.lens;
-      const width = lens.widthAt(dir);
-      const share = palmsOnly
-        ? PALM_SHARE * width * width
-        : (width * width * SLOTS * SLOTS) / (n * n);
-      if (h(8) >= share) return;
       const height = bilinearBordered(s.heights, fi, fj);
       const { lat, lon } = dirToLatLon(dir);
       if (height > treeLine(lat)) return;
       if (this.globe.climate.iceKmAt(dir, day) > -ICE_CLEARANCE_KM) return;
       // Between two slices each slot switches at its own hashed moment.
-      const code = this.cell(h(4) < t ? sb : sa, lat, lon);
+      const slice = h(4) < t ? sb : sa;
+      const i = this.cell(lat, lon);
+      if (i < 0) return;
+      const code = slice.cells[i]!;
       let kind: number;
       if (palmsOnly) {
         if (!(river > BANK_FIELD && isDry(code))) return;
         kind = PALM;
       } else kind = isDry(code) && river > BANK_FIELD ? -1 : pickKind(recipeOf(code), h(1));
+      // Near the ice and in cold or dry climates trees thin out to open land
+      // with a bush here and there (spec foliage.md, section 2).
+      if (kind >= 0 && kind !== BUSH && kind !== PALM && h(9) * 255 >= slice.density[i]!)
+        kind = h(10) < THINNED_BUSH ? BUSH : -1;
       if (kind < 0) return;
 
-      const drawn = lens.toDrawn(dir);
       // Plants keep their size whatever the lens does.
       const spacing = (edgeKm / SLOTS) * (palmsOnly ? PALM_SCALE : 1);
-      const size = spacing * KIND_SCALE[kind]! * CROWN * (0.8 + 0.4 * h(5));
-      const ground = drawnGround(height, planet.seaLevel, coastKm) * EXAGGERATION * 0.001 * width;
-      const up = new THREE.Vector3(drawn[0], drawn[1], drawn[2]);
-      const pos = up.clone().multiplyScalar(EARTH_RADIUS_KM + ground - size * 0.06);
-      const east = new THREE.Vector3(-up.z, 0, up.x);
-      if (east.lengthSq() < 1e-6) east.set(1, 0, 0);
-      east.normalize();
-      const north = new THREE.Vector3().crossVectors(east, up);
-      const q = new THREE.Quaternion().setFromRotationMatrix(
-        new THREE.Matrix4().makeBasis(east, up, north),
-      );
-      q.multiply(
-        new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), h(6) * Math.PI * 2),
-      );
+      // Most plants are mid-sized, a few are much bigger.
       plants.push({
         kind,
-        matrix: new THREE.Matrix4().compose(pos, q, new THREE.Vector3(size, size, size)),
+        dir,
+        size: spacing * KIND_SCALE[kind]! * CROWN * (SIZE_MIN + SIZE_RANGE * h(5) * h(5)),
+        groundKm: drawnGround(height, planet.seaLevel, coastKm) * EXAGGERATION * 0.001,
+        roll: h(8),
+        share: palmsOnly ? PALM_SHARE : (SLOTS * SLOTS) / (n * n),
+        turn: h(6) * Math.PI * 2,
         tint: 0.88 + 0.24 * h(7),
       });
     };
