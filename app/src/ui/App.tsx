@@ -5,12 +5,12 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Store } from '../core/store.ts';
 import { dateFromDay } from '../time/calendar.ts';
-import { SPEEDS } from '../time/rateCurve.ts';
-import { formatDateReadout, formatFullDate, roundRate } from '../i18n/dates.ts';
+import { MAX_SPEED_LOG2, MIN_SPEED_LOG2, speedLabel } from '../time/rateCurve.ts';
+import { formatDateReadout, formatFullDate, formatYear, roundRate } from '../i18n/dates.ts';
 import { LANGUAGES, type Language } from '../i18n/messages.ts';
 import { LANGUAGE_NAMES, type I18n } from '../i18n/i18n.ts';
 import { useStore } from './hooks.ts';
-import type { Actions, UiState } from './state.ts';
+import type { Actions, UiState, VignetteCard } from './state.ts';
 import type { Settings } from './storage.ts';
 import {
   BookmarkIcon,
@@ -19,14 +19,11 @@ import {
   TiltFlatterIcon,
   TiltSteeperIcon,
   FollowIcon,
-  FreezeIcon,
   GearIcon,
   InfoIcon,
   LanesIcon,
-  MinusIcon,
   PauseIcon,
   PlayIcon,
-  PlusIcon,
 } from './icons.tsx';
 
 interface Props {
@@ -34,8 +31,6 @@ interface Props {
   i18n: I18n;
   actions: Actions;
 }
-
-const SPEED_LABELS: Record<number, string> = { 0.25: '¼', 0.5: '½' };
 
 export function App({ store, i18n, actions }: Props) {
   const s = useStore(store);
@@ -56,12 +51,11 @@ export function App({ store, i18n, actions }: Props) {
 
   const stationary = s.playState !== 'playing' && !s.scrubbing;
   const dateText = formatDateReadout(s.day, lang, { yearsPerMinute: s.yearsPerMinute, stationary });
-  const stateText =
-    s.playState === 'playing'
-      ? t('controls.playing')
-      : s.playState === 'frozen'
-        ? t('controls.frozen')
-        : t('controls.historyPaused');
+  const stateText = s.playState === 'playing' ? t('controls.playing') : t('controls.paused');
+  const label = speedLabel(s.speedLog2);
+  const speedText = t(label.fraction ? 'controls.speedFraction' : 'controls.speedValue', {
+    speed: i18n.number(label.value),
+  });
 
   return (
     <>
@@ -142,48 +136,47 @@ export function App({ store, i18n, actions }: Props) {
       {s.panel === 'settings' && <SettingsPanel s={s} t={t} actions={actions} />}
       {s.panel === 'bookmarks' && <BookmarksPanel s={s} t={t} lang={lang} actions={actions} />}
       {s.panel === 'about' && <AboutPanel s={s} t={t} lang={lang} actions={actions} />}
+      {s.panel === 'vignette' && s.vignette && (
+        <VignettePanel card={s.vignette} t={t} lang={lang} actions={actions} />
+      )}
 
       <div class="bottom">
         {s.fixture && <div class="notice">{t('app.fixtureNotice')}</div>}
         <div class="bar">
-          <button
-            class="btn"
-            aria-label={t('controls.play')}
-            title={t('controls.play')}
-            aria-pressed={s.playState === 'playing'}
-            onClick={() => actions.play()}
-          >
-            <PlayIcon />
-          </button>
-          <button
-            class="btn"
-            aria-label={t('controls.pauseHistory')}
-            title={t('controls.pauseHistory')}
-            aria-pressed={s.playState === 'historyPaused'}
-            onClick={() => actions.pauseHistory()}
-          >
-            <PauseIcon />
-          </button>
-          <button
-            class="btn"
-            aria-label={t('controls.freeze')}
-            title={t('controls.freeze')}
-            aria-pressed={s.playState === 'frozen'}
-            onClick={() => actions.freeze()}
-          >
-            <FreezeIcon />
-          </button>
-          <div class="speed" role="group" aria-label={t('controls.speed')}>
-            {SPEEDS.map((sp, i) => (
-              <button
-                key={sp}
-                aria-pressed={s.speedIndex === i}
-                onClick={() => actions.setSpeed(i)}
-              >
-                {t('controls.speedValue', { speed: SPEED_LABELS[sp] ?? i18n.number(sp) })}
-              </button>
-            ))}
-          </div>
+          {s.playState === 'playing' ? (
+            <button
+              class="btn"
+              aria-label={t('controls.pause')}
+              title={t('controls.pause')}
+              onClick={() => actions.pause()}
+            >
+              <PauseIcon />
+            </button>
+          ) : (
+            <button
+              class="btn"
+              aria-label={t('controls.play')}
+              title={t('controls.play')}
+              onClick={() => actions.play()}
+            >
+              <PlayIcon />
+            </button>
+          )}
+          <label class="speed">
+            <input
+              type="range"
+              min={MIN_SPEED_LOG2}
+              max={MAX_SPEED_LOG2}
+              step="any"
+              value={s.speedLog2}
+              aria-label={t('controls.speed')}
+              aria-valuetext={speedText}
+              data-testid="speed"
+              onInput={(e) => actions.setSpeed(Number((e.target as HTMLInputElement).value))}
+              onChange={(e) => actions.setSpeed(Number((e.target as HTMLInputElement).value), true)}
+            />
+            <span class="speed-value">{speedText}</span>
+          </label>
           <span class="date" aria-live="off" data-testid="date">
             {dateText}
           </span>
@@ -193,44 +186,7 @@ export function App({ store, i18n, actions }: Props) {
               : stateText}
           </span>
         </div>
-        <div class="timeline-tools">
-          <button
-            class="btn"
-            aria-label={t('timeline.zoomIn')}
-            title={t('timeline.zoomIn')}
-            onClick={() => actions.zoomTimeline(0.5)}
-          >
-            <PlusIcon />
-          </button>
-          <button
-            class="btn"
-            aria-label={t('timeline.zoomOut')}
-            title={t('timeline.zoomOut')}
-            onClick={() => actions.zoomTimeline(2)}
-          >
-            <MinusIcon />
-          </button>
-          {!s.follow && (
-            <button
-              class="btn"
-              aria-label={t('timeline.follow')}
-              title={t('timeline.follow')}
-              onClick={() => actions.followPlayhead()}
-            >
-              <FollowIcon />
-            </button>
-          )}
-          <button
-            class="btn"
-            aria-label={s.settings.timelineExpanded ? t('timeline.collapse') : t('timeline.expand')}
-            title={s.settings.timelineExpanded ? t('timeline.collapse') : t('timeline.expand')}
-            aria-pressed={s.settings.timelineExpanded}
-            onClick={() => actions.toggleLanes()}
-          >
-            <LanesIcon />
-          </button>
-        </div>
-        <TimelineCanvas t={t} actions={actions} />
+        <TimelineCanvas s={s} t={t} actions={actions} />
       </div>
     </>
   );
@@ -238,7 +194,7 @@ export function App({ store, i18n, actions }: Props) {
 
 type T = I18n['t'];
 
-function TimelineCanvas({ t, actions }: { t: T; actions: Actions }) {
+function TimelineCanvas({ s, t, actions }: { s: UiState; t: T; actions: Actions }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     actions.attachTimeline(ref.current);
@@ -246,13 +202,34 @@ function TimelineCanvas({ t, actions }: { t: T; actions: Actions }) {
   }, [actions]);
   return (
     <div class="timeline-wrap">
-      <canvas
-        ref={ref}
-        tabIndex={0}
-        role="slider"
-        aria-label={t('timeline.label')}
-        data-testid="timeline"
-      />
+      <button
+        class="timeline-expand"
+        aria-label={s.settings.timelineExpanded ? t('timeline.collapse') : t('timeline.expand')}
+        title={s.settings.timelineExpanded ? t('timeline.collapse') : t('timeline.expand')}
+        aria-pressed={s.settings.timelineExpanded}
+        onClick={() => actions.toggleLanes()}
+      >
+        <LanesIcon />
+      </button>
+      <div class="timeline-canvas">
+        <canvas
+          ref={ref}
+          tabIndex={0}
+          role="slider"
+          aria-label={t('timeline.label')}
+          data-testid="timeline"
+        />
+        {!s.follow && (
+          <button
+            class="btn timeline-follow"
+            aria-label={t('timeline.follow')}
+            title={t('timeline.follow')}
+            onClick={() => actions.followPlayhead()}
+          >
+            <FollowIcon />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -495,6 +472,47 @@ function AboutPanel({
       </ul>
     </PanelFrame>
   );
+}
+
+function VignettePanel({
+  card,
+  t,
+  lang,
+  actions,
+}: {
+  card: VignetteCard;
+  t: T;
+  lang: Language;
+  actions: Actions;
+}) {
+  const from = formatYear(dateFromDay(card.fromDay).year, lang, card.fromApproximate);
+  const to = formatYear(dateFromDay(card.toDay - 1).year, lang, card.toApproximate);
+  const text = card.text;
+  return (
+    <PanelFrame title={text?.title ?? card.title} t={t} actions={actions}>
+      <p class="card-date">{t('vignette.span', { from, to })}</p>
+      {text ? (
+        <>
+          {paragraphs(text.body)}
+          {text.learnMore && (
+            <>
+              <h3>{t('vignette.learnMore')}</h3>
+              {paragraphs(text.learnMore)}
+            </>
+          )}
+        </>
+      ) : (
+        <p class="card-loading">{card.failed ? t('vignette.failed') : t('vignette.loading')}</p>
+      )}
+    </PanelFrame>
+  );
+}
+
+function paragraphs(text: string) {
+  return text
+    .split(/\n\s*\n/)
+    .filter((p) => p.trim())
+    .map((p, i) => <p key={i}>{p.trim()}</p>);
 }
 
 function Stats({ s, t, actions }: { s: UiState; t: T; actions: Actions }) {

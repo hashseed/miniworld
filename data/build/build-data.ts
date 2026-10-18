@@ -8,6 +8,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { parse as parseYaml } from 'yaml';
 import {
   ARID_GRID_H,
   ARID_GRID_W,
@@ -28,6 +29,7 @@ import { TIMELINE_START, continuousYear, dayFromDate } from '../../app/src/time/
 import { buildWatchTable, yearAtSeconds, totalSeconds } from '../../app/src/time/watchTable.ts';
 import { dayFromContinuousYear } from '../../app/src/time/calendar.ts';
 import { erasForLanguage, validateEras, type CuratedEras } from './lib/eras.ts';
+import { buildVignettes } from './lib/vignettes.ts';
 import { fixtureElevation } from './lib/fixture.ts';
 import { Grid, GridPyramid } from './lib/grid.ts';
 import { climateStepYears, iceGrid, seaLevelCurve, sliceDay } from './lib/ice.ts';
@@ -84,7 +86,7 @@ const SOURCES = join(ROOT, 'data/sources');
 const OUT = join(ROOT, 'app/public/data');
 
 /** Watching seconds per content time window (spec milestone 1, section 10.3). */
-export const WINDOW_SECONDS = 600;
+export const WINDOW_SECONDS = 2460;
 const PART_LEVEL = 2;
 /** Simplified map (spec milestone 1, section 4.2). */
 const SMOOTHING_KM = 40;
@@ -186,6 +188,24 @@ log(`${windows.length} time windows of ${WINDOW_SECONDS / 60} min`);
 const eras = JSON.parse(readFileSync(join(ROOT, 'data/curated/eras.json'), 'utf8')) as CuratedEras;
 const eraErrors = validateEras(eras, TIMELINE_START, cutoffDay);
 if (eraErrors.length) fail(eraErrors.join('\n'));
+
+// --- Vignettes (spec milestone 2, section 18) ------------------------------
+
+const animals = new Set(
+  Object.keys(
+    (parseYaml(readFileSync(join(ROOT, 'data/curated/vocab/animals.yaml'), 'utf8'), {
+      schema: 'failsafe',
+    }) ?? {}) as Record<string, unknown>,
+  ),
+);
+const vignetteBuild = buildVignettes({
+  curated: join(ROOT, 'data/curated'),
+  lanes: new Set(eras.lanes.map((l) => l.id)),
+  animals,
+  startDay: TIMELINE_START,
+  cutoffDay,
+});
+if (vignetteBuild.errors.length) fail(vignetteBuild.errors.join('\n'));
 
 // --- Elevation, ocean mask, lakes and rivers -------------------------------
 
@@ -439,6 +459,15 @@ const sources: SourceInfo[] = registry.sources
   .filter((s) => !(fixture && s.id === 'etopo-2022'))
   .map((s) => ({ id: s.id, title: s.title, licence: s.licence, citation: s.citation, url: s.url }));
 
+const vignetteFiles = vignetteBuild.vignettes.map((v) => ({
+  v,
+  structure: output.writeJson(`vignettes/${v.structure.id}`, v.structure),
+  text: Object.fromEntries(
+    LANGUAGES.map((l) => [l, output.writeJson(`vignettes/${v.structure.id}-${l}`, v.text[l])]),
+  ) as Record<Language, string>,
+}));
+log(`${vignetteFiles.length} vignettes`);
+
 const index = {} as Record<Language, string>;
 for (const language of LANGUAGES) {
   const idx: StartupIndex = {
@@ -451,6 +480,17 @@ for (const language of LANGUAGES) {
     sources,
     events: [],
     people: [],
+    vignettes: vignetteFiles.map(({ v, structure, text }) => ({
+      id: v.structure.id,
+      fromDay: v.structure.fromDay,
+      toDay: v.structure.toDay,
+      fromApproximate: v.fromApproximate,
+      toApproximate: v.toApproximate,
+      icon: v.structure.icon,
+      title: v.text[language].title,
+      structure,
+      text: text[language],
+    })),
   };
   index[language] = output.writeJson(`index-${language}`, idx);
 }

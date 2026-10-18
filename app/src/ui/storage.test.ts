@@ -48,8 +48,8 @@ describe('saved state', () => {
 
   it('restores a playing view as history paused', () => {
     const camera = { lat: 41.9, lon: 12.5, altitudeKm: 50, heading: 0, tilt: 30 };
-    saveView({ day: -700000, camera, playState: 'playing', speedIndex: 2 });
-    expect(loadView()).toEqual({ day: -700000, camera, playState: 'historyPaused', speedIndex: 2 });
+    saveView({ day: -700000, camera, playState: 'playing', speedLog2: -2.5 });
+    expect(loadView()).toEqual({ day: -700000, camera, playState: 'paused', speedLog2: -2.5 });
     storage.setItem('miniworld.view.v1', JSON.stringify({ day: 1.5, camera }));
     expect(loadView()).toBeUndefined();
   });

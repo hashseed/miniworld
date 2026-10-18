@@ -141,7 +141,7 @@ test('keyboard plays history and moves the camera', async ({ page }) => {
   await page.keyboard.press('Space');
   await expect.poll(async () => (await world(page)).playState).toBe('playing');
   await page.keyboard.press('Space');
-  await expect.poll(async () => (await world(page)).playState).toBe('historyPaused');
+  await expect.poll(async () => (await world(page)).playState).toBe('paused');
   const before = await world(page);
   // Hold the key until the camera moves: frames are slow on software rendering.
   await page.keyboard.down('ArrowUp');
