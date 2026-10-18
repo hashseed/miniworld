@@ -91,7 +91,7 @@ const OUT = join(ROOT, 'app/public/data');
 export const WINDOW_SECONDS = 2460;
 const PART_LEVEL = 2;
 /** Simplified map (spec milestone 1, section 4.2). */
-const SMOOTHING_KM = 40;
+const SMOOTHING_KM = 80;
 const POLAR_SMOOTHING_KM = 150;
 // Only a short list of the rivers history needs most (decided by Yang on
 // 2026-10-17), by their Natural Earth names, including local spellings.

@@ -16,7 +16,7 @@ import { blurLine, boxRadius } from './simplify.ts';
 const KM_PER_DEG = 111.32;
 
 /** Gaussian sigma (km) of the coast smoothing, and of the coast in polar regions. */
-export const COAST_SIGMA_KM = 20;
+export const COAST_SIGMA_KM = 28;
 export const POLAR_COAST_SIGMA_KM = 60;
 /** Gaussian sigma (km) of Antarctica's coast, which is simplified even more. */
 export const ANTARCTIC_COAST_SIGMA_KM = 120;
@@ -29,7 +29,7 @@ export function antarcticWeight(lat: number): number {
  * Distance (km) every coast grows seaward before the smoothing, so narrow
  * peninsulas and islands survive the blur and come out slightly larger.
  */
-export const COAST_GROW_KM = 16;
+export const COAST_GROW_KM = 34;
 /** Level (m) given to land that never joins the ocean before smoothing. */
 export const NEVER_LEVEL_M = OCEAN_MIN_LEVEL + OCEAN_TOP;
 

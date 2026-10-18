@@ -94,8 +94,8 @@ const float ICE_HIDE_KM = 120.0;
 // a rounded clay edge rather than a wall; further inland the cap grows fast
 // enough to leave mountains alone (section 4.4).
 const float COAST_BEACH_KM = 2.0;
-const float COAST_SLOPE = 12.0; // m per km at the coast
-const float COAST_CURVE = 0.15; // extra m per km²
+const float COAST_SLOPE = 6.0; // m per km at the coast
+const float COAST_CURVE = 0.08; // extra m per km²
 
 varying vec3 vWorld;
 varying vec3 vUp;
