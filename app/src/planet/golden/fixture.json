@@ -1,30 +1,76 @@
 {
-  "50000 BCE": {
-    "seaLevel": -43.2,
-    "glacialIndex": 0.37,
+  "70000 BCE": {
+    "seaLevel": -20.9,
+    "glacialIndex": 0.18,
     "Bering Strait": {
-      "sea": false,
+      "sea": true,
       "ice": false,
       "iceKm": -128,
-      "groundM": -40.81
+      "groundM": -20.9
     },
     "North Sea": {
       "sea": true,
       "ice": false,
       "iceKm": -128,
-      "groundM": -43.2
+      "groundM": -20.9
+    },
+    "Java Sea": {
+      "sea": true,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -20.9
+    },
+    "Torres Strait": {
+      "sea": true,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -20.9
+    },
+    "Hudson Bay": {
+      "sea": true,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -20.9
+    },
+    "Baltic": {
+      "sea": true,
+      "ice": true,
+      "iceKm": 185.15,
+      "groundM": 877.81
+    },
+    "Caspian Sea": {
+      "sea": false,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": 222
+    }
+  },
+  "50000 BCE": {
+    "seaLevel": -43.1,
+    "glacialIndex": 0.37,
+    "Bering Strait": {
+      "sea": false,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -40.71
+    },
+    "North Sea": {
+      "sea": true,
+      "ice": false,
+      "iceKm": -128,
+      "groundM": -43.1
     },
     "Java Sea": {
       "sea": false,
       "ice": false,
       "iceKm": -128,
-      "groundM": -43.2
+      "groundM": -43.1
     },
     "Torres Strait": {
       "sea": false,
       "ice": false,
       "iceKm": -128,
-      "groundM": -43.2
+      "groundM": -43.1
     },
     "Hudson Bay": {
       "sea": false,
@@ -36,7 +82,7 @@
       "sea": true,
       "ice": true,
       "iceKm": 84.44,
-      "groundM": 459.27
+      "groundM": 459.3
     },
     "Caspian Sea": {
       "sea": false,
