@@ -1,6 +1,8 @@
 // Loaded terrain data, and sampling of any quadtree tile from it
-// (spec milestone 1, sections 4.2 and 5.2). Tiles below DATA_MAX_LEVEL are
-// refined from their level-6 ancestor by smooth interpolation.
+// (spec milestone 1, sections 4.2 and 5.2). Data ends at level 5
+// (DATA_MAX_LEVEL), where rendered tiles stop too; in a build with fewer
+// levels (the test fixture), deeper rendered tiles are refined from their
+// deepest data ancestor by smooth interpolation.
 
 import {
   DEEP_HEIGHT,
@@ -63,7 +65,7 @@ export class TerrainStore implements TerrainSource {
     this.loader = loader;
   }
 
-  /** Data tile (level ≤ 6) for a key, requesting it if needed. */
+  /** Data tile (level ≤ DATA_MAX_LEVEL) for a key, requesting it if needed. */
   terrainTile(key: TileKey, priority: number, id = tileId(key)): TerrainTile | 'deep' | undefined {
     const slot = this.terrain.get(id);
     if (slot === 'loading') {
