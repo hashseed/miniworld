@@ -278,7 +278,7 @@ export function buildPerson(o: PersonOptions): Model {
   const hr = b.head * (o.kind === 'child' ? 1.15 : 1);
   const headY = b.neckY + hr * 0.95;
   if (neanderthal) {
-    mb.add(blob([0, headY, -0.02], [hr * 0.98, hr * 0.9, hr * 1.12], 8), skin, 'head');
+    mb.add(blob([0, headY, -0.02], [hr * 0.98, hr * 0.9, hr * 1.12], 7), skin, 'head');
     mb.add(
       blob([0, headY + hr * 0.25, hr * 0.78], [hr * 0.8, hr * 0.2, hr * 0.3], 6),
       shade(skin, -0.08),
@@ -290,12 +290,7 @@ export function buildPerson(o: PersonOptions): Model {
       'head',
     );
   } else {
-    mb.add(blob([0, headY, 0], [hr, hr * 1.02, hr * 0.98], 8), skin, 'head');
-    mb.add(
-      blob([0, headY - hr * 0.08, hr * 0.95], [hr * 0.16, hr * 0.2, hr * 0.16], 4),
-      shade(skin, -0.05),
-      'head',
-    );
+    mb.add(blob([0, headY, 0], [hr, hr * 1.02, hr * 0.98], 7), skin, 'head');
   }
   // Eyes: two dark dots, the only facial detail.
   for (const s of [1, -1]) {
@@ -305,18 +300,11 @@ export function buildPerson(o: PersonOptions): Model {
       'head',
     );
   }
-  // Ears.
-  bothSides(
-    blob([hr * 0.95, headY, 0], [hr * 0.14, hr * 0.22, hr * 0.12], 4),
-    skin,
-    'head',
-    'head',
-  );
 
   // Hair or hood.
   if (top === 'parka') {
     mb.add(
-      blob([0, headY + hr * 0.1, -hr * 0.12], [hr * 1.32, hr * 1.3, hr * 1.25], 8),
+      blob([0, headY + hr * 0.1, -hr * 0.12], [hr * 1.32, hr * 1.3, hr * 1.25], 7),
       hide,
       'head',
     );
@@ -445,7 +433,7 @@ export function buildPerson(o: PersonOptions): Model {
           [cx * 1.24, len],
         ],
         [0, 0, 0],
-        8,
+        7,
         [1, 1, cz / cx],
       ),
       hide,
@@ -467,7 +455,7 @@ export function buildPerson(o: PersonOptions): Model {
           [cx * 1.32, b.hipY - 0.08],
         ],
         [0, 0, 0],
-        8,
+        7,
         [1, 1, cz / cx],
       ),
       hide,
@@ -504,7 +492,7 @@ export function buildPerson(o: PersonOptions): Model {
           [cx * 1.06, chestY - 0.16],
         ],
         [0, 0, 0],
-        8,
+        7,
         [1, 1, cz / cx],
       ),
       hide,
@@ -522,7 +510,7 @@ export function buildPerson(o: PersonOptions): Model {
           [cx * 1.2, low],
         ],
         [0, 0, 0],
-        8,
+        7,
         [1, 1, cz / cx + 0.15],
       ),
       bottom === 'apron' ? shade(hide, -0.1) : hide,
@@ -568,7 +556,7 @@ function torusRing(
       [r, tube],
     ],
     [0, 0, 0],
-    7,
+    6,
   );
   if (axis === 'z') g.rotateX(Math.PI / 2);
   g.scale(1, 1, squash);

@@ -161,14 +161,14 @@ const up = new THREE.Vector3(0, 1, 0);
 
 /** An ellipsoid: a low sphere scaled per axis, the kit's clay blob. */
 export function blob(at: Vec3, radii: Vec3, segments = 7): THREE.BufferGeometry {
-  const g = new THREE.SphereGeometry(1, segments, Math.max(4, Math.round(segments * 0.75)));
+  const g = new THREE.SphereGeometry(1, segments, Math.max(3, Math.round(segments * 0.6)));
   g.scale(...radii);
   g.translate(...at);
   return g;
 }
 
 /** A tapered capsule from a to b with end radii ra and rb. */
-export function limb(a: Vec3, b: Vec3, ra: number, rb = ra, segments = 6): THREE.BufferGeometry {
+export function limb(a: Vec3, b: Vec3, ra: number, rb = ra, segments = 5): THREE.BufferGeometry {
   const va = new THREE.Vector3(...a);
   const vb = new THREE.Vector3(...b);
   const len = va.distanceTo(vb);
@@ -191,7 +191,7 @@ export function limb(a: Vec3, b: Vec3, ra: number, rb = ra, segments = 6): THREE
 export function lathe(
   profile: [number, number][],
   at: Vec3 = [0, 0, 0],
-  segments = 10,
+  segments = 8,
   scale: Vec3 = [1, 1, 1],
 ): THREE.BufferGeometry {
   const g = new THREE.LatheGeometry(
@@ -204,7 +204,7 @@ export function lathe(
 }
 
 /** A straight rod (pole, spear shaft, bone) from a to b. */
-export function rod(a: Vec3, b: Vec3, r: number, segments = 5): THREE.BufferGeometry {
+export function rod(a: Vec3, b: Vec3, r: number, segments = 4): THREE.BufferGeometry {
   const va = new THREE.Vector3(...a);
   const vb = new THREE.Vector3(...b);
   const g = new THREE.CylinderGeometry(r, r, va.distanceTo(vb), segments, 1, false);
@@ -218,7 +218,7 @@ export function cone(
   base: Vec3,
   tip: Vec3,
   r: number,
-  segments = 8,
+  segments = 6,
   open = false,
 ): THREE.BufferGeometry {
   const va = new THREE.Vector3(...base);
@@ -238,7 +238,7 @@ export function horn(
   ra: number,
   rb: number,
   steps = 6,
-  segments = 6,
+  segments = 5,
 ) {
   const curve = new THREE.QuadraticBezierCurve3(
     new THREE.Vector3(...a),

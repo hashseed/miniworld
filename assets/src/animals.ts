@@ -78,7 +78,7 @@ function quadruped(q: Quad, clay = 1): Parts {
     clay,
   );
   // Body: chest and rump lumps joined by the barrel.
-  mb.add(blob([0, bodyY, 0], [q.girth[0], q.girth[1], q.length * 0.55], 10), q.coat, 'body');
+  mb.add(blob([0, bodyY, 0], [q.girth[0], q.girth[1], q.length * 0.55], 8), q.coat, 'body');
   mb.add(
     blob(
       [0, bodyY + q.girth[1] * 0.08, front * 0.6],
@@ -106,12 +106,12 @@ function quadruped(q: Quad, clay = 1): Parts {
       [0, headAt.y - q.head[1] * 0.3, headAt.z - q.head[2] * 0.45],
       Math.min(q.girth[0], q.girth[1]) * 0.55,
       q.head[0] * 0.8,
-      8,
+      6,
     ),
     q.coat,
     'head',
   );
-  const head = blob([0, 0, 0], q.head, 9);
+  const head = blob([0, 0, 0], q.head, 7);
   head.rotateX(q.headDrop);
   head.translate(headAt.x, headAt.y, headAt.z);
   mb.add(head, q.coat, 'head');
@@ -137,9 +137,9 @@ function quadruped(q: Quad, clay = 1): Parts {
   ] as const) {
     const lx = x * q.girth[0] * 0.55;
     const leg = q.leg * 1.4; // chunky toy legs
-    mb.add(limb([lx, legTop, z], [lx, 0.08, z], leg, leg * 0.75, 7), legColour, bone);
+    mb.add(limb([lx, legTop, z], [lx, 0.08, z], leg, leg * 0.75, 5), legColour, bone);
     mb.add(
-      blob([lx, 0.06, z + leg * 0.2], [leg * 0.85, 0.07, leg * 1.0], 6),
+      blob([lx, 0.06, z + leg * 0.2], [leg * 0.85, 0.07, leg * 1.0], 5),
       q.hoof ?? shade(legColour, -0.35),
       bone,
     );
@@ -188,8 +188,8 @@ export function buildAnimal(id: AnimalId): Model {
           [0, 0.55, headAt.z + 0.75],
           0.24,
           0.1,
-          8,
-          7,
+          6,
+          6,
         ),
         shade(coat, 0.05),
         'head',
@@ -202,8 +202,8 @@ export function buildAnimal(id: AnimalId): Model {
             [s * 0.15, headAt.y - 0.2, headAt.z + 2.15],
             0.13,
             0.05,
-            10,
-            7,
+            8,
+            6,
           ),
           '#f1e7d0',
           'head',
@@ -221,8 +221,8 @@ export function buildAnimal(id: AnimalId): Model {
           [0, bodyY - 0.4, back * 1.12],
           0.08,
           0.05,
-          5,
-          5,
+          4,
+          4,
         ),
         coat,
         'tail',
@@ -253,8 +253,8 @@ export function buildAnimal(id: AnimalId): Model {
           [0, headAt.y + 0.95, headAt.z + 0.95],
           0.13,
           0.03,
-          6,
-          6,
+          4,
+          5,
         ),
         '#d9cdb4',
         'head',
@@ -315,8 +315,8 @@ export function buildAnimal(id: AnimalId): Model {
             [s * 0.7, headAt.y + 0.7, headAt.z - 0.05],
             0.07,
             0.025,
-            6,
-            5,
+            4,
+            4,
           ),
           '#d8ceb8',
           'head',
@@ -370,8 +370,8 @@ export function buildAnimal(id: AnimalId): Model {
           [0, bodyY - 0.55, back * 1.25],
           0.09,
           0.05,
-          6,
-          5,
+          4,
+          4,
         ),
         dark,
         'tail',
@@ -403,8 +403,8 @@ export function buildAnimal(id: AnimalId): Model {
             [s * 0.35, headAt.y + 1.05, headAt.z + 0.05],
             0.035,
             0.02,
-            7,
             5,
+            4,
           ),
           '#d6c7a8',
           'head',
@@ -513,8 +513,8 @@ export function buildAnimal(id: AnimalId): Model {
           [0, bodyY - 0.3, back * 1.7],
           0.07,
           0.05,
-          6,
-          5,
+          4,
+          4,
         ),
         shade(coat, -0.1),
         'tail',
@@ -581,7 +581,7 @@ export function buildAnimal(id: AnimalId): Model {
             [s * 0.06, headAt.y + 0.38, headAt.z - 0.15],
             0.018,
             0.008,
-            5,
+            4,
             4,
           ),
           '#2f2620',
@@ -635,6 +635,6 @@ function kangaroo(): Model {
   const foot = blob([0.15, 0.04, 0.2], [0.05, 0.04, 0.2], 6);
   mb.add(foot, shade(coat, -0.3), 'legL');
   mb.add(mirrorX(foot), shade(coat, -0.3), 'legR');
-  mb.add(horn([0, 0.5, -0.2], [0, 0.1, -0.55], [0, 0.05, -0.95], 0.1, 0.035, 7, 6), coat, 'tail');
+  mb.add(horn([0, 0.5, -0.2], [0, 0.1, -0.55], [0, 0.05, -0.95], 0.1, 0.035, 5, 5), coat, 'tail');
   return mb.build('animal-kangaroo');
 }

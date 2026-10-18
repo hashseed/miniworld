@@ -115,11 +115,11 @@ export function buildShelter(id: ShelterId): Model {
         ),
         shade(HIDE, -0.05),
       );
-      ring(18, 2.55, 0.25, (p, a, i) => {
-        mb.add(blob(p, [0.36, 0.26, 0.2], 6), i % 2 ? BONE : shade(BONE, -0.08));
+      ring(14, 2.55, 0.25, (p, a, i) => {
+        mb.add(blob(p, [0.44, 0.28, 0.22], 5), i % 2 ? BONE : shade(BONE, -0.08));
         void a;
       });
-      ring(14, 2.4, 0.7, (p) => mb.add(blob(p, [0.3, 0.22, 0.18], 6), shade(BONE, -0.04)));
+      ring(10, 2.4, 0.7, (p) => mb.add(blob(p, [0.38, 0.24, 0.2], 5), shade(BONE, -0.04)));
       ring(7, 0, 0, (_p, a) => {
         const s = Math.sin(a);
         const c = Math.cos(a);
@@ -253,11 +253,11 @@ export function buildShelter(id: ShelterId): Model {
         ),
         '#9a8463',
       );
-      ring(16, 2.45, 0.38, (p, _a, i) =>
-        mb.add(blob(p, [0.34, 0.26, 0.3], 6), shade(STONE, (i % 3) * 0.06 - 0.06)),
+      ring(12, 2.45, 0.38, (p, _a, i) =>
+        mb.add(blob(p, [0.42, 0.28, 0.34], 5), shade(STONE, (i % 3) * 0.06 - 0.06)),
       );
-      ring(13, 2.32, 0.78, (p, _a, i) =>
-        mb.add(blob(p, [0.32, 0.22, 0.28], 6), shade(STONE, (i % 2) * 0.08)),
+      ring(10, 2.32, 0.78, (p, _a, i) =>
+        mb.add(blob(p, [0.4, 0.24, 0.32], 5), shade(STONE, (i % 2) * 0.08)),
       );
       mb.add(
         lathe(
@@ -306,8 +306,8 @@ export function buildShelter(id: ShelterId): Model {
 /** A ring of stones with a cartoon fire. */
 export function buildHearth(): Model {
   const mb = new ModelBuilder();
-  ring(9, 0.55, 0.08, (p, _a, i) =>
-    mb.add(blob(p, [0.17, 0.13, 0.15], 6), shade(STONE, (i % 3) * 0.07 - 0.07)),
+  ring(7, 0.55, 0.08, (p, _a, i) =>
+    mb.add(blob(p, [0.21, 0.14, 0.18], 5), shade(STONE, (i % 3) * 0.07 - 0.07)),
   );
   mb.add(rod([-0.35, 0.08, -0.1], [0.35, 0.16, 0.12], 0.06, 5), '#5a3a22');
   mb.add(rod([0.3, 0.08, -0.2], [-0.25, 0.16, 0.2], 0.06, 5), '#6a4528');
