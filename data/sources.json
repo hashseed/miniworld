@@ -10,7 +10,9 @@
       "url": "https://doi.org/10.25921/fd45-gt74",
       "download": {
         "url": "https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO2022/data/60s/60s_bed_elev_gtif/ETOPO_2022_v1_60s_N90W180_bed.tif",
-        "files": ["ETOPO_2022_v1_60s_N90W180_bed.tif"],
+        "files": [
+          "ETOPO_2022_v1_60s_N90W180_bed.tif"
+        ],
         "sha256": {
           "ETOPO_2022_v1_60s_N90W180_bed.tif": "a2cc72f8a4292dee928f439069457cdefc1fba319876807c626edce40258ba7a"
         }
@@ -99,23 +101,23 @@
         },
         {
           "path": "ice_thickness.json",
-          "sha256": "bb3309c10e4df594a5778111a3c4f3287d9ff0f16a641b003c83e5d269927b9e",
-          "bytes": 523
+          "sha256": "53db2dde226247e4073e4158b7159c292f615b07bce127731f50a4da13d00470",
+          "bytes": 611
         },
         {
           "path": "ice_thickness.bin.br",
-          "sha256": "734186ebb445974f704ff6bb4a5a89d20741ffddabce3df018780761f07d284f",
-          "bytes": 4118156
+          "sha256": "afa24895c2f61cae0386b292a11dd0eb523ecf57106872ecba9c331cccb7a92d",
+          "bytes": 5655785
         },
         {
           "path": "sea_level.json",
-          "sha256": "52fb59a6576cd1b3488359f7703cfa47a9ce38f4c9a090cf9f40ecac0628021d",
-          "bytes": 569
+          "sha256": "ba08eae06e65269d8824485864374d284537069257debd13ef8c0931294def5e",
+          "bytes": 657
         },
         {
           "path": "sea_level.bin.br",
-          "sha256": "28fbde214e9e54e43296f844ab4f01a11f3e95198518540913b3c104a1b94679",
-          "bytes": 1853126
+          "sha256": "5eca92be738a74eb008bae93350020ed5336771dc3dbc8ca5fb17b5f515dd216",
+          "bytes": 2540465
         }
       ]
     },
@@ -128,7 +130,9 @@
       "url": "https://doi.org/10.6084/m9.figshare.12293345",
       "download": {
         "url": "https://ndownloader.figshare.com/files/22659026",
-        "files": ["LateQuaternary_Environment.nc"],
+        "files": [
+          "LateQuaternary_Environment.nc"
+        ],
         "sha256": {
           "LateQuaternary_Environment.nc": "7312280854bab9e95f8721c80050c0889b29ad3087a00bd264e7500d33d19857"
         }
@@ -141,33 +145,33 @@
         },
         {
           "path": "biome.json",
-          "sha256": "69e5dc0e83557d221262e059b76b2aaf2fdb46ca319f6d6d2367bfbf08fc015e",
-          "bytes": 704
+          "sha256": "9f850881d4f714d187e28559e7b3245913066d6eb9cfd9c385ed30a5e5da3edd",
+          "bytes": 814
         },
         {
           "path": "biome.bin.br",
-          "sha256": "c00115f63009ba68c512a38f2a11f3e0c586ae7dd3fa8b05718e7050cddb825f",
-          "bytes": 303363
+          "sha256": "84982f1646c48652c9bfce575ca4263fd383573f6173dcb2890150dff3b53399",
+          "bytes": 378229
         },
         {
           "path": "BIO1.json",
-          "sha256": "0419ae07ed25f433d20ddb5b3b39b2a52494cf2ff82a79a2de86ab9882dff199",
-          "bytes": 716
+          "sha256": "c0e57e3d0cc44166865ff2a6987c020a470eb9b162db52944d78711ff6e28271",
+          "bytes": 826
         },
         {
           "path": "BIO1.bin.br",
-          "sha256": "a898eb853e782827a24e957f1eb12f156d4329477247f51f0450ae7dd77beda9",
-          "bytes": 2356796
+          "sha256": "ac34b44db35933ffd656ca6da1a01c13d8f895966c3fe919958a6b3a525a980d",
+          "bytes": 2962590
         },
         {
           "path": "BIO12.json",
-          "sha256": "5d4647ebd364fb75bf5dc0299b5c1be805cf92e56c765c472d6c0989cc73e47f",
-          "bytes": 711
+          "sha256": "c21f3fd909af28cec017da2bd96ea2cde60947233f7d888e97a0baa293b71a9e",
+          "bytes": 821
         },
         {
           "path": "BIO12.bin.br",
-          "sha256": "b62e2364d0a9be3b22eb6398eebf0da13c6f2a85ab723ada619366f7e9b1cac4",
-          "bytes": 3481349
+          "sha256": "4b32793c1eed496637c5e84da65652a18f3cfdbc331be9bfb131e8c0da9c4cf3",
+          "bytes": 4422316
         }
       ]
     }
