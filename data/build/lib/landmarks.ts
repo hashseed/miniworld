@@ -109,8 +109,9 @@ export function assetSize(
 
 /**
  * Moves a group west in steps of SHIFT_STEP_KM until no point of its
- * footprint (rectangles in km around the drawn point) is wet. Returns the
- * drawn point in degrees.
+ * footprint (rectangles in km around the drawn point) is wet, or, if no
+ * shift within MAX_SHIFT_KM is dry, to the shift with the fewest wet points.
+ * Returns the drawn point in degrees.
  */
 export function shiftOffWater(
   lat: number,
@@ -126,12 +127,17 @@ export function shiftOffWater(
     for (let i = 0; i <= ne; i++)
       for (let j = 0; j <= nn; j++) samples.push([w + ((e - w) * i) / ne, s + ((n - s) * j) / nn]);
   }
+  // The first dry shift, or else the one with the fewest wet samples.
+  let best = { lat, lon, shiftedKm: 0 };
+  let fewest = Infinity;
   for (let km = 0; km <= MAX_SHIFT_KM; km += SHIFT_STEP_KM) {
     const clon = lon - km / kmPerDegLon;
-    if (!samples.some(([e, n]) => wet(lat + n / KM_PER_DEG, clon + e / kmPerDegLon)))
-      return { lat, lon: clon, shiftedKm: km };
+    let count = 0;
+    for (const [e, n] of samples) if (wet(lat + n / KM_PER_DEG, clon + e / kmPerDegLon)) count++;
+    if (count === 0) return { lat, lon: clon, shiftedKm: km };
+    if (count < fewest) [best, fewest] = [{ lat, lon: clon, shiftedKm: km }, count];
   }
-  return { lat, lon, shiftedKm: 0 };
+  return best;
 }
 
 /** A length in km, written like `180 km`. */

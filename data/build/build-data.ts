@@ -325,9 +325,13 @@ const flowCos = new Grid(conn.width, conn.height, flow.cos);
 const flowSin = new Grid(conn.width, conn.height, flow.sin);
 log(`${lakeCount} lakes, ${riverCount} river lines`);
 
-// Landmarks stand on dry land beside the drawn rivers (giza.md section 2).
+// Landmarks stand on dry land beside the drawn rivers (giza.md section 2). The
+// sea is where the ocean reaches at today's level, so dry depressions such as
+// Qattara count as land.
 const wet = (lat: number, lon: number) =>
-  rivers.bilinear(lat, lon) > 127 || lakes.bilinear(lat, lon) > 127 || conn.nearest(lat, lon) < 0;
+  rivers.bilinear(lat, lon) > 127 ||
+  lakes.bilinear(lat, lon) > 127 ||
+  connection.nearest(lat, lon) <= -OCEAN_MIN_LEVEL;
 for (const l of landmarkBuild.landmarks)
   log(`landmark ${l.structure.id} moved ${placeOffWater(l, wet)} km west off the water`);
 

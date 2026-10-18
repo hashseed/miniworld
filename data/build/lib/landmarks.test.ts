@@ -107,6 +107,14 @@ describe('placement off the water', () => {
     expect((31.1 - r.lon) * 96.4).toBeGreaterThan(60 + 15 - 1);
   });
 
+  it('takes the least wet shift when none is fully dry', () => {
+    // Water everywhere except a dry strip 100 to 200 km west of the point.
+    const wet = (_lat: number, lon: number) => !(lon < 31 - 100 / 96.4 && lon > 31 - 200 / 96.4);
+    const r = shiftOffWater(30, 31, [[-60, 60, -10, 10]], wet);
+    expect(r.shiftedKm).toBeGreaterThan(130);
+    expect(r.shiftedKm).toBeLessThan(170);
+  });
+
   it('includes every part and the ramps in the footprint', () => {
     const l = giza();
     const south = Math.min(...l.footprint.map((r) => r[2]));
