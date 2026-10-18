@@ -3,6 +3,7 @@
 // level crosses the date's sea level, so they are smooth curves like the
 // rivers; named straits are carved so the smoothing never closes them.
 
+import { KM_PER_DEG } from '../../../app/src/geo/earth.ts';
 import {
   OCEAN_MIN_LEVEL,
   OCEAN_NEVER,
@@ -12,8 +13,6 @@ import {
 import { distanceKm } from './distance.ts';
 import { Grid, type GridData } from './grid.ts';
 import { blurLine, boxRadius } from './simplify.ts';
-
-const KM_PER_DEG = 111.32;
 
 /** Gaussian sigma (km) of the coast smoothing, and of the coast in polar regions. */
 export const COAST_SIGMA_KM = 20;

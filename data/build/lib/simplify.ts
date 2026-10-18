@@ -4,9 +4,9 @@
 // shelves and land bridges keep their depth, and land that is land today
 // stays land, so small islands never vanish.
 
+import { KM_PER_DEG } from '../../../app/src/geo/earth.ts';
 import { Grid } from './grid.ts';
 
-const KM_PER_DEGREE = 111.32;
 /** Cells above this height (m) are smoothed together; deeper ones separately. */
 export const SHELF_SPLIT_M = -150;
 
@@ -62,7 +62,7 @@ export function smoothElevation(g: Grid, sigmaKm: number): Grid {
   const value = new Float32Array(n);
   const weight = new Float32Array(n);
   const prefix = new Float64Array(Math.max(w, h) + 1);
-  const cellKm = g.cellDegrees * KM_PER_DEGREE;
+  const cellKm = g.cellDegrees * KM_PER_DEG;
   const rowRadius = new Int32Array(h);
   for (let r = 0; r < h; r++) {
     const lat = 90 - (r + 0.5) * g.cellDegrees;
@@ -133,7 +133,7 @@ export function enlargeIslands(
         if (rr >= 0 && rr < h) kept[g.index(Math.round(c) + dc, rr)] = 1;
       }
   }
-  const cellKm = g.cellDegrees * KM_PER_DEGREE;
+  const cellKm = g.cellDegrees * KM_PER_DEG;
   const colKm = new Float64Array(h);
   for (let r = 0; r < h; r++) {
     const lat = 90 - (r + 0.5) * g.cellDegrees;
@@ -274,7 +274,7 @@ export function removeAreas(
         if (!insidePolygon(lon, lat, a.polygon)) continue;
         const kept = near.some((k) => {
           const dx = (k.lon - lon) * Math.cos((lat * Math.PI) / 180);
-          return Math.hypot(dx, k.lat - lat) * KM_PER_DEGREE < REMOVED_AREA_KEEP_KM;
+          return Math.hypot(dx, k.lat - lat) * KM_PER_DEG < REMOVED_AREA_KEEP_KM;
         });
         if (kept) continue;
         const i = r * w + (((c % w) + w) % w);

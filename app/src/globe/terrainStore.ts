@@ -3,6 +3,7 @@
 // refined from their level-6 ancestor by smooth interpolation.
 
 import {
+  DEEP_HEIGHT,
   decodeTerrainTile,
   OCEAN_MIN_LEVEL,
   OCEAN_SCALE,
@@ -20,9 +21,7 @@ import {
   tileId,
   type TileKey,
   type Vec3,
-} from './cube.ts';
-
-export const DEEP_HEIGHT = -1000;
+} from '../geo/cube.ts';
 
 type Slot<T> = T | 'deep' | 'none' | 'loading';
 

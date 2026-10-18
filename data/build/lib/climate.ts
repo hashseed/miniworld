@@ -3,6 +3,7 @@
 // Beyer, Krapp and Manica 2020 for precipitation. Both are stacks of global
 // grids over time, read from the extracts under data/sources/.
 
+import { KM_PER_DEG } from '../../../app/src/geo/earth.ts';
 import { ARIDITY_LEVELS } from '../../../app/src/content/formats.ts';
 import type { ExtractData, ExtractHeader } from './extract.ts';
 
@@ -129,12 +130,12 @@ export function iceThickness(
     const w = smoothing ? smoothing.weight(lat) : 0;
     if (smoothing && w > 0) {
       const taps = lat < ANTARCTIC_LAT ? southTaps : northTaps;
-      const kmPerLon = Math.max(1, 111.32 * Math.cos((lat * Math.PI) / 180));
+      const kmPerLon = Math.max(1, KM_PER_DEG * Math.cos((lat * Math.PI) / 180));
       let iceSum = 0;
       let surfaceSum = 0;
       let iceTaps = 0;
       for (const [east, north] of taps) {
-        const la = Math.max(-90, Math.min(90, lat + north / 111.32));
+        const la = Math.max(-90, Math.min(90, lat + north / KM_PER_DEG));
         const lo = lon + east / kmPerLon;
         const t = ice.sample(la, lo, yearsBP) ?? 0;
         iceSum += t;

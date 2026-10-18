@@ -10,6 +10,15 @@ import { ICE_DISTANCE_STEP_KM, ICE_DISTANCE_ZERO, TERRAIN_SAMPLES } from '../con
 import { LENS_COLS, LENS_ROWS, LENS_STEP } from './lens.ts';
 
 /**
+ * Ice sheets rise from their border as smooth domes, ICE_DOME_M at most,
+ * reaching 63% of it ICE_DOME_KM inside; the relief under them is hidden over
+ * the first ICE_HIDE_KM (section 5.2). Used by the shader and by globe.ts.
+ */
+export const ICE_DOME_M = 1200;
+export const ICE_DOME_KM = 250;
+export const ICE_HIDE_KM = 120;
+
+/**
  * The history lens in GLSL (history-lens.md, section 4): the forward grid
  * read with the same bilinear lookup as lens.ts, blended with the identity.
  */
@@ -83,12 +92,10 @@ ${lensChunk}
 
 // How far below the sea level the flat sea surface lies (section 4.4).
 const float SEA_DROP = 3.0;
-// Ice sheets rise from their border as smooth domes, ICE_DOME_M at most,
-// reaching 63% of it ICE_DOME_KM inside; the relief under them is hidden
-// over the first ICE_HIDE_KM (section 5.2).
-const float ICE_DOME_M = 1200.0;
-const float ICE_DOME_KM = 250.0;
-const float ICE_HIDE_KM = 120.0;
+// Ice domes (section 5.2), from the constants at the top of this file.
+const float ICE_DOME_M = ${ICE_DOME_M}.0;
+const float ICE_DOME_KM = ${ICE_DOME_KM}.0;
+const float ICE_HIDE_KM = ${ICE_HIDE_KM}.0;
 // Near the sea, land may rise at most coastCap(d) metres at d km from today's
 // coast (after a flat beach), so at 100x relief every coast and ice margin is
 // a rounded clay edge rather than a wall; further inland the cap grows fast

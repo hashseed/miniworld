@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { hash01 } from '../core/hash.ts';
 import { cloudFragment, cloudVertex } from './shaders.ts';
-import { EARTH_RADIUS_KM } from './tileMesh.ts';
+import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 
 export const CLOUD_COUNT = 30;
 const PUFFS = 7;
@@ -108,8 +108,7 @@ export class Clouds {
         const phi = THREE.MathUtils.degToRad(lat);
         const lambda = THREE.MathUtils.degToRad(lon + drift);
         up.set(Math.cos(phi) * Math.sin(lambda), Math.sin(phi), Math.cos(phi) * Math.cos(lambda));
-        east.set(Math.cos(lambda), 0, -Math.sin(lambda));
-        north.crossVectors(up, east);
+        northEast(up, north, east);
         centre.copy(up).multiplyScalar(EARTH_RADIUS_KM + CLOUD_ALTITUDE_KM);
         basis.makeBasis(east, north, up);
         q.setFromRotationMatrix(basis);
