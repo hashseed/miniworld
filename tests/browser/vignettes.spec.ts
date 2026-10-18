@@ -79,7 +79,13 @@ test('the mammoth hunt is visible from orbit, flies down and moves while playing
   await expect.poll(async () => (await hunt(page)).stages.length).toBe(2);
   // Section 5.1: from orbit the figures are still at least 22 pixels tall.
   // A stage left of the card, which opens on the right on desktop.
-  const clear = (s: Debug['stages'][number]) => !!s.actor && s.actor[0] > 100 && s.actor[0] < 800;
+  const { width, height } = page.viewportSize()!;
+  const clear = (s: Debug['stages'][number]) =>
+    !!s.actor &&
+    s.actor[0] > 40 &&
+    s.actor[0] < Math.min(800, width - 40) &&
+    s.actor[1] > 120 &&
+    s.actor[1] < height - 320;
   await expect.poll(async () => (await hunt(page)).stages.some(clear)).toBe(true);
   const target = (await hunt(page)).stages.find(clear)!;
   expect(target.heightPx!).toBeGreaterThanOrEqual(21.5);
@@ -89,6 +95,8 @@ test('the mammoth hunt is visible from orbit, flies down and moves while playing
   await page.mouse.click(x, y);
   await expect(page.getByRole('dialog', { name: 'Mammoth hunt' })).toBeVisible();
   await expect(page.getByText(en['vignette.learnMore']!)).toBeVisible();
+  // On phones the card can cover the stage; close it first.
+  await page.getByRole('button', { name: en['dialog.close'] }).click();
   await page.mouse.dblclick(x, y);
   await expect
     .poll(async () => {

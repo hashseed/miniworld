@@ -155,7 +155,7 @@ export class VignetteLayer {
       const kmPerPx = distance / pxAtKm;
       const figureKmPerM = Math.max(M_TO_KM, (FIGURE_MIN_PX * kmPerPx) / ADULT_M);
       const layoutKmPerM = Math.max(M_TO_KM, figureKmPerM / MAX_OVERSIZE);
-      this.pose(stage, lifeMs, figureKmPerM, layoutKmPerM);
+      this.pose(stage, lifeMs, figureKmPerM, layoutKmPerM, pxAtKm);
     }
   }
 
@@ -216,7 +216,13 @@ export class VignetteLayer {
    * globe, upright there, so a stage grown to hundreds of kilometres still
    * follows the curve of the Earth.
    */
-  private pose(stage: Stage, lifeMs: number, figureKmPerM: number, layoutKmPerM: number): void {
+  private pose(
+    stage: Stage,
+    lifeMs: number,
+    figureKmPerM: number,
+    layoutKmPerM: number,
+    pxAtKm: number,
+  ): void {
     const v = this.structures.get(stage.entry.structure);
     if (!v) return;
     const poses = posesAt(v.template, stage.members, stage.instance, lifeMs);
@@ -263,10 +269,13 @@ export class VignetteLayer {
       }
       // Big animals shrink towards ANIMAL_MAX_ADULTS as the cast grows, so people stay readable.
       const cap = Math.min(1, (ANIMAL_MAX_ADULTS * ADULT_M) / actor.height);
-      const scale = figureKmPerM * (1 + (cap - 1) * grown);
-      const sink = (1 - p.visibility) * actor.height * scale;
       const ground = this.surface.surfaceKm([dir.x, dir.y, dir.z]);
-      actor.root.position.copy(dir).multiplyScalar(EARTH_RADIUS_KM + ground - sink);
+      actor.root.position.copy(dir).multiplyScalar(EARTH_RADIUS_KM + ground);
+      // The minimum size holds for each figure at its own distance, not only at the stage centre.
+      const own = (FIGURE_MIN_PX * actor.root.position.distanceTo(this.camera!.position)) / pxAtKm;
+      const scale = Math.max(figureKmPerM, own / ADULT_M) * (1 + (cap - 1) * grown);
+      const sink = (1 - p.visibility) * actor.height * scale;
+      actor.root.position.addScaledVector(dir, -sink);
       actor.root.scale.setScalar(scale);
       actor.pose(p.clip, p.clipMs / 1000);
     }
