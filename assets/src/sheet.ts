@@ -8,6 +8,7 @@ import { ModelBuilder, blob, lightUniforms, type Model } from './kit.ts';
 import { PROFILES, buildPerson, posePerson, type Kind, type Pose } from './people.ts';
 import { SHELTERS, buildShelter, buildHearth, CAMP_SHELTER } from './shelters.ts';
 import { ANIMALS, buildAnimal } from './animals.ts';
+import { animateAnimal, animatePerson, type Clip } from './clips.ts';
 
 const params = new URLSearchParams(location.search);
 const sheetName = params.get('sheet') ?? 'people';
@@ -186,7 +187,55 @@ function singleSheet(): void {
   camera.lookAt(0, size.y * 0.4, 0);
 }
 
+/** Frames of one clip side by side, seen from the side, for reviewing motion on a still image. */
+function clipsSheet(): void {
+  const frames: Record<string, number[]> = {
+    idle: [0, 0.8, 1.6, 2.4, 3.2],
+    walk: [0, 0.2, 0.4, 0.6, 0.8],
+    run: [0, 0.12, 0.24, 0.36, 0.48],
+    carry: [0, 0.29, 0.58, 0.86, 1.15],
+    work: [0, 0.22, 0.45, 0.67, 0.9],
+    point: [0, 0.4, 0.8, 1.2, 1.6],
+    throw: [0, 0.3, 0.5, 0.6, 1.4],
+    cheer: [0, 0.17, 0.35, 0.52, 0.7],
+  };
+  const clip = (params.get('clip') ?? 'walk') as Clip;
+  const times = frames[clip]!;
+  ground(0, 0, 5, '#c7cfa2');
+  times.forEach((t, i) => {
+    const m = buildPerson({ profile: 'ice-age-hunter', kind: 'man' });
+    animatePerson(m, clip, t);
+    place(m, (i - 2) * 1.7, 0, Math.PI / 2 - 0.35);
+  });
+  labels.push({ text: `${clip}: ${times.join(', ')} s`, at: new THREE.Vector3(0, -0.15, 1.6) });
+  camera.position.set(0, 2.2, 9.5);
+  camera.lookAt(0, 0.8, 0);
+}
+
+function clipsAnimalSheet(): void {
+  const id = (params.get('id') ?? 'animal-mammoth') as (typeof ANIMALS)[number];
+  const rows: [Clip, number[]][] = [
+    ['walk', [0, 0.4, 0.8, 1.2]],
+    ['run', [0, 0.2, 0.4, 0.6]],
+    ['fall', [0, 1.0, 2.0, 3.0]],
+  ];
+  ground(0, 0, 14, '#c7cfa2');
+  rows.forEach(([clip, times], r) => {
+    const z = (r - 1) * 6.5;
+    times.forEach((t, i) => {
+      const m = buildAnimal(id);
+      animateAnimal(m, clip, t);
+      place(m, (i - 1.5) * 6 + 2, z, Math.PI / 2);
+    });
+    labels.push({ text: `${clip} (${times.join(', ')} s)`, at: new THREE.Vector3(-11.5, 0.5, z) });
+  });
+  camera.position.set(0, 26, 24);
+  camera.lookAt(0, 0, 0.5);
+}
+
 const sheets: Record<string, () => void> = {
+  clips: clipsSheet,
+  'clips-animal': clipsAnimalSheet,
   single: singleSheet,
   people: peopleSheet,
   turnaround: turnaroundSheet,

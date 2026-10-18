@@ -407,6 +407,8 @@ The first models are the people, shelters and animals of the seven culture profi
 | `animal-gazelle` | Mountain gazelle | The Levant |
 | `animal-kangaroo` | Grey kangaroo | Sahul |
 
+**Clips.** Until the asset build bakes animation textures (section 5.3), each clip is a pure function of the clip and the seconds since it started, in `assets/src/clips.ts`, which vignettes may call every frame and the bake will sample. The first set is what the mammoth hunt needs: idle, walk, run, carry (a hide-wrapped bundle of meat across the shoulders), work (crouched, cutting), point, throw (the spear leaves the hand 0.55 s into a 3 s gesture) and cheer for people; idle, walk, run and fall for animals, where the animal rolls onto its side and sinks a little over 3 s, with nothing more shown.
+
 **Review sheets.** `npm run asset-sheets` serves `app/asset-sheet.html` with the dev server and saves one image per sheet with Playwright: each profile's man, woman and child beside its shelter and hearth; a turnaround of one figure; all shelters; all animals with a figure for scale. The sheets go to Yang for review (section 13.2) and every model is listed in `data/assets/manifest.json` with status `generated` until approved.
 
 ## 14. Performance

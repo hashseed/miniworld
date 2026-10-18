@@ -241,6 +241,10 @@ export function buildPerson(o: PersonOptions): Model {
   const neanderthal = !!look.neanderthal;
   const b = body(o.kind, neanderthal);
   const bones = skeleton(b);
+  const wristY = b.hipY - 0.02;
+  // The held tool and the carried load hang on their own bones so clips can hide them.
+  bones.push({ name: 'tool', pivot: [-(b.shoulderX + 0.04), wristY, 0.03], parent: 'armLowerR' });
+  bones.push({ name: 'load', pivot: [0, b.shoulderY, 0], parent: 'torso' });
   const mb = new ModelBuilder(bones);
   const skin = pick(look.skin, v);
   const hair = pick(look.hair, v * 7 + 3);
@@ -538,7 +542,19 @@ export function buildPerson(o: PersonOptions): Model {
   const tool = o.tool ?? look.tools[o.kind];
   addTool(mb, tool, [-(sx + 0.04), wrist, 0.03], o.kind === 'child' ? 0.75 : 1);
 
-  return mb.build(`${o.profile}-${o.kind}`);
+  // A bundle of meat wrapped in hide and tied with cord, carried across the shoulders.
+  mb.add(blob([0, b.shoulderY + 0.2, -cz - 0.08], [cx * 1.8, 0.2, 0.22], 7), '#dcbc8c', 'load');
+  for (const dx of [-0.6, 0.6]) {
+    mb.add(
+      torusRing([dx * cx, b.shoulderY + 0.2, -cz - 0.08], 0.21, 0.025, 'x'),
+      '#5a3a22',
+      'load',
+    );
+  }
+
+  const model = mb.build(`${o.profile}-${o.kind}`);
+  model.bones.get('load')!.visible = false;
+  return model;
 }
 
 /** A band around an axis: belts, cuffs, bead strings, fur trims. A bulging open tube, cheaper than a torus. */
@@ -546,7 +562,7 @@ function torusRing(
   at: Vec3,
   r: number,
   tube: number,
-  axis: 'y' | 'z' = 'z',
+  axis: 'x' | 'y' | 'z' = 'z',
   squash = 1,
 ): THREE.BufferGeometry {
   const g = lathe(
@@ -559,6 +575,7 @@ function torusRing(
     6,
   );
   if (axis === 'z') g.rotateX(Math.PI / 2);
+  if (axis === 'x') g.rotateZ(Math.PI / 2);
   g.scale(1, 1, squash);
   g.translate(...at);
   return g;
@@ -570,7 +587,7 @@ const FLINT = '#6f7378';
 
 function addTool(mb: ModelBuilder, tool: Tool, hand: Vec3, s: number): void {
   const [x, y, z] = hand;
-  const bone = 'armLowerR';
+  const bone = 'tool';
   const at = (dy: number): Vec3 => [x, y + dy * s, z];
   switch (tool) {
     case 'spear':

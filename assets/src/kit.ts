@@ -65,6 +65,7 @@ export class ModelBuilder {
       const parent = def.parent ? node(def.parent) : root;
       o.position.copy(world(def)).sub(parentDef ? world(parentDef) : new THREE.Vector3());
       parent.add(o);
+      o.userData.rest = o.position.clone();
       nodes.set(bname, o);
       return o;
     };

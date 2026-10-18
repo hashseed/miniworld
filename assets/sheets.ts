@@ -18,6 +18,10 @@ const profiles = [
 ];
 const sheets: [string, string][] = [
   ['people', 'sheet=people'],
+  ...['idle', 'walk', 'run', 'carry', 'work', 'point', 'throw', 'cheer'].map(
+    (c): [string, string] => [`clip-${c}`, `sheet=clips&clip=${c}`],
+  ),
+  ['clips-mammoth', 'sheet=clips-animal&id=animal-mammoth'],
   ['shelters', 'sheet=shelters'],
   ['animals-large', 'sheet=animals&set=large'],
   ['animals-small', 'sheet=animals&set=small'],
