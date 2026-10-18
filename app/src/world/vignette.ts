@@ -196,7 +196,7 @@ export function instancesAt(v: CompiledVignette, day: number): Instance[] {
 
 // --- Segments --------------------------------------------------------------------
 
-/** One stretch of a member's loop: a move or a rest (spec section 2.2). */
+/** One stretch of a member's loop: a move or a rest (spec milestone 2, section 2.2). */
 export interface Segment {
   t0: number;
   t1: number;

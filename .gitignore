@@ -8,3 +8,4 @@ perf-report*.json
 *.log
 .DS_Store
 app/.vite/
+coverage/

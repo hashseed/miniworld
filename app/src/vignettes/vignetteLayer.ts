@@ -1,15 +1,14 @@
 // Draws vignettes on the globe (spec milestone 2, sections 5.1 and 18): asks
 // the player which instances stand on the current day, places a stage of
 // figures, props and spears at each site and poses them at the instance's
-// phase. Like the trees, a
-// stage keeps one drawn size at every zoom, large enough to be seen moving
-// from orbit. It only draws; the player decides everything.
+// phase. Like the trees, a stage keeps one drawn size at every zoom, large
+// enough to be seen moving from orbit. It only draws; the player decides everything.
 
 import * as THREE from 'three';
 import type { ContentLoader } from '../content/loader.ts';
 import type { VignetteEntry } from '../content/types.ts';
-import { latLonToDir, type Vec3 } from '../globe/cube.ts';
-import { EARTH_RADIUS_KM } from '../globe/tileMesh.ts';
+import { latLonToDir, type Vec3 } from '../geo/cube.ts';
+import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 import {
   buildMembers,
   buildProps,
@@ -137,11 +136,6 @@ export class VignetteLayer {
     return [...this.stages.values()].map((s) => s.trueDir);
   }
 
-  /** Number of stages on the current day, for tests and stats. */
-  get stageCount(): number {
-    return this.stages.size;
-  }
-
   update(
     camera: THREE.PerspectiveCamera,
     day: number,
@@ -252,8 +246,7 @@ export class VignetteLayer {
   private place(stage: Stage): void {
     const { up, east, north } = stage;
     up.set(...this.surface.toDrawn(stage.trueDir)).normalize();
-    north.set(0, 1, 0).addScaledVector(up, -up.y).normalize();
-    east.crossVectors(north, up).normalize();
+    northEast(up, north, east);
     const ground = this.surface.surfaceKm([up.x, up.y, up.z]);
     stage.centre.copy(up).multiplyScalar(EARTH_RADIUS_KM + ground);
   }
@@ -320,8 +313,9 @@ export class VignetteLayer {
     lean: number,
   ): void {
     const dir = this.ground(stage, x, z);
-    const north = this.v3.set(0, 1, 0).addScaledVector(dir, -dir.y).normalize();
-    const east = this.v4.crossVectors(north, dir).normalize();
+    const north = this.v3;
+    const east = this.v4;
+    northEast(dir, north, east);
     // Local frame x east, y up, z south; then turn to face along (dirX east, dirZ north).
     root.quaternion.setFromRotationMatrix(this.basis.makeBasis(east, dir, north.negate()));
     root.quaternion.multiply(this.turn.setFromAxisAngle(this.yAxis, Math.atan2(dirZ, dirX)));
@@ -405,8 +399,9 @@ export class VignetteLayer {
       const h = h0 + (h1 - h0) * f.f + 4 * f.f * (1 - f.f) * arc;
       const dh = h1 - h0 + arc * 4 * (1 - 2 * f.f);
       const dir = this.ground(stage, f.x, f.z);
-      const north = this.v3.set(0, 1, 0).addScaledVector(dir, -dir.y).normalize();
-      const east = this.v4.crossVectors(north, dir).normalize();
+      const north = this.v3;
+      const east = this.v4;
+      northEast(dir, north, east);
       this.leanAt(dir, lean);
       const ahead = this.v5.copy(east).multiplyScalar(f.dirX).addScaledVector(north, f.dirZ);
       const tangent = ahead.multiplyScalar(flatKm).addScaledVector(dir, dh).normalize();

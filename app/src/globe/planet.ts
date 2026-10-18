@@ -7,9 +7,6 @@ import type { StartupIndex } from '../content/types.ts';
 export interface PlanetState {
   seaLevel: number; // metres relative to today
   glacialIndex: number; // 0 today .. 1 at the lowest sea level
-  iceA: number; // day of the ice slice at or before the date
-  iceB: number; // day of the ice slice after the date
-  iceT: number; // blend from slice A to slice B
 }
 
 export function seaLevelAt(curve: StartupIndex['seaLevel'], day: number): number {
@@ -44,8 +41,7 @@ export function planetAt(
 ): PlanetState {
   const seaLevel = seaLevelAt(index.seaLevel, day);
   const glacialIndex = minSeaLevel < 0 ? Math.max(0, Math.min(1, seaLevel / minSeaLevel)) : 0;
-  const { a, b, t } = iceSlicePair(index.iceSlices, day);
-  return { seaLevel, glacialIndex, iceA: a, iceB: b, iceT: t };
+  return { seaLevel, glacialIndex };
 }
 
 /** Index of the content time window containing a day. */

@@ -80,3 +80,9 @@ export const LanesIcon = () => (
     <path d="M3 5h18v3H3zM3 10.5h18v3H3zM3 16h18v3H3z" />
   </svg>
 );
+
+export const LensIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M10 2a8 8 0 016.3 12.9l5.4 5.4-1.4 1.4-5.4-5.4A8 8 0 1110 2zm0 2a6 6 0 100 12 6 6 0 000-12zm0 2.5l1.1 2.4 2.4 1.1-2.4 1.1L10 13.5l-1.1-2.4L6.5 10l2.4-1.1z" />
+  </svg>
+);

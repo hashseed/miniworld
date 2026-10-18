@@ -4,6 +4,7 @@
 // 2004) solved with spherical harmonics, so it has no seam at the date line
 // or the poles. Writes a forward and an inverse grid and checks the limits.
 
+import { EARTH_RADIUS_KM } from '../../../app/src/geo/earth.ts';
 import {
   LENS_COLS,
   LENS_POINTS,
@@ -12,9 +13,8 @@ import {
   gridPointDir,
   sampleGrid,
 } from '../../../app/src/globe/lens.ts';
-import type { Vec3 } from '../../../app/src/globe/cube.ts';
+import type { Vec3 } from '../../../app/src/geo/cube.ts';
 
-const EARTH_RADIUS_KM = 6371;
 const DEG = Math.PI / 180;
 
 export interface LensParams {
@@ -391,13 +391,11 @@ function flow(field: DiffusionField, points: Vec3[]): void {
   const MAX_STEP_RAD = 0.002;
   let t = 0;
   field.evaluate(0);
-  const v0 = field.v.slice();
   const prev = new Float64Array(points.length * 3);
   const a: Vec3 = [0, 0, 0];
   const b: Vec3 = [0, 0, 0];
   const mid: Vec3 = [0, 0, 0];
   let vmax0 = field.vmax;
-  void v0;
   for (let step = 0; step < 20000; step++) {
     if (vmax0 < 1e-7 || t > 40) break;
     const dt = Math.min(MAX_STEP_RAD / vmax0, 0.5);

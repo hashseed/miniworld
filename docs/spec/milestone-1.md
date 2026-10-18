@@ -33,20 +33,30 @@ The milestone proves the technical foundations every later milestone builds on: 
 
 ```
 app/              the browser app
+  src/core/       deterministic hash and noise, small shared store, camera type (no engine-dependent maths)
+  src/geo/        cube-sphere quadtree, Earth constants, local compass frame; shared with the data build
   src/time/       dates, historical clock, life clock, formatting
-  src/globe/      terrain, water, ice, sky, camera
+  src/globe/      terrain, water, ice, sky, clouds, foliage, history lens, camera
   src/timeline/   canvas timeline
-  src/ui/         Preact shell, settings, bookmarks
+  src/ui/         Preact shell, settings, bookmarks, saved state
   src/i18n/       message loading, plural rules, date and number formatting
-  src/content/    manifest, chunk loader, service worker
-  src/perf/       stress scene, quality settings, dynamic resolution, stats overlay
+  src/content/    manifest, chunk loader, binary formats
+  src/world/      the world query: pure functions from date and life clock to what is shown
+  src/vignettes/  drawing vignettes (milestone 2, section 18)
+  src/perf/       stress scene, fixed quality level, dynamic resolution, stats overlay
+  src/dev/        development pages, such as the asset sheet
   messages/       en.json, de.json
+  public/         files served as they are: the service worker and the built data
+assets/           code that generates the models (assets/src) and the asset sheet
 data/
   sources/        simplified extracts of the source datasets used, with their licence texts
   curated/        hand-curated records, such as eras (format in content-format.md)
-  schema/         one schema per content kind, shared by the data build and the app
+  schema/         one schema per content kind, shared by the data build and the app (planned)
   build/          Node scripts for the offline data build
   assets/         asset manifest and approved assets
+  out/            downloads and build caches (not committed)
+tests/browser/    Playwright tests
+scripts/          development tools, such as the test pool (section 2.5)
 dist/             build output (not committed)
 ```
 
@@ -66,12 +76,29 @@ All are npm scripts, run in the dev container or any machine with the pinned Nod
 | `npm run dev` | The dev server on port 8800 |
 | `npm run build` | Production build of app plus data into `dist/` |
 | `npm run check` | Lint, typecheck, unit and golden tests, data validation |
+| `npm run coverage` | Unit and golden tests with the coverage report and its thresholds (section 2.4) |
 | `npm run test:browser` | Playwright tests at desktop and phone sizes |
+| `npm run pool` | Runs the checks or browser tests for a commit in a worktree of the test pool (section 2.5) |
+| `npm run fixture-key` | Prints the hash of everything the fixture data build reads, the key of its cache (section 2.4) |
+| `npm run notices` | Regenerates `app/public/third-party-notices.txt` from the licences of the runtime dependencies (spec section 13) |
 | `npm run perf` | Runs the stress scene and prints the performance report (section 11.4) |
 
 ### 2.4 Continuous integration
 
-GitHub Actions runs on every pull request and on `main`: lint, typecheck, unit and golden tests, data validation against a small fixture dataset, the production build with its size check (section 10.6), and the Playwright tests in headless Chromium. CI does not judge frame rate, because CI machines are not the reference devices; it checks draw calls and triangle counts of the stress scene instead (section 11.4). The phone browser tests emulate a phone's screen size and touch input at device pixel ratio 1, because CI renders in software and a phone's full pixel density would make every test several times slower without testing anything more.
+GitHub Actions runs on every pull request and on `main`: lint, typecheck, unit and golden tests with the coverage report, data validation against a small fixture dataset, the production build with its size check (section 10.6), and the Playwright tests in headless Chromium. Three jobs run side by side so a pull request is checked in about three minutes: the static checks and unit tests; the fixture data build; and, once the data is built, the browser tests, split over five jobs (desktop and phone in two shards each, and the perf check), one test at a time, because the software renderer uses every core and two tests on one machine slow each other down more than they gain. The fixture data is cached under a hash of everything its build reads (`npm run fixture-key`), and the Playwright browser under its version, so neither is rebuilt or downloaded when nothing changed. A new push to a pull request cancels its running checks. CI does not judge frame rate, because CI machines are not the reference devices; it checks draw calls and triangle counts of the stress scene instead (section 11.4). The phone browser tests emulate a phone's screen size and touch input at device pixel ratio 1, because CI renders in software and a phone's full pixel density would make every test several times slower without testing anything more.
+
+`npm run coverage` runs the unit tests with a line and branch coverage report (`coverage/`). Its thresholds, overall and for the well-tested folders, are the coverage when they were set; a change may raise them but never lower them.
+
+### 2.5 Running tests locally
+
+Tests run in Yang's devenv container, but never in the checkout that serves the app on port 8800, which is the staging copy Yang looks at. `npm run pool -- <ref> [check|browser|all]` runs them for any commit in a pool of git worktrees beside that checkout (`../miniworld-pool/slot-<n>`, two slots by default):
+
+- A run takes a free slot under a lock, so runs from different threads never share one, checks the commit out there, and frees the slot when it ends. The lock is kept alive by a heartbeat file, so a run that is killed frees its slot a minute later. Worktrees stay for the next run.
+- Dependencies are installed only when `package-lock.json` changed since the slot's last run, with the pool's own npm cache and a time limit. The fixture data comes from a cache shared by all slots under the same key as in CI, and is built only when the key is new.
+- Each slot's browser tests start their own dev server on port 8810 + n. The browser tests never use port 8800 or a server that is already running, so they cannot test the staging copy by mistake.
+- Logs and the Playwright report of the last run are kept in the slot's `.pool/last/`. `npm run pool -- --prune` removes the slots and old caches.
+
+The browser tests read three settings from the environment: `MINIWORLD_PORT` (default 8810), `PW_WORKERS`, the number of tests at a time (default 1), and `MINIWORLD_CHROMIUM`, the path of a system Chromium for machines where Playwright's own download is not available.
 
 ## 3. Time
 
@@ -171,7 +198,7 @@ Every source must meet the data licence policy in [spec.md](spec.md#13-licences)
 - Lakes from Natural Earth are drawn as flat water at their surface height. Large rivers are drawn as wide, smooth bands of water with an ink outline, much wider than real rivers so they match the oversized people of later milestones (decided by Yang on 2026-10-17): the build smooths each river centreline into a curve and stores a river field per sample that is full within the river's core (about 12 km either side for the rivers Natural Earth ranks largest and 9 km for the others) and falls to zero over a further 30 km. Water is drawn where the field passes one half, so the banks are smooth curves at every zoom, and rivers keep the same width on the ground at every camera height.
 - **Smooth water at every zoom** (decided by Yang on 2026-10-17). The ocean level, lake field and river field of each tile are also uploaded as a small texture, and the fragment shader samples them with a cubic B-spline filter, so coastlines, lake shores and river banks are smooth curves even when the camera is closer than the data's sample spacing, instead of straight segments along the triangles. The vertices still use the same fields to place the land and water surfaces.
 - **Rivers reach the sea at every date** (decided by Yang on 2026-10-17). Natural Earth rivers end at today's coast, so the build continues each river mouth downhill across the land that the lower sea levels of the past expose, along the steepest way down the smoothed elevation and the ocean mask, until it reaches sea floor that is sea at every date (below −130 m) or a lake. In a flat basin with no way down (such as the Volga delta at the Caspian) it heads straight for the nearest water within 80 km, and every river runs on a few cells past its mouth so the smoothed shore never cuts it off. Where the sea is higher, the continuation lies under water and is not seen.
-- **Rivers flow** (decided by Yang on 2026-10-17). Lighter pulses travel down every river towards its mouth, like the waves on the sea. The build stores, per sample, the distance along the river in units of one pulse spacing of 150 km, measured downstream (the mouth is the end with the lower elevation). The pulses are animated by the life clock and stop when everything is frozen; the low tier shows them still.
+- **Rivers flow** (decided by Yang on 2026-10-17). Lighter pulses travel down every river towards its mouth, like the waves on the sea. The build stores, per sample, the distance along the river in units of one pulse spacing of 150 km, measured downstream (the mouth is the end with the lower elevation). The pulses are animated by the life clock and stop when history is paused.
 - **Smooth lakes** (decided by Yang on 2026-10-17). Lake outlines are smoothed like the rivers: the build blurs each lake's mask with the coast's Gaussian (about 20 km) and stores the result as a field from 0 to 1 per sample, and water is drawn where the interpolated field passes one half, with an ink outline.
 - The six textures are generated assets and ship only after Yang approves them (section 12).
 
@@ -180,12 +207,12 @@ Every source must meet the data licence policy in [spec.md](spec.md#13-licences)
 - **The sea is completely flat** (decided by Yang on 2026-10-17). It is drawn as its own surface exactly at the date's sea level (a few metres below, so it never fights the land for depth), covering every terrain tile with a coarse grid of its own (8 × 8 cells per tile). On tiles that are sea at every date, the sea surface also carries the ice over the sea (section 4.2). The terrain surface leaves out every point the smooth ocean field (section 5.1) marks as sea, and its sea floor and the foot of its coast lie below the sea surface, so the water never slopes up a shore or follows the relief. The coastline is where the smooth field crosses the sea level, drawn with its ink line on both surfaces. A sea that the ocean reaches inside a lake basin (such as the Baltic) is sea and lies at the sea level too. The sea has one colour at every depth, with no lighter shallows along the coasts (decided by Yang on 2026-10-17). Lakes and rivers use a slightly lighter blue.
 - The sea is a bright, saturated blue that looks like glossy plastic, with a lighter sheen towards the globe's edge but no reflection of the light.
 - **Waves and texture** (decided by Yang on 2026-10-17). The open sea carries a stylised cartoon pattern rather than a flat colour: soft lighter ripple bands of long wavelength (several times the spacing of the first version, decided by Yang on 2026-10-17) that drift slowly, small white wave crests scattered over the water that appear and fade, and a gentle swell in the shading. The pattern lives in world space so it stays put as the camera moves, and its scale adapts to the distance so it reads from orbit and close up. It does not mark depth, so there are still no lighter shallows. The large lakes and inland seas, such as the Black Sea and the Caspian, carry the same waves (decided by Yang on 2026-10-17); since only lakes of at least 3,000 km² are drawn, every drawn lake has them. Rivers stay without waves.
-- The waves are animated by the life clock. Animation stops when everything is frozen.
+- The waves are animated by the life clock. Animation stops when history is paused.
 
 ### 4.5 Sky and horizon
 
 - There is no atmosphere glow around the globe, no haze over distant terrain and no stars (decided by Yang on 2026-10-17). From orbit the globe sits on a soft pastel background, warm peach at the bottom of the screen fading to pale lilac and sky blue at the top, like a studio backdrop.
-- **Clouds.** About 30 big puffy cartoon clouds, each a cluster of soft white balls, float a little above the ground and drift slowly around the globe on the life clock (still when everything is frozen). Their places come from a seeded hash, so they are the same for every viewer. They carry no weather meaning. They fade out as the camera comes down through them, so they never block a low view, and are drawn in one batch.
+- **Clouds.** About 30 big puffy cartoon clouds, each a cluster of soft white balls, float a little above the ground and drift slowly around the globe on the life clock (still when history is paused). Their places come from a seeded hash, so they are the same for every viewer. They carry no weather meaning. They fade out as the camera comes down through them, so they never block a low view, and are drawn in one batch.
 - Close to the ground the sky behind the horizon fades from blue at the zenith to a paler blue at the horizon, so a low view does not look like space.
 - The curved horizon comes naturally from the sphere: as the camera comes down it tilts towards the horizon (section 6), giving the look of Populous: The Beginning.
 
@@ -257,7 +284,7 @@ The camera has one fly-to operation used by bookmarks now and by events and famo
 - The timeline is a strip along the bottom of the screen, drawn on a canvas, with its expand button built into its left edge. It has a date readout, the playhead, a lane "World" and one lane per region in the order of spec section 7.1.
 - Lanes show the era ranges from [eras.md](eras.md). The World lane uses a fixed colour per era; regional ranges use the colour assigned to that polity in `data/curated/eras` (later shared with the border overlay). Overlapping ranges in one lane stack into sub-rows.
 - A range's label is drawn inside it when it fits, otherwise it is shortened with an ellipsis and shown in full on hover or tap, together with its dates. German labels are about a third longer, so layout never assumes English widths.
-- **Collapsed (the default on every device):** the timeline shows only the lane of the region the globe is centred on, which changes as the viewer moves the globe (decided by Yang on 2026-10-17). The region comes from a coarse region lookup table built by the data build. A button at the left edge of the timeline, inside its frame (decided by Yang on 2026-10-18), expands it to the World lane and all regional lanes, taking at most about a third of the window height on desktop and two thirds on phones, and collapses it again. The choice is saved with the settings.
+- **Collapsed (the default on every device):** the timeline shows only the lane of the region the globe is centred on, which changes as the viewer moves the globe (decided by Yang on 2026-10-17). The collapsed timeline always keeps the height of the regional lane with the most sub-rows, so moving the globe to another region never changes its height or shifts the controls above it (decided by Yang on 2026-10-18); a lane with fewer sub-rows sits at the top and leaves the rest empty. The region comes from a coarse region lookup table built by the data build. A button at the left edge of the timeline, inside its frame (decided by Yang on 2026-10-18), expands it to the World lane and all regional lanes, taking at most about a third of the window height on desktop and two thirds on phones, and collapses it again. The choice is saved with the settings.
 
 ### 7.2 Axis and zoom
 
@@ -279,7 +306,8 @@ The camera has one fly-to operation used by bookmarks now and by events and famo
 
 ### 8.1 Screen layout
 
-- The globe fills the screen. Text on buttons, the speed selector, the date ribbon and the timeline cannot be selected, so clicking and dragging never highlights it (decided by Yang on 2026-10-17); text in the About panel and in cards can be selected. The timeline runs along the bottom. Above its left end sit the play controls: one play/pause button, the speed slider with its label and the rate readout. The top-right corner holds three buttons: bookmarks, settings and About. The history lens slider ([history-lens.md](history-lens.md) section 1) sits at the bottom right, at the right end of that row, just above the timeline.
+- The globe fills the screen. Text on buttons, the speed selector, the date ribbon and the timeline cannot be selected, so clicking and dragging never highlights it (decided by Yang on 2026-10-17); text in the About panel and in cards can be selected. The timeline runs along the bottom. Above its left end sit the play controls: one play/pause button, the speed slider with its value and the rate readout. The top-right corner holds three buttons: bookmarks, settings and About. The history lens button ([history-lens.md](history-lens.md) section 1) sits at the bottom right, at the right end of that row, just above the timeline.
+- Sliders fold away behind icon buttons, so the screen stays calm (decided by Yang on 2026-10-18). The speed slider folds away behind the play/pause button and the history lens slider behind a magnifying-glass button. Pointing at a button shows a short explanation of what it does, and the slider slides out beside it while the pointer is over the button or the slider, and folds away when the pointer leaves. On touch screens, where nothing can be pointed at, tapping the button opens its slider (the play/pause button also plays or pauses), and tapping anywhere else folds it away again. A slider also opens while it has keyboard focus. The play/pause explanation is "Play history; the slider beside it sets the speed" ("Geschichte abspielen; der Regler daneben stellt die Geschwindigkeit ein"), or "Pause history; …" ("Geschichte anhalten; …") while playing.
 - The date readout is large and clear above the timeline's playhead area, in the format of section 3.2.
 - All controls are at least 44 by 44 CSS pixels on touch devices, have visible focus outlines, and have accessible names in the current language.
 
@@ -302,6 +330,7 @@ A bookmark stores a date and a camera position under a name the viewer types, de
 
 - Every UI string lives in `app/messages/en.json` and `app/messages/de.json` under the same keys. Messages use ICU-style placeholders and plural forms, resolved with `Intl.PluralRules`. A small in-house formatter is used instead of a library, to keep the bundle small; it covers placeholders and plural forms only.
 - `npm run check` fails when a key exists in one language and not the other, when a message is empty, or when a component contains a string literal that is shown to the viewer. Textures and generated images carry no text.
+- The interface and the timeline use the Fredoka web font (variable weight, Latin and Latin Extended, so German umlauts and ß are covered), bundled with the app from `@fontsource-variable/fredoka` under the SIL Open Font License 1.1 (spec section 13), with `system-ui` as the fallback.
 - Numbers use `Intl.NumberFormat` for the active language. Dates use the in-house formatting of section 3.2, because `Intl.DateTimeFormat` does not handle years before 1 CE or the BCE suffixes well.
 - Switching language changes every visible string at once, including the timeline labels, tick labels, the rate readout, tooltips, accessible names, the About panel and the page title, without a reload and without changing date, camera or play state. The `lang` attribute of the page follows the language.
 - The light index (section 10.2) is per language; switching language loads the other language's index if it is not cached and keeps the old strings visible until it arrives.
@@ -396,7 +425,7 @@ The budget is spec section 9's: 60 fps average and never below 30 fps on the ref
 
 ### 11.2 Quality
 
-There is one fixed quality (decided by Yang on 2026-10-18, first three tiers chosen by a benchmark at first start: "the other modes are untested"), and no quality setting:
+There is one fixed quality and no quality setting (decided by Yang on 2026-10-18, replacing three tiers chosen by a benchmark at first start: "the other modes are untested"):
 
 | | |
 | --- | --- |
@@ -427,7 +456,7 @@ The stress scene proves the figure-heavy targets before any content exists and s
 
 ## 12. Assets in this milestone
 
-The only shipped assets are the six terrain textures, the water normal map and the ice texture. The interface icons are simple shapes drawn in code (SVG), and the interface uses the system font, so neither needs an approval or a licence entry. Each is generated and listed in `data/assets/manifest.json` with: id, file, kind, how it was generated, status (`generated`, `approved`, `rejected`), the date it was reviewed and a note. Until Yang approves an asset, the app uses a flat-coloured stand-in of the same size in development, and the production build fails if an unapproved asset is referenced. A dedicated font chosen for young readers may replace the system font in a later milestone; it would then be listed with the data sources.
+The only shipped assets are the six terrain textures, the water normal map and the ice texture. The interface icons are simple shapes drawn in code (SVG), and the interface uses the Fredoka web font (section 8.4), so neither needs an approval. Each is generated and listed in `data/assets/manifest.json` with: id, file, kind, how it was generated, status (`generated`, `approved`, `rejected`), the date it was reviewed and a note; a model built by code also records the hash of the geometry that was approved (milestone 2, section 13.3). Until Yang approves an asset, the app uses a flat-coloured stand-in of the same size in development, and the production build fails if an unapproved asset is referenced.
 
 ## 13. Tests
 
@@ -458,7 +487,7 @@ The definition of done in [milestones.md](milestones.md#definition-of-done-every
 
 ## 15. Out of scope
 
-Figures other than the stress-scene placeholders, the world query in the Web Worker, settlements, events and event markers on the timeline, borders and place names, info cards, regional vegetation such as the Green Sahara, sinking and rebound of land under the ice, vanished lakes, and offline use beyond what the service worker cache gives for free.
+Figures other than the stress-scene placeholders, the world query in the Web Worker, settlements, events and event markers on the timeline, borders and place names, info cards, regional vegetation other than the climate colouring of section 4.3 (which includes the Green Sahara), sinking and rebound of land under the ice, vanished lakes, and offline use beyond what the service worker cache gives for free.
 
 ## 16. Decisions
 

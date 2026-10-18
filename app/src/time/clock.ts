@@ -138,11 +138,6 @@ export class Clock {
     this.emit();
   }
 
-  /** Sets the life clock, used once at start so the first view is lit. */
-  setLifeMs(ms: number): void {
-    this.lifeAccumulator = ms;
-  }
-
   subscribe(listener: () => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);

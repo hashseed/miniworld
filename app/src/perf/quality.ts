@@ -4,14 +4,12 @@
 export interface QualitySettings {
   renderScaleCap: number;
   errorTargetPx: number;
-  waterDetail: number; // 0 foam only, 1 waves and foam, 2 waves, glint and foam
   animatedFigures: number;
 }
 
 export const QUALITY: QualitySettings = {
   renderScaleCap: 2,
   errorTargetPx: 1.5,
-  waterDetail: 2,
   animatedFigures: 5000,
 };
 

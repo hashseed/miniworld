@@ -6,3 +6,4 @@ data/sources
 package-lock.json
 docs
 *.md
+coverage

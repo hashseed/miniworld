@@ -3,11 +3,13 @@
 // shapes with few details, because dioramas are drawn far larger than life.
 
 import * as THREE from 'three';
+import { PROFILES, type Profile } from '../../app/src/world/cultures.ts';
 import {
   type BoneDef,
   type Model,
   type Vec3,
   ModelBuilder,
+  STONE,
   blob,
   cone,
   horn,
@@ -19,16 +21,7 @@ import {
   shade,
 } from './kit.ts';
 
-export const PROFILES = [
-  'african-stone-age',
-  'neanderthal',
-  'coastal-asia-hunter',
-  'first-australians',
-  'ice-age-hunter',
-  'steppe-beringia-hunter',
-  'natufian',
-] as const;
-export type Profile = (typeof PROFILES)[number];
+export { PROFILES, type Profile };
 export type Kind = 'man' | 'woman' | 'child';
 export type Tool =
   | 'spear'
@@ -583,7 +576,6 @@ function torusRing(
 }
 
 const WOOD = '#8a5a32';
-const STONE = '#9a958c';
 const FLINT = '#6f7378';
 
 function addTool(mb: ModelBuilder, tool: Tool, hand: Vec3, s: number): void {

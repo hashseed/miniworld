@@ -54,6 +54,8 @@ export class Timeline {
   /** Lanes shown; undefined shows all. */
   visibleLanes: string[] | undefined;
   private rowH = 16;
+  /** Most rows of any lane, reserved while a single lane is shown. */
+  private maxLaneRows = 1;
   private drag:
     | { kind: 'scrub' | 'pan' | 'tap'; x: number; a0: number; a1: number; moved: boolean }
     | undefined;
@@ -90,10 +92,6 @@ export class Timeline {
     const a0 = this.axis(p, mode) - frac * span;
     this.view = this.clampView(a0, a0 + span);
     this.transition = animate ? { from, start: performance.now() } : undefined;
-  }
-
-  get trueScale(): boolean {
-    return this.mode === 'true';
   }
 
   // --- Axis ------------------------------------------------------------------
@@ -168,12 +166,7 @@ export class Timeline {
 
   private layoutLanes(): void {
     this.lanes = this.buildLanes(this.visibleLanes);
-  }
-
-  /** Height all lanes need at the smallest readable row height. */
-  fullHeight(): number {
-    const lanes = this.buildLanes(undefined);
-    return RULER_H + lanes.reduce((n, l) => n + l.rows, 0) * MIN_ROW_H + lanes.length * 3 + 4;
+    this.maxLaneRows = Math.max(1, ...this.buildLanes(undefined).map((l) => l.rows));
   }
 
   private buildLanes(show: string[] | undefined): LaneLayout[] {
@@ -203,7 +196,10 @@ export class Timeline {
 
   /** Height the timeline needs at the current row height. */
   desiredHeight(maxHeight: number): number {
-    const rows = this.lanes.reduce((n, l) => n + l.rows, 0);
+    // A single lane (collapsed) reserves room for the lane with the most rows, so
+    // switching regions never changes the height.
+    const rows =
+      this.lanes.length === 1 ? this.maxLaneRows : this.lanes.reduce((n, l) => n + l.rows, 0);
     const gaps = this.lanes.length * 3;
     this.rowH = Math.max(
       MIN_ROW_H,
@@ -333,7 +329,7 @@ export class Timeline {
       const step =
         NICE_STEPS.find((s) => s / yearsPerPx >= 90) ?? NICE_STEPS[NICE_STEPS.length - 1]!;
       let next = Math.ceil((hy + 1e-6) / step) * step;
-      if (next === 0) next = step > 1 ? 1 : 1;
+      if (next === 0) next = 1; // there is no year 0
       out.push(next);
       hy = next;
     }
@@ -390,7 +386,7 @@ export class Timeline {
       c.setPointerCapture(e.pointerId);
       this.pinch.set(e.pointerId, e.clientX);
       if (this.pinch.size === 2) {
-        this.endDrag(false);
+        this.endDrag();
         const xs = [...this.pinch.values()];
         this.pinchStart = {
           dist: Math.abs(xs[1]! - xs[0]!),
@@ -445,7 +441,7 @@ export class Timeline {
         if (era) this.tooltip = { text: this.eraText(era), x, y, until: performance.now() + 4000 };
         else this.clock.setDay(this.dayAtX(x));
       }
-      this.endDrag(true);
+      this.endDrag();
     };
     c.addEventListener('pointerup', up);
     c.addEventListener('pointercancel', up);
@@ -488,9 +484,8 @@ export class Timeline {
     });
   }
 
-  private endDrag(release: boolean): void {
-    if (this.drag?.kind === 'scrub' && release) this.clock.endScrub();
-    else if (this.drag?.kind === 'scrub') this.clock.endScrub();
+  private endDrag(): void {
+    if (this.drag?.kind === 'scrub') this.clock.endScrub();
     this.drag = undefined;
   }
 

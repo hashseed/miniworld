@@ -1,4 +1,4 @@
-// Browser tests of milestone 1 (spec section 13), at desktop and phone sizes.
+// Browser tests (spec milestone 1, section 13), at desktop and phone sizes.
 
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync, statSync } from 'node:fs';
@@ -180,8 +180,12 @@ test('the lens slider morphs the globe and keeps the point in view', async ({ pa
       };
     });
   const slider = page.getByTestId('lens-strength');
+  // The slider is folded behind the magnifier until it is opened.
+  await expect(slider).toBeHidden();
+  await page.getByTestId('lens-button').click();
+  await expect(slider).toBeVisible();
   await expect(slider).toHaveValue('100');
-  await expect(page.locator('.lens-slider output')).toHaveText('100%');
+  await expect(page.locator('.lens-fold output')).toHaveText('100%');
   expect((await lens()).blend).toBe(1);
   const before = await lens();
   const lensOn = await page.locator('#globe').screenshot();
@@ -195,12 +199,32 @@ test('the lens slider morphs the globe and keeps the point in view', async ({ pa
   expect(lensOff.equals(lensOn)).toBe(false);
   await slider.fill('200');
   await expect.poll(async () => (await lens()).blend, { timeout: 90_000 }).toBe(2);
-  await expect(page.locator('.lens-slider output')).toHaveText('200%');
+  await expect(page.locator('.lens-fold output')).toHaveText('200%');
   // The strength is saved.
   await page.reload();
   await expect(page.locator('.overlay')).toHaveCount(0, { timeout: 60_000 });
   await expect(slider).toHaveValue('200');
   expect((await lens()).blend).toBe(2);
+});
+
+test('the speed slider folds behind the play button', async ({ page }, info) => {
+  await open(page);
+  const speed = page.getByTestId('speed');
+  const play = page.getByRole('button', { name: en['controls.play'] });
+  await expect(speed).toBeHidden();
+  await expect(play).toHaveAttribute('title', en['controls.playHint']!);
+  if (info.project.name === 'phone') {
+    // Tapping plays and opens the slider; a tap elsewhere folds it away.
+    await play.tap();
+    await expect(speed).toBeVisible();
+    await page.touchscreen.tap(200, 300);
+    await expect(speed).toBeHidden();
+  } else {
+    await play.hover();
+    await expect(speed).toBeVisible();
+    await page.mouse.move(640, 200);
+    await expect(speed).toBeHidden();
+  }
 });
 
 test('the lens hint shows once until closed', async ({ page }) => {

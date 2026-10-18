@@ -5,8 +5,8 @@
 
 import * as THREE from 'three';
 import { hash01 } from '../core/hash.ts';
-import { latLonToDir } from '../globe/cube.ts';
-import { EARTH_RADIUS_KM } from '../globe/tileMesh.ts';
+import { latLonToDir } from '../geo/cube.ts';
+import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 import { ANIMATIONS, FRAMES_PER_ANIM, buildPlaceholderFigure } from './placeholderFigure.ts';
 
 export const STRESS_CENTRE = { lat: 31.0, lon: 31.0 };
@@ -89,8 +89,9 @@ export class StressScene {
     const centre = new THREE.Vector3(...latLonToDir(STRESS_CENTRE.lat, STRESS_CENTRE.lon));
     // Local frame: y up, x east, z south.
     const up = centre.clone();
-    const north = new THREE.Vector3(0, 1, 0).sub(up.clone().multiplyScalar(up.y)).normalize();
-    const east = new THREE.Vector3().crossVectors(north, up).normalize();
+    const north = new THREE.Vector3();
+    const east = new THREE.Vector3();
+    northEast(up, north, east);
     const basis = new THREE.Matrix4().makeBasis(east, up, north.clone().negate());
     this.group.quaternion.setFromRotationMatrix(basis);
     this.group.position.copy(centre.multiplyScalar(EARTH_RADIUS_KM));
@@ -181,8 +182,9 @@ export class StressScene {
    */
   place(dir: THREE.Vector3): void {
     const up = dir.clone().normalize();
-    const north = new THREE.Vector3(0, 1, 0).sub(up.clone().multiplyScalar(up.y)).normalize();
-    const east = new THREE.Vector3().crossVectors(north, up).normalize();
+    const north = new THREE.Vector3();
+    const east = new THREE.Vector3();
+    northEast(up, north, east);
     const basis = new THREE.Matrix4().makeBasis(east, up, north.clone().negate());
     this.group.quaternion.setFromRotationMatrix(basis);
     this.group.position.copy(up.multiplyScalar(EARTH_RADIUS_KM + this.groundKm));
