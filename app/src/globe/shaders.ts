@@ -293,8 +293,12 @@ vec3 landColour(vec3 n, vec3 up, float arid, float riverF) {
   vec2 guv = vec2(atan(tu.x, tu.z) * 0.15915494 + 0.5 + wob.x * 0.0035, (90.0 - lat + wob.y * 0.6) / 150.0);
   vec4 g = lat > -60.0 ? mix(texture2D(groundA, guv), texture2D(groundB, guv), groundT) : vec4(0.0);
   c = mix(c, g.rgb, g.a * (0.85 + 0.15 * v));
-  float bank = smoothstep(0.01, 0.04, riverF) * smoothstep(0.3, 0.5, arid);
-  c = mix(c, vec3(0.42, 0.7, 0.27), bank);
+  // Green banks fade out into the desert on both sides, strongest at the water.
+  // The river field falls from the water's edge (riverThreshold) to 0 over
+  // about 15 km of land, so the banks use all of it.
+  float bank = smoothstep(0.0, riverThreshold * 0.9, riverF + (v - 0.5) * 0.04);
+  bank = bank * bank * 0.8 * smoothstep(0.3, 0.5, arid);
+  c = mix(c, vec3(0.5, 0.7, 0.3), bank);
   c = grassTufts(c, max(g.a, bank));
   // Mountains turn to rock towards the snow line and carry glacier caps on
   // their steep tops (section 4.3). The line follows the smoothed heights:
