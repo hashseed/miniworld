@@ -84,6 +84,16 @@ test('the mammoth hunt is visible from orbit, flies down and moves while playing
     await expect.poll(async () => (await hunt(page)).stages.length).toBe(1);
     if ((await hunt(page)).stages[0]!.lon < 45) break;
   }
+  // Look at it from orbit with the stage left of the centre, clear of the card.
+  const site = (await hunt(page)).stages[0]!;
+  await page.evaluate(
+    ([lat, lon]) => {
+      const m = (globalThis as unknown as { __miniworld: { controller: { state: object } } })
+        .__miniworld;
+      m.controller.state = { ...m.controller.state, lat, lon: lon + 6, altitudeKm: 6000 };
+    },
+    [site.lat, site.lon] as const,
+  );
   // A stage left of the card, which opens on the right on desktop.
   const { width, height } = page.viewportSize()!;
   const clear = (s: Debug['stages'][number]) =>
