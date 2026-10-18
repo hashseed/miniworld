@@ -2,7 +2,7 @@
 id: khafre-pyramid-building
 kind: vignette
 template: pyramid-building
-with: { builders: old-kingdom-egyptian, stone: stone-sledge }
+with: { builders: old-kingdom-egyptian }
 when:
   from: c. 2558 BCE
   to: c. 2532 BCE

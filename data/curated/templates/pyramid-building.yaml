@@ -1,28 +1,34 @@
-# Two haulers pull a block on a sledge from the quarry up a straight ramp to
-# the top of a rising pyramid, where a mason sets it in place, and walk back
-# down (docs/spec/giza.md sections 4.1 and 11.3). Marks are written for the
-# Great Pyramid (stage.fit) and scaled to the pyramid each record builds; +x
-# east, +z north, the ramp on the south side.
+# Builders raise a pyramid from the ground like a sand castle (docs/spec/giza.md
+# sections 4.1 and 11.3, decided by Yang on 2026-10-18): a stonecutter works
+# at the quarry, and two carriers bring blocks from the stone pile to the foot
+# of the pyramid, set them there and walk back for the next. No ramp, and
+# nobody stands on the pyramid. Marks are written for the Great Pyramid
+# (stage.fit) and scaled to the pyramid each record builds; +x east, +z
+# north, the crew on the south side.
 id: pyramid-building
-params: { builders: culture, stone: prop }
-loop: 320 s
+params: { builders: culture }
+loop: 120 s
 stage:
-  radius: 500 m
+  radius: 300 m
   fit: 230 m
   marks:
-    quarry: [70, -440]
-    ramp-foot: [0, -408]
-    top: [0, 0]
+    quarry: [110, -250]
+    pile-west: [-20, -240]
+    pile-east: [40, -240]
+    foot-west: [-35, -135]
+    foot-east: [35, -135]
 cast:
-  haulers: { culture: $builders, role: worker, count: 2, at: quarry }
-  sledge: { prop: $stone, count: 1, at: quarry }
-  mason: { culture: $builders, role: worker, count: 1, at: top }
+  stonecutter: { culture: $builders, role: worker, count: 1, at: quarry }
+  carrier-west: { culture: $builders, role: worker, count: 1, at: pile-west }
+  carrier-east: { culture: $builders, role: worker, count: 1, at: pile-east }
 beats:
-  - { at: 0, mason: { work-at: top } }
-  - { at: 0, haulers: { haul: ramp-foot }, sledge: { haul: ramp-foot } }
-  - { at: 30, haulers: { haul: top }, sledge: { haul: top } }
-  - { at: 175, sledge: fall, haulers: { cheer: mason }, mason: { cheer: haulers } }
-  - { at: 180, mason: { work-at: top } }
-  - { at: 182, haulers: { walk-to: ramp-foot } }
-  - { at: 285, haulers: { walk-to: quarry } }
-  - { at: 305, sledge: appear }
+  - {
+      at: 0,
+      stonecutter: { work-at: quarry },
+      carrier-west: { carry-to: foot-west },
+      carrier-east: { carry-to: foot-east },
+    }
+  - { at: 40, carrier-west: { work-at: foot-west }, carrier-east: { work-at: foot-east } }
+  - { at: 70, carrier-west: { cheer: carrier-east }, carrier-east: { cheer: carrier-west } }
+  - { at: 76, carrier-west: { walk-to: pile-west }, carrier-east: { walk-to: pile-east } }
+  - { at: 110, carrier-west: wait, carrier-east: wait }

@@ -98,7 +98,8 @@ export function parseDate(
   if (typeof v !== 'string') return undefined;
   const s = v.trim();
   if (s === 'start') return { first: startDay, end: startDay, approximate: false };
-  if (s === 'today') return { first: cutoffDay, end: cutoffDay, approximate: false };
+  // The last day of the timeline is included, so what stands 'to today' is still there on it.
+  if (s === 'today') return { first: cutoffDay, end: cutoffDay + 1, approximate: false };
   const m = /^(c\.\s*)?(\d{1,3}(?:,\d{3})*|\d+)(\s+BCE)?$/.exec(s);
   if (!m) return undefined;
   const year = Number(m[2]!.replace(/,/g, ''));
@@ -164,7 +165,15 @@ export function compileTemplate(
         e.add(`cast ${name} must be a map`);
         continue;
       }
-      unknownFields(e, `cast ${name}`, v, ['culture', 'animal', 'prop', 'role', 'count', 'at']);
+      unknownFields(e, `cast ${name}`, v, [
+        'culture',
+        'animal',
+        'prop',
+        'role',
+        'count',
+        'at',
+        'offset',
+      ]);
       const kind =
         v.culture !== undefined
           ? 'human'
@@ -184,6 +193,11 @@ export function compileTemplate(
         e.add(`cast ${name} needs a whole count of at least 1`);
       const at = str(v.at);
       if (!at || !marks[at]) e.add(`cast ${name} starts at unknown mark "${at}"`);
+      // A fixed offset from the group's marks, such as haulers ahead of their sledge.
+      const ox = Array.isArray(v.offset) ? num(v.offset[0]) : undefined;
+      const oz = Array.isArray(v.offset) ? num(v.offset[1]) : undefined;
+      if (v.offset !== undefined && (ox === undefined || oz === undefined))
+        e.add(`cast ${name}: offset must be [x, z] in metres`);
       groups.push({
         name,
         kind: kind ?? 'human',
@@ -191,6 +205,9 @@ export function compileTemplate(
         role: str(v.role),
         count: count ?? 1,
         at: at ?? '',
+        ...(ox !== undefined && oz !== undefined && (ox || oz)
+          ? { offsetCm: [Math.round(ox * 100), Math.round(oz * 100)] as [number, number] }
+          : {}),
         actions: [],
       });
     }

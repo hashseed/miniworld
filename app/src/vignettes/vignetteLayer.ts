@@ -288,7 +288,8 @@ export class VignetteLayer {
       actor.root.quaternion.multiply(
         this.turn.setFromAxisAngle(this.yAxis, Math.atan2(p.dirZ, p.dirX)),
       );
-      if (lean > 0) {
+      // Props stand flat on the ground: only people and animals lean like pop-up cut-outs.
+      if (lean > 0 && stage.members[i]!.kind !== 'prop') {
         // Tip the figure over its feet towards the top of the screen, so it is seen from the side.
         const leanTo = this.v1.copy(screenUp).addScaledVector(dir, -screenUp.dot(dir));
         if (leanTo.lengthSq() > 1e-8) {

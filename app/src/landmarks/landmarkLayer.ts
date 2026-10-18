@@ -166,7 +166,7 @@ export class LandmarkLayer {
         );
         // Pyramids are drawn steeper than life; other parts keep their shape (giza.md section 11.2).
         if (d.pyramid) o.scale.set(l.kmPerM, l.upKmPerM, l.kmPerM);
-        else o.scale.setScalar(l.upKmPerM);
+        else o.scale.setScalar(l.upKmPerM * (p.scale ?? 1));
         o.visible = this.v1.copy(camera.position).sub(f.centre).dot(f.up) > 0;
       }
     }

@@ -11,6 +11,7 @@ import {
   ModelBuilder,
   STONE,
   blob,
+  box,
   cone,
   horn,
   lathe,
@@ -520,18 +521,19 @@ export function buildPerson(o: PersonOptions): Model {
     );
   }
   if (bottom === 'sheath') {
-    // A white linen dress from under the arms to the ankles, on two straps.
+    // A white linen dress from under the arms to below the knees, on two straps,
+    // flared at the hem so the legs stay inside it when walking.
     mb.add(
       lathe(
         [
           [cx * 1.06, chestY + 0.08],
           [cx * 1.1, waist],
-          [cx * 1.12, b.hipY - 0.1],
-          [cx * 1.02, ankle + 0.16],
+          [cx * 1.25, b.hipY - 0.1],
+          [cx * 1.75, b.kneeY - 0.1],
         ],
         [0, 0, 0],
         8,
-        [1, 1, cz / cx + 0.12],
+        [1, 1, cz / cx + 0.35],
       ),
       hide,
       'hips',
@@ -544,18 +546,24 @@ export function buildPerson(o: PersonOptions): Model {
       );
   }
   if (bottom === 'apron' || bottom === 'skirt' || bottom === 'kilt') {
+    // The Egyptian kilt is shorter and flared, so the legs stay inside it when walking.
+    const flared = !!look.egyptian;
     const low =
-      bottom === 'apron' ? b.hipY - 0.18 : bottom === 'kilt' ? b.kneeY + 0.1 : b.kneeY + 0.04;
+      bottom === 'apron'
+        ? b.hipY - 0.18
+        : bottom === 'kilt'
+          ? b.kneeY + (flared ? 0.16 : 0.1)
+          : b.kneeY + 0.04;
     mb.add(
       lathe(
         [
           [cx * 0.92, waist + 0.02],
           [cx * 1.05, b.hipY - 0.04],
-          [cx * 1.2, low],
+          [cx * (flared ? 1.55 : 1.2), low],
         ],
         [0, 0, 0],
         7,
-        [1, 1, cz / cx + 0.15],
+        [1, 1, cz / cx + (flared ? 0.4 : 0.15)],
       ),
       bottom === 'apron' ? shade(hide, -0.1) : hide,
       'hips',
@@ -617,14 +625,23 @@ export function buildPerson(o: PersonOptions): Model {
   const tool = o.tool ?? look.tools[o.kind];
   addTool(mb, tool, [-(sx + 0.04), wrist, 0.03], o.kind === 'child' ? 0.75 : 1);
 
-  // A bundle of meat wrapped in hide and tied with cord, carried across the shoulders.
-  mb.add(blob([0, b.shoulderY + 0.2, -cz - 0.08], [cx * 1.8, 0.2, 0.22], 7), '#dcbc8c', 'load');
-  for (const dx of [-0.6, 0.6]) {
+  if (look.egyptian) {
+    // A limestone block carried on the shoulder, for building the pyramid.
     mb.add(
-      torusRing([dx * cx, b.shoulderY + 0.2, -cz - 0.08], 0.21, 0.025, 'x'),
-      '#5a3a22',
+      box([-cx * 1.1, b.shoulderY + 0.02, -cz - 0.28], [cx * 1.1, b.shoulderY + 0.4, -cz + 0.08]),
+      '#e6d3a8',
       'load',
     );
+  } else {
+    // A bundle of meat wrapped in hide and tied with cord, carried across the shoulders.
+    mb.add(blob([0, b.shoulderY + 0.2, -cz - 0.08], [cx * 1.8, 0.2, 0.22], 7), '#dcbc8c', 'load');
+    for (const dx of [-0.6, 0.6]) {
+      mb.add(
+        torusRing([dx * cx, b.shoulderY + 0.2, -cz - 0.08], 0.21, 0.025, 'x'),
+        '#5a3a22',
+        'load',
+      );
+    }
   }
 
   const model = mb.build(`${o.profile}-${o.kind}`);

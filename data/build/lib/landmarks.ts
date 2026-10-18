@@ -9,7 +9,6 @@ import { parse } from 'yaml';
 import {
   LANDMARK_ASSETS,
   PYRAMIDS,
-  RAMP_REACH,
   SPHINX_LENGTH,
   type LandmarkAssetId,
 } from '../../../assets/src/landmarks.ts';
@@ -47,6 +46,8 @@ const RECORD_FIELDS = [
 ];
 
 const KM_PER_DEG = 111.32;
+/** Room south of a pyramid's base for its building crew and their stone pile, in metres. */
+const CREW_ROOM_M = 160;
 /** Step of the move off the water, in km (giza.md section 11.2). */
 const SHIFT_STEP_KM = 1;
 const MAX_SHIFT_KM = 600;
@@ -63,7 +64,7 @@ export interface BuiltLandmark {
   fromApproximate: boolean;
   /** Parts a singular vignette can build. */
   parts: Map<string, LandmarkPartInfo>;
-  /** The group's drawn footprint, every part at its biggest with its ramp. */
+  /** The group's drawn footprint, every part at its biggest. */
   footprint: Rect[];
 }
 
@@ -88,8 +89,8 @@ export interface LandmarkInputs {
 
 /**
  * Base in metres of a landmark asset, and its drawn footprint in km around
- * the part's centre at the landmark's scale: a pyramid's base with its ramp
- * to the south, drawn across at kmPerM; the Sphinx drawn evenly at upKmPerM
+ * the part's centre at the landmark's scale: a pyramid's base with room for
+ * its building crew to the south, drawn across at kmPerM; the Sphinx drawn evenly at upKmPerM
  * (giza.md section 11.2).
  */
 export function assetSize(
@@ -101,7 +102,7 @@ export function assetSize(
   if (a.pyramid) {
     const p = PYRAMIDS[a.pyramid];
     const b = (p.base / 2) * kmPerM;
-    return { baseM: p.base, rect: [-b, b, -b - RAMP_REACH * p.height * kmPerM, b] };
+    return { baseM: p.base, rect: [-b, b, -b - CREW_ROOM_M * kmPerM, b] };
   }
   const r = (SPHINX_LENGTH / 2) * upKmPerM;
   return { baseM: SPHINX_LENGTH, rect: [-r, r, -r, r] };
@@ -244,7 +245,9 @@ function compileLandmark(
         e.add(`part ${name} must be a map`);
         continue;
       }
-      unknownFields(e, `part ${name}`, v, ['at', 'stages']);
+      unknownFields(e, `part ${name}`, v, ['at', 'scale', 'stages']);
+      const scale = num(v.scale) ?? 1;
+      if (!(scale > 0)) e.add(`part ${name}: scale must be above 0`);
       const at = point(v.at);
       if (!at) e.add(`part ${name} needs at: [lat, lon]`);
       const stages: CompiledPart['stages'] = [];
@@ -270,7 +273,13 @@ function compileLandmark(
       const north = (at[0] - where[0]) * KM_PER_DEG * 1000;
       const east = (at[1] - where[1]) * KM_PER_DEG * 1000 * Math.cos((where[0] * Math.PI) / 180);
       firstAssets.set(name, stages[0]!.asset as LandmarkAssetId);
-      parts.push({ name, east: Math.round(east * 100), north: Math.round(north * 100), stages });
+      parts.push({
+        name,
+        east: Math.round(east * 100),
+        north: Math.round(north * 100),
+        ...(scale !== 1 ? { scale } : {}),
+        stages,
+      });
     }
 
   if (size && across && high) {
@@ -280,7 +289,10 @@ function compileLandmark(
     else {
       kmPerM = across / PYRAMIDS[pyramid].base;
       upKmPerM = high / PYRAMIDS[pyramid].height;
-      for (const [name, asset] of firstAssets) sizes.set(name, assetSize(asset, kmPerM, upKmPerM));
+      for (const [name, asset] of firstAssets) {
+        const k = parts.find((p) => p.name === name)?.scale ?? 1;
+        sizes.set(name, assetSize(asset, kmPerM, upKmPerM * k));
+      }
     }
   }
 

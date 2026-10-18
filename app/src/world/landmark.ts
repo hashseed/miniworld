@@ -18,6 +18,8 @@ export interface CompiledPart {
   /** Offset from the landmark's point in whole centimetres, east and north. */
   east: number;
   north: number;
+  /** A part that is not a pyramid is drawn this many times larger than the landmark's factor. */
+  scale?: number;
   stages: CompiledStage[];
   build?: CompiledBuild;
 }

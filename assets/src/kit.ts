@@ -438,3 +438,10 @@ export function shade(colour: THREE.ColorRepresentation, amount: number): THREE.
   const c = new THREE.Color(colour);
   return amount >= 0 ? c.lerp(new THREE.Color(1, 1, 1), amount) : c.multiplyScalar(1 + amount);
 }
+
+/** An axis-aligned box from its lowest to its highest corner: blocks, slabs, steles. */
+export function box(min: Vec3, max: Vec3): THREE.BufferGeometry {
+  const g = new THREE.BoxGeometry(max[0] - min[0], max[1] - min[1], max[2] - min[2]);
+  g.translate((min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2);
+  return g;
+}

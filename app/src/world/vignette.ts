@@ -82,6 +82,8 @@ export interface CompiledGroup {
   role?: string;
   count: number;
   at: string;
+  /** Where the group stands relative to its marks, in centimetres, like a formation (giza.md section 11.3). */
+  offsetCm?: [number, number];
   actions: CompiledAction[];
 }
 
@@ -217,7 +219,11 @@ export function formationOffset(group: CompiledGroup, i: number): [number, numbe
   const inRow = row === rows - 1 ? group.count - row * cols : cols;
   const col = i - row * cols;
   const step = SPACING_CM[group.kind];
-  return [Math.round((row - (rows - 1) / 2) * step), Math.round((col - (inRow - 1) / 2) * step)];
+  const [ox, oz] = group.offsetCm ?? [0, 0];
+  return [
+    ox + Math.round((row - (rows - 1) / 2) * step),
+    oz + Math.round((col - (inRow - 1) / 2) * step),
+  ];
 }
 
 function posAt(s: Segment, t: number): [number, number] {

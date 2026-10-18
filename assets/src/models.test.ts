@@ -13,7 +13,6 @@ import {
   LANDMARK_ASSETS,
   PROPS,
   PYRAMIDS,
-  RAMP_REACH,
   buildLandmarkAsset,
   buildProp,
   buildPyramid,
@@ -214,7 +213,6 @@ describe('landmarks', () => {
       expect(pyramidShape(id, 0.85).core).toBeCloseTo(H);
       const done = pyramidShape(id, 1);
       expect(done.casingFrom).toBe(0);
-      expect(done.ramp).toBe(0);
       // The drawn model's height matches the shape.
       expect(bounds(buildPyramid(id, pyramidShape(id, 0.5))).max.y).toBeCloseTo(
         pyramidShape(id, 0.5).core,
@@ -223,20 +221,15 @@ describe('landmarks', () => {
     },
   );
 
-  it('figures stand on the ramp and the top of the rising pyramid', () => {
+  it('the surface follows the rising and the finished pyramid, with ground around it', () => {
     const shape = pyramidShape('khufu', 0.5);
     const { base, height } = PYRAMIDS.khufu;
     expect(pyramidSurface('khufu', shape, 0, 0)).toBeCloseTo(shape.core);
-    // Halfway up the ramp, south of the base, the ramp carries them above the ground.
-    const foot = -(base / 2 + RAMP_REACH * height);
-    const meet = -(base / 2) * (1 - shape.ramp / height);
-    expect(pyramidSurface('khufu', shape, 0, (foot + meet) / 2)).toBeCloseTo(shape.ramp / 2, 0);
-    expect(pyramidSurface('khufu', shape, 0, foot - 1)).toBe(0);
-    // Away from the ramp, outside the base, there is only ground.
+    // Outside the base, where the crew works, there is only ground.
+    expect(pyramidSurface('khufu', shape, 0, -base / 2 - 1)).toBe(0);
     expect(pyramidSurface('khufu', shape, base, 0)).toBe(0);
-    // The finished pyramid has no ramp and a pointed top.
+    // The finished pyramid has a pointed top.
     const done = pyramidShape('khufu', 'complete');
-    expect(pyramidSurface('khufu', done, 0, (foot + meet) / 2)).toBe(0);
     expect(pyramidSurface('khufu', done, 0, 0)).toBeCloseTo(height);
   });
 

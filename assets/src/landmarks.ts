@@ -6,7 +6,7 @@
 // stand figures on what is drawn (pyramidSurface).
 
 import * as THREE from 'three';
-import { type Model, type Vec3, ModelBuilder, blob, shade } from './kit.ts';
+import { type Model, type Vec3, ModelBuilder, blob, box, shade } from './kit.ts';
 
 export interface PyramidSize {
   /** Side of the square base in metres. */
@@ -57,34 +57,31 @@ export type LandmarkAssetId = keyof typeof LANDMARK_ASSETS;
 export const PROPS = ['stone-sledge'] as const;
 export type PropId = (typeof PROPS)[number];
 
-/** Length of the Sphinx from paws to tail, in metres. */
-export const SPHINX_LENGTH = 73;
+/**
+ * Length of the model Sphinx from paws to tail, in metres: chunky toy
+ * proportions, shorter than the real 73 m for its 20 m height, so it reads
+ * as a lion when drawn large (giza.md section 11.2).
+ */
+export const SPHINX_LENGTH = 46;
 
 /** Visible tiers of the stepped core: chunky clay steps, not the 200 real courses. */
 const TIERS = 24;
 /** Share of the build in which the core rises; after it the casing is laid from the top down. */
 export const CORE_SHARE = 0.85;
-/** The ramp foot lies this many pyramid heights beyond the edge of the base, so it climbs at about 27 degrees. */
-export const RAMP_REACH = 2;
-/** Width of the ramp as a share of the base: wide enough for the enlarged haulers. */
-const RAMP_WIDTH = 0.25;
 
 const CORE = '#d6bc8a';
 const CASING = '#f2ebd9';
 const GRANITE = '#b0645a';
-const RAMP = '#a88a63';
 const SAND = '#e3c690';
 const SPHINX = '#d9bd8c';
 const GASH = '#8a7356';
 
-/** What of a pyramid is drawn at a moment: the core's height, the casing and the ramp. */
+/** What of a pyramid is drawn at a moment: the core's height and the casing. */
 export interface PyramidShape {
   /** Height of the stepped core in metres, in whole tiers. */
   core: number;
   /** The casing covers the faces from this height in metres to the apex; Infinity for none. */
   casingFrom: number;
-  /** Top of the ramp in metres; 0 for none. */
-  ramp: number;
   /** Height at which the stepped top is cut flat (Khufu has lost its top stones). */
   top: number;
   gash: boolean;
@@ -99,24 +96,23 @@ export function pyramidShape(id: PyramidId, rise: number | PyramidState): Pyrami
     const f = Math.min(1, Math.max(0, rise));
     const coreF = Math.min(1, f / CORE_SHARE);
     const core = Math.floor(coreF * TIERS + 1e-9) * tier;
-    // The casing goes on from the apex down while the ramp is taken away.
+    // The casing goes on from the apex down.
     const lay = f <= CORE_SHARE ? 0 : (f - CORE_SHARE) / (1 - CORE_SHARE);
     const casingFrom = f <= CORE_SHARE ? Infinity : Math.floor((1 - lay) * TIERS + 1e-9) * tier;
-    return { core, casingFrom, ramp: f >= 1 ? 0 : Math.min(core, casingFrom), top: H, gash: false };
+    return { core, casingFrom, top: H, gash: false };
   }
   switch (rise) {
     case 'complete':
-      return { core: H, casingFrom: 0, ramp: 0, top: H, gash: false };
+      return { core: H, casingFrom: 0, top: H, gash: false };
     case 'gash':
-      return { core: H, casingFrom: 0, ramp: 0, top: H, gash: true };
+      return { core: H, casingFrom: 0, top: H, gash: true };
     case 'stripping':
-      return { core: H, casingFrom: H * 0.5, ramp: 0, top: H, gash: false };
+      return { core: H, casingFrom: H * 0.5, top: H, gash: false };
     case 'stepped': {
       const top = id === 'khufu' ? H * 0.94 : H;
       return {
         core: top,
         casingFrom: p.cap ? H * (1 - p.cap) : Infinity,
-        ramp: 0,
         top,
         gash: false,
       };
@@ -125,9 +121,8 @@ export function pyramidShape(id: PyramidId, rise: number | PyramidState): Pyrami
 }
 
 /**
- * Height in metres of the drawn pyramid and its ramp over a point (x east,
- * z north of the centre, in metres). The ramp rises from its foot south of
- * the base straight to the top of the core.
+ * Height in metres of the drawn pyramid over a point (x east, z north of the
+ * centre, in metres).
  */
 export function pyramidSurface(id: PyramidId, shape: PyramidShape, x: number, z: number): number {
   const p: PyramidSize = PYRAMIDS[id];
@@ -141,12 +136,6 @@ export function pyramidSurface(id: PyramidId, shape: PyramidShape, x: number, z:
     const tier = H / TIERS;
     const stepped = Math.floor(slope / tier) * tier;
     h = Math.min(cased ? slope : stepped, shape.core, shape.top);
-  }
-  if (shape.ramp > 0 && Math.abs(x) < (p.base * RAMP_WIDTH) / 2) {
-    const foot = -(b + RAMP_REACH * H);
-    const meet = -b * (1 - shape.ramp / H);
-    if (z > foot && z < meet + 1)
-      h = Math.max(h, shape.ramp * Math.min(1, (z - foot) / (meet - foot)));
   }
   return h;
 }
@@ -175,12 +164,6 @@ function frustum(y0: number, y1: number, h0: number, h1: number): THREE.BufferGe
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(v, 3));
   g.computeVertexNormals();
-  return g;
-}
-
-function box(min: Vec3, max: Vec3): THREE.BufferGeometry {
-  const g = new THREE.BoxGeometry(max[0] - min[0], max[1] - min[1], max[2] - min[2]);
-  g.translate((min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2);
   return g;
 }
 
@@ -221,28 +204,6 @@ export function buildPyramid(id: PyramidId, shape: PyramidShape): Model {
       box([-half(coreTop), coreTop - 0.5, -half(coreTop)], [half(coreTop), coreTop, half(coreTop)]),
       shade(CORE, 0.08),
     );
-  }
-  // The ramp: a wedge from its foot south of the base to the top of the core.
-  if (shape.ramp > 0) {
-    const w = (p.base * RAMP_WIDTH) / 2;
-    const foot = b + RAMP_REACH * H;
-    const meet = half(shape.ramp);
-    const v: number[] = [];
-    const tri = (a: Vec3, c: Vec3, d: Vec3) => v.push(...a, ...c, ...d);
-    const A: Vec3 = [-w, 0, foot];
-    const B: Vec3 = [w, 0, foot];
-    const C: Vec3 = [w, shape.ramp, meet];
-    const D: Vec3 = [-w, shape.ramp, meet];
-    const E: Vec3 = [w, 0, meet];
-    const F: Vec3 = [-w, 0, meet];
-    tri(A, B, C);
-    tri(A, C, D);
-    tri(B, E, C);
-    tri(A, D, F);
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(v, 3));
-    g.computeVertexNormals();
-    mb.add(g, RAMP);
   }
   if (shape.gash) {
     // The cut left in the north face in 1196 (giza.md section 5).

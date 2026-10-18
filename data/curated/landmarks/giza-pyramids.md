@@ -8,7 +8,7 @@ icon: pyramid
 beacon: wonder
 debated: numbers
 size: { part: khufu, across: 180 km, high: 115 km }
-spacing: 0.6
+spacing: 0.7
 parts:
   khufu:
     at: [29.9792, 31.1342]
@@ -28,6 +28,7 @@ parts:
       - { from: 1196, asset: giza-menkaure-gash }
   sphinx:
     at: [29.9753, 31.1376]
+    scale: 6
     stages:
       - { from: c. 2550 BCE, asset: giza-sphinx-new }
       - { from: c. 2180 BCE, asset: giza-sphinx-sand }

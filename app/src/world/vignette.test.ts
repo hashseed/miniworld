@@ -102,7 +102,7 @@ describe('vignette player', () => {
   });
 
   it('scales the building stage to each pyramid and closes the loop at every size', () => {
-    const k = menkaure.template.marks['ramp-foot']![1] / khufu.template.marks['ramp-foot']![1];
+    const k = menkaure.template.marks['foot-west']![1] / khufu.template.marks['foot-west']![1];
     expect(k).toBeCloseTo(103.4 / 230.3, 2);
     for (const v of [khufu, menkaure]) {
       expect(loopErrors(v.template)).toEqual([]);
@@ -114,21 +114,19 @@ describe('vignette player', () => {
     }
   });
 
-  it('hauls the sledge up to the top, where the block sinks into place', () => {
+  it('carries blocks to the foot of the pyramid and sets them there, never climbing it', () => {
     const inst = instancesAt(khufu, khufu.fromDay)[0]!;
     const members = buildMembers(khufu.template);
     const at = (s: number) => {
       const lifeMs = s * 1000 - inst.offsetMs + khufu.template.loopMs;
-      return posesAt(khufu.template, members, inst, lifeMs).find((p) => p.group === 'sledge')!;
+      return posesAt(khufu.template, members, inst, lifeMs).find(
+        (p) => p.group === 'carrier-west',
+      )!;
     };
-    expect(at(150).z).toBeGreaterThan(at(80).z);
-    expect(at(170).x).toBe(0);
-    expect(at(170).z).toBe(0);
-    expect(at(180).visibility).toBe(0);
-    expect(at(319).visibility).toBe(1);
-    const hauler = posesAt(khufu.template, members, inst, 100_000 - inst.offsetMs).find(
-      (p) => p.group === 'haulers',
-    )!;
-    expect(hauler.clip).toBe('haul');
+    expect(at(10).clip).toBe('carry');
+    expect(at(10).z).toBeGreaterThan(at(1).z);
+    expect(at(55).clip).toBe('work');
+    // The foot of the pyramid lies outside its base: half of 230.3 m south of the centre.
+    for (let t = 0; t < 120; t += 5) expect(at(t).z).toBeLessThan(-11515);
   });
 });

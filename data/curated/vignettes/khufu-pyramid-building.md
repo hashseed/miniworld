@@ -2,7 +2,7 @@
 id: khufu-pyramid-building
 kind: vignette
 template: pyramid-building
-with: { builders: old-kingdom-egyptian, stone: stone-sledge }
+with: { builders: old-kingdom-egyptian }
 when:
   from: c. 2589 BCE
   to: c. 2560 BCE

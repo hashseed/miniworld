@@ -2,7 +2,7 @@
 id: menkaure-pyramid-building
 kind: vignette
 template: pyramid-building
-with: { builders: old-kingdom-egyptian, stone: stone-sledge }
+with: { builders: old-kingdom-egyptian }
 when:
   from: c. 2532 BCE
   to: c. 2503 BCE
