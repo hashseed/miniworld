@@ -14,6 +14,8 @@ export const TERRAIN_SAMPLES = TILE_N + 1;
 export const DEEP_HEIGHT = -1000;
 /** Tiles at and above this level are listed in the manifest itself, deeper ones in a part file per tile of this level (section 10.1). */
 export const PART_LEVEL = 2;
+/** Content time windows, of equal width on the log timeline axis (section 10.3). */
+export const TIME_WINDOWS = 35;
 
 /**
  * Ocean channel: values 0..OCEAN_TOP × OCEAN_SCALE give the sea level

@@ -27,7 +27,7 @@ const PLACES: Record<string, [lat: number, lon: number]> = {
   Baltic: [58.5, 20],
   'Caspian Sea': [42, 50.5],
 };
-const BCE = [50_000, 20_000, 12_000, 8000, 6200, 3000];
+const BCE = [70_000, 50_000, 20_000, 12_000, 8000, 6200, 3000];
 
 /** Reads the built data from disk as the browser would fetch it. */
 const fetchFile = async (input: RequestInfo | URL): Promise<Response> => {

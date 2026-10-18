@@ -68,7 +68,7 @@ export interface BuiltLandmark {
   footprint: Rect[];
 }
 
-/** Moves a built landmark's drawn point off the water (giza.md section 2). */
+/** Moves a built landmark's drawn point off the water, in place (giza.md section 2). */
 export function placeOffWater(
   l: BuiltLandmark,
   wet: (lat: number, lon: number) => boolean,
