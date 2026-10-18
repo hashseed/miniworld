@@ -362,6 +362,53 @@ All dates are checked against sources when the records are written, and the rows
 
 Every asset is listed in `data/assets/manifest.json` with its status (milestone 1 section 12). Until approved, the app draws a flat-coloured stand-in of the same size, and the production build fails if an unapproved asset is referenced.
 
+### 13.3 The prehistoric model set
+
+The first models are the people, shelters and animals of the seven culture profiles of section 4. Each is a modelling script in `assets/src/` that returns the model at life size in metres, facing +Z with its feet on y = 0, so the miniature factor (section 5.1) is applied in one place. Colours are flat vertex-colour regions, lit by the same cel-shaded studio light as the globe (milestone 1 section 3.6) and outlined in ink by an inverted hull.
+
+**People.** Every profile has a man, a woman and a child, built on the shared skeleton of section 5.2 (body, head, upper and lower arms, legs) so the same clips drive all of them. **Proposed:** about 1,000 to 1,250 triangles at the closest level of detail rather than the 700 of section 5.1, because round clay shapes need more; the simplified level of section 5.5 stays at about 150. Dioramas are not to scale (decided by Yang on 2026-10-18): figures and animals are drawn far larger than life so they can be seen from orbit, so every model is built for a bold silhouette with few details, chunky limbs and strong colour contrast, and heads and hands are about 1.4 times life size so roles read from a distance. Clothing, hair and the held tool change per profile; the body proportions change only for Neanderthals (shorter, broader chest, short shins, heavy brow, no chin). Skin and hair colours are picked per figure by hash from a range per profile, wide in every band. Early modern Europeans are given medium to dark skin, because ancient DNA shows light skin spread in Europe only after about 8000 BCE (Olalde et al. 2014, *Nature* 507). Neanderthals range from light to medium skin with some red hair (Lalueza-Fox et al. 2007, *Science* 318).
+
+| Profile | Clothing | Tools in hand |
+| --- | --- | --- |
+| `african-stone-age` | Short hide wrap or apron, ostrich-eggshell bead strings | Spear, digging stick, bow (bows from c. 62,000 BCE, Sibudu) |
+| `neanderthal` | Draped untailored hide over the shoulders, fur wraps on the legs | Heavy thrusting spear, stone scraper |
+| `coastal-asia-hunter` | Plant-fibre skirt or hide wrap | Fishing spear, shell basket |
+| `first-australians` | Possum-skin cloak (in the south), ochre lines on the skin | Spear, digging stick, wooden dish |
+| `ice-age-hunter` | Tailored fur tunic, trousers and boots sewn with bone needles | Spear with spear-thrower (from c. 16,000 BCE; spear alone before), sewing needle |
+| `steppe-beringia-hunter` | Heavy hooded fur parka, fur trousers and boots | Spear (with a fluted point in the Americas), scraper |
+| `natufian` | Hide tunic, bead headband | Flint sickle in a bone haft, grinding stone |
+
+**Shelters and camp props.**
+
+| Id | Model | Profiles |
+| --- | --- | --- |
+| `shelter-hide-tent` | Cone of poles covered in sewn hides, smoke hole at the top | `ice-age-hunter`, `steppe-beringia-hunter` |
+| `shelter-mammoth-bone-hut` | Dome of mammoth jaws, tusks and long bones over a hide cover (Mezhyrich, Ukraine, c. 13,000 BCE) | `ice-age-hunter` on the plains of Ukraine |
+| `shelter-windbreak` | Hide stretched on a curved row of poles, as at the mouth of a rock shelter | `neanderthal` |
+| `shelter-grass-hut` | Low dome of bent branches thatched with grass | `african-stone-age` |
+| `shelter-lean-to` | Sloping roof of branches and leaves on two forked posts | `coastal-asia-hunter` |
+| `shelter-bark` | Curved sheets of bark over a frame of bent saplings | `first-australians` |
+| `shelter-natufian-house` | Round house sunk into the ground on a ring of stones, with a brush roof (Ain Mallaha) | `natufian` |
+| `prop-hearth` | Ring of stones with a cartoon fire | All |
+| `prop-drying-rack` | Poles with a stretched hide | All but `natufian` |
+
+**Animals.** 300 to 3,000 triangles each (spec section 8), built from the same primitives, standing at life size. Nothing is shown wounded.
+
+| Id | Animal | Where |
+| --- | --- | --- |
+| `animal-mammoth` | Woolly mammoth | Europe, Siberia, Beringia, North America |
+| `animal-woolly-rhino` | Woolly rhinoceros | Europe and northern Asia |
+| `animal-reindeer` | Reindeer, caribou in America | Europe, northern Asia, Beringia |
+| `animal-horse` | Wild horse, dun with a dark upright mane as in cave paintings | Europe and Asia |
+| `animal-bison` | Steppe bison | Europe, northern Asia, North America |
+| `animal-cave-bear` | Cave bear | Europe |
+| `animal-wolf` | Grey wolf (dogs come with milestone 3) | Northern hemisphere |
+| `animal-eland` | Eland | Africa |
+| `animal-gazelle` | Mountain gazelle | The Levant |
+| `animal-kangaroo` | Grey kangaroo | Sahul |
+
+**Review sheets.** `npm run asset-sheets` serves `app/asset-sheet.html` with the dev server and saves one image per sheet with Playwright: each profile's man, woman and child beside its shelter and hearth; a turnaround of one figure; all shelters; all animals with a figure for scale. The sheets go to Yang for review (section 13.2) and every model is listed in `data/assets/manifest.json` with status `generated` until approved.
+
 ## 14. Performance
 
 The budget of spec section 9 holds with this milestone's content. Two new scenes join the stress scene of milestone 1 in `npm run perf`:
