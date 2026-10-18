@@ -134,8 +134,11 @@ function fail(message: string): never {
   process.exit(1);
 }
 
+const started = performance.now();
+/** Logs a step with the seconds since the build started, so slow stages show. */
 function log(message: string): void {
-  console.log(`build-data: ${message}`);
+  const s = ((performance.now() - started) / 1000).toFixed(1).padStart(5);
+  console.log(`build-data ${s}s: ${message}`);
 }
 
 function sha256(path: string): string {
@@ -469,7 +472,6 @@ for (const bp of climateYears) {
   };
   climateFiles.push(output.write(`climate/${bp}`, 'bin', encodeClimateSlice(slice)));
 }
-const climateBytes = climateFiles.reduce((n, f) => n + (output.sizes.get(f) ?? 0), 0);
 // One foliage slice per climate step (spec foliage.md, section 2): the biome
 // class per 0.5° cell, with the humid periods turning dry land to savanna, and
 // the tree density near the ice sheets and in cold or dry climates.
@@ -491,10 +493,8 @@ const foliageFiles = climateYears.map((bp) => {
     encodeFoliageSlice({ day: sliceDay(bp), cells: grid.classes, density: grid.density }),
   );
 });
-const foliageBytes = foliageFiles.reduce((n, f) => n + (output.sizes.get(f) ?? 0), 0);
-log(`${foliageFiles.length} foliage slices, ${(foliageBytes / 1000).toFixed(0)} KB Brotli`);
 log(
-  `${climateFiles.length} climate slices, ${(climateBytes / 1000).toFixed(0)} KB Brotli; lowest sea level ${Math.min(...seaLevel.metres)} m`,
+  `${climateFiles.length} climate and foliage slices; lowest sea level ${Math.min(...seaLevel.metres)} m`,
 );
 
 // --- History lens -------------------------------------------------------------
@@ -665,6 +665,12 @@ const manifest: Manifest = {
 };
 output.writeNamed('manifest.json', new TextEncoder().encode(JSON.stringify(manifest)));
 
+await output.finish();
+const brotliKb = (files: string[]) =>
+  (files.reduce((n, f) => n + (output.sizes.get(f) ?? 0), 0) / 1000).toFixed(0);
+log(
+  `climate slices ${brotliKb(climateFiles)} KB Brotli, foliage slices ${brotliKb(foliageFiles)} KB`,
+);
 const mb = (n: number) => (n / 1e6).toFixed(1);
 log(
   `${output.files} files, ${mb(output.rawBytes)} MB raw, ${mb(output.compressedBytes)} MB Brotli → ${OUT}`,
