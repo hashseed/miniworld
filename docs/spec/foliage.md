@@ -58,6 +58,7 @@ Desert, barren land, the colder tundra classes and land ice have no plants. Shar
 - **Where plants never stand:** on the sea of the date, lakes and rivers (their fields above about 0.4), within 2.5 km of the coast (so no tree hangs over the beach), on ice (within 25 km of the ice border), and above the tree line, which runs at about 3,800 m in the tropics and falls by about 75 m per degree of latitude beyond 25°.
 - **Green banks.** Where a drawn river crosses desert or dry shrubland (and no humid period makes it green), the band just outside the water (river field between about 0.1 and 0.4) gets palms.
 - **On the drawn ground.** Every plant stands on the ground exactly as the terrain draws it at the date (sea level, coastal rounding, lift and exaggeration), using the same height function as the terrain, and through the history lens like everything else. It sinks a little into the ground so it never floats on a slope.
+- **On terrace tops.** The land is drawn as stacked height layers, like a contour model (Yang, 2026-10-18; milestone 1, section 4.2). A plant stands on the flat top of its layer and keeps clear of the layer's edge by about half its crown, so no tree hangs over a step or stands on a riser. To do this, placement needs the layer and the distance to the nearest layer edge at each spot, from the same terrain data.
 - **Room for people.** From milestone 2, plants are left out where a camp, vignette or landmark stands, so dioramas are never buried in trees.
 
 ## 5. Look
@@ -74,7 +75,7 @@ The ground painting of milestone 1 (section 4.3) gets two changes from the same 
 - Under forest classes the ground turns to the darker forest-floor green, so the gaps between trees are not steppe-coloured. In the prototype the taiga stands on golden steppe ground, which looks wrong.
 - Along desert rivers, a green strip of about 15 to 25 km either side of the water is painted as grass under the palms, so the green ribbon of the Nile reads from orbit; palms alone are too thin to see from there.
 
-These touch the terrain shader, which belongs to the milestone 1 work; they are made together with that work.
+Both follow the layered look: the forest-floor and grass colours are painted on the flat layer tops, and the risers keep the terrain's own colour. These touch the terrain shader, which belongs to the milestone 1 work; they are made together with that work.
 
 ## 7. Performance
 
