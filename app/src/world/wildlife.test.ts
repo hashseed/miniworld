@@ -80,7 +80,7 @@ describe('wildlifeAt (wildlife.md section 4)', () => {
     for (let t = 0; t < 600; t += 7.3)
       for (const a of wildlifeAt(day(1500), t)) {
         const g = WILD_GROUPS[Number(a.key.split(':')[0])]!;
-        expect(Math.sqrt(a.eastKm ** 2 + a.northKm ** 2)).toBeLessThan(170);
+        expect(Math.sqrt(a.eastKm ** 2 + a.northKm ** 2)).toBeLessThan(300);
         expect(a.lat).toBe(g.lat);
         expect(Math.sqrt(a.heading[0] ** 2 + a.heading[1] ** 2)).toBeCloseTo(1, 5);
         expect(a.clip).toBe(

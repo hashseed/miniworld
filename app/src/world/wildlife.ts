@@ -62,10 +62,15 @@ const ROAM_KM = 150;
 const ROAM_KM_CROCODILE = 80;
 /** Walking speed in km of the globe per second of the clock. */
 const WALK_KM_S = 55;
+/** Each animal's own spots lie up to this far from the group's (section 4). */
+const MEMBER_JITTER_KM = 40;
 /** Birds fly loops of this radius at this height (section 4). */
 const FLIGHT_RADIUS_KM = 160;
 const FLIGHT_LIFT_KM = 150;
 const FLIGHT_KM_S = 45;
+/** Birds of a group fly this far apart along the loop (turns) and across it (km). */
+const FLIGHT_GAP_TURNS = 0.15;
+const FLIGHT_LANE_KM = 60;
 const BIRDS = new Set(['animal-parrot', 'animal-kea']);
 /** Trees keep this far beyond a group's roaming area (section 5). */
 const CLEARING_MARGIN_KM = 225;
@@ -124,7 +129,7 @@ export function wildClearings(
 }
 
 function roamOf(g: WildGroup): number {
-  if (BIRDS.has(g.model)) return FLIGHT_RADIUS_KM;
+  if (BIRDS.has(g.model)) return FLIGHT_RADIUS_KM + 2 * FLIGHT_LANE_KM;
   return g.model === 'animal-crocodile' ? ROAM_KM_CROCODILE : ROAM_KM;
 }
 
@@ -170,18 +175,20 @@ export function wildlifeAt(day: number, seconds: number, groups = WILD_GROUPS): 
     const model = (i: number) => (g.model === 'animal-lion' && i > 0 ? 'animal-lioness' : g.model);
 
     if (BIRDS.has(g.model)) {
-      // Loops around the home, each bird a little behind the one before.
+      // Loops around the home, each bird well behind the one before and on a
+      // wider loop, so they never crowd (Yang, 2026-10-18).
       const turnsPerS = FLIGHT_KM_S / (2 * Math.PI * FLIGHT_RADIUS_KM);
       for (let i = 0; i < size; i++) {
-        const [c, s] = cosSinTurn(turnsPerS * seconds + hash01(seed, 7) - i * 0.07);
+        const [c, s] = cosSinTurn(turnsPerS * seconds + hash01(seed, 7) - i * FLIGHT_GAP_TURNS);
         const bob = cosSinTurn(seconds * 0.11 + i * 0.16)[1];
+        const radius = FLIGHT_RADIUS_KM + i * FLIGHT_LANE_KM;
         out.push({
           key: `${gi}:${i}`,
           model: model(i),
           lat: g.lat,
           lon: g.lon,
-          eastKm: FLIGHT_RADIUS_KM * c,
-          northKm: FLIGHT_RADIUS_KM * s,
+          eastKm: radius * c,
+          northKm: radius * s,
           heading: [-s, c],
           offset: [0, 0],
           clip: 'fly',
@@ -195,35 +202,44 @@ export function wildlifeAt(day: number, seconds: number, groups = WILD_GROUPS): 
     }
 
     // Rounds of grazing, then a smooth walk to the next spot along a curve
-    // through the spots, easing in and out (section 4).
+    // through the spots, easing in and out (section 4). Every animal walks
+    // its own path near the group's spots, starts a beat apart from the
+    // others and faces along its own curve, so the group stays together
+    // without moving as one rigid shape (Yang, 2026-10-18).
     const crocodile = g.model === 'animal-crocodile';
     const roam = roamOf(g);
     const period = (crocodile ? 18 : 10) + 6 * hash01(seed, 4);
-    const t = seconds + period * hash01(seed, 5);
-    const k = Math.floor(t / period);
-    const inRound = t - k * period;
-    const p0 = spot(seed, k - 1, roam);
-    const p1 = spot(seed, k, roam);
-    const p2 = spot(seed, k + 1, roam);
-    const p3 = spot(seed, k + 2, roam);
-    const chord = Math.sqrt((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2);
-    const walkS = Math.min(period * (crocodile ? 0.4 : 0.75), Math.max(3, chord / WALK_KM_S));
-    const walking = inRound > period - walkS;
-    const f = walking ? (inRound - (period - walkS)) / walkS : 0;
-    const u = f * f * (3 - 2 * f);
-    const [x, y] = catmullRom(p0, p1, p2, p3, u);
-    // Facing along the curve; between walks the tangent there, so the group never snaps round.
-    const [hx, hy] = catmullRomTangent(p0, p1, p2, p3, u);
-    const hl = Math.sqrt(hx * hx + hy * hy) || 1;
-    const fx = hx / hl;
-    const fy = hy / hl;
     for (let i = 0; i < size; i++) {
-      // The first member leads; the others follow about 1.5 body lengths behind
-      // and to the side, in the group's own frame, so the group turns as one.
-      const [c, sn] = cosSinTurn(0.25 + 0.5 * hash01(seed, 10 + i));
+      const lag = i === 0 ? 0 : 0.4 + 1.2 * hash01(seed, 40 + i);
+      const pace = 0.9 + 0.2 * hash01(seed, 50 + i);
+      const t = seconds - lag + period * hash01(seed, 5);
+      const k = Math.floor(t / period);
+      const inRound = t - k * period;
+      const own = (j: number): P2 => {
+        const [sx, sy] = spot(seed, j, roam);
+        const [c, sn] = cosSinTurn(hash01(seed, j, 60 + i));
+        const r = i === 0 ? 0 : MEMBER_JITTER_KM * hash01(seed, j, 70 + i);
+        return [sx + r * c, sy + r * sn];
+      };
+      const p0 = own(k - 1);
+      const p1 = own(k);
+      const p2 = own(k + 1);
+      const p3 = own(k + 2);
+      const chord = Math.sqrt((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2);
+      const walkS = Math.min(
+        period * (crocodile ? 0.4 : 0.75),
+        Math.max(3, chord / (WALK_KM_S * pace)),
+      );
+      const walking = inRound > period - walkS;
+      const f = walking ? (inRound - (period - walkS)) / walkS : 0;
+      const u = f * f * (3 - 2 * f);
+      const [x, y] = catmullRom(p0, p1, p2, p3, u);
+      // Facing along its own curve; between walks the tangent there, so it never snaps round.
+      const [hx, hy] = catmullRomTangent(p0, p1, p2, p3, u);
+      const hl = Math.sqrt(hx * hx + hy * hy) || 1;
+      // Its place in the group, fixed on the ground in body lengths, never turned with the group.
+      const [c, sn] = cosSinTurn(hash01(seed, 10 + i));
       const dist = i === 0 ? 0 : 1.3 + 0.5 * hash01(seed, 20 + i);
-      const side = dist * sn;
-      const ahead = dist * c - (i === 0 ? 0 : 0.6);
       out.push({
         key: `${gi}:${i}`,
         model: model(i),
@@ -231,8 +247,8 @@ export function wildlifeAt(day: number, seconds: number, groups = WILD_GROUPS): 
         lon: g.lon,
         eastKm: x,
         northKm: y,
-        heading: [fx, fy],
-        offset: [fy * side + fx * ahead, -fx * side + fy * ahead],
+        heading: [hx / hl, hy / hl],
+        offset: [dist * c, dist * sn],
         clip: walking ? 'walk' : 'idle',
         seconds: walking ? u * walkS : seconds + hash01(seed, 30 + i) * 0.8,
         walkS: walking ? walkS : 0,

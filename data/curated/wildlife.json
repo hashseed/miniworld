@@ -12,10 +12,10 @@
     {
       "species": "african-elephant",
       "model": "animal-elephant",
-      "home": "Okavango, Botswana",
-      "lat": -19.3,
-      "lon": 22.9,
-      "source": "IUCN Red List range map"
+      "home": "Gourma, Mali",
+      "lat": 15.3,
+      "lon": -1.6,
+      "source": "IUCN Red List range map; the desert elephants of Gourma are the northernmost in Africa"
     },
     {
       "species": "asian-elephant",
@@ -36,9 +36,9 @@
     {
       "species": "giraffe",
       "model": "animal-giraffe",
-      "home": "Etosha, Namibia",
-      "lat": -18.9,
-      "lon": 16.3,
+      "home": "Zakouma, Chad",
+      "lat": 10.8,
+      "lon": 19.6,
       "source": "IUCN Red List range map"
     },
     {
@@ -76,9 +76,9 @@
     {
       "species": "lion",
       "model": "animal-lion",
-      "home": "Ruaha, Tanzania",
-      "lat": -7.7,
-      "lon": 34.9,
+      "home": "Okavango, Botswana",
+      "lat": -19.3,
+      "lon": 22.9,
       "source": "IUCN Red List range map"
     },
     {
@@ -100,10 +100,10 @@
     {
       "species": "eland",
       "model": "animal-eland",
-      "home": "Nyika Plateau, Malawi",
-      "lat": -10.6,
-      "lon": 33.8,
-      "source": "IUCN Red List range map"
+      "home": "Benoue, Cameroon",
+      "lat": 8.4,
+      "lon": 13.8,
+      "source": "IUCN Red List range map (giant eland)"
     },
     {
       "species": "mountain-gazelle",

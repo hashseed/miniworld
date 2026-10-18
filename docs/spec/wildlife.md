@@ -19,30 +19,30 @@ Each group has one or more **spans** of years in which it is shown. Outside them
 - **Horses in the Americas.** Wild horses lived on the Great Plains until about 10,000 BCE, then died out in the Americas; horses came back with the Spanish after 1492 and herds of mustangs roamed the plains from about 1700 (Haile et al. 2009, *PNAS* 106; the Smithsonian's history of the horse in North America). The plains group therefore has two spans.
 - **Bison.** The American bison herd of the Great Plains is shown until 1885, when hunting had nearly wiped bison out; from 1885 a group lives in Yellowstone, where the last wild herd survived (US National Park Service, *Bison history*).
 - **Camels.** Dromedaries are shown in Arabia for the whole timeline and in the Sahara only from 200 CE, after they were brought across North Africa (Bulliet, *The Camel and the Wheel*, 1975).
-- **Lions.** One group in East Africa and one in the Gir forest of India, where the last Asiatic lions live (IUCN Red List, *Panthera leo*).
+- **Lions.** One group in the Okavango and one in the Gir forest of India, where the last Asiatic lions live (IUCN Red List, *Panthera leo*).
 - **The Amazon crocodilian** is a black caiman, a relative of the crocodile that lives in the Amazon; it uses the crocodile model.
 
 The ground under a group is whatever the terrain draws at the date: penguins and polar bears stand on ice, and a group whose home the sea floods simply stands on the water surface. Homes are picked so that this does not happen within their spans.
 
 ## 3. The groups
 
-Coordinates are the home of the group in degrees (true positions; the history lens moves them like everything else). Years are negative for BCE. "All" means the whole timeline, 70,000 BCE to 1991. Every group has a source for the species being there at those dates; the IUCN Red List range maps are the source for today's ranges unless another is named in section 2.
+Africa's groups are spread over the east, the south and the Sahel and west (Yang, 2026-10-18: "in africa the animals are all in the south eastern part of the continent"). Coordinates are the home of the group in degrees (true positions; the history lens moves them like everything else). Years are negative for BCE. "All" means the whole timeline, 70,000 BCE to 1991. Every group has a source for the species being there at those dates; the IUCN Red List range maps are the source for today's ranges unless another is named in section 2.
 
 | Species | Model | Home | Lat, lon | Spans |
 | --- | --- | --- | --- | --- |
 | African elephant | `animal-elephant` | Tsavo, Kenya | −3.0, 38.5 | All |
-| African elephant | `animal-elephant` | Okavango, Botswana | −19.3, 22.9 | All |
+| African elephant | `animal-elephant` | Gourma, Mali (the northernmost elephants of Africa) | 15.3, −1.6 | All |
 | Asian elephant | `animal-asian-elephant` | Kaziranga, Assam, India | 26.6, 93.4 | All |
 | Giraffe | `animal-giraffe` | Marsabit, Kenya | 3.2, 38.6 | All |
-| Giraffe | `animal-giraffe` | Etosha, Namibia | −18.9, 16.3 | All |
+| Giraffe | `animal-giraffe` | Zakouma, Chad | 10.8, 19.6 | All |
 | Plains zebra | `animal-zebra` | Laikipia, Kenya | 0.3, 36.9 | All |
 | Plains zebra | `animal-zebra` | Kruger, South Africa | −24.0, 31.5 | All |
 | Blue wildebeest | `animal-wildebeest` | Serengeti, Tanzania | −2.3, 34.8 | All |
 | Blue wildebeest | `animal-wildebeest` | Kalahari, Botswana | −23.0, 22.5 | All |
-| Lion | `animal-lion` | Ruaha, Tanzania | −7.7, 34.9 | All |
+| Lion | `animal-lion` | Okavango, Botswana | −19.3, 22.9 | All |
 | Lion | `animal-lion` | Gir forest, India | 21.1, 70.8 | All |
 | Eland | `animal-eland` | Drakensberg, South Africa | −29.0, 29.5 | All |
-| Eland | `animal-eland` | Nyika Plateau, Malawi | −10.6, 33.8 | All |
+| Giant eland | `animal-eland` | Bénoué, Cameroon | 8.4, 13.8 | All |
 | Mountain gazelle | `animal-gazelle` | Negev | 30.5, 34.8 | All |
 | Dromedary | `animal-camel` | Arabia | 21.5, 49.0 | All |
 | Dromedary | `animal-camel` | Sahara, Niger | 18.0, 8.0 | 200 to 1991 |
@@ -84,8 +84,8 @@ All of it is a pure function of the group, its member index and the clock (spec 
 
 - **Size of a group.** 2 or 3 members, chosen by the hash of the group.
 - **Grazing and walking, in fluid motion** (Yang, 2026-10-18). A group's time is cut into rounds of about 10 to 16 seconds of the clock at regular speed: it stands and grazes (idle clip) for a part of the round, then walks (walk clip) to its next spot. The path runs along a smooth curve through the spots (a Catmull-Rom spline), so the group turns gradually and never snaps round, and the walk eases in and out: the animals speed up from standing, slow down before they stop, and their steps slow with them, ending on a whole stride so the legs come to rest. Spots are hashed points within the group's roaming radius around its home, about 150 km of the true globe (crocodiles about 80 km: they mostly bask), so groups never meet: homes are at least about 350 km apart. The group walks at about the speed its walk clip suggests, so feet do not slide much.
-- **Formation.** The first member leads; the others follow at fixed hashed places behind and beside it, about one and a half body lengths away in the group's own frame, so the group turns as one; all face the same way.
-- **Birds** (macaws and keas) fly loops of about 160 km radius around their home at about 150 km above the ground, flapping their wings in big strokes (one beat every 0.6 seconds), each a little behind the one before.
+- **Each animal walks on its own** (Yang, 2026-10-18: "animals run individually, they don't keep a formation"). Every member has its own place in the group, about one and a half body lengths from the first, fixed on the ground and never turned with the group, and its own path: its spots lie up to about 40 km from the group's, it sets off up to about 1.5 seconds after the first and walks a little faster or slower, and it faces along its own curve. So the group stays together, but the animals at the back never swing round when it turns.
+- **Birds** (macaws and keas) fly loops of about 160 km radius around their home at about 150 km above the ground, flapping their wings in big strokes (one beat every 0.6 seconds), each well behind the one before (about 0.15 of the loop) and on a loop about 60 km wider, so they never crowd (Yang, 2026-10-18: "the parrots are too close to each other").
 - **Penguins** waddle, **kangaroos** hop, everything else walks on four legs.
 
 ## 5. Drawing and performance
