@@ -383,11 +383,15 @@ export function coarseOcean(
   return out;
 }
 
+/** Lake field (0..255) a lake must reach to be drawn; its water shows from 128. */
+export const MIN_LAKE_PEAK = 160;
+
 /**
  * Smooth lake field (section 4.3): the lake mask blurred with the coast's
  * Gaussian, as bytes 0..255 (a lake where it passes 128). Lake levels are
  * spread a few cells outwards so every cell the smoothed lake covers has one.
  */
+
 export function smoothLakes(lakeLevel: Grid<Int16Array>, noLake: number): Uint8Array {
   const { width: w, height: h } = lakeLevel;
   const n = w * h;
@@ -396,6 +400,32 @@ export function smoothLakes(lakeLevel: Grid<Int16Array>, noLake: number): Uint8A
   const field = blurFieldPolar(mask, w, h, COAST_SIGMA_KM, POLAR_COAST_SIGMA_KM);
   const out = new Uint8Array(n);
   for (let i = 0; i < n; i++) out[i] = Math.round(Math.min(1, field[i]!) * 255);
+  // A lake narrower than about twice the blur never fills its field: it would
+  // show as a pit with a speck of water, so it is left off the map with its
+  // basin (section 4.3).
+  const seen = new Uint8Array(n);
+  for (let s = 0; s < n; s++) {
+    if (seen[s] || out[s]! === 0) continue;
+    const blob = [s];
+    seen[s] = 1;
+    let peak = 0;
+    for (let k = 0; k < blob.length; k++) {
+      const i = blob[k]!;
+      peak = Math.max(peak, out[i]!);
+      const r = (i / w) | 0;
+      const c = i - r * w;
+      for (const j of [r * w + ((c + 1) % w), r * w + ((c - 1 + w) % w), i - w, i + w])
+        if (j >= 0 && j < n && !seen[j] && out[j]! > 0) {
+          seen[j] = 1;
+          blob.push(j);
+        }
+    }
+    if (peak >= MIN_LAKE_PEAK) continue;
+    for (const i of blob) {
+      out[i] = 0;
+      lakeLevel.data[i] = noLake;
+    }
+  }
   const cellKm = (360 / w) * KM_PER_DEG;
   const rounds = Math.ceil((COAST_SIGMA_KM * 2) / cellKm);
   for (let k = 0; k < rounds; k++) {

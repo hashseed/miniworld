@@ -72,4 +72,13 @@ describe('smooth lakes', () => {
     expect(lakeLevel.data[360 * W + 100]).toBe(NO);
     expect(lakeLevel.data[360 * W + 725]).toBe(300);
   });
+
+  it('leaves off a lake too narrow for the blur, so it never shows as a pit', () => {
+    // A 0.25° (about 28 km) wide strip, narrower than the blur.
+    const narrow = new Grid(W, H, new Int16Array(W * H).fill(NO));
+    for (let r = 340; r < 380; r++) narrow.data[r * W + 900] = 500;
+    const f = smoothLakes(narrow, NO);
+    expect(f.every((v) => v === 0)).toBe(true);
+    expect(narrow.data.every((v) => v === NO)).toBe(true);
+  });
 });

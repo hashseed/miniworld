@@ -206,3 +206,10 @@ export function buildLodging(kind: string): StandIn | undefined {
   if (!steps.length) return prop;
   return { ...prop, setBuilt: (built: number) => setBuilt(steps, built) };
 }
+
+/** A hunted animal of the tree by its model id, facing +X like the stage, or undefined without an approved model. */
+export function buildTreePrey(id: AnimalId): StandIn | undefined {
+  if (!drawable.has(id)) return undefined;
+  const model = buildAnimal(id);
+  return wrap(model, (clip, s) => animateAnimal(model, clip, s));
+}

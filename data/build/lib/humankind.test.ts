@@ -201,6 +201,10 @@ function strays(t: typeof tree, ok: (lat: number, lon: number) => boolean) {
       seen++;
       if (!okAt(l)) where.push(`lodging ${l.id} ${ms}`);
     }
+    for (const p of s.prey) {
+      seen++;
+      if (!okAt(p)) where.push(`prey ${p.id} ${p.clip} ${p.x.toFixed(1)},${p.z.toFixed(1)}`);
+    }
     for (const f of s.figures) {
       seen++;
       // Bands on the move ford rivers; at camp everyone keeps dry.
@@ -238,7 +242,7 @@ describe('camps by a river', () => {
 describe('the canonical tree', () => {
   it('keeps its hash, so any change to the rules is seen', () => {
     const hash = createHash('sha256').update(JSON.stringify(tree)).digest('hex').slice(0, 16);
-    expect(hash).toBe('212ab3a47b21b66e');
+    expect(hash).toBe('dc2a6b281e1aa4bd');
   });
 });
 
