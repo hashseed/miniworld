@@ -70,6 +70,7 @@ import {
   type Strait,
 } from './lib/coast.ts';
 import { regionGrid } from './lib/regions.ts';
+import { famousRelief, validateMountains, type Mountain } from './lib/relief.ts';
 import { allTileKeys, buildTerrainTile, isDeepTile } from './lib/terrain.ts';
 import {
   NO_LAKE,
@@ -88,6 +89,10 @@ export const WINDOW_SECONDS = 600;
 const PART_LEVEL = 2;
 /** Simplified map (spec milestone 1, section 4.2). */
 const SMOOTHING_KM = 40;
+/** Smoothing of the land between the famous mountains, and of single peaks. */
+const PLAIN_SMOOTHING_KM = 60;
+const PEAK_SMOOTHING_KM = 20;
+const RANGE_SMOOTHING_KM = 18;
 const POLAR_SMOOTHING_KM = 150;
 // Only a short list of the rivers history needs most (decided by Yang on
 // 2026-10-17), by their Natural Earth names, including local spellings.
@@ -212,6 +217,9 @@ const keptIslands = JSON.parse(readFileSync(join(ROOT, 'data/curated/islands.jso
 const removedAreas = JSON.parse(
   readFileSync(join(ROOT, 'data/curated/removed-areas.json'), 'utf8'),
 ) as { areas: RemovedArea[] };
+const mountains = JSON.parse(readFileSync(join(ROOT, 'data/curated/mountains.json'), 'utf8')) as {
+  mountains: Mountain[];
+};
 const humid = JSON.parse(readFileSync(join(ROOT, 'data/curated/humid-periods.json'), 'utf8')) as {
   periods: HumidPeriod[];
 };
@@ -220,24 +228,32 @@ const mapErrors = [
   ...validateStraits(straits.straits),
   ...validateIslands(keptIslands.islands),
   ...validateRemovedAreas(removedAreas.areas),
+  ...validateMountains(mountains.mountains),
 ];
 if (mapErrors.length) fail(mapErrors.join('\n'));
 
 // Islands are edited on today's coastline before anything else (section 4.2).
 removeAreas(source, removedAreas.areas, keptIslands.islands);
 const islands = enlargeIslands(source, keptIslands.islands);
-const elevation = blendPolar(
-  smoothElevation(source, SMOOTHING_KM),
-  smoothElevation(source, POLAR_SMOOTHING_KM),
+const polarElevation = smoothElevation(source, POLAR_SMOOTHING_KM);
+const elevation = blendPolar(smoothElevation(source, SMOOTHING_KM), polarElevation);
+// Land outside the famous mountains is smoothed more; the app draws it in layers (section 4.2).
+const relief = famousRelief(
+  blendPolar(smoothElevation(source, PLAIN_SMOOTHING_KM), polarElevation),
+  elevation,
+  smoothElevation(source, RANGE_SMOOTHING_KM),
+  smoothElevation(source, PEAK_SMOOTHING_KM),
+  mountains.mountains,
 );
 log(
   `elevation grid ${elevation.width} × ${elevation.height}, smoothed ${SMOOTHING_KM} km, ` +
+    `${mountains.mountains.length} famous mountains, ` +
     `${islands.removed} small islands removed, ${islands.grown} enlarged`,
 );
-const pyramid = new GridPyramid(elevation);
+const pyramid = new GridPyramid(relief);
 // The ice sheets stand on a heavily smoothed bed, the same in the terrain
 // tiles and in the ice thickness, so their surface is smooth (section 5.2).
-const bedGrid = pyramid.forSpacing(ICE_BED_SPACING_DEG);
+const bedGrid = new GridPyramid(elevation).forSpacing(ICE_BED_SPACING_DEG);
 const iceBed = (lat: number, lon: number) => Math.max(0, bedGrid.bilinear(lat, lon));
 
 // The ocean mask floods the unsmoothed elevation with the straits carved to

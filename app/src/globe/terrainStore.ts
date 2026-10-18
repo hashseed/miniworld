@@ -22,7 +22,7 @@ import {
   type Vec3,
 } from './cube.ts';
 
-export const DEEP_HEIGHT = -1000;
+export const DEEP_HEIGHT = -150;
 
 type Slot<T> = T | 'deep' | 'none' | 'loading';
 

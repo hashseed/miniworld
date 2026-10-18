@@ -14,6 +14,7 @@ import {
   type TileKey,
   type Vec3,
 } from './cube.ts';
+import { layerHeight } from './layers.ts';
 import type { TileSamples } from './terrainStore.ts';
 
 export const EARTH_RADIUS_KM = 6371;
@@ -55,6 +56,9 @@ export function indexFor(flip: boolean, step = 1): THREE.BufferAttribute {
   sharedIndex.set(id, attr);
   return attr;
 }
+
+/** Width of a step between two layers, in vertex spacings at the local slope. */
+const STEP_SPAN_CELLS = 1.5;
 
 /** Ocean level (m) above which a sample is land at every date. */
 const NEVER_SEA_M = 10;
@@ -109,7 +113,19 @@ export function buildTileGeometry(
       dirs[o + 1] = d[1];
       dirs[o + 2] = d[2];
     }
-  const hb = samples.heights;
+  // Land is drawn in layers (section 4.2). Each step between layers spans
+  // about STEP_SPAN_CELLS vertex spacings at the local slope, so steps are
+  // crisp up close and soft from afar, but never narrower than the grid.
+  const raw = samples.heights;
+  const hb = new Float32Array(B * B);
+  for (let j = 0; j < B; j++)
+    for (let i = 0; i < B; i++) {
+      const b = j * B + i;
+      const gx = raw[j * B + Math.min(B - 1, i + 1)]! - raw[j * B + Math.max(0, i - 1)]!;
+      const gy = raw[Math.min(B - 1, j + 1) * B + i]! - raw[Math.max(0, j - 1) * B + i]!;
+      const slope = Math.hypot(gx, gy) / 2; // metres per vertex spacing
+      hb[b] = layerHeight(raw[b]!, slope * STEP_SPAN_CELLS * 0.5);
+    }
   const displaced = (i: number, j: number, out: number[]) => {
     const b = (j + 1) * B + (i + 1);
     const r = R + Math.max(hb[b]!, 0) * k;

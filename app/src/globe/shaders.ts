@@ -260,15 +260,17 @@ vec3 landColour(vec3 n, vec3 up, float arid) {
   c = mix(c, steppe, smoothstep(0.05, 0.4, arid + (v - 0.5) * 0.2) * 0.7);
   c = mix(c, sand, smoothstep(0.45, 0.75, arid + (v - 0.5) * 0.25));
   // Mountains turn to rock towards the snow line and carry glacier caps on
-  // their steep tops (section 4.3). The line follows the smoothed heights:
-  // about 4600 m in the tropics, falling to 1000 m towards the poles and in
-  // the ice age. Flat high plateaus such as Tibet stay bare.
-  float snowLine = max(1000.0, 4600.0 - smoothstep(15.0, 60.0, coldLat) * 3800.0);
-  float alpine = smoothstep(snowLine - 1000.0, snowLine - 300.0, vHeight + v * 200.0);
-  c = mix(c, rock, clamp(smoothstep(0.35, 0.6, slope) + alpine * 0.85, 0.0, 1.0));
-  float peak = max(smoothstep(0.07, 0.16, slope), smoothstep(snowLine + 2000.0, snowLine + 2500.0, vHeight));
-  c = mix(c, snow, smoothstep(snowLine, snowLine + 250.0, vHeight + v * 300.0) * peak);
-  return c * (0.93 + 0.14 * v);
+  // their highest layers (section 4.3). The line follows the smoothed heights:
+  // about 5000 m up to 28° of latitude, 2300 m at 46° and 800 m at 70° (and
+  // lower in the ice age); the layers above it carry snow.
+  float snowLine = 5000.0 - 2700.0 * smoothstep(28.0, 46.0, coldLat) - 1500.0 * smoothstep(46.0, 70.0, coldLat);
+  float alpine = smoothstep(snowLine - 1000.0, snowLine - 300.0, vHeight);
+  c = mix(c, rock, alpine * 0.85);
+  c = mix(c, snow, smoothstep(snowLine - 50.0, snowLine + 50.0, vHeight));
+  c *= 0.93 + 0.14 * v;
+  // The steps between the height layers are the layer's own colour, darker,
+  // like the cut edge of a contour model (section 4.2).
+  return mix(c, c * 0.72, smoothstep(0.3, 0.55, slope));
 }
 
 /** One octave of the cartoon sea pattern: drifting ripple bands and popping crests. */
@@ -429,6 +431,9 @@ void main() {
     albedo = mix(vec3(0.97, 0.99, 1.0), vec3(0.78, 0.9, 0.98), edge);
   } else {
     albedo = landColour(smoothN, up, clim.y);
+    // The steps between layers are lit evenly, so they read as one clean band
+    // of darker colour instead of following every vertex (section 4.2).
+    n = normalize(mix(n, up, smoothstep(0.3, 0.55, 1.0 - clamp(dot(smoothN, up), 0.0, 1.0))));
   }
 
   vec3 colour = studio(albedo, n, viewDir);

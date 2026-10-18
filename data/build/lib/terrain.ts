@@ -18,7 +18,8 @@ import {
 import type { Grid, GridPyramid } from './grid.ts';
 import { NO_LAKE } from './water.ts';
 
-export const DEEP_CLAMP = -1000;
+/** The sea floor below this depth (m) is one flat floor (section 4.2). */
+export const DEEP_CLAMP = -150;
 
 export interface TerrainInputs {
   heights: GridPyramid;
