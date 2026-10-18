@@ -35,9 +35,8 @@ import {
   type TileKey,
 } from '../../app/src/geo/cube.ts';
 import { LANGUAGES, type Language } from '../../app/src/i18n/messages.ts';
-import { TIMELINE_START, continuousYear, dayFromDate } from '../../app/src/time/calendar.ts';
-import { buildWatchTable, yearAtSeconds, totalSeconds } from '../../app/src/time/watchTable.ts';
-import { dayFromContinuousYear } from '../../app/src/time/calendar.ts';
+import { TIMELINE_START, dayFromDate } from '../../app/src/time/calendar.ts';
+import { AXIS_K_YEARS, dayAtPosition, logAxis } from '../../app/src/time/axis.ts';
 import { erasForLanguage, validateEras, type CuratedEras } from './lib/eras.ts';
 import { buildLandmarks, placeOffWater } from './lib/landmarks.ts';
 import { buildVignettes } from './lib/vignettes.ts';
@@ -98,8 +97,8 @@ const ROOT = new URL('../..', import.meta.url).pathname;
 const SOURCES = join(ROOT, 'data/sources');
 const OUT = join(ROOT, 'app/public/data');
 
-/** Watching seconds per content time window (spec milestone 1, section 10.3). */
-export const WINDOW_SECONDS = 2460;
+/** Content time windows, of equal width on the log timeline axis (spec milestone 1, section 10.3). */
+export const TIME_WINDOWS = 35;
 /** Simplified map (spec milestone 1, section 4.2). */
 const SMOOTHING_KM = 80;
 const POLAR_SMOOTHING_KM = 150;
@@ -188,14 +187,11 @@ const release = JSON.parse(readFileSync(join(ROOT, 'data/curated/release.json'),
 };
 const [cy, cm, cd] = release.cutoffDate.split('-').map(Number) as [number, number, number];
 const cutoffDay = dayFromDate(cy, cm, cd);
-const watch = buildWatchTable(continuousYear(TIMELINE_START), continuousYear(cutoffDay));
+const axis = logAxis(TIMELINE_START, cutoffDay);
 const windows: number[] = [];
-for (let s = 0; s < totalSeconds(watch); s += WINDOW_SECONDS) {
-  windows.push(
-    s === 0 ? TIMELINE_START : Math.floor(dayFromContinuousYear(yearAtSeconds(watch, s))),
-  );
-}
-log(`${windows.length} time windows of ${WINDOW_SECONDS / 60} min`);
+for (let i = 0; i < TIME_WINDOWS; i++)
+  windows.push(i === 0 ? TIMELINE_START : Math.floor(dayAtPosition(axis, i / TIME_WINDOWS)));
+log(`${windows.length} time windows on the log timeline axis`);
 
 // --- Eras -----------------------------------------------------------------
 
@@ -604,7 +600,7 @@ for (const language of LANGUAGES) {
   const idx: StartupIndex = {
     language,
     ...erasForLanguage(eras, language, TIMELINE_START, cutoffDay),
-    watchTable: watch,
+    axisYears: AXIS_K_YEARS,
     seaLevel,
     iceSlices: iceDays,
     regions: regionGrid(),

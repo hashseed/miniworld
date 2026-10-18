@@ -3,7 +3,6 @@ import type { EraRecord, StartupIndex } from '../content/types.ts';
 import { I18n } from '../i18n/i18n.ts';
 import { continuousYear, dayFromDate } from '../time/calendar.ts';
 import { Clock } from '../time/clock.ts';
-import { buildWatchTable } from '../time/watchTable.ts';
 import { Timeline } from './timeline.ts';
 
 type Listener = (e: Partial<PointerEvent>) => void;
@@ -63,7 +62,7 @@ function setup() {
       era('C', 'world', 500, 900),
       era('D', 'europe', 0, 1000),
     ],
-    watchTable: buildWatchTable(0, 1000),
+    axisYears: 50,
   } as unknown as StartupIndex);
   // On the true time scale one pixel is about one year.
   timeline.setMode('true', false);

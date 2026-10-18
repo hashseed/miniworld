@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { TIMELINE_START } from '../time/calendar.ts';
+import { msAtDay } from '../time/rate.ts';
 import {
   loadBookmarks,
   loadSettings,
@@ -22,7 +24,6 @@ const defaults: Settings = {
   language: 'en',
   timelineExpanded: false,
   trueTimeScale: false,
-  slowWhenZoomed: true,
   showStats: false,
   lensStrength: 100,
   lensHintSeen: false,
@@ -61,19 +62,31 @@ describe('saved state', () => {
 
   it('restores a playing view as history paused', () => {
     const camera = { lat: 41.9, lon: 12.5, altitudeKm: 50, heading: 0, tilt: 30 };
-    saveView({ day: -700000, camera, playState: 'playing', speedLog2: -2.5 });
-    expect(loadView()).toEqual({ day: -700000, camera, playState: 'paused', speedLog2: -2.5 });
-    storage.setItem('miniworld.view.v1', JSON.stringify({ day: 1.5, camera }));
+    saveView({ ms: 123456789, camera, playState: 'playing', speedMode: 'snail' });
+    expect(loadView()).toEqual({ ms: 123456789, camera, playState: 'paused', speedMode: 'snail' });
+    storage.setItem('miniworld.view.v2', JSON.stringify({ ms: 1.5, camera }));
     expect(loadView()).toBeUndefined();
+  });
+
+  it('converts a version 1 view and bookmarks from their day', () => {
+    const camera = { lat: 0, lon: 0, altitudeKm: 1000, heading: 0, tilt: 0 };
+    storage.setItem('miniworld.view.v1', JSON.stringify({ day: 1, camera, speedLog2: 3 }));
+    storage.setItem(
+      'miniworld.bookmarks.v1',
+      JSON.stringify([{ id: 'a', name: 'Rome', day: 1, camera }]),
+    );
+    const ms = msAtDay(1, TIMELINE_START);
+    expect(loadView()).toEqual({ ms, camera, playState: 'paused', speedMode: 'regular' });
+    expect(loadBookmarks()).toEqual([{ id: 'a', name: 'Rome', ms, camera }]);
   });
 
   it('keeps only valid bookmarks', () => {
     const camera = { lat: 0, lon: 0, altitudeKm: 1000, heading: 0, tilt: 0 };
-    saveBookmarks([{ id: 'a', name: 'Rome', day: 1, camera }]);
+    saveBookmarks([{ id: 'a', name: 'Rome', ms: 1000, camera }]);
     storage.setItem(
-      'miniworld.bookmarks.v1',
-      JSON.stringify([...JSON.parse(storage.getItem('miniworld.bookmarks.v1')!), { id: 'b' }]),
+      'miniworld.bookmarks.v2',
+      JSON.stringify([...JSON.parse(storage.getItem('miniworld.bookmarks.v2')!), { id: 'b' }]),
     );
-    expect(loadBookmarks()).toEqual([{ id: 'a', name: 'Rome', day: 1, camera }]);
+    expect(loadBookmarks()).toEqual([{ id: 'a', name: 'Rome', ms: 1000, camera }]);
   });
 });
