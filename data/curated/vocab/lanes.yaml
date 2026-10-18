@@ -1,0 +1,13 @@
+# Timeline lanes from top to bottom (docs/spec/content-format.md section 1):
+# the World lane, then one lane per region of regions.yaml, which takes the
+# region's id and labels.
+- { id: world, en: World, de: Welt }
+- { region: europe }
+- { region: mena }
+- { region: africa }
+- { region: central-asia }
+- { region: south-asia }
+- { region: east-asia }
+- { region: southeast-asia }
+- { region: americas }
+- { region: oceania }

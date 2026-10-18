@@ -1,0 +1,11 @@
+# World regions, which are the timeline's regional lanes, in the order of
+# docs/spec/spec.md section 7.1 (docs/spec/content-format.md section 1).
+europe: { en: Europe and Mediterranean, de: Europa und Mittelmeer }
+mena: { en: Middle East and North Africa, de: Naher Osten und Nordafrika }
+africa: { en: Sub-Saharan Africa, de: Afrika südlich der Sahara }
+central-asia: { en: Central Asia and steppe, de: Zentralasien und Steppe }
+south-asia: { en: South Asia, de: Südasien }
+east-asia: { en: East Asia, de: Ostasien }
+southeast-asia: { en: Southeast Asia, de: Südostasien }
+americas: { en: Americas, de: Amerika }
+oceania: { en: Oceania, de: Ozeanien }

@@ -286,9 +286,10 @@ The camera has one fly-to operation used by bookmarks now and by events and famo
 ### 7.1 Layout
 
 - The timeline is a strip along the bottom of the screen, drawn on a canvas, with its expand button built into its left edge. It has a date readout, the playhead, a lane "World" and one lane per region in the order of spec section 7.1.
-- Lanes show the era ranges from [eras.md](eras.md). The World lane uses a fixed colour per era; regional ranges use the colour assigned to that polity in `data/curated/eras` (later shared with the border overlay). Overlapping ranges in one lane stack into sub-rows.
+- Lanes show the era ranges from [eras.md](eras.md). The World lane uses a fixed colour per era; regional ranges use the colour stored in their record in `data/curated/eras/` (later the colour of their polity, shared with the border overlay). Overlapping ranges in one lane stack into sub-rows. The lanes and their order come from `data/curated/vocab/lanes.yaml` ([content-format.md](content-format.md#1-records) section 1).
 - A range's label is drawn inside it when it fits, otherwise it is shortened with an ellipsis and shown in full on hover or tap, together with its dates. German labels are about a third longer, so layout never assumes English widths.
 - **Collapsed (the default on every device):** the timeline shows only the lane of the region the globe is centred on, which changes as the viewer moves the globe (decided by Yang on 2026-10-17). The collapsed timeline always keeps the height of the regional lane with the most sub-rows, so moving the globe to another region never changes its height or shifts the controls above it (decided by Yang on 2026-10-18); a lane with fewer sub-rows sits at the top and leaves the rest empty. The region comes from a coarse region lookup table built by the data build. A button at the left edge of the timeline, inside its frame (decided by Yang on 2026-10-18), expands it to the World lane and all regional lanes, taking at most about a third of the window height on desktop and two thirds on phones, and collapses it again. The choice is saved with the settings.
+- **Scrolling lanes.** Rows are at most 18 and at least 11 CSS pixels high, so labels stay readable. When the expanded lanes do not fit in their height even at 11 pixels (the ten lanes of [eras.md](eras.md) need more than 50 rows), the ruler stays fixed at the top and the lanes scroll vertically beneath it: drag up or down on the lanes, or turn the mouse wheel with Shift held. A thin bar at the right edge shows which part of the lanes is in view. A drag that starts sideways still pans and the wheel alone still zooms. Collapsing and expanding again starts at the top.
 
 ### 7.2 Axis and zoom
 
@@ -310,7 +311,7 @@ The camera has one fly-to operation used by bookmarks now and by events and famo
 
 ### 7.4 Era data
 
-`data/curated/eras` holds the ranges of [eras.md](eras.md) as records in the format of [content-format.md](content-format.md): id, lane, `when` (converted to whole days, with approximate flags per end), colour, a source, and a title in `en` and `de`. The data build validates them like all content (section 10.8) and writes them into the startup index. Events are not shown on the timeline in this milestone.
+`data/curated/eras/` holds the ranges of [eras.md](eras.md) as records in the format of [content-format.md](content-format.md), one file per range: id, lane, `when` (converted to whole days, with approximate flags per end), colour, at least one source from `data/curated/sources.yaml`, and a title in `en` and `de`. The lanes come from `vocab/lanes.yaml` and `vocab/regions.yaml`. The data build validates them like all content (section 10.8) and writes them into the startup index. Events are not shown on the timeline in this milestone.
 
 ## 8. Interface shell
 
