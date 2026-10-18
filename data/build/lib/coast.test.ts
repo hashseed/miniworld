@@ -29,7 +29,8 @@ const strait: Strait = {
   ],
 };
 
-describe('smooth coasts', () => {
+// Each case smooths a whole-world grid, about 3 s locally; CI runners are slower.
+describe('smooth coasts', { timeout: 20_000 }, () => {
   it('keeps a carved strait open above its sill and closed below', () => {
     const g = world();
     carveStraits(g, [strait]);
