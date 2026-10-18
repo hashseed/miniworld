@@ -184,6 +184,15 @@ async function openForCamera(page: Page): Promise<{ x: number; y: number }> {
     const key = 'miniworld.settings.v1';
     const s = JSON.parse(localStorage.getItem(key) ?? '{}') as Record<string, unknown>;
     localStorage.setItem(key, JSON.stringify({ ...s, lensHintSeen: true }));
+    // Start well above the closest zoom, so zooming in has room to show.
+    localStorage.setItem(
+      'miniworld.view.v2',
+      JSON.stringify({
+        ms: 0,
+        camera: { lat: 3.95, lon: 36.2, altitudeKm: 6000, heading: 0, tilt: 0 },
+        speedMode: 'regular',
+      }),
+    );
   });
   await open(page);
   const size = page.viewportSize()!;
