@@ -269,11 +269,15 @@ export class VignetteLayer {
     for (let i = 0; i < poses.length; i++) {
       const p = poses[i]!;
       const actor = stage.actors[i]!;
-      actor.root.visible = p.visibility > 0;
+      // Entering and leaving fade (appear, vanish); falling and cut-up sink into the ground.
+      const fade = p.fade ? p.visibility : 1;
+      actor.root.visible = p.visibility > 0 && (fade >= 0.5 || !!actor.setFade);
       if (!actor.root.visible) continue;
+      actor.setFade?.(fade);
       const scale = FIGURE_KM_PER_M * this.cap(actor);
       this.stand(stage, actor.root, p.x, p.z, p.dirX, p.dirZ, lean);
-      actor.root.position.addScaledVector(this.v2, -(1 - p.visibility) * actor.height * scale);
+      const sink = p.fade ? 0 : (1 - p.visibility) * actor.height * scale;
+      actor.root.position.addScaledVector(this.v2, -sink);
       actor.root.scale.setScalar(scale);
       actor.pose(p.clip, p.clipMs / 1000);
     }
@@ -282,12 +286,12 @@ export class VignetteLayer {
       const p = props[i]!;
       const prop = stage.props[i];
       if (!prop) continue;
+      // Put up and taken down: it fades in and out.
       prop.root.visible = p.visibility > 0;
       if (!prop.root.visible) continue;
-      this.stand(stage, prop.root, p.x, p.z, p.dirX, p.dirZ, lean);
-      // Put up and taken down: it rises out of the ground and sinks back.
-      const sink = (1 - p.visibility) * prop.height * FIGURE_KM_PER_M;
-      prop.root.position.addScaledVector(this.v2, -sink);
+      prop.setFade?.(p.visibility);
+      // Props stand flat on the ground: only people and animals lean like pop-up cut-outs.
+      this.stand(stage, prop.root, p.x, p.z, p.dirX, p.dirZ, 0);
       prop.root.scale.setScalar(FIGURE_KM_PER_M);
     }
     this.poseSpears(stage, phase, lean);

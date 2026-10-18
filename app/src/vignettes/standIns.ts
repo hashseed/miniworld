@@ -53,6 +53,8 @@ export interface StandIn {
   /** Height in metres, for sinking when it falls. */
   height: number;
   pose(clip: Clip, seconds: number): void;
+  /** Fades the model in or out, 0 to 1; without it, the actor is shown or hidden. */
+  setFade?(fade: number): void;
   /** Where spears stick: the body bone and its extent in the bone's own space. */
   back?: { bone: THREE.Object3D; box: THREE.Box3 };
 }

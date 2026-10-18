@@ -11,6 +11,7 @@ import {
   posesAt,
   propPosesAt,
   spearsAt,
+  type Pose,
 } from './vignette.ts';
 
 const CURATED = new URL('../../../data/curated', import.meta.url).pathname;
@@ -61,6 +62,11 @@ describe('vignette player', () => {
       expect(posesAt(inst, members, phase).every((p) => p.visibility === 0)).toBe(true);
       expect(propPosesAt(inst, props, phase).every((p) => p.visibility === 0)).toBe(true);
     }
+    // Entering fades in (Yang: "maybe have them fade in"); falling sinks.
+    const prey = (t: number) => posesAt(inst, members, t).find((p) => p.group === 'prey')!;
+    expect(prey(1000)).toMatchObject({ fade: true });
+    expect(prey(1000).visibility).toBeCloseTo(0.5, 2);
+    expect(prey(60000)).toMatchObject({ clip: 'fall', fade: false });
     // In the middle the whole band, its tents and its fire are there.
     const camp = propPosesAt(inst, props, 30000);
     expect(camp.map((p) => [p.name, p.visibility])).toEqual([
@@ -72,8 +78,15 @@ describe('vignette player', () => {
 
   it('never lets two members, or a member and a prop, overlap (section 18.7)', () => {
     // Minimum distances on the stage in centimetres, for figures drawn three times their stage.
-    const gap = (a: string, b: string) =>
-      a === 'human' && b === 'human' ? 200 : a === 'animal' && b === 'animal' ? 1200 : 900;
+    // A fallen animal lies low, so the butchers crouch right beside it.
+    const gap = (a: Pose, b: Pose) =>
+      a.kind === 'human' && b.kind === 'human'
+        ? 200
+        : a.kind === 'animal' && b.kind === 'animal'
+          ? 1200
+          : a.clip === 'fall' || b.clip === 'fall'
+            ? 450
+            : 900;
     // Props are obstacles of their drawn radius: a tent 6 m, the fire 2.5 m, plus a body.
     const propGap = (look: string, kind: string) =>
       (look === 'prop-hearth' ? 250 : 600) + (kind === 'human' ? 100 : 500);
@@ -88,7 +101,7 @@ describe('vignette player', () => {
           const a = poses[i]!;
           const b = poses[j]!;
           const d = Math.sqrt((a.x - b.x) ** 2 + (a.z - b.z) ** 2);
-          if (d < gap(a.kind, b.kind))
+          if (d < gap(a, b))
             clashes.push(`t=${t} ${a.group}#${a.index} ${b.group}#${b.index} ${Math.round(d)}`);
         }
       for (const p of propPosesAt(inst, props, t).filter((q) => q.visibility > 0.5))

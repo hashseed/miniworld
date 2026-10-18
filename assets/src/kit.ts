@@ -300,7 +300,20 @@ export const lightUniforms = {
   inkPixels: { value: 2.0 },
   clayScale: { value: 9.0 },
   viewport: { value: new THREE.Vector2(1280, 800) },
+  /** 1 drawn in full; below 1 the model dissolves in a screen-door pattern as it fades. */
+  fade: { value: 1.0 },
 };
+
+// Screen-door fade: drops a share of pixels in a fine, stable pattern, so a
+// fading model needs no sorting of transparent surfaces and keeps its ink.
+const fadeChunk = /* glsl */ `
+uniform float fade;
+void screenDoor() {
+  if (fade >= 1.0) return;
+  float n = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+  if (n >= fade) discard;
+}
+`;
 
 // The log-depth chunks match the globe's logarithmic depth buffer in the app;
 // they are empty where the renderer has none, as in the review sheets.
@@ -328,6 +341,7 @@ const celFragment = /* glsl */ `
 uniform vec3 lightDir;
 uniform vec3 screenUp;
 uniform float clayScale;
+${fadeChunk}
 varying vec3 vColour;
 varying vec3 vNormal;
 varying vec3 vWorld;
@@ -355,6 +369,7 @@ float noise3(vec3 x) {
 
 void main() {
   #include <logdepthbuf_fragment>
+  screenDoor();
   vec3 n = normalize(vNormal);
   vec3 viewDir = normalize(cameraPosition - vWorld);
   if (!gl_FrontFacing) n = -n;
@@ -395,8 +410,10 @@ void main() {
 const inkFragment = /* glsl */ `
 #include <common>
 #include <logdepthbuf_pars_fragment>
+${fadeChunk}
 void main() {
   #include <logdepthbuf_fragment>
+  screenDoor();
   gl_FragColor = vec4(vec3(0.23, 0.15, 0.11), 1.0);
   #include <colorspace_fragment>
 }

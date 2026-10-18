@@ -11,14 +11,13 @@ repeat:
   count: 1
   sites:
     points:
-      - { name: Geißenklösterle, at: [48.40, 9.77] }
-      - { name: Krems-Wachtberg, at: [48.41, 15.61] }
-      - { name: Dolní Věstonice, at: [48.88, 16.65] }
-      - { name: Předmostí, at: [49.46, 17.44] }
-      - { name: Kostenki, at: [51.39, 39.05] }
-      - { name: Sungir, at: [56.18, 40.50] }
-      - { name: Yana, at: [70.72, 135.42], from: 'c. 30,000 BCE' }
-      - { name: Mal'ta, at: [52.85, 103.53], from: 'c. 22,000 BCE' }
+      # Eastern Europe and Siberia only, each stage moved up to about 300 km
+      # from its site so that none stands over a drawn river, lake or sea.
+      - { name: Kostenki, at: [51.89, 37.55] }
+      - { name: Sungir, at: [53.68, 39.75] }
+      - { name: Yudinovo, at: [52.17, 28.78], from: 'c. 14,000 BCE' }
+      - { name: Yana, at: [68.22, 139.92], from: 'c. 30,000 BCE' }
+      - { name: Mal'ta, at: [55.35, 101.28], from: 'c. 22,000 BCE' }
 region: europe
 icon: spear
 debated: method

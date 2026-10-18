@@ -216,6 +216,8 @@ export interface Segment {
   face?: string;
   /** When the clip started, if before t0 (a held clip, as for cut-up). */
   clipT0?: number;
+  /** The visibility change fades the model in or out instead of sinking it. */
+  fade?: boolean;
 }
 
 export interface Member {
@@ -344,9 +346,14 @@ export function buildMembers(t: CompiledTemplate): Member[] {
             clipT0: held,
           });
         } else if (a.verb === 'appear') {
-          segs.push({ ...rest(a.atMs, home[0], home[1], 'idle', 1), vis0: 0, visMs: APPEAR_MS });
+          segs.push({
+            ...rest(a.atMs, home[0], home[1], 'idle', 1),
+            vis0: 0,
+            visMs: APPEAR_MS,
+            fade: true,
+          });
         } else if (a.verb === 'vanish') {
-          segs.push({ ...rest(a.atMs, x, z, 'idle', 0), vis0: vis, visMs: APPEAR_MS });
+          segs.push({ ...rest(a.atMs, x, z, 'idle', 0), vis0: vis, visMs: APPEAR_MS, fade: true });
         } else if (a.verb === 'struggle') {
           segs.push(rest(a.atMs, x, z, 'struggle', vis));
         } else {
@@ -434,6 +441,8 @@ export interface Pose {
   clipMs: number;
   /** 1 fully there, 0 gone (section 18.3, fall and appear). */
   visibility: number;
+  /** Whether a visibility below 1 fades the model rather than sinking it. */
+  fade: boolean;
 }
 
 /**
@@ -476,6 +485,7 @@ export function posesAt(instance: Instance, members: Member[], phase: number): P
       clip: seg.clip,
       clipMs: phase - (seg.clipT0 ?? seg.t0),
       visibility: visAt(seg, phase),
+      fade: seg.fade === true,
     };
   });
 }
@@ -514,7 +524,7 @@ export function buildProps(t: CompiledTemplate): PropTrack[] {
       const vis = visAt(last, a.atMs);
       last.t1 = a.atMs;
       const to = a.verb === 'show' ? 1 : 0;
-      segs.push({ ...rest(a.atMs, x, z, 'idle', to), vis0: vis, visMs: PROP_MS });
+      segs.push({ ...rest(a.atMs, x, z, 'idle', to), vis0: vis, visMs: PROP_MS, fade: true });
     }
     segs[segs.length - 1]!.t1 = t.loopMs;
     return { name: p.name, kind: p.kind, look: p.look, x, z, dx, dz, segments: segs };

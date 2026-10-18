@@ -50,7 +50,36 @@ function wrap(model: Model, pose: (clip: Clip, seconds: number) => void): StandI
   const box = new THREE.Box3().setFromObject(model.object);
   for (const [bone, parent] of extras) parent.add(bone);
   pose('idle', 0);
-  return { root, height: box.max.y - box.min.y, pose };
+  return { root, height: box.max.y - box.min.y, pose, setFade: fader(model.object) };
+}
+
+/**
+ * Fading for one model: the first fade gives it its own copies of the shared
+ * materials, with a fade uniform of its own, so other models stay solid.
+ */
+function fader(object: THREE.Object3D): (fade: number) => void {
+  let own: { value: number } | undefined;
+  return (fade) => {
+    if (!own) {
+      if (fade >= 1) return;
+      const uniform = { value: 1 };
+      const copies = new Map<THREE.Material, THREE.ShaderMaterial>();
+      object.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        const m = mesh.material as THREE.ShaderMaterial | undefined;
+        if (!mesh.isMesh || !m?.isShaderMaterial) return;
+        let copy = copies.get(m);
+        if (!copy) {
+          copy = m.clone();
+          copy.uniforms = { ...m.uniforms, fade: uniform };
+          copies.set(m, copy);
+        }
+        mesh.material = copy;
+      });
+      own = uniform;
+    }
+    own.value = fade;
+  };
 }
 
 /** Builds the drawn actor for a cast member. */
