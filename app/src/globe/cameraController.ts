@@ -27,9 +27,27 @@ interface Flight {
 }
 
 export interface SurfaceProvider {
-  /** Surface height in km (exaggerated) above the sphere at a direction. */
+  /** Drawn surface height in km (exaggerated) above the sphere at a drawn direction. */
   surfaceKm(dir: Vec3): number;
 }
+
+/**
+ * The history lens as the camera sees it (history-lens.md, section 4): the
+ * camera state is the true point at the centre of the screen, drawn where the
+ * lens puts it.
+ */
+export interface LensView {
+  toDrawn(dir: Vec3): Vec3;
+  toTrue(dir: Vec3): Vec3;
+  /** Drawn km per true km at a true direction. */
+  widthAt(dir: Vec3): number;
+}
+
+const IDENTITY_LENS: LensView = {
+  toDrawn: (d) => d,
+  toTrue: (d) => d,
+  widthAt: () => 1,
+};
 
 export class CameraController {
   readonly camera: THREE.PerspectiveCamera;
@@ -45,6 +63,7 @@ export class CameraController {
   /** Surface height (km) under the look point, eased so the camera never jumps at coasts or as tiles load. */
   private targetSurfKm: number | undefined;
   reducedMotion = false;
+  lens: LensView = IDENTITY_LENS;
   onInteract: () => void = () => {};
 
   constructor(
@@ -152,7 +171,7 @@ export class CameraController {
 
   private place(dt: number): void {
     const s = this.state;
-    const up = new THREE.Vector3(...latLonToDir(s.lat, s.lon));
+    const up = new THREE.Vector3(...this.lens.toDrawn(latLonToDir(s.lat, s.lon)));
     const ground = this.surface.surfaceKm([up.x, up.y, up.z]);
     this.targetSurfKm =
       this.targetSurfKm === undefined
@@ -202,7 +221,9 @@ export class CameraController {
   private radPerPixel(): number {
     const h = this.element.clientHeight || 800;
     const fov = THREE.MathUtils.degToRad(this.camera.fov);
-    return (2 * Math.tan(fov / 2) * this.state.altitudeKm) / h / EARTH_RADIUS_KM;
+    // Panning moves the drawn ground with the pointer, so enlarged regions pan slower in true degrees.
+    const width = this.lens.widthAt(latLonToDir(this.state.lat, this.state.lon));
+    return (2 * Math.tan(fov / 2) * this.state.altitudeKm) / h / EARTH_RADIUS_KM / width;
   }
 
   private pan(dx: number, dy: number): void {
@@ -247,7 +268,7 @@ export class CameraController {
     this.velocity.lon = 0;
   }
 
-  /** Ray from a screen point to the globe sphere, as a direction. */
+  /** Ray from a screen point to the globe sphere, as a true direction. */
   pick(clientX: number, clientY: number): Vec3 | undefined {
     const rect = this.element.getBoundingClientRect();
     const ndc = new THREE.Vector2(
@@ -262,7 +283,7 @@ export class CameraController {
     );
     if (!hit) return undefined;
     hit.normalize();
-    return [hit.x, hit.y, hit.z];
+    return this.lens.toTrue([hit.x, hit.y, hit.z]);
   }
 
   private attach(): void {

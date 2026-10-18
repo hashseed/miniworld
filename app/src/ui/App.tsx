@@ -126,6 +126,18 @@ export function App({ store, i18n, actions }: Props) {
           <TiltSteeperIcon />
         </button>
       </div>
+      <button
+        class="btn true-sizes"
+        title={t('lens.trueSizesHint')}
+        aria-pressed={!s.settings.historyLens}
+        data-testid="true-sizes"
+        onClick={() => actions.toggleTrueSizes()}
+      >
+        {t('lens.trueSizes')}
+      </button>
+      {s.ready && !s.stressScene && !s.settings.lensHintSeen && (
+        <LensHint t={t} actions={actions} />
+      )}
 
       {s.panel === 'settings' && <SettingsPanel s={s} t={t} actions={actions} />}
       {s.panel === 'bookmarks' && <BookmarksPanel s={s} t={t} lang={lang} actions={actions} />}
@@ -245,6 +257,31 @@ function TimelineCanvas({ t, actions }: { t: T; actions: Actions }) {
   );
 }
 
+/** The first-start hint about the history lens (history-lens.md, section 1). */
+function LensHint({ t, actions }: { t: T; actions: Actions }) {
+  const [more, setMore] = useState(false);
+  return (
+    <aside class="lens-hint" role="note" data-testid="lens-hint">
+      <p>{t('lens.hint')}</p>
+      {more ? (
+        <p class="more">{t('lens.learnMoreText')}</p>
+      ) : (
+        <button class="link" onClick={() => setMore(true)}>
+          {t('lens.learnMore')}
+        </button>
+      )}
+      <button
+        class="btn close"
+        aria-label={t('lens.closeHint')}
+        title={t('lens.closeHint')}
+        onClick={() => actions.closeLensHint()}
+      >
+        <CloseIcon />
+      </button>
+    </aside>
+  );
+}
+
 function PanelFrame({
   title,
   t,
@@ -332,6 +369,11 @@ function SettingsPanel({ s, t, actions }: { s: UiState; t: T; actions: Actions }
         label={t('settings.slowWhenZoomed')}
         value={s.settings.slowWhenZoomed}
         onChange={(v) => set('slowWhenZoomed', v)}
+      />
+      <Toggle
+        label={t('settings.historyLens')}
+        value={s.settings.historyLens}
+        onChange={(v) => set('historyLens', v)}
       />
       <Toggle
         label={t('settings.showStats')}

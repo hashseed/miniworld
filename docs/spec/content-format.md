@@ -1,6 +1,6 @@
 # Content format
 
-How historical content (events, famous people, eras, places, polities, routes and culture profiles) is written, validated, indexed and fed into the app. The lists of what is in the app are in [events.md](events.md), [people.md](people.md) and [eras.md](eras.md); this file defines the format every item on those lists is stored in.
+How historical content (events, famous people, eras, places, polities, routes, culture profiles, landmarks and vignettes) is written, validated, indexed and fed into the app. The lists of what is in the app are in [events.md](events.md), [people.md](people.md) and [eras.md](eras.md); this file defines the format every item on those lists is stored in.
 
 Goals: adding an item is only data; adding a new kind of event is one presenter; adding a new kind of content is one schema and one build step; every record is reviewable in both languages; nothing about a record has to be maintained in two places.
 
@@ -11,7 +11,7 @@ Every piece of content is a **record**: one Markdown file under `data/curated/<k
 ```
 data/curated/
   vocab/        event-types.yaml, effect-types.yaml, people-categories.yaml,
-                lanes.yaml, regions.yaml, tags.yaml
+                lanes.yaml, regions.yaml, tags.yaml, actions.yaml, roles.yaml
   eras/         roman-republic.md ...
   events/       vesuvius-79.md, black-death.md ...
   people/       julius-caesar.md ...
@@ -19,6 +19,9 @@ data/curated/
   polities/     roman-empire.md ...            states and empires
   routes/       silk-road.md ...
   cultures/     roman-imperial.md ...          culture profiles
+  landmarks/    gobekli-tepe.md, great-pyramid.md ...
+  vignettes/    viking-raids-britain.md ...    small looping stories
+  templates/    coastal-raid.yaml ...          vignette stages and scripts (no text)
   geo/          areas and paths as GeoJSON, referenced by id
   sources.yaml  bibliography of content sources (books, papers, databases)
   CHRONOLOGY.md, <kind>/INDEX.md               generated (section 8)
@@ -74,9 +77,9 @@ Der Vesuv bricht aus und begräbt die Stadt Pompeji unter Asche. ...
 | Field | Required | Meaning |
 | --- | --- | --- |
 | `id` | yes | Stable lowercase slug, unique within its kind, equal to the file name. Never reused; a renamed record keeps its old id in `aliases`, so bookmarks, links and later guided tours never break. |
-| `kind` | yes | `event`, `person`, `era`, `place`, `polity`, `route` or `culture`; must match the folder. |
+| `kind` | yes | `event`, `person`, `era`, `place`, `polity`, `route`, `culture`, `landmark` or `vignette`; must match the folder. |
 | `when` | yes, except culture | Time span (section 3). |
-| `where` | yes for events, people, places and routes | Place (section 4). |
+| `where` | yes for events, people, places, routes, landmarks and vignettes | Place (section 4). |
 | `region` | yes, except culture | One or more region ids from `vocab/regions.yaml` (the timeline's regional lanes); used for the timeline, the phone lane filter and the coverage report. |
 | `sources` | yes | One or more references into `sources.yaml`, each with an optional note such as a page or letter number. |
 | `debated` | no | What historians dispute: `date`, `place`, `cause` or `numbers`. The card says so in plain words. |
@@ -141,19 +144,25 @@ where:
 
 Between waypoints the position is interpolated along the path by date, so where something is at any date is a pure function of the record. Every record also gets an **anchor**, the point the camera flies to: the place or point itself, the centre of an area, or the waypoint for the current date on a path. A record may set `anchor` explicitly when the computed one is a poor choice.
 
+**Coordinates in the event lists.** Every event, war and battle in the editorial lists ([events.md](events.md), the regional lists in [events/](events/) and [wars.md](wars.md)) has a "Coordinates" column holding one point: latitude and longitude in decimal degrees, north and east positive, with at most two decimals (about 1 km), for example `40.75, 14.49`. A bare point is the event's own site: the town, battlefield, building or monument where it happened. When the event covers an area, a route or several places, or its exact site is unknown, the point is a representative one, and a short note in brackets says what it stands for, for example `34.68, 112.45 (capital Luoyang)` or `47.00, 2.00 (centre of the area)`. The usual choices are the capital at that date for a state's political events, the main theatre or decisive battle for a war, the starting point for a voyage, migration or route, and the centre on land for an area. The point is where the timeline's double-click flies to, so the record's anchor must match it: the data build fails when the computed anchor (for a path, its position at the event's start) lies more than 25 km from the listed point and the record does not set `anchor` to it.
+
 ## 5. Fields per kind
 
 Each kind adds only what it needs on top of the envelope.
 
 | Kind | Extra fields |
 | --- | --- |
-| `event` | `type` from `vocab/event-types.yaml` (the types of [spec.md section 5](spec.md#5-how-events-appear-in-the-world)), `effects` (section 6), optional `landmark` (asset id and build span) |
+| `event` | `type` from `vocab/event-types.yaml` (the types of [spec.md section 5](spec.md#5-how-events-appear-in-the-world)), `effects` (section 6); a construction event links to the landmark it builds |
 | `person` | `category` and optional `also` from `vocab/people-categories.yaml` (see [people.md](people.md)), `active` span, `look` (culture profile and unique asset id), `roles` per span |
 | `era` | `lane` from `vocab/lanes.yaml`, `colour` or `polity` (whose overlay colour it uses) |
-| `place` | `names` per language and per period, `population` over time, `landmarks` with build dates |
+| `place` | `names` per language and per period, `population` over time; its landmarks are linked, not described |
 | `polity` | `names` per language and per period, `colour`, `capital` per period, `borders` (GeoJSON per snapshot date) |
 | `route` | `path`, `mode` (caravan, ship, march), `active` span |
-| `culture` | `area` per period, architecture set, clothing, tools, vehicles, crops, animals and activity mix, all as asset or vocabulary ids |
+| `culture` | `area` and `density` per period, architecture set, clothing, tools, vehicles, crops, animals, roles (from `vocab/roles.yaml`) and activity mix, all as asset or vocabulary ids; the body adds a `### Activities` (`### Tätigkeiten`) section with one line per activity id, the sentence a figure card shows, written without pronouns |
+| `landmark` | `stages` (model asset per date: construction, later changes, ruins), `build` (construction span and its vignette), optional `beacon` ([milestone-2.md](milestone-2.md#8-landmarks) section 8) |
+| `vignette` | `template`, `with` (the template's parameters), and `repeat`, `progress`, `stretch` or `cutaway` as needed ([milestone-2.md](milestone-2.md#6-vignettes) section 6) |
+
+**Templates** are the one kind of curated data that is not a record: a vignette template holds a stage, cast, props and a script but no viewer text, so it is a plain YAML file in `templates/` with an id equal to its file name, validated by its own schema ([milestone-2.md](milestone-2.md#62-templates-and-records) section 6.2). `vocab/roles.yaml` gives every role an `en` label and German labels in the feminine and masculine form, so figure cards match the figure.
 
 ## 6. Effects
 
@@ -208,6 +217,9 @@ The lists in [events.md](events.md), [people.md](people.md) and [eras.md](eras.m
 | Change | What it takes |
 | --- | --- |
 | A new event of an existing type | A row in the spec list and one record file |
+| A new vignette | One record file using an existing template |
+| A new vignette template | One YAML file in `templates/`, using only actions from `vocab/actions.yaml` |
+| A new vignette action | A vocabulary entry, its movement rule and its animation clips |
 | A new event type | A row in [spec.md section 5](spec.md#5-how-events-appear-in-the-world), a vocabulary entry and one presenter |
 | A new effect type | A section in this file, a vocabulary entry and one shared system |
 | A new field | This file, then the schema, then the records that use it |

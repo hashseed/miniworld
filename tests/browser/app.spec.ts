@@ -149,3 +149,55 @@ test('keyboard plays history and moves the camera', async ({ page }) => {
   await expect.poll(async () => (await world(page)).lat).not.toBe(before.lat);
   await page.keyboard.up('ArrowUp');
 });
+
+test('True sizes morphs the globe and keeps the point in view', async ({ page }) => {
+  await open(page);
+  const lens = () =>
+    page.evaluate(() => {
+      const m = (
+        globalThis as unknown as {
+          __miniworld: {
+            globe: { lens: { blend: number } };
+            controller: { state: { lat: number; lon: number } };
+          };
+        }
+      ).__miniworld;
+      return {
+        blend: m.globe.lens.blend,
+        lat: m.controller.state.lat,
+        lon: m.controller.state.lon,
+      };
+    });
+  const button = page.getByTestId('true-sizes');
+  await expect(button).toHaveAttribute('aria-pressed', 'false');
+  expect((await lens()).blend).toBe(1);
+  const before = await lens();
+  const lensOn = await page.locator('#globe').screenshot();
+  await button.click();
+  await expect(button).toHaveAttribute('aria-pressed', 'true');
+  // The blend passes through values between the two states, then settles at true sizes.
+  await expect.poll(async () => (await lens()).blend).toBe(0);
+  const after = await lens();
+  expect(after.lat).toBeCloseTo(before.lat, 6);
+  expect(after.lon).toBeCloseTo(before.lon, 6);
+  const lensOff = await page.locator('#globe').screenshot();
+  expect(lensOff.equals(lensOn)).toBe(false);
+  // The setting and the button are one saved value.
+  await page.getByRole('button', { name: en['menu.settings'] }).click();
+  await expect(page.getByLabel(en['settings.historyLens']!)).not.toBeChecked();
+  await page.getByLabel(en['settings.historyLens']!).check();
+  await expect(button).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('the lens hint shows once until closed', async ({ page }) => {
+  await open(page);
+  const hint = page.getByTestId('lens-hint');
+  await expect(hint).toContainText(en['lens.hint']!);
+  await hint.getByRole('button', { name: en['lens.learnMore'] }).click();
+  await expect(hint).toContainText(en['lens.learnMoreText']!);
+  await hint.getByRole('button', { name: en['lens.closeHint'] }).click();
+  await expect(hint).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator('.overlay')).toHaveCount(0, { timeout: 60_000 });
+  await expect(hint).toHaveCount(0);
+});
