@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DAYS_PER_YEAR, TIMELINE_START } from '../time/calendar.ts';
 import { msAtDay } from '../time/rate.ts';
 import { NEVER } from './tree.ts';
-import { BLEND_MS, lookOf, treeScene, type TreeChunk } from './treeScene.ts';
+import { BLEND_MS, BUILD_MS, lodgingSpot, lookOf, treeScene, type TreeChunk } from './treeScene.ts';
 
 const d0 = TIMELINE_START;
 const years = (y: number) => Math.round(y * DAYS_PER_YEAR);
@@ -86,6 +86,33 @@ describe('the tree scene', () => {
     const after = treeScene(chunk, left + 20_000, d0);
     expect(after.figures.every((f) => f.lon === 39 && f.clip !== 'walk')).toBe(true);
     expect(after.lodgings.map((l) => l.id)).toEqual([1]);
+  });
+
+  it('has the band build the hut together before they go to their spots', () => {
+    const left = ms(moveDay);
+    // Arrival after about 5.5 seconds; then 8 seconds of building.
+    const building = treeScene(chunk, left + 8000, d0);
+    const hut = lodgingSpot(1);
+    for (const f of building.figures) {
+      expect(f.clip).toBe('work');
+      expect(f.lon).toBe(39);
+      // Facing the hut, close by it.
+      expect(f.dirX * (hut.x - f.x) + f.dirZ * (hut.z - f.z)).toBeGreaterThan(0);
+      expect((hut.x - f.x) ** 2 + (hut.z - f.z) ** 2).toBeLessThan(9 ** 2);
+    }
+    const rising = building.lodgings[0]!;
+    expect(rising.built).toBeGreaterThan(0);
+    expect(rising.built).toBeLessThan(1);
+    const later = treeScene(chunk, left + 6000 + BUILD_MS, d0);
+    expect(later.lodgings[0]!.built).toBe(1);
+    // The hut never shrinks while it goes up.
+    let last = 0;
+    for (let t = 5000; t < 15_000; t += 250) {
+      const l = treeScene(chunk, left + t, d0).lodgings[0];
+      if (!l) continue;
+      expect(l.built).toBeGreaterThanOrEqual(last);
+      last = l.built;
+    }
   });
 
   it('walks at the pace of the walk clip', () => {

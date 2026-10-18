@@ -38,8 +38,12 @@ const ACTIVITY_MIN_MS = 20_000;
 const ACTIVITY_SPREAD_MS = 20_000;
 /** Clip changes ease over this long (milestone 2, section 5.3). */
 export const BLEND_MS = 350;
-/** Lodgings fade in and out over this long. */
+/** Lodgings fade out over this long when taken down. */
 const FADE_MS = 1500;
+/** The band takes this long to build a new lodging, about three years of history. */
+export const BUILD_MS = 8000;
+/** Builders stand this far from the middle of the lodging they build, in layout metres. */
+const BUILD_RING_M = 8;
 /** Moves shorter than this are within the camp and not walked. */
 const SAME_PLACE_KM = 1;
 const KM_PER_DEG = 111.195;
@@ -70,8 +74,10 @@ export interface FigurePose extends Placed {
 export interface LodgingPose extends Placed {
   id: number;
   kind: string;
-  /** 0 to 1 while it is put up or taken down. */
+  /** 0 to 1 while it is taken down. */
   fade: number;
+  /** 0 to 1 while the band builds it: how far it has risen from the ground. */
+  built: number;
 }
 
 export interface HearthPose {
@@ -153,6 +159,28 @@ function comeOutMs(figure: number, lodging: number): number {
   return Math.ceil((m * LAYOUT_KM_PER_M) / WALK_KM_PER_MS);
 }
 
+/** Where a figure stands while it helps build a lodging: around it, on the hearth's side. */
+function buildSpot(figure: number, lodging: number): { x: number; z: number } {
+  const hut = lodgingSpot(lodging);
+  const toHearth = Math.sqrt(hut.x * hut.x + hut.z * hut.z);
+  // Spread over the half of the ring that faces the hearth, by hash.
+  const a = (hash01(figure, lodging, 67) - 0.5) * Math.PI;
+  const c = detCos(a);
+  const sn = detSin(a);
+  const ux = -hut.x / toHearth;
+  const uz = -hut.z / toHearth;
+  return {
+    x: hut.x + BUILD_RING_M * (ux * c - uz * sn),
+    z: hut.z + BUILD_RING_M * (ux * sn + uz * c),
+  };
+}
+
+/** Milliseconds to walk between two points of a camp, in layout metres. */
+function strollMs(a: { x: number; z: number }, b: { x: number; z: number }): number {
+  const m = Math.sqrt((b.x - a.x) ** 2 + (b.z - a.z) ** 2);
+  return Math.ceil((m * LAYOUT_KM_PER_M) / WALK_KM_PER_MS);
+}
+
 /** Everything the tree shows at a clock time (section 8.1). */
 export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScene {
   const lodgings = new Map(chunk.lodgings.map((l) => [l.id, l]));
@@ -177,9 +205,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     const gone = l.gone === NEVER ? Infinity : at(l.gone);
     if (ms < shown || ms >= gone + FADE_MS) continue;
     const spot = lodgingSpot(l.id);
-    // Lodgings standing when the timeline starts are already up.
-    const fadeIn = shown <= 0 ? 1 : (ms - shown) / FADE_MS;
-    const fade = Math.min(1, fadeIn, ms < gone ? 1 : 1 - (ms - gone) / FADE_MS);
+    const fade = Math.min(1, ms < gone ? 1 : 1 - (ms - gone) / FADE_MS);
     scene.lodgings.push({
       id: l.id,
       kind: l.kind,
@@ -188,6 +214,8 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       ...spot,
       ...towards(spot.x, spot.z, 0, 0),
       fade,
+      // Lodgings standing when the timeline starts are already up.
+      built: shown <= 0 ? 1 : Math.min(1, (ms - shown) / BUILD_MS),
     });
     if (ms < gone && !camps.has(l.camp))
       camps.set(l.camp, { camp: l.camp, lat: deg(l.lat), lon: deg(l.lon) });
@@ -215,11 +243,19 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     const prev = i > 0 ? lodgings.get(f.homes[i - 1]![1]) : undefined;
     const left = at(f.homes[i]![0]);
     const travel = prev ? walkMs(prev, home) : 0;
+    // Figures that move in on the day their lodging is built help build it.
+    const shown = appears.get(home.id)!;
+    const builds = f.homes[i]![0] === home.built && shown > 0;
+    const work = builds ? buildSpot(f.id, home.id) : spot;
+    const buildEnd = shown + BUILD_MS;
+    const back = builds ? strollMs(work, spot) : 0;
     if (prev && ms < left + travel) {
       // On the way to the new home: across the map, from the old spot to the new one.
       const t = (ms - left) / travel;
       pose.lat = deg(prev.lat) + (deg(home.lat) - deg(prev.lat)) * t;
       pose.lon = deg(prev.lon) + (deg(home.lon) - deg(prev.lon)) * t;
+      pose.x = spot.x + (work.x - spot.x) * t;
+      pose.z = spot.z + (work.z - spot.z) * t;
       const east = (deg(home.lon) - deg(prev.lon)) * detCos(deg(home.lat) * RAD);
       Object.assign(pose, towards(0, 0, east, deg(home.lat) - deg(prev.lat)));
       pose.clip = 'walk';
@@ -233,15 +269,52 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       Object.assign(pose, towards(door.x, door.z, spot.x, spot.z));
       pose.clip = 'walk';
       pose.clipMs = ms - born;
+    } else if (builds && ms < buildEnd) {
+      // Building: at the lodging, facing it, at work; a builder from nearby first walks over.
+      const from = prev ? { x: work.x, z: work.z } : spot;
+      const reach = prev ? left + travel : left + strollMs(spot, work);
+      const hut = lodgingSpot(home.id);
+      if (ms < reach) {
+        const t = (ms - left) / (reach - left);
+        pose.x = from.x + (work.x - from.x) * t;
+        pose.z = from.z + (work.z - from.z) * t;
+        Object.assign(pose, towards(from.x, from.z, work.x, work.z));
+        pose.clip = 'walk';
+        pose.clipMs = ms - left;
+      } else {
+        pose.x = work.x;
+        pose.z = work.z;
+        Object.assign(pose, towards(work.x, work.z, hut.x, hut.z));
+        pose.clip = 'work';
+        pose.clipMs = ms - reach;
+        if (ms - reach < BLEND_MS)
+          pose.from = { clip: 'walk', clipMs: ms - left, weight: (ms - reach) / BLEND_MS };
+      }
+    } else if (builds && ms < buildEnd + back) {
+      // The lodging is up: back from it to its own spot by the hearth.
+      const t = (ms - buildEnd) / back;
+      pose.x = work.x + (spot.x - work.x) * t;
+      pose.z = work.z + (spot.z - work.z) * t;
+      Object.assign(pose, towards(work.x, work.z, spot.x, spot.z));
+      pose.clip = 'walk';
+      pose.clipMs = ms - buildEnd;
+      if (ms - buildEnd < BLEND_MS)
+        pose.from = { clip: 'work', clipMs: ms - shown, weight: (ms - buildEnd) / BLEND_MS };
     } else {
       // Figures there when the timeline starts are already at their spots.
-      const arrived = prev ? left + travel : born > 0 ? born + comeOutMs(f.id, home.id) : -BLEND_MS;
+      const arrived = builds
+        ? buildEnd + back
+        : prev
+          ? left + travel
+          : born > 0
+            ? born + comeOutMs(f.id, home.id)
+            : -BLEND_MS;
       Object.assign(pose, activity(f.id, ms));
       // Ease from walking into standing on arrival.
       if (ms - arrived < BLEND_MS)
         pose.from = {
           clip: 'walk',
-          clipMs: ms - (prev ? left : born),
+          clipMs: ms - (builds ? buildEnd : prev ? left : born),
           weight: (ms - arrived) / BLEND_MS,
         };
     }
