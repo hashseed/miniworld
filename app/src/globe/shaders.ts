@@ -456,9 +456,11 @@ void main() {
   vec2 clim = climateAt(normalize(vTrueUp));
 #if defined(SEA_SURFACE) && !defined(SEA_ICE)
   float iceKm = -100.0;
+  float sheetKm = -100.0;
 #else
   // Ice sheets and mountain snow caps in one field (section 5.2).
   float iceKm = max(clim.x, vCap * CAP_KM_PER_M);
+  float sheetKm = clim.x;
 #endif
   // Arctic pack ice (section 5.2): the sea north of a wobbly edge near 78°N
   // today, reaching 70°N at the glacial maximum.
@@ -468,7 +470,9 @@ void main() {
   // Past the pack edge the ice sheets reach over the pack ice and narrow
   // strips of shore up to POLAR_REACH_KM away, so the Arctic's ice reads as
   // one; the reach grows smoothly from nothing at the pack edge.
-  iceKm = max(iceKm, min(packKm, iceKm + POLAR_REACH_KM));
+  // Only the ice sheets reach out: a snow cap's field is far below zero on low land and
+  // per vertex, so reaching from it whitened whole coasts with jagged holes (Yang, 2026-10-19).
+  iceKm = max(iceKm, min(packKm, sheetKm + POLAR_REACH_KM));
 #if defined(SEA_SURFACE) && !defined(SEA_ICE)
   // Under the terrain's ice this surface draws nothing, so its coast lines
   // never show through.
