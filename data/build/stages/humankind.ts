@@ -3,8 +3,9 @@
 // and 5), written to data/build/tree/tree.json and, for the app, as one chunk
 // per time window (section 8).
 
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { join, relative } from 'node:path';
 import { OCEAN_MIN_LEVEL, OCEAN_NEVER } from '../../../app/src/content/formats.ts';
 import { TIMELINE_START } from '../../../app/src/time/calendar.ts';
 import { dayAtWatch } from '../../../app/src/time/rate.ts';
@@ -19,8 +20,21 @@ import {
   validateCultureAreas,
   type CultureAreas,
 } from '../lib/cultureAreas.ts';
-import { buildSites, type Site } from '../lib/sites.ts';
-import { MINIMAL_SITE } from '../../../app/src/world/treeScene.ts';
+import { buildSites, type Site, type SiteMap } from '../lib/sites.ts';
+import {
+  COMPACT_SITE,
+  gapDirection,
+  isCompact,
+  LAYOUT_KM_PER_M,
+  layoutOf,
+  LODGING_SLOTS,
+  MAX_OUTING_M,
+  MINIMAL_SITE,
+  RACK_R,
+  SCRAPE_BACK_M,
+  SCRAPE_SIDE_M,
+  slotPoint,
+} from '../../../app/src/world/treeScene.ts';
 import {
   arrivalMap,
   dayOfBce,
@@ -37,7 +51,7 @@ import { NEVER, type TreeLodging } from '../../../app/src/world/tree.ts';
 import { flies, swims, WILD_GROUPS } from '../../../app/src/world/wildlife.ts';
 import type { DrawnGround } from '../lib/drawnGround.ts';
 import type { Climate } from './climate.ts';
-import { ROOT, type WriteContext } from './context.ts';
+import { ROOT, sha256, type WriteContext } from './context.ts';
 import type { WorldMap } from './terrain.ts';
 
 /** River field at which the drawn bank begins, so camps keep a little clear of the water. */
@@ -93,6 +107,26 @@ function peoplingReport(
 
 /** Camps farther than this from every walking wildlife group's home are left out of the index. */
 const CAMP_NEAR_WILDLIFE_KM = 3000;
+
+/**
+ * The build code the camp sites depend on, besides treeScene's layouts (hashed by value):
+ * every library file but the tree's own, and the stages that make the land and the lens.
+ */
+const SITES_CODE = [
+  ...readdirSync(join(ROOT, 'data/build/lib'))
+    .filter(
+      (f) =>
+        f.endsWith('.ts') &&
+        !f.endsWith('.test.ts') &&
+        !['humankind.ts', 'cultureAreas.ts', 'arrivals.ts', 'treeReport.ts'].includes(f),
+    )
+    .sort()
+    .map((f) => `data/build/lib/${f}`),
+  'data/build/stages/terrain.ts',
+  'data/build/stages/climate.ts',
+  'data/build/stages/lens.ts',
+  'app/src/core/detmath.ts',
+];
 
 export function buildHumankind(
   ctx: WriteContext,
@@ -183,9 +217,9 @@ export function buildHumankind(
   const { places: keyPlaces } = ctx.curated<{
     places: { id: string; lat: number; lon: number }[];
   }>('key-places.json');
-  const sites = buildSites({
+  const siteInputs = {
     keyPlaces,
-    stepAt: (lat, lon) => siteStepAt(cultureAreas, lat, lon),
+    stepAt: (lat: number, lon: number) => siteStepAt(cultureAreas, lat, lon),
     widthAt,
     campFlood,
     walkFlood,
@@ -196,7 +230,64 @@ export function buildHumankind(
       day: dayOfBce(c.bce),
       way: c.way.map(([lat, lon]) => ({ lat, lon })),
     })),
-  });
+  };
+  // The sites take a minute to lay out and change only with the land, the lens, the key
+  // places, the crossings, the coarser lattices of the culture areas and the build code, so
+  // they are kept in data/out/sites/ by a hash of those (sites.md section 7), and tuning the
+  // tree (densities, routes, morphs) rebuilds only the tree.
+  const sitesKey = createHash('sha256')
+    .update(
+      JSON.stringify({
+        // The cache's own format: 2 writes the flood levels' infinities as strings.
+        format: 3,
+        land: [ctx.fixture, sha256(join(ROOT, 'data/sources.json'))],
+        lens: Array.from({ length: 36 * 17 }, (_, i) =>
+          widthAt(-80 + 10 * Math.floor(i / 36), -180 + 10 * (i % 36)).toFixed(4),
+        ),
+        flood: [oceanFlood, walkFlood, campFlood].map(String).concat(String(RIVER_BANK_FIELD)),
+        lattices: cultureAreas.areas.map((a) => [a.siteStepKm, a.snapshots.map((s) => s.ring)]),
+        keyPlaces,
+        crossings,
+        layout: [
+          LAYOUT_KM_PER_M,
+          LODGING_SLOTS,
+          MAX_OUTING_M,
+          RACK_R,
+          SCRAPE_BACK_M,
+          SCRAPE_SIDE_M,
+          COMPACT_SITE,
+          MINIMAL_SITE,
+          layoutOf(0),
+          layoutOf(COMPACT_SITE),
+          layoutOf(MINIMAL_SITE),
+          [gapDirection, isCompact, slotPoint].map(String),
+        ],
+        code: SITES_CODE.map((f) => sha256(join(ROOT, f))),
+      }),
+    )
+    .digest('hex')
+    .slice(0, 16);
+  const sitesCache = join(ROOT, 'data/out/sites', `${sitesKey}.json`);
+  let sites: SiteMap;
+  if (existsSync(sitesCache)) {
+    sites = JSON.parse(readFileSync(sitesCache, 'utf8'), (_k, v: unknown) =>
+      v === '-Infinity' ? -Infinity : v === 'Infinity' ? Infinity : v,
+    ) as SiteMap;
+    log(`camp sites from ${relative(ROOT, sitesCache)}`);
+  } else {
+    sites = buildSites(siteInputs);
+    mkdirSync(join(ROOT, 'data/out/sites'), { recursive: true });
+    // Only the newest is kept: one build's sites are about 10 MB.
+    for (const old of readdirSync(join(ROOT, 'data/out/sites')))
+      rmSync(join(ROOT, 'data/out/sites', old));
+    // JSON has no infinities, which the flood levels use (lakes, never flooded).
+    writeFileSync(
+      sitesCache,
+      JSON.stringify(sites, (_k, v: unknown) =>
+        v === -Infinity ? '-Infinity' : v === Infinity ? 'Infinity' : v,
+      ),
+    );
+  }
   mkdirSync(join(ROOT, 'data/build/tree'), { recursive: true });
   writeFileSync(join(ROOT, 'data/build/tree/sites.json'), JSON.stringify(sites));
   log(

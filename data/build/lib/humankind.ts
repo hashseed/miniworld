@@ -45,7 +45,7 @@ export type Density = 'remote' | 'sparse' | 'low' | 'medium';
 
 /** Camp spacing per density (section 4.1, Proposed); every band is 3 to 5 (Yang, 2026-10-18). */
 export const DENSITIES: Record<Density, { spacingKm: number; band: [number, number] }> = {
-  remote: { spacingKm: 1800, band: [3, 5] },
+  remote: { spacingKm: 2800, band: [3, 5] },
   sparse: { spacingKm: 1350, band: [3, 5] },
   low: { spacingKm: 900, band: [3, 5] },
   medium: { spacingKm: 600, band: [3, 5] },
@@ -134,6 +134,8 @@ export interface TreeSettings {
   walkFlood?(lat: number, lon: number): number;
   /** The density of the culture area at a place and day, or undefined outside every area. */
   density(lat: number, lon: number, day: Day): Density | undefined;
+  /** A culture area's own camp spacing in km, overriding its density's (humankind.md section 4.1). */
+  spacing?(lat: number, lon: number, day: Day): number | undefined;
   /** The culture of the area at a place and day (peopling.md section 5.1); without it, every camp is the founder's. */
   culture?(lat: number, lon: number, day: Day): string | undefined;
   /** Whether the way of life of the area at a place lets people camp there on a day: cold and height (peopling.md section 5.2). */
@@ -272,8 +274,10 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       bandAtReal.delete(k);
     },
   };
-  const spacingAt = (site: Site, day: Day) =>
-    DENSITIES[s.density(site.lat, site.lon, day) ?? 'low'].spacingKm;
+  /** The camp spacing at a place: its culture area's own, else its density's. */
+  const spacingOf = (lat: number, lon: number, day: Day) =>
+    s.spacing?.(lat, lon, day) ?? DENSITIES[s.density(lat, lon, day) ?? 'low'].spacingKm;
+  const spacingAt = (site: Site, day: Day) => spacingOf(site.lat, site.lon, day);
   /** Whether a site is far enough from every other band (sites.md section 4). */
   const free = (site: Site, day: Day, except?: Camp) => {
     const spacing = spacingAt(site, day);
@@ -507,7 +511,10 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   const homeOf = (f: number) => tree.figures[f]!.homes.at(-1)![1];
 
   const newCamp = (site: Site, day: Day): Camp => {
-    const density = DENSITIES[s.density(site.lat, site.lon, day) ?? 'low'];
+    const density = {
+      ...DENSITIES[s.density(site.lat, site.lon, day) ?? 'low'],
+      spacingKm: spacingOf(site.lat, site.lon, day),
+    };
     const id = camps.length;
     const [lo, hi] = density.band;
     const camp: Camp = {
@@ -896,7 +903,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     const spacing =
       density === 'remote'
         ? Math.min(ROUTE_NEAR_KM, DENSITIES.remote.spacingKm)
-        : DENSITIES[density].spacingKm;
+        : spacingOf(far.lat, far.lon, day);
     let targets: Site[] = [];
     for (let r = 1; r <= 3 && !targets.length; r++)
       targets = sites.filter(

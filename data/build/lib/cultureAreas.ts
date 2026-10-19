@@ -26,6 +26,8 @@ export interface CultureAreas {
     coldestC?: number;
     /** The highest ground for its camps; MAX_CAMP_M when not given. */
     highestM?: number;
+    /** Its own camp spacing in km, overriding the density's (humankind.md section 4.1). */
+    spacingKm?: number;
     /** A coarser lattice of camp sites in the area, a multiple of SITE_STEP_KM (sites.md section 2). */
     siteStepKm?: number;
     snapshots: { fromBP: number; label: string; source: string; ring: Ring }[];
@@ -134,5 +136,6 @@ export function humankindSettings(c: CultureAreas, world: PeoplingInputs): TreeS
     prologueEndDay: PROLOGUE_END,
     frontKmPerYear: FRONT_KM_PER_YEAR,
     density: (lat, lon, day) => areaAt(lat, lon, day)?.density,
+    spacing: (lat, lon, day) => areaAt(lat, lon, day)?.spacingKm,
   };
 }
