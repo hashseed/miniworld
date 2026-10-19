@@ -624,6 +624,8 @@ if (import.meta.env.DEV)
        * Fixes the render scale for browser screenshots, so they do not depend
        * on how fast the software renderer draws (section 11.3).
        */
+      /** Holds the frame loop for a screenshot, or releases it (section 13). */
+      holdFrames: (on: boolean) => loop.hold(on),
       pinRenderScale: (scale: number) => {
         dynres.configure(scale, Infinity);
         dynres.scale = scale;

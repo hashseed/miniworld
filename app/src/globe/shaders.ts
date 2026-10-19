@@ -413,9 +413,14 @@ vec3 waterFields(vec2 uv) {
   return mix(mix(s3, s2, sx), mix(s1, s0, sx), sy);
 }
 
-/** Cel steps: three flat light bands with narrow soft edges (section 3.6). */
+/**
+ * Cel steps on the ground: three light bands whose edges are blurred over a
+ * wide stretch, so the shading of the slopes fades in smoothly instead of
+ * showing the steps of the terrain triangles (section 3.6; Yang, 2026-10-19:
+ * "shadows are often jagged").
+ */
 float cel(float x) {
-  return 0.5 * (smoothstep(0.27, 0.31, x) + smoothstep(0.6, 0.64, x));
+  return 0.5 * (smoothstep(0.19, 0.39, x) + smoothstep(0.52, 0.72, x));
 }
 
 /** Ink line where a varying crosses a value, about px pixels wide. */

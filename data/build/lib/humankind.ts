@@ -18,6 +18,7 @@ import {
 import {
   BUILD_RING_M,
   CAMP_ROOM_M,
+  LODGING_RING_M,
   HEARTH_SPOTS,
   LAYOUT_KM_PER_M,
   LODGING_SLOTS,
@@ -53,6 +54,14 @@ export const BUD_DAYS = years(100);
 const BUD_RETRY_DAYS = years(500);
 
 const KM_PER_DEG = 111.195;
+/** Rays across a gap between the lodgings, in radians from its middle, for how far people can go out. */
+/**
+ * Half the angle round a lodging's direction that its builders' ways cross, in radians: from
+ * anywhere on the people's ring (about 11 layout metres) to its builders (up to 22 metres out),
+ * the tangents from the ring and the builders' own spread.
+ */
+const SLOT_WEDGE = 0.95;
+const REACH_TURNS = Array.from({ length: 11 }, (_, k) => (k - 5) * 0.05);
 
 /** Where people may live, from the land, sea, ice and desert of a day. */
 export interface Habitat {
@@ -223,22 +232,38 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   };
 
   /**
-   * The lowest place round the hearth that none of the camp's standing lodgings takes,
-   * on land if one is free; places in the water are used only when nothing else is left.
+   * The lowest place round the hearth that none of the camp's standing lodgings takes, on
+   * land with dry ground to cross to it if one is free; else one whose lodging and builders
+   * at least are on land; places in the water are used only when nothing else is left.
    */
   const freeSlot = (camp: Camp, day: Day): number => {
     const taken = new Set(camp.lodgings.map((l) => tree.lodgings[l]!.slot));
     const free = Array.from({ length: LODGING_SLOTS }, (_, k) => k).filter((k) => !taken.has(k));
-    const dry = free.find((k) => {
+    const at = (q: { x: number; z: number }) => dryAt(offset(camp.lat, camp.lon, q.x, q.z), day);
+    // The lodging and the builders round it, a little past where they stand.
+    const standsDry = (k: number) => {
       const p = slotPoint(camp.id, k);
-      // The lodging and the builders round it, a little past where they stand.
       const round = Array.from({ length: 12 }, (_, j) => {
         const a = (j / 12) * 2 * Math.PI;
         return { x: p.x + (BUILD_RING_M + 1) * detCos(a), z: p.z + (BUILD_RING_M + 1) * detSin(a) };
       });
-      return [p, ...round].every((q) => dryAt(offset(camp.lat, camp.lon, q.x, q.z), day));
-    });
-    return dry ?? free[0] ?? taken.size;
+      return [p, ...round].every(at);
+    };
+    // The ground the builders cross to it from the people's ring, which they enter and leave
+    // from any side: the wedge from the camp's room out past the builders, a point every
+    // layout metre (Yang, 2026-10-19: people walked over Lake Malawi to a hut).
+    const reachedDry = (k: number) => {
+      const p = slotPoint(camp.id, k);
+      const [ux, uz] = [p.x / LODGING_RING_M, p.z / LODGING_RING_M];
+      for (let r = CAMP_ROOM_M; r <= LODGING_RING_M + BUILD_RING_M + 1; r += 1)
+        for (let s = -SLOT_WEDGE; s <= SLOT_WEDGE; s += 1 / r) {
+          const [c, sn] = [detCos(s), detSin(s)];
+          if (!at({ x: r * (ux * c - uz * sn), z: r * (ux * sn + uz * c) })) return false;
+        }
+      return true;
+    };
+    const dry = free.filter(standsDry);
+    return dry.find(reachedDry) ?? dry[0] ?? free[0] ?? taken.size;
   };
 
   /** How far, in layout metres, people can go out through each gap between the lodgings and stay on land. */
@@ -246,9 +271,12 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     Array.from({ length: LODGING_SLOTS }, (_, gap) => {
       const d = gapDirection(camp.id, gap);
       let reach = 0;
-      for (let m = 10; m <= MAX_OUTING_M; m += 2.5) {
-        // Across the lanes of the gap, and a little further than they go, as coasts are drawn smoothed.
-        const wet = [-0.17, 0, 0.17].some((turn) => {
+      for (let m = 10; m <= MAX_OUTING_M; m += 1) {
+        // Across the lanes of the gap (out to 0.15 rad either side) and the walks to them, a
+        // ray every 0.05 rad, and a little further than they go, as coasts are drawn smoothed.
+        // Three rays let a lake 50 km wide slip between them far out (Yang, 2026-10-19:
+        // people gathering in Lake Malawi).
+        const wet = REACH_TURNS.some((turn) => {
           const [c, sn] = [detCos(turn), detSin(turn)];
           const x = (d.x * c - d.z * sn) * m * 1.1;
           const z = (d.x * sn + d.z * c) * m * 1.1;
