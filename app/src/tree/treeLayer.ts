@@ -21,17 +21,20 @@ import {
   type TreeChunk,
 } from '../world/treeScene.ts';
 import {
-  buildLodging,
-  buildProp,
-  buildSpearObject,
   buildTreeFigure,
   buildTreePrey,
+  TREE_SPEAR_BATCH,
   treeFigureBatch,
+  treePreyBatch,
+  treePropBatch,
   type TreeActor,
+  type TreeBatch,
 } from '../vignettes/figures.ts';
 import type { StandIn } from '../vignettes/standIns.ts';
 import type { Profile } from '../world/cultures.ts';
-import { animatePerson, blendPerson } from '../../../assets/src/clips.ts';
+import { animateAnimal, animatePerson, blendPerson } from '../../../assets/src/clips.ts';
+import type { Model } from '../../../assets/src/kit.ts';
+import { buildSteps, flickerHearth, lightHearth, setBuilt } from '../../../assets/src/shelters.ts';
 import { PosedBatches } from './posedBatches.ts';
 import type { SurfaceSource } from '../vignettes/vignetteLayer.ts';
 import type { Obstacle } from '../wildlife/wildlifeLayer.ts';
@@ -68,16 +71,12 @@ export class TreeLayer {
   private figures = new Map<number, TreeActor>();
   /** The culture each figure's model was built for. */
   private profiles = new Map<number, Profile>();
-  private lodgings = new Map<number, StandIn | undefined>();
-  private hearths = new Map<number, StandIn | undefined>();
+  /** Hunted animals fading in or out, each drawn on its own with its own fade. */
   private prey = new Map<string, StandIn | undefined>();
-  private spears = new Map<string, THREE.Object3D>();
-  private props = new Map<string, StandIn | undefined>();
   /** Sparks of fires being lit: small glowing beads, reused frame to frame. */
   private sparks: THREE.Mesh[] = [];
   private sparkGeometry = new THREE.SphereGeometry(0.07, 6, 4);
   private sparkMaterial = new THREE.MeshBasicMaterial({ color: 0xffc04a });
-  private poles = new Map<string, StandIn | undefined>();
   private camera: THREE.PerspectiveCamera | undefined;
   private cleared: Clearing[] = [];
   private blocking: Obstacle[] = [];
@@ -132,31 +131,39 @@ export class TreeLayer {
 
   /** The scale that keeps a lodging model at most LODGING_MAX_M across, by its kind. */
   private fits = new Map<string, number>();
-  /** The figures with approved models, drawn as copies of a few models (posedBatches.ts). */
+  /** Everything of the camps with approved models, drawn as copies of a few models (posedBatches.ts). */
   private batches = new PosedBatches();
   private scratch = new THREE.Object3D();
-  private fitOf(kind: string, root: THREE.Object3D): number {
-    let fit = this.fits.get(kind);
+  private fitOf(batch: TreeBatch): number {
+    let fit = this.fits.get(batch.key);
     if (fit === undefined) {
-      // Measured upright at the origin, as built.
-      const [pos, turn, scale] = [
-        root.position.clone(),
-        root.quaternion.clone(),
-        root.scale.clone(),
-      ];
-      root.position.set(0, 0, 0);
-      root.quaternion.identity();
-      root.scale.setScalar(1);
-      root.updateMatrixWorld(true);
-      const size = new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3());
+      // Measured on a model of its own, upright at the origin, as built.
+      const object = batch.build().object;
+      object.updateMatrixWorld(true);
+      const size = new THREE.Box3().setFromObject(object).getSize(new THREE.Vector3());
       fit = Math.min(1, LODGING_MAX_M / Math.max(size.x, size.z, 1e-6));
-      root.position.copy(pos);
-      root.quaternion.copy(turn);
-      root.scale.copy(scale);
-      root.updateMatrixWorld(true);
-      this.fits.set(kind, fit);
+      this.fits.set(batch.key, fit);
     }
     return fit;
+  }
+
+  /** The building steps of a batch's template, found once. */
+  private templateSteps = new WeakMap<Model, THREE.Object3D[]>();
+  private stepsOf(m: Model): THREE.Object3D[] {
+    let steps = this.templateSteps.get(m);
+    if (!steps) this.templateSteps.set(m, (steps = buildSteps(m)));
+    return steps;
+  }
+
+  /** Whether a lodging model goes up in building steps, by its kind. */
+  private steps = new Map<string, boolean>();
+  private stepped(batch: TreeBatch): boolean {
+    let stepped = this.steps.get(batch.key);
+    if (stepped === undefined) {
+      stepped = buildSteps(batch.build()).length > 0;
+      this.steps.set(batch.key, stepped);
+    }
+    return stepped;
   }
 
   /** Notes an object just placed as one the animals keep clear of. */
@@ -267,52 +274,36 @@ export class TreeLayer {
       if (f.unarmed) actor.hideTool();
     }
     this.prune(this.figures, seen);
-    this.batches.end();
+
+    // Everything else of the camps is drawn as copies of a few models too (posedBatches.ts):
+    // placed on the scratch object, scaled, and posed on the batch's template.
+    const at = this.scratch;
+    const copy = (batch: TreeBatch, pose: (m: Model) => void = () => {}) => {
+      at.updateMatrix();
+      this.batches.add(batch.key, batch.build, at.matrix, pose);
+    };
 
     // Spears away from the hand: their middle at its height, along their flight.
-    const flying = new Set<string>();
     for (const sp of scene.spears) {
-      flying.add(sp.id);
-      let pivot = this.spears.get(sp.id);
-      if (!pivot) {
-        pivot = new THREE.Group();
-        const spear = buildSpearObject();
-        // The model's shaft runs up from its grip; its middle goes to the pivot.
-        spear.position.set(0, -1.1, 0);
-        pivot.add(spear);
-        this.group.add(pivot);
-        this.spears.set(sp.id, pivot);
-      }
-      if (!this.place(pivot, sp)) continue;
+      if (!this.place(at, sp, false)) continue;
       const up = this.v1.copy(this.dir);
       northEast(up, this.n2, this.e2);
       const ahead = this.e2.multiplyScalar(sp.dirX).addScaledVector(this.n2, sp.dirZ);
       const along = ahead.addScaledVector(up, sp.slope).normalize();
-      pivot.quaternion.setFromUnitVectors(this.yAxis, along);
-      pivot.position.addScaledVector(up, sp.height * FIGURE_KM_PER_M);
-      pivot.scale.setScalar(FIGURE_KM_PER_M);
+      at.quaternion.setFromUnitVectors(this.yAxis, along);
+      at.position.addScaledVector(up, sp.height * FIGURE_KM_PER_M);
+      at.scale.setScalar(FIGURE_KM_PER_M);
+      copy(TREE_SPEAR_BATCH);
     }
-    for (const [id, pivot] of this.spears)
-      if (!flying.has(id)) {
-        this.group.remove(pivot);
-        this.spears.delete(id);
-      }
 
     // Drying racks beside the lodgings, the spit over a fire while meat roasts, canoes on
     // the water and red flags at the Neolithic thresholds.
-    const standing = new Set<string>();
     for (const q of scene.props) {
-      standing.add(q.id);
-      if (!this.props.has(q.id)) {
-        const prop = buildProp('asset', q.kind);
-        if (prop) this.group.add(prop.root);
-        this.props.set(q.id, prop);
-      }
-      const prop = this.props.get(q.id);
-      if (!prop || !this.place(prop.root, q)) continue;
-      prop.root.scale.setScalar(FIGURE_KM_PER_M);
+      const batch = treePropBatch(q.kind);
+      if (!batch || !this.place(at, q, false)) continue;
+      at.scale.setScalar(FIGURE_KM_PER_M);
+      copy(batch);
     }
-    this.prune(this.props, standing);
 
     // Sparks from the flint stones while a new fire is lit, shrinking as they die.
     scene.sparks.forEach((sp, k) => {
@@ -329,92 +320,75 @@ export class TreeLayer {
     for (let k = scene.sparks.length; k < this.sparks.length; k++) this.sparks[k]!.visible = false;
 
     // Carrying poles: on the ground, lifted, carried and laid down again.
-    const carried = new Set<string>();
-    for (const pole of scene.poles) {
-      carried.add(pole.id);
-      if (!this.poles.has(pole.id)) {
-        const prop = buildProp('asset', 'prop-carry-pole');
-        if (prop) this.group.add(prop.root);
-        this.poles.set(pole.id, prop);
-      }
-      const prop = this.poles.get(pole.id);
-      if (!prop || !this.place(prop.root, pole)) continue;
-      prop.root.position.addScaledVector(
-        this.dir,
-        (pole.height - POLE_ON_GROUND_M) * FIGURE_KM_PER_M,
-      );
-      prop.root.scale.setScalar(FIGURE_KM_PER_M);
+    const pole = treePropBatch('prop-carry-pole');
+    for (const p of pole ? scene.poles : []) {
+      if (!this.place(at, p, false)) continue;
+      at.position.addScaledVector(this.dir, (p.height - POLE_ON_GROUND_M) * FIGURE_KM_PER_M);
+      at.scale.setScalar(FIGURE_KM_PER_M);
+      copy(pole!);
     }
-    this.prune(this.poles, carried);
 
-    const hunted = new Set<string>();
+    // Hunted animals; one fading in or out is drawn on its own, with its own fade.
+    const fading = new Set<string>();
     for (const p of scene.prey) {
-      hunted.add(p.id);
-      if (!this.prey.has(p.id)) {
-        const animal = buildTreePrey(p.kind);
-        if (animal) this.group.add(animal.root);
-        this.prey.set(p.id, animal);
+      if (p.visibility <= 0) continue;
+      const batch = p.visibility >= 1 ? treePreyBatch(p.kind) : undefined;
+      if (batch) {
+        if (!this.place(at, p, false)) continue;
+        this.block(at, PREY_HALF_M);
+        at.scale.setScalar(FIGURE_KM_PER_M);
+        copy(batch, (m) => animateAnimal(m, p.clip, (p.clipMs * TEMPO) / 1000));
+        continue;
       }
+      fading.add(p.id);
+      if (!this.prey.has(p.id)) this.prey.set(p.id, buildTreePrey(p.kind));
       const animal = this.prey.get(p.id);
       if (!animal || !this.place(animal.root, p)) continue;
-      animal.root.visible = p.visibility > 0;
-      if (animal.root.visible) this.block(animal.root, PREY_HALF_M);
+      this.block(animal.root, PREY_HALF_M);
       animal.setFade?.(p.visibility);
       animal.root.scale.setScalar(FIGURE_KM_PER_M);
       animal.pose(p.clip, (p.clipMs * TEMPO) / 1000);
     }
-    this.prune(this.prey, hunted);
+    this.prune(this.prey, fading);
 
-    seen.clear();
     for (const l of scene.lodgings) {
-      seen.add(l.id);
-      if (!this.lodgings.has(l.id)) {
-        const prop = buildLodging(l.kind);
-        if (prop) this.group.add(prop.root);
-        this.lodgings.set(l.id, prop);
-      }
-      const prop = this.lodgings.get(l.id);
-      if (!prop || !this.place(prop.root, l)) continue;
-      this.block(prop.root, LODGING_HALF_M);
+      const batch = treePropBatch(l.kind);
+      if (!batch || !this.place(at, l, false)) continue;
+      this.block(at, LODGING_HALF_M);
       // Every lodging fits the camp's layout, at most LODGING_MAX_M across (humankind.md section 8.1).
-      const km = FIGURE_KM_PER_M * this.fitOf(l.kind, prop.root);
+      const km = FIGURE_KM_PER_M * this.fitOf(batch);
       // While the band builds it, the lodging goes up step by step, or rises whole.
-      if (prop.setBuilt) {
-        prop.setBuilt(l.built);
-        prop.root.scale.setScalar(km);
+      if (this.stepped(batch)) {
+        at.scale.setScalar(km);
+        copy(batch, (m) => setBuilt(this.stepsOf(m), l.built));
       } else {
         const rise = l.built * l.built * (3 - 2 * l.built);
         const wide = km * (0.5 + 0.5 * rise);
-        prop.root.scale.set(wide, km * Math.max(0.04, rise), wide);
+        at.scale.set(wide, km * Math.max(0.04, rise), wide);
+        copy(batch);
       }
     }
-    this.prune(this.lodgings, seen);
 
-    seen.clear();
     this.cleared = scene.clearings.map((c) => ({
       dir: c.x === undefined ? latLonToDir(c.lat, c.lon) : this.offsetDir(c.lat, c.lon, c.x, c.z!),
       km: c.km ?? CAMP_CLEARING_KM,
       amount: c.amount,
       felling: c.felling,
     }));
-    for (const h of scene.hearths) {
-      seen.add(h.camp);
-      if (!this.hearths.has(h.camp)) {
-        const prop = buildProp('asset', 'prop-hearth');
-        if (prop) this.group.add(prop.root);
-        this.hearths.set(h.camp, prop);
-      }
-      const prop = this.hearths.get(h.camp);
-      if (!prop) continue;
-      if (this.place(prop.root, { lat: h.lat, lon: h.lon, x: 0, z: 0, dirX: 1, dirZ: 0 }))
-        this.block(prop.root, HEARTH_HALF_M);
-      prop.root.scale.setScalar(FIGURE_KM_PER_M);
+    const hearth = treePropBatch('prop-hearth');
+    for (const h of hearth ? scene.hearths : []) {
+      if (!this.place(at, { lat: h.lat, lon: h.lon, x: 0, z: 0, dirX: 1, dirZ: 0 }, false))
+        continue;
+      this.block(at, HEARTH_HALF_M);
+      at.scale.setScalar(FIGURE_KM_PER_M);
       // The fire flickers with the clock, so a paused world holds still, and grows from
       // nothing while a new fire is lit.
-      prop.pose('idle', ms / 1000);
-      prop.setLit?.(h.lit);
+      copy(hearth!, (m) => {
+        flickerHearth(m, ms / 1000);
+        lightHearth(m, h.lit);
+      });
     }
-    this.prune(this.hearths, seen);
+    this.batches.end();
     this.park();
   }
 
@@ -457,14 +431,8 @@ export class TreeLayer {
     this.batches.begin();
     this.batches.end();
     this.prune(this.figures, new Set());
-    this.prune(this.lodgings, new Set());
-    this.prune(this.hearths, new Set());
     this.prune(this.prey, new Set());
-    this.prune(this.poles, new Set());
-    this.prune(this.props, new Set());
     for (const bead of this.sparks) bead.visible = false;
-    for (const pivot of this.spears.values()) this.group.remove(pivot);
-    this.spears.clear();
     this.cleared = [];
   }
 
