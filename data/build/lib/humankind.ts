@@ -20,6 +20,9 @@ import {
   BUILD_RING_M,
   CAMP_ROOM_M,
   LODGING_RING_M,
+  RACK_R,
+  SCRAPE_BACK_M,
+  SCRAPE_SIDE_M,
   HEARTH_SPOTS,
   LAYOUT_KM_PER_M,
   LODGING_SLOTS,
@@ -228,17 +231,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   /** Whether the people's spots round a hearth would all be on land (section 8.1). */
   /** How many lodging slots of a camp at a place have the lodging and its builders on dry land. */
   const drySlots = (campId: number, lat: number, lon: number, day: Day): number =>
-    Array.from({ length: LODGING_SLOTS }, (_, k) => slotPoint(campId, k)).filter((p) =>
-      [
-        p,
-        ...Array.from({ length: 12 }, (_, j) => {
-          const a = (j / 12) * 2 * Math.PI;
-          return {
-            x: p.x + (BUILD_RING_M + 1) * detCos(a),
-            z: p.z + (BUILD_RING_M + 1) * detSin(a),
-          };
-        }),
-      ].every((q) => dryAt(offset(lat, lon, q.x, q.z), day)),
+    Array.from({ length: LODGING_SLOTS }, (_, k) => k).filter((k) =>
+      slotFootprint(campId, k).every((q) => dryAt(offset(lat, lon, q.x, q.z), day)),
     ).length;
 
   const roomy = (lat: number, lon: number, day: Day) => {
@@ -268,14 +262,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     const free = Array.from({ length: LODGING_SLOTS }, (_, k) => k).filter((k) => !taken.has(k));
     const at = (q: { x: number; z: number }) => dryAt(offset(camp.lat, camp.lon, q.x, q.z), day);
     // The lodging and the builders round it, a little past where they stand.
-    const standsDry = (k: number) => {
-      const p = slotPoint(camp.id, k);
-      const round = Array.from({ length: 12 }, (_, j) => {
-        const a = (j / 12) * 2 * Math.PI;
-        return { x: p.x + (BUILD_RING_M + 1) * detCos(a), z: p.z + (BUILD_RING_M + 1) * detSin(a) };
-      });
-      return [p, ...round].every(at);
-    };
+    const standsDry = (k: number) => slotFootprint(camp.id, k).every(at);
     // The ground the builders cross to it from the people's ring, which they enter and leave
     // from any side: the wedge from the camp's room out past the builders, a point every
     // layout metre (Yang, 2026-10-19: people walked over Lake Malawi to a hut).
@@ -297,17 +284,9 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     const taken = new Set(camp.lodgings.map((l) => tree.lodgings[l]!.slot));
     return Array.from({ length: LODGING_SLOTS }, (_, k) => k).some((k) => {
       if (taken.has(k)) return false;
-      const p = slotPoint(camp.id, k);
-      return [
-        p,
-        ...Array.from({ length: 12 }, (_, j) => {
-          const a = (j / 12) * 2 * Math.PI;
-          return {
-            x: p.x + (BUILD_RING_M + 1) * detCos(a),
-            z: p.z + (BUILD_RING_M + 1) * detSin(a),
-          };
-        }),
-      ].every((q) => dryAt(offset(camp.lat, camp.lon, q.x, q.z), day));
+      return slotFootprint(camp.id, k).every((q) =>
+        dryAt(offset(camp.lat, camp.lon, q.x, q.z), day),
+      );
     });
   };
 
@@ -591,6 +570,31 @@ export function checkTree(tree: Tree, s: TreeSettings, habitat: Habitat): string
  * for a window after the tree ends. The tree is built only up to its end day,
  * so its figures and lodgings are taken away then.
  */
+/**
+ * What a lodging slot needs on dry land (section 8.1): the lodging, its builders round it a
+ * little past where they stand, and behind it its drying rack, end to end, and the place
+ * where its hide is scraped.
+ */
+function slotFootprint(campId: number, k: number): { x: number; z: number }[] {
+  const p = slotPoint(campId, k);
+  const out = [p];
+  for (let j = 0; j < 12; j++) {
+    const a = (j / 12) * 2 * Math.PI;
+    out.push({ x: p.x + (BUILD_RING_M + 1) * detCos(a), z: p.z + (BUILD_RING_M + 1) * detSin(a) });
+  }
+  const len = Math.sqrt(p.x * p.x + p.z * p.z);
+  const [ux, uz] = [p.x / len, p.z / len];
+  for (const [r, across] of [
+    [RACK_R, 0],
+    [RACK_R, 4],
+    [RACK_R, -4],
+    [RACK_R + SCRAPE_BACK_M + 1, 0],
+    [RACK_R + SCRAPE_BACK_M + 1, SCRAPE_SIDE_M],
+  ] as const)
+    out.push({ x: ux * r - uz * across, z: uz * r + ux * across });
+  return out;
+}
+
 /** The first person is alone for this long of watching (section 4.2). */
 const FOUNDER_ALONE_MS = 60_000;
 /** A camp site has room when at least this many of its lodging slots stand on dry land. */

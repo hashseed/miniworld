@@ -254,6 +254,80 @@ describe('camp life (section 8.1)', () => {
   }, 120_000);
 });
 
+describe('nothing passes through anything (section 8.1)', () => {
+  it('keeps walkers, carried kills and poles clear of lodgings, racks and the fire', () => {
+    const whole = {
+      fromDay: settings.startDay,
+      toDay: settings.endDay,
+      figures: tree.figures,
+      lodgings: tree.lodgings,
+    };
+    const end = msAtDay(settings.endDay, settings.startDay);
+    // Sizes in layout metres: figures are drawn three times the layout, so a lodging
+    // about 2.4 m across is 7 across, a figure 1.5, a drying rack 7.5 long.
+    const LODGING_R = 3.6;
+    const FIGURE_R = 0.75;
+    const RACK_HALF = 3.9;
+    const RACK_DEPTH = 0.6;
+    const HEARTH_R = 1.8;
+    const where: string[] = [];
+    const near = (ax: number, az: number, bx: number, bz: number) =>
+      Math.sqrt((ax - bx) ** 2 + (az - bz) ** 2);
+    /** Distance from a point to a rack: a segment across the ring at its spot. */
+    const toRack = (
+      x: number,
+      z: number,
+      r: { x: number; z: number; dirX: number; dirZ: number },
+    ) => {
+      // The rack's length runs across its facing direction.
+      const [tx, tz] = [-r.dirZ, r.dirX];
+      const u = Math.max(-RACK_HALF, Math.min(RACK_HALF, (x - r.x) * tx + (z - r.z) * tz));
+      return near(x, z, r.x + tx * u, r.z + tz * u);
+    };
+    for (let ms = 0; ms < end && where.length < 12; ms += 337) {
+      const s = treeScene(whole, ms, settings.startDay);
+      const at = (o: { lat: number; lon: number }) => `${o.lat.toFixed(2)},${o.lon.toFixed(2)}`;
+      const lodges = s.lodgings.filter((l) => l.built > 0.5);
+      const racks = s.props.filter((q) => q.kind === 'prop-drying-rack');
+      const movers: { what: string; lat: number; lon: number; x: number; z: number; r: number }[] =
+        [];
+      for (const f of s.figures)
+        if (!f.hidden && ['walk', 'run', 'carry', 'pole'].includes(f.clip))
+          movers.push({ what: `figure ${f.id} ${f.clip}`, ...f, r: FIGURE_R });
+      for (const p of s.prey)
+        if (p.clip === 'hung') movers.push({ what: `kill ${p.id}`, ...p, r: 1.2 });
+      for (const pole of s.poles)
+        for (const k of [-4.5, 0, 4.5])
+          movers.push({
+            what: `pole ${pole.id}`,
+            lat: pole.lat,
+            lon: pole.lon,
+            x: pole.x + pole.dirX * k,
+            z: pole.z + pole.dirZ * k,
+            r: 0.2,
+          });
+      for (const m of movers) {
+        const here = at(m);
+        for (const l of lodges)
+          if (at(l) === here && near(m.x, m.z, l.x, l.z) < LODGING_R + m.r)
+            where.push(`${ms}: ${m.what} through lodging ${l.id}`);
+        for (const r of racks)
+          if (at(r) === here && toRack(m.x, m.z, r) < RACK_DEPTH + m.r)
+            where.push(`${ms}: ${m.what} through ${r.id}`);
+        const fire = s.hearths.some((h) => at(h) === here);
+        if (
+          fire &&
+          m.r > 0.5 &&
+          near(m.x, m.z, 0, 0) < HEARTH_R + m.r &&
+          !m.what.startsWith('kill')
+        )
+          where.push(`${ms}: ${m.what} through the fire at ${m.x.toFixed(1)},${m.z.toFixed(1)}`);
+      }
+    }
+    expect(where).toEqual([]);
+  }, 120_000);
+});
+
 describe('camps by the sea', () => {
   it('keep their lodgings and outings on land', () => {
     const { where, seen } = strays(tree, onLand);
@@ -279,7 +353,7 @@ describe('camps by a river', () => {
 describe('the canonical tree', () => {
   it('keeps its hash, so any change to the rules is seen', () => {
     const hash = createHash('sha256').update(JSON.stringify(tree)).digest('hex').slice(0, 16);
-    expect(hash).toBe('a0db46d733546301');
+    expect(hash).toBe('9a95d808f3f9bc2c');
   });
 });
 

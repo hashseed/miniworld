@@ -87,10 +87,10 @@ describe('the tree scene', () => {
     expect(s.lodgings).toHaveLength(1);
   });
 
-  it('lets a new figure come out of the door and walk to its spot', () => {
+  it('lets a new figure crouch out of the door and walk to its spot', () => {
     const born = ms(d0 + years(300));
     const out = treeScene(chunk, born + 10, d0).figures.find((f) => f.id === 1)!;
-    expect(out.clip).toBe('walk');
+    expect(out.clip).toBe('crouch');
     const later = treeScene(chunk, born + 60_000, d0).figures.find((f) => f.id === 1)!;
     expect(['idle', 'work']).toContain(later.clip);
     expect(later.x ** 2 + later.z ** 2).toBeLessThan(out.x ** 2 + out.z ** 2);

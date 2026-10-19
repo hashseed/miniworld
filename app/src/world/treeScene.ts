@@ -84,6 +84,8 @@ const BIND_POINT_MS = Math.round(7200 / TEMPO);
 const BUTCHER_MEAT_MS = Math.round(7200 / TEMPO);
 const ROAST_MS = Math.round(14_400 / TEMPO);
 const INSIDE_MS = Math.round(14_400 / TEMPO);
+/** Walks reach a lodging's door this far in front of its middle, before crouching in. */
+const HUT_DOOR_M = 4.8;
 /**
  * Camp events (section 8.1): catch and dancing last EVENT_MS once everyone is in place.
  * Children run round a ring CATCH_R from the hearth at a little over half a run, "it"
@@ -91,12 +93,19 @@ const INSIDE_MS = Math.round(14_400 / TEMPO);
  */
 const EVENT_MS = Math.round(36_000 / TEMPO);
 const CHASE_MS = Math.round(9000 / TEMPO);
-const CATCH_R = 11.5;
+const CATCH_R = 10.5;
 const DANCE_R = 6.5;
 const CATCH_SHARE = 1 / 3;
 const DANCE_SHARE = 1 / 12;
-/** The drying rack stands this far round the ring from its lodging, in radians. */
-const RACK_TURN = 0.5;
+/**
+ * A lodging's drying rack stands behind it, this far from the hearth, out of every lane,
+ * and whoever scrapes a hide works from behind it, facing in (Yang, 2026-10-19: a kill
+ * carried through a hide hung out to dry).
+ */
+export const RACK_R = 22;
+/** The scraper stands this far behind the rack, and walks round its end this far along it. */
+export const SCRAPE_BACK_M = 2;
+export const SCRAPE_SIDE_M = 5.6;
 /** How long gatherers pick, hunters butcher and strollers look about at the far end. */
 const GATHER_MS = Math.round(9000 / TEMPO);
 const BUTCHER_MS = Math.round(4000 / TEMPO);
@@ -461,21 +470,69 @@ function buildSpot(k: number, n: number, lodging: TreeLodging): Pt {
  * The way from a to b within a camp: straight, or round the fire by a point beside it
  * when the straight line would pass through it.
  */
-function route(a: Pt, b: Pt): Pt[] {
+function route(a: Pt, b: Pt, camp?: number): Pt[] {
+  const all = camp === undefined ? FIRE_ONLY : campObstacles(camp);
+  // Obstacles at either end are where the walk is going, or leaving from: a hut door, a rack.
+  const live = all.filter(
+    (c) =>
+      Math.sqrt((a.x - c.x) ** 2 + (a.z - c.z) ** 2) >= c.r &&
+      Math.sqrt((b.x - c.x) ** 2 + (b.z - c.z) ** 2) >= c.r,
+  );
+  return detour(a, b, live, 4);
+}
+
+/** A circle a walk keeps out of, in layout metres. */
+interface Circle {
+  x: number;
+  z: number;
+  r: number;
+}
+
+const FIRE_ONLY: Circle[] = [{ x: 0, z: 0, r: FIRE_CLEAR_M }];
+/** Walks keep this far from the middle of a lodging, and of a drying rack (section 8.1). */
+const LODGING_CLEAR_M = 4.6;
+const RACK_CLEAR_M = 4.4;
+
+/** The fire, the lodgings of every slot and their racks: what walks at a camp go round. */
+const obstacles = new Map<number, Circle[]>();
+function campObstacles(camp: number): Circle[] {
+  let list = obstacles.get(camp);
+  if (!list) {
+    list = [...FIRE_ONLY];
+    for (let k = 0; k < LODGING_SLOTS; k++) {
+      list.push({ ...slotPoint(camp, k), r: LODGING_CLEAR_M });
+      list.push({ ...rackAt(camp, k), r: RACK_CLEAR_M });
+    }
+    obstacles.set(camp, list);
+  }
+  return list;
+}
+
+/**
+ * The way from a to b round the first circle the straight line passes through, by a point
+ * beside it on the side the line already passes; each part is checked again in turn.
+ */
+function detour(a: Pt, b: Pt, circles: Circle[], depth: number): Pt[] {
   const dx = b.x - a.x;
   const dz = b.z - a.z;
   const len2 = dx * dx + dz * dz;
-  if (len2 < 1e-9) return [a, b];
-  const t = Math.min(1, Math.max(0, -(a.x * dx + a.z * dz) / len2));
-  const cx = a.x + dx * t;
-  const cz = a.z + dz * t;
-  const d = Math.sqrt(cx * cx + cz * cz);
-  if (d >= FIRE_CLEAR_M || t <= 0 || t >= 1) return [a, b];
-  // Step round on the side the line already passes, or to its left when it hits the middle.
+  if (len2 < 1e-9 || depth === 0) return [a, b];
+  let hit: { c: Circle; t: number; px: number; pz: number } | undefined;
+  for (const c of circles) {
+    const t = Math.min(1, Math.max(0, ((c.x - a.x) * dx + (c.z - a.z) * dz) / len2));
+    if (t <= 0 || t >= 1) continue;
+    const px = a.x + dx * t;
+    const pz = a.z + dz * t;
+    if (Math.sqrt((px - c.x) ** 2 + (pz - c.z) ** 2) >= c.r) continue;
+    if (!hit || t < hit.t) hit = { c, t, px, pz };
+  }
+  if (!hit) return [a, b];
+  const { c, px, pz } = hit;
+  const d = Math.sqrt((px - c.x) ** 2 + (pz - c.z) ** 2);
   const len = Math.sqrt(len2);
-  const [sx, sz] = d > 1e-6 ? [cx / d, cz / d] : [-dz / len, dx / len];
-  const r = FIRE_CLEAR_M * 1.3;
-  return [a, { x: sx * r, z: sz * r }, b];
+  const [sx, sz] = d > 1e-6 ? [(px - c.x) / d, (pz - c.z) / d] : [-dz / len, dx / len];
+  const w = { x: c.x + sx * c.r * 1.3, z: c.z + sz * c.r * 1.3 };
+  return [...detour(a, w, circles, depth - 1), ...detour(w, b, circles, depth - 1).slice(1)];
 }
 
 function routeLength(points: Pt[]): number {
@@ -503,12 +560,16 @@ class Itinerary {
   legs: Leg[] = [];
   t: number;
   at: Pt;
-  constructor(t: number, at: Pt) {
+  /** The camp whose fire, lodgings and racks its walks go round. */
+  camp: number | undefined;
+  constructor(t: number, at: Pt, camp?: number) {
     this.t = t;
     this.at = at;
+    this.camp = camp;
   }
   go(to: Pt, clip: 'walk' | 'run' | 'carry' | 'pole' | 'crouch' = 'walk'): this {
-    const way = route(this.at, to);
+    // A carrying pole keeps to its lane, so its two carriers walk in step.
+    const way = route(this.at, to, clip === 'pole' ? undefined : this.camp);
     const m = routeLength(way);
     if (m < 1e-6) return this;
     const end = this.t + Math.ceil(m / PACE[clip]);
@@ -637,7 +698,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       if (!to || !c || to.builder !== f.id || day !== to.built) continue;
       const crew = builders.get(id)!;
       const work = buildSpot(crew.indexOf(f.id), crew.length, to);
-      appears.set(id, c.end + Math.ceil(routeLength(route(c.entry, work)) / PACE.walk));
+      appears.set(id, c.end + Math.ceil(routeLength(route(c.entry, work, to.camp)) / PACE.walk));
     }
 
   const scene: TreeScene = {
@@ -709,7 +770,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       const work = buildSpot(Math.max(0, crew.indexOf(l.builder)), crew.length, l);
       shown = Math.max(
         shown,
-        p.litEnd + Math.ceil(routeLength(route(lightSpot(l.builder), work)) / PACE.walk),
+        p.litEnd + Math.ceil(routeLength(route(lightSpot(l.builder), work, l.camp)) / PACE.walk),
       );
     }
     appears.set(l.id, shown);
@@ -809,7 +870,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     );
     const exit = { x: way.dirX * GATE_M, z: way.dirZ * GATE_M };
     const entry = { x: -exit.x, z: -exit.z };
-    const out = route(endOfStay(f, i - 1), exit);
+    const out = route(endOfStay(f, i - 1), exit, prev.camp);
     const start = at(f.homes[i]![0]);
     const across = start + Math.ceil(routeLength(out) / PACE.walk);
     return { prev, home, way, out, start, across, end: across + travel, exit, entry };
@@ -880,7 +941,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       legs: new Map(),
     };
     const ring = members.map((_, i) => ringPoint(ev, i, 0));
-    const trips = members.map((m, i) => new Itinerary(start, m.spot).go(ring[i]!));
+    const trips = members.map((m, i) => new Itinerary(start, m.spot, m.home.camp).go(ring[i]!));
     ev.begin = Math.max(...trips.map((t) => t.t));
     ev.stop = ev.begin + EVENT_MS;
     members.forEach((m, i) => {
@@ -989,20 +1050,23 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       const c = crossing(f, i);
       // The stay, leg by leg: arriving, building, outings and rests, taking down.
       const plan = c
-        ? new Itinerary(c.end, c.entry)
+        ? new Itinerary(c.end, c.entry, home.camp)
         : prev
-          ? new Itinerary(left, endOfStay(f, i - 1))
+          ? new Itinerary(left, endOfStay(f, i - 1), home.camp)
           : i === 0 && born > 0
-            ? new Itinerary(born, hut)
-            : new Itinerary(-Infinity, spot);
+            ? // Out of its lodging: crouched through the door, then on its feet.
+              new Itinerary(born, hut, home.camp).go(doorOf(home), 'crouch')
+            : new Itinerary(-Infinity, spot, home.camp);
       // At a new camp: fell the trees round the ring of lodgings, facing out, and the first
       // builder lights the fire with flint stones (section 8.1).
       const place = places.get(placeKey(home))!;
       if (builds && plan.t < place.fellEnd && place.fellEnd > place.from) {
-        const a = hash01(f.id, place.camp, 107) * 2 * Math.PI;
-        const r = LODGING_RING_M + 3;
-        const tree = { x: r * detCos(a), z: r * detSin(a) };
-        plan.go({ x: tree.x * 0.85, z: tree.z * 0.85 }).stay(place.fellEnd, 'work', tree);
+        // Out in a gap between the lodgings, as far as its land goes, facing out.
+        const gap = hash32(f.id, place.camp, 107) % LODGING_SLOTS;
+        const d = gapDirection(home.camp, gap);
+        const r = Math.min(LODGING_RING_M + 4, Math.max(10, (home.reach[gap] ?? 0) - 1));
+        const at = { x: d.x * r, z: d.z * r };
+        plan.go(at).stay(place.fellEnd, 'work', { x: at.x * 2, z: at.z * 2 });
       }
       if (builds && home === place.first && f.id === home.builder && place.from > 0)
         plan
@@ -1024,7 +1088,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       const takeSpot = takes ? buildSpot(takeCrew!.indexOf(f.id), takeCrew!.length, home) : spot;
       const takeStart = takes ? takeDown(home) : leave;
       const busy = takes
-        ? takeStart - Math.ceil(routeLength(route(spot, takeSpot)) / PACE.walk)
+        ? takeStart - Math.ceil(routeLength(route(spot, takeSpot, home.camp)) / PACE.walk)
         : leave;
       st = {
         f,
@@ -1079,7 +1143,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     let go: Outing = sure === 'stroll' && room < 13 ? 'rest' : sure;
     if (go === 'firewood' && room < FIREWOOD_M + 1) go = 'rest';
     const camp = st.home.camp;
-    const trip = new Itinerary(turnStart, st.spot);
+    const trip = new Itinerary(turnStart, st.spot, st.home.camp);
     const out = (p: Pt): Pt => ({ x: p.x * 2, z: p.z * 2 });
     if (go === 'gather') {
       const far = outingPoint(st.s, camp, GATHER_M);
@@ -1115,11 +1179,16 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
         .go(st.spot, 'carry');
     } else if (go === 'scrape') {
       // At the drying rack beside its own lodging.
+      // Round the end of the rack to behind its middle, never through the hide.
       const rack = rackSpot(st.home);
-      const at = { x: rack.x * 0.85, z: rack.z * 0.85 };
+      const [ux, uz] = [rack.x / RACK_R, rack.z / RACK_R];
+      const behind = { x: rack.x + ux * SCRAPE_BACK_M, z: rack.z + uz * SCRAPE_BACK_M };
+      const side = { x: behind.x - uz * SCRAPE_SIDE_M, z: behind.z + ux * SCRAPE_SIDE_M };
       trip
-        .go(at)
+        .go(side)
+        .go(behind)
         .stay(trip.t + SCRAPE_MS, 'scrape', rack)
+        .go(side)
         .go(st.spot);
     } else if (go === 'crack') {
       trip.stay(trip.t + CRACK_MS, 'crack', { x: 0, z: 0 });
@@ -1131,7 +1200,8 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     } else if (go === 'hut') {
       // To the door, crouch inside, stay a while out of sight, crouch out.
       const hut = lodgingSpot(st.home);
-      const door = { x: hut.x * 0.8, z: hut.z * 0.8 };
+      // The door is outside the walls, on the hearth side; the last steps are crouched.
+      const door = doorOf(st.home);
       trip
         .go(door)
         .go(hut, 'crouch')
@@ -1277,9 +1347,9 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       const across = (n === 0 ? 1 : -1) * HERD_SIDE_M;
       return { entry: offset(entry, 0, across), graze: offset(graze, 1.5 * n, across) };
     });
-    const hunter = new Itinerary(start, st.spot).go(lane(PREY_GRAZE_M - THROW_GAP_M));
+    const hunter = new Itinerary(start, st.spot, camp).go(lane(PREY_GRAZE_M - THROW_GAP_M));
     const aide =
-      helper && new Itinerary(start, helper.spot).go(lane(PREY_GRAZE_M - THROW_GAP_M - 3));
+      helper && new Itinerary(start, helper.spot, camp).go(lane(PREY_GRAZE_M - THROW_GAP_M - 3));
     const ready = Math.max(hunter.t, aide?.t ?? 0, arrive + GRAZE_FIRST_MS);
     hunter.stay(ready, 'idle', graze).stay(ready + THROW_MS, 'throw', graze);
     const flights: Flight[] = [];
@@ -1585,7 +1655,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     }
 
     const st = stayOf(f, i)!;
-    const plan = new Itinerary(st.plan.t, st.plan.at);
+    const plan = new Itinerary(st.plan.t, st.plan.at, st.home.camp);
     plan.legs.push(...st.plan.legs);
     let unarmed = false;
     let event: CampEvent | undefined;
@@ -1740,11 +1810,21 @@ interface Place {
   litEnd: number;
 }
 
-/** Where a lodging's drying rack stands: on the ring of lodgings, a little round from it. */
-function rackSpot(l: TreeLodging): Pt {
+/** Where walks reach a lodging's door: outside its walls, on the hearth side. */
+function doorOf(l: TreeLodging): Pt {
   const p = lodgingSpot(l);
-  const [c, sn] = [detCos(RACK_TURN), detSin(RACK_TURN)];
-  return { x: p.x * c - p.z * sn, z: p.x * sn + p.z * c };
+  const k = 1 - HUT_DOOR_M / LODGING_RING_M;
+  return { x: p.x * k, z: p.z * k };
+}
+
+/** Where the drying rack of a lodging slot stands: behind the lodging, out of the lanes. */
+function rackAt(camp: number, slot: number): Pt {
+  const p = slotPoint(camp, slot);
+  return { x: (p.x * RACK_R) / LODGING_RING_M, z: (p.z * RACK_R) / LODGING_RING_M };
+}
+
+function rackSpot(l: TreeLodging): Pt {
+  return rackAt(l.camp, l.slot);
 }
 
 /** Where a figure kneels to light the fire: beside the hearth, on a side of its own. */
