@@ -1,6 +1,6 @@
 // The loading screen (spec milestone 1, section 8.6): the "march of progress" from a
-// knuckle-walking ape to a modern human, walking along the progress bar. Each
-// figure steps in once the bar passes its place in the line. The figures are filled
+// knuckle-walking ape to a modern human, walking along a line. The walkers and the line
+// are grey on black and fill up in white from the left as the world loads. The figures are filled
 // silhouettes built here from body parts (tapered limbs jointed at hip, knee, shoulder and
 // elbow, a torso outline and a head profile per species), with no text; the caption comes
 // from the message files.
@@ -171,9 +171,9 @@ export const PLACES = [62, 172, 280, 388, 496];
 /** A stride, in seconds. */
 const STRIDE_S = 1.1;
 
-/** Whether the march walker `k` has stepped in at a share loaded of `loaded`. */
-export function stepsIn(k: number, loaded: number): boolean {
-  return loaded * WIDTH >= PLACES[k]! - 40;
+/** How far along the line the white has filled at a share loaded of `loaded`, in viewBox units. */
+export function filledTo(loaded: number): number {
+  return Math.min(1, Math.max(0, loaded)) * WIDTH;
 }
 
 const rad = (deg: number) => (deg * Math.PI) / 180;
@@ -302,7 +302,7 @@ function Joint(props: {
   );
 }
 
-function Figure(props: { w: Walker; x: number; shown: boolean; still: boolean }) {
+function Figure(props: { w: Walker; x: number; still: boolean }) {
   const { w, x, still } = props;
   const [rh, rk, ra, rs, re, rw] = w.limbs;
   // The hips stand as high as the legs reach in their resting pose.
@@ -345,7 +345,7 @@ function Figure(props: { w: Walker; x: number; shown: boolean; still: boolean })
     neckBase[1] - Math.cos(tilt) * (w.neck + w.head * 0.75),
   ];
 
-  const leg = (phase: number, far: boolean) => {
+  const leg = (phase: number) => {
     const knee = add(hip, [0, w.thigh]);
     const calf = add(knee, [0, w.calf * 0.35]);
     const ankle = add(knee, [0, w.calf]);
@@ -359,7 +359,7 @@ function Figure(props: { w: Walker; x: number; shown: boolean; still: boolean })
         phase={phase}
         still={still}
       >
-        <g class={far ? 'far' : undefined}>
+        <g>
           <path d={capsule(hip, rh, knee, rk)} />
           <Joint
             at={knee}
@@ -380,7 +380,7 @@ function Figure(props: { w: Walker; x: number; shown: boolean; still: boolean })
   const [a1, a2] = w.arm;
   const elbow = add(shoulder, [0, upper]);
   const wrist = add(elbow, [0, fore]);
-  const arm = (phase: number, far: boolean) => {
+  const arm = (phase: number) => {
     const hand = w.knuckles
       ? capsule(wrist, rw, add(wrist, [rw * 2.4, 0]), rw * 0.9)
       : capsule(wrist, rw, add(wrist, [0, rw * 2.6]), rw * 0.95);
@@ -392,7 +392,7 @@ function Figure(props: { w: Walker; x: number; shown: boolean; still: boolean })
         phase={phase}
         still={still}
       >
-        <g class={far ? 'far' : undefined}>
+        <g>
           <path d={capsule(shoulder, rs, elbow, re)} />
           <Joint
             at={elbow}
@@ -429,20 +429,17 @@ function Figure(props: { w: Walker; x: number; shown: boolean; still: boolean })
   const tip = `M${f1(hx + 27)},${f1(hy - 21)}L${f1(hx + 40)},${f1(hy - 28)}L${f1(hx + 31)},${f1(hy - 15)}Z`;
 
   return (
-    <g
-      class={`march-walker${props.shown ? ' shown' : ''}`}
-      filter={w.fur ? 'url(#march-fur)' : undefined}
-    >
-      {arm(0.5, true)}
-      {leg(0.5, true)}
+    <g filter={w.fur ? 'url(#march-fur)' : undefined}>
+      {arm(0.5)}
+      {leg(0.5)}
       {w.hair && <path d={hair} />}
       <path d={torso} />
       <path d={capsule(neckBase, w.head * 0.45, headAt, w.head * 0.48)} />
       <path d={headPath(w, headAt)} />
-      {leg(0, false)}
+      {leg(0)}
       {w.holds === 'club' && <path d={club} />}
       {w.holds === 'spear' && <path d={`${spear}${tip}`} />}
-      {arm(0, false)}
+      {arm(0)}
     </g>
   );
 }
@@ -485,19 +482,24 @@ export function LoadingScreen(props: { loaded: number; ready: boolean; label: st
               <feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves={2} seed={3} />
               <feDisplacementMap in="SourceGraphic" scale={1.8} />
             </filter>
+            {/* The white fills the march from the left as the world loads. */}
+            <clipPath id="march-filled">
+              <rect class="march-fill" x={0} y={0} width={filledTo(share)} height={HEIGHT} />
+            </clipPath>
           </defs>
-          {MARCH.map((w, k) => (
-            <Figure key={k} w={w} x={PLACES[k]!} shown={stepsIn(k, share)} still={still} />
+          {/* Grey walkers and line, then the same again in white, shown as far as it has filled. */}
+          {(['march-grey', 'march-white'] as const).map((ink) => (
+            <g
+              key={ink}
+              class={ink}
+              clip-path={ink === 'march-white' ? 'url(#march-filled)' : undefined}
+            >
+              {MARCH.map((w, k) => (
+                <Figure key={k} w={w} x={PLACES[k]!} still={still} />
+              ))}
+              <rect x={0} y={GROUND - 0.5} width={WIDTH} height={3} rx={1.5} />
+            </g>
           ))}
-          <rect class="march-track" x={0} y={GROUND - 0.5} width={WIDTH} height={3} rx={1.5} />
-          <rect
-            class="march-bar"
-            x={0}
-            y={GROUND - 0.5}
-            width={WIDTH * share}
-            height={3}
-            rx={1.5}
-          />
         </svg>
       </div>
     </div>
