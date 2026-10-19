@@ -8,6 +8,8 @@ import { ContentLoader } from './content/loader.ts';
 import type { StartupIndex, VignetteEntry } from './content/types.ts';
 import { Store } from './core/store.ts';
 import { CameraController } from './globe/cameraController.ts';
+import { EARTH_RADIUS_KM } from './geo/earth.ts';
+import { FADE_MS } from './ui/LoadingScreen.tsx';
 import { Globe } from './globe/globe.ts';
 import { Foliage } from './globe/foliage.ts';
 import { Lens, decodeLensGrids, LENS_STRENGTH } from './globe/lens.ts';
@@ -67,6 +69,7 @@ const deviceId = `${navigator.userAgent}|${screen.width}x${screen.height}@${devi
 const settings = loadSettings({
   language: detectLanguage(navigator.languages ?? [navigator.language]),
   timelineExpanded: false,
+  timelineMinimized: false,
   trueTimeScale: false,
   showStats: false,
 });
@@ -89,7 +92,8 @@ const hot = new Store<HotState>({
   stats: { fps: 0, avg: 0, p99: 0, calls: 0, triangles: 0, scale: 1 },
 });
 const ui = new Store<UiState>({
-  ready: false,
+  intro: 'loading',
+  introCaptionY: innerHeight * 0.75,
   loaded: 0.05,
   error: undefined,
   panel: 'none',
@@ -253,8 +257,16 @@ function regionLane(): string | undefined {
 let lastRegion: string | undefined;
 function updateVisibleLanes(): void {
   if (!timeline || !index) return;
-  // Collapsed, the timeline shows only the lane of the region the globe is
-  // centred on; expanded, the World lane and every regional lane.
+  // Minimized, the timeline shows only its ruler of years; collapsed, only the lane of the
+  // region the globe is centred on; expanded, the World lane and every regional lane.
+  if (ui.value.settings.timelineMinimized) {
+    if (timeline.visibleLanes?.length !== 0) {
+      timeline.setVisibleLanes([]);
+      lastRegion = undefined;
+      layoutTimeline();
+    }
+    return;
+  }
   if (ui.value.settings.timelineExpanded) {
     if (timeline.visibleLanes !== undefined) {
       timeline.setVisibleLanes(undefined);
@@ -340,6 +352,11 @@ const actions: Actions = {
   followPlayhead: () => timeline?.setFollow(true),
   toggleLanes: () => {
     actions.setSetting('timelineExpanded', !ui.value.settings.timelineExpanded);
+    updateVisibleLanes();
+    layoutTimeline();
+  },
+  toggleMinimized: () => {
+    actions.setSetting('timelineMinimized', !ui.value.settings.timelineMinimized);
     updateVisibleLanes();
     layoutTimeline();
   },
@@ -478,10 +495,13 @@ attachKeys({
 // --- Saved view ---------------------------------------------------------------------
 
 let lastViewSave = 0;
+let lastFrame = 0;
 loop.afterFrame = (now) => {
+  introFrame(lastFrame ? now - lastFrame : 0);
+  lastFrame = now;
   sitesView?.update(loop.planet.seaLevel, camera);
   timeline?.draw();
-  if (!ui.value.settings.timelineExpanded) updateVisibleLanes();
+  updateVisibleLanes();
   if (now - lastViewSave > VIEW_SAVE_MS) {
     lastViewSave = now;
     persistView();
@@ -490,7 +510,8 @@ loop.afterFrame = (now) => {
 let lastSavedView = '';
 /** Saves the view when it has changed since it was last saved. */
 function persistView(): void {
-  if (STRESS || !index) return;
+  // Not the far view of the loading screen (milestone-1 section 8.6).
+  if (STRESS || !index || ui.value.intro !== 'done') return;
   const view = {
     day: clock.day,
     camera: { ...controller.state },
@@ -512,6 +533,7 @@ window.addEventListener('pagehide', persistView);
 async function start(): Promise<void> {
   document.documentElement.lang = i18n.language;
   document.title = tabTitle();
+  startIntro();
   render(h(App, { store: ui, hot, i18n, actions }), document.getElementById('ui')!);
   try {
     const manifest = await loader.init();
@@ -568,9 +590,10 @@ async function start(): Promise<void> {
     }
     applyQuality();
     resize();
+    placeIntro();
     loop.start();
     await firstView();
-    ui.update({ ready: true, loaded: 1 });
+    await handOver();
     // The first view's data budget counts what was requested before this mark.
     performance.mark('miniworld:first-view');
     // Plants load after the first view, outside its data budget (spec foliage.md, section 7).
@@ -579,6 +602,79 @@ async function start(): Promise<void> {
     ui.update({ error: err instanceof Error ? err.message : String(err) });
   }
   registerServiceWorker();
+}
+
+// --- Loading screen (milestone-1 section 8.6) ----------------------------------------
+
+/** The latitude the small globe is seen from while loading, its spin westward, and its radius on screen. */
+const INTRO_LAT = 15;
+const INTRO_SPIN_DEG_PER_S = 20;
+/** How long the controls take to fade in after loading (styles.css, ui-arrive). */
+const ARRIVE_MS = 1600;
+const introRadiusPx = () => Math.min(90, innerWidth * 0.22);
+/** The view the camera flies in to once the world has loaded. */
+let introTarget: CameraState | undefined;
+
+/**
+ * Moves the camera far out, where the globe is small, and keeps the remembered view for
+ * later; the controls stay hidden meanwhile.
+ */
+function startIntro(): void {
+  if (STRESS) {
+    ui.update({ intro: 'done' });
+    return;
+  }
+  introTarget = { ...controller.state };
+  document.getElementById('ui')!.classList.add('intro');
+  controller.state = { ...controller.state, lat: INTRO_LAT, lon: introTarget.lon + 40 };
+  placeIntro();
+}
+
+/**
+ * Puts the camera as far out as draws the globe introRadiusPx() across, through the view
+ * offset, looking straight down, and the caption under the globe; again once the layout of
+ * the bottom controls has moved the view offset.
+ */
+function placeIntro(): void {
+  if (!introTarget || ui.value.intro !== 'loading') return;
+  const full = camera.view?.fullHeight ?? innerHeight;
+  const perRad = full / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
+  const angle = Math.atan(introRadiusPx() / perRad);
+  const altitudeKm = EARTH_RADIUS_KM / Math.sin(angle) - EARTH_RADIUS_KM;
+  controller.farKm = altitudeKm;
+  controller.state = { ...controller.state, altitudeKm, heading: 0, tilt: 0 };
+  const centreY = full / 2 - (camera.view?.offsetY ?? 0);
+  ui.update({ introCaptionY: centreY + introRadiusPx() + 20 });
+}
+
+/**
+ * Each frame of the loading screen: spins the small globe, as many degrees as `dtMs` takes,
+ * and keeps it plain: no clouds before the land has arrived, and no camps, animals or
+ * vignettes, which would be specks at that distance.
+ */
+function introFrame(dtMs: number): void {
+  const loading = ui.value.intro === 'loading' && !STRESS;
+  clouds.mesh.visible = !loading || globe.drawnTiles > 0;
+  for (const layer of [landmarks.group, vignettes.group, wildlife.group, tree.group])
+    layer.visible = !loading;
+  if (loading && !controller.reducedMotion)
+    controller.state.lon -= (INTRO_SPIN_DEG_PER_S * Math.min(dtMs, 100)) / 1000;
+}
+
+/** Once the world has loaded: the caption fades, the controls appear and the camera flies in. */
+async function handOver(): Promise<void> {
+  if (!introTarget) return;
+  const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  ui.update({ intro: 'flying', loaded: 1 });
+  const root = document.getElementById('ui')!;
+  root.classList.replace('intro', 'arrive');
+  setTimeout(() => root.classList.remove('arrive'), ARRIVE_MS);
+  controller.flyTo(introTarget);
+  await wait(FADE_MS);
+  // The caption's screen stays, invisible, until the flight ends or the viewer takes over.
+  while (controller.flying) await wait(100);
+  controller.farKm = 0;
+  ui.update({ intro: 'done' });
 }
 
 /** Shows a larger share loaded on the loading screen; the share never goes down (milestone-1 section 8.6). */

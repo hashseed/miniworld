@@ -31,8 +31,10 @@ import {
   CompassIcon,
   FollowIcon,
   GearIcon,
+  ChevronIcon,
   LanesIcon,
   PauseIcon,
+  PlayIcon,
   TurtleIcon,
   WalkerIcon,
   HorseIcon,
@@ -76,7 +78,12 @@ export function App({ store, hot, i18n, actions }: Props) {
 
   return (
     <>
-      <LoadingScreen loaded={s.loaded} ready={s.ready} label={t('app.loading')} />
+      <LoadingScreen
+        loaded={s.loaded}
+        phase={s.intro}
+        captionY={s.introCaptionY}
+        label={t('app.loading')}
+      />
 
       {(s.settings.showStats || s.stressScene) && (
         <Stats hot={hot} stress={s.stressScene} t={t} actions={actions} />
@@ -176,7 +183,8 @@ function PlayControls({
               else actions.play();
             }}
           >
-            <SpeedIcon mode={s.speedMode} />
+            {/* The usual icons: play while paused, pause while playing (section 8.1). */}
+            {playing ? <PauseIcon /> : <PlayIcon />}
           </button>
         )}
       >
@@ -246,15 +254,28 @@ function TimelineCanvas({ s, t, actions }: { s: UiState; t: T; actions: Actions 
   }, [actions]);
   return (
     <div class="timeline-wrap">
-      <button
-        class="timeline-expand"
-        aria-label={s.settings.timelineExpanded ? t('timeline.collapse') : t('timeline.expand')}
-        title={s.settings.timelineExpanded ? t('timeline.collapse') : t('timeline.expand')}
-        aria-pressed={s.settings.timelineExpanded}
-        onClick={() => actions.toggleLanes()}
-      >
-        <LanesIcon />
-      </button>
+      <div class="timeline-side">
+        <button
+          class="timeline-expand"
+          aria-label={s.settings.timelineMinimized ? t('timeline.restore') : t('timeline.minimize')}
+          title={s.settings.timelineMinimized ? t('timeline.restore') : t('timeline.minimize')}
+          aria-pressed={s.settings.timelineMinimized}
+          onClick={() => actions.toggleMinimized()}
+        >
+          <ChevronIcon up={s.settings.timelineMinimized} />
+        </button>
+        {!s.settings.timelineMinimized && (
+          <button
+            class="timeline-expand"
+            aria-label={s.settings.timelineExpanded ? t('timeline.collapse') : t('timeline.expand')}
+            title={s.settings.timelineExpanded ? t('timeline.collapse') : t('timeline.expand')}
+            aria-pressed={s.settings.timelineExpanded}
+            onClick={() => actions.toggleLanes()}
+          >
+            <LanesIcon />
+          </button>
+        )}
+      </div>
       <div class="timeline-canvas">
         <canvas
           ref={ref}
@@ -566,7 +587,6 @@ function AboutPanel({
         <li>{t('about.simplification.land')}</li>
         <li>{t('about.simplification.lakes')}</li>
         <li>{t('about.simplification.ice')}</li>
-        <li>{t('about.simplification.march')}</li>
       </ul>
     </PanelFrame>
   );

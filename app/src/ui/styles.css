@@ -173,6 +173,15 @@ input:focus-visible {
 }
 
 /* The expand button is the timeline's left edge (milestone 1, section 7.1). */
+/* The left edge holds the minimize button and, below it, the expand button. */
+.timeline-side {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--panel-border);
+  background: var(--panel);
+}
+
 .timeline-expand {
   flex: none;
   width: 44px;
@@ -182,7 +191,6 @@ input:focus-visible {
   justify-content: center;
   padding: 10px 0 0;
   border: 0;
-  border-right: 1px solid var(--panel-border);
   background: var(--panel);
   color: inherit;
   cursor: pointer;
@@ -473,50 +481,45 @@ input:focus-visible {
   z-index: 10;
 }
 
-/* The loading screen (milestone-1 section 8.6). */
+/* The loading screen (milestone-1 section 8.6): the globe shows through, small and spinning. */
 .overlay.loading {
-  background: #000;
-  color: #d8d8d8;
-  transition: opacity 0.5s ease;
+  background: none;
+  pointer-events: none;
+  padding: 0;
 }
 
-.overlay.loading.done {
+.loading-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  transition: opacity 0.4s ease;
+}
+
+.overlay.loading.flying .loading-caption {
+  opacity: 0;
+}
+
+/* The controls stay hidden until the camera flies in, then slowly fade in. */
+#ui.intro > :not(.loading) {
   opacity: 0;
   pointer-events: none;
 }
 
-.loading-inner {
-  width: min(760px, 100%);
+#ui.arrive > :not(.loading) {
+  animation: ui-arrive 1.6s ease both;
 }
 
-.loading-caption {
-  margin: 0 0 12px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.march {
-  display: block;
-  width: 100%;
-  height: auto;
-  overflow: visible;
-}
-
-.march-grey {
-  fill: #4a4a4a;
-}
-
-.march-white {
-  fill: #f4f4f4;
-}
-
-.march-fill {
-  transition: width 0.3s ease;
+@keyframes ui-arrive {
+  from {
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .march-fill {
-    transition: none;
+  #ui.arrive > :not(.loading) {
+    animation-duration: 0.3s;
   }
 }
 
@@ -540,4 +543,8 @@ input:focus-visible {
   .rate {
     font-size: 13px;
   }
+}
+
+.timeline-side .timeline-expand:last-child {
+  flex: 1;
 }
