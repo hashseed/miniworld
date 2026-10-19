@@ -1,6 +1,6 @@
 // Browser tests (spec milestone 1, section 13), at desktop and phone sizes.
 
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -18,6 +18,17 @@ const de = JSON.parse(readFileSync(`${root}/app/messages/de.json`, 'utf8')) as R
 async function open(page: Page): Promise<void> {
   await page.goto('/');
   await expect(page.locator('.overlay')).toHaveCount(0, { timeout: 60_000 });
+}
+
+/** A finger held on an element for a second, then lifted, as real touch events. */
+async function holdPress(page: Page, target: Locator) {
+  const box = (await target.boundingBox())!;
+  const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
+  await page.waitForTimeout(1000);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await cdp.detach();
 }
 
 function world(page: Page) {
@@ -131,10 +142,11 @@ test('settings and bookmarks survive a reload', async ({ page }, info) => {
   await page.getByTestId('forward').click();
   await expect.poll(day, { timeout: 30_000 }).toBe(start + 1365);
   expect((await world(page)).playState).toBe('paused');
-  // Pointing opens the steps; on a touch screen a tap does, which also jumps back a year.
+  // Pointing opens the steps; on a touch screen a held press does, without jumping.
   if (info.project.name === 'phone') {
-    await page.getByTestId('back').tap();
-    await expect.poll(day, { timeout: 30_000 }).toBe(start + 1000);
+    await holdPress(page, page.getByTestId('back'));
+    await expect(page.getByTestId('back-1000')).toBeVisible();
+    expect(await day()).toBe(start + 1365);
   } else await page.getByTestId('back').hover();
   await page.getByTestId('back-1000').click();
   await expect(page.getByTestId('back').locator('text')).toHaveText(en['controls.stepThousand']!);
@@ -506,9 +518,15 @@ test('the speed modes fold behind the play button', async ({ page }, info) => {
   await expect(snail).toBeHidden();
   await expect(play).toHaveAttribute('title', en['controls.playHint']!);
   if (info.project.name === 'phone') {
-    // Tapping plays and opens the modes; a tap elsewhere folds them away.
+    // A tap only plays; a held press opens the modes without playing; a tap
+    // elsewhere folds them away.
     await play.tap();
+    await expect.poll(async () => (await world(page)).playState).toBe('playing');
+    await expect(snail).toBeHidden();
+    await page.getByRole('button', { name: en['controls.pause'] }).tap();
+    await holdPress(page, page.getByTestId('play'));
     await expect(snail).toBeVisible();
+    expect((await world(page)).playState).toBe('paused');
     await snail.tap();
     await page.touchscreen.tap(200, 300);
     await expect(snail).toBeHidden();
