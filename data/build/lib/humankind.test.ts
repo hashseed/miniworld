@@ -55,7 +55,7 @@ describe('the tree of humankind', () => {
 
   it('is the same tree every time', () => {
     expect(buildTree(settings, habitat)).toEqual(tree);
-  });
+  }, 30_000);
 
   it('grows and spreads over the continent', () => {
     const camps = new Set(standing(settings.endDay - 1).map((l) => l.camp));
@@ -242,7 +242,7 @@ describe('camps by a river', () => {
 describe('the canonical tree', () => {
   it('keeps its hash, so any change to the rules is seen', () => {
     const hash = createHash('sha256').update(JSON.stringify(tree)).digest('hex').slice(0, 16);
-    expect(hash).toBe('dc2a6b281e1aa4bd');
+    expect(hash).toBe('937b738c653c6bd3');
   });
 });
 

@@ -7,6 +7,7 @@
 
 import { join } from 'node:path';
 import { LANGUAGES } from '../../app/src/i18n/messages.ts';
+import { DrawnTiles } from './lib/drawnGround.ts';
 import { Output } from './lib/output.ts';
 import { buildClimate } from './stages/climate.ts';
 import { buildContent, validateContent } from './stages/content.ts';
@@ -27,10 +28,13 @@ async function main(args: string[]): Promise<void> {
 
   const map = buildMap(ctx);
   placeLandmarks(ctx, map, content.landmarks);
-  const wildlife = buildWildlifeMasks(ctx, map);
-  const terrain = buildTerrain(ctx, map);
+  // The finest tiles as the globe draws them, for the masks and the tree to judge water by.
+  const drawnTiles = new DrawnTiles(ctx.maxLevel);
+  const terrain = buildTerrain(ctx, map, drawnTiles);
+  const drawn = drawnTiles.ground();
+  const wildlife = buildWildlifeMasks(ctx, map, drawn);
   const climate = buildClimate(ctx, map);
-  const humankind = buildHumankind(ctx, map, climate);
+  const humankind = buildHumankind(ctx, map, climate, drawn);
   const lens = buildLensStage(ctx);
   const index = buildContent(ctx, content, climate, wildlife, humankind.camps);
   writeManifest(ctx, { index, lens, terrain, climate, tree: humankind.files });
