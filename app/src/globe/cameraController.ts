@@ -102,6 +102,8 @@ export class CameraController {
   /** Surface height (km) under the look point, eased so the camera never jumps at coasts or as tiles load. */
   private targetSurfKm: number | undefined;
   reducedMotion = false;
+  /** While the loading screen shows the globe small in the distance, the camera may be this far out (milestone-1 section 8.6). */
+  farKm = 0;
   lens: LensView = IDENTITY_LENS;
 
   constructor(
@@ -124,7 +126,7 @@ export class CameraController {
   }
 
   private get maxDistance(): number {
-    return maxDistanceKm(this.camera.fov, this.camera.aspect);
+    return Math.max(this.farKm, maxDistanceKm(this.camera.fov, this.camera.aspect));
   }
 
   flyTo(target: CameraState, now = performance.now()): void {
@@ -143,6 +145,11 @@ export class CameraController {
       duration,
       peak,
     };
+  }
+
+  /** Whether a fly-to is under way. */
+  get flying(): boolean {
+    return this.flight !== undefined;
   }
 
   cancelFlight(): void {

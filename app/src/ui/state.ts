@@ -29,6 +29,8 @@ export interface VignetteCard {
  * State that changes while history plays, every frame or every half second,
  * kept apart so only the date readout, play controls and stats re-render.
  */
+import type { IntroPhase } from './LoadingScreen.tsx';
+
 export interface HotState {
   day: number;
   playState: PlayState;
@@ -42,7 +44,11 @@ export interface HotState {
 
 /** State that changes only on the viewer's actions or as data arrives. */
 export interface UiState {
-  ready: boolean;
+  /** The loading screen's phase, and how far down the window its caption stands (milestone-1 section 8.6). */
+  intro: IntroPhase;
+  introCaptionY: number;
+  /** The share of the first view loaded so far, 0 to 1, for the loading screen. */
+  loaded: number;
   error: string | undefined;
   panel: Panel;
   settings: Settings;
@@ -72,6 +78,7 @@ export interface Actions {
   jump(dir: -1 | 1): void;
   followPlayhead(): void;
   toggleLanes(): void;
+  toggleMinimized(): void;
   saveReport(): void;
   attachTimeline(canvas: HTMLCanvasElement | null): void;
 }

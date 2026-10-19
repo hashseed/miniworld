@@ -156,6 +156,19 @@ export const FollowIcon = () => (
   </svg>
 );
 
+/** A chevron pointing down (`up` false) or up. */
+export const ChevronIcon = ({ up }: { up: boolean }) => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path
+      d={
+        up
+          ? 'M6 15.5 12 9.5l6 6-1.8 1.8L12 13.1l-4.2 4.2z'
+          : 'M6 8.5l6 6 6-6 1.8 1.8L12 18.1 4.2 10.3z'
+      }
+    />
+  </svg>
+);
+
 export const LanesIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M3 5h18v3H3zM3 10.5h18v3H3zM3 16h18v3H3z" />

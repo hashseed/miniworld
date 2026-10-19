@@ -24,6 +24,8 @@
   "timeline.follow": "Dem Zeitpunkt folgen",
   "timeline.expand": "Alle Regionen zeigen",
   "timeline.collapse": "Nur diese Region zeigen",
+  "timeline.minimize": "Nur die Jahre zeigen",
+  "timeline.restore": "Epochen zeigen",
   "timeline.eraTooltip": "{name}: {from} bis {to}",
   "timeline.today": "heute",
   "camera.reset": "Ausrichtung und Neigung zurücksetzen",

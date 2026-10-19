@@ -17,6 +17,7 @@ import {
 import { LANGUAGES, type Language } from '../i18n/messages.ts';
 import { LANGUAGE_NAMES, type I18n } from '../i18n/i18n.ts';
 import { useStore } from './hooks.ts';
+import { LoadingScreen } from './LoadingScreen.tsx';
 import type { Actions, HotState, UiState, VignetteCard } from './state.ts';
 import type { Settings } from './storage.ts';
 import { JUMP_SECONDS } from '../time/clock.ts';
@@ -30,8 +31,10 @@ import {
   CompassIcon,
   FollowIcon,
   GearIcon,
+  ChevronIcon,
   LanesIcon,
   PauseIcon,
+  PlayIcon,
   TurtleIcon,
   WalkerIcon,
   HorseIcon,
@@ -75,11 +78,12 @@ export function App({ store, hot, i18n, actions }: Props) {
 
   return (
     <>
-      {!s.ready && (
-        <div class="overlay" aria-live="polite">
-          {t('app.loading')}
-        </div>
-      )}
+      <LoadingScreen
+        loaded={s.loaded}
+        phase={s.intro}
+        captionY={s.introCaptionY}
+        label={t('app.loading')}
+      />
 
       {(s.settings.showStats || s.stressScene) && (
         <Stats hot={hot} stress={s.stressScene} t={t} actions={actions} />
@@ -179,7 +183,8 @@ function PlayControls({
               else actions.play();
             }}
           >
-            <SpeedIcon mode={s.speedMode} />
+            {/* The usual icons: play while paused, pause while playing (section 8.1). */}
+            {playing ? <PauseIcon /> : <PlayIcon />}
           </button>
         )}
       >
@@ -249,15 +254,28 @@ function TimelineCanvas({ s, t, actions }: { s: UiState; t: T; actions: Actions 
   }, [actions]);
   return (
     <div class="timeline-wrap">
-      <button
-        class="timeline-expand"
-        aria-label={s.settings.timelineExpanded ? t('timeline.collapse') : t('timeline.expand')}
-        title={s.settings.timelineExpanded ? t('timeline.collapse') : t('timeline.expand')}
-        aria-pressed={s.settings.timelineExpanded}
-        onClick={() => actions.toggleLanes()}
-      >
-        <LanesIcon />
-      </button>
+      <div class="timeline-side">
+        <button
+          class="timeline-expand"
+          aria-label={s.settings.timelineMinimized ? t('timeline.restore') : t('timeline.minimize')}
+          title={s.settings.timelineMinimized ? t('timeline.restore') : t('timeline.minimize')}
+          aria-pressed={s.settings.timelineMinimized}
+          onClick={() => actions.toggleMinimized()}
+        >
+          <ChevronIcon up={s.settings.timelineMinimized} />
+        </button>
+        {!s.settings.timelineMinimized && (
+          <button
+            class="timeline-expand"
+            aria-label={s.settings.timelineExpanded ? t('timeline.collapse') : t('timeline.expand')}
+            title={s.settings.timelineExpanded ? t('timeline.collapse') : t('timeline.expand')}
+            aria-pressed={s.settings.timelineExpanded}
+            onClick={() => actions.toggleLanes()}
+          >
+            <LanesIcon />
+          </button>
+        )}
+      </div>
       <div class="timeline-canvas">
         <canvas
           ref={ref}

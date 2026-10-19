@@ -188,6 +188,9 @@ export class ContentLoader implements ChunkSource {
     return this.queue.length + this.active;
   }
 
+  /** Queued requests that have finished, loaded or not, since the loader was made. */
+  finished = 0;
+
   private pump(): void {
     while (this.active < MAX_CONCURRENT && this.queue.length) {
       let best = 0;
@@ -218,6 +221,7 @@ export class ContentLoader implements ChunkSource {
         })
         .finally(() => {
           this.active--;
+          this.finished++;
           this.pump();
         });
     }

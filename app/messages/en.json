@@ -24,6 +24,8 @@
   "timeline.follow": "Follow the playhead",
   "timeline.expand": "Show all regions",
   "timeline.collapse": "Show only this region",
+  "timeline.minimize": "Show only the years",
+  "timeline.restore": "Show the eras",
   "timeline.eraTooltip": "{name}: {from} to {to}",
   "timeline.today": "today",
   "camera.reset": "Reset heading and tilt",

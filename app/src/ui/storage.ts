@@ -11,13 +11,10 @@ export interface Settings {
   language: Language;
   /** Timeline shows every lane instead of only the region under the globe centre. */
   timelineExpanded: boolean;
+  /** Timeline shows only the ruler of years, without the era ranges (milestone-1 section 7.1). */
+  timelineMinimized: boolean;
   trueTimeScale: boolean;
   showStats: boolean;
-  /**
-   * Strength of the history lens in whole percent, 0 (true sizes) to 200;
-   * 100 is the warp as built (history-lens.md, section 1).
-   */
-  /** The first-start hint about the lens was closed. */
 }
 
 export interface ViewState {
@@ -91,6 +88,9 @@ export function loadSettings(defaults: Settings): Settings {
   return {
     language: v.language === 'en' || v.language === 'de' ? v.language : defaults.language,
     timelineExpanded: isBool(v.timelineExpanded) ? v.timelineExpanded : defaults.timelineExpanded,
+    timelineMinimized: isBool(v.timelineMinimized)
+      ? v.timelineMinimized
+      : defaults.timelineMinimized,
     trueTimeScale: isBool(v.trueTimeScale) ? v.trueTimeScale : defaults.trueTimeScale,
     showStats: isBool(v.showStats) ? v.showStats : defaults.showStats,
   };

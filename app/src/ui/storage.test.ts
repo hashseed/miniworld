@@ -22,6 +22,7 @@ class MemoryStorage {
 const defaults: Settings = {
   language: 'en',
   timelineExpanded: false,
+  timelineMinimized: false,
   trueTimeScale: false,
   showStats: false,
 };
