@@ -208,6 +208,32 @@ export function buildTreeFigure(
   return { ...standIn, blend: (_a, _as, b, bs) => standIn.pose(b, bs), hideTool: () => {} };
 }
 
+/**
+ * The batch a figure of the tree is drawn in (humankind.md section 8): its key and how to
+ * build its model, or undefined without an approved model, when it is a stand-in. Looks
+ * repeat every 12 variants (skin, hair and hide colours come from lists of at most four
+ * and three), so figures share a dozen models a profile and kind and look as before.
+ */
+export function treeFigureBatch(
+  look: 'founder' | 'woman' | 'man' | 'child',
+  id: number,
+  profile: Profile = 'african-stone-age',
+): { key: string; build: () => Model } | undefined {
+  const asset = look === 'founder' ? 'figure-first-person' : `figure-${profile}-${look}`;
+  if (!drawable.has(asset)) return undefined;
+  if (look === 'founder')
+    return {
+      key: 'founder',
+      build: () => buildPerson({ profile: 'african-stone-age', kind: 'woman', founder: true }),
+    };
+  const variant = (id % 997) % LOOK_VARIANTS;
+  return {
+    key: `${profile}:${look}:${variant}`,
+    build: () => buildPerson({ profile, kind: look, variant }),
+  };
+}
+const LOOK_VARIANTS = 12;
+
 /** A lodging of the tree by its asset id, facing +X like the stage, or undefined without an approved model. */
 export function buildLodging(kind: string): StandIn | undefined {
   if (!(SHELTERS as readonly string[]).includes(kind) || !drawable.has(kind)) return undefined;

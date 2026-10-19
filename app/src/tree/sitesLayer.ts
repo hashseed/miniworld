@@ -42,15 +42,15 @@ export class SitesLayer {
   private spots: THREE.Vector3[] = [];
   private facing = new THREE.Vector3();
 
+  private surface: SurfaceSource;
+  /** Where a fixed point is drawn: when the lens arrives or changes, the dots move with the land. */
+  private probe = '';
+
   constructor(loader: ContentLoader, surface: SurfaceSource, file: string) {
+    this.surface = surface;
     void loader.json<SitesFile>(file).then((data) => {
       this.data = data;
-      const at = (lat: number, lon: number) => {
-        const dir = surface.toDrawn(latLonToDir(lat / 1e4, lon / 1e4));
-        const v = new THREE.Vector3(...dir).normalize();
-        return v.multiplyScalar(EARTH_RADIUS_KM + surface.surfaceKm([v.x, v.y, v.z]) + LIFT_KM);
-      };
-      const spots = data.sites.map(([lat, lon]) => at(lat, lon));
+      const spots = this.spotsOf(data);
       const dots = new THREE.BufferGeometry().setFromPoints(spots);
       dots.setAttribute(
         'color',
@@ -91,6 +91,29 @@ export class SitesLayer {
     });
   }
 
+  /** The drawn place of every site, through the history lens as it is now. */
+  private spotsOf(data: SitesFile): THREE.Vector3[] {
+    const { surface } = this;
+    return data.sites.map(([lat, lon]) => {
+      const dir = surface.toDrawn(latLonToDir(lat / 1e4, lon / 1e4));
+      const v = new THREE.Vector3(...dir).normalize();
+      return v.multiplyScalar(EARTH_RADIUS_KM + surface.surfaceKm([v.x, v.y, v.z]) + LIFT_KM);
+    });
+  }
+
+  /** Moves the dots and lines to where the land is drawn now, once the lens has changed. */
+  private follow(data: SitesFile, points: THREE.Points, lines: THREE.LineSegments): void {
+    const probe = this.surface
+      .toDrawn([0.6, 0.5, 0.624])
+      .map((v) => v.toFixed(5))
+      .join(',');
+    if (probe === this.probe) return;
+    this.probe = probe;
+    this.spots = this.spotsOf(data);
+    points.geometry.setFromPoints(this.spots);
+    lines.geometry.setFromPoints(data.links.flatMap(([a, b]) => [this.spots[a]!, this.spots[b]!]));
+  }
+
   /**
    * Colours the sites and links for the sea level of the clock, and hides those on the far
    * side of the globe, since they are drawn over everything.
@@ -98,6 +121,7 @@ export class SitesLayer {
   update(seaLevel: number, camera: THREE.Camera): void {
     const { data, points, lines } = this;
     if (!data || !points || !lines) return;
+    this.follow(data, points, lines);
     const facing = this.facing.copy(camera.position).normalize();
     const horizon = EARTH_RADIUS_KM / camera.position.length();
     const seen = (i: number) =>
