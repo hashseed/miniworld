@@ -90,7 +90,7 @@ for (const [view, camera] of Object.entries(VIEWS))
             'miniworld.settings.v1',
             JSON.stringify({ language: 'en', lensStrength: lens, lensHintSeen: true }),
           );
-          localStorage.setItem('miniworld.view.v2', JSON.stringify({ day, camera }));
+          localStorage.setItem('miniworld.view.v3', JSON.stringify({ day, camera }));
         },
         { camera, day: DATES[0]![1] as number, lens },
       );

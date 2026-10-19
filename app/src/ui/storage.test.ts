@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { TIMELINE_START } from '../time/calendar.ts';
-import { msAtDay } from '../time/rate.ts';
 import {
   loadBookmarks,
   loadSettings,
@@ -62,12 +61,25 @@ describe('saved state', () => {
     expect(at({ lensStrength: 30, historyLens: false })).toBe(30);
   });
 
-  it('restores a playing view as history paused', () => {
+  it('restores a playing view as history paused, at its day', () => {
     const camera = { lat: 41.9, lon: 12.5, altitudeKm: 50, heading: 0, tilt: 30 };
-    saveView({ ms: 123456789, camera, playState: 'playing', speedMode: 'snail' });
-    expect(loadView()).toEqual({ ms: 123456789, camera, playState: 'paused', speedMode: 'snail' });
-    storage.setItem('miniworld.view.v2', JSON.stringify({ ms: 1.5, camera }));
+    saveView({ day: -730, camera, playState: 'playing', speedMode: 'snail' });
+    expect(loadView()).toEqual({ day: -730, camera, playState: 'paused', speedMode: 'snail' });
+    storage.setItem('miniworld.view.v3', JSON.stringify({ day: 'x', camera }));
     expect(loadView()).toBeUndefined();
+  });
+
+  it('converts a version 2 view and bookmarks from their clock time at 25 years a minute', () => {
+    const camera = { lat: 0, lon: 0, altitudeKm: 1000, heading: 0, tilt: 0 };
+    // 16 minutes at the old rate is 400 years, exactly 146,097 days.
+    storage.setItem('miniworld.view.v2', JSON.stringify({ ms: 16 * 60000, camera }));
+    storage.setItem(
+      'miniworld.bookmarks.v2',
+      JSON.stringify([{ id: 'a', name: 'Rome', ms: 16 * 60000, camera }]),
+    );
+    const day = TIMELINE_START + 146097;
+    expect(loadView()).toEqual({ day, camera, playState: 'paused', speedMode: 'regular' });
+    expect(loadBookmarks()).toEqual([{ id: 'a', name: 'Rome', day, camera }]);
   });
 
   it('converts a version 1 view and bookmarks from their day', () => {
@@ -77,18 +89,17 @@ describe('saved state', () => {
       'miniworld.bookmarks.v1',
       JSON.stringify([{ id: 'a', name: 'Rome', day: 1, camera }]),
     );
-    const ms = msAtDay(1, TIMELINE_START);
-    expect(loadView()).toEqual({ ms, camera, playState: 'paused', speedMode: 'regular' });
-    expect(loadBookmarks()).toEqual([{ id: 'a', name: 'Rome', ms, camera }]);
+    expect(loadView()).toEqual({ day: 1, camera, playState: 'paused', speedMode: 'regular' });
+    expect(loadBookmarks()).toEqual([{ id: 'a', name: 'Rome', day: 1, camera }]);
   });
 
   it('keeps only valid bookmarks', () => {
     const camera = { lat: 0, lon: 0, altitudeKm: 1000, heading: 0, tilt: 0 };
-    saveBookmarks([{ id: 'a', name: 'Rome', ms: 1000, camera }]);
+    saveBookmarks([{ id: 'a', name: 'Rome', day: 1000, camera }]);
     storage.setItem(
-      'miniworld.bookmarks.v2',
-      JSON.stringify([...JSON.parse(storage.getItem('miniworld.bookmarks.v2')!), { id: 'b' }]),
+      'miniworld.bookmarks.v3',
+      JSON.stringify([...JSON.parse(storage.getItem('miniworld.bookmarks.v3')!), { id: 'b' }]),
     );
-    expect(loadBookmarks()).toEqual([{ id: 'a', name: 'Rome', ms: 1000, camera }]);
+    expect(loadBookmarks()).toEqual([{ id: 'a', name: 'Rome', day: 1000, camera }]);
   });
 });

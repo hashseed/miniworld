@@ -7,6 +7,7 @@
 import { hash32, hash01 } from '../../../app/src/core/hash.ts';
 import { detCos, detSin, RAD } from '../../../app/src/core/detmath.ts';
 import { DAYS_PER_YEAR, type Day } from '../../../app/src/time/calendar.ts';
+import { dayAtWatch, watchAtDay } from '../../../app/src/time/rate.ts';
 import {
   NEVER,
   aliveOn,
@@ -164,6 +165,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     outer: number,
     salt: number,
     fleeing = false,
+    /** The camp that will stand there, whose ring of lodging slots must have room. */
+    campId = from.id,
   ): { lat: number; lon: number } | undefined => {
     let best: { lat: number; lon: number; score: number } | undefined;
     for (let k = 0; k < 16; k++) {
@@ -182,7 +185,10 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       // A camp is drawn far larger than life: it needs room for its people on land, unless
       // it is fleeing the sea, ice or desert, when any safe spot will do but room is better.
       // The band walks there in a straight line, so it must be land all the way: no sea or lake.
-      const room = roomy(lat, lon, day) && walkable(from.lat, from.lon, lat, lon, day);
+      const room =
+        roomy(lat, lon, day) &&
+        drySlots(campId, lat, lon, day) >= MIN_DRY_SLOTS &&
+        walkable(from.lat, from.lon, lat, lon, day);
       if (!room && !fleeing) continue;
       const score =
         habitat.score(lat, lon, day) + (room ? 1 : 0) + 0.1 * hash01(from.id, day, salt, k + 200);
@@ -214,6 +220,21 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   };
 
   /** Whether the people's spots round a hearth would all be on land (section 8.1). */
+  /** How many lodging slots of a camp at a place have the lodging and its builders on dry land. */
+  const drySlots = (campId: number, lat: number, lon: number, day: Day): number =>
+    Array.from({ length: LODGING_SLOTS }, (_, k) => slotPoint(campId, k)).filter((p) =>
+      [
+        p,
+        ...Array.from({ length: 12 }, (_, j) => {
+          const a = (j / 12) * 2 * Math.PI;
+          return {
+            x: p.x + (BUILD_RING_M + 1) * detCos(a),
+            z: p.z + (BUILD_RING_M + 1) * detSin(a),
+          };
+        }),
+      ].every((q) => dryAt(offset(lat, lon, q.x, q.z), day)),
+    ).length;
+
   const roomy = (lat: number, lon: number, day: Day) => {
     if (!dryAt({ lat, lon }, day)) return false;
     // Rings every 1.5 layout metres, 40 points each, close enough that a drawn
@@ -264,6 +285,24 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     };
     const dry = free.filter(standsDry);
     return dry.find(reachedDry) ?? dry[0] ?? free[0] ?? taken.size;
+  };
+  /** Whether a free slot of the camp has its lodging and builders on dry land. */
+  const hasDrySlot = (camp: Camp, day: Day): boolean => {
+    const taken = new Set(camp.lodgings.map((l) => tree.lodgings[l]!.slot));
+    return Array.from({ length: LODGING_SLOTS }, (_, k) => k).some((k) => {
+      if (taken.has(k)) return false;
+      const p = slotPoint(camp.id, k);
+      return [
+        p,
+        ...Array.from({ length: 12 }, (_, j) => {
+          const a = (j / 12) * 2 * Math.PI;
+          return {
+            x: p.x + (BUILD_RING_M + 1) * detCos(a),
+            z: p.z + (BUILD_RING_M + 1) * detSin(a),
+          };
+        }),
+      ].every((q) => dryAt(offset(camp.lat, camp.lon, q.x, q.z), day));
+    });
   };
 
   /** How far, in layout metres, people can go out through each gap between the lodgings and stay on land. */
@@ -389,6 +428,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   newFigure(NEVER, s.startDay, 0, hut.id);
   moment('root', s.startDay, 0, first);
 
+  // The day the first person's first companion steps out: a minute of watching in.
+  const aloneUntil = dayAtWatch(watchAtDay(s.startDay) + FOUNDER_ALONE_MS);
   for (let day = s.startDay; day < s.endDay; day += STEP_DAYS) {
     // Camps founded during this step wait for the next one.
     const count = camps.length;
@@ -421,8 +462,10 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
           if (inside.length === 0 || inside.length >= LODGING_CAPACITY) continue;
           if (day - lastEmerge.get(l)! < EMERGE_DAYS && !(l === hut.id && inside.length === 1))
             continue;
+          // The first person stays alone for the first minute of watching (section 4.2).
+          if (tree.figures.length === 1 && day + STEP_DAYS <= aloneUntil) continue;
           const parent = inside[hash32(l, day, 1) % inside.length]!;
-          const born = day + (hash32(l, day, 2) % STEP_DAYS);
+          const born = Math.max(day + (hash32(l, day, 2) % STEP_DAYS), aloneUntil);
           const f = newFigure(parent, born, tree.figures[parent]!.branch, l);
           lastEmerge.set(l, born);
           if (f.id === 1) moment('first-born', born, f.id, camp);
@@ -432,7 +475,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         // Every lodging is full: someone builds another beside the hearth.
         if (!grown && camp.lodgings.length < MAX_LODGINGS) {
           const full = camp.lodgings.every((l) => residents.get(l)!.length >= LODGING_CAPACITY);
-          if (full) {
+          // Another lodging only where one can stand on dry land (section 4).
+          if (full && hasDrySlot(camp, day)) {
             const builder = people[hash32(camp.id, day, 3) % people.length]!;
             const l = newLodging(camp, builder, day + (hash32(camp.id, day, 4) % STEP_DAYS));
             const from = tree.figures[builder]!.homes.at(-1)![1];
@@ -441,7 +485,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         }
       } else if (day >= camp.nextBud) {
         // A full camp sends out a small group to found a new one (section 4.3).
-        const spot = findSpot(camp, day, 1, 2, 3);
+        const spot = findSpot(camp, day, 1, 2, 3, false, camps.length);
         if (!spot) {
           camp.nextBud = day + BUD_RETRY_DAYS;
           continue;
@@ -534,25 +578,35 @@ export function checkTree(tree: Tree, s: TreeSettings, habitat: Habitat): string
  * for a window after the tree ends. The tree is built only up to its end day,
  * so its figures and lodgings are taken away then.
  */
+/** The first person is alone for this long of watching (section 4.2). */
+const FOUNDER_ALONE_MS = 60_000;
+/** A camp site has room when at least this many of its lodging slots stand on dry land. */
+const MIN_DRY_SLOTS = 3;
+
+/** A time window's chunk carries what happened this long of watching before it (milliseconds). */
+const CHUNK_LEAD_MS = 60_000;
+
 export function treeChunks(tree: Tree, windows: Day[], endDay: Day): (TreeChunk | undefined)[] {
   return windows.map((from, w) => {
     if (from >= endDay) return undefined;
     const to = Math.min(windows[w + 1] ?? endDay, endDay);
     const until = (d: Day) => (d === NEVER || d > endDay ? endDay : d);
+    // What happened in the minute of watching before the window still shows in it: a
+    // lodging taken down, its clearing growing back, a walk to a new camp. A minute is
+    // centuries in the deep past and a year in the 20th century (spec section 2.1).
+    const earliest = dayAtWatch(Math.max(0, watchAtDay(from) - CHUNK_LEAD_MS));
     const lodgings = new Map<number, TreeLodging>();
     const add = (id: number) => {
       const l = tree.lodgings[id]!;
       if (!lodgings.has(id)) lodgings.set(id, { ...l, gone: until(l.gone) });
     };
-    // A lodging taken down shortly before the window still fades out in it.
-    for (const l of tree.lodgings)
-      if (l.built < to && until(l.gone) + DAYS_PER_YEAR > from) add(l.id);
+    for (const l of tree.lodgings) if (l.built < to && until(l.gone) > earliest) add(l.id);
     const figures: TreeFigure[] = [];
     for (const f of tree.figures) {
-      if (f.born >= to || until(f.lost) <= from) continue;
-      // The home at the window's start and the one before it (for a walk under way), and later ones.
+      if (f.born >= to || until(f.lost) <= earliest) continue;
+      // The home at that minute's start and the one before it (for a walk under way), and later ones.
       let first = 0;
-      while (first + 1 < f.homes.length && f.homes[first + 1]![0] <= from) first++;
+      while (first + 1 < f.homes.length && f.homes[first + 1]![0] <= earliest) first++;
       const homes = f.homes.slice(Math.max(0, first - 1)).filter(([d]) => d < to);
       for (const [, l] of homes) add(l);
       figures.push({ ...f, homes, lost: until(f.lost) });
