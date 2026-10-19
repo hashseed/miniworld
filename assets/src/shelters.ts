@@ -27,6 +27,7 @@ export const SHELTERS = [
   'shelter-natufian-house',
   'prop-drying-rack',
   'prop-carry-pole',
+  'prop-spit',
 ] as const;
 export type ShelterId = (typeof SHELTERS)[number];
 
@@ -399,6 +400,17 @@ export function buildShelter(id: ShelterId): Model {
       mb.add(sheet(rows), '#c9a171');
       break;
     }
+    case 'prop-spit': {
+      // A roasting spit over the fire (humankind.md section 8.1): two forked sticks
+      // either side, a crossbar resting in the forks, a joint of meat on it.
+      for (const z of [-0.75, 0.75]) {
+        mb.add(rod([0, 0, z], [0, 0.78, z], 0.035, 5), POLE);
+        for (const s of [-1, 1]) mb.add(rod([0, 0.7, z], [s * 0.08, 0.86, z], 0.025, 4), POLE);
+      }
+      mb.add(rod([0, 0.79, -0.95], [0, 0.79, 0.95], 0.03, 5), POLE);
+      mb.add(blob([0, 0.76, 0], [0.16, 0.13, 0.3], 7), '#8b3a26');
+      break;
+    }
     case 'prop-carry-pole': {
       // A carrying pole along +Z, the way models face, lying on the ground with its
       // middle over the origin, and two lashings of hide cord where an animal's legs
@@ -453,6 +465,16 @@ export function buildHearth(): Model {
 }
 
 /** Lets the hearth's flames flicker: each stretches, squashes and sways at its own pace. */
+/** Lets the hearth's flames grow from nothing as a new fire catches, 0 to 1, after flickering. */
+export function lightHearth(model: Model, lit: number): void {
+  FLAMES.forEach((_f, i) => {
+    const flame = model.bones.get(`flame-${i}`);
+    if (!flame) return;
+    flame.visible = lit > 0.02;
+    flame.scale.multiplyScalar(Math.max(0.02, lit));
+  });
+}
+
 export function flickerHearth(model: Model, seconds: number): void {
   FLAMES.forEach((_f, i) => {
     const flame = model.bones.get(`flame-${i}`);

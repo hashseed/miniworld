@@ -22,6 +22,7 @@ import {
   CAMP_SHELTER,
   buildSteps,
   flickerHearth,
+  lightHearth,
   setBuilt,
   SHELTERS,
   type ShelterId,
@@ -157,7 +158,10 @@ export function buildProp(kind: 'shelter' | 'asset', look: string): StandIn | un
     if (id && drawable.has(id)) model = buildShelter(id);
   } else if (look === 'prop-hearth' && drawable.has(look)) {
     const hearth = buildHearth();
-    return wrap(hearth, (_clip, seconds) => flickerHearth(hearth, seconds));
+    return {
+      ...wrap(hearth, (_clip, seconds) => flickerHearth(hearth, seconds)),
+      setLit: (lit: number) => lightHearth(hearth, lit),
+    };
   } else if ((SHELTERS as readonly string[]).includes(look) && drawable.has(look))
     model = buildShelter(look as ShelterId);
   if (!model) return undefined;

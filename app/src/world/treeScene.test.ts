@@ -83,7 +83,7 @@ describe('the tree scene', () => {
     const s = treeScene(chunk, 5000, d0);
     expect(s.figures.map((f) => f.id)).toEqual([0]);
     expect(s.figures[0]!.look).toBe('founder');
-    expect(s.hearths).toEqual([{ camp: 0, lat: 0, lon: 36 }]);
+    expect(s.hearths).toEqual([{ camp: 0, lat: 0, lon: 36, lit: 1 }]);
     expect(s.lodgings).toHaveLength(1);
   });
 

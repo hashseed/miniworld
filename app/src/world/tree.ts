@@ -44,6 +44,8 @@ export interface TreeLodging {
   reach: number[];
   /** Asset id of its model, from the architecture set of its culture. */
   kind: string;
+  /** Tree cover at its camp's place, 0 to 1, when it was built (section 8.1); the band fells it first. */
+  wood?: number;
 }
 
 export interface TreeBranch {

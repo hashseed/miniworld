@@ -356,7 +356,7 @@ describe('asset manifest', () => {
     const waiting = Object.keys(MODELS).filter((id) => entries.get(id)?.status !== 'approved');
     expect(
       waiting.every((id) =>
-        /^(stone-sledge|figure-african-stone-age-man|prop-carry-pole)$/.test(id),
+        /^(stone-sledge|figure-african-stone-age-man|prop-carry-pole|prop-spit)$/.test(id),
       ),
     ).toBe(true);
   });

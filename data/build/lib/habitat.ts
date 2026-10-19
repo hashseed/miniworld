@@ -38,6 +38,8 @@ export interface HabitatInputs {
   inRiver(lat: number, lon: number): boolean;
   /** Ground height in metres. */
   elevation(lat: number, lon: number): number;
+  /** Tree cover, 0 to 1, on a day (section 4.3); camps prefer open ground. */
+  wood?(lat: number, lon: number, day: Day): number;
 }
 
 /** The cell value of a centred latitude-longitude grid at a point. */
@@ -93,10 +95,13 @@ export function climateHabitat(input: HabitatInputs): Habitat {
   return {
     habitable,
     dry: (lat, lon) => !input.inRiver(lat, lon),
+    wood: input.wood,
     score: (lat, lon, day) =>
       0.4 * (1 - aridity(lat, lon, day)) +
       0.3 * (1 - Math.min(1, Math.max(0, input.elevation(lat, lon)) / 3000)) +
-      (nearWater(lat, lon, day) ? 0.3 : 0),
+      (nearWater(lat, lon, day) ? 0.3 : 0) -
+      // Open ground is better than woodland (humankind.md section 4.3).
+      0.35 * (input.wood?.(lat, lon, day) ?? 0),
   };
 }
 

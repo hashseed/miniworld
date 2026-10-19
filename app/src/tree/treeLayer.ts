@@ -52,6 +52,11 @@ export class TreeLayer {
   private hearths = new Map<number, StandIn | undefined>();
   private prey = new Map<string, StandIn | undefined>();
   private spears = new Map<string, THREE.Object3D>();
+  private props = new Map<string, StandIn | undefined>();
+  /** Sparks of fires being lit: small glowing beads, reused frame to frame. */
+  private sparks: THREE.Mesh[] = [];
+  private sparkGeometry = new THREE.SphereGeometry(0.07, 6, 4);
+  private sparkMaterial = new THREE.MeshBasicMaterial({ color: 0xffc04a });
   private poles = new Map<string, StandIn | undefined>();
   private camera: THREE.PerspectiveCamera | undefined;
   private cleared: Clearing[] = [];
@@ -122,6 +127,11 @@ export class TreeLayer {
         this.group.add(actor.root);
       }
       if (!this.place(actor.root, f)) continue;
+      // Inside its hut, out of sight (humankind.md section 8.1).
+      if (f.hidden) {
+        actor.root.visible = false;
+        continue;
+      }
       this.block(actor.root, FIGURE_HALF_M);
       actor.root.scale.setScalar(FIGURE_KM_PER_M);
       // Clips play TEMPO times faster, matching the faster pace on the ground.
@@ -161,6 +171,35 @@ export class TreeLayer {
         this.group.remove(pivot);
         this.spears.delete(id);
       }
+
+    // Drying racks beside the lodgings, and the spit over a fire while meat roasts.
+    const standing = new Set<string>();
+    for (const q of scene.props) {
+      standing.add(q.id);
+      if (!this.props.has(q.id)) {
+        const prop = buildProp('asset', q.kind);
+        if (prop) this.group.add(prop.root);
+        this.props.set(q.id, prop);
+      }
+      const prop = this.props.get(q.id);
+      if (!prop || !this.place(prop.root, q)) continue;
+      prop.root.scale.setScalar(FIGURE_KM_PER_M);
+    }
+    this.prune(this.props, standing);
+
+    // Sparks from the flint stones while a new fire is lit, shrinking as they die.
+    scene.sparks.forEach((sp, k) => {
+      let bead = this.sparks[k];
+      if (!bead) {
+        bead = new THREE.Mesh(this.sparkGeometry, this.sparkMaterial);
+        this.sparks.push(bead);
+        this.group.add(bead);
+      }
+      if (!this.place(bead, { ...sp, dirX: 1, dirZ: 0 })) return;
+      bead.position.addScaledVector(this.dir, sp.height * FIGURE_KM_PER_M);
+      bead.scale.setScalar(FIGURE_KM_PER_M * (1 - sp.life));
+    });
+    for (let k = scene.sparks.length; k < this.sparks.length; k++) this.sparks[k]!.visible = false;
 
     // Carrying poles: on the ground, lifted, carried and laid down again.
     const carried = new Set<string>();
@@ -241,8 +280,10 @@ export class TreeLayer {
       if (this.place(prop.root, { lat: h.lat, lon: h.lon, x: 0, z: 0, dirX: 1, dirZ: 0 }))
         this.block(prop.root, HEARTH_HALF_M);
       prop.root.scale.setScalar(FIGURE_KM_PER_M);
-      // The fire flickers with the clock, so a paused world holds still.
+      // The fire flickers with the clock, so a paused world holds still, and grows from
+      // nothing while a new fire is lit.
       prop.pose('idle', ms / 1000);
+      prop.setLit?.(h.lit);
     }
     this.prune(this.hearths, seen);
   }
@@ -274,6 +315,8 @@ export class TreeLayer {
     this.prune(this.hearths, new Set());
     this.prune(this.prey, new Set());
     this.prune(this.poles, new Set());
+    this.prune(this.props, new Set());
+    for (const bead of this.sparks) bead.visible = false;
     for (const pivot of this.spears.values()) this.group.remove(pivot);
     this.spears.clear();
     this.cleared = [];

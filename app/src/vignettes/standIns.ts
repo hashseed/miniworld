@@ -57,6 +57,8 @@ export interface StandIn {
   setFade?(fade: number): void;
   /** Puts a shelter up step by step, 0 to 1; without it, the shelter is shown whole. */
   setBuilt?(built: number): void;
+  /** A hearth's fire, 0 (not yet lit) to 1, after posing (humankind.md section 8.1). */
+  setLit?(lit: number): void;
   /** Where spears stick: the body bone and its extent in the bone's own space. */
   back?: { bone: THREE.Object3D; box: THREE.Box3 };
 }

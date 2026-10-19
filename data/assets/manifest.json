@@ -308,6 +308,14 @@
       "note": "Carrying pole for hunted animals (humankind.md section 8.1), waiting for Yang's review"
     },
     {
+      "id": "prop-spit",
+      "file": "assets/src/shelters.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "Roasting spit over the camp fire (humankind.md section 8.1), waiting for Yang's review"
+    },
+    {
       "id": "prop-hearth",
       "file": "assets/src/shelters.ts",
       "kind": "prop",

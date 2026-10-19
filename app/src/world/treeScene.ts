@@ -27,7 +27,7 @@ export const FIGURE_KM_PER_M = 85;
  * Figures act this many times faster than life: their clips play faster and they cover
  * ground faster, so the feet still do not slide (Yang, 2026-10-18: livelier camps).
  */
-export const TEMPO = 3;
+export const TEMPO = 3.6;
 /** A figure's walking pace in life-size metres per second, matching the walk clip's stride. */
 export const WALK_M_PER_S = 1.2;
 /** Running and carrying paces, matching those clips' strides at the same leg length. */
@@ -38,11 +38,12 @@ export const LAYOUT_KM_PER_M = FIGURE_KM_PER_M / 3;
 /** Drawn kilometres a figure covers per millisecond of watching. */
 const WALK_KM_PER_MS = (TEMPO * WALK_M_PER_S * FIGURE_KM_PER_M) / 1000;
 /** Layout metres covered per millisecond of watching, by clip. */
-const PACE: Record<'walk' | 'run' | 'carry' | 'pole', number> = {
+const PACE: Record<'walk' | 'run' | 'carry' | 'pole' | 'crouch', number> = {
   walk: (WALK_M_PER_S * 3 * TEMPO) / 1000,
   run: (RUN_M_PER_S * 3 * TEMPO) / 1000,
   carry: (CARRY_M_PER_S * 3 * TEMPO) / 1000,
   pole: (CARRY_M_PER_S * 3 * TEMPO) / 1000,
+  crouch: (WALK_M_PER_S * 0.55 * 3 * TEMPO) / 1000,
 };
 /**
  * Lodgings stand this far from the hearth, in layout metres; lodgings are drawn at
@@ -72,8 +73,32 @@ const ACTIVITY_MIN_MS = 20_000 / TEMPO;
 const ACTIVITY_SPREAD_MS = Math.round(20_000 / TEMPO);
 /** Each figure plans its day in turns of this long: an outing, a stroll or a rest. */
 const TURN_MS = 60_000 / TEMPO;
+/** Camp life (section 8.1): how long each activity's work at its place lasts. */
+const FIREWOOD_M = 20;
+const BREAK_MS = Math.round(7200 / TEMPO);
+const FILL_MS = Math.round(5400 / TEMPO);
+const SCRAPE_MS = Math.round(14_400 / TEMPO);
+const CRACK_MS = Math.round(14_400 / TEMPO);
+const KNAP_POINT_MS = Math.round(10_800 / TEMPO);
+const BIND_POINT_MS = Math.round(7200 / TEMPO);
+const BUTCHER_MEAT_MS = Math.round(7200 / TEMPO);
+const ROAST_MS = Math.round(14_400 / TEMPO);
+const INSIDE_MS = Math.round(14_400 / TEMPO);
+/**
+ * Camp events (section 8.1): catch and dancing last EVENT_MS once everyone is in place.
+ * Children run round a ring CATCH_R from the hearth at a little over half a run, "it"
+ * catching the next every CHASE_MS; dancers turn slowly on a ring DANCE_R round the fire.
+ */
+const EVENT_MS = Math.round(36_000 / TEMPO);
+const CHASE_MS = Math.round(9000 / TEMPO);
+const CATCH_R = 11.5;
+const DANCE_R = 6.5;
+const CATCH_SHARE = 1 / 3;
+const DANCE_SHARE = 1 / 12;
+/** The drying rack stands this far round the ring from its lodging, in radians. */
+const RACK_TURN = 0.5;
 /** How long gatherers pick, hunters butcher and strollers look about at the far end. */
-const GATHER_MS = 9000 / TEMPO;
+const GATHER_MS = Math.round(9000 / TEMPO);
 const BUTCHER_MS = Math.round(4000 / TEMPO);
 const LOOK_MS = Math.round(4000 / TEMPO);
 /**
@@ -132,7 +157,7 @@ export const POLE_ON_GROUND_M = 0.045;
 /** The kill is carried to here in the hunter's gap, between the people and the lodgings. */
 const DROP_M = 14;
 /** It lies there this long before it fades away. */
-const DROP_LINGER_MS = Math.round(9000 / TEMPO);
+const DROP_LINGER_MS = Math.round(40_000 / TEMPO);
 /** Trees make way this far round points of a hunt's lane, in drawn kilometres. */
 const HUNT_CLEARING_KM = 8 * LAYOUT_KM_PER_M;
 /**
@@ -159,6 +184,16 @@ export const BUILD_RING_M = 5;
  */
 const FELL_MS = 1200;
 const REGROW_MS = 12_000;
+/**
+ * A new camp (section 8.1): where its place has at least this much tree cover the band
+ * fells the trees for FELL_WOOD_MS first, round the ring of lodgings; then the first
+ * builder lights the fire with flint stones for FLINT_MS before building.
+ */
+const WOOD_MIN = 0.15;
+const FELL_WOOD_MS = Math.round(14_400 / TEMPO);
+const FLINT_MS = Math.round(9000 / TEMPO);
+/** The lighter kneels this far from the middle of the hearth, just outside the paths' clearance. */
+const LIGHT_M = 3.1;
 /** Plants keep this far from a hearth while the camp stands, in drawn kilometres. */
 export const CAMP_CLEARING_KM = (LODGING_RING_M + 6) * LAYOUT_KM_PER_M;
 /**
@@ -171,7 +206,20 @@ const SAME_PLACE_KM = 1;
 const KM_PER_DEG = 111.195;
 
 export type FigureLook = 'founder' | 'woman' | 'man' | 'child';
-export type TreeClip = 'idle' | 'work' | 'knap' | 'walk' | 'run' | 'carry' | 'throw' | 'pole';
+export type TreeClip =
+  | 'idle'
+  | 'work'
+  | 'knap'
+  | 'walk'
+  | 'run'
+  | 'carry'
+  | 'throw'
+  | 'pole'
+  | 'strike'
+  | 'crouch'
+  | 'dance'
+  | 'scrape'
+  | 'crack';
 
 /** A point of the scene: a place on the globe, and an offset there in layout metres east and north. */
 export interface Placed {
@@ -193,6 +241,8 @@ export interface FigurePose extends Placed {
   from?: { clip: TreeClip; clipMs: number; weight: number };
   /** The hand is empty: the figure's spear is in the air, in the prey or in the grass. */
   unarmed?: boolean;
+  /** Inside its hut, out of sight (section 8.1). */
+  hidden?: boolean;
 }
 
 export type PreyClip = 'idle' | 'walk' | 'run' | 'fall' | 'bound' | 'hung';
@@ -219,6 +269,24 @@ export interface HearthPose {
   camp: number;
   lat: number;
   lon: number;
+  /** 0 before the fire is lit at a new camp, rising to 1 as it catches (section 8.1). */
+  lit: number;
+}
+
+/** A spark from the flint stones of a fire being lit: layout point, height in life-size metres, 0 to 1 of its life. */
+export interface SparkPose {
+  lat: number;
+  lon: number;
+  x: number;
+  z: number;
+  height: number;
+  life: number;
+}
+
+/** A prop of camp life at a layout point: a drying rack beside a lodging, a spit over the fire. */
+export interface CampPropPose extends Placed {
+  id: string;
+  kind: 'prop-drying-rack' | 'prop-spit';
 }
 
 /** Where the trees make way for a camp: 1 cleared, 0 grown back. */
@@ -253,6 +321,8 @@ export interface TreeScene {
   prey: PreyPose[];
   spears: SpearPose[];
   poles: PolePose[];
+  sparks: SparkPose[];
+  props: CampPropPose[];
   lodgings: LodgingPose[];
   hearths: HearthPose[];
   clearings: ClearingPose[];
@@ -419,10 +489,13 @@ function routeLength(points: Pt[]): number {
 interface Leg {
   start: number;
   end: number;
-  clip: TreeClip | 'rest';
+  /** A clip, a rest, inside the hut (out of sight), or a camp event's own motion. */
+  clip: TreeClip | 'rest' | 'inside' | 'event';
   route: Pt[];
   /** What a standing figure faces. */
   face?: Pt;
+  /** A prop shown while the leg lasts: the spit over the fire while cooking. */
+  prop?: 'prop-spit';
 }
 
 /** Builds a figure's legs one after another from a point and a time. */
@@ -434,7 +507,7 @@ class Itinerary {
     this.t = t;
     this.at = at;
   }
-  go(to: Pt, clip: 'walk' | 'run' | 'carry' | 'pole' = 'walk'): this {
+  go(to: Pt, clip: 'walk' | 'run' | 'carry' | 'pole' | 'crouch' = 'walk'): this {
     const way = route(this.at, to);
     const m = routeLength(way);
     if (m < 1e-6) return this;
@@ -444,9 +517,9 @@ class Itinerary {
     this.at = to;
     return this;
   }
-  stay(until: number, clip: TreeClip | 'rest', face?: Pt): this {
+  stay(until: number, clip: Leg['clip'], face?: Pt, prop?: Leg['prop']): this {
     if (until <= this.t) return this;
-    this.legs.push({ start: this.t, end: until, clip, route: [this.at], face });
+    this.legs.push({ start: this.t, end: until, clip, route: [this.at], face, prop });
     this.t = until;
     return this;
   }
@@ -468,22 +541,64 @@ function along(way: Pt[], f: number): Pt & { dirX: number; dirZ: number } {
   return { ...way.at(-1)!, dirX: 0, dirZ: 0 };
 }
 
-type Outing = 'rest' | 'gather' | 'hunt' | 'stroll';
+type Outing =
+  | 'rest'
+  | 'gather'
+  | 'hunt'
+  | 'stroll'
+  | 'firewood'
+  | 'water'
+  | 'scrape'
+  | 'crack'
+  | 'spear'
+  | 'cook'
+  | 'hut';
 
-/** What a figure does in one of its turns: men and the first person hunt, everyone gathers and strolls. */
+/** Shares of a figure's turns by activity (section 8.1), the rest of its turns rests. */
+const OUTING_SHARES: Record<FigureLook, [Outing, number][]> = {
+  man: [
+    ['hunt', 0.4],
+    ['spear', 0.12],
+    ['firewood', 0.1],
+    ['water', 0.05],
+    ['hut', 0.06],
+    ['stroll', 0.05],
+  ],
+  founder: [
+    ['hunt', 0.25],
+    ['gather', 0.1],
+    ['firewood', 0.08],
+    ['water', 0.06],
+    ['crack', 0.1],
+    ['cook', 0.08],
+    ['hut', 0.06],
+    ['stroll', 0.05],
+  ],
+  woman: [
+    ['gather', 0.18],
+    ['scrape', 0.12],
+    ['crack', 0.1],
+    ['water', 0.1],
+    ['firewood', 0.08],
+    ['cook', 0.12],
+    ['hut', 0.08],
+    ['stroll', 0.04],
+  ],
+  child: [
+    ['gather', 0.15],
+    ['crack', 0.12],
+    ['hut', 0.12],
+    ['stroll', 0.15],
+  ],
+};
+
+/** What a figure does in one of its turns (section 8.1), chosen by hash from its look's shares. */
 function outingOf(id: number, look: FigureLook, turn: number): Outing {
-  const roll = hash01(id, turn, 71);
-  const [hunt, gather, stroll] =
-    look === 'man'
-      ? [0.45, 0.1, 0.1]
-      : look === 'founder'
-        ? [0.3, 0.2, 0.1]
-        : look === 'woman'
-          ? [0, 0.4, 0.15]
-          : [0, 0.25, 0.3];
-  if (roll < hunt) return 'hunt';
-  if (roll < hunt + gather) return 'gather';
-  if (roll < hunt + gather + stroll) return 'stroll';
+  let roll = hash01(id, turn, 71);
+  for (const [outing, share] of OUTING_SHARES[look]) {
+    if (roll < share) return outing;
+    roll -= share;
+  }
   return 'rest';
 }
 
@@ -530,6 +645,8 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     prey: [],
     spears: [],
     poles: [],
+    sparks: [],
+    props: [],
     lodgings: [],
     hearths: [],
     clearings: [],
@@ -537,24 +654,73 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
   // Stays and hunts worked out this frame, by figure and home, and by hunter and turn.
   const stays = new Map<string, Stay | undefined>();
   const hunts = new Map<string, Hunt | undefined>();
-  // Each place a camp stands: from the first lodging up to the last one gone.
-  const places = new Map<
-    string,
-    { camp: number; lat: number; lon: number; from: number; to: number }
-  >();
+  const events = new Map<string, CampEvent | undefined>();
+  // Each place a camp stands: from the band's arrival up to the last lodging gone, with
+  // the felling and the lighting of its fire (section 8.1).
+  const places = new Map<string, Place>();
+  const placeKey = (l: TreeLodging) => `${l.camp}:${l.lat}:${l.lon}`;
+  for (const l of chunk.lodgings) {
+    const arrived = appears.get(l.id)!;
+    const gone = l.gone === NEVER ? Infinity : at(l.gone);
+    const p = places.get(placeKey(l));
+    if (!p)
+      places.set(placeKey(l), {
+        camp: l.camp,
+        lat: deg(l.lat),
+        lon: deg(l.lon),
+        from: arrived,
+        to: gone,
+        wood: l.wood ?? 0,
+        first: l,
+        fellEnd: arrived,
+        litStart: arrived,
+        litEnd: arrived,
+      });
+    else {
+      if (arrived < p.from) [p.from, p.first] = [arrived, l];
+      p.to = Math.max(p.to, gone);
+      p.wood = Math.max(p.wood, l.wood ?? 0);
+    }
+  }
+  for (const p of places.values()) {
+    if (p.from <= 0) continue;
+    p.fellEnd = p.from + (p.wood >= WOOD_MIN ? FELL_WOOD_MS : 0);
+    p.litStart = p.fellEnd;
+    p.litEnd = p.litStart + FLINT_MS;
+  }
+  // No lodging goes up before the felling is done, nor the lighter's before the fire is lit.
+  for (const l of chunk.lodgings) {
+    const p = places.get(placeKey(l))!;
+    if (p.from <= 0) continue;
+    let shown = Math.max(appears.get(l.id)!, p.fellEnd);
+    if (l === p.first) {
+      const crew = builders.get(l.id) ?? [l.builder];
+      const work = buildSpot(Math.max(0, crew.indexOf(l.builder)), crew.length, l);
+      shown = Math.max(
+        shown,
+        p.litEnd + Math.ceil(routeLength(route(lightSpot(l.builder), work)) / PACE.walk),
+      );
+    }
+    appears.set(l.id, shown);
+  }
   for (const l of chunk.lodgings) {
     const shown = appears.get(l.id)!;
     const gone = l.gone === NEVER ? Infinity : at(l.gone);
-    const key = `${l.camp}:${l.lat}:${l.lon}`;
-    const p = places.get(key);
-    if (p) {
-      p.from = Math.min(p.from, shown);
-      p.to = Math.max(p.to, gone);
-    } else
-      places.set(key, { camp: l.camp, lat: deg(l.lat), lon: deg(l.lon), from: shown, to: gone });
     if (ms < shown || ms >= gone) continue;
     const spot = lodgingSpot(l);
     const down = takeDown(l);
+    // A drying rack stands beside every lodging that is up (section 8.1).
+    if (ms >= shown + BUILD_MS && ms < down) {
+      const rack = rackSpot(l);
+      scene.props.push({
+        id: `rack:${l.id}`,
+        kind: 'prop-drying-rack',
+        lat: deg(l.lat),
+        lon: deg(l.lon),
+        ...rack,
+        ...towards(rack.x, rack.z, 0, 0),
+      });
+    }
     scene.lodgings.push({
       id: l.id,
       kind: l.kind,
@@ -572,15 +738,21 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     });
   }
   for (const p of places.values()) {
-    if (ms >= p.from && ms < p.to && !scene.hearths.some((h) => h.camp === p.camp))
-      scene.hearths.push({ camp: p.camp, lat: p.lat, lon: p.lon });
+    if (ms >= p.from && ms < p.to && !scene.hearths.some((h) => h.camp === p.camp)) {
+      // The flames rise from nothing as the fire catches.
+      const lit = p.from <= 0 ? 1 : Math.min(1, Math.max(0, (ms - p.litStart) / FLINT_MS));
+      scene.hearths.push({ camp: p.camp, lat: p.lat, lon: p.lon, lit });
+      if (ms >= p.litStart && ms < p.litEnd) sparksAt(p, ms);
+    }
+    // The trees tip over while the band fells them, or quickly where there were few.
+    const felled = Math.max(p.fellEnd - p.from, FELL_MS);
     const amount =
       ms < p.from
         ? 0
         : ms < p.to
           ? p.from <= 0
             ? 1
-            : Math.min(1, (ms - p.from) / FELL_MS)
+            : Math.min(1, (ms - p.from) / felled)
           : 1 - (ms - p.to) / REGROW_MS;
     if (amount > 0) scene.clearings.push({ lat: p.lat, lon: p.lon, amount, felling: ms < p.to });
   }
@@ -640,6 +812,134 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     return figureSpot(f.homes[i]![2], home.camp);
   }
 
+  /** The camp event of a camp's window `w`, if any (section 8.1); the same for every member. */
+  function eventOf(ref: Stay, w: number): CampEvent | undefined {
+    const camp = ref.home.camp;
+    const key = `${camp}:${ref.home.lat}:${ref.home.lon}:${w}`;
+    if (events.has(key)) return events.get(key);
+    events.set(key, undefined);
+    const shift = hash32(camp, 113) % TURN_MS;
+    const start = w * TURN_MS - shift;
+    const roll = hash01(camp, w, 97);
+    const kind =
+      roll < CATCH_SHARE ? 'catch' : roll < CATCH_SHARE + DANCE_SHARE ? 'dance' : undefined;
+    let ev: CampEvent | undefined;
+    if (kind) {
+      const until = start + TURN_MS;
+      const members = chunk.figures
+        .filter((g) => kind === 'dance' || lookOf(g.id) === 'child')
+        .map((g) => stayAt(g, start))
+        .filter(
+          (g): g is Stay =>
+            !!g &&
+            sameCamp(g, ref) &&
+            g.free <= start &&
+            g.busy >= until &&
+            huntsOf(g, start, until).length === 0,
+        );
+      if (members.length >= (kind === 'catch' ? 2 : 3))
+        ev = planEvent(kind, members, w, start, until);
+    }
+    events.set(key, ev);
+    return ev;
+  }
+
+  /** Everyone walks to their place on the ring, plays or dances, and walks back. */
+  function planEvent(
+    kind: 'catch' | 'dance',
+    members: Stay[],
+    w: number,
+    start: number,
+    until: number,
+  ): CampEvent | undefined {
+    const ref = members[0]!;
+    const r = kind === 'catch' ? CATCH_R : DANCE_R;
+    const a0 = hash01(ref.home.camp, w, 99) * 2 * Math.PI;
+    const ev: CampEvent = {
+      id: `${ref.home.camp}:${w}`,
+      kind,
+      camp: ref.home.camp,
+      members: members.map((m) => m.f.id),
+      a0,
+      r,
+      start,
+      begin: start,
+      stop: start,
+      end: start,
+      legs: new Map(),
+    };
+    const ring = members.map((_, i) => ringPoint(ev, i, 0));
+    const trips = members.map((m, i) => new Itinerary(start, m.spot).go(ring[i]!));
+    ev.begin = Math.max(...trips.map((t) => t.t));
+    ev.stop = ev.begin + EVENT_MS;
+    members.forEach((m, i) => {
+      const trip = trips[i]!;
+      trip.stay(ev.begin, 'idle', { x: 0, z: 0 });
+      trip.legs.push({ start: ev.begin, end: ev.stop, clip: 'event', route: [ring[i]!] });
+      trip.t = ev.stop;
+      trip.at = eventPoint(ev, i, ev.stop);
+      trip.go(m.spot);
+      ev.end = Math.max(ev.end, trip.t);
+      ev.legs.set(m.f.id, trip.legs);
+    });
+    if (ev.end > until || members.some((m) => ev.end > m.busy)) return undefined;
+    return ev;
+  }
+
+  /** The camp events a figure takes part in that overlap a span. */
+  function eventsOf(st: Stay, from: number, to: number): CampEvent[] {
+    const shift = hash32(st.home.camp, 113) % TURN_MS;
+    const out: CampEvent[] = [];
+    for (let w = Math.floor((from - TURN_MS + shift) / TURN_MS); w * TURN_MS - shift < to; w++) {
+      const ev = eventOf(st, w);
+      if (ev && ev.members.includes(st.f.id) && ev.start < to && ev.end > from) out.push(ev);
+    }
+    return out;
+  }
+
+  /** A member's pose in a camp event while it plays or dances. */
+  function eventPose(
+    ev: CampEvent,
+    id: number,
+    ms: number,
+    base: Pick<FigurePose, 'id' | 'look' | 'lat' | 'lon'>,
+  ): FigurePose {
+    const i = ev.members.indexOf(id);
+    const p = eventPoint(ev, i, ms);
+    const tau = ms - ev.begin;
+    if (ev.kind === 'dance')
+      return { ...base, ...p, ...towards(p.x, p.z, 0, 0), clip: 'dance', clipMs: tau };
+    const q = eventPoint(ev, i, ms + 30);
+    // A little over half a run, the run clip slowed to match, so the feet do not slide.
+    return {
+      ...base,
+      ...p,
+      ...towards(p.x, p.z, q.x, q.z),
+      clip: 'run',
+      clipMs: Math.round(tau * CATCH_PACE_SHARE),
+    };
+  }
+
+  /** A few sparks jumping from the flint stones, a pure function of the clock (section 8.1). */
+  function sparksAt(p: Place, ms: number): void {
+    const at0 = lightSpot(p.first.builder);
+    const toward = { x: at0.x * 0.4, z: at0.z * 0.4 };
+    for (let k = 0; k < 6; k++) {
+      const life = ((ms - p.litStart) / 260 + k / 6) % 1;
+      const n = Math.floor((ms - p.litStart) / 260 + k / 6);
+      const a = hash01(p.camp, n, k, 101) * 2 * Math.PI;
+      const r = 0.6 * life * (0.5 + hash01(p.camp, n, k, 103));
+      scene.sparks.push({
+        lat: p.lat,
+        lon: p.lon,
+        x: toward.x + r * detCos(a),
+        z: toward.z + r * detSin(a),
+        height: 0.15 + 0.5 * life * (1 - 0.6 * life),
+        life,
+      });
+    }
+  }
+
   /** A figure's stay in its `i`-th home: the camp, its spot, its plan up to when it is free, and when it must be busy again. */
   interface Stay {
     f: TreeFigure;
@@ -684,6 +984,20 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
           : i === 0 && born > 0
             ? new Itinerary(born, hut)
             : new Itinerary(-Infinity, spot);
+      // At a new camp: fell the trees round the ring of lodgings, facing out, and the first
+      // builder lights the fire with flint stones (section 8.1).
+      const place = places.get(placeKey(home))!;
+      if (builds && plan.t < place.fellEnd && place.fellEnd > place.from) {
+        const a = hash01(f.id, place.camp, 107) * 2 * Math.PI;
+        const r = LODGING_RING_M + 3;
+        const tree = { x: r * detCos(a), z: r * detSin(a) };
+        plan.go({ x: tree.x * 0.85, z: tree.z * 0.85 }).stay(place.fellEnd, 'work', tree);
+      }
+      if (builds && home === place.first && f.id === home.builder && place.from > 0)
+        plan
+          .go(lightSpot(f.id))
+          .stay(place.litStart, 'idle', { x: 0, z: 0 })
+          .stay(place.litEnd, 'strike', { x: 0, z: 0 });
       if (builds) {
         plan
           .go(work)
@@ -751,21 +1065,97 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     const kind =
       outing === 'hunt' && room < PREY_REACH_M ? (room >= GATHER_M ? 'gather' : 'rest') : outing;
     const sure = kind === 'gather' && room < GATHER_M ? (room >= 16 ? 'stroll' : 'rest') : kind;
-    const go = sure === 'stroll' && room < 13 ? 'rest' : sure;
+    let go: Outing = sure === 'stroll' && room < 13 ? 'rest' : sure;
+    if (go === 'firewood' && room < FIREWOOD_M + 1) go = 'rest';
     const camp = st.home.camp;
     const trip = new Itinerary(turnStart, st.spot);
+    const out = (p: Pt): Pt => ({ x: p.x * 2, z: p.z * 2 });
     if (go === 'gather') {
       const far = outingPoint(st.s, camp, GATHER_M);
-      trip.go(far).stay(trip.t + GATHER_MS, 'work', { x: far.x * 2, z: far.z * 2 });
-      trip.go(st.spot, 'carry');
+      trip
+        .go(far)
+        .stay(trip.t + GATHER_MS, 'work', out(far))
+        .go(st.spot, 'carry');
     } else if (go === 'stroll') {
       const far = outingPoint(st.s, camp, 13);
       trip
         .go(far)
-        .stay(trip.t + LOOK_MS, 'idle', { x: far.x * 2, z: far.z * 2 })
+        .stay(trip.t + LOOK_MS, 'idle', out(far))
+        .go(st.spot);
+    } else if (go === 'firewood') {
+      // Out among the trees, break branches, back with the bundle.
+      const far = outingPoint(st.s, camp, FIREWOOD_M);
+      trip
+        .go(far)
+        .stay(trip.t + BREAK_MS, 'work', out(far))
+        .go(st.spot, 'carry');
+    } else if (go === 'water') {
+      // Out through the gap whose land ends nearest, to its last metre, if any is in reach.
+      const reach = st.home.reach;
+      let gap = 0;
+      for (let g = 1; g < reach.length; g++) if (reach[g]! < reach[gap]!) gap = g;
+      if (reach[gap]! >= MAX_OUTING_M - 1) return { go: 'rest' };
+      const d = gapDirection(camp, gap);
+      const edge = Math.max(9, reach[gap]! - 1);
+      const far = { x: d.x * edge, z: d.z * edge };
+      trip
+        .go(far)
+        .stay(trip.t + FILL_MS, 'work', out(far))
+        .go(st.spot, 'carry');
+    } else if (go === 'scrape') {
+      // At the drying rack beside its own lodging.
+      const rack = rackSpot(st.home);
+      const at = { x: rack.x * 0.85, z: rack.z * 0.85 };
+      trip
+        .go(at)
+        .stay(trip.t + SCRAPE_MS, 'scrape', rack)
+        .go(st.spot);
+    } else if (go === 'crack') {
+      trip.stay(trip.t + CRACK_MS, 'crack', { x: 0, z: 0 });
+    } else if (go === 'spear') {
+      // A stone point knapped, then bound to the shaft.
+      trip
+        .stay(trip.t + KNAP_POINT_MS, 'knap', { x: 0, z: 0 })
+        .stay(trip.t + KNAP_POINT_MS + BIND_POINT_MS, 'work', { x: 0, z: 0 });
+    } else if (go === 'hut') {
+      // To the door, crouch inside, stay a while out of sight, crouch out.
+      const hut = lodgingSpot(st.home);
+      const door = { x: hut.x * 0.8, z: hut.z * 0.8 };
+      trip
+        .go(door)
+        .go(hut, 'crouch')
+        .stay(trip.t + INSIDE_MS, 'inside')
+        .go(door, 'crouch')
+        .go(st.spot);
+    } else if (go === 'cook') {
+      // Only while a kill lies at the camp: butcher it, roast the meat over the fire.
+      const meat = killAt(st, turnStart);
+      if (!meat) return { go: 'rest' };
+      const by = { x: meat.drop.x * 0.88, z: meat.drop.z * 0.88 };
+      const fire = lightSpot(st.f.id);
+      trip.go(by);
+      if (trip.t + BUTCHER_MEAT_MS > meat.gone - PREY_FADE_MS) return { go: 'rest' };
+      trip
+        .stay(trip.t + BUTCHER_MEAT_MS, 'work', meat.drop)
+        .go(fire, 'carry')
+        .stay(trip.t + ROAST_MS, 'work', { x: 0, z: 0 }, 'prop-spit')
         .go(st.spot);
     } else return { go };
     return trip.t <= Math.min(st.busy, turnStart + TURN_MS) ? { go, trip } : { go: 'rest' };
+  }
+
+  /** The kill of a hunt lying at a figure's camp at a clock time, if any (section 8.1). */
+  function killAt(st: Stay, t: number): Hunt | undefined {
+    for (const g of chunk.figures) {
+      if (lookOf(g.id) === 'child') continue;
+      for (let k = turnOf(g.id, t) - 3; k <= turnOf(g.id, t); k++) {
+        const gs = stayAt(g, turnStartOf(g.id, k));
+        if (!gs || !sameCamp(gs, st)) continue;
+        const h = huntOf(gs, k);
+        if (h && h.helper !== undefined && h.laid <= t && t < h.gone - PREY_FADE_MS) return h;
+      }
+    }
+    return undefined;
   }
 
   /** Whether two stays are at the same camp: the same camp number and place. */
@@ -1187,6 +1577,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     const plan = new Itinerary(st.plan.t, st.plan.at);
     plan.legs.push(...st.plan.legs);
     let unarmed = false;
+    let event: CampEvent | undefined;
     if (ms >= st.busy && st.takes) {
       plan.stay(Math.max(st.free, st.busy), 'rest').go(st.takeSpot).stay(st.leave, 'work', st.hut);
     } else if (ms >= st.free) {
@@ -1195,12 +1586,19 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       const turnStart = turnStartOf(f.id, k);
       const joined = huntsOf(st, turnStart, turnStart + TURN_MS).sort((a, b) => a.start - b.start);
       const hunt = joined.find((h) => ms < h.end) ?? joined.at(-1);
+      const games = hunt ? [] : eventsOf(st, turnStart, turnStart + TURN_MS);
+      const game = games.find((e) => ms < e.end) ?? games.at(-1);
       if (hunt) {
         plan.stay(hunt.start, 'rest');
         plan.legs.push(...hunt.legs.get(f.id)!);
         plan.t = hunt.end;
         if (hunt.hunter === f.id)
           unarmed = hunt.flights.some((fl) => ms >= fl.release && ms < fl.pulled);
+      } else if (game) {
+        plan.stay(game.start, 'rest');
+        plan.legs.push(...game.legs.get(f.id)!);
+        plan.t = game.end;
+        event = game;
       } else {
         const own = soloTurn(st, k);
         if (own.trip && turnStart >= st.free) {
@@ -1224,25 +1622,124 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       : p.dirX || p.dirZ
         ? { dirX: p.dirX, dirZ: p.dirZ }
         : towards(p.x, p.z, 0, 0);
+    if (leg.prop === 'prop-spit' && !scene.props.some((q) => q.id === `spit:${home.camp}`))
+      scene.props.push({
+        id: `spit:${home.camp}`,
+        kind: 'prop-spit',
+        lat: base.lat,
+        lon: base.lon,
+        x: 0,
+        z: 0,
+        ...towards(0, 0, p.x, p.z),
+      });
+    if (leg.clip === 'event' && event) return eventPose(event, f.id, ms, base);
     const motion =
       leg.clip === 'rest'
         ? activity(f.id, ms, look !== 'child')
-        : { clip: leg.clip, clipMs: ms - (leg.start === -Infinity ? 0 : leg.start) };
+        : leg.clip === 'inside' || leg.clip === 'event'
+          ? { clip: 'idle' as const, clipMs: 0 }
+          : { clip: leg.clip, clipMs: ms - (leg.start === -Infinity ? 0 : leg.start) };
     const pose: FigurePose = { ...base, x: p.x, z: p.z, ...face, ...motion };
+    if (leg.clip === 'inside') pose.hidden = true;
     if (unarmed) pose.unarmed = true;
-    if (before && ms - leg.start < BLEND_MS && before.clip !== leg.clip && before.clip !== 'rest')
+    if (
+      before &&
+      ms - leg.start < BLEND_MS &&
+      before.clip !== leg.clip &&
+      before.clip !== 'rest' &&
+      before.clip !== 'inside' &&
+      before.clip !== 'event' &&
+      leg.clip !== 'inside'
+    )
       pose.from = {
         clip: before.clip,
         clipMs: ms - before.start,
         weight: (ms - leg.start) / BLEND_MS,
       };
-    else if (before?.clip === 'rest' && ms - leg.start < BLEND_MS && leg.clip !== 'rest') {
+    else if (
+      before?.clip === 'rest' &&
+      ms - leg.start < BLEND_MS &&
+      leg.clip !== 'rest' &&
+      leg.clip !== 'inside'
+    ) {
       const was = activity(f.id, leg.start, look !== 'child').clip;
       if (was !== leg.clip)
         pose.from = { clip: was, clipMs: ms - leg.start, weight: (ms - leg.start) / BLEND_MS };
     }
     return pose;
   }
+}
+
+/** A camp event (section 8.1): children's catch or a dance round the fire. */
+interface CampEvent {
+  id: string;
+  kind: 'catch' | 'dance';
+  camp: number;
+  /** Figure ids, in their order round the ring. */
+  members: number[];
+  a0: number;
+  r: number;
+  /** Everyone sets off at start, is in place at begin, stops at stop and is back by end. */
+  start: number;
+  begin: number;
+  stop: number;
+  end: number;
+  legs: Map<number, Leg[]>;
+}
+
+/** Catch is played at this share of a full run. */
+const CATCH_PACE_SHARE = 0.6;
+
+/** Member i's place on the ring at a share of its own turning (radians already run). */
+function ringPoint(ev: CampEvent, i: number, turned: number): Pt {
+  const a = ev.a0 + (2 * Math.PI * i) / ev.members.length + turned;
+  return { x: ev.r * detCos(a), z: ev.r * detSin(a) };
+}
+
+/**
+ * Where member i is at a clock time while the event runs: dancers turn slowly round the
+ * fire; in catch everyone runs round the ring, and in each chase "it" runs on ahead along
+ * the ring to catch the next and drops back into its place, so nobody crosses the fire.
+ */
+function eventPoint(ev: CampEvent, i: number, ms: number): Pt {
+  const tau = Math.min(Math.max(0, ms - ev.begin), ev.stop - ev.begin);
+  const n = ev.members.length;
+  if (ev.kind === 'dance') return ringPoint(ev, i, (tau * PACE.walk * 0.12) / ev.r);
+  const turned = (tau * PACE.run * CATCH_PACE_SHARE) / ev.r;
+  const j = Math.floor(tau / CHASE_MS);
+  const u = (tau - j * CHASE_MS) / CHASE_MS;
+  if (j % n !== i) return ringPoint(ev, i, turned);
+  const ahead = (2 * Math.PI) / n;
+  const s = u < 0.7 ? smoothstep(u / 0.7) : 1 - smoothstep((u - 0.7) / 0.3);
+  return ringPoint(ev, i, turned + s * ahead);
+}
+
+/** A place a camp stands (section 8.1): its time span, tree cover and the founding times. */
+interface Place {
+  camp: number;
+  lat: number;
+  lon: number;
+  from: number;
+  to: number;
+  wood: number;
+  /** Its first lodging, whose builder lights the fire. */
+  first: TreeLodging;
+  fellEnd: number;
+  litStart: number;
+  litEnd: number;
+}
+
+/** Where a lodging's drying rack stands: on the ring of lodgings, a little round from it. */
+function rackSpot(l: TreeLodging): Pt {
+  const p = lodgingSpot(l);
+  const [c, sn] = [detCos(RACK_TURN), detSin(RACK_TURN)];
+  return { x: p.x * c - p.z * sn, z: p.x * sn + p.z * c };
+}
+
+/** Where a figure kneels to light the fire: beside the hearth, on a side of its own. */
+function lightSpot(id: number): Pt {
+  const a = hash01(id, 109) * 2 * Math.PI;
+  return { x: LIGHT_M * detCos(a), z: LIGHT_M * detSin(a) };
 }
 
 /** A spear's flight in a hunt: from the hand to the animal or the grass, and when it is pulled out. */
