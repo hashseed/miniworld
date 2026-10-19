@@ -72,9 +72,9 @@ export function buildClimate(ctx: WriteContext, map: WorldMap): Climate {
   const climateYears = climateStepYears(precipitation.yearsBP, TIMELINE_START);
   const iceDays = climateYears.map(sliceDay); // ascending, as the years descend
   const climateFiles: string[] = [];
-  const slices: ClimateSlice[] = [];
-  for (const bp of climateYears) {
-    const slice = {
+  // The slices are the slow part of the stage; the land cache keeps them exactly.
+  const slices: ClimateSlice[] = ctx.landCache.through('climate-slices', () =>
+    climateYears.map((bp) => ({
       day: sliceDay(bp),
       ice: iceGrid(
         (lats, lons) =>
@@ -85,10 +85,11 @@ export function buildClimate(ctx: WriteContext, map: WorldMap): Climate {
         },
       ),
       aridity: aridityGrid(precipitation, humidPeriods, ARID_GRID_W, ARID_GRID_H, bp),
-    };
-    slices.push(slice);
-    climateFiles.push(output.write(`climate/${bp}`, 'bin', encodeClimateSlice(slice)));
-  }
+    })),
+  );
+  climateYears.forEach((bp, k) =>
+    climateFiles.push(output.write(`climate/${bp}`, 'bin', encodeClimateSlice(slices[k]!))),
+  );
   // One foliage slice per climate step (spec foliage.md, section 2): the biome
   // class per 0.5° cell, with the humid periods turning dry land to savanna,
   // and the tree density near the ice sheets and in cold or dry climates.
@@ -104,9 +105,12 @@ export function buildClimate(ctx: WriteContext, map: WorldMap): Climate {
     ice: iceStack,
     periods: humidPeriods,
   };
+  const foliage = ctx.landCache.through('foliage-grids', () =>
+    climateYears.map((bp) => foliageGrid(foliageInputs, bp)),
+  );
   const grids: { day: number; grid: ReturnType<typeof foliageGrid> }[] = [];
-  const foliageFiles = climateYears.map((bp) => {
-    const grid = foliageGrid(foliageInputs, bp);
+  const foliageFiles = climateYears.map((bp, k) => {
+    const grid = foliage[k]!;
     grids.push({ day: sliceDay(bp), grid });
     return output.write(
       `foliage/${bp}`,

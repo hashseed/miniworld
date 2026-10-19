@@ -23,7 +23,10 @@ async function main(args: string[]): Promise<void> {
   const base = createContext(args);
   // Everything curated is checked before the old output is replaced.
   const content = validateContent(base);
-  const ctx: WriteContext = { ...base, output: new Output(OUT) };
+  const ctx: WriteContext = {
+    ...base,
+    output: new Output(OUT, base.landCache.on ? join(ROOT, 'data/out/brotli') : undefined),
+  };
   const { output, log } = ctx;
 
   const map = buildMap(ctx);

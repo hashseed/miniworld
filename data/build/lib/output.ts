@@ -2,7 +2,7 @@
 // sections 10.3 and 10.9).
 
 import { createHash } from 'node:crypto';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 import { brotliCompress, constants } from 'node:zlib';
@@ -27,8 +27,15 @@ export class Output {
    */
   private pending: { name: string; path: string; bytes: Uint8Array }[] = [];
 
-  constructor(root: string) {
+  /**
+   * Where Brotli copies are kept by the hash of their file's bytes, so an unchanged file is
+   * not compressed again; only the copies the build used are kept. None with `--fresh`.
+   */
+  private readonly brotliCache: string | undefined;
+
+  constructor(root: string, brotliCache?: string) {
     this.root = root;
+    this.brotliCache = brotliCache;
     rmSync(root, { recursive: true, force: true });
     mkdirSync(root, { recursive: true });
   }
@@ -58,19 +65,31 @@ export class Output {
   async finish(): Promise<void> {
     const queue = this.pending;
     this.pending = [];
+    const cache = this.brotliCache;
+    const used = new Set<string>();
+    if (cache) mkdirSync(cache, { recursive: true });
     const worker = async () => {
       for (let job = queue.shift(); job; job = queue.shift()) {
-        const br = await compress(job.bytes, {
-          params: {
-            [constants.BROTLI_PARAM_QUALITY]: 9,
-            [constants.BROTLI_PARAM_SIZE_HINT]: job.bytes.length,
-          },
-        });
+        const key =
+          cache && `${createHash('sha256').update(job.bytes).digest('hex').slice(0, 32)}.br`;
+        let br: Uint8Array;
+        if (cache && key && existsSync(join(cache, key))) br = readFileSync(join(cache, key));
+        else {
+          br = await compress(job.bytes, {
+            params: {
+              [constants.BROTLI_PARAM_QUALITY]: 9,
+              [constants.BROTLI_PARAM_SIZE_HINT]: job.bytes.length,
+            },
+          });
+          if (cache && key) writeFileSync(join(cache, key), br);
+        }
+        if (key) used.add(key);
         writeFileSync(`${job.path}.br`, br);
         this.compressedBytes += br.length;
         this.sizes.set(job.name, br.length);
       }
     };
     await Promise.all([worker(), worker()]);
+    if (cache) for (const f of readdirSync(cache)) if (!used.has(f)) rmSync(join(cache, f));
   }
 }
