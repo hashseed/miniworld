@@ -9,13 +9,25 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import type { Manifest } from '../../../app/src/content/types.ts';
-import { decodeLensGrids, encodeLensGrids, MAX_STRENGTH } from '../../../app/src/globe/lens.ts';
+import {
+  decodeLensGrids,
+  encodeLensGrids,
+  LENS_STRENGTH,
+  MAX_STRENGTH,
+  sampleScalar,
+  widthFactors,
+} from '../../../app/src/globe/lens.ts';
+import { latLonToDir } from '../../../app/src/geo/cube.ts';
 import { atStrength, buildLens, checkLens, LENS_PARAMS, parseCoordinates } from '../lib/lens.ts';
 import { lensPreviewSvg } from '../lib/lensPreview.ts';
 import { readFeatures } from '../lib/readers.ts';
 import { ROOT, sha256, type WriteContext } from './context.ts';
 
-export function buildLensStage(ctx: WriteContext): Manifest['lens'] {
+export function buildLensStage(ctx: WriteContext): {
+  lens: Manifest['lens'];
+  /** Drawn km per true km at a place, at the lens's fixed strength (sites.md section 2). */
+  widthAt(lat: number, lon: number): number;
+} {
   const { log } = ctx;
   const SPEC = join(ROOT, 'docs/spec');
   const eventFiles = [
@@ -79,5 +91,9 @@ export function buildLensStage(ctx: WriteContext): Manifest['lens'] {
         `preview in ${preview}`,
     );
   }
-  return { file: ctx.output.write('lens', 'bin', bytes), version, exponent };
+  const width = widthFactors(decodeLensGrids(bytes).forward);
+  return {
+    lens: { file: ctx.output.write('lens', 'bin', bytes), version, exponent },
+    widthAt: (lat, lon) => 1 + (sampleScalar(width, latLonToDir(lat, lon)) - 1) * LENS_STRENGTH,
+  };
 }

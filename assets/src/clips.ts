@@ -29,7 +29,9 @@ export type Clip =
   | 'crouch'
   | 'dance'
   | 'scrape'
-  | 'crack';
+  | 'crack'
+  // Crossing the sea in a canoe (peopling.md section 6).
+  | 'paddle';
 
 /**
  * Height in metres of a carrying pole on the shoulders of two walking people
@@ -121,6 +123,7 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
     clip !== 'dance' &&
     clip !== 'scrape' &&
     clip !== 'crack' &&
+    clip !== 'paddle' &&
     clip !== 'haul' &&
     clip !== 'work' &&
     clip !== 'knap' &&
@@ -318,6 +321,25 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
       rot('armLowerL', -0.8);
       rot('armUpperR', -0.6 - 0.7 * raise, 0, 0.35);
       rot('armLowerR', -0.9 - 0.4 * raise);
+      break;
+    }
+    case 'paddle': {
+      // Sitting in a canoe, legs out in front, paddling a stroke on one side, then the other:
+      // reach forward, pull back past the hip, lift out.
+      const u = t / 1.4 - Math.floor(t / 1.4);
+      const side = Math.floor(t / 1.4) % 2 === 0 ? 1 : -1;
+      const pull = u < 0.6 ? smooth(u / 0.6) : 1 - smooth((u - 0.6) / 0.4);
+      lift(-0.55 * hipRest);
+      rot('legUpperL', -1.45, 0.12);
+      rot('legUpperR', -1.45, -0.12);
+      rot('legLowerL', 0.25);
+      rot('legLowerR', 0.25);
+      rot('torso', 0.25 - 0.2 * pull, 0.35 * side * (1 - 2 * pull));
+      rot('head', -0.1);
+      rot('armUpperL', -1.3 + 1.0 * pull, 0, 0.2 + (side > 0 ? 0.25 : 0));
+      rot('armUpperR', -1.3 + 1.0 * pull, 0, -0.2 - (side < 0 ? 0.25 : 0));
+      rot('armLowerL', -0.5);
+      rot('armLowerR', -0.5);
       break;
     }
     case 'haul': {

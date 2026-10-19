@@ -72,7 +72,6 @@ export interface Actions {
   jump(dir: -1 | 1): void;
   followPlayhead(): void;
   toggleLanes(): void;
-  closeLensHint(): void;
   saveReport(): void;
   attachTimeline(canvas: HTMLCanvasElement | null): void;
 }

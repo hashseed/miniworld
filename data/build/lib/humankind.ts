@@ -1,11 +1,11 @@
-// The tree build (spec humankind.md, sections 4 and 5): grows the tree of
-// humankind from the first person at Lake Turkana, step by step through
-// time, from the habitable land and the culture areas. Deterministic: whole
-// days, the seeded hash and the deterministic trigonometry only, so the same
-// inputs give the same tree on every machine.
+// The tree build (spec humankind.md, sections 4 and 5; sites.md): grows the tree of
+// humankind from the first person at Lake Turkana, step by step through time. Bands
+// camp only at the precomputed sites and travel only along their links, and the rules
+// bound to region and time (culture areas, arrival map, thresholds, morphs) decide who
+// lives where. Deterministic: whole days, the seeded hash and the deterministic
+// trigonometry only, so the same inputs give the same tree on every machine.
 
 import { hash32, hash01 } from '../../../app/src/core/hash.ts';
-import { detCos, detSin, RAD } from '../../../app/src/core/detmath.ts';
 import { DAYS_PER_YEAR, type Day } from '../../../app/src/time/calendar.ts';
 import { dayAtWatch, watchAtDay } from '../../../app/src/time/rate.ts';
 import {
@@ -17,20 +17,29 @@ import {
   type TreeLodging,
 } from '../../../app/src/world/tree.ts';
 import {
-  BUILD_RING_M,
-  CAMP_ROOM_M,
-  LODGING_RING_M,
-  RACK_R,
-  SCRAPE_BACK_M,
-  SCRAPE_SIDE_M,
-  HEARTH_SPOTS,
+  COMPACT_SITE,
   LAYOUT_KM_PER_M,
+  MINIMAL_LODGING,
+  MINIMAL_SITE,
+  layoutOf,
+  HEARTH_SPOTS,
   LODGING_SLOTS,
-  MAX_OUTING_M,
-  gapDirection,
-  slotPoint,
+  REGROW_MS,
   type TreeChunk,
 } from '../../../app/src/world/treeScene.ts';
+import { distanceKm } from './geo.ts';
+import {
+  footprintM,
+  laneReach,
+  MOVE_KM,
+  SITE_STEP_KM,
+  wayLevel,
+  type Link,
+  type Site,
+  type SiteMap,
+} from './sites.ts';
+
+export { distanceKm, onGlobe } from './geo.ts';
 
 export type Density = 'sparse' | 'low' | 'medium';
 
@@ -53,40 +62,54 @@ const STEP_MS = 10_000;
 const EMERGE_MS = 60_000;
 /** A band moves its camp after one to two of these (section 4.4). */
 const RESIDENCE_MS = 60_000;
-/** A full camp waits this long between sending out groups, */
+/** A full camp waits this long between sending out groups, and as long after finding no free site. */
 const BUD_MS = 180_000;
-/** ...and this long after finding no free land. */
-const BUD_RETRY_MS = 600_000;
+/** The first person is alone for this long of watching (section 4.2). */
+const FOUNDER_ALONE_MS = 60_000;
+
+/** A band needs at least this many dry lodging places at its site: three to five, four to a lodging (sites.md section 2). */
+const MIN_PLACES = 2;
+/** Groups budding off go at most this many links (sites.md section 4, Proposed). */
+const BUD_HOPS = 5;
+/** A band fleeing the water looks this many links away for a free site, and this many for bands to join. */
+const FLEE_HOPS = 6;
+const JOIN_HOPS = 6;
+/** ...and as a last resort this many for any empty site, however near another band. */
+const CROWD_HOPS = 12;
+
+/** What the build tells about the tree without failing: bands that had to crowd a neighbour. */
+export const treeStats = { crowded: 0, stuck: 0 };
+/** A stranded band paddles to a site at most this far away, in km (sites.md section 3). */
+const STRANDED_KM = 16 * SITE_STEP_KM;
+/** A route needs no band once a band of its culture stands this close to its arrival point, in km. */
+const ROUTE_NEAR_KM = 1000;
+/** A route's band comes from at most this many links away. */
+const ROUTE_HOPS = 80;
+/** Bands change culture at a moment chosen within this many years of a morph (sites.md section 5). */
+const MORPH_YEARS = 100;
+
+/** The nearest camp to a threshold within this distance raises its flag (peopling.md section 3.6, Proposed). */
+export const FLAG_REACH_KM = 1500;
+/** Camps this close to a threshold settle from its day: they stop moving and budding. */
+export const SETTLE_KM = 800;
 
 /** The day a span of watching time after a day, and at least the next day. */
 const after = (day: Day, ms: number): Day => Math.max(day + 1, dayAtWatch(watchAtDay(day) + ms));
-
-const KM_PER_DEG = 111.195;
-/** Rays across a gap between the lodgings, in radians from its middle, for how far people can go out. */
-/**
- * Half the angle round a lodging's direction that its builders' ways cross, in radians: from
- * anywhere on the people's ring (about 11 layout metres) to its builders (up to 22 metres out),
- * the tangents from the ring and the builders' own spread.
- */
-const SLOT_WEDGE = 0.95;
-const REACH_TURNS = Array.from({ length: 11 }, (_, k) => (k - 5) * 0.05);
+/** A band decides again at the latest this long after it chose where to stand. */
+const ahead = (day: Day): Day => after(day, 2 * RESIDENCE_MS);
 
 /** Where people may live, from the land, sea, ice and desert of a day. */
 export interface Habitat {
+  /** Whether a camp's hearth may stand at a point on a day: land, no ice, no desert, not too high. */
   habitable(lat: number, lon: number, day: Day): boolean;
   /** How good a camp site is, 0 to 1: near water is better, high or dry ground worse. */
   score(lat: number, lon: number, day: Day): number;
-  /**
-   * Whether no river is drawn at a point. Camps, lodgings and outings stay on dry
-   * ground; bands on the move ford rivers. Without it, all land is dry.
-   */
-  dry?(lat: number, lon: number): boolean;
   /** Tree cover, 0 to 1, on a day: a band fells it before it builds (section 8.1). */
   wood?(lat: number, lon: number, day: Day): number;
 }
 
 export interface TreeSettings {
-  /** The first person's place, in degrees. */
+  /** The first person's place, in degrees: she camps at the site nearest it. */
   founder: { lat: number; lon: number };
   /** The model of the first lodging and every lodging of the prologue. */
   lodgingKind: string;
@@ -95,40 +118,81 @@ export interface TreeSettings {
   /** Until this day camps may only stand behind the front from the founder (section 4.2). */
   prologueEndDay: Day;
   frontKmPerYear: number;
+  /** The camp sites and their links (sites.md). */
+  sites: SiteMap;
+  /** Mean sea level in metres on a day. */
+  seaLevel(day: Day): number;
+  /** The sea level above which a point is sea for walkers, for stranded bands paddling away (sites.md section 3). */
+  walkFlood?(lat: number, lon: number): number;
   /** The density of the culture area at a place and day, or undefined outside every area. */
   density(lat: number, lon: number, day: Day): Density | undefined;
+  /** The culture of the area at a place and day (peopling.md section 5.1); without it, every camp is the founder's. */
+  culture?(lat: number, lon: number, day: Day): string | undefined;
+  /** Whether the way of life of the area at a place lets people camp there on a day: cold and height (peopling.md section 5.2). */
+  livable?(lat: number, lon: number, day: Day): boolean;
+  /** The first day people may camp at a place, from the arrival map (peopling.md section 4). */
+  arrival?(lat: number, lon: number): Day;
+  /** The lodging model of a culture's camps. */
+  lodgingOf?(culture: string): string;
+  /** The arrival points of the routes, from their days (peopling.md section 3). */
+  voyages?: Voyage[];
+  /** Neolithic thresholds, where camps settle and raise a red flag (peopling.md section 3.6). */
+  thresholds?: Threshold[];
 }
 
-interface Camp {
-  id: number;
+/** A route's arrival point (peopling.md section 4): its way's last point and its day. */
+export interface Voyage {
+  id: string;
+  day: Day;
+  way: { lat: number; lon: number }[];
+}
+
+/** A Neolithic threshold (peopling.md section 3.6). */
+export interface Threshold {
+  id: string;
+  day: Day;
   lat: number;
   lon: number;
+}
+
+/** A band of the tree: the people of one camp, at one site at a time. */
+interface Camp {
+  id: number;
+  site: Site;
   spacingKm: number;
   target: number;
   lodgings: number[];
   nextMove: Day;
   nextBud: Day;
+  /** Its culture (peopling.md section 5.1). */
+  culture: string | undefined;
+  /** It has settled at a Neolithic threshold: it no longer moves or buds (peopling.md section 3.6). */
+  settled: boolean;
+  /** The day it takes on its site's new culture, once a morph has come (sites.md section 5). */
+  morphAt: Day | undefined;
 }
 
-/** Distance in km between two points, on a local flat map (good to a few per cent at camp range). */
-export function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  let dLon = lon2 - lon1;
-  if (dLon > 180) dLon -= 360;
-  else if (dLon < -180) dLon += 360;
-  const x = dLon * detCos(((lat1 + lat2) / 2) * RAD);
-  const y = lat2 - lat1;
-  return Math.sqrt(x * x + y * y) * KM_PER_DEG;
-}
+/** A path of sites along links, from the first to the last. */
+type Path = Site[];
 
 const micro = (deg: number): number => Math.round(deg * 1e6);
 
 /** Grows the tree of humankind from the first person (section 4). */
 export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   const tree: Tree = { figures: [], lodgings: [], branches: [], moments: [] };
+  treeStats.crowded = 0;
+  treeStats.stuck = 0;
+  const { sites, linksOf } = s.sites;
   const camps: Camp[] = [];
   /** Residents of each standing lodging, and the day of its last emergence. */
   const residents = new Map<number, number[]>();
   const lastEmerge = new Map<number, Day>();
+  /** When the last band left each site, for the trees growing back (sites.md section 6). */
+  const left = new Map<number, Day>();
+  /** Camps that people joined this step, which wait for the next. */
+  const joined = new Set<Camp>();
+  /** Sites whose band is leaving to join others at the end of this step, kept until the next. */
+  const held = new Map<number, Site>();
 
   const moment = (kind: MomentKind, day: Day, figure: number, camp: Camp, branch = 0) =>
     tree.moments.push({
@@ -137,185 +201,190 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       figure,
       camp: camp.id,
       branch,
-      lat: micro(camp.lat),
-      lon: micro(camp.lon),
+      lat: micro(camp.site.lat),
+      lon: micro(camp.site.lon),
     });
 
-  const frontOk = (lat: number, lon: number, day: Day) =>
+  /** The highest sea between two days, from a few days along the way. */
+  const seaMax = (from: Day, to: Day): number => {
+    let m = Math.max(s.seaLevel(from), s.seaLevel(to));
+    for (let k = 1; k < 8; k++)
+      m = Math.max(m, s.seaLevel(from + Math.floor(((to - from) * k) / 8)));
+    return m;
+  };
+
+  const frontOk = (site: Site, day: Day) =>
     day >= s.prologueEndDay ||
-    distanceKm(s.founder.lat, s.founder.lon, lat, lon) <=
+    distanceKm(s.founder.lat, s.founder.lon, site.lat, site.lon) <=
       (s.frontKmPerYear * (day - s.startDay)) / DAYS_PER_YEAR;
 
-  /** Whether people may set up camp at a point on a day, apart from other camps. */
-  const allowed = (lat: number, lon: number, day: Day) =>
-    s.density(lat, lon, day) !== undefined &&
-    habitat.habitable(lat, lon, day) &&
-    // Lodgings go up during the step, so the land must last through it.
-    habitat.habitable(lat, lon, after(day, STEP_MS)) &&
-    frontOk(lat, lon, day);
+  /** Whether the people of the site's area can live at its hearth on a day. */
+  const livable = (site: Site, day: Day) =>
+    habitat.habitable(site.lat, site.lon, day) && (s.livable?.(site.lat, site.lon, day) ?? true);
 
-  const clearOfCamps = (lat: number, lon: number, spacingKm: number, except: Camp | undefined) =>
-    camps.every(
-      (c) =>
-        c === except ||
-        c.lodgings.length === 0 ||
-        distanceKm(c.lat, c.lon, lat, lon) >= Math.min(spacingKm, c.spacingKm),
-    );
+  /** Whether the rules let a band camp at a site from a day: area, arrival, front and way of life. */
+  const allowed = (site: Site, day: Day) =>
+    s.density(site.lat, site.lon, day) !== undefined &&
+    (s.arrival?.(site.lat, site.lon) ?? -Infinity) <= day &&
+    frontOk(site, day) &&
+    livable(site, day) &&
+    livable(site, ahead(day));
 
-  /**
-   * The best free spot on a ring around a point, between `inner` and `outer`
-   * spacings away, or undefined. Candidates are spread by hash; the habitat
-   * score picks among them.
-   */
-  const findSpot = (
-    from: Camp,
-    day: Day,
-    inner: number,
-    outer: number,
-    salt: number,
-    fleeing = false,
-    /** The camp that will stand there, whose ring of lodging slots must have room. */
-    campId = from.id,
-  ): { lat: number; lon: number } | undefined => {
-    let best: { lat: number; lon: number; score: number } | undefined;
-    for (let k = 0; k < 16; k++) {
-      const bearing = hash01(from.id, day, salt, k) * 2 * Math.PI;
-      const km = from.spacingKm * (inner + (outer - inner) * hash01(from.id, day, salt, k + 100));
-      const lat = from.lat + (km * detCos(bearing)) / KM_PER_DEG;
-      if (lat > 89 || lat < -89) continue;
-      let lon = from.lon + (km * detSin(bearing)) / (KM_PER_DEG * detCos(from.lat * RAD));
-      if (lon > 180) lon -= 360;
-      else if (lon < -180) lon += 360;
-      if (!allowed(lat, lon, day)) continue;
-      const spacing = DENSITIES[s.density(lat, lon, day)!].spacingKm;
-      if (!clearOfCamps(lat, lon, spacing, from.lodgings.length ? from : undefined)) continue;
-      if (distanceKm(from.lat, from.lon, lat, lon) < Math.min(spacing, from.spacingKm) * inner)
-        continue;
-      // A camp is drawn far larger than life: it needs room for its people on land, unless
-      // it is fleeing the sea, ice or desert, when any safe spot will do but room is better.
-      // The band walks there in a straight line, so it must be land all the way: no sea or lake.
-      const room =
-        roomy(lat, lon, day) &&
-        drySlots(campId, lat, lon, day) >= MIN_DRY_SLOTS &&
-        walkable(from.lat, from.lon, lat, lon, day);
-      if (!room && !fleeing) continue;
-      const score =
-        habitat.score(lat, lon, day) + (room ? 1 : 0) + 0.1 * hash01(from.id, day, salt, k + 200);
-      if (!best || score > best.score) best = { lat, lon, score };
-    }
-    return best;
+  /** Whether a site has room for all of a camp's activities from a day to the band's next decision (sites.md section 2). */
+  const dry = (site: Site, day: Day, people = 0) => {
+    // A compact camp holds one ring of people, eight at most (sites.md section 2.1).
+    if (people > layoutOf(site.key).people) return false;
+    const sea = seaMax(day, ahead(day));
+    const need = Math.max(site.compact ? 1 : MIN_PLACES, Math.ceil(people / LODGING_CAPACITY));
+    return site.core > sea && site.places.filter((p) => p > sea).length >= need;
   };
+  const usable = (site: Site, day: Day, people = 0) => dry(site, day, people) && allowed(site, day);
+  const headcount = (c: Camp) => c.lodgings.reduce((n, l) => n + residents.get(l)!.length, 0);
 
-  /** The point a drawn offset from a camp in layout metres (east, north) falls on. */
-  const offset = (lat: number, lon: number, x: number, z: number) => ({
-    lat: lat + (z * LAYOUT_KM_PER_M) / KM_PER_DEG,
-    lon: lon + (x * LAYOUT_KM_PER_M) / (KM_PER_DEG * detCos(lat * RAD)),
-  });
-  const landAt = (p: { lat: number; lon: number }, day: Day) =>
-    habitat.habitable(p.lat, p.lon, day) && habitat.habitable(p.lat, p.lon, after(day, STEP_MS));
-  /** Land with no river on it, for the camp itself: its lodgings, spots and outings. */
-  const dryAt = (p: { lat: number; lon: number }, day: Day) =>
-    landAt(p, day) && (habitat.dry?.(p.lat, p.lon) ?? true);
-
-  /** Whether the straight way between two points is land all the way, checked every 25 km. */
-  const walkable = (lat0: number, lon0: number, lat1: number, lon1: number, day: Day) => {
-    const n = Math.ceil(distanceKm(lat0, lon0, lat1, lon1) / 25);
-    for (let k = 1; k < n; k++)
-      if (
-        !landAt({ lat: lat0 + ((lat1 - lat0) * k) / n, lon: lon0 + ((lon1 - lon0) * k) / n }, day)
-      )
-        return false;
-    return true;
+  /** The band at a site, if any. */
+  // The band at each site, kept to the rule of one band a site (sites.md section 4).
+  const bandAtReal = new Map<number, Camp>();
+  const bandAt = {
+    get: (k: number) => bandAtReal.get(k),
+    has: (k: number) => bandAtReal.has(k),
+    set: (k: number, c: Camp) => {
+      if (bandAtReal.has(k) && bandAtReal.get(k) !== c)
+        throw new Error(
+          `tree of humankind: band ${c.id} takes site ${k}, held by band ${bandAtReal.get(k)!.id}`,
+        );
+      bandAtReal.set(k, c);
+    },
+    delete: (k: number, c?: Camp) => {
+      if (c && bandAtReal.get(k) !== c)
+        throw new Error(
+          `tree of humankind: band ${c.id} leaves site ${k}, held by band ${bandAtReal.get(k)?.id}`,
+        );
+      bandAtReal.delete(k);
+    },
   };
-
-  /** Whether the people's spots round a hearth would all be on land (section 8.1). */
-  /** How many lodging slots of a camp at a place have the lodging and its builders on dry land. */
-  const drySlots = (campId: number, lat: number, lon: number, day: Day): number =>
-    Array.from({ length: LODGING_SLOTS }, (_, k) => k).filter((k) =>
-      slotFootprint(campId, k).every((q) => dryAt(offset(lat, lon, q.x, q.z), day)),
-    ).length;
-
-  const roomy = (lat: number, lon: number, day: Day) => {
-    if (!dryAt({ lat, lon }, day)) return false;
-    // Rings every 1.5 layout metres, 40 points each, close enough that a drawn
-    // river (about 2 layout metres wide) cannot slip between their points.
-    for (let m = 1.5; m <= CAMP_ROOM_M; m += 1.5)
-      for (let k = 0; k < 40; k++) {
-        const a = (k / 40) * 2 * Math.PI;
-        if (!dryAt(offset(lat, lon, m * detCos(a), m * detSin(a)), day)) return false;
-      }
-    for (let k = 0; k < 40; k++) {
-      const a = (k / 40) * 2 * Math.PI;
-      const m = CAMP_ROOM_M;
-      if (!dryAt(offset(lat, lon, m * detCos(a), m * detSin(a)), day)) return false;
-    }
-    return true;
-  };
-
-  /**
-   * The lowest place round the hearth that none of the camp's standing lodgings takes, on
-   * land with dry ground to cross to it if one is free; else one whose lodging and builders
-   * at least are on land; places in the water are used only when nothing else is left.
-   */
-  const freeSlot = (camp: Camp, day: Day): number => {
-    const taken = new Set(camp.lodgings.map((l) => tree.lodgings[l]!.slot));
-    const free = Array.from({ length: LODGING_SLOTS }, (_, k) => k).filter((k) => !taken.has(k));
-    const at = (q: { x: number; z: number }) => dryAt(offset(camp.lat, camp.lon, q.x, q.z), day);
-    // The lodging and the builders round it, a little past where they stand.
-    const standsDry = (k: number) => slotFootprint(camp.id, k).every(at);
-    // The ground the builders cross to it from the people's ring, which they enter and leave
-    // from any side: the wedge from the camp's room out past the builders, a point every
-    // layout metre (Yang, 2026-10-19: people walked over Lake Malawi to a hut).
-    const reachedDry = (k: number) => {
-      const p = slotPoint(camp.id, k);
-      const [ux, uz] = [p.x / LODGING_RING_M, p.z / LODGING_RING_M];
-      for (let r = CAMP_ROOM_M; r <= LODGING_RING_M + BUILD_RING_M + 1; r += 1)
-        for (let s = -SLOT_WEDGE; s <= SLOT_WEDGE; s += 1 / r) {
-          const [c, sn] = [detCos(s), detSin(s)];
-          if (!at({ x: r * (ux * c - uz * sn), z: r * (ux * sn + uz * c) })) return false;
-        }
-      return true;
-    };
-    const dry = free.filter(standsDry);
-    return dry.find(reachedDry) ?? dry[0] ?? free[0] ?? taken.size;
-  };
-  /** Whether a free slot of the camp has its lodging and builders on dry land. */
-  const hasDrySlot = (camp: Camp, day: Day): boolean => {
-    const taken = new Set(camp.lodgings.map((l) => tree.lodgings[l]!.slot));
-    return Array.from({ length: LODGING_SLOTS }, (_, k) => k).some((k) => {
-      if (taken.has(k)) return false;
-      return slotFootprint(camp.id, k).every((q) =>
-        dryAt(offset(camp.lat, camp.lon, q.x, q.z), day),
+  const spacingAt = (site: Site, day: Day) =>
+    DENSITIES[s.density(site.lat, site.lon, day) ?? 'low'].spacingKm;
+  /** Whether a site is far enough from every other band (sites.md section 4). */
+  const free = (site: Site, day: Day, except?: Camp) => {
+    const spacing = spacingAt(site, day);
+    if ([...held.values()].some((h) => distanceKm(h.lat, h.lon, site.lat, site.lon) < spacing))
+      return false;
+    // Overlapping sites are mutually exclusive, and bands keep their density's spacing.
+    return camps.every((c) => {
+      if (c === except || c.lodgings.length === 0) return true;
+      const km = distanceKm(c.site.lat, c.site.lon, site.lat, site.lon);
+      return (
+        km >= Math.min(spacing, c.spacingKm) &&
+        km >=
+          (footprintM(site.key) / site.width + footprintM(c.site.key) / c.site.width) *
+            LAYOUT_KM_PER_M
       );
     });
   };
 
-  /** How far, in layout metres, people can go out through each gap between the lodgings and stay on land. */
-  const reachOf = (camp: Camp, day: Day): number[] =>
-    Array.from({ length: LODGING_SLOTS }, (_, gap) => {
-      const d = gapDirection(camp.id, gap);
-      let reach = 0;
-      for (let m = 10; m <= MAX_OUTING_M; m += 1) {
-        // Across the lanes of the gap (out to 0.15 rad either side) and the walks to them, a
-        // ray every 0.05 rad, and a little further than they go, as coasts are drawn smoothed.
-        // Three rays let a lake 50 km wide slip between them far out (Yang, 2026-10-19:
-        // people gathering in Lake Malawi).
-        const wet = REACH_TURNS.some((turn) => {
-          const [c, sn] = [detCos(turn), detSin(turn)];
-          const x = (d.x * c - d.z * sn) * m * 1.1;
-          const z = (d.x * sn + d.z * c) * m * 1.1;
-          return !dryAt(offset(camp.lat, camp.lon, x, z), day);
-        });
-        if (wet) break;
-        reach = m;
-      }
-      return reach;
-    });
+  /** Whether a link can be walked, or paddled at a listed crossing, on a day. */
+  const open = (l: Link, day: Day) =>
+    l.crossing ? l.crossing.day <= day : l.level > seaMax(day, after(day, STEP_MS));
+  const other = (l: Link, site: Site) => sites[l.a === site.id ? l.b : l.a]!;
+
+  /**
+   * The sites reachable from a site along open links on a day, nearest first by links, each
+   * with the path to it, up to a number of links; `keep` picks the ones to return.
+   */
+  const reach = (from: Site, day: Day, hops: number, keep: (site: Site, n: number) => boolean) => {
+    const back = new Map<number, Site | undefined>([[from.id, undefined]]);
+    const found: { site: Site; hops: number; path: Path }[] = [];
+    let ring: Site[] = [from];
+    for (let n = 1; n <= hops && ring.length; n++) {
+      const next: Site[] = [];
+      for (const site of ring)
+        for (const l of linksOf[site.id]!) {
+          const to = other(l, site);
+          if (back.has(to.id) || !open(l, day)) continue;
+          back.set(to.id, site);
+          next.push(to);
+        }
+      next.sort((a, b) => a.id - b.id);
+      for (const site of next)
+        if (keep(site, n)) {
+          const path: Path = [site];
+          for (let p = back.get(site.id); p; p = back.get(p.id)) path.unshift(p);
+          found.push({ site, hops: n, path });
+        }
+      ring = next;
+    }
+    return found;
+  };
+
+  /** The best of some sites by the habitat score, with a little hash. */
+  const best = <T extends { site: Site }>(options: T[], day: Day, salt: number): T | undefined => {
+    let top: T | undefined;
+    let topScore = -Infinity;
+    for (const o of options) {
+      // Bands take a compact camp only where no full one is free.
+      const score =
+        habitat.score(o.site.lat, o.site.lon, day) +
+        0.1 * hash01(o.site.id, day, salt) -
+        (o.site.compact ? 2 : 0);
+      if (score > topScore) [top, topScore] = [o, score];
+    }
+    return top;
+  };
+
+  /**
+   * The way a band walks along a path of sites, for its new lodgings: the points between its
+   * old and new site, and for each stretch whether it is paddled (a listed crossing).
+   */
+  const wayOf = (path: Path, day: Day): TreeLodging['voyage'] => {
+    if (path.length <= 2 && !crossingOf(path[0], path[1])) return undefined;
+    const points: { lat: number; lon: number }[] = [path[0]!];
+    for (let i = 1; i < path.length; i++) {
+      const [a, b] = [path[i - 1]!, path[i]!];
+      const x = crossingOf(a, b);
+      // On foot to the shore, by canoe along the crossing, on foot from the far shore.
+      if (x) points.push(...(x.forward ? x.way : [...x.way].reverse()));
+      points.push(b);
+    }
+    // Each stretch is paddled where it is not dry on the day the band goes.
+    const sea = seaMax(day, after(day, STEP_MS));
+    const water = points
+      .slice(1)
+      .map((b, i) => !!s.walkFlood && wayLevel(points[i]!, b, s.walkFlood) <= sea);
+    return {
+      id: 'path',
+      way: points.slice(1, -1).map((p) => [micro(p.lat), micro(p.lon)]),
+      water,
+    };
+  };
+  const crossingOf = (a: Site | undefined, b: Site | undefined) => {
+    if (!a || !b) return undefined;
+    const l = linksOf[a.id]!.find((x) => other(x, a) === b && x.crossing);
+    return l?.crossing && { way: l.crossing.way, forward: l.a === a.id };
+  };
+
+  /** The lodging places of a site that stay dry from a day to the band's next decision, lowest first. */
+  const dryPlaces = (site: Site, day: Day) => {
+    const sea = seaMax(day, ahead(day));
+    return site.places.flatMap((p, k) => (p > sea ? [k] : []));
+  };
+  /** How many of a band's site's dry places no lodging of the band takes. */
+  const freePlaces = (camp: Camp, day: Day) => {
+    const taken = new Set(camp.lodgings.map((l) => tree.lodgings[l]!.slot));
+    return dryPlaces(camp.site, day).filter((k) => !taken.has(k)).length;
+  };
+  const hasPlace = (camp: Camp, day: Day) => freePlaces(camp, day) > 0;
+
+  /** The share of a site's trees grown back since its last band left (sites.md section 6). */
+  const regrown = (site: Site, day: Day) => {
+    const gone = left.get(site.id);
+    if (gone === undefined) return 1;
+    return Math.min(1, Math.max(0, (watchAtDay(day) - watchAtDay(gone)) / REGROW_MS));
+  };
 
   /** The lowest spot at a camp's hearth that none of its people takes, the mover aside. */
-  const freeSpot = (campId: number, mover = NEVER): number => {
+  const freeSpot = (camp: Camp, mover = NEVER): number => {
     const taken = new Set<number>();
-    for (const l of camps[campId]!.lodgings)
+    for (const l of camp.lodgings)
       for (const f of residents.get(l) ?? [])
         if (f !== mover) taken.add(tree.figures[f]!.homes.at(-1)![2]);
     let spot = 0;
@@ -330,32 +399,59 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       born,
       branch,
       depth: parent === NEVER ? 0 : tree.figures[parent]!.depth + 1,
-      homes: [[born, lodging, freeSpot(tree.lodgings[lodging]!.camp)]],
+      homes: [[born, lodging, freeSpot(campOf(lodging))]],
       lost: NEVER,
     };
     tree.figures.push(f);
     residents.get(lodging)!.push(f.id);
     return f;
   };
+  const campOfLodging = new Map<number, Camp>();
+  const campOf = (lodging: number) => campOfLodging.get(lodging)!;
 
-  const newLodging = (camp: Camp, builder: number, day: Day): TreeLodging => {
+  /** A lodging at the camp's site, on its lowest free dry place, its lanes as far as they stay dry. */
+  const newLodging = (camp: Camp, builder: number, day: Day, way?: TreeLodging['voyage']) => {
+    const site = camp.site;
+    if (bandAt.get(site.id) !== camp)
+      throw new Error(
+        `tree of humankind: band ${camp.id} builds at site ${site.id}, held by band ${bandAt.get(site.id)?.id}`,
+      );
+    const taken = new Set(camp.lodgings.map((l) => tree.lodgings[l]!.slot));
+    const places = dryPlaces(site, day).filter((k) => !taken.has(k));
+    const slot = places[0];
+    if (slot === undefined)
+      throw new Error(
+        `tree of humankind: band ${camp.id} has no dry place at site ${site.id} on day ${day}`,
+      );
+    const sea = seaMax(day, ahead(day));
     const l: TreeLodging = {
       id: tree.lodgings.length,
-      camp: camp.id,
-      lat: micro(camp.lat),
-      lon: micro(camp.lon),
+      camp: site.key,
+      lat: micro(site.lat),
+      lon: micro(site.lon),
       built: day,
       gone: NEVER,
       builder,
-      slot: freeSlot(camp, day),
-      reach: reachOf(camp, day),
-      kind: s.lodgingKind,
+      slot,
+      reach: Array.from({ length: LODGING_SLOTS }, (_, gap) => laneReach(site, gap, sea)),
+      room: layoutOf(site.key).core,
+      // A minimal camp's small shelter, else the culture's own (sites.md section 2).
+      kind:
+        site.key >= MINIMAL_SITE
+          ? MINIMAL_LODGING
+          : (camp.culture && s.lodgingOf?.(camp.culture)) || s.lodgingKind,
+      ...(camp.culture ? { culture: camp.culture } : {}),
       ...(habitat.wood
-        ? { wood: Math.round(100 * habitat.wood(camp.lat, camp.lon, day)) / 100 }
+        ? {
+            wood:
+              Math.round(100 * habitat.wood(site.lat, site.lon, day) * regrown(site, day)) / 100,
+          }
         : {}),
+      ...(way ? { voyage: way } : {}),
     };
     tree.lodgings.push(l);
     camp.lodgings.push(l.id);
+    campOfLodging.set(l.id, camp);
     residents.set(l.id, []);
     lastEmerge.set(l.id, day);
     return l;
@@ -366,51 +462,390 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     const list = residents.get(from)!;
     list.splice(list.indexOf(figure), 1);
     residents.get(to)!.push(figure);
-    tree.figures[figure]!.homes.push([day, to, freeSpot(tree.lodgings[to]!.camp, figure)]);
+    tree.figures[figure]!.homes.push([day, to, freeSpot(campOf(to), figure)]);
     if (list.length === 0) {
       const old = tree.lodgings[from]!;
       old.gone = day;
-      const camp = camps[old.camp]!;
+      const camp = campOf(from);
       camp.lodgings = camp.lodgings.filter((l) => l !== from);
       residents.delete(from);
+      if (camp.lodgings.length === 0) {
+        bandAt.delete(camp.site.id, camp);
+        left.set(camp.site.id, day);
+      }
     }
   };
+  const homeOf = (f: number) => tree.figures[f]!.homes.at(-1)![1];
 
-  const newCamp = (lat: number, lon: number, day: Day): Camp => {
-    const density = DENSITIES[s.density(lat, lon, day) ?? 'low'];
+  const newCamp = (site: Site, day: Day): Camp => {
+    const density = DENSITIES[s.density(site.lat, site.lon, day) ?? 'low'];
     const id = camps.length;
     const [lo, hi] = density.band;
     const camp: Camp = {
       id,
-      lat,
-      lon,
+      site,
       spacingKm: density.spacingKm,
       target: lo + (hash32(id, 7) % (hi - lo + 1)),
       lodgings: [],
       // Each band keeps its own rhythm of moving, so camps do not all move at once.
       nextMove: after(day, RESIDENCE_MS + (hash32(id, 11) % RESIDENCE_MS)),
       nextBud: after(day, BUD_MS),
+      culture: s.culture?.(site.lat, site.lon, day),
+      settled: false,
+      morphAt: undefined,
     };
     camps.push(camp);
+    bandAt.set(site.id, camp);
     return camp;
   };
 
-  /** The whole band takes down its lodgings and builds them again at a new spot. */
-  const relocate = (camp: Camp, lat: number, lon: number, day: Day) => {
+  /**
+   * The whole band takes down its lodgings and builds them again at the end of a path of
+   * sites, or where it stands for a path of one; as many lodgings as it needs, four to a
+   * lodging, so they fit the dry places. It takes on the culture of its new site.
+   */
+  const relocate = (camp: Camp, path: Path, day: Day) => {
     const old = camp.lodgings;
-    camp.lodgings = [];
-    camp.lat = lat;
-    camp.lon = lon;
-    for (const id of old) {
-      const people = residents.get(id)!.slice();
-      const fresh = newLodging(camp, people[0]!, day);
-      // The last one out takes the old lodging down.
-      for (const f of people) moveIn(f, id, fresh.id, day);
+    const people = old.flatMap((id) => residents.get(id)!.map((f) => [f, id] as const));
+    const from = camp.site;
+    const to = path.at(-1)!;
+    if (from !== to) {
+      bandAt.delete(from.id, camp);
+      left.set(from.id, day);
+      bandAt.set(to.id, camp);
     }
+    camp.site = to;
+    camp.lodgings = [];
+    camp.culture = s.culture?.(to.lat, to.lon, day) ?? camp.culture;
+    camp.morphAt = undefined;
+    const way = wayOf(path, day);
+    for (let k = 0; k < people.length; k += LODGING_CAPACITY) {
+      const group = people.slice(k, k + LODGING_CAPACITY);
+      const fresh = newLodging(camp, group[0]![0], day, way);
+      for (const [f, id] of group) moveIn(f, id, fresh.id, day);
+    }
+    // A red flag goes with its settled camp, behind one of its new lodgings (peopling.md section 3.6).
+    for (const f of tree.flags ?? [])
+      if (f.camp === from.key && f.until === NEVER && camp.settled) {
+        f.until = day;
+        const slot = Math.min(...camp.lodgings.map((l) => tree.lodgings[l]!.slot));
+        tree.flags!.push({
+          ...f,
+          camp: to.key,
+          day,
+          until: NEVER,
+          lat: micro(to.lat),
+          lon: micro(to.lon),
+          slot,
+        });
+        break;
+      }
   };
 
-  // The first person, alone at Lake Turkana (section 4.2).
-  const first = newCamp(s.founder.lat, s.founder.lon, s.startDay);
+  /** Two or three people of a band, never the first person, leaving at least one behind. */
+  const groupOf = (camp: Camp, day: Day, salt: number): number[] => {
+    const people = camp.lodgings.flatMap((l) => residents.get(l)!);
+    const candidates = people.filter((f) => f !== 0);
+    const size = Math.min(
+      candidates.length,
+      people.length - 1,
+      2 + (hash32(camp.id, day, salt) % 2),
+    );
+    if (size < 2) return [];
+    const group: number[] = [];
+    for (let k = 0; k < size; k++)
+      group.push(candidates.splice(hash32(camp.id, day, salt, k) % candidates.length, 1)[0]!);
+    return group;
+  };
+
+  /** A group founds a new camp at the end of a path of sites. */
+  const found = (group: number[], path: Path, day: Day): Camp => {
+    const child = newCamp(path.at(-1)!, day);
+    const l = newLodging(child, group[0]!, day, wayOf(path, day));
+    for (const f of group) moveIn(f, homeOf(f), l.id, day);
+    return child;
+  };
+
+  /** The water is coming: the band leaves for the nearest free site it can use (sites.md section 4). */
+  const flee = (camp: Camp, day: Day): boolean => {
+    const n = headcount(camp);
+    const nearestOf = <T extends { hops: number; site: Site }>(options: T[], salt: number) =>
+      best(
+        options.filter((o) => o.hops === (options[0]?.hops ?? 0)),
+        day,
+        salt,
+      );
+    const pick = nearestOf(
+      reach(camp.site, day, FLEE_HOPS, (site) => usable(site, day, n) && free(site, day, camp)),
+      21,
+    );
+    if (pick) {
+      relocate(camp, pick.path, day);
+      return true;
+    }
+    if (join(camp, day) || paddle(camp, day)) return true;
+    // Last of all, any empty site it can use, even closer to a neighbour than its spacing.
+    const crowd = nearestOf(
+      reach(camp.site, day, CROWD_HOPS, (site) => usable(site, day, n) && !bandAt.has(site.id)),
+      22,
+    );
+    if (!crowd) return false;
+    relocate(camp, crowd.path, day);
+    treeStats.crowded++;
+    return true;
+  };
+
+  /** ...else its people join nearby bands with room, as many to each as fit. */
+  const join = (camp: Camp, day: Day): boolean => {
+    const people = camp.lodgings.flatMap((l) => residents.get(l)!);
+    if (people.includes(0)) return false;
+    const options = reach(camp.site, day, JOIN_HOPS, (site) => {
+      const c = bandAt.get(site.id);
+      return !!c && c !== camp && !joined.has(c) && dry(site, day) && livable(site, ahead(day));
+    });
+    // They arrive at the end of the step, after anyone leaving those camps during it; their
+    // site stays theirs until then.
+    const at = after(day, STEP_MS) - 1;
+    held.set(camp.site.id, camp.site);
+    let moved = false;
+    for (const o of options) {
+      const to = bandAt.get(o.site.id)!;
+      joined.add(to);
+      while (people.length && headcount(to) < layoutOf(to.site.key).people) {
+        // A neighbour's lodgings with room are walked to straight; farther ones need a new lodging.
+        let room =
+          o.hops === 1 && !crossingOf(camp.site, o.site)
+            ? to.lodgings.find((l) => residents.get(l)!.length < LODGING_CAPACITY)
+            : undefined;
+        if (room === undefined && to.lodgings.length < MAX_LODGINGS && hasPlace(to, at))
+          room = newLodging(to, people[0]!, at, wayOf(o.path, at)).id;
+        if (room === undefined) break;
+        const f = people.shift()!;
+        moveIn(f, homeOf(f), room, at);
+        moved = true;
+      }
+      if (!people.length) break;
+    }
+    return moved;
+  };
+
+  /**
+   * ...else, stranded, it paddles straight across the water to the nearest free site near by,
+   * or to a band there with room (sites.md section 3), putting in and landing wherever the
+   * way changes between land and water.
+   */
+  const paddle = (camp: Camp, day: Day): boolean => {
+    if (!s.walkFlood) return false;
+    const sea = seaMax(day, after(day, STEP_MS));
+    const n = headcount(camp);
+    const near = sites
+      .filter(
+        (site) =>
+          site !== camp.site &&
+          distanceKm(site.lat, site.lon, camp.site.lat, camp.site.lon) <= STRANDED_KM,
+      )
+      .sort(
+        (a, b) =>
+          distanceKm(a.lat, a.lon, camp.site.lat, camp.site.lon) -
+            distanceKm(b.lat, b.lon, camp.site.lat, camp.site.lon) || a.id - b.id,
+      );
+    // Free sites and bands with room first; then, crowded, any empty site it can use.
+    const options = [
+      ...near.map((site) => ({ site, crowd: false })),
+      ...near.map((site) => ({ site, crowd: true })),
+    ];
+    for (const { site, crowd } of options) {
+      const to = bandAt.get(site.id);
+      if (crowd && (to || !usable(site, day, n))) continue;
+      const roomy = crowd
+        ? true
+        : to
+          ? !joined.has(to) &&
+            freePlaces(to, day) >= Math.ceil(n / LODGING_CAPACITY) &&
+            dry(site, day, headcount(to) + n) &&
+            livable(site, ahead(day)) &&
+            headcount(to) + n <= layoutOf(site.key).people
+          : usable(site, day, n) && free(site, day, camp);
+      if (!roomy) continue;
+      const voyage = { id: 'stranded', ...shores(camp.site, site, sea) };
+      const people = camp.lodgings.flatMap((id) => residents.get(id)!.map((f) => [f, id] as const));
+      const from = camp.site;
+      if (to) {
+        // Into new lodgings at the band there, as many as they need.
+        joined.add(to);
+        for (let k = 0; k < people.length; k += LODGING_CAPACITY) {
+          const group = people.slice(k, k + LODGING_CAPACITY);
+          const fresh = newLodging(to, group[0]![0], day, voyage);
+          for (const [f, id] of group) moveIn(f, id, fresh.id, day);
+        }
+        return true;
+      }
+      if (crowd) treeStats.crowded++;
+      bandAt.delete(from.id, camp);
+      left.set(from.id, day);
+      bandAt.set(site.id, camp);
+      camp.site = site;
+      camp.lodgings = [];
+      camp.culture = s.culture?.(site.lat, site.lon, day) ?? camp.culture;
+      for (let k = 0; k < people.length; k += LODGING_CAPACITY) {
+        const group = people.slice(k, k + LODGING_CAPACITY);
+        const fresh = newLodging(camp, group[0]![0], day, voyage);
+        for (const [f, id] of group) moveIn(f, id, fresh.id, day);
+      }
+      return true;
+    }
+    return false;
+  };
+
+  /** The points where the straight way between two sites changes between land and water, and which stretches are water. */
+  const shores = (a: Site, b: Site, sea: number) => {
+    const km = distanceKm(a.lat, a.lon, b.lat, b.lon);
+    const n = Math.max(1, Math.ceil(km / 10));
+    let dLon = b.lon - a.lon;
+    if (dLon > 180) dLon -= 360;
+    else if (dLon < -180) dLon += 360;
+    const at = (k: number) => {
+      let lon = a.lon + (dLon * k) / n;
+      if (lon > 180) lon -= 360;
+      else if (lon < -180) lon += 360;
+      return { lat: a.lat + ((b.lat - a.lat) * k) / n, lon };
+    };
+    const wet = Array.from({ length: n + 1 }, (_, k) => {
+      const p = at(k);
+      return s.walkFlood!(p.lat, p.lon) <= sea;
+    });
+    const way: [number, number][] = [];
+    const water: boolean[] = [];
+    let state = wet[0]!;
+    for (let k = 1; k <= n; k++)
+      if (wet[k] !== state) {
+        // The stretch up to here is water when either end of it is.
+        const p = at(wet[k] ? k - 1 : k);
+        water.push(state || !!wet[k]);
+        way.push([micro(p.lat), micro(p.lon)]);
+        state = wet[k]!;
+      }
+    water.push(state);
+    return { way, water };
+  };
+
+  /** Whether the sea has come up to a band's lodging places or lanes since they were built. */
+  const stale = (camp: Camp, day: Day) => {
+    const sea = seaMax(day, ahead(day));
+    return camp.lodgings.some((id) => {
+      const l = tree.lodgings[id]!;
+      return (
+        camp.site.places[l.slot]! <= sea ||
+        l.reach.some((r, gap) => laneReach(camp.site, gap, sea) < r)
+      );
+    });
+  };
+
+  /**
+   * A band follows a route to its next arrival point (sites.md section 4): once the point's
+   * day has come and no band of its culture stands near it, a group of the band nearest it
+   * along links goes to the best free site within a camp spacing of it.
+   */
+  const voyages = (s.voyages ?? []).map((v) => ({ ...v, done: false, next: v.day }));
+  const voyage = (v: Voyage & { next: Day }, day: Day): boolean => {
+    const far = v.way.at(-1)!;
+    const culture = s.culture?.(far.lat, far.lon, day);
+    if (
+      camps.some(
+        (c) =>
+          c.lodgings.length > 0 &&
+          c.culture === culture &&
+          distanceKm(c.site.lat, c.site.lon, far.lat, far.lon) <= ROUTE_NEAR_KM,
+      )
+    )
+      return true;
+    if (day < v.next) return false;
+    v.next = after(day, BUD_MS);
+    const spacing = DENSITIES[s.density(far.lat, far.lon, day) ?? 'low'].spacingKm;
+    // The free sites nearest the point: within a spacing of it, or farther where none is.
+    let targets: Site[] = [];
+    for (let r = 1; r <= 3 && !targets.length; r++)
+      targets = sites.filter(
+        (site) =>
+          distanceKm(site.lat, site.lon, far.lat, far.lon) <= r * spacing &&
+          usable(site, day) &&
+          free(site, day),
+      );
+    // From the best target outwards along links, to the nearest band with people to spare.
+    const ranked = targets
+      .map((site) => ({ site }))
+      .sort(
+        (a, b) =>
+          habitat.score(b.site.lat, b.site.lon, day) - habitat.score(a.site.lat, a.site.lon, day) ||
+          a.site.id - b.site.id,
+      );
+    for (const t of ranked) {
+      const bands = reach(t.site, day, ROUTE_HOPS, (site) => {
+        const c = bandAt.get(site.id);
+        return (
+          !!c &&
+          !c.settled &&
+          !joined.has(c) &&
+          c.lodgings.flatMap((l) => residents.get(l)!).length >= 3
+        );
+      });
+      const src = bands[0];
+      if (!src) continue;
+      const from = bandAt.get(src.site.id)!;
+      const group = groupOf(from, day, 64);
+      if (!group.length) continue;
+      const child = found(group, [...src.path].reverse(), day);
+      moment('voyage', day, group[0]!, child);
+      return true;
+    }
+    return false;
+  };
+
+  /**
+   * A Neolithic threshold is reached (peopling.md section 3.6): the camps near it settle,
+   * and the nearest camp within reach raises a red flag. False while no camp is near.
+   */
+  const thresholds = (s.thresholds ?? []).map((t) => ({ ...t, flagged: false }));
+  const settle = (t: Threshold, day: Day): boolean => {
+    let nearest: Camp | undefined;
+    for (const c of camps) {
+      if (c.lodgings.length === 0) continue;
+      const km = distanceKm(c.site.lat, c.site.lon, t.lat, t.lon);
+      if (km <= SETTLE_KM) c.settled = true;
+      if (
+        km <= FLAG_REACH_KM &&
+        (!nearest || km < distanceKm(nearest.site.lat, nearest.site.lon, t.lat, t.lon))
+      )
+        nearest = c;
+    }
+    if (!nearest) return false;
+    nearest.settled = true;
+    const people = nearest.lodgings.flatMap((l) => residents.get(l)!);
+    // The flag stands behind the lodging of the camp's lowest standing place, out of every lane.
+    const slot = Math.min(...nearest.lodgings.map((l) => tree.lodgings[l]!.slot));
+    (tree.flags ??= []).push({
+      id: t.id,
+      camp: nearest.site.key,
+      day,
+      until: NEVER,
+      lat: micro(nearest.site.lat),
+      lon: micro(nearest.site.lon),
+      slot,
+    });
+    moment('neolithic-threshold', day, people[0]!, nearest);
+    return true;
+  };
+
+  // The first person, alone by Lake Turkana (section 4.2), at the site nearest her place.
+  const home = [...sites]
+    .filter((site) => dry(site, s.startDay) && livable(site, s.startDay))
+    .sort(
+      (a, b) =>
+        distanceKm(a.lat, a.lon, s.founder.lat, s.founder.lon) -
+        distanceKm(b.lat, b.lon, s.founder.lat, s.founder.lon),
+    )[0];
+  if (!home) throw new Error('tree of humankind: no site for the first person');
+  const first = newCamp(home, s.startDay);
   tree.branches.push({ id: 0, parent: NEVER, figure: 0, day: s.startDay, reason: 'root' });
   const hut = newLodging(first, 0, s.startDay);
   newFigure(NEVER, s.startDay, 0, hut.id);
@@ -418,31 +853,77 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
 
   // The day the first person's first companion steps out: a minute of watching in.
   const aloneUntil = dayAtWatch(watchAtDay(s.startDay) + FOUNDER_ALONE_MS);
+  const morphDays = Math.round(MORPH_YEARS * DAYS_PER_YEAR);
   for (let day = s.startDay; day < s.endDay; day = after(day, STEP_MS)) {
     const step = after(day, STEP_MS) - day;
+    joined.clear();
+    held.clear();
+    // Bands following a route set off first, at the step's start, before anyone is born in it.
+    for (const v of voyages) if (!v.done && day >= v.day) v.done = voyage(v, day);
+    for (const t of thresholds) if (!t.flagged && day >= t.day) t.flagged = settle(t, day);
     // Camps founded during this step wait for the next one.
     const count = camps.length;
     for (let ci = 0; ci < count; ci++) {
       const camp = camps[ci]!;
-      if (camp.lodgings.length === 0) continue;
-      const people = camp.lodgings.flatMap((l) => residents.get(l)!);
+      // A camp that a band joined this step waits for the next, so nobody has two moves a day.
+      if (camp.lodgings.length === 0 || joined.has(camp)) continue;
+      // Near a Neolithic threshold that has come, camps settle (peopling.md section 3.6).
+      if (
+        !camp.settled &&
+        thresholds.some(
+          (t) =>
+            day >= t.day && distanceKm(camp.site.lat, camp.site.lon, t.lat, t.lon) <= SETTLE_KM,
+        )
+      )
+        camp.settled = true;
 
-      // The land changes under the camp: move before the sea, ice or desert arrive.
-      if (!habitat.habitable(camp.lat, camp.lon, day + step)) {
-        const spot = findSpot(camp, day, 0.5, 3, 1, true);
-        if (spot) {
-          relocate(camp, spot.lat, spot.lon, day);
-          moment('camp-moved-away', day, people[0]!, camp);
+      // The land changes under the camp: leave before the sea, ice or desert arrive.
+      if (
+        !dry(camp.site, day, headcount(camp)) ||
+        !livable(camp.site, day) ||
+        !livable(camp.site, ahead(day))
+      ) {
+        const people = camp.lodgings.flatMap((l) => residents.get(l)!);
+        if (flee(camp, day)) moment('camp-moved-away', day, people[0]!, camp);
+        else {
+          treeStats.stuck++;
         }
         continue;
       }
-      // The end of a residence window: the band moves a little way.
+      // The sea came up to its lodgings or lanes: it builds them again where they stay dry.
+      if (stale(camp, day)) {
+        relocate(camp, [camp.site], day);
+        continue;
+      }
+      // A morph has come to its site: at its moment, it takes on the new culture (sites.md section 5).
+      const culture = s.culture?.(camp.site.lat, camp.site.lon, day);
+      if (culture && culture !== camp.culture) {
+        camp.morphAt ??= day + (hash32(camp.id, day, 131) % morphDays);
+        if (day >= camp.morphAt) {
+          relocate(camp, [camp.site], day);
+          continue;
+        }
+      }
+      // The end of a residence window: the band moves along a link, unless it has settled.
       if (day >= camp.nextMove) {
         camp.nextMove = after(day, RESIDENCE_MS + (hash32(camp.id, day, 12) % RESIDENCE_MS));
-        const spot = findSpot(camp, day, 0.2, 0.6, 2);
-        if (spot) relocate(camp, spot.lat, spot.lon, day);
+        if (!camp.settled) {
+          const n = headcount(camp);
+          const options = reach(
+            camp.site,
+            day,
+            1,
+            (site) =>
+              distanceKm(site.lat, site.lon, camp.site.lat, camp.site.lon) <= MOVE_KM &&
+              usable(site, day, n) &&
+              free(site, day, camp),
+          );
+          const pick = best(options, day, 2);
+          if (pick) relocate(camp, pick.path, day);
+        }
       }
 
+      const people = camp.lodgings.flatMap((l) => residents.get(l)!);
       if (people.length < camp.target) {
         // New people step out of lodgings with room (section 4.3).
         let grown = false;
@@ -464,41 +945,35 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
           grown = true;
           break;
         }
-        // Every lodging is full: someone builds another beside the hearth.
+        // Every lodging is full: someone builds another beside the hearth, on a dry place.
         if (!grown && camp.lodgings.length < MAX_LODGINGS) {
           const full = camp.lodgings.every((l) => residents.get(l)!.length >= LODGING_CAPACITY);
-          // Another lodging only where one can stand on dry land (section 4).
-          if (full && hasDrySlot(camp, day)) {
+          if (full && hasPlace(camp, day)) {
             const builder = people[hash32(camp.id, day, 3) % people.length]!;
             const l = newLodging(camp, builder, day + (hash32(camp.id, day, 4) % step));
-            const from = tree.figures[builder]!.homes.at(-1)![1];
-            moveIn(builder, from, l.id, l.built);
+            moveIn(builder, homeOf(builder), l.id, l.built);
           }
         }
-      } else if (day >= camp.nextBud) {
-        // A full camp sends out a small group to found a new one (section 4.3).
-        const spot = findSpot(camp, day, 1, 2, 3, false, camps.length);
-        if (!spot) {
-          camp.nextBud = after(day, BUD_RETRY_MS);
-          continue;
-        }
+      } else if (day >= camp.nextBud && !camp.settled) {
+        // A full camp sends out a small group to the best free site within a few links (section 4.3).
         camp.nextBud = after(day, BUD_MS);
-        // Two or three walk off; the first person stays at home, and nobody leaves a camp empty.
-        const candidates = people.filter((f) => f !== 0);
-        const size = Math.min(
-          candidates.length,
-          people.length - 1,
-          2 + (hash32(camp.id, day, 5) % 2),
+        const options = reach(
+          camp.site,
+          day,
+          BUD_HOPS,
+          (site) => usable(site, day) && free(site, day),
         );
-        if (size < 2) continue;
-        const group: number[] = [];
-        for (let k = 0; k < size; k++)
-          group.push(candidates.splice(hash32(camp.id, day, 6, k) % candidates.length, 1)[0]!);
-        const child = newCamp(spot.lat, spot.lon, day);
-        const arrive = day + (hash32(camp.id, day, 8) % step);
-        const l = newLodging(child, group[0]!, arrive);
-        for (const f of group) moveIn(f, tree.figures[f]!.homes.at(-1)![1], l.id, arrive);
-        moment('camp-founded', arrive, group[0]!, child);
+        const pick = best(options, day, 3);
+        if (!pick) continue;
+        const group = groupOf(camp, day, 5);
+        if (!group.length) continue;
+        const child = found(group, pick.path, day + (hash32(camp.id, day, 8) % step));
+        moment(
+          'camp-founded',
+          child.lodgings.length ? tree.lodgings[child.lodgings[0]!]!.built : day,
+          group[0]!,
+          child,
+        );
       }
     }
   }
@@ -554,6 +1029,24 @@ export function checkTree(tree: Tree, s: TreeSettings, habitat: Habitat): string
           problems.push(`figures ${o.id} and ${f.id} share a spot on day ${day}`);
       }
     }
+  // Every lodging stands at a site with room for all activities, on a place that stays dry
+  // while it stands (sites.md section 7).
+  const seaMax = (from: Day, to: Day) => {
+    let m = -Infinity;
+    for (let k = 0; k <= 16; k++)
+      m = Math.max(m, s.seaLevel(from + Math.floor(((to - from) * k) / 16)));
+    return m;
+  };
+  for (const l of tree.lodgings) {
+    const site = s.sites.sites[l.camp % COMPACT_SITE];
+    if (!site) {
+      problems.push(`lodging ${l.id} stands at no site`);
+      continue;
+    }
+    const sea = seaMax(l.built, l.gone === NEVER ? s.endDay : l.gone);
+    if (site.core <= sea) problems.push(`lodging ${l.id}: its site's people stand in the water`);
+    if (site.places[l.slot]! <= sea) problems.push(`lodging ${l.id} stands in the water`);
+  }
   for (const l of tree.lodgings) {
     const lat = l.lat / 1e6;
     const lon = l.lon / 1e6;
@@ -570,36 +1063,6 @@ export function checkTree(tree: Tree, s: TreeSettings, habitat: Habitat): string
  * for a window after the tree ends. The tree is built only up to its end day,
  * so its figures and lodgings are taken away then.
  */
-/**
- * What a lodging slot needs on dry land (section 8.1): the lodging, its builders round it a
- * little past where they stand, and behind it its drying rack, end to end, and the place
- * where its hide is scraped.
- */
-function slotFootprint(campId: number, k: number): { x: number; z: number }[] {
-  const p = slotPoint(campId, k);
-  const out = [p];
-  for (let j = 0; j < 12; j++) {
-    const a = (j / 12) * 2 * Math.PI;
-    out.push({ x: p.x + (BUILD_RING_M + 1) * detCos(a), z: p.z + (BUILD_RING_M + 1) * detSin(a) });
-  }
-  const len = Math.sqrt(p.x * p.x + p.z * p.z);
-  const [ux, uz] = [p.x / len, p.z / len];
-  for (const [r, across] of [
-    [RACK_R, 0],
-    [RACK_R, 4],
-    [RACK_R, -4],
-    [RACK_R + SCRAPE_BACK_M + 1, 0],
-    [RACK_R + SCRAPE_BACK_M + 1, SCRAPE_SIDE_M],
-  ] as const)
-    out.push({ x: ux * r - uz * across, z: uz * r + ux * across });
-  return out;
-}
-
-/** The first person is alone for this long of watching (section 4.2). */
-const FOUNDER_ALONE_MS = 60_000;
-/** A camp site has room when at least this many of its lodging slots stand on dry land. */
-const MIN_DRY_SLOTS = 3;
-
 /** A time window's chunk carries what happened this long of watching before it (milliseconds). */
 const CHUNK_LEAD_MS = 60_000;
 
@@ -628,6 +1091,13 @@ export function treeChunks(tree: Tree, windows: Day[], endDay: Day): (TreeChunk 
       for (const [, l] of homes) add(l);
       figures.push({ ...f, homes, lost: until(f.lost) });
     }
-    return { fromDay: from, toDay: to, figures, lodgings: [...lodgings.values()] };
+    const flags = (tree.flags ?? []).filter((f) => f.day < to);
+    return {
+      fromDay: from,
+      toDay: to,
+      figures,
+      lodgings: [...lodgings.values()],
+      ...(flags.length ? { flags } : {}),
+    };
   });
 }

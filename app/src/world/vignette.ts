@@ -52,7 +52,9 @@ export type Clip =
   | 'crouch'
   | 'dance'
   | 'scrape'
-  | 'crack';
+  | 'crack'
+  // Crossing the sea in a canoe (peopling.md section 6).
+  | 'paddle';
 
 /** Stage speeds in centimetres per second, three times life (section 18.3). */
 const SPEED_CM_S: Partial<Record<Verb, number>> = {

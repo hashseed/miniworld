@@ -1,0 +1,301 @@
+{
+  "description": "Key places (spec sites.md, section 2): places history needs a camp, village or town at. Each gets a site within 300 km, of whatever layout fits. Coordinates are approximate, in degrees.",
+  "places": [
+    {
+      "id": "rome",
+      "en": "Rome",
+      "de": "Rom",
+      "lat": 41.9,
+      "lon": 12.5,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "athens",
+      "en": "Athens",
+      "de": "Athen",
+      "lat": 37.98,
+      "lon": 23.73,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "carthage",
+      "en": "Carthage",
+      "de": "Karthago",
+      "lat": 36.85,
+      "lon": 10.32,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "london",
+      "en": "London",
+      "de": "London",
+      "lat": 51.51,
+      "lon": -0.13,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "paris",
+      "en": "Paris",
+      "de": "Paris",
+      "lat": 48.86,
+      "lon": 2.35,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "constantinople",
+      "en": "Constantinople",
+      "de": "Konstantinopel",
+      "lat": 41.01,
+      "lon": 28.98,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "jerusalem",
+      "en": "Jerusalem",
+      "de": "Jerusalem",
+      "lat": 31.78,
+      "lon": 35.23,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "jericho",
+      "en": "Jericho",
+      "de": "Jericho",
+      "lat": 31.87,
+      "lon": 35.44,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "gobekli-tepe",
+      "en": "Göbekli Tepe",
+      "de": "Göbekli Tepe",
+      "lat": 37.22,
+      "lon": 38.92,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "catalhoyuk",
+      "en": "Çatalhöyük",
+      "de": "Çatalhöyük",
+      "lat": 37.67,
+      "lon": 32.83,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "babylon",
+      "en": "Babylon",
+      "de": "Babylon",
+      "lat": 32.54,
+      "lon": 44.42,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "ur",
+      "en": "Ur",
+      "de": "Ur",
+      "lat": 30.96,
+      "lon": 46.1,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "memphis",
+      "en": "Memphis and Giza",
+      "de": "Memphis und Gizeh",
+      "lat": 29.85,
+      "lon": 31.25,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "alexandria",
+      "en": "Alexandria",
+      "de": "Alexandria",
+      "lat": 31.2,
+      "lon": 29.92,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "thebes",
+      "en": "Thebes",
+      "de": "Theben",
+      "lat": 25.7,
+      "lon": 32.64,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "knossos",
+      "en": "Knossos",
+      "de": "Knossos",
+      "lat": 35.3,
+      "lon": 25.16,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "troy",
+      "en": "Troy",
+      "de": "Troja",
+      "lat": 39.96,
+      "lon": 26.24,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "mohenjo-daro",
+      "en": "Mohenjo-daro",
+      "de": "Mohenjo-daro",
+      "lat": 27.33,
+      "lon": 68.14,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "harappa",
+      "en": "Harappa",
+      "de": "Harappa",
+      "lat": 30.63,
+      "lon": 72.86,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "pataliputra",
+      "en": "Pataliputra",
+      "de": "Pataliputra",
+      "lat": 25.61,
+      "lon": 85.14,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "persepolis",
+      "en": "Persepolis",
+      "de": "Persepolis",
+      "lat": 29.94,
+      "lon": 52.89,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "xian",
+      "en": "Chang'an (Xi'an)",
+      "de": "Chang'an (Xi'an)",
+      "lat": 34.34,
+      "lon": 108.94,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "anyang",
+      "en": "Anyang",
+      "de": "Anyang",
+      "lat": 36.1,
+      "lon": 114.35,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "beijing",
+      "en": "Beijing",
+      "de": "Peking",
+      "lat": 39.9,
+      "lon": 116.4,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "kyoto",
+      "en": "Kyoto",
+      "de": "Kyoto",
+      "lat": 35.01,
+      "lon": 135.77,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "angkor",
+      "en": "Angkor",
+      "de": "Angkor",
+      "lat": 13.41,
+      "lon": 103.87,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "mecca",
+      "en": "Mecca",
+      "de": "Mekka",
+      "lat": 21.42,
+      "lon": 39.83,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "aksum",
+      "en": "Aksum",
+      "de": "Aksum",
+      "lat": 14.13,
+      "lon": 38.72,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "timbuktu",
+      "en": "Timbuktu",
+      "de": "Timbuktu",
+      "lat": 16.77,
+      "lon": -3.01,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "great-zimbabwe",
+      "en": "Great Zimbabwe",
+      "de": "Groß-Simbabwe",
+      "lat": -20.27,
+      "lon": 30.93,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "tenochtitlan",
+      "en": "Tenochtitlan",
+      "de": "Tenochtitlan",
+      "lat": 19.43,
+      "lon": -99.13,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "teotihuacan",
+      "en": "Teotihuacan",
+      "de": "Teotihuacán",
+      "lat": 19.69,
+      "lon": -98.84,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "chichen-itza",
+      "en": "Chichén Itzá",
+      "de": "Chichén Itzá",
+      "lat": 20.68,
+      "lon": -88.57,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "cusco",
+      "en": "Cusco",
+      "de": "Cusco",
+      "lat": -13.53,
+      "lon": -71.97,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "cahokia",
+      "en": "Cahokia",
+      "de": "Cahokia",
+      "lat": 38.66,
+      "lon": -90.06,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "lascaux",
+      "en": "Lascaux",
+      "de": "Lascaux",
+      "lat": 45.05,
+      "lon": 1.17,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    },
+    {
+      "id": "lake-turkana",
+      "en": "Koobi Fora, Lake Turkana",
+      "de": "Koobi Fora am Turkana-See",
+      "lat": 3.95,
+      "lon": 36.2,
+      "source": "Coordinates from GeoNames (geonames.org), rounded to two decimals"
+    }
+  ]
+}

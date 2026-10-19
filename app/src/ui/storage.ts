@@ -17,9 +17,7 @@ export interface Settings {
    * Strength of the history lens in whole percent, 0 (true sizes) to 200;
    * 100 is the warp as built (history-lens.md, section 1).
    */
-  lensStrength: number;
   /** The first-start hint about the lens was closed. */
-  lensHintSeen: boolean;
 }
 
 export interface ViewState {
@@ -95,17 +93,7 @@ export function loadSettings(defaults: Settings): Settings {
     timelineExpanded: isBool(v.timelineExpanded) ? v.timelineExpanded : defaults.timelineExpanded,
     trueTimeScale: isBool(v.trueTimeScale) ? v.trueTimeScale : defaults.trueTimeScale,
     showStats: isBool(v.showStats) ? v.showStats : defaults.showStats,
-    lensStrength: lensStrengthOf(v, defaults.lensStrength),
-    lensHintSeen: isBool(v.lensHintSeen) ? v.lensHintSeen : defaults.lensHintSeen,
   };
-}
-
-/** The saved lens strength, or the earlier on/off setting read as 100 or 0. */
-function lensStrengthOf(v: Record<string, unknown>, fallback: number): number {
-  const p = v.lensStrength;
-  if (typeof p === 'number' && Number.isInteger(p) && p >= 0 && p <= 200) return p;
-  if (isBool(v.historyLens)) return v.historyLens ? 100 : 0;
-  return fallback;
 }
 
 export function saveSettings(s: Settings): void {

@@ -53,7 +53,7 @@ const SIZE_MIN = 0.6;
 const SIZE_RANGE = 0.8;
 /** Crown width relative to the slot spacing, per kind. */
 const KIND_SCALE = [1.15, 1.05, 0.85, 1.1, 1.0, 0.85, 0.65, 0.6];
-const CROWN = 1.1;
+const CROWN = 0.935;
 /** Where plants never stand (section 4). */
 const MIN_COAST_KM = 2.5;
 /** Drawn radius of the clearing around a vignette stage, so trees never hide a diorama (section 4). */

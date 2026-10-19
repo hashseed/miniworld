@@ -51,7 +51,7 @@ export function writeManifest(
     },
     climate: { days: climate.iceDays, files: climate.climateFiles },
     foliage: { days: climate.iceDays, files: climate.foliageFiles },
-    ...(tree ? { tree: { files: tree } } : {}),
+    ...(tree ? { tree } : {}),
   };
   ctx.output.writeNamed('manifest.json', new TextEncoder().encode(JSON.stringify(manifest)));
   return manifest;

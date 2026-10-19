@@ -1,0 +1,356 @@
+{
+  "description": "Arrival points and routes of the peopling of the world (spec peopling.md, sections 3 and 4), provisional until the Markdown records with cards exist. A route starts at an earlier point, or at the African front, and its points are reached in order; bce is the approximate year BCE of the earliest well-accepted evidence, debated where an older date is argued about.",
+  "points": [
+    {
+      "id": "bab-el-mandeb",
+      "bce": 60000,
+      "lat": 13.3,
+      "lon": 43.55,
+      "en": "Crossing of the Bab-el-Mandeb into Arabia",
+      "de": "Überquerung des Bab al-Mandab nach Arabien",
+      "source": "Bae, Douka and Petraglia 2017, On the origin of modern humans: Asian perspectives, Science 358"
+    },
+    {
+      "id": "south-asia",
+      "bce": 53000,
+      "lat": 21.5,
+      "lon": 70.5,
+      "en": "Coast of Gujarat, India",
+      "de": "Küste von Gujarat, Indien",
+      "source": "Mellars et al. 2013, Genetic and archaeological perspectives on the initial modern human colonization of southern Asia, PNAS 110"
+    },
+    {
+      "id": "sundaland",
+      "bce": 52000,
+      "lat": -0.4,
+      "lon": 100.3,
+      "en": "Lida Ajer, Sumatra",
+      "de": "Lida Ajer, Sumatra",
+      "source": "Westaway et al. 2017, An early modern human presence in Sumatra 73,000-63,000 years ago, Nature 548; Barker et al. 2007, The human revolution in lowland tropical Southeast Asia, Journal of Human Evolution 52",
+      "debated": true
+    },
+    {
+      "id": "wallacea",
+      "bce": 51000,
+      "lat": -5.0,
+      "lon": 119.8,
+      "en": "Sulawesi",
+      "de": "Sulawesi",
+      "source": "Oktaviana et al. 2024, Narrative cave art in Indonesia by 51,200 years ago, Nature 631"
+    },
+    {
+      "id": "sahul",
+      "bce": 50000,
+      "lat": -12.5,
+      "lon": 132.9,
+      "en": "Arnhem Land, northern Australia",
+      "de": "Arnhemland, Nordaustralien",
+      "source": "O'Connell et al. 2018, When did Homo sapiens first reach Southeast Asia and Sahul?, PNAS 115; Clarkson et al. 2017, Human occupation of northern Australia by 65,000 years ago, Nature 547",
+      "debated": true
+    },
+    {
+      "id": "new-guinea-highlands",
+      "bce": 46000,
+      "lat": -8.2,
+      "lon": 147.1,
+      "en": "Ivane Valley, Papua New Guinea",
+      "de": "Ivane-Tal, Papua-Neuguinea",
+      "source": "Summerhayes et al. 2010, Human adaptation and plant use in highland New Guinea 49,000 to 44,000 years ago, Science 330"
+    },
+    {
+      "id": "near-oceania",
+      "bce": 38000,
+      "lat": -2.6,
+      "lon": 150.8,
+      "en": "New Ireland, Bismarck Archipelago",
+      "de": "Neuirland, Bismarck-Archipel",
+      "source": "Leavesley et al. 2002, Buang Merabak: early evidence for human occupation in the Bismarck Archipelago, Papua New Guinea, Asian Perspectives 41"
+    },
+    {
+      "id": "southern-australia",
+      "bce": 40000,
+      "lat": -33.7,
+      "lon": 143.0,
+      "en": "Lake Mungo",
+      "de": "Mungo-See",
+      "source": "Bowler et al. 2003, New ages for human occupation and climatic change at Lake Mungo, Australia, Nature 421"
+    },
+    {
+      "id": "tasmania",
+      "bce": 39000,
+      "lat": -42.6,
+      "lon": 146.3,
+      "en": "Warreen Cave, Tasmania (then joined to the mainland)",
+      "de": "Warreen-Höhle, Tasmanien (damals mit dem Festland verbunden)",
+      "source": "Cosgrove et al. 2010, Overdone overkill: the archaeological perspective on Tasmanian megafaunal extinctions, Journal of Archaeological Science 37"
+    },
+    {
+      "id": "levant",
+      "bce": 48000,
+      "lat": 30.85,
+      "lon": 34.77,
+      "en": "Boker Tachtit, Negev",
+      "de": "Boker Tachtit, Negev",
+      "source": "Boaretto et al. 2021, The absolute chronology of Boker Tachtit (Israel) and implications for the Middle to Upper Paleolithic transition in the Levant, PNAS 118"
+    },
+    {
+      "id": "europe",
+      "bce": 45000,
+      "lat": 42.95,
+      "lon": 25.43,
+      "en": "Bacho Kiro Cave, Bulgaria",
+      "de": "Bacho-Kiro-Höhle, Bulgarien",
+      "source": "Hublin et al. 2020, Initial Upper Palaeolithic Homo sapiens from Bacho Kiro Cave, Bulgaria, Nature 581; Slimak et al. 2022, Modern human incursion into Neanderthal territories 54,000 years ago at Mandrin, France, Science Advances 8",
+      "debated": true
+    },
+    {
+      "id": "swabian-jura",
+      "bce": 40000,
+      "lat": 48.4,
+      "lon": 9.77,
+      "en": "Geißenklösterle and Hohle Fels, Germany",
+      "de": "Geißenklösterle und Hohle Fels, Deutschland",
+      "source": "Higham et al. 2012, Testing models for the beginnings of the Aurignacian and the advent of figurative art and music, Journal of Human Evolution 62"
+    },
+    {
+      "id": "iberia",
+      "bce": 39000,
+      "lat": 39.55,
+      "lon": -8.67,
+      "en": "Lapa do Picareiro, Portugal",
+      "de": "Lapa do Picareiro, Portugal",
+      "source": "Haws et al. 2020, The early Aurignacian dispersal of modern humans into westernmost Eurasia, PNAS 117"
+    },
+    {
+      "id": "southern-siberia",
+      "bce": 43000,
+      "lat": 57.7,
+      "lon": 71.2,
+      "en": "Ust'-Ishim, Irtysh river",
+      "de": "Ust-Ischim am Irtysch",
+      "source": "Fu et al. 2014, Genome sequence of a 45,000-year-old modern human from western Siberia, Nature 514"
+    },
+    {
+      "id": "arctic-siberia",
+      "bce": 30000,
+      "lat": 70.7,
+      "lon": 135.4,
+      "en": "Yana River, above the Arctic Circle",
+      "de": "Fluss Jana, nördlich des Polarkreises",
+      "source": "Pitulko et al. 2004, The Yana RHS site: humans in the Arctic before the Last Glacial Maximum, Science 303"
+    },
+    {
+      "id": "beringia",
+      "bce": 23000,
+      "lat": 65.0,
+      "lon": -168.0,
+      "en": "Beringia land bridge",
+      "de": "Landbrücke Beringia",
+      "source": "Hoffecker, Elias and O'Rourke 2014, Out of Beringia?, Science 343"
+    },
+    {
+      "id": "east-asia",
+      "bce": 43000,
+      "lat": 24.0,
+      "lon": 108.0,
+      "en": "Southern China",
+      "de": "Südchina",
+      "source": "Sun et al. 2021, TL-dated stone tools and the debate on the earliest modern humans in China, PNAS 118",
+      "debated": true
+    },
+    {
+      "id": "north-china",
+      "bce": 38000,
+      "lat": 39.65,
+      "lon": 115.85,
+      "en": "Tianyuan Cave, near Beijing",
+      "de": "Tianyuan-Höhle bei Peking",
+      "source": "Fu et al. 2013, DNA analysis of an early modern human from Tianyuan Cave, China, PNAS 110"
+    },
+    {
+      "id": "tibetan-plateau",
+      "bce": 38000,
+      "lat": 31.0,
+      "lon": 90.5,
+      "en": "Nwya Devu, 4,600 m",
+      "de": "Nwya Devu, 4.600 m",
+      "source": "Zhang et al. 2018, The earliest human occupation of the high-altitude Tibetan Plateau 40 thousand to 30 thousand years ago, Science 362"
+    },
+    {
+      "id": "japan",
+      "bce": 36000,
+      "lat": 33.0,
+      "lon": 130.7,
+      "en": "Kyushu, Japan",
+      "de": "Kyushu, Japan",
+      "source": "Izuho and Kaifu 2015, The appearance and characteristics of the Early Upper Paleolithic in the Japanese Archipelago, in Emergence and Diversity of Modern Human Behavior in Paleolithic Asia"
+    },
+    {
+      "id": "americas",
+      "bce": 14000,
+      "lat": 45.8,
+      "lon": -116.3,
+      "en": "Cooper's Ferry, Idaho, after travelling down the Pacific coast",
+      "de": "Cooper's Ferry, Idaho, nach der Reise die Pazifikküste hinab",
+      "source": "Davis et al. 2019, Late Upper Paleolithic occupation at Cooper's Ferry, Idaho, USA, ~16,000 years ago, Science 365; Bennett et al. 2021, Evidence of humans in North America during the Last Glacial Maximum, Science 373",
+      "debated": true
+    },
+    {
+      "id": "florida",
+      "bce": 12500,
+      "lat": 30.2,
+      "lon": -83.9,
+      "en": "Page-Ladson, Florida",
+      "de": "Page-Ladson, Florida",
+      "source": "Halligan et al. 2016, Pre-Clovis occupation 14,550 years ago at the Page-Ladson site, Florida, and the peopling of the Americas, Science Advances 2"
+    },
+    {
+      "id": "monte-verde",
+      "bce": 12500,
+      "lat": -41.5,
+      "lon": -73.2,
+      "en": "Monte Verde, Chile",
+      "de": "Monte Verde, Chile",
+      "source": "Dillehay et al. 2008, Monte Verde: seaweed, food, medicine, and the peopling of South America, Science 320"
+    },
+    {
+      "id": "ice-free-corridor",
+      "bce": 11000,
+      "lat": 56.0,
+      "lon": -117.0,
+      "en": "The corridor between the ice sheets, Alberta",
+      "de": "Der Korridor zwischen den Eisschilden, Alberta",
+      "source": "Pedersen et al. 2016, Postglacial viability and colonization in North America's ice-free corridor, Nature 537"
+    },
+    {
+      "id": "clovis",
+      "bce": 11100,
+      "lat": 37.0,
+      "lon": -103.0,
+      "en": "Great Plains",
+      "de": "Great Plains",
+      "source": "Waters et al. 2020, Late Pleistocene chronology of the Clovis Complex, Science Advances 6"
+    },
+    {
+      "id": "amazon",
+      "bce": 10500,
+      "lat": -2.0,
+      "lon": -54.1,
+      "en": "Caverna da Pedra Pintada, Monte Alegre, Brazil",
+      "de": "Caverna da Pedra Pintada, Monte Alegre, Brasilien",
+      "source": "Roosevelt et al. 1996, Paleoindian cave dwellers in the Amazon: the peopling of the Americas, Science 272"
+    },
+    {
+      "id": "andes-highlands",
+      "bce": 10500,
+      "lat": -15.4,
+      "lon": -72.6,
+      "en": "Cuncaicha, Peru, 4,480 m",
+      "de": "Cuncaicha, Peru, 4.480 m",
+      "source": "Rademaker et al. 2014, Paleoindian settlement of the high-altitude Peruvian Andes, Science 346"
+    },
+    {
+      "id": "patagonia",
+      "bce": 10500,
+      "lat": -52.05,
+      "lon": -70.0,
+      "en": "Fell's Cave, southern Chile",
+      "de": "Fell-Höhle, Südchile",
+      "source": "Prates, Politis and Perez 2020, Rapid radiation of humans in South America after the last glacial maximum, Science Advances 6"
+    }
+  ],
+  "routes": [
+    {
+      "id": "southern",
+      "en": "The southern route",
+      "de": "Die Südroute",
+      "from": "africa",
+      "points": [
+        "bab-el-mandeb",
+        "south-asia",
+        "sundaland",
+        "wallacea",
+        "sahul",
+        "new-guinea-highlands",
+        "near-oceania"
+      ]
+    },
+    {
+      "id": "southern-australia",
+      "en": "Into southern Australia",
+      "de": "Nach Südaustralien",
+      "from": "sahul",
+      "points": ["southern-australia", "tasmania"]
+    },
+    {
+      "id": "levant-europe",
+      "en": "Into the Levant and Europe",
+      "de": "In die Levante und nach Europa",
+      "from": "bab-el-mandeb",
+      "points": ["levant", "europe", "swabian-jura", "iberia"]
+    },
+    {
+      "id": "siberia",
+      "en": "Into Siberia and Beringia",
+      "de": "Nach Sibirien und Beringia",
+      "from": "levant",
+      "points": ["southern-siberia", "arctic-siberia", "beringia"]
+    },
+    {
+      "id": "east-asia",
+      "en": "Into East Asia",
+      "de": "Nach Ostasien",
+      "from": "sundaland",
+      "points": ["east-asia", "north-china", "japan"]
+    },
+    {
+      "id": "tibet",
+      "en": "Onto the Tibetan Plateau",
+      "de": "Auf das Hochland von Tibet",
+      "from": "east-asia",
+      "points": ["tibetan-plateau"]
+    },
+    {
+      "id": "americas",
+      "en": "Into the Americas",
+      "de": "Nach Amerika",
+      "from": "beringia",
+      "points": ["americas", "clovis"]
+    },
+    {
+      "id": "florida",
+      "en": "To Florida",
+      "de": "Nach Florida",
+      "from": "americas",
+      "points": ["florida"]
+    },
+    {
+      "id": "south-america",
+      "en": "Down to Chile and Patagonia",
+      "de": "Hinab nach Chile und Patagonien",
+      "from": "americas",
+      "points": ["monte-verde", "patagonia"]
+    },
+    {
+      "id": "amazon",
+      "en": "Into the Amazon",
+      "de": "Ins Amazonasgebiet",
+      "from": "americas",
+      "points": ["amazon"]
+    },
+    {
+      "id": "andes",
+      "en": "Into the high Andes",
+      "de": "In die Hochanden",
+      "from": "monte-verde",
+      "points": ["andes-highlands"]
+    },
+    {
+      "id": "ice-free-corridor",
+      "en": "Through the ice-free corridor",
+      "de": "Durch den eisfreien Korridor",
+      "from": "beringia",
+      "points": ["ice-free-corridor"]
+    }
+  ]
+}

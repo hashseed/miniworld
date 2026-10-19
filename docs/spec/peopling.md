@@ -4,6 +4,8 @@ This is the design of how humankind leaves Africa and reaches every part of the 
 
 Asked for by Yang on 2026-10-18: "humanity migrates out of Africa and populates the entire world. They will have to adapt to the respective regions." Decided by Yang on 2026-10-18, on the first draft: the tree of humankind is extended for this purpose; the plan ends at 9000 BCE, before farming begins (the Neolithic, milestone 3); sea crossings are made in small boats, canoes; Denisovans and *Homo floresiensis* are not shown. The cold and height limits (section 5.2), the new profiles and the first dogs (section 5) are part of the plan as drafted. Routes and dates follow mainstream archaeology and genetics; dates that are argued about are marked as debated on the timeline and the cards, and the card names the older claims.
 
+Asked for by Yang on 2026-10-19: "implement human spread across the continents up to the verge of entering neolithic age (we plan farming etc. separately). Once a local population is about to enter neolithic age, they put up a huge red flag so that I know that's where things should continue." The plan therefore no longer ends at one date for the whole world: it ends at each region's **Neolithic threshold** (section 3.6), and the tree runs until the last threshold of this plan, c. 6500 BCE (**Proposed**). What the first implementation builds, and what waits, is in section 9.1.
+
 ## 1. The idea in one paragraph
 
 After the prologue has filled Africa (humankind.md section 4.2), the tree keeps growing the way it always has: a full camp sends two or three people off to found a new camp. What changes is where they may go. A small table of dated **arrival points**, each a real site with a source (the first people in Arabia, on Sumatra, in Australia, in Bulgaria, in Siberia, in Chile), says when people first reached each part of the world; the data build turns it into an **arrival map** that opens the land a little at a time, so the tree can only spread where and when people really did. A strait wider than people can wade is crossed in small canoes, only at a listed **crossing**. And a band can only live where its way of life lets it: in light clothing it cannot camp in the cold north, without the know-how of the high plateau it cannot camp at 4,500 m, without boats it cannot reach an island. Each new land therefore comes with an **adaptation**, a culture profile with its own clothes, shelters, tools, food and animals, so the people who walk into Ice Age Europe come out of their huts in sewn fur clothes and hunt reindeer, and those who reach New Guinea build bark shelters and dig yams. Every arrival and every adaptation is a key moment on the timeline with a card in English and German.
@@ -28,7 +30,7 @@ Dates and sources in these tables are drafted from the overview literature and a
 
 | Id | Date | Place | Lat, lon | Evidence and source |
 | --- | --- | --- | --- | --- |
-| `bab-el-mandeb` | c. 60,000 BCE | Crossing of the Bab-el-Mandeb into Arabia | 12.60, 43.30 | Decided (humankind.md section 7); main dispersal 60,000 to 50,000 years ago (Bae, Douka and Petraglia 2017, *Science* 358) |
+| `bab-el-mandeb` | c. 60,000 BCE | Crossing of the Bab-el-Mandeb into Arabia, on its Arabian shore | 13.30, 43.55 | Decided (humankind.md section 7); main dispersal 60,000 to 50,000 years ago (Bae, Douka and Petraglia 2017, *Science* 358) |
 | `south-asia` | c. 53,000 BCE | Coast of Gujarat, India | 21.50, 70.50 | About 55,000 years ago from genetics and microliths (Mellars et al. 2013, *PNAS* 110); older Jwalapuram tools debated |
 | `sundaland` | c. 52,000 BCE | Lida Ajer, Sumatra | -0.40, 100.30 | Teeth dated 73,000 to 63,000 years ago (Westaway et al. 2017, *Nature* 548), debated; Niah Cave, Borneo, from about 50,000 years ago (Barker et al. 2007, *Journal of Human Evolution* 52) |
 | `wallacea` | c. 51,000 BCE | Sulawesi | -5.00, 119.80 | Cave painting of 51,200 years ago, the oldest known (Oktaviana et al. 2024, *Nature* 631) |
@@ -71,9 +73,30 @@ Dates and sources in these tables are drafted from the overview literature and a
 
 When the ice sheets melt after about 15,000 BCE, people follow the edge of the ice into land that was empty: northern Europe and Britain (about 13,000 BCE), Scandinavia (Norway's coast about 9500 BCE, Bang-Andersen 2012, *Norwegian Archaeological Review* 45), and the north of Canada. These need no arrival point: the land was inside the culture areas before the ice came, so the arrival map has already opened it, and camps return as soon as the habitat allows (section 5).
 
-### 3.5 After 9000 BCE
+### 3.5 After the thresholds
 
-This plan ends at 9000 BCE, before farming begins (decided by Yang on 2026-10-18). The lands reached later, all of them by sea or across the Arctic (the Caribbean, the Arctic of Canada and Greenland, the islands of the Pacific, Madagascar, Iceland and New Zealand), get their own plan with the milestones of their dates ([milestones.md](milestones.md)). Antarctica stays without camps for the whole timeline.
+This plan ends at the Neolithic thresholds of section 3.6, where farming begins (Yang, 2026-10-19; until then it ended at 9000 BCE everywhere, decided by Yang on 2026-10-18). Away from the thresholds, foragers keep living as before until the tree ends at c. 6500 BCE (**Proposed**), when farming has not yet reached them: it reaches Greece about 6500 BCE and the rest of Europe, Egypt and India later, which belongs to the farming plan. The lands reached later, all of them by sea or across the Arctic (the Caribbean, the Arctic of Canada and Greenland, the islands of the Pacific, Madagascar, Iceland and New Zealand), get their own plan with the milestones of their dates ([milestones.md](milestones.md)). Antarctica stays without camps for the whole timeline.
+
+### 3.6 Neolithic thresholds and red flags
+
+A **Neolithic threshold** is a place and date where a local population of foragers is about to start farming or herding on its own: the centres of domestication of mainstream archaeology (Larson et al. 2014, *PNAS* 111) that fall before the tree's end. The farming plan (milestone 3) continues from them; this plan only marks them. The records go to `data/curated/neolithic.json` (**Proposed**), each with its source.
+
+| Id | Date | Place | Lat, lon | Evidence and source |
+| --- | --- | --- | --- | --- |
+| `fertile-crescent` | c. 9500 BCE | Jericho, southern Levant | 31.87, 35.44 | Pre-Pottery Neolithic A, wild cereals sown and harvested (Zeder 2011, *Current Anthropology* 52 S4) |
+| `amazonia` | c. 8300 BCE | Llanos de Moxos, Bolivia | -13.60, -65.40 | Squash and manioc on forest islands, about 10,350 years ago (Lombardo et al. 2020, *Nature* 581) |
+| `mesoamerica` | c. 8000 BCE | Guilá Naquitz, Oaxaca, Mexico | 16.95, -96.43 | Domesticated squash, about 10,000 years ago (Smith 1997, *Science* 276) |
+| `andes` | c. 8000 BCE | Ñanchoc Valley, northern Peru | -6.85, -79.20 | Squash, about 10,000 years ago (Dillehay et al. 2007, *Science* 316) |
+| `yellow-river` | c. 8000 BCE | Cishan, Hebei, China | 36.58, 114.10 | Broomcorn millet, about 10,000 years ago (Lu et al. 2009, *PNAS* 106) |
+| `new-guinea` | c. 8000 BCE | Kuk Swamp, Papua New Guinea | -5.78, 144.33 | Plants tended at the swamp edge about 10,000 years ago, debated; mounded gardens from about 7000 years ago (Denham et al. 2003, *Science* 301) |
+| `yangtze` | c. 7500 BCE | Shangshan, Zhejiang, China | 29.45, 119.97 | Rice cultivation, about 9,400 years ago (Zuo et al. 2017, *PNAS* 114) |
+| `south-asia-farming` | c. 7000 BCE | Mehrgarh, Pakistan | 29.38, 67.62 | Barley, wheat and zebu cattle, about 9,000 years ago (Jarrige et al. 1995, *Mehrgarh: Field Reports 1974–1985*) |
+
+Later centres (eastern North America, the Sahel and West Africa, Ethiopia) come after the tree's end and belong to the farming plan.
+
+- **The flag.** From a threshold's date, the camp of the tree nearest its place (within 1,500 km, **Proposed**) puts up a **huge red flag** beside its hearth (a new model `prop-red-flag`: a tall pole with a red cloth, drawn at four times a lodging's height so it is seen from far out; **Proposed**). It is a marker for development, not history: it shows Yang where the farming plan picks up (Yang, 2026-10-19), has no card and goes when the farming plan replaces it.
+- **The camps stay.** From the threshold's date, the camps of the tree within 800 km of its place (**Proposed**) stop moving and stop sending out groups: these foragers are settling down, as the Natufians already had in the Levant, and the farming plan starts from them. The flag stays at its camp until the tree ends.
+- **Key moment.** Each flag is a key moment of the tree (`neolithic-threshold`, humankind.md section 6.2). The build reports, without failing, every threshold with no camp within 1,500 km on its date.
 
 ## 4. The arrival map
 
@@ -110,7 +133,7 @@ Each profile carries **limits** that, together with the land, ice and desert of 
 
 | Limit | Meaning | **Proposed** values |
 | --- | --- | --- |
-| `coldestC` | The lowest annual mean temperature (Beyer et al. 2020, BIO1, already in `data/sources/beyer-2020/`) at which camps may stand | Light clothing and hide cloaks (`african-stone-age`, `coastal-asia-hunter`): 5 °C; cloaks and fitted clothes (`first-australians`, with possum-skin cloaks in the south, `west-asia-hunter`, `east-asia-hunter`, `first-americans`, `natufian`): 0 °C; tailored furs sewn with eyed needles (`ice-age-hunter`, `steppe-beringia-hunter`): −15 °C |
+| `coldestC` | The lowest annual mean temperature (Beyer et al. 2020, BIO1, already in `data/sources/beyer-2020/`) at which camps may stand | Light clothing and hide cloaks (`african-stone-age`, `coastal-asia-hunter`): 5 °C; cloaks and fitted clothes (`first-australians`, with possum-skin cloaks in the south, `west-asia-hunter`, `east-asia-hunter`, `first-americans`, `natufian`): 0 °C; tailored furs sewn with eyed needles (`ice-age-hunter`): −15 °C; the mammoth hunters of Siberia (`steppe-beringia-hunter`): −28 °C, since the climate data gives the Yana site −27.7 °C at 30,000 BCE; `first-americans` −5 °C, for the ice-free corridor (tuned on 2026-10-19). Desert is aridity of 0.8 or more, as before, only where Köppen's rule for dry climates agrees (annual rain under 10 mm per °C of the annual mean plus 140 mm), so the cold, dry steppes of the Ice Age are not deserts |
 | `highestM` | The highest ground for camps, replacing the single 3,500 m of humankind.md section 5 | 3,500 m; 4,800 m for the people of the Tibetan Plateau from c. 38,000 BCE and of the Andes from c. 10,500 BCE |
 | `crossing` | The widest water a band can cross by boat (section 6) | Small canoes, about 100 km, for every profile that lives on a coast |
 
@@ -200,6 +223,16 @@ Each step is a slice with its own preview for Yang (feedback first), after the c
 4. **Adaptation moments, prey and dogs**, and the route overlay and cards.
 
 New models (the men, women and children of three profiles, `shelter-monte-verde-hut`, `prop-canoe`, `animal-dog`) go to Yang for approval in the step that first needs them.
+
+### 9.1 The first implementation (Yang, 2026-10-19)
+
+Asked to implement the spread across the continents in one go, the first implementation builds steps 1 to 3 together and leaves the rest for later slices (**Proposed**):
+
+- **Built.** The arrival points and routes of section 3 as a provisional `data/curated/arrivals.json` (en and de names, sources; the Markdown records with cards follow with step 4), the arrival map of section 4 (without the 300 km coastal rule, which the routes' points already keep close to), the crossings of section 6 with canoes, culture areas for every profile of section 5.1 with the limits of section 5.2 (`coldestC` from the climate data, `highestM`, held per culture area so the Tibetan Plateau and the Andes can have their own), the change of clothes in the hut (section 5.3), prey for the hunts of every profile (section 5.5, with the spear hunt and pole carry of humankind.md section 8.1 rather than an animal walking off), the Neolithic thresholds and red flags (section 3.6), and the tree running to c. 6500 BCE.
+- **Prey** per profile (**Proposed**), from the approved wildlife models that two people can carry on a pole: `african-stone-age` zebra and eland; `coastal-asia-hunter`, `west-asia-hunter`, `east-asia-hunter` and `natufian` gazelle; `first-australians` kangaroo; `ice-age-hunter` and `steppe-beringia-hunter` reindeer; `first-americans` guanaco.
+- **Canoes** (**Proposed**): one small canoe for each person, paddled at walking pace (a few seconds of watching for a crossing at the drawn size), not the minute of section 6; the canoes are not left on the shore yet.
+- **Sites.** Bands camp at the sites of [sites.md](sites.md) and follow routes along its links (sites.md section 4), which replaces the free search for spots and the route bands of the first draft of this section (Yang, 2026-10-19).
+- **Later.** Neanderthals as the second root and their meeting with modern humans, the adaptation moments and dogs of sections 5.4 and 5.5, the route overlay, the arrival cards and timeline marks, the family line on the card, the 300 km coastal rule, the report and the development view of section 8.
 
 ## 10. Changes to the rest of the spec
 

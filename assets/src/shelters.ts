@@ -28,6 +28,9 @@ export const SHELTERS = [
   'prop-drying-rack',
   'prop-carry-pole',
   'prop-spit',
+  'prop-canoe',
+  'prop-red-flag',
+  'shelter-small-hut',
 ] as const;
 export type ShelterId = (typeof SHELTERS)[number];
 
@@ -46,6 +49,10 @@ export const CAMP_SHELTER: Partial<Record<Profile, ShelterId>> = {
   'ice-age-hunter': 'shelter-hide-tent',
   'steppe-beringia-hunter': 'shelter-hide-tent',
   natufian: 'shelter-natufian-house',
+  // Hide tents until their own shelters are made (peopling.md section 9.1).
+  'west-asia-hunter': 'shelter-hide-tent',
+  'east-asia-hunter': 'shelter-hide-tent',
+  'first-americans': 'shelter-hide-tent',
 };
 
 const POLE = '#7a5030';
@@ -409,6 +416,64 @@ export function buildShelter(id: ShelterId): Model {
       }
       mb.add(rod([0, 0.79, -0.95], [0, 0.79, 0.95], 0.03, 5), POLE);
       mb.add(blob([0, 0.76, 0], [0.16, 0.13, 0.3], 7), '#8b3a26');
+      break;
+    }
+    case 'shelter-small-hut': {
+      // A small brush shelter for one family (sites.md section 2: minimal camps), where land
+      // is too narrow for a full camp: a few branches leant together into a low half dome,
+      // its open side the door, towards the hearth (+Z), and leafy boughs laid over it.
+      const R = 0.85;
+      const H = 1.0;
+      const apex: Vec3 = [0, H, -0.15];
+      const step = (k: number) => {
+        mb.bone({ name: `${BUILD_BONE}${k}`, pivot: [0, 0, 0] });
+        return `${BUILD_BONE}${k}`;
+      };
+      const frame = step(0);
+      // Six branches from the back half of a ring to the apex; none across the door.
+      for (let i = 0; i < 6; i++) {
+        const a = Math.PI * (0.25 + (1.5 * i) / 5);
+        mb.add(rod([Math.sin(a) * R, 0, Math.cos(a) * R], apex, 0.035, 4), POLE, frame);
+      }
+      // The boughs: leafy clumps over the frame in two rows, low and high, open at the door.
+      const leaves = step(1);
+      for (const [t, n, size] of [
+        [0.3, 6, 0.32],
+        [0.7, 4, 0.26],
+      ] as const)
+        for (let i = 0; i < n; i++) {
+          const a = Math.PI * (0.3 + (1.4 * (i + 0.5)) / n);
+          const x = Math.sin(a) * R * (1 - t) + apex[0] * t;
+          const z = Math.cos(a) * R * (1 - t) + apex[2] * t;
+          mb.add(
+            blob([x, H * t * 0.95, z], [size, size * 0.6, size], 6),
+            shade('#6f8a3c', 0.08 * (i % 3) - 0.08),
+            leaves,
+          );
+        }
+      break;
+    }
+    case 'prop-canoe': {
+      // A small dugout canoe along +Z (peopling.md section 6): a hollowed log with pointed
+      // ends, its paddler sitting in the middle, a spare paddle along the side.
+      mb.add(blob([0, 0.17, 0], [0.34, 0.19, 1.85], 10), '#8a5a34');
+      mb.add(blob([0, 0.31, 0], [0.25, 0.07, 1.55], 8), '#3e2a1c');
+      mb.add(rod([0.22, 0.36, -0.9], [0.22, 0.36, 0.6], 0.025, 4), POLE);
+      mb.add(blob([0.22, 0.36, 0.75], [0.06, 0.02, 0.17], 5), POLE);
+      break;
+    }
+    case 'prop-red-flag': {
+      // A marker for development, not history (peopling.md section 3.6): a tall pole with a
+      // huge red cloth, about four times as high as a hut, so it is seen from far out.
+      mb.add(rod([0, 0, 0], [0, 12.4, 0], 0.13, 6), '#e9e2d0');
+      mb.add(blob([0, 12.55, 0], [0.22, 0.22, 0.22], 6), '#d9b13a');
+      const rows: Vec3[][] = [0, 1, 2, 3].map((r) =>
+        [0, 1, 2, 3, 4].map((c): Vec3 => {
+          const x = 0.1 + c * 1.3;
+          return [x, 12 - r * 1.2 - 0.12 * c, 0.35 * Math.sin(c * 1.4 + r * 0.3)];
+        }),
+      );
+      mb.add(sheet(rows), '#d42323');
       break;
     }
     case 'prop-carry-pole': {

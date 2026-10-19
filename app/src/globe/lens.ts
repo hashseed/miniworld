@@ -215,6 +215,9 @@ export const MAX_STRENGTH = 2;
  * The warp and its blend with the identity: 0 shows true sizes, 1 the warp
  * as built (100%) and 2 twice its displacement (200%, history-lens.md).
  */
+/** The lens is fixed at this strength, 120% of the warp as built (history-lens.md section 1). */
+export const LENS_STRENGTH = 1.2;
+
 export class Lens {
   readonly forward: Float64Array;
   readonly inverse: Float64Array;

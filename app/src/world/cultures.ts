@@ -11,5 +11,9 @@ export const PROFILES = [
   'steppe-beringia-hunter',
   'natufian',
   'old-kingdom-egyptian',
+  // Peopling the world (peopling.md section 5.1).
+  'west-asia-hunter',
+  'east-asia-hunter',
+  'first-americans',
 ] as const;
 export type Profile = (typeof PROFILES)[number];

@@ -1,6 +1,6 @@
 // Screenshots at the golden dates (spec milestone 1, sections 13 and 14) of
 // Beringia and Sundaland, and of Doggerland and the European ice sheet, with
-// the history lens on and off (history-lens.md, section 5), at desktop and
+// the history lens at its fixed 120% (history-lens.md, section 1), at desktop and
 // phone sizes. They are attached to the test report for review; CI keeps the
 // report as an artifact.
 //
@@ -71,28 +71,24 @@ function showDate(page: Page, date: number | 'today'): Promise<{ day: number; se
   );
 }
 
-// One test per view and lens setting, so CI runs them on separate runners at
-// once; the lens strength comes from the saved settings, as the slider has its
-// own test (app.spec.ts).
+// One test per view, so CI runs them on separate runners at once; the lens is
+// fixed at 120% (history-lens.md section 1).
 for (const [view, camera] of Object.entries(VIEWS))
-  for (const lens of [100, 0])
+  for (const lens of [120])
     test(`screenshots at the golden dates over ${view} with the lens at ${lens}%`, async ({
       page,
     }, info) => {
       test.setTimeout(300_000);
       await page.addInitScript(
-        ({ camera, day, lens }) => {
-          // A first visit in English, at the view and the first date, with the lens set.
+        ({ camera, day }) => {
+          // A first visit in English, at the view and the first date.
           if (sessionStorage.getItem('miniworld.test.started')) return;
           sessionStorage.setItem('miniworld.test.started', '1');
           localStorage.clear();
-          localStorage.setItem(
-            'miniworld.settings.v1',
-            JSON.stringify({ language: 'en', lensStrength: lens, lensHintSeen: true }),
-          );
+          localStorage.setItem('miniworld.settings.v1', JSON.stringify({ language: 'en' }));
           localStorage.setItem('miniworld.view.v3', JSON.stringify({ day, camera }));
         },
-        { camera, day: DATES[0]![1] as number, lens },
+        { camera, day: DATES[0]![1] as number },
       );
       await page.goto('/');
       await expect(page.locator('.overlay')).toHaveCount(0, { timeout: 60_000 });

@@ -31,7 +31,6 @@ import {
   FollowIcon,
   GearIcon,
   LanesIcon,
-  LensIcon,
   PauseIcon,
   TurtleIcon,
   WalkerIcon,
@@ -113,9 +112,6 @@ export function App({ store, hot, i18n, actions }: Props) {
       >
         <CompassIcon />
       </button>
-      {s.ready && !s.stressScene && !s.settings.lensHintSeen && (
-        <LensHint t={t} actions={actions} />
-      )}
 
       {s.panel === 'settings' && <SettingsPanel s={s} t={t} actions={actions} />}
       {s.panel === 'bookmarks' && <BookmarksPanel s={s} t={t} lang={lang} actions={actions} />}
@@ -128,7 +124,6 @@ export function App({ store, hot, i18n, actions }: Props) {
         {s.fixture && <div class="notice">{t('app.fixtureNotice')}</div>}
         <div class="bar">
           <PlayControls hot={hot} i18n={i18n} actions={actions} />
-          <LensFold s={s} t={t} i18n={i18n} actions={actions} />
         </div>
         <TimelineCanvas s={s} t={t} actions={actions} />
       </div>
@@ -361,68 +356,6 @@ function Fold({
         <div class="fold-box">{children}</div>
       </div>
     </div>
-  );
-}
-
-/** The history lens strength, 0 to 200%, behind a magnifier (history-lens.md, section 1). */
-function LensFold({ s, t, i18n, actions }: { s: UiState; t: T; i18n: I18n; actions: Actions }) {
-  const value = s.settings.lensStrength;
-  const text = t('lens.value', { percent: i18n.number(value) });
-  return (
-    <Fold
-      class="lens-fold"
-      button={(open) => (
-        <button
-          class="btn"
-          aria-label={t('lens.slider')}
-          title={t('lens.sliderHint')}
-          data-testid="lens-button"
-          onClick={open}
-        >
-          <LensIcon />
-        </button>
-      )}
-    >
-      <input
-        type="range"
-        min={0}
-        max={200}
-        step={10}
-        value={value}
-        aria-label={t('lens.slider')}
-        aria-valuetext={text}
-        data-testid="lens-strength"
-        onInput={(e) =>
-          actions.setSetting('lensStrength', Number((e.target as HTMLInputElement).value))
-        }
-      />
-      <output>{text}</output>
-    </Fold>
-  );
-}
-
-/** The first-start hint about the history lens (history-lens.md, section 1). */
-function LensHint({ t, actions }: { t: T; actions: Actions }) {
-  const [more, setMore] = useState(false);
-  return (
-    <aside class="lens-hint" role="note" data-testid="lens-hint">
-      <p>{t('lens.hint')}</p>
-      {more ? (
-        <p class="more">{t('lens.learnMoreText')}</p>
-      ) : (
-        <button class="link" onClick={() => setMore(true)}>
-          {t('lens.learnMore')}
-        </button>
-      )}
-      <button
-        class="btn close"
-        aria-label={t('lens.closeHint')}
-        title={t('lens.closeHint')}
-        onClick={() => actions.closeLensHint()}
-      >
-        <CloseIcon />
-      </button>
-    </aside>
   );
 }
 

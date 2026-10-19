@@ -29,13 +29,18 @@ import {
   type TreeActor,
 } from '../vignettes/figures.ts';
 import type { StandIn } from '../vignettes/standIns.ts';
+import type { Profile } from '../world/cultures.ts';
 import type { SurfaceSource } from '../vignettes/vignetteLayer.ts';
 import type { Obstacle } from '../wildlife/wildlifeLayer.ts';
 
+/** Camps this far beyond the horizon, in radians, are still worked out, for the history lens. */
+const NEAR_MARGIN = 0.3;
 /** Half sizes of what wild animals keep clear of, in life-size metres (wildlife.md section 4). */
 const FIGURE_HALF_M = 0.4;
 const PREY_HALF_M = 1.3;
 const LODGING_HALF_M = 1.4;
+/** Lodgings are drawn at most this wide, in life-size metres, so every culture's fits the camp's layout. */
+const LODGING_MAX_M = 2.7;
 const HEARTH_HALF_M = 1;
 
 export class TreeLayer {
@@ -48,6 +53,8 @@ export class TreeLayer {
   private chunks = new Map<number, TreeChunk>();
   private requested = new Set<number>();
   private figures = new Map<number, TreeActor>();
+  /** The culture each figure's model was built for. */
+  private profiles = new Map<number, Profile>();
   private lodgings = new Map<number, StandIn | undefined>();
   private hearths = new Map<number, StandIn | undefined>();
   private prey = new Map<string, StandIn | undefined>();
@@ -90,6 +97,32 @@ export class TreeLayer {
     return this.blocking.slice(0, this.blocked);
   }
 
+  /** The scale that keeps a lodging model at most LODGING_MAX_M across, by its kind. */
+  private fits = new Map<string, number>();
+  private fitOf(kind: string, root: THREE.Object3D): number {
+    let fit = this.fits.get(kind);
+    if (fit === undefined) {
+      // Measured upright at the origin, as built.
+      const [pos, turn, scale] = [
+        root.position.clone(),
+        root.quaternion.clone(),
+        root.scale.clone(),
+      ];
+      root.position.set(0, 0, 0);
+      root.quaternion.identity();
+      root.scale.setScalar(1);
+      root.updateMatrixWorld(true);
+      const size = new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3());
+      fit = Math.min(1, LODGING_MAX_M / Math.max(size.x, size.z, 1e-6));
+      root.position.copy(pos);
+      root.quaternion.copy(turn);
+      root.scale.copy(scale);
+      root.updateMatrixWorld(true);
+      this.fits.set(kind, fit);
+    }
+    return fit;
+  }
+
   /** Notes an object just placed as one the animals keep clear of. */
   private block(root: THREE.Object3D, halfM: number): void {
     const o = (this.blocking[this.blocked++] ??= { dir: new THREE.Vector3(), km: 0 });
@@ -115,15 +148,30 @@ export class TreeLayer {
       return;
     }
     this.request(w + 1);
-    const scene = treeScene(chunk, ms, startDay);
+    // Only the camps on the camera's side of the globe, with a margin for the history lens.
+    const camDir = this.v2.copy(camera.position).normalize();
+    const limit = Math.acos(Math.min(1, EARTH_RADIUS_KM / camera.position.length())) + NEAR_MARGIN;
+    const cosLimit = Math.cos(Math.min(Math.PI, limit));
+    const near = (lat: number, lon: number) => {
+      const [x, y, z] = latLonToDir(lat, lon);
+      return x * camDir.x + y * camDir.y + z * camDir.z >= cosLimit;
+    };
+    const scene = treeScene(chunk, ms, startDay, near);
 
     const seen = new Set<number>();
     for (const f of scene.figures) {
       seen.add(f.id);
       let actor = this.figures.get(f.id);
+      // A figure in new clothes is a new model (peopling.md section 5.3).
+      const profile = (f.profile ?? 'african-stone-age') as Profile;
+      if (actor && this.profiles.get(f.id) !== profile) {
+        this.prune(this.figures, new Set([...this.figures.keys()].filter((id) => id !== f.id)));
+        actor = undefined;
+      }
       if (!actor) {
-        actor = buildTreeFigure(f.look, f.id);
+        actor = buildTreeFigure(f.look, f.id, profile);
         this.figures.set(f.id, actor);
+        this.profiles.set(f.id, profile);
         this.group.add(actor.root);
       }
       if (!this.place(actor.root, f)) continue;
@@ -172,7 +220,8 @@ export class TreeLayer {
         this.spears.delete(id);
       }
 
-    // Drying racks beside the lodgings, and the spit over a fire while meat roasts.
+    // Drying racks beside the lodgings, the spit over a fire while meat roasts, canoes on
+    // the water and red flags at the Neolithic thresholds.
     const standing = new Set<string>();
     for (const q of scene.props) {
       standing.add(q.id);
@@ -249,14 +298,16 @@ export class TreeLayer {
       const prop = this.lodgings.get(l.id);
       if (!prop || !this.place(prop.root, l)) continue;
       this.block(prop.root, LODGING_HALF_M);
+      // Every lodging fits the camp's layout, at most LODGING_MAX_M across (humankind.md section 8.1).
+      const km = FIGURE_KM_PER_M * this.fitOf(l.kind, prop.root);
       // While the band builds it, the lodging goes up step by step, or rises whole.
       if (prop.setBuilt) {
         prop.setBuilt(l.built);
-        prop.root.scale.setScalar(FIGURE_KM_PER_M);
+        prop.root.scale.setScalar(km);
       } else {
         const rise = l.built * l.built * (3 - 2 * l.built);
-        const wide = FIGURE_KM_PER_M * (0.5 + 0.5 * rise);
-        prop.root.scale.set(wide, FIGURE_KM_PER_M * Math.max(0.04, rise), wide);
+        const wide = km * (0.5 + 0.5 * rise);
+        prop.root.scale.set(wide, km * Math.max(0.04, rise), wide);
       }
     }
     this.prune(this.lodgings, seen);

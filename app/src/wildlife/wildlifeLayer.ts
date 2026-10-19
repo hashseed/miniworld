@@ -30,7 +30,7 @@ import {
 import type { SurfaceSource } from '../vignettes/vignetteLayer.ts';
 
 /** Drawn kilometres per life-size metre: half as large again as the figures (section 1). */
-const KM_PER_M = 75;
+export const KM_PER_M = 63.75;
 /** An animal's size (the larger of its height and half its length) is drawn between these, in metres (section 1). */
 const MIN_SIZE_M = 1.8;
 const MAX_SIZE_M = 4;

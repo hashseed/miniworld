@@ -36,3 +36,34 @@ export function detCos(x: number): number {
 
 /** Degrees to radians. */
 export const RAD = PI / 180;
+
+const SQRT3 = 1.7320508075688772;
+const TAN_PI_12 = 2 - SQRT3;
+
+/** Arctangent on [0, 1]: down to [0, tan π/12] by the π/6 identity, then odd Taylor to x¹³, error below 1e-9. */
+function atanUnit(t: number): number {
+  let base = 0;
+  if (t > TAN_PI_12) {
+    t = (t * SQRT3 - 1) / (SQRT3 + t);
+    base = PI / 6;
+  }
+  const t2 = t * t;
+  let s = 1 / 13;
+  s = s * -t2 + 1 / 11;
+  s = s * -t2 + 1 / 9;
+  s = s * -t2 + 1 / 7;
+  s = s * -t2 + 1 / 5;
+  s = s * -t2 + 1 / 3;
+  return base + t - t * t2 * s;
+}
+
+/** Deterministic angle of the point (x, y) from the x axis, in radians, as Math.atan2(y, x). */
+export function detAtan2(y: number, x: number): number {
+  const ax = Math.abs(x);
+  const ay = Math.abs(y);
+  if (ax === 0 && ay === 0) return 0;
+  // The angle in the first octant, then unfolded.
+  let a = ay <= ax ? atanUnit(ay / ax) : HALF_PI - atanUnit(ax / ay);
+  if (x < 0) a = PI - a;
+  return y < 0 ? -a : a;
+}

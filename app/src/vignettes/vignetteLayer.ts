@@ -31,7 +31,7 @@ import { buildActor, buildProp, buildSpearObject, lightModels } from './figures.
 import type { StandIn } from './standIns.ts';
 
 /** Drawn kilometres per life-size metre of a figure, at every zoom (section 5.1). */
-const FIGURE_KM_PER_M = 50;
+const FIGURE_KM_PER_M = 42.5;
 /** Figures are drawn this many times larger than the stage layout (section 5.1). */
 const OVERSIZE = 3;
 /** Drawn kilometres per life-size metre of the stage layout. */
