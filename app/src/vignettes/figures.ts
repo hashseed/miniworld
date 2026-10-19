@@ -20,10 +20,8 @@ import {
   buildHearth,
   buildShelter,
   CAMP_SHELTER,
-  buildSteps,
   flickerHearth,
   lightHearth,
-  setBuilt,
   SHELTERS,
   type ShelterId,
 } from '../../../assets/src/shelters.ts';
@@ -218,31 +216,59 @@ export function treeFigureBatch(
   look: 'founder' | 'woman' | 'man' | 'child',
   id: number,
   profile: Profile = 'african-stone-age',
-): { key: string; build: () => Model } | undefined {
+): TreeBatch | undefined {
   const asset = look === 'founder' ? 'figure-first-person' : `figure-${profile}-${look}`;
   if (!drawable.has(asset)) return undefined;
   if (look === 'founder')
     return {
       key: 'founder',
-      build: () => buildPerson({ profile: 'african-stone-age', kind: 'woman', founder: true }),
+      build: () =>
+        turned(buildPerson({ profile: 'african-stone-age', kind: 'woman', founder: true })),
     };
   const variant = (id % 997) % LOOK_VARIANTS;
   return {
     key: `${profile}:${look}:${variant}`,
-    build: () => buildPerson({ profile, kind: look, variant }),
+    build: () => turned(buildPerson({ profile, kind: look, variant })),
   };
 }
 const LOOK_VARIANTS = 12;
 
-/** A lodging of the tree by its asset id, facing +X like the stage, or undefined without an approved model. */
-export function buildLodging(kind: string): StandIn | undefined {
-  if (!(SHELTERS as readonly string[]).includes(kind) || !drawable.has(kind)) return undefined;
-  const model = buildShelter(kind as ShelterId);
-  const steps = buildSteps(model);
-  const prop = wrap(model, () => {});
-  if (!steps.length) return prop;
-  return { ...prop, setBuilt: (built: number) => setBuilt(steps, built) };
+/** A model drawn as copies in a batch (posedBatches.ts): its key and how to build it. */
+export interface TreeBatch {
+  key: string;
+  build: () => Model;
 }
+
+/** Turns a model to face +X like the stage and the stand-ins, as wrap() does. */
+function turned(model: Model): Model {
+  model.object.rotation.y = Math.PI / 2;
+  return model;
+}
+
+/** The batch of a lodging or camp prop of the tree by its asset id, or undefined without an approved model. */
+export function treePropBatch(kind: string): TreeBatch | undefined {
+  if (kind === 'prop-hearth')
+    return drawable.has(kind) ? { key: kind, build: () => turned(buildHearth()) } : undefined;
+  if (!(SHELTERS as readonly string[]).includes(kind) || !drawable.has(kind)) return undefined;
+  return { key: kind, build: () => turned(buildShelter(kind as ShelterId)) };
+}
+
+/** The batch of a hunted animal of the tree by its model id, or undefined without an approved model. */
+export function treePreyBatch(id: AnimalId): TreeBatch | undefined {
+  if (!drawable.has(id)) return undefined;
+  return { key: id, build: () => turned(buildAnimal(id)) };
+}
+
+/** The batch of thrown spears: the shaft along +Y, its middle at the origin, at life size. */
+export const TREE_SPEAR_BATCH: TreeBatch = {
+  key: 'spear',
+  build: () => {
+    const spear = buildSpear();
+    // The model's shaft runs up from its grip.
+    spear.object.position.set(0, -1.1, 0);
+    return spear;
+  },
+};
 
 /** A hunted animal of the tree by its model id, facing +X like the stage, or undefined without an approved model. */
 export function buildTreePrey(id: AnimalId): StandIn | undefined {

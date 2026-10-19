@@ -105,7 +105,7 @@ From orbit an adult is then about 15 pixels tall on a desktop screen; close to t
 
 - One shared skeleton for all humans, with per-profile body proportions (Neanderthals stockier, children smaller) applied as bone scales.
 - Parts per profile: clothing, hair and headgear, held tools (spear, digging stick, scraper, needle, torch, basket, sickle) attached to hand bones. A figure's look is its profile plus a hash of its id choosing among the profile's variants of colour and parts.
-- Figures are instanced: one draw call per profile part set and level of detail.
+- Figures are instanced: one draw call per profile part set and level of detail. So are the camps of the tree of humankind: lodgings, hearths, racks, spits, canoes, flags, carrying poles, spears and hunted animals are copies of a few models, posed per copy (lodgings going up step by step, fires flickering); only an animal fading in or out is drawn on its own.
 
 ### 5.3 Animations
 
