@@ -90,6 +90,7 @@ const hot = new Store<HotState>({
 });
 const ui = new Store<UiState>({
   ready: false,
+  loaded: 0.05,
   error: undefined,
   panel: 'none',
   settings,
@@ -514,6 +515,7 @@ async function start(): Promise<void> {
   render(h(App, { store: ui, hot, i18n, actions }), document.getElementById('ui')!);
   try {
     const manifest = await loader.init();
+    showLoaded(0.15);
     tree.setChunks(manifest.tree?.files ?? [], manifest.tree?.days ?? []);
     if (params.has('sites') && manifest.tree?.sites) {
       sitesView = new SitesLayer(
@@ -529,6 +531,7 @@ async function start(): Promise<void> {
       loader.fetchBytes(manifest.lens.file),
     ]);
     index = loadedIndex;
+    showLoaded(0.35);
     const grids = decodeLensGrids(lensBytes);
     globe.setLens(new Lens(grids.forward, grids.inverse));
     minSeaLevel = lowestSeaLevel(index.seaLevel);
@@ -567,7 +570,7 @@ async function start(): Promise<void> {
     resize();
     loop.start();
     await firstView();
-    ui.update({ ready: true });
+    ui.update({ ready: true, loaded: 1 });
     // The first view's data budget counts what was requested before this mark.
     performance.mark('miniworld:first-view');
     // Plants load after the first view, outside its data budget (spec foliage.md, section 7).
@@ -578,13 +581,23 @@ async function start(): Promise<void> {
   registerServiceWorker();
 }
 
+/** Shows a larger share loaded on the loading screen; the share never goes down (milestone-1 section 8.6). */
+function showLoaded(share: number): void {
+  if (share >= ui.value.loaded + 0.01) ui.update({ loaded: Math.min(1, share) });
+}
+
 /** Resolves when the globe has stopped refining for a moment, or after a timeout. */
 function firstView(): Promise<void> {
   return new Promise((resolve) => {
     const begin = performance.now();
+    const before = loader.finished;
     let stable = 0;
     let last = -1;
     const check = () => {
+      // The first view's share: the requests made since the index arrived that have finished.
+      const done = loader.finished - before;
+      const left = loader.pending + globe.pendingBuilds;
+      if (done + left > 0) showLoaded(0.35 + (0.65 * done) / (done + left));
       const tiles = globe.drawnTiles;
       if (tiles > 0 && tiles === last && loader.pending === 0 && globe.pendingBuilds === 0)
         stable++;

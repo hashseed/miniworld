@@ -43,6 +43,8 @@ export interface HotState {
 /** State that changes only on the viewer's actions or as data arrives. */
 export interface UiState {
   ready: boolean;
+  /** The share of the first view loaded so far, 0 to 1, for the loading screen (milestone-1 section 8.6). */
+  loaded: number;
   error: string | undefined;
   panel: Panel;
   settings: Settings;

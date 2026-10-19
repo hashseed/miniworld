@@ -347,6 +347,15 @@ A bookmark stores a date and a camera position under a name the viewer types, de
 
 Opened from a link at the end of the settings panel, "About and sources" ("Über und Quellen"), so the attribution the data licences require stays one tap away (spec section 13). Shows the app name, version and content cutoff date; the data sources and licences from `data/sources.json`; and the known simplifications named in sections 4.3, 5.1 and 5.2, in plain language for the child and the parent. All text is in both languages and lives in the message files.
 
+### 8.6 Loading screen
+
+Asked for by Yang on 2026-10-19: "a loading screen with progress indicator that resembles the human evolution meme". Until the first view is ready, the screen shows the famous "march of progress" picture: figures walking left to right in single file, from a knuckle-walking ape through an australopithecine, *Homo habilis*, *Homo erectus* and a Neanderthal to a modern human. As a wink in the spirit of the meme, the modern human is a child looking at a small globe. The progress bar is the ground they walk on. Each figure steps in, walking in place, once the bar passes its place in the line, so a full line means the world is ready. Above the line is the caption "Loading the world…" ("Die Welt wird geladen …") with the share loaded as a whole percentage.
+
+- **What the share counts.** The app shell counts 5%, the manifest 15%, and the startup index with the history lens grids 35%. The rest is the first view (section 10.6), counted as the share of the data requests made since the index arrived that have finished, which never goes down. The screen fades out over half a second once the first view is ready (`firstView` in `app.ts`), showing 100% as it goes.
+- **Drawn, not pictured.** The figures are simple silhouettes of rounded strokes, drawn as SVG in the code, with no text in them. Each has its own lean, from bent forward to upright, and its own arm length. They walk with a short looped stride, and with reduced motion they stand still.
+- **Accessible.** The bar is a `progressbar` with the percentage as its value and the caption as its name. The figures are decoration and hidden from screen readers.
+- **It is only a picture.** The march is a famous image, not a family tree. Human evolution was a branching bush, not a line. The About panel's simplifications (section 8.5) say so in a sentence for the child: "The loading picture is a joke on a famous drawing. Our ancestors did not march in a line: many kinds of humans lived at the same time." ("Das Ladebild spielt auf eine berühmte Zeichnung an. Unsere Vorfahren sind nicht in einer Reihe marschiert: Viele Menschenarten lebten zur selben Zeit.") Loading never changes the world (section 10.7).
+
 ## 9. Saved state
 
 Local storage holds only small things (spec section 7.6). Each key is versioned JSON; values that fail validation or have an unknown version are discarded and replaced by defaults, never causing an error.

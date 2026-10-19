@@ -54,6 +54,7 @@
   "about.simplification.land": "Das Land hat die Form von heute. In der Eiszeit drückte das schwere Eis das Land nach unten, danach hob es sich langsam wieder. Das wird nicht gezeigt.",
   "about.simplification.lakes": "Seen, die es heute nicht mehr gibt, wie der riesige Agassizsee in Nordamerika, werden nicht gezeigt. Das Schwarze Meer, das Kaspische Meer und die Ostsee werden immer voller Wasser gezeigt, auch wenn der Ozean zu tief stand, um sie zu erreichen.",
   "about.simplification.ice": "Die Eisschilde stammen aus einer wissenschaftlichen Rekonstruktion, die sie alle 2.500 Jahre zeigt. Dazwischen wächst und schmilzt das Eis gleichmäßig, und kleine Gletscher fehlen. Gezeigt wird nur, wo Eis lag, nicht wie dick es war: Jeder Eisschild ist als gleiche glatte Kuppel gezeigt, ohne das Land darunter. Das Meereis auf dem Nordpolarmeer hat einen einfachen, ausgedachten Rand.",
+  "about.simplification.march": "Das Ladebild spielt auf eine berühmte Zeichnung an. Unsere Vorfahren sind nicht in einer Reihe marschiert: Viele Menschenarten lebten zur selben Zeit.",
   "stats.title": "Leistung",
   "stats.fps": "Bilder pro Sekunde",
   "stats.frameTime": "Bildzeit (Mittel / 99 %)",

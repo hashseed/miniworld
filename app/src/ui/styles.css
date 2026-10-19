@@ -473,6 +473,68 @@ input:focus-visible {
   z-index: 10;
 }
 
+/* The loading screen (milestone-1 section 8.6). */
+.overlay.loading {
+  transition: opacity 0.5s ease;
+}
+
+.overlay.loading.done {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-inner {
+  width: min(760px, 100%);
+}
+
+.loading-caption {
+  margin: 0 0 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.march {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.march-walker {
+  color: #6b4632;
+  opacity: 0.14;
+  transform: translateX(-12px);
+  transition:
+    opacity 0.45s ease,
+    transform 0.45s ease;
+}
+
+.march-walker.shown {
+  opacity: 1;
+  transform: none;
+}
+
+.march-globe {
+  color: #2f7fc1;
+  fill: #8fd0f5;
+}
+
+.march-track {
+  fill: #f0c7ae;
+}
+
+.march-bar {
+  fill: #e0703a;
+  transition: width 0.3s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .march-walker,
+  .march-bar {
+    transition: none;
+  }
+}
+
 .overlay .detail {
   color: var(--muted);
   font-size: 13px;

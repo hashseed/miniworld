@@ -17,6 +17,7 @@ import {
 import { LANGUAGES, type Language } from '../i18n/messages.ts';
 import { LANGUAGE_NAMES, type I18n } from '../i18n/i18n.ts';
 import { useStore } from './hooks.ts';
+import { LoadingScreen } from './LoadingScreen.tsx';
 import type { Actions, HotState, UiState, VignetteCard } from './state.ts';
 import type { Settings } from './storage.ts';
 import { JUMP_SECONDS } from '../time/clock.ts';
@@ -75,11 +76,7 @@ export function App({ store, hot, i18n, actions }: Props) {
 
   return (
     <>
-      {!s.ready && (
-        <div class="overlay" aria-live="polite">
-          {t('app.loading')}
-        </div>
-      )}
+      <LoadingScreen loaded={s.loaded} ready={s.ready} label={t('app.loading')} />
 
       {(s.settings.showStats || s.stressScene) && (
         <Stats hot={hot} stress={s.stressScene} t={t} actions={actions} />
@@ -569,6 +566,7 @@ function AboutPanel({
         <li>{t('about.simplification.land')}</li>
         <li>{t('about.simplification.lakes')}</li>
         <li>{t('about.simplification.ice')}</li>
+        <li>{t('about.simplification.march')}</li>
       </ul>
     </PanelFrame>
   );
