@@ -878,6 +878,18 @@ export function wildlifeAt(
         [hx, hy] = cosSinTurn(hash01(seed, 90 + i));
         hl = 1;
       }
+      // Its own place keeps to open ground too, on a walk as at rest: where it would be
+      // closed (the sea along a coast, a lake, mountains), the animal closes in towards
+      // the group's path, which always is open (Yang, 2026-10-19: zebras and elephants
+      // off the coast).
+      let close = fit;
+      if (mask && !swimmer) {
+        const [px, py] = places[i]!;
+        for (let k = 8; k >= 0; k--) {
+          close = (fit * k) / 8;
+          if (open(mask, roam, x + px * close, y + py * close)) break;
+        }
+      }
       out.push({
         key: `${gi}:${i}`,
         model: model(i),
@@ -886,7 +898,7 @@ export function wildlifeAt(
         eastKm: x,
         northKm: y,
         heading: [hx / hl, hy / hl],
-        offset: [offsets[i]![0] * fit, offsets[i]![1] * fit],
+        offset: [offsets[i]![0] * close, offsets[i]![1] * close],
         clip: walking ? 'walk' : 'idle',
         seconds: walking ? u * walkS : seconds + hash01(seed, 30 + i) * 0.8,
         walkS: walking ? walkS : 0,
