@@ -423,17 +423,10 @@ function Figure(props: { w: Walker; x: number; shown: boolean; still: boolean })
     add(headAt, [0.5 * r, -0.3 * r]),
   ]);
   // A club hangs from the hand, its heavy end down; a spear points ahead and up.
-  const tool =
-    w.holds === 'club' ? (
-      <path d={capsule(add(handAt, [4, -5]), 1.5, add(handAt, [-12, 27]), 4)} />
-    ) : w.holds === 'spear' ? (
-      <>
-        <path d={capsule(add(handAt, [-26, 17]), 1.2, add(handAt, [30, -20]), 1.1)} />
-        <path
-          d={`M${f1(handAt[0] + 27)},${f1(handAt[1] - 21)}L${f1(handAt[0] + 40)},${f1(handAt[1] - 28)}L${f1(handAt[0] + 31)},${f1(handAt[1] - 15)}Z`}
-        />
-      </>
-    ) : null;
+  const [hx, hy] = handAt;
+  const club = capsule([hx + 4, hy - 5], 1.5, [hx - 12, hy + 27], 4);
+  const spear = capsule([hx - 26, hy + 17], 1.2, [hx + 30, hy - 20], 1.1);
+  const tip = `M${f1(hx + 27)},${f1(hy - 21)}L${f1(hx + 40)},${f1(hy - 28)}L${f1(hx + 31)},${f1(hy - 15)}Z`;
 
   return (
     <g
@@ -447,7 +440,8 @@ function Figure(props: { w: Walker; x: number; shown: boolean; still: boolean })
       <path d={capsule(neckBase, w.head * 0.45, headAt, w.head * 0.48)} />
       <path d={headPath(w, headAt)} />
       {leg(0, false)}
-      {tool}
+      {w.holds === 'club' && <path d={club} />}
+      {w.holds === 'spear' && <path d={`${spear}${tip}`} />}
       {arm(0, false)}
     </g>
   );
