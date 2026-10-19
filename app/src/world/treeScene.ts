@@ -655,6 +655,17 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
   const stays = new Map<string, Stay | undefined>();
   const hunts = new Map<string, Hunt | undefined>();
   const events = new Map<string, CampEvent | undefined>();
+  // Who ever lives at each camp, so the camp-wide lookups of hunts, helpers, events and
+  // kills look only at its people, not everyone.
+  const campmates = new Map<number, TreeFigure[]>();
+  for (const f of chunk.figures)
+    for (const c of new Set(f.homes.map(([, id]) => lodgings.get(id)?.camp))) {
+      if (c === undefined) continue;
+      const list = campmates.get(c);
+      if (list) list.push(f);
+      else campmates.set(c, [f]);
+    }
+  const mates = (camp: number) => campmates.get(camp) ?? [];
   // Each place a camp stands: from the band's arrival up to the last lodging gone, with
   // the felling and the lighting of its fire (section 8.1).
   const places = new Map<string, Place>();
@@ -826,7 +837,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     let ev: CampEvent | undefined;
     if (kind) {
       const until = start + TURN_MS;
-      const members = chunk.figures
+      const members = mates(camp)
         .filter((g) => kind === 'dance' || lookOf(g.id) === 'child')
         .map((g) => stayAt(g, start))
         .filter(
@@ -1146,7 +1157,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
 
   /** The kill of a hunt lying at a figure's camp at a clock time, if any (section 8.1). */
   function killAt(st: Stay, t: number): Hunt | undefined {
-    for (const g of chunk.figures) {
+    for (const g of mates(st.home.camp)) {
       if (lookOf(g.id) === 'child') continue;
       for (let k = turnOf(g.id, t) - 3; k <= turnOf(g.id, t); k++) {
         const gs = stayAt(g, turnStartOf(g.id, k));
@@ -1177,7 +1188,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       const until = Math.min(st.busy, turnStart + TURN_MS);
       // Helpers: grown-ups of the camp, free for the whole hunt, not hunting then and not
       // helping a hunter with a lower id, in an order chosen by hash.
-      const helpers = chunk.figures
+      const helpers = mates(st.home.camp)
         .filter((g) => g.id !== st.f.id && lookOf(g.id) !== 'child')
         .map((g) => stayAt(g, turnStart))
         .filter((h): h is Stay => !!h && sameCamp(h, st) && h.free <= turnStart)
@@ -1210,7 +1221,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
 
   /** Whether a hunter of the camp with a lower id than `hunter` already has `helper` in a span. */
   function helpedBefore(hunter: Stay, helper: Stay, from: number, to: number): boolean {
-    for (const g of chunk.figures) {
+    for (const g of mates(hunter.home.camp)) {
       if (g.id >= hunter.f.id || g.id === helper.f.id) continue;
       for (let k = turnOf(g.id, from - TURN_MS); k <= turnOf(g.id, to); k++) {
         const gs = stayAt(g, turnStartOf(g.id, k));
@@ -1225,7 +1236,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
   /** The hunts in which a figure takes part, as hunter or helper, that overlap a span. */
   function huntsOf(st: Stay, from: number, to: number): Hunt[] {
     const out: Hunt[] = [];
-    for (const g of chunk.figures) {
+    for (const g of mates(st.home.camp)) {
       if (lookOf(g.id) === 'child') continue;
       for (let k = turnOf(g.id, from - TURN_MS); k <= turnOf(g.id, to); k++) {
         const gs = g.id === st.f.id ? st : stayAt(g, turnStartOf(g.id, k));
