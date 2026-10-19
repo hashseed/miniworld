@@ -292,7 +292,7 @@ describe('the tree scene', () => {
     expect(roasting).toBeGreaterThan(0);
   });
 
-  it('has the hunted animal and its herd walk in from the trees, and the herd bolt back (section 8.1)', () => {
+  it('has the hunted animal and its herd walk in from the trees, and the herd bolt (section 8.1)', () => {
     let walkedIn = 0;
     let fled = 0;
     let herd = 0;
@@ -312,6 +312,80 @@ describe('the tree scene', () => {
     expect(walkedIn).toBeGreaterThan(0);
     expect(herd).toBeGreaterThan(0);
     expect(fled).toBeGreaterThan(0);
+  });
+
+  it('has Siberian hunters hunt mammoths too, butchered where they fall, until 10,000 BCE', () => {
+    // A camp of four grown-ups of the steppe hunters, standing from `from` for 4,000 years.
+    const campAt = (from: number): TreeChunk => {
+      const ids = Array.from({ length: 60 }, (_, k) => k + 1)
+        .filter((id) => lookOf(id) !== 'child')
+        .slice(0, 4);
+      return {
+        fromDay: from,
+        toDay: from + years(4000),
+        figures: ids.map((id, k) => ({
+          id,
+          parent: NEVER,
+          born: from + 1,
+          branch: 0,
+          depth: 1,
+          homes: [[from + 1, k < 2 ? 0 : 1, k]],
+          lost: NEVER,
+        })),
+        lodgings: [0, 1].map((id) => ({
+          id,
+          camp: 7,
+          lat: 60_000_000,
+          lon: 100_000_000,
+          built: from,
+          gone: NEVER,
+          builder: ids[id * 2]!,
+          slot: id,
+          reach: [80, 80, 80, 80, 80],
+          kind: 'hut',
+          culture: 'steppe-beringia-hunter',
+        })),
+      };
+    };
+    const kinds = (camp: TreeChunk, from: number) => {
+      const seen = new Map<string, Set<string>>();
+      for (let t = ms(from) + 60_000; t < ms(from + years(4000)) - 10_000; t += 211)
+        for (const p of treeScene(camp, t, d0).prey)
+          if (p.id.split(':').length === 2) {
+            const clips = seen.get(p.kind) ?? new Set();
+            clips.add(p.clip);
+            seen.set(p.kind, clips);
+          }
+      return seen;
+    };
+    const early = d0 + years(1000);
+    const before = kinds(campAt(early), early);
+    expect([...before.keys()].sort()).toEqual(['animal-mammoth', 'animal-reindeer']);
+    // Never carried on the pole: it falls and lies where it fell.
+    expect(before.get('animal-mammoth')!.has('fall')).toBe(true);
+    expect(before.get('animal-mammoth')!.has('hung')).toBe(false);
+    const late = d0 + years(61_500); // 8500 BCE
+    expect([...kinds(campAt(late), late).keys()]).toEqual(['animal-reindeer']);
+  });
+
+  it('lets the herd scatter and stand a while, each fading on its own (section 8.1)', () => {
+    // Per herd mate: the frames it stood idle after running off, and when it was last seen.
+    const stood = new Map<string, number>();
+    const last = new Map<string, number>();
+    const ran = new Set<string>();
+    for (let t = ms(d0 + years(25)); t < ms(moveDay) - 10_000; t += 97)
+      for (const p of treeScene(chunk, t, d0).prey) {
+        if (p.id.split(':').length <= 2) continue;
+        if (p.clip === 'run') ran.add(p.id);
+        else if (ran.has(p.id) && p.clip === 'idle') stood.set(p.id, (stood.get(p.id) ?? 0) + 1);
+        last.set(p.id, t);
+      }
+    expect(ran.size).toBeGreaterThan(0);
+    // Each stands for seconds after it ran, not a moment.
+    for (const id of ran) expect((stood.get(id) ?? 0) * 97).toBeGreaterThan(2000);
+    // Two mates of one hunt fade at their own times.
+    const pairs = [...ran].filter((id) => id.endsWith(':0') && ran.has(id.replace(/:0$/, ':1')));
+    expect(pairs.some((id) => last.get(id) !== last.get(id.replace(/:0$/, ':1')))).toBe(true);
   });
 
   it('fells the trees where the band arrives and lets them grow back where it left', () => {

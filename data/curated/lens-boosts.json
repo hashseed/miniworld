@@ -1,0 +1,17 @@
+{
+  "description": "Extra weight for the history lens (spec history-lens.md, section 2): places counted as this many event coordinates each, on top of the spec's event lists, where the lens must give room that the events alone do not yet give.",
+  "boosts": [
+    {
+      "id": "japan",
+      "reason": "Yang, 2026-10-19: \"let's make japan slightly wider\": Honshu was too narrow for even the smallest camp of the tree of humankind (sites.md section 2), so no band could reach Japan.",
+      "weight": 12,
+      "points": [
+        [33.0, 130.9],
+        [34.6, 133.5],
+        [35.3, 136.5],
+        [36.5, 139.5],
+        [39.5, 140.8]
+      ]
+    }
+  ]
+}

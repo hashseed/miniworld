@@ -38,7 +38,16 @@ export function buildLensStage(ctx: WriteContext): {
       .sort()
       .map((f) => join(SPEC, 'events', f)),
   ];
-  const eventPoints = eventFiles.flatMap((f) => parseCoordinates(readFileSync(f, 'utf8')));
+  // Curated boosts count as extra event coordinates (section 2).
+  const { boosts } = ctx.curated<{
+    boosts: { id: string; weight: number; points: [number, number][] }[];
+  }>('lens-boosts.json');
+  const eventPoints = [
+    ...eventFiles.flatMap((f) => parseCoordinates(readFileSync(f, 'utf8'))),
+    ...boosts.flatMap((b) =>
+      b.points.flatMap(([lat, lon]) => Array.from({ length: b.weight }, () => ({ lat, lon }))),
+    ),
+  ];
   const version = createHash('sha256')
     .update(JSON.stringify({ points: eventPoints, params: LENS_PARAMS }))
     .digest('hex')

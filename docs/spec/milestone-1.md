@@ -461,7 +461,7 @@ When a device cannot keep up, dynamic resolution (section 11.3) lowers the rende
 
 ### 11.3 Dynamic resolution
 
-The renderer tracks an average of recent frame times. When it rises above the target (16.7 ms on desktop, 33 ms on phones) for half a second, the render scale drops by a step of 10 %, down to half of the cap (section 11.2); when frame time stays well below the target for 3 seconds, it rises a step again. The interface is drawn at full resolution regardless.
+The renderer tracks an average of recent frame times. Only when the average frame rate stays below 30 fps for 3 seconds, on every device, does the render scale drop by a step of 10 %, down to half of the cap (section 11.2); after each second of frames above 40 fps it rises two steps again (Yang, 2026-10-19: "I don't want dynamic resolution unless average frame rate consistently drops below 30fps", after the resolution dropped while scrubbing and took long to recover). Short bursts of slow frames, such as tiles being built while scrubbing, leave the resolution alone. The interface is drawn at full resolution regardless.
 
 ### 11.4 Stress scene
 

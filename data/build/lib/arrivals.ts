@@ -78,7 +78,8 @@ export interface ArrivalMap {
    * Each route's way to each of its points, from the point before, as points about every
    * 200 km and at both ends of every crossing (peopling.md section 4: the tree follows it).
    */
-  legs: { id: string; day: Day; way: { lat: number; lon: number }[] }[];
+  /** Each leg of a route to its point, from the previous point of the route (none from Africa). */
+  legs: { id: string; from?: string; day: Day; way: { lat: number; lon: number }[] }[];
 }
 
 export const dayOfBce = (bce: number): Day => dayOfYearStart(astronomicalYear(bce, 'BCE'));
@@ -335,7 +336,7 @@ export function arrivalMap(input: ArrivalInputs): ArrivalMap {
             { lat: q.lat, lon: q.lon },
           ];
           fullWays.set(id, full);
-          legs.push({ id, day: dq, way: full });
+          legs.push({ id, from: prev.id === 'africa' ? undefined : prev.id, day: dq, way: full });
         }
       }
       prev = { ...q, day: dq };

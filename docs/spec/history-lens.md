@@ -56,6 +56,8 @@ The size changes smoothly everywhere, with no step: the area factor changes by a
 | Largest stretch of a shape (off Newfoundland) | 1.5 to 1 | 2.1 to 1 |
 | Smallest local area factor (no fold below 0) | 0.76 | 0.55 |
 
+**Boosts.** Where the lens must give room that the event lists do not yet give, `data/curated/lens-boosts.json` adds weight: places that each count as a number of event coordinates, with a reason. Japan has one (Yang, 2026-10-19: "let's make japan slightly wider"): five points along Kyushu, Shikoku and Honshu, each counted 12 times, since Honshu was too narrow for even the smallest camp of the tree of humankind ([sites.md](sites.md) section 2) and no band could reach Japan. The wide kernel spreads it, so Korea and the coast of China grow a little too. A boost changes the warp's version like any new event, and the new warp needs Yang's approval from its preview (section 3).
+
 Only five regions have their own event lists for now, so the lens favours them. When lists for the Americas, Africa and other regions are added, the warp is computed again and those regions grow.
 
 ## 3. The warp

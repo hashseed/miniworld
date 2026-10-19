@@ -13,15 +13,19 @@ export const QUALITY: QualitySettings = {
   animatedFigures: 5000,
 };
 
-/** Target frame time: 60 fps on desktop, 30 fps on phones. */
-export function targetFrameMs(isPhone: boolean): number {
-  return isPhone ? 1000 / 30 : 1000 / 60;
+/**
+ * The frame time below which the render scale never drops: 30 fps on every device
+ * (Yang, 2026-10-19: "I don't want dynamic resolution unless average frame rate
+ * consistently drops below 30fps"). The parameter is kept for callers.
+ */
+export function targetFrameMs(_isPhone: boolean): number {
+  return 1000 / 30;
 }
 
 /**
- * Lowers the render scale in steps of 10 % when frames are slow for half a
- * second, down to half the cap, and raises it again after 3 seconds
- * of comfortable frames.
+ * Lowers the render scale in steps of 10 %, down to half the cap, only while the
+ * average frame rate stays below the target for 3 seconds; raises it again by two
+ * steps after each second of frames well above it (40 fps for the 30 fps target).
  */
 export class DynamicResolution {
   scale: number;
@@ -48,7 +52,7 @@ export class DynamicResolution {
   /** Feeds one frame time; returns true when the scale changed. */
   frame(ms: number): boolean {
     this.avg += (ms - this.avg) * 0.1;
-    if (this.avg > this.target * 1.08) {
+    if (this.avg > this.target) {
       this.slowFor += ms;
       this.fastFor = 0;
     } else if (this.avg < this.target * 0.75) {
@@ -59,13 +63,13 @@ export class DynamicResolution {
       this.fastFor = 0;
     }
     const step = this.cap * 0.1;
-    if (this.slowFor >= 500 && this.scale > this.cap * 0.5 + 1e-6) {
+    if (this.slowFor >= 3000 && this.scale > this.cap * 0.5 + 1e-6) {
       this.scale = Math.max(this.cap * 0.5, this.scale - step);
       this.slowFor = 0;
       return true;
     }
-    if (this.fastFor >= 3000 && this.scale < this.cap - 1e-6) {
-      this.scale = Math.min(this.cap, this.scale + step);
+    if (this.fastFor >= 1000 && this.scale < this.cap - 1e-6) {
+      this.scale = Math.min(this.cap, this.scale + 2 * step);
       this.fastFor = 0;
       return true;
     }

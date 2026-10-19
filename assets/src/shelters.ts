@@ -44,7 +44,9 @@ export const BUILD_BONE = 'build-';
 export const CAMP_SHELTER: Partial<Record<Profile, ShelterId>> = {
   'african-stone-age': 'shelter-grass-hut',
   neanderthal: 'shelter-windbreak',
-  'coastal-asia-hunter': 'shelter-lean-to',
+  // A closed hut, not the open lean-to: new people step out of their lodging, which an
+  // open shelter cannot hide (Yang, 2026-10-19; milestone-2 section 13.3).
+  'coastal-asia-hunter': 'shelter-grass-hut',
   'first-australians': 'shelter-bark',
   'ice-age-hunter': 'shelter-hide-tent',
   'steppe-beringia-hunter': 'shelter-hide-tent',

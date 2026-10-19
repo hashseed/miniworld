@@ -8,7 +8,7 @@ import {
   type Day,
 } from '../../../app/src/time/calendar.ts';
 import { insideRing, MAX_CAMP_M, type Ring } from './habitat.ts';
-import type { SiteMap } from './sites.ts';
+import { SITE_STEP_KM, type SiteMap } from './sites.ts';
 import {
   DENSITIES,
   type Density,
@@ -26,6 +26,10 @@ export interface CultureAreas {
     coldestC?: number;
     /** The highest ground for its camps; MAX_CAMP_M when not given. */
     highestM?: number;
+    /** Its own camp spacing in km, overriding the density's (humankind.md section 4.1). */
+    spacingKm?: number;
+    /** A coarser lattice of camp sites in the area, a multiple of SITE_STEP_KM (sites.md section 2). */
+    siteStepKm?: number;
     snapshots: { fromBP: number; label: string; source: string; ring: Ring }[];
   }[];
 }
@@ -76,6 +80,18 @@ export function validateCultureAreas(c: CultureAreas): string[] {
   return errors;
 }
 
+/**
+ * How many lattice steps apart the camp sites are at a point: the coarsest that any area
+ * holding the point at some date asks for, else 1 (sites.md section 2).
+ */
+export function siteStepAt(c: CultureAreas, lat: number, lon: number): number {
+  let step = 1;
+  for (const a of c.areas)
+    if (a.siteStepKm && a.snapshots.some((s) => insideRing(s.ring, lat, lon)))
+      step = Math.max(step, Math.round(a.siteStepKm / SITE_STEP_KM));
+  return step;
+}
+
 /** The index of every area whose polygon holds a point at some date, for the arrival map. */
 export function areasAt(c: CultureAreas, lat: number, lon: number): number[] {
   return c.areas.flatMap((a, i) =>
@@ -120,5 +136,6 @@ export function humankindSettings(c: CultureAreas, world: PeoplingInputs): TreeS
     prologueEndDay: PROLOGUE_END,
     frontKmPerYear: FRONT_KM_PER_YEAR,
     density: (lat, lon, day) => areaAt(lat, lon, day)?.density,
+    spacing: (lat, lon, day) => areaAt(lat, lon, day)?.spacingKm,
   };
 }

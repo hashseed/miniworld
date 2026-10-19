@@ -208,6 +208,42 @@
     {
       "culture": "first-australians",
       "density": "low",
+      "spacingKm": 2600,
+      "coldestC": 0,
+      "snapshots": [
+        {
+          "fromBP": 51950,
+          "label": "Australia and Tasmania, with their own camp spacing",
+          "source": "O'Connell et al. 2018, When did Homo sapiens first reach Southeast Asia and Sahul?, PNAS 115; spacing set by Yang, 2026-10-19: \"too many in australia also. I can count like 7. 3 is sufficient\"",
+          "ring": [
+            [112, -21],
+            [113, -26],
+            [114, -35],
+            [118, -36],
+            [130, -33],
+            [137, -37],
+            [140, -39],
+            [144, -44.5],
+            [149, -44],
+            [151, -38],
+            [154, -28],
+            [153, -24],
+            [146, -18],
+            [145, -14.5],
+            [143, -10.3],
+            [141, -12],
+            [136, -11],
+            [130, -10.8],
+            [126, -13],
+            [121, -16],
+            [114, -20]
+          ]
+        }
+      ]
+    },
+    {
+      "culture": "first-australians",
+      "density": "low",
       "coldestC": 0,
       "snapshots": [
         {
@@ -376,7 +412,8 @@
     },
     {
       "culture": "steppe-beringia-hunter",
-      "density": "sparse",
+      "density": "remote",
+      "siteStepKm": 450,
       "coldestC": -28,
       "snapshots": [
         {
@@ -415,7 +452,8 @@
     },
     {
       "culture": "steppe-beringia-hunter",
-      "density": "sparse",
+      "density": "remote",
+      "siteStepKm": 450,
       "coldestC": -28,
       "snapshots": [
         {
@@ -433,6 +471,39 @@
             [-150, 58],
             [-160, 54],
             [-170, 51]
+          ]
+        }
+      ]
+    },
+    {
+      "culture": "first-americans",
+      "density": "low",
+      "spacingKm": 1300,
+      "coldestC": -5,
+      "snapshots": [
+        {
+          "fromBP": 15950,
+          "label": "South America, with its own camp spacing",
+          "source": "Davis et al. 2019, Late Upper Paleolithic occupation at Cooper's Ferry, Idaho, USA, ~16,000 years ago, Science 365; Dillehay et al. 2008, Monte Verde: seaweed, food, medicine, and the peopling of South America, Science 320; spacing set by Yang, 2026-10-19: \"way too many bands in south america. let's have only 60% as many\"",
+          "ring": [
+            [-82, 12.5],
+            [-71, 12.5],
+            [-60, 11],
+            [-50, 5],
+            [-34, -5],
+            [-35, -9],
+            [-39, -18],
+            [-48, -26],
+            [-57, -36],
+            [-65, -42],
+            [-66, -55],
+            [-75, -56],
+            [-76, -46],
+            [-74, -36],
+            [-71, -18],
+            [-81, -6],
+            [-81, 1],
+            [-79, 8]
           ]
         }
       ]
