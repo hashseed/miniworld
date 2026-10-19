@@ -246,10 +246,32 @@ describe('the tree scene', () => {
         expect(carriers[0]!.clipMs).toBe(carriers[1]!.clipMs);
       }
     }
-    expect(clips).toEqual(new Set(['idle', 'run', 'fall', 'bound', 'hung']));
+    expect(clips).toEqual(new Set(['walk', 'idle', 'run', 'fall', 'bound', 'hung']));
     expect(flying).toBeGreaterThan(0);
     expect(missed).toBeGreaterThan(0);
     expect(carried).toBeGreaterThan(0);
+  });
+
+  it('has the hunted animal and its herd walk in from the trees, and the herd bolt back (section 8.1)', () => {
+    let walkedIn = 0;
+    let fled = 0;
+    let herd = 0;
+    for (let t = ms(d0 + years(25)); t < ms(moveDay) - 10_000; t += 97)
+      for (const p of treeScene(chunk, t, d0).prey) {
+        const r = Math.sqrt(p.x * p.x + p.z * p.z);
+        if (p.id.split(':').length > 2) herd++;
+        if (p.clip === 'walk') {
+          walkedIn++;
+          // In from the far end of the lane, never closer than the grazing place.
+          expect(r).toBeGreaterThan(33);
+          expect(p.dirX * p.x + p.dirZ * p.z).toBeLessThan(0);
+        }
+        if (p.clip === 'run' && p.id.split(':').length > 2 && p.dirX * p.x + p.dirZ * p.z > 0)
+          fled++;
+      }
+    expect(walkedIn).toBeGreaterThan(0);
+    expect(herd).toBeGreaterThan(0);
+    expect(fled).toBeGreaterThan(0);
   });
 
   it('fells the trees where the band arrives and lets them grow back where it left', () => {

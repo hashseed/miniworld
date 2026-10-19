@@ -134,7 +134,16 @@ const DROP_M = 14;
 /** It lies there this long before it fades away. */
 const DROP_LINGER_MS = Math.round(9000 / TEMPO);
 /** Trees make way this far round points of a hunt's lane, in drawn kilometres. */
-const HUNT_CLEARING_KM = 9 * LAYOUT_KM_PER_M;
+const HUNT_CLEARING_KM = 8 * LAYOUT_KM_PER_M;
+/**
+ * The hunted animal and one or two of its herd walk in from the treeline at the far end of
+ * the hunter's lane (Yang, 2026-10-19: animals appeared out of thin air), at this pace in
+ * layout metres per millisecond, a little apart; they graze this long before the hunter
+ * throws, and the companions bolt back to the trees when the spear lands.
+ */
+const PREY_WALK = (WALK_M_PER_S * 2.4 * TEMPO) / 1000;
+const HERD_SIDE_M = 3.5;
+const GRAZE_FIRST_MS = Math.round(1500 / TEMPO);
 
 /** Clip changes ease over this long (milestone 2, section 5.3). */
 export const BLEND_MS = 350;
@@ -186,7 +195,7 @@ export interface FigurePose extends Placed {
   unarmed?: boolean;
 }
 
-export type PreyClip = 'idle' | 'run' | 'fall' | 'bound' | 'hung';
+export type PreyClip = 'idle' | 'walk' | 'run' | 'fall' | 'bound' | 'hung';
 
 /** An animal of a hunt: it grazes, flees when the hunter runs at it, falls and is butchered. */
 export interface PreyPose extends Placed {
@@ -855,10 +864,20 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     const graze = lane(PREY_GRAZE_M);
     const miss = hash01(st.f.id, k, 87) < MISS_SHARE;
     const kill = miss ? lane(PREY_FALL_M) : graze;
+    // The herd comes out of the trees at the far end of the lane, where its land ends.
+    const entry = lane(Math.min(outingRoom(st.s, st.home), MAX_OUTING_M) - 1);
+    const arrive =
+      start +
+      PREY_FADE_MS +
+      Math.ceil(Math.sqrt((entry.x - graze.x) ** 2 + (entry.z - graze.z) ** 2) / PREY_WALK);
+    const herd = Array.from({ length: 1 + (hash32(st.f.id, k, 89) % 2) }, (_, n) => {
+      const across = (n === 0 ? 1 : -1) * HERD_SIDE_M;
+      return { entry: offset(entry, 0, across), graze: offset(graze, 1.5 * n, across) };
+    });
     const hunter = new Itinerary(start, st.spot).go(lane(PREY_GRAZE_M - THROW_GAP_M));
     const aide =
       helper && new Itinerary(start, helper.spot).go(lane(PREY_GRAZE_M - THROW_GAP_M - 3));
-    const ready = Math.max(hunter.t, aide?.t ?? 0);
+    const ready = Math.max(hunter.t, aide?.t ?? 0, arrive + GRAZE_FIRST_MS);
     hunter.stay(ready, 'idle', graze).stay(ready + THROW_MS, 'throw', graze);
     const flights: Flight[] = [];
     const first = {
@@ -937,6 +956,9 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       lon: deg(st.home.lon),
       kind: PREY_KINDS[hash32(st.f.id, k, 79) % PREY_KINDS.length]!,
       out,
+      entry,
+      arrive,
+      herd,
       graze,
       kill,
       drop,
@@ -971,9 +993,19 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       z: a.z + (b.z - a.z) * f,
     });
     let prey: PreyPose;
-    if (ms < h.alert && ms < h.killed)
+    if (ms < h.arrive)
+      // Out of the trees and in to graze.
+      prey = {
+        ...base,
+        ...lerp(h.entry, h.graze, t(h.start + PREY_FADE_MS, h.arrive)),
+        ...inward,
+        clip: 'walk',
+        clipMs: ms - h.start,
+        visibility,
+      };
+    else if (ms < h.alert && ms < h.killed)
       // Grazing side on to the camp until the spear comes.
-      prey = { ...base, ...h.graze, ...sideOn, clip: 'idle', clipMs: ms - h.start, visibility };
+      prey = { ...base, ...h.graze, ...sideOn, clip: 'idle', clipMs: ms - h.arrive, visibility };
     else if (h.alert < Infinity && ms < h.alert + BOLT_MS)
       prey = {
         ...base,
@@ -1001,9 +1033,49 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       };
     else prey = { ...base, ...h.drop, ...inward, clip: 'bound', clipMs: BIND_MS * 10, visibility };
     scene.prey.push(prey);
+    // The rest of the herd: in beside it, grazing, then back to the trees once a spear lands.
+    const landed = h.flights[0]!.release + FLIGHT_MS;
+    h.herd.forEach((c, n) => {
+      const id = `${h.id}:${n}`;
+      const fled =
+        landed +
+        Math.ceil(
+          Math.sqrt((c.graze.x - c.entry.x) ** 2 + (c.graze.z - c.entry.z) ** 2) / PACE.run,
+        );
+      if (ms >= fled + PREY_FADE_MS) return;
+      const seen = Math.min(fadeIn, Math.min(1, (fled + PREY_FADE_MS - ms) / PREY_FADE_MS));
+      const herdBase = { ...base, id };
+      if (ms < h.arrive)
+        scene.prey.push({
+          ...herdBase,
+          ...lerp(c.entry, c.graze, t(h.start + PREY_FADE_MS, h.arrive)),
+          ...inward,
+          clip: 'walk',
+          clipMs: ms - h.start + 137 * n,
+          visibility: seen,
+        });
+      else if (ms < landed)
+        scene.prey.push({
+          ...herdBase,
+          ...c.graze,
+          ...sideOn,
+          clip: 'idle',
+          clipMs: ms - h.arrive + 911 * n,
+          visibility: seen,
+        });
+      else
+        scene.prey.push({
+          ...herdBase,
+          ...lerp(c.graze, c.entry, t(landed, fled)),
+          ...h.out,
+          clip: 'run',
+          clipMs: ms - landed,
+          visibility: seen,
+        });
+    });
     // The trees make way along the hunter's lane while the hunt is on (as for the animals,
     // wildlife.md section 4), so trees beyond the camp's clearing never hide it.
-    for (const d of [DROP_M + 4, (DROP_M + PREY_FALL_M) / 2, PREY_FALL_M])
+    for (const d of [DROP_M + 4, (DROP_M + PREY_FALL_M) / 2, PREY_FALL_M - 2])
       scene.clearings.push({
         lat: h.lat,
         lon: h.lon,
@@ -1195,6 +1267,11 @@ interface Hunt {
   kind: (typeof PREY_KINDS)[number];
   /** The hunter's lane, out from the hearth. */
   out: { dirX: number; dirZ: number };
+  /** Where the hunted animal comes out of the trees, and when it has walked in to graze. */
+  entry: Pt;
+  arrive: number;
+  /** One or two of its herd, which walk in beside it and bolt back when the spear lands. */
+  herd: { entry: Pt; graze: Pt }[];
   graze: Pt;
   kill: Pt;
   drop: Pt;
