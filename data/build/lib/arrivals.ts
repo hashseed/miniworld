@@ -5,7 +5,12 @@
 // next; and from opened land the rest of the same culture area opens slowly.
 // Whole cells and fixed costs only, so the map is the same on every machine.
 
-import { astronomicalYear, dayOfYearStart, DAYS_PER_YEAR, type Day } from '../../../app/src/time/calendar.ts';
+import {
+  astronomicalYear,
+  dayOfYearStart,
+  DAYS_PER_YEAR,
+  type Day,
+} from '../../../app/src/time/calendar.ts';
 import { distanceKm } from './humankind.ts';
 
 /** Half a degree, as the climate grids (milestone 1, section 4.3). */
@@ -206,7 +211,9 @@ export function arrivalMap(input: ArrivalInputs): ArrivalMap {
         since = 0;
       }
     }
-    return [...keep].sort((a, b) => a - b).map((i) => ({ lat: latOf(way[i]!), lon: lonOf(way[i]!) }));
+    return [...keep]
+      .sort((a, b) => a - b)
+      .map((i) => ({ lat: latOf(way[i]!), lon: lonOf(way[i]!) }));
   };
   const snap = (lat: number, lon: number, day: Day, what: string): number | undefined => {
     const home = cellOf(lat, lon);
@@ -286,9 +293,7 @@ export function arrivalMap(input: ArrivalInputs): ArrivalMap {
   };
   for (const r of arrivals.routes) {
     let prev: { id: string; lat: number; lon: number; day: Day } | undefined =
-      r.from === 'africa'
-        ? undefined
-        : { ...points.get(r.from)!, day: pointDays.get(r.from)! };
+      r.from === 'africa' ? undefined : { ...points.get(r.from)!, day: pointDays.get(r.from)! };
     for (const id of r.points) {
       const q = points.get(id)!;
       const dq = pointDays.get(id)!;
@@ -310,7 +315,10 @@ export function arrivalMap(input: ArrivalInputs): ArrivalMap {
           way = shortest(pCell, qCell, input.lowDay);
           if (way) notes.push(`route ${r.id}: ${prev.id} to ${id} waits for a land bridge`);
         }
-        if (!way) problems.push(`route ${r.id}: no way over land or a listed crossing from ${prev.id} to ${id}`);
+        if (!way)
+          problems.push(
+            `route ${r.id}: no way over land or a listed crossing from ${prev.id} to ${id}`,
+          );
         else {
           let total = 0;
           for (let i = 1; i < way.length; i++) total += stepKm(way[i - 1]!, way[i]!);
@@ -321,7 +329,11 @@ export function arrivalMap(input: ArrivalInputs): ArrivalMap {
           });
           ways.set(id, way);
           // The whole way from the route's start, so bands can join it anywhere before the point.
-          const full = [...(fullWays.get(prev.id) ?? []), ...pointsOf(way), { lat: q.lat, lon: q.lon }];
+          const full = [
+            ...(fullWays.get(prev.id) ?? []),
+            ...pointsOf(way),
+            { lat: q.lat, lon: q.lon },
+          ];
           fullWays.set(id, full);
           legs.push({ id, day: dq, way: full });
         }

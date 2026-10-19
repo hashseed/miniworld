@@ -29,7 +29,7 @@ export interface Manifest {
   foliage: { days: number[]; files: string[] };
   /** Tree of humankind chunks (spec humankind.md, section 8): one file per time window, null where empty; absent on the fixture map. */
   /** Tree chunk files, null where empty, each from its day in `days` (humankind.md section 8). */
-  tree?: { files: (string | null)[]; days: number[] };
+  tree?: { files: (string | null)[]; days: number[]; sites?: string };
 }
 
 export interface LayerManifest {

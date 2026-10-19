@@ -25,7 +25,6 @@ const defaults: Settings = {
   trueTimeScale: false,
   showStats: false,
   lensStrength: 100,
-  lensHintSeen: false,
 };
 
 describe('saved state', () => {

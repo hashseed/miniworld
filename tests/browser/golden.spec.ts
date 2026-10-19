@@ -88,7 +88,7 @@ for (const [view, camera] of Object.entries(VIEWS))
           localStorage.clear();
           localStorage.setItem(
             'miniworld.settings.v1',
-            JSON.stringify({ language: 'en', lensStrength: lens, lensHintSeen: true }),
+            JSON.stringify({ language: 'en', lensStrength: lens }),
           );
           localStorage.setItem('miniworld.view.v3', JSON.stringify({ day, camera }));
         },

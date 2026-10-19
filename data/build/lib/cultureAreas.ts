@@ -8,6 +8,7 @@ import {
   type Day,
 } from '../../../app/src/time/calendar.ts';
 import { insideRing, MAX_CAMP_M, type Ring } from './habitat.ts';
+import type { SiteMap } from './sites.ts';
 import {
   DENSITIES,
   type Density,
@@ -38,6 +39,9 @@ export interface PeoplingInputs {
   lodgingOf(culture: string): string;
   voyages: Voyage[];
   thresholds: Threshold[];
+  sites: SiteMap;
+  seaLevel(day: Day): number;
+  walkFlood(lat: number, lon: number): number;
 }
 
 /** Koobi Fora, on the eastern shore of Lake Turkana (section 3.5). */
@@ -74,10 +78,12 @@ export function validateCultureAreas(c: CultureAreas): string[] {
 
 /** The index of every area whose polygon holds a point at some date, for the arrival map. */
 export function areasAt(c: CultureAreas, lat: number, lon: number): number[] {
-  return c.areas.flatMap((a, i) => (a.snapshots.some((s) => insideRing(s.ring, lat, lon)) ? [i] : []));
+  return c.areas.flatMap((a, i) =>
+    a.snapshots.some((s) => insideRing(s.ring, lat, lon)) ? [i] : [],
+  );
 }
 
-export function humankindSettings(c: CultureAreas, world?: PeoplingInputs): TreeSettings {
+export function humankindSettings(c: CultureAreas, world: PeoplingInputs): TreeSettings {
   const areas = c.areas.map((a) => ({
     ...a,
     snapshots: a.snapshots.map((s) => ({ day: sliceDay(s.fromBP), ring: s.ring })),
@@ -91,24 +97,22 @@ export function humankindSettings(c: CultureAreas, world?: PeoplingInputs): Tree
     }
     return undefined;
   };
-  const peopling: Partial<TreeSettings> = world
-    ? {
-        culture: (lat, lon, day) => areaAt(lat, lon, day)?.culture,
-        livable: (lat, lon, day) => {
-          const a = areaAt(lat, lon, day);
-          if (!a) return false;
-          if (world.elevation(lat, lon) >= (a.highestM ?? MAX_CAMP_M)) return false;
-          const t = world.temperature(lat, lon, day);
-          return a.coldestC === undefined || t === undefined || t >= a.coldestC;
-        },
-        arrival: world.arrival,
-        lodgingOf: world.lodgingOf,
-        voyages: world.voyages,
-        thresholds: world.thresholds,
-      }
-    : {};
   return {
-    ...peopling,
+    sites: world.sites,
+    seaLevel: world.seaLevel,
+    walkFlood: world.walkFlood,
+    culture: (lat, lon, day) => areaAt(lat, lon, day)?.culture,
+    livable: (lat, lon, day) => {
+      const a = areaAt(lat, lon, day);
+      if (!a) return false;
+      if (world.elevation(lat, lon) >= (a.highestM ?? MAX_CAMP_M)) return false;
+      const t = world.temperature(lat, lon, day);
+      return a.coldestC === undefined || t === undefined || t >= a.coldestC;
+    },
+    arrival: world.arrival,
+    lodgingOf: world.lodgingOf,
+    voyages: world.voyages,
+    thresholds: world.thresholds,
     founder: FOUNDER,
     lodgingKind: FOUNDER_LODGING,
     startDay: TIMELINE_START,

@@ -240,7 +240,7 @@ export const BUILD_RING_M = 5;
  * back over this long after it leaves (about five years).
  */
 const FELL_MS = 1200;
-const REGROW_MS = 12_000;
+export const REGROW_MS = 12_000;
 /**
  * A new camp (section 8.1): where its place has at least this much tree cover the band
  * fells the trees for FELL_WOOD_MS first, round the ring of lodgings; then the first
@@ -423,13 +423,75 @@ interface Pt {
   z: number;
 }
 
+/**
+ * Sites from this id on have a compact camp, and from MINIMAL_SITE on a minimal one (sites.md
+ * section 2): land too small for a full camp where a band must stand, so its huts stand closer
+ * to the fire, its people on one ring, with no drying racks and no catch. The camp's own id
+ * tells, so the scene needs nothing else.
+ */
+export const COMPACT_SITE = 1_000_000;
+export const MINIMAL_SITE = 2_000_000;
+export const isCompact = (camp: number): boolean => camp >= COMPACT_SITE;
+
+/** A camp's layout, in layout metres: hut ring, people's ring, door, core, gate, flag, dancers, builders, and people at most. */
+export interface Layout {
+  ring: number;
+  inner: number;
+  door: number;
+  core: number;
+  gate: number;
+  flag: number;
+  dance: number;
+  build: number;
+  people: number;
+}
+const FULL: Layout = {
+  ring: LODGING_RING_M,
+  inner: INNER_M,
+  door: HUT_DOOR_M,
+  core: OUTER_M + 1,
+  gate: GATE_M,
+  flag: FLAG_R,
+  dance: DANCE_R,
+  build: BUILD_RING_M,
+  people: INNER_SPOTS + OUTER_SPOTS,
+};
+const COMPACT: Layout = {
+  ring: 9,
+  inner: 3.8,
+  door: 4.6,
+  core: 5,
+  gate: 4.5,
+  flag: 14.5,
+  dance: 3.4,
+  build: BUILD_RING_M,
+  people: INNER_SPOTS,
+};
+const MINIMAL: Layout = {
+  ring: 7.6,
+  inner: 3.1,
+  door: 4.4,
+  core: 3.6,
+  gate: 3.4,
+  flag: 11,
+  dance: 3.1,
+  build: 3.6,
+  people: 4,
+};
+export const layoutOf = (camp: number): Layout =>
+  camp >= MINIMAL_SITE ? MINIMAL : camp >= COMPACT_SITE ? COMPACT : FULL;
+/** The ring of lodging places round a camp's hearth. */
+export const ringOf = (camp: number): number => layoutOf(camp).ring;
+const doorM = (camp: number) => layoutOf(camp).door;
+const gateM = (camp: number) => layoutOf(camp).gate;
+
 /** The turn of a camp's ring of places, by its hash. */
 const campTurn = (camp: number) => hash01(camp, 41);
 
 /** The point of a lodging slot round a camp's hearth, in layout metres: evenly spaced, turned by the camp's hash. */
 export function slotPoint(camp: number, slot: number): Pt {
   const a = (campTurn(camp) + slot / LODGING_SLOTS) * 2 * Math.PI;
-  return { x: LODGING_RING_M * detCos(a), z: LODGING_RING_M * detSin(a) };
+  return { x: ringOf(camp) * detCos(a), z: ringOf(camp) * detSin(a) };
 }
 
 /** Where a lodging stands around its hearth, in layout metres, by its slot. Its door faces the hearth. */
@@ -449,7 +511,7 @@ export function figureSpot(spot: number, camp: number): Pt {
   // Spots fill in an order that keeps a small band spread round the fire.
   const k = (inner ? INNER_ORDER : OUTER_ORDER)[inner ? spot : spot - INNER_SPOTS]!;
   const n = inner ? INNER_SPOTS : OUTER_SPOTS;
-  const r = inner ? INNER_M : OUTER_M;
+  const r = isCompact(camp) ? layoutOf(camp).inner + (inner ? 0 : 2) : inner ? INNER_M : OUTER_M;
   const a = (hash01(camp, 43) + (k + (inner ? 0 : 0.5)) / n) * 2 * Math.PI;
   return { x: r * detCos(a), z: r * detSin(a) };
 }
@@ -519,11 +581,13 @@ function buildSpot(k: number, n: number, lodging: TreeLodging): Pt {
   const a = n > 1 ? (k / (n - 1) - 0.5) * 0.75 * Math.PI : 0;
   const c = detCos(a);
   const sn = detSin(a);
-  const ux = -hut.x / toHearth;
-  const uz = -hut.z / toHearth;
+  // On the hearth's side, or behind the hut at a compact camp, whose people stand close by.
+  const side = isCompact(lodging.camp) ? 1 : -1;
+  const ux = (side * hut.x) / toHearth;
+  const uz = (side * hut.z) / toHearth;
   return {
-    x: hut.x + BUILD_RING_M * (ux * c - uz * sn),
-    z: hut.z + BUILD_RING_M * (ux * sn + uz * c),
+    x: hut.x + layoutOf(lodging.camp).build * (ux * c - uz * sn),
+    z: hut.z + layoutOf(lodging.camp).build * (ux * sn + uz * c),
   };
 }
 
@@ -575,7 +639,7 @@ function campObstacles(camp: number): Circle[] {
     list = [...FIRE_ONLY];
     for (let k = 0; k < LODGING_SLOTS; k++) {
       list.push({ ...slotPoint(camp, k), r: LODGING_CLEAR_M });
-      list.push({ ...rackAt(camp, k), r: RACK_CLEAR_M });
+      if (!isCompact(camp)) list.push({ ...rackAt(camp, k), r: RACK_CLEAR_M });
     }
     obstacles.set(camp, list);
   }
@@ -778,6 +842,8 @@ interface Memo {
   hunts: Map<string, Hunt | undefined>;
   events: Map<string, CampEvent | undefined>;
   crossings: Map<string, unknown>;
+  /** The stay at its site each lodging belongs to (setPlaces). */
+  stayOf: Map<number, string>;
 }
 const memos = new WeakMap<TreeChunk, Memo>();
 function memoOf(chunk: TreeChunk, startDay: Day): Memo {
@@ -796,6 +862,7 @@ function memoOf(chunk: TreeChunk, startDay: Day): Memo {
       hunts: new Map(),
       events: new Map(),
       crossings: new Map(),
+      stayOf: new Map(),
     };
     memos.set(chunk, m);
   }
@@ -876,10 +943,26 @@ export function treeScene(
   const mates = (camp: number) => campmates.get(camp) ?? [];
   // Each place a camp stands: from the band's arrival up to the last lodging gone, with
   // the felling and the lighting of its fire (section 8.1).
-  const placeKey = (l: TreeLodging) => `${l.camp}:${l.lat}:${l.lon}`;
+  // One place for each stay of a band at a site: its lodgings standing without a gap.
+  const placeKey = (l: TreeLodging) => memo.stayOf.get(l.id)!;
   if (!memo.ready) setPlaces();
   memo.ready = true;
   function setPlaces() {
+    const bySite = new Map<string, TreeLodging[]>();
+    for (const l of chunk.lodgings) {
+      const at = `${l.camp}:${l.lat}:${l.lon}`;
+      bySite.set(at, [...(bySite.get(at) ?? []), l]);
+    }
+    for (const list of bySite.values()) {
+      list.sort((a, b) => a.built - b.built || a.id - b.id);
+      let key = '';
+      let until = -Infinity;
+      for (const l of list) {
+        if (l.built > until) key = `${l.camp}:${l.lat}:${l.lon}:${l.id}`;
+        memo.stayOf.set(l.id, key);
+        until = Math.max(until, l.gone === NEVER ? Infinity : l.gone);
+      }
+    }
     for (const l of chunk.lodgings) {
       const arrived = appears.get(l.id)!;
       const gone = l.gone === NEVER ? Infinity : at(l.gone);
@@ -931,8 +1014,8 @@ export function treeScene(
     if (ms < shown || ms >= gone) continue;
     const spot = lodgingSpot(l);
     const down = takeDown(l);
-    // A drying rack stands beside every lodging that is up (section 8.1).
-    if (ms >= shown + BUILD_MS && ms < down) {
+    // A drying rack stands beside every lodging that is up (section 8.1), but at compact camps.
+    if (ms >= shown + BUILD_MS && ms < down && !isCompact(l.camp)) {
       const rack = rackSpot(l);
       scene.props.push({
         id: `rack:${l.id}`,
@@ -982,7 +1065,7 @@ export function treeScene(
   for (const flag of chunk.flags ?? []) {
     if (ms < at(flag.day) || (flag.until !== NEVER && ms >= at(flag.until))) continue;
     const p = slotPoint(flag.camp, flag.slot);
-    const r = FLAG_R / LODGING_RING_M;
+    const r = layoutOf(flag.camp).flag / ringOf(flag.camp);
     scene.props.push({
       id: `flag:${flag.id}`,
       kind: 'prop-red-flag',
@@ -990,8 +1073,8 @@ export function treeScene(
       lon: deg(flag.lon),
       x: p.x * r,
       z: p.z * r,
-      dirX: -p.x / LODGING_RING_M,
-      dirZ: -p.z / LODGING_RING_M,
+      dirX: -p.x / ringOf(flag.camp),
+      dirZ: -p.z / ringOf(flag.camp),
     });
   }
   // In place order, so a time window's chunk gives the same scene as the whole tree.
@@ -1063,12 +1146,13 @@ export function treeScene(
     const km = kms.reduce((a, b) => a + b, 0);
     if (km < SAME_PLACE_KM) return undefined;
     const travel = Math.ceil(km / WALK_KM_PER_MS);
-    const heading = (a: LatLon, b: LatLon) =>
-      towards(0, 0, eastOf(a.lon, b.lon) * detCos(b.lat * RAD), b.lat - a.lat);
-    const way = heading(stops[0]!, stops[1]!);
+    // Each way aimed as it leaves or comes in, at the latitude there.
+    const heading = (a: LatLon, b: LatLon, at: LatLon = b) =>
+      towards(0, 0, eastOf(a.lon, b.lon) * detCos(at.lat * RAD), b.lat - a.lat);
+    const way = heading(stops[0]!, stops[1]!, stops[0]!);
     const inward = heading(stops.at(-2)!, stops.at(-1)!);
-    const exit = { x: way.dirX * GATE_M, z: way.dirZ * GATE_M };
-    const entry = { x: -inward.dirX * GATE_M, z: -inward.dirZ * GATE_M };
+    const exit = { x: way.dirX * gateM(prev.camp), z: way.dirZ * gateM(prev.camp) };
+    const entry = { x: -inward.dirX * gateM(home.camp), z: -inward.dirZ * gateM(home.camp) };
     const out = route(endOfStay(f, i - 1), exit, prev.camp);
     const start = at(f.homes[i]![0]);
     const across = start + Math.ceil(routeLength(out) / PACE.walk);
@@ -1100,7 +1184,13 @@ export function treeScene(
     const start = w * TURN_MS - shift;
     const roll = hash01(camp, w, 97);
     const kind =
-      roll < CATCH_SHARE ? 'catch' : roll < CATCH_SHARE + DANCE_SHARE ? 'dance' : undefined;
+      roll < CATCH_SHARE
+        ? isCompact(camp)
+          ? undefined
+          : 'catch'
+        : roll < CATCH_SHARE + DANCE_SHARE
+          ? 'dance'
+          : undefined;
     let ev: CampEvent | undefined;
     if (kind) {
       const until = start + TURN_MS;
@@ -1133,8 +1223,11 @@ export function treeScene(
     const ref = members[0]!;
     // Catch runs round its ring past the people's spots only where there is land all round
     // it; else round the dancers' ring (peopling.md section 4: camps by the water).
-    const r =
-      kind === 'catch' && (ref.home.room ?? CATCH_R + 1.5) >= CATCH_R + 1.5 ? CATCH_R : DANCE_R;
+    const r = isCompact(ref.home.camp)
+      ? layoutOf(ref.home.camp).dance
+      : kind === 'catch' && (ref.home.room ?? CATCH_R + 1.5) >= CATCH_R + 1.5
+        ? CATCH_R
+        : DANCE_R;
     const a0 = hash01(ref.home.camp, w, 99) * 2 * Math.PI;
     const ev: CampEvent = {
       id: `${ref.home.camp}:${w}`,
@@ -1262,7 +1355,7 @@ export function treeScene(
         const reach = home.reach[gap] ?? 0;
         if (reach >= FELL_MIN_M + 1) {
           const d = gapDirection(home.camp, gap);
-          const r = Math.min(LODGING_RING_M + 4, reach - 1);
+          const r = Math.min(ringOf(home.camp) + 4, reach - 1);
           const at = { x: d.x * r, z: d.z * r };
           plan.go(at).stay(place.fellEnd, 'work', { x: at.x * 2, z: at.z * 2 });
         }
@@ -1354,6 +1447,8 @@ export function treeScene(
     const sure = kind === 'gather' && room < GATHER_M ? (room >= 16 ? 'stroll' : 'rest') : kind;
     let go: Outing = sure === 'stroll' && room < 13 ? 'rest' : sure;
     if (go === 'firewood' && room < FIREWOOD_M + 1) go = 'rest';
+    // A compact camp has no drying racks.
+    if (go === 'scrape' && isCompact(st.home.camp)) go = 'rest';
     const camp = st.home.camp;
     const trip = new Itinerary(turnStart, st.spot, st.home.camp);
     const out = (p: Pt): Pt => ({ x: p.x * 2, z: p.z * 2 });
@@ -1383,6 +1478,8 @@ export function treeScene(
       for (let g = 1; g < reach.length; g++) if (reach[g]! < reach[gap]!) gap = g;
       if (reach[gap]! >= MAX_OUTING_M - 1) return { go: 'rest' };
       const d = gapDirection(camp, gap);
+      // At a compact camp people stand close round the fire: water only out along a lane.
+      if (isCompact(camp) && reach[gap]! < 10) return { go: 'rest' };
       // Where the water comes within the gap's first metres, to the edge of the camp's room.
       const edge = reach[gap]! >= 10 ? reach[gap]! - 1 : Math.min(9, (st.home.room ?? 9.5) - 0.5);
       const far = { x: d.x * edge, z: d.z * edge };
@@ -2045,7 +2142,7 @@ interface Place {
 /** Where walks reach a lodging's door: outside its walls, on the hearth side. */
 function doorOf(l: TreeLodging): Pt {
   const p = lodgingSpot(l);
-  const k = 1 - HUT_DOOR_M / LODGING_RING_M;
+  const k = 1 - doorM(l.camp) / ringOf(l.camp);
   return { x: p.x * k, z: p.z * k };
 }
 

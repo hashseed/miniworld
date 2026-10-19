@@ -9,6 +9,7 @@ import { NEVER } from '../../../app/src/world/tree.ts';
 import { treeScene } from '../../../app/src/world/treeScene.ts';
 import { arrivalMap, CLOSED, dayOfBce, type ArrivalInputs, type Arrivals } from './arrivals.ts';
 import { buildTree, checkTree, distanceKm, type Habitat, type TreeSettings } from './humankind.ts';
+import { buildSites } from './sites.ts';
 
 const years = (y: number) => Math.round(y * DAYS_PER_YEAR);
 const bce = dayOfBce;
@@ -53,6 +54,22 @@ const culture = (lat: number, lon: number) =>
 const settings: TreeSettings = {
   founder: { lat: 0, lon: 0 },
   lodgingKind: 'shelter-grass-hut',
+  sites: buildSites({
+    campFlood: (lat, lon) => (land(lat, lon) ? Infinity : -Infinity),
+    walkFlood: (lat, lon) => (land(lat, lon) ? Infinity : -Infinity),
+    lowestSea: 0,
+    crossings: [
+      {
+        id: crossing.id,
+        day: dayOfBce(crossing.bce),
+        way: crossing.way.map(([lat, lon]) => ({ lat, lon })),
+      },
+    ],
+    fromLat: -30,
+    toLat: 30,
+  }),
+  seaLevel: () => 0,
+  walkFlood: (lat, lon) => (land(lat, lon) ? Infinity : -Infinity),
   startDay: TIMELINE_START,
   endDay: bce(60_000),
   prologueEndDay: bce(68_000),
@@ -67,7 +84,6 @@ const settings: TreeSettings = {
 };
 const habitat: Habitat = {
   habitable: land,
-  land,
   score: () => 0.5,
 };
 const tree = buildTree(settings, habitat);

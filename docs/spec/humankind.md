@@ -87,7 +87,7 @@ Neanderthal camps grow no further after the start (decided by Yang on 2026-10-18
 
 ## 4. How the tree grows
 
-The rules below run inside the data build (section 5), never in the app. They take as inputs the culture areas, densities and migrations of milestone 2 section 3 and 9, the land, sea, ice and desert at each date (milestone 1), settlements and their populations (later milestones), and the events that remove people.
+Bands camp only at the precomputed sites of [sites.md](sites.md) and travel only along its links, and which sites they take, when they move and what they become is decided by its rules bound to region and time (Yang, 2026-10-19); where this section speaks of finding a spot, picking a free spot or moving away from water, sites.md section 4 says how it is done. The rules below run inside the data build (section 5), never in the app. They take as inputs the culture areas, densities and migrations of milestone 2 section 3 and 9, the land, sea, ice and desert at each date (milestone 1), settlements and their populations (later milestones), and the events that remove people.
 
 ### 4.1 Targets
 

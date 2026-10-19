@@ -16,6 +16,7 @@ import {
   type Habitat,
   type TreeSettings,
 } from './humankind.ts';
+import { buildSites } from './sites.ts';
 
 const years = (y: number) => Math.round(y * DAYS_PER_YEAR);
 
@@ -26,9 +27,24 @@ const habitat: Habitat = {
   habitable: onLand,
   score: (lat, lon) => 1 - distanceKm(0, 0, lat, lon) / RADIUS_KM,
 };
+/** The camp sites of a world: land never floods, water always does; rivers are dry only for walkers. */
+const sitesOf = (
+  land: (lat: number, lon: number) => boolean,
+  river = (_lat: number, _lon: number) => false,
+) =>
+  buildSites({
+    campFlood: (lat, lon) => (land(lat, lon) && !river(lat, lon) ? Infinity : -Infinity),
+    walkFlood: (lat, lon) => (land(lat, lon) ? Infinity : -Infinity),
+    lowestSea: 0,
+    crossings: [],
+    fromLat: -30,
+    toLat: 30,
+  });
 const settings: TreeSettings = {
   founder: { lat: 0, lon: 0 },
   lodgingKind: 'lodging-test',
+  sites: sitesOf(onLand),
+  seaLevel: () => 0,
   startDay: TIMELINE_START,
   endDay: TIMELINE_START + years(10_000),
   prologueEndDay: TIMELINE_START + years(6_000),
@@ -104,8 +120,10 @@ describe('the tree of humankind', () => {
   });
 
   it('holds camps behind the front during the prologue', () => {
+    // The first person camps at the site nearest her place (sites.md section 4).
+    const first = tree.lodgings[0]!;
     for (const l of tree.lodgings) {
-      if (l.built >= settings.prologueEndDay) continue;
+      if (l.built >= settings.prologueEndDay || l.camp === first.camp) continue;
       const km = distanceKm(0, 0, l.lat / 1e6, l.lon / 1e6);
       expect(km).toBeLessThanOrEqual(
         (settings.frontKmPerYear * (l.built - settings.startDay)) / DAYS_PER_YEAR + 1,
@@ -173,9 +191,10 @@ describe('the camp scene', () => {
       for (let k = 0; k < 12; k++) times.push(msAtDay(l.built, settings.startDay) + k * 1_500);
     for (const ms of times) {
       const s = treeScene(whole, ms, settings.startDay);
+      // A cook at the spit (3.1 metres from the fire) may come within 1.9 of a spot.
       apart(
         s.figures.filter((f) => f.clip === 'idle' || f.clip === 'work' || f.clip === 'knap'),
-        2,
+        1.85,
       );
       apart(s.lodgings, 12);
     }
@@ -340,8 +359,9 @@ describe('camps by a river', () => {
   it('keep their lodgings and outings out of it', () => {
     // A river about 60 km wide runs north to south across the continent, east of the founder.
     const inRiver = (_lat: number, lon: number) => lon > 4 && lon < 4.55;
-    const t = buildTree(settings, { ...habitat, dry: (lat, lon) => !inRiver(lat, lon) });
-    expect(checkTree(t, settings, habitat)).toEqual([]);
+    const riverSettings = { ...settings, sites: sitesOf(onLand, inRiver) };
+    const t = buildTree(riverSettings, habitat);
+    expect(checkTree(t, riverSettings, habitat)).toEqual([]);
     // People still settle on both banks.
     expect(t.lodgings.some((l) => l.lon / 1e6 > 6)).toBe(true);
     const { where, seen } = strays(t, (lat, lon) => onLand(lat, lon) && !inRiver(lat, lon));
@@ -353,7 +373,7 @@ describe('camps by a river', () => {
 describe('the canonical tree', () => {
   it('keeps its hash, so any change to the rules is seen', () => {
     const hash = createHash('sha256').update(JSON.stringify(tree)).digest('hex').slice(0, 16);
-    expect(hash).toBe('9a95d808f3f9bc2c');
+    expect(hash).toBe('ffa543da5b7881a8');
   });
 });
 

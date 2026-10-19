@@ -80,7 +80,8 @@ export function climateHabitat(input: HabitatInputs): Habitat {
     !input.isSea(lat, lon, day) &&
     !input.isLake(lat, lon) &&
     iceKm(lat, lon, day) < -ICE_CLEAR_KM &&
-    (aridity(lat, lon, day) < DESERT_ARIDITY || (input.wetForItsWarmth?.(lat, lon, day) ?? false)) &&
+    (aridity(lat, lon, day) < DESERT_ARIDITY ||
+      (input.wetForItsWarmth?.(lat, lon, day) ?? false)) &&
     input.elevation(lat, lon) < (input.highestM ?? MAX_CAMP_M);
 
   /** Whether sea, a lake or a river lies at the point or around it. */
@@ -102,8 +103,6 @@ export function climateHabitat(input: HabitatInputs): Habitat {
 
   return {
     habitable,
-    land: (lat, lon, day) => !input.isSea(lat, lon, day) && !input.isLake(lat, lon),
-    dry: (lat, lon) => !input.inRiver(lat, lon),
     wood: input.wood,
     score: (lat, lon, day) =>
       0.4 * (1 - aridity(lat, lon, day)) +

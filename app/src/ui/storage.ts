@@ -19,7 +19,6 @@ export interface Settings {
    */
   lensStrength: number;
   /** The first-start hint about the lens was closed. */
-  lensHintSeen: boolean;
 }
 
 export interface ViewState {
@@ -96,7 +95,6 @@ export function loadSettings(defaults: Settings): Settings {
     trueTimeScale: isBool(v.trueTimeScale) ? v.trueTimeScale : defaults.trueTimeScale,
     showStats: isBool(v.showStats) ? v.showStats : defaults.showStats,
     lensStrength: lensStrengthOf(v, defaults.lensStrength),
-    lensHintSeen: isBool(v.lensHintSeen) ? v.lensHintSeen : defaults.lensHintSeen,
   };
 }
 

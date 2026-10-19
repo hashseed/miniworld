@@ -27,6 +27,7 @@ import { VignetteLayer } from './vignettes/vignetteLayer.ts';
 import { WildlifeLayer } from './wildlife/wildlifeLayer.ts';
 import { OPENING_DAY, TIMELINE_START } from './time/calendar.ts';
 import { TreeLayer } from './tree/treeLayer.ts';
+import { SitesLayer } from './tree/sitesLayer.ts';
 import { Clock, JUMP_SECONDS } from './time/clock.ts';
 import { yearsPerMinuteAt } from './time/rate.ts';
 import { Timeline } from './timeline/timeline.ts';
@@ -69,7 +70,6 @@ const settings = loadSettings({
   trueTimeScale: false,
   showStats: false,
   lensStrength: 100,
-  lensHintSeen: false,
 });
 const savedView = STRESS ? undefined : loadView();
 const i18n = new I18n(settings.language);
@@ -165,6 +165,8 @@ const tree = new TreeLayer(loader, {
   toDrawn: (d) => globe.lens.toDrawn(d),
 });
 scene.add(landmarks.group, vignettes.group, wildlife.group, tree.group);
+/** The camp sites for development, with `?sites` (sites.md section 7). */
+let sitesView: SitesLayer | undefined;
 vignettes.onOpen = (entry) => void openVignette(entry);
 // A tap that misses every cast may land on a landmark, then on an animal, which open their cards the same way.
 vignettes.onMiss = (x, y) => {
@@ -312,7 +314,6 @@ const actions: Actions = {
     if (key === 'trueTimeScale') timeline?.setMode(value ? 'true' : 'watch');
     if (key === 'lensStrength') globe.lens.setStrength((value as number) / 100);
   },
-  closeLensHint: () => actions.setSetting('lensHintSeen', true),
   addBookmark: () => {
     const name = formatDateReadout(clock.day, i18n.language, {
       yearsPerMinute: 0,
@@ -478,6 +479,7 @@ attachKeys({
 
 let lastViewSave = 0;
 loop.afterFrame = (now) => {
+  sitesView?.update(loop.planet.seaLevel, camera);
   timeline?.draw();
   if (!ui.value.settings.timelineExpanded) updateVisibleLanes();
   if (now - lastViewSave > VIEW_SAVE_MS) {
@@ -514,6 +516,14 @@ async function start(): Promise<void> {
   try {
     const manifest = await loader.init();
     tree.setChunks(manifest.tree?.files ?? [], manifest.tree?.days ?? []);
+    if (params.has('sites') && manifest.tree?.sites) {
+      sitesView = new SitesLayer(
+        loader,
+        { surfaceKm: surface.surfaceKm, toDrawn: (d) => globe.lens.toDrawn(d) },
+        manifest.tree.sites,
+      );
+      scene.add(sitesView.group);
+    }
     // The lens grids load with the startup index; the first frame needs both.
     const [loadedIndex, lensBytes] = await Promise.all([
       loader.index(i18n.language),

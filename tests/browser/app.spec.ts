@@ -211,12 +211,9 @@ function cameraOf(page: Page): Promise<CameraView> {
   }));
 }
 
-/** Opens the app with the lens hint already closed, so nothing covers the globe. */
+/** Opens the app above Lake Turkana, high enough that zooming in has room to show. */
 async function openForCamera(page: Page): Promise<{ x: number; y: number }> {
   await page.addInitScript(() => {
-    const key = 'miniworld.settings.v1';
-    const s = JSON.parse(localStorage.getItem(key) ?? '{}') as Record<string, unknown>;
-    localStorage.setItem(key, JSON.stringify({ ...s, lensHintSeen: true }));
     // Start well above the closest zoom, so zooming in has room to show.
     localStorage.setItem(
       'miniworld.view.v3',
@@ -548,17 +545,4 @@ test('the speed modes fold behind the play button', async ({ page }, info) => {
     day,
   );
   expect(yearsPerMinute).toBeCloseTo(regular / 10, 6);
-});
-
-test('the lens hint shows once until closed', async ({ page }) => {
-  await open(page);
-  const hint = page.getByTestId('lens-hint');
-  await expect(hint).toContainText(en['lens.hint']!);
-  await hint.getByRole('button', { name: en['lens.learnMore'] }).click();
-  await expect(hint).toContainText(en['lens.learnMoreText']!);
-  await hint.getByRole('button', { name: en['lens.closeHint'] }).click();
-  await expect(hint).toHaveCount(0);
-  await page.reload();
-  await expect(page.locator('.overlay')).toHaveCount(0, { timeout: 60_000 });
-  await expect(hint).toHaveCount(0);
 });

@@ -18,6 +18,8 @@ import {
   validateCultureAreas,
   type CultureAreas,
 } from '../lib/cultureAreas.ts';
+import { buildSites, type Site } from '../lib/sites.ts';
+import { MINIMAL_SITE } from '../../../app/src/world/treeScene.ts';
 import {
   arrivalMap,
   dayOfBce,
@@ -29,7 +31,7 @@ import { CAMP_SHELTER } from '../../../assets/src/shelters.ts';
 import type { Profile } from '../../../app/src/world/cultures.ts';
 import type { Tree } from '../../../app/src/world/tree.ts';
 import { climateHabitat } from '../lib/habitat.ts';
-import { buildTree, checkTree, distanceKm, treeChunks } from '../lib/humankind.ts';
+import { buildTree, checkTree, distanceKm, treeChunks, treeStats } from '../lib/humankind.ts';
 import { NEVER, type TreeLodging } from '../../../app/src/world/tree.ts';
 import { flies, swims, WILD_GROUPS } from '../../../app/src/world/wildlife.ts';
 import type { DrawnGround } from '../lib/drawnGround.ts';
@@ -41,7 +43,7 @@ import type { WorldMap } from './terrain.ts';
 const RIVER_BANK_FIELD = 96;
 
 /** The tree chunk files, null where empty, and the day each starts; undefined on the fixture map. */
-export type TreeFiles = { files: (string | null)[]; days: number[] } | undefined;
+export type TreeFiles = { files: (string | null)[]; days: number[]; sites: string } | undefined;
 
 /** Each tree chunk holds this much watching time (humankind.md section 8, Proposed). */
 const CHUNK_MS = 60_000;
@@ -111,7 +113,8 @@ export function buildHumankind(
     const level = climate.seaLevelAt(day);
     return (v !== OCEAN_NEVER && OCEAN_MIN_LEVEL + v <= level) || drawn.sea(lat, lon, level);
   };
-  const lakeAt = (lat: number, lon: number) => lakes.nearest(lat, lon) >= 128 || drawn.lake(lat, lon);
+  const lakeAt = (lat: number, lon: number) =>
+    lakes.nearest(lat, lon) >= 128 || drawn.lake(lat, lon);
   const habitat = climateHabitat({
     slices: climate.slices,
     isSea: seaAt,
@@ -138,8 +141,10 @@ export function buildHumankind(
   const { thresholds } = ctx.curated<{
     thresholds: { id: string; bce: number; lat: number; lon: number }[];
   }>('neolithic.json');
-  const lowDay = climate.seaLevel.startDay +
-    climate.seaLevel.stepDays * climate.seaLevel.metres.indexOf(Math.min(...climate.seaLevel.metres));
+  const lowDay =
+    climate.seaLevel.startDay +
+    climate.seaLevel.stepDays *
+      climate.seaLevel.metres.indexOf(Math.min(...climate.seaLevel.metres));
   const africa = cultureAreas.areas.findIndex((a) => a.culture === FOUNDER_CULTURE);
   let arrived: ArrivalMap;
   try {
@@ -159,7 +164,44 @@ export function buildHumankind(
   } catch (e) {
     return fail((e as Error).message);
   }
+  // The camp sites and their links (sites.md): flood levels from the source grids and the
+  // drawn tiles, whichever floods first; lakes and drawn rivers are never dry for a camp.
+  const oceanFlood = (lat: number, lon: number) => {
+    const v = connection.nearest(lat, lon);
+    const grid = v === OCEAN_NEVER ? Infinity : OCEAN_MIN_LEVEL + v;
+    return Math.min(grid, drawn.groundAt(lat, lon).oceanLevel);
+  };
+  const walkFlood = (lat: number, lon: number) =>
+    lakeAt(lat, lon) ? -Infinity : oceanFlood(lat, lon);
+  const campFlood = (lat: number, lon: number) =>
+    rivers.bilinear(lat, lon) >= RIVER_BANK_FIELD ? -Infinity : walkFlood(lat, lon);
+  const lowestSea = Math.min(...climate.seaLevel.metres);
+  const { places: keyPlaces } = ctx.curated<{
+    places: { id: string; lat: number; lon: number }[];
+  }>('key-places.json');
+  const sites = buildSites({
+    keyPlaces,
+    campFlood,
+    walkFlood,
+    lowestSea,
+    crossings: crossings.map((c) => ({
+      id: c.id,
+      day: dayOfBce(c.bce),
+      way: c.way.map(([lat, lon]) => ({ lat, lon })),
+    })),
+  });
+  mkdirSync(join(ROOT, 'data/build/tree'), { recursive: true });
+  writeFileSync(join(ROOT, 'data/build/tree/sites.json'), JSON.stringify(sites));
+  log(
+    `camp sites: ${sites.sites.length} sites, ${sites.links.length} links ` +
+      `(${sites.links.filter((l) => l.crossing).length} by canoe)`,
+  );
+  if (sites.unplaced.length)
+    log(`camp sites: no camp fits near the key places ${sites.unplaced.join(', ')}`);
   const treeSettings = humankindSettings(cultureAreas, {
+    sites,
+    seaLevel: climate.seaLevelAt,
+    walkFlood,
     elevation: (lat, lon) => elevation.bilinear(lat, lon),
     temperature: climate.temperatureAt,
     arrival: arrived.dayAt,
@@ -170,6 +212,9 @@ export function buildHumankind(
   if (!habitat.habitable(treeSettings.founder.lat, treeSettings.founder.lon, TIMELINE_START))
     fail('tree of humankind: the first person stands on uninhabitable land');
   const tree = buildTree(treeSettings, habitat);
+  log(
+    `tree of humankind: ${treeStats.crowded} bands crowded a neighbour, ${treeStats.stuck} steps a band found nowhere to go`,
+  );
   // Written before the checks, so a failing tree can be looked into.
   mkdirSync(join(ROOT, 'data/build/tree'), { recursive: true });
   writeFileSync(
@@ -203,7 +248,20 @@ export function buildHumankind(
   const files = treeChunks(tree, days, treeSettings.endDay).map((chunk, w) =>
     chunk ? ctx.output.writeJson(`tree/m${w}`, chunk) : null,
   );
-  return { files: { files, days }, camps };
+  // The sites and links for the development view (sites.md section 7).
+  const kind = (x: Site) => (x.pass ? 3 : x.key >= MINIMAL_SITE ? 2 : x.compact ? 1 : 0);
+  const level = (v: number) => (Number.isFinite(v) ? Math.round(v) : v > 0 ? 9999 : -9999);
+  const sitesFile = ctx.output.writeJson('tree/sites', {
+    sites: sites.sites.map((x) => [
+      Math.round(x.lat * 1e4),
+      Math.round(x.lon * 1e4),
+      kind(x),
+      level(x.core),
+      level([...x.places].sort((a, b) => b - a)[x.compact ? 0 : 1]!),
+    ]),
+    links: sites.links.map((l) => [l.a, l.b, l.crossing ? 9999 : level(l.level)]),
+  });
+  return { files: { files, days, sites: sitesFile }, camps };
 }
 
 /** Each place a camp stands, from its first lodging built to its last taken down, as the app shows it. */
