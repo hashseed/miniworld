@@ -195,7 +195,8 @@ function strays(t: typeof tree, ok: (lat: number, lon: number) => boolean) {
     );
   const where: string[] = [];
   let seen = 0;
-  for (let ms = 0; ms < end; ms += 99_991) {
+  // About 600 moments over the tree's span, an odd step so they do not fall on turns.
+  for (let ms = 0; ms < end; ms += Math.floor(end / 600) | 1) {
     const s = treeScene(whole, ms, settings.startDay);
     for (const l of s.lodgings) {
       seen++;
@@ -242,7 +243,7 @@ describe('camps by a river', () => {
 describe('the canonical tree', () => {
   it('keeps its hash, so any change to the rules is seen', () => {
     const hash = createHash('sha256').update(JSON.stringify(tree)).digest('hex').slice(0, 16);
-    expect(hash).toBe('937b738c653c6bd3');
+    expect(hash).toBe('ae77bef1334f93c3');
   });
 });
 

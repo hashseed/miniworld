@@ -13,14 +13,16 @@ import {
 
 const d0 = TIMELINE_START;
 const years = (y: number) => Math.round(y * DAYS_PER_YEAR);
-const moveDay = d0 + years(100);
+// At the history rate of the deep past (about 560 years a minute), these spans give
+// the camp minutes of watching between its moments.
+const moveDay = d0 + years(2000);
 const ms = (day: number) => msAtDay(day, d0);
 
-// The first person alone in her hut; a child comes out after 20 years; after
-// 100 years both walk 3 degrees (about 333 km) east and build a new hut.
+// The first person alone in her hut; a child comes out after 300 years; after
+// 2000 years both walk 3 degrees (about 333 km) east and build a new hut.
 const chunk: TreeChunk = {
   fromDay: d0,
-  toDay: d0 + years(1000),
+  toDay: d0 + years(10000),
   figures: [
     {
       id: 0,
@@ -37,11 +39,11 @@ const chunk: TreeChunk = {
     {
       id: 1,
       parent: 0,
-      born: d0 + years(20),
+      born: d0 + years(300),
       branch: 0,
       depth: 1,
       homes: [
-        [d0 + years(20), 0, 1],
+        [d0 + years(300), 0, 1],
         [moveDay, 1, 1],
       ],
       lost: NEVER,
@@ -85,7 +87,7 @@ describe('the tree scene', () => {
   });
 
   it('lets a new figure come out of the door and walk to its spot', () => {
-    const born = ms(d0 + years(20));
+    const born = ms(d0 + years(300));
     const out = treeScene(chunk, born + 10, d0).figures.find((f) => f.id === 1)!;
     expect(out.clip).toBe('walk');
     const later = treeScene(chunk, born + 60_000, d0).figures.find((f) => f.id === 1)!;
@@ -116,7 +118,8 @@ describe('the tree scene', () => {
     const first = crossing[0]!.t;
     expect(frames.find((f) => f.t === first)!.scene.lodgings.some((l) => l.id === 1)).toBe(false);
     const after = frames.at(-1)!.scene;
-    expect(after.figures.every((f) => f.lon === 39 && f.clip !== 'walk')).toBe(true);
+    // Everyone has arrived (some may already be off on an outing from the new camp).
+    expect(after.figures.every((f) => f.lon === 39)).toBe(true);
     expect(after.lodgings.map((l) => l.id)).toEqual([1]);
   });
 
@@ -165,7 +168,7 @@ describe('the tree scene', () => {
   it('eases between clips', () => {
     let eased = 0;
     for (let t = 0; t < 120_000; t += BLEND_MS / 2) {
-      const f = treeScene(chunk, ms(d0 + years(30)) + t, d0).figures.find((g) => g.id === 1)!;
+      const f = treeScene(chunk, ms(d0 + years(310)) + t, d0).figures.find((g) => g.id === 1)!;
       if (f.from) {
         eased++;
         expect(f.from.weight).toBeGreaterThanOrEqual(0);

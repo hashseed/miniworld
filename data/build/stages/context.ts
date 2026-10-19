@@ -7,8 +7,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { TIME_WINDOWS } from '../../../app/src/content/formats.ts';
 import { DATA_MAX_LEVEL } from '../../../app/src/geo/cube.ts';
-import { TIMELINE_START, dayFromDate } from '../../../app/src/time/calendar.ts';
-import { dayAtPosition, logAxis } from '../../../app/src/time/axis.ts';
+import { TIMELINE_END, TIMELINE_START, dayFromDate } from '../../../app/src/time/calendar.ts';
+import { dayAtPosition } from '../../../app/src/time/axis.ts';
 import { checkLicences, type SourceEntry } from '../lib/licence.ts';
 import type { Output } from '../lib/output.ts';
 
@@ -98,15 +98,17 @@ export function createContext(args: string[]): BuildContext {
       : 'building from real source data',
   );
 
-  // Time windows of equal width on the log timeline axis.
+  // Time windows of equal watching time (section 10.3).
   const release = curated<{ version: string; cutoffDate: string }>('release.json');
   const [cy, cm, cd] = release.cutoffDate.split('-').map(Number) as [number, number, number];
   const cutoffDay = dayFromDate(cy, cm, cd);
-  const axis = logAxis(TIMELINE_START, cutoffDay);
+  // The curve from watching to history time ends on the cutoff (spec section 2.1).
+  if (cutoffDay !== TIMELINE_END)
+    throw new Error('release.json: the cutoff moved; rerun scripts/time-curve.ts for the new end');
   const windows: number[] = [];
   for (let i = 0; i < TIME_WINDOWS; i++)
-    windows.push(i === 0 ? TIMELINE_START : Math.floor(dayAtPosition(axis, i / TIME_WINDOWS)));
-  log(`${windows.length} time windows on the log timeline axis`);
+    windows.push(i === 0 ? TIMELINE_START : Math.floor(dayAtPosition(i / TIME_WINDOWS)));
+  log(`${windows.length} time windows of equal watching time`);
 
   return {
     fixture,

@@ -1,6 +1,6 @@
 // The four speed modes (spec section 2.2 and milestone 1, section 3.3).
 
-import { YEARS_PER_MINUTE } from './rate.ts';
+import { yearsPerMinuteAt } from './rate.ts';
 
 export type SpeedMode = 'snail' | 'regular' | 'fast' | 'fastest';
 
@@ -25,6 +25,6 @@ export function stepSpeed(mode: SpeedMode, dir: -1 | 1): SpeedMode {
 }
 
 /** History's rate in years per minute in a mode. */
-export function yearsPerMinute(mode: SpeedMode): number {
-  return YEARS_PER_MINUTE * SPEED_FACTOR[mode];
+export function yearsPerMinute(mode: SpeedMode, day: number): number {
+  return yearsPerMinuteAt(day) * SPEED_FACTOR[mode];
 }

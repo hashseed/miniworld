@@ -126,8 +126,9 @@ test('language switch changes every string without a reload', async ({ page }) =
 test('settings and bookmarks survive a reload', async ({ page }, info) => {
   await open(page);
   // The back button plays back one year (365 whole days) fast; forward presses
-  // during a jump are queued; a step picked from the fold stays on the button.
-  const start = (await world(page)).day;
+  // during a jump are queued; a step picked from the fold stays on the button. In
+  // 1900, where every day has a millisecond of watching time of its own.
+  const start = -36524 - 1000; // 1000 days before 1 January 1900
   await page.evaluate(
     (day) =>
       (
@@ -151,8 +152,8 @@ test('settings and bookmarks survive a reload', async ({ page }, info) => {
   await page.getByTestId('back-1000').click();
   await expect(page.getByTestId('back').locator('text')).toHaveText(en['controls.stepThousand']!);
   await page.getByTestId('back').click();
-  // A thousand years back from 1365 days after the start stops at the start.
-  await expect.poll(day, { timeout: 30_000 }).toBe(start);
+  // A thousand years back: −365,242.5 days, rounded to −365,242.
+  await expect.poll(day, { timeout: 30_000 }).toBe(start + 1365 - 365242);
   await page.getByRole('button', { name: en['menu.settings'] }).click();
   await page.getByLabel(en['settings.trueTimeScale']!).check();
   // The About panel, with the sources' licences, opens from the settings.
@@ -228,9 +229,9 @@ async function openForCamera(page: Page): Promise<{ x: number; y: number }> {
     localStorage.setItem(key, JSON.stringify({ ...s, lensHintSeen: true }));
     // Start well above the closest zoom, so zooming in has room to show.
     localStorage.setItem(
-      'miniworld.view.v2',
+      'miniworld.view.v3',
       JSON.stringify({
-        ms: 0,
+        day: -26297094,
         camera: { lat: 3.95, lon: 36.2, altitudeKm: 6000, heading: 0, tilt: 0 },
         speedMode: 'regular',
       }),
@@ -547,7 +548,16 @@ test('the speed modes fold behind the play button', async ({ page }, info) => {
   }
   // The chosen mode stays on the button, and history runs at 2.5 years a minute.
   await expect(page.getByTestId('speed-snail')).toHaveAttribute('aria-checked', 'true');
-  expect((await world(page)).yearsPerMinute).toBe(2.5);
+  // A tenth of history's rate at the date (spec section 2.2).
+  const { yearsPerMinute, day } = await world(page);
+  const regular = await page.evaluate(
+    (d) =>
+      (
+        globalThis as unknown as { __miniworld: { rateAt(day: number): number } }
+      ).__miniworld.rateAt(d),
+    day,
+  );
+  expect(yearsPerMinute).toBeCloseTo(regular / 10, 6);
 });
 
 test('the lens hint shows once until closed', async ({ page }) => {

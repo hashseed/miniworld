@@ -1,15 +1,16 @@
 // The timeline (spec milestone 1, section 7): a canvas with a ruler, a World
-// lane and regional lanes of era ranges, a playhead, zoom and scrubbing, on a
-// logarithmic axis or the true time scale.
+// lane and regional lanes of era ranges, a playhead, zoom and scrubbing, on an
+// axis linear in watching time or the true time scale.
 
 import type { EraRecord, StartupIndex } from '../content/types.ts';
 import { formatYear } from '../i18n/dates.ts';
 import type { I18n } from '../i18n/i18n.ts';
 import { continuousYear, dateFromDay, dayFromContinuousYear, type Day } from '../time/calendar.ts';
 import type { Clock } from '../time/clock.ts';
-import { axisPosition, dayAtPosition, logAxis, type LogAxis } from '../time/axis.ts';
+import { axisPosition, dayAtPosition } from '../time/axis.ts';
 
-type Mode = 'log' | 'true';
+/** Linear in watching time (the default), or linear in years ("True time scale"). */
+type Mode = 'watch' | 'true';
 
 interface Placed {
   era: EraRecord;
@@ -41,9 +42,8 @@ export class Timeline {
   private clock: Clock;
   private i18n: I18n;
   private index!: StartupIndex;
-  private logAxis: LogAxis | undefined;
   private lanes: LaneLayout[] = [];
-  private mode: Mode = 'log';
+  private mode: Mode = 'watch';
   /** Visible range in axis units of the current mode. */
   private view = { a0: 0, a1: 1 };
   private transition: { from: { mode: Mode; a0: number; a1: number }; start: number } | undefined;
@@ -99,7 +99,6 @@ export class Timeline {
   setIndex(index: StartupIndex): void {
     const first = !this.index;
     this.index = index;
-    this.logAxis = undefined;
     this.layoutLanes();
     if (first) this.zoomToAll();
   }
@@ -120,20 +119,11 @@ export class Timeline {
   // --- Axis ------------------------------------------------------------------
 
   private axis(day: number, mode: Mode): number {
-    return mode === 'log' ? axisPosition(this.currentLogAxis(), day) : continuousYear(day);
+    return mode === 'watch' ? axisPosition(day) : continuousYear(day);
   }
 
   private dayAtAxis(a: number, mode: Mode): number {
-    return mode === 'log' ? dayAtPosition(this.currentLogAxis(), a) : dayFromContinuousYear(a);
-  }
-
-  /** The log axis over the clock's range, with k from the startup index (section 7.2). */
-  private currentLogAxis(): LogAxis {
-    const { startDay, endDay } = this.clock;
-    let a = this.logAxis;
-    if (!a || a.startDay !== startDay || a.endDay !== endDay)
-      a = this.logAxis = logAxis(startDay, endDay, this.index.axisYears);
-    return a;
+    return mode === 'watch' ? dayAtPosition(a) : dayFromContinuousYear(a);
   }
 
   private fullRange(mode: Mode): [number, number] {

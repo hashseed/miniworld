@@ -18,39 +18,56 @@ Principles that decide every design question:
 
 ## 2. Time model
 
-History plays at one even pace from beginning to end, and everything on screen follows a single clock (decided by Yang on 2026-10-18). Because nothing depends on how long someone has been watching, every diorama is fully scripted: at a given moment of the timeline it shows the same scene, in the same place, at the same beat, every time and for everyone. The timeline is drawn on a logarithmic scale instead, so that the busy recent centuries get room to read while the clock itself never changes pace.
+Two kinds of time, defined by Yang on 2026-10-19:
 
-### 2.1 The clock
+- **Watching time** is the rate at which everything on screen moves: people at work, animals grazing, water, clouds and every diorama beat. It runs at real time at regular speed, and the speed modes speed it up or slow it down (section 2.2). It is counted in milliseconds from the start of the timeline; this count is **the clock**.
+- **History time** is the date: the historical day the world shows, with everything true about it (which cultures live where, how many people there are, what buildings stand, which borders exist and which events are under way). It follows from watching time by a fixed curve that runs fast through the deep past and slowly through written history (section 2.1).
 
-The **clock** is the position on the timeline, counted in milliseconds of watching time from the start of the timeline. Everything on screen is a function of it: the historical date and with it everything that is true about the world (which cultures live where, how many people there are, what buildings stand, which borders exist and which events are under way), and also every figure's step, every diorama beat, the waves, rivers and clouds.
+The **timeline** shows the historical events, but it is laid out linearly in watching time: a minute of watching is the same width anywhere on it, so the deep past, which passes quickly, takes little room and the busy recent centuries take much (section 7.1).
 
-- The date advances at a **uniform rate of 25 years per minute** at regular speed, in every era (decided by Yang on 2026-10-18). The date is a fixed function of the clock, so the same clock time is always the same date.
-- At that rate a year passes in 2.4 seconds and a day in about 6.6 milliseconds. A figure walking across a camp in ten seconds walks while four years go by; that is intended, since the figures stand for the everyday life of their era, not for a particular afternoon.
+Everything on screen is a function of the clock alone, so nothing depends on how long someone has been watching: every diorama is fully scripted, and at a given moment of the timeline it shows the same scene, in the same place, at the same beat, every time and for everyone.
+
+### 2.1 Watching time and history time
+
+- **The curve** (decided by Yang on 2026-10-19, replacing the even rate of 25 years per minute of 2026-10-18). History's rate, in years per minute of watching at regular speed, is the age before the end of the timeline divided by a constant, so each factor of ten of the past gets about the same watching time; nudged by a rough estimate of how much happens in each stretch, from the era boundaries we have (busier stretches a little slower, by the square root of the density, heavily smoothed, and within a factor of about 1.6 either way), so it is not meant to move as content is added; and **never slower than one year per minute**. The constant is chosen so that the whole timeline, from 70,000 BCE to 26 December 1991, takes **exactly 24 hours** at regular speed.
+- The curve is generated once by `node scripts/time-curve.ts` into `app/src/time/curve.ts`: 513 knots, evenly spaced in watching time, each a whole number of milliseconds and a whole day, the last at exactly 86,400,000 ms on the last day of the timeline. Between knots the date runs linearly in exact integer arithmetic, so the same clock time is always the same date, and the clock time at which a day begins is the smallest that gives that day. The data build fails when the content cutoff no longer matches the curve's end.
+
+| Date | History's rate at regular speed |
+| --- | --- |
+| 70,000 BCE | about 560 years per minute |
+| 20,000 BCE | about 170 |
+| 10,000 BCE | about 95 |
+| 3000 BCE | about 22 |
+| 1 CE | about 6.5 |
+| 1000 | about 3.3 |
+| 1500 | about 1.9 |
+| from about 1800 | 1 |
 
 | Period | Watching time at regular speed |
 | --- | --- |
-| 70,000 to 10,000 BCE | 40 h |
-| 10,000 to 3000 BCE | 4 h 40 min |
-| 3000 to 500 BCE | 1 h 40 min |
-| 500 BCE to 1500 CE | 1 h 20 min |
-| 1500 to 1800 | 12 min |
-| 1800 to 1900 | 4 min |
-| 1900 to 1991 | about 3 min 40 s |
+| 70,000 to 50,000 BCE | 42 min |
+| 50,000 to 10,000 BCE | 3 h 8 min |
+| 10,000 to 3000 BCE | 2 h 23 min |
+| 3000 to 500 BCE | 3 h 6 min |
+| 500 BCE to 1500 | 8 h 1 min |
+| 1500 to 1800 | 3 h 29 min |
+| 1800 to 1900 | 1 h 40 min |
+| 1900 to 1991 | 1 h 32 min |
+| **The whole timeline** | **24 h** |
 
-The whole timeline takes about 48 hours at regular speed, about 34 h 40 min of it from 50,000 BCE (accepted by Yang on 2026-10-18, replacing the earlier rate curve of about 24 hours that slowed down towards the present). The recent centuries pass quickly at regular speed; snail mode is how they are watched closely (section 2.2).
-
-**Later: time jumps.** To keep the long quiet stretches interesting, later versions may jump over parts of the timeline. A jump moves the clock; it never changes what the world looks like at a given clock time.
+- In the deep past a millisecond of watching spans a few days, so there not every day has a clock time of its own; from the time a day lasts at least a millisecond, each has one exactly.
+- People and animals move at their natural pace in watching time everywhere. What changes with the curve is how much history passes while they do: in the deep past the camps of the tree of humankind come and go about fourteen times as quickly in watching time as around 3000 BCE, because their history is the same ([humankind.md](humankind.md) section 4).
 
 ### 2.2 Speed and pausing
 
-- Three speed modes instead of a slider (decided by Yang on 2026-10-18): **snail** (×1/8, about 3 years per minute), **regular** (×1, 25 years per minute) and **fast forward** (×16, 400 years per minute). The factors are **Proposed**. The mode only changes how fast the clock runs; at a faster speed the figures move faster too, like a film played fast, and in snail mode they move in slow motion.
+- Four speed modes instead of a slider (decided by Yang on 2026-10-18 and 2026-10-19): **slow** (×1/10), **regular** (×1), **fast** (×10) and **fastest** (×100). The mode only changes how fast the clock runs: at a faster speed watching time runs faster, so the figures move faster too, like a film played fast, and history passes faster in proportion; in slow mode they move in slow motion. The rate shown beside the date is history's rate at the current date times the mode's factor.
 - Zooming does not change the speed (the earlier slowdown when zoomed in was removed by Yang on 2026-10-18).
 - *Pause*: the clock stops, so the date and every figure stop mid-step, like a photograph, so you can look around and point things out. There is no mode in which the date stands still while people carry on.
 - Scrubbing: drag the timeline to any point; the clock jumps there and the world, including every diorama, shows exactly what it shows at that point when played.
 
-### 2.3 No separate life clock
+### 2.3 One clock
 
-Earlier versions ran everyday activity on a second clock in real time, independent of the historical rate. It is gone: figures, vignettes and animations run on the clock of section 2.1. Which task a figure picks next (every 10 to 30 seconds of clock time), where it walks and which animation plays are a function of the clock, so scrubbing back to a moment replays it exactly.
+Earlier versions ran everyday activity on a second, separate clock. There is one clock, watching time: figures, vignettes and animations run on it, and the date follows from it by the curve of section 2.1. Which task a figure picks next (every 10 to 30 seconds of watching), where it walks and which animation plays are a function of the clock, so scrubbing back to a moment replays it exactly.
 
 ### 2.4 People morph instead of dying of age
 
@@ -157,8 +174,8 @@ The screen is the globe with a timeline along the bottom; everything else stays 
 
 - A top lane "World" shows global eras as coloured ranges (Paleolithic, Neolithic, Bronze Age and so on). Below it, one lane per world region shows that region's eras and empires as coloured ranges: Europe and Mediterranean, Middle East and North Africa, Sub-Saharan Africa, Central Asia and steppe, South Asia, East Asia, Southeast Asia, Americas, Oceania. Ranges are defined in [eras.md](eras.md).
 - Events sit on the timeline as small icons by type. An event that lasts longer than it takes to watch for a moment shows as a thin bar from start to end, with its icon at the peak and its phases marked on the bar. Hovering or tapping shows the title and date; double-clicking (double-tapping on phones) flies the camera to the place and moves time there.
-- The timeline zooms from the whole of history down to single years. Its axis is **logarithmic** in the time before the end of the timeline (decided by Yang on 2026-10-18), so the recent centuries, where events are dense, get much more room than the deep past and the listed events spread roughly evenly along it ([milestone-1.md](milestone-1.md#72-axis-and-zoom) section 7.2). The clock still runs at one pace, so the playhead moves slowly across the deep past and faster towards the end. A toggle "True time scale" switches to the true linear scale, where all of written history is a thin sliver at the end.
-- Dragging the playhead scrubs through time. Controls: play, pause, and the speed modes snail, regular and fast forward (section 2.2).
+- The timeline zooms from the whole of history down to single years. Its axis is **linear in watching time** (section 2; decided by Yang on 2026-10-19, replacing the logarithmic axis of 2026-10-18): it shows the historical events where the clock reaches them, so the deep past, which passes quickly, takes little room and the recent centuries, where events are dense and history passes slowly, take much ([milestone-1.md](milestone-1.md#72-axis-and-zoom) section 7.2). The playhead moves across it at an even pace. A toggle "True time scale" switches to the true linear scale in years, where all of written history is a thin sliver at the end.
+- Dragging the playhead scrubs through time. Controls: play, pause, the four speed modes and the back and forward jumps (section 2.2; milestone 1 section 8.1).
 
 ### 7.2 Overlays
 
@@ -186,7 +203,7 @@ Desktop: drag to rotate, scroll to zoom, right-drag to tilt, space to play and p
 
 ### 7.6 What is saved
 
-With no simulation state to keep, browser local storage holds only small things: settings, the last clock time and camera position, and bookmarks of favourite moments and places.
+With no simulation state to keep, browser local storage holds only small things: settings, the last date and camera position, and bookmarks of favourite moments and places. The date shown and bookmarks are saved as **history time**, the day (decided by Yang on 2026-10-19), so they keep pointing at the same moment of history if the curve of section 2.1 changes.
 
 ## 8. Visual style
 
@@ -215,7 +232,7 @@ The world on screen is a pure function of one clock (section 2.1): the date it g
 flowchart LR
   build["Offline data build<br/>sources + curated records,<br/>validated in every language"] --> packs["Content chunks and map tiles<br/>static, content-addressed"]
   packs --> query
-  clocks["One clock<br/>ms of watching time × speed mode<br/>date = 25 years per minute"] --> query["World query (Web Worker)<br/>scene = f(clock, area in view)"]
+  clocks["One clock<br/>ms of watching time × speed mode<br/>date = curve of watching time"] --> query["World query (Web Worker)<br/>scene = f(clock, area in view)"]
   query --> renderer["Renderer (Three.js)<br/>globe tiles, instanced figures, overlays"]
   query --> ui["Interface (Preact)<br/>timeline, cards, controls, de/en"]
   ui --> storage["localStorage<br/>settings, last clock time, camera, bookmarks"]
@@ -262,7 +279,7 @@ Content will grow to many thousands of records, hundreds of models and a global 
 **Chunks.** Everything else is split into chunks keyed by three things:
 
 - **Place:** the same cube-sphere quadtree tile keys the terrain uses, at a level chosen per content type (borders coarser, settlements finer).
-- **Time:** windows of equal width on the logarithmic timeline axis (section 7.1), so each covers a similar amount of history to read (thousands of years in the deep past, a few years in the 20th century).
+- **Time:** windows of equal watching time, equal width on the timeline axis (section 7.1), so each covers a similar amount of watching (tens of thousands of years in the deep past, a few decades in the 20th century).
 - **Language:** text lives in separate per-language chunks, so a viewer only downloads one language.
 
 Card texts and "Learn more" sections load on demand when a card opens. Models and textures are bundled per culture profile and load when that culture is near the camera and the current time window.

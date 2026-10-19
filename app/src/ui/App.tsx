@@ -5,8 +5,7 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Store } from '../core/store.ts';
-import { TIMELINE_START, dateFromDay } from '../time/calendar.ts';
-import { dayAtMs } from '../time/rate.ts';
+import { dateFromDay } from '../time/calendar.ts';
 import { SPEED_MODES, type SpeedMode } from '../time/speed.ts';
 import {
   formatDateReadout,
@@ -604,7 +603,7 @@ function BookmarksPanel({
             <button
               class="btn name"
               aria-label={t('bookmarks.go', { name: b.name })}
-              title={formatDateReadout(dayAtMs(b.ms, TIMELINE_START), lang, {
+              title={formatDateReadout(b.day, lang, {
                 yearsPerMinute: 0,
                 stationary: true,
               })}
