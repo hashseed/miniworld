@@ -34,8 +34,14 @@ jobs:
       # GitHub Pages compresses on its own and never serves the Brotli copies.
       - run: find dist -name '*.br' -delete
       - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v4
+      # Packed by hand: upload-pages-artifact leaves out hidden files, and the
+      # terrain tiles of a level's first quadrant are named like `.<hash>.bin`.
+      - run: tar --dereference --hard-dereference --directory dist -cf "$RUNNER_TEMP/artifact.tar" .
+      - uses: actions/upload-artifact@v4
         with:
-          path: dist
+          name: github-pages
+          path: ${{ runner.temp }}/artifact.tar
+          retention-days: 1
+          if-no-files-found: error
       - id: deployment
         uses: actions/deploy-pages@v4
