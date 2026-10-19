@@ -78,6 +78,10 @@ export class FrameLoop {
   private report = { frames: 0, maxCalls: 0, maxTriangles: 0, done: false };
   private lastFrame = 0;
   private lastStats = 0;
+  /** Held for a browser screenshot: no frame is drawn until released (section 13). */
+  private held = false;
+  private running = false;
+  private stopped: (() => void) | undefined;
 
   constructor(parts: LoopParts, inputs: () => LoopInputs) {
     this.parts = parts;
@@ -88,7 +92,35 @@ export class FrameLoop {
   start(): void {
     this.lastFrame = performance.now();
     this.parts.stress?.begin(this.lastFrame);
+    this.running = true;
     requestAnimationFrame(this.frame);
+  }
+
+  /**
+   * Browser tests only: holds the loop after the frame under way, resolving once
+   * no frame is drawing, so a screenshot need not wait for the slow software
+   * renderer to finish a frame; or releases it again.
+   */
+  hold(on: boolean): Promise<void> {
+    this.held = on;
+    if (!on) {
+      if (!this.running) {
+        this.running = true;
+        this.lastFrame = performance.now();
+        requestAnimationFrame(this.frame);
+      }
+      return Promise.resolve();
+    }
+    if (!this.running) return Promise.resolve();
+    return new Promise((resolve) => (this.stopped = resolve));
+  }
+
+  /** Schedules the next frame, or stops while the loop is held. */
+  private next(): void {
+    if (!this.held) return void requestAnimationFrame(this.frame);
+    this.running = false;
+    this.stopped?.();
+    this.stopped = undefined;
   }
 
   private frame = (now: number): void => {
@@ -96,7 +128,7 @@ export class FrameLoop {
     const input = this.inputs();
     const dt = Math.min(250, now - this.lastFrame);
     this.lastFrame = now;
-    if (!input.index) return void requestAnimationFrame(this.frame);
+    if (!input.index) return this.next();
     const updateStart = performance.now();
 
     p.stress?.steer(now, p.controller);
@@ -143,7 +175,7 @@ export class FrameLoop {
 
     this.afterFrame(now);
     this.syncUi(now);
-    requestAnimationFrame(this.frame);
+    this.next();
   };
 
   /** Copies the clock and the frame statistics into the interface's hot state. */
