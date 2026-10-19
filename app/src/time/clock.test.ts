@@ -61,75 +61,74 @@ describe('clock', () => {
   });
 
   it('jumps by playing linearly for a second, then resumes its state', () => {
-    const c = make(OPENING_DAY);
+    const c = make(MID);
     c.togglePlay();
-    c.jumpYears(10);
-    expect(c.jumping).toBe(1);
-    const to = msAtDay(OPENING_DAY + Math.round(10 * DAYS_PER_YEAR), TIMELINE_START);
     const from = c.ms;
+    c.jumpWatch(10_000);
+    expect(c.jumping).toBe(1);
     c.tick(JUMP_MS / 2);
-    expect(c.ms).toBe(Math.floor((from + to) / 2));
+    expect(c.ms).toBe(from + 5000);
     c.tick(JUMP_MS / 2);
-    expect(c.ms).toBe(to);
+    expect(c.ms).toBe(from + 10_000);
     expect(c.jumping).toBe(0);
     expect(c.playState).toBe('paused');
     c.tick(5000);
-    expect(c.ms).toBe(to);
+    expect(c.ms).toBe(from + 10_000);
   });
 
   it('plays a jump back in reverse, and keeps playing after it', () => {
     const c = make(MID);
-    c.jumpYears(-1);
+    const from = c.ms;
+    c.jumpWatch(-10_000);
     expect(c.jumping).toBe(-1);
     c.tick(JUMP_MS);
-    expect(c.day).toBe(MID - 365);
+    expect(c.ms).toBe(from - 10_000);
     expect(c.playState).toBe('playing');
     c.tick(1000);
-    expect(c.ms).toBe(msAtDay(MID - 365, TIMELINE_START) + 1000);
+    expect(c.ms).toBe(from - 9000);
   });
 
   it('queues presses during a jump, each from where the last ended', () => {
     const c = make(MID);
     c.togglePlay();
-    c.jumpYears(1);
+    const from = c.ms;
+    c.jumpWatch(10_000);
     c.tick(300);
-    c.jumpYears(1);
-    c.jumpYears(-10);
+    c.jumpWatch(10_000);
+    c.jumpWatch(-30_000);
     c.tick(700);
-    expect(c.day).toBe(MID + 365);
+    expect(c.ms).toBe(from + 10_000);
     expect(c.jumping).toBe(1);
     c.tick(1000);
-    expect(c.day).toBe(MID + 730);
+    expect(c.ms).toBe(from + 20_000);
     c.tick(1000);
-    expect(c.day).toBe(MID + 730 - 3652);
+    expect(c.ms).toBe(from - 10_000);
     expect(c.jumping).toBe(0);
   });
 
   it('stops a jump at either end of the timeline', () => {
-    const c = make(TIMELINE_START + 100);
+    const c = make(TIMELINE_START);
     c.togglePlay();
-    c.jumpYears(-1000);
-    c.tick(JUMP_MS);
-    expect(c.day).toBe(TIMELINE_START);
-    c.jumpYears(-1);
+    c.jumpWatch(-10_000);
     expect(c.jumping).toBe(0);
-    const d = make(END - 100);
+    expect(c.ms).toBe(0);
+    const d = make(END);
     d.togglePlay();
-    d.jumpYears(1000);
-    d.tick(JUMP_MS);
+    d.jumpWatch(10_000);
+    expect(d.jumping).toBe(0);
     expect(d.day).toBe(END);
   });
 
   it('cancels jumps when the date is set or the playhead dragged', () => {
     const c = make(OPENING_DAY);
-    c.jumpYears(100);
-    c.jumpYears(100);
+    c.jumpWatch(10_000);
+    c.jumpWatch(10_000);
     c.tick(200);
     c.setDay(OPENING_DAY);
     expect(c.jumping).toBe(0);
     c.tick(2000);
     expect(c.ms).toBe(msAtDay(OPENING_DAY, TIMELINE_START) + 2000);
-    c.jumpYears(100);
+    c.jumpWatch(10_000);
     c.beginScrub();
     expect(c.jumping).toBe(0);
   });

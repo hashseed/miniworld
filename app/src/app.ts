@@ -27,7 +27,7 @@ import { VignetteLayer } from './vignettes/vignetteLayer.ts';
 import { WildlifeLayer } from './wildlife/wildlifeLayer.ts';
 import { OPENING_DAY, TIMELINE_START } from './time/calendar.ts';
 import { TreeLayer } from './tree/treeLayer.ts';
-import { Clock } from './time/clock.ts';
+import { Clock, JUMP_SECONDS } from './time/clock.ts';
 import { yearsPerMinuteAt } from './time/rate.ts';
 import { Timeline } from './timeline/timeline.ts';
 import { App } from './ui/App.tsx';
@@ -70,8 +70,6 @@ const settings = loadSettings({
   showStats: false,
   lensStrength: 100,
   lensHintSeen: false,
-  backStep: 1,
-  forwardStep: 1,
 });
 const savedView = STRESS ? undefined : loadView();
 const i18n = new I18n(settings.language);
@@ -337,8 +335,7 @@ const actions: Actions = {
   },
   deleteBookmark: (id) => setBookmarks(ui.value.bookmarks.filter((b) => b.id !== id)),
   resetCamera: () => controller.resetOrientation(),
-  jump: (dir) =>
-    clock.jumpYears(dir * (dir < 0 ? ui.value.settings.backStep : ui.value.settings.forwardStep)),
+  jump: (dir) => clock.jumpWatch(dir * JUMP_SECONDS * 1000),
   followPlayhead: () => timeline?.setFollow(true),
   toggleLanes: () => {
     actions.setSetting('timelineExpanded', !ui.value.settings.timelineExpanded);

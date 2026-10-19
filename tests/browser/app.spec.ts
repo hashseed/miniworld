@@ -123,37 +123,27 @@ test('language switch changes every string without a reload', async ({ page }) =
   expect(after.playState).toBe(before.playState);
 });
 
-test('settings and bookmarks survive a reload', async ({ page }, info) => {
+test('settings and bookmarks survive a reload', async ({ page }) => {
   await open(page);
-  // The back button plays back one year (365 whole days) fast; forward presses
-  // during a jump are queued; a step picked from the fold stays on the button. In
-  // 1900, where every day has a millisecond of watching time of its own.
-  const start = -36524 - 1000; // 1000 days before 1 January 1900
-  await page.evaluate(
-    (day) =>
-      (
-        globalThis as unknown as { __miniworld: { clock: { setDay(d: number): void } } }
-      ).__miniworld.clock.setDay(day),
-    start + 1000,
+  // The back and forward buttons play ten seconds of watching time fast; presses
+  // during a jump are queued; history stays paused.
+  const clockMs = () =>
+    page.evaluate(
+      () =>
+        (globalThis as unknown as { __miniworld: { clock: { ms: number } } }).__miniworld.clock.ms,
+    );
+  await page.evaluate(() =>
+    (
+      globalThis as unknown as { __miniworld: { clock: { setMs(ms: number): void } } }
+    ).__miniworld.clock.setMs(60_000_000),
   );
-  const day = async () => (await world(page)).day;
+  await expect(page.getByTestId('back').locator('text')).toHaveText('10');
   await page.getByTestId('back').click();
-  await expect.poll(day, { timeout: 30_000 }).toBe(start + 635);
+  await expect.poll(clockMs, { timeout: 30_000 }).toBe(60_000_000 - 10_000);
   await page.getByTestId('forward').click();
   await page.getByTestId('forward').click();
-  await expect.poll(day, { timeout: 30_000 }).toBe(start + 1365);
+  await expect.poll(clockMs, { timeout: 30_000 }).toBe(60_000_000 + 10_000);
   expect((await world(page)).playState).toBe('paused');
-  // Pointing opens the steps; on a touch screen a held press does, without jumping.
-  if (info.project.name === 'phone') {
-    await holdPress(page, page.getByTestId('back'));
-    await expect(page.getByTestId('back-1000')).toBeVisible();
-    expect(await day()).toBe(start + 1365);
-  } else await page.getByTestId('back').hover();
-  await page.getByTestId('back-1000').click();
-  await expect(page.getByTestId('back').locator('text')).toHaveText(en['controls.stepThousand']!);
-  await page.getByTestId('back').click();
-  // A thousand years back: −365,242.5 days, rounded to −365,242.
-  await expect.poll(day, { timeout: 30_000 }).toBe(start + 1365 - 365242);
   await page.getByRole('button', { name: en['menu.settings'] }).click();
   await page.getByLabel(en['settings.trueTimeScale']!).check();
   // The About panel, with the sources' licences, opens from the settings.

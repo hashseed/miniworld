@@ -18,7 +18,8 @@ import { LANGUAGES, type Language } from '../i18n/messages.ts';
 import { LANGUAGE_NAMES, type I18n } from '../i18n/i18n.ts';
 import { useStore } from './hooks.ts';
 import type { Actions, HotState, UiState, VignetteCard } from './state.ts';
-import { JUMP_STEPS, type JumpStep, type Settings } from './storage.ts';
+import type { Settings } from './storage.ts';
+import { JUMP_SECONDS } from '../time/clock.ts';
 import {
   BookmarkIcon,
   CloseIcon,
@@ -126,7 +127,7 @@ export function App({ store, hot, i18n, actions }: Props) {
       <div class="bottom" ref={bottom}>
         {s.fixture && <div class="notice">{t('app.fixtureNotice')}</div>}
         <div class="bar">
-          <PlayControls hot={hot} i18n={i18n} settings={s.settings} actions={actions} />
+          <PlayControls hot={hot} i18n={i18n} actions={actions} />
           <LensFold s={s} t={t} i18n={i18n} actions={actions} />
         </div>
         <TimelineCanvas s={s} t={t} actions={actions} />
@@ -144,12 +145,10 @@ type T = I18n['t'];
 function PlayControls({
   hot,
   i18n,
-  settings,
   actions,
 }: {
   hot: Store<HotState>;
   i18n: I18n;
-  settings: Settings;
   actions: Actions;
 }) {
   const s = useStore(hot);
@@ -170,7 +169,7 @@ function PlayControls({
           : [<PauseIcon />, t('controls.paused')];
   return (
     <>
-      <JumpFold dir={-1} step={settings.backStep} i18n={i18n} actions={actions} />
+      <JumpButton dir={-1} i18n={i18n} actions={actions} />
       <Fold
         class="play-fold"
         holdToOpen
@@ -206,7 +205,7 @@ function PlayControls({
           ))}
         </div>
       </Fold>
-      <JumpFold dir={1} step={settings.forwardStep} i18n={i18n} actions={actions} />
+      <JumpButton dir={1} i18n={i18n} actions={actions} />
       <span class="date" aria-live="off" data-testid="date">
         {dateText}
       </span>
@@ -217,60 +216,21 @@ function PlayControls({
   );
 }
 
-/** How a step is written on its button: the number, or 1k for a thousand. */
-function stepLabel(step: JumpStep, i18n: I18n): string {
-  return step === 1000 ? i18n.t('controls.stepThousand') : i18n.number(step);
-}
-
-/** The back (-1) or forward (1) button, with its four steps folded behind it (section 8.1). */
-function JumpFold({
-  dir,
-  step,
-  i18n,
-  actions,
-}: {
-  dir: -1 | 1;
-  step: JumpStep;
-  i18n: I18n;
-  actions: Actions;
-}) {
+/** The back (-1) or forward (1) button: ten seconds of watching time, played fast (section 8.1). */
+function JumpButton({ dir, i18n, actions }: { dir: -1 | 1; i18n: I18n; actions: Actions }) {
   const t = i18n.t.bind(i18n);
   const name = dir < 0 ? 'back' : 'forward';
+  const label = t(`controls.${name}`, { n: JUMP_SECONDS });
   return (
-    <Fold
-      class="play-fold"
-      holdToOpen
-      button={() => (
-        <button
-          class="btn"
-          aria-label={t(`controls.${name}`, { n: step })}
-          title={t(`controls.${name}`, { n: step })}
-          data-testid={name}
-          onClick={() => {
-            actions.jump(dir);
-          }}
-        >
-          <CircleArrowIcon clockwise={dir > 0} label={stepLabel(step, i18n)} />
-        </button>
-      )}
+    <button
+      class="btn"
+      aria-label={label}
+      title={label}
+      data-testid={name}
+      onClick={() => actions.jump(dir)}
     >
-      <div class="pop-options" role="radiogroup" aria-label={t('controls.step')}>
-        {JUMP_STEPS.map((n) => (
-          <button
-            key={n}
-            class="btn pop-option"
-            role="radio"
-            aria-checked={step === n}
-            aria-label={t('controls.stepOption', { n })}
-            title={t('controls.stepOption', { n })}
-            data-testid={`${name}-${n}`}
-            onClick={() => actions.setSetting(dir < 0 ? 'backStep' : 'forwardStep', n)}
-          >
-            <CircleArrowIcon clockwise={dir > 0} label={stepLabel(n, i18n)} />
-          </button>
-        ))}
-      </div>
-    </Fold>
+      <CircleArrowIcon clockwise={dir > 0} label={i18n.number(JUMP_SECONDS)} />
+    </button>
   );
 }
 
