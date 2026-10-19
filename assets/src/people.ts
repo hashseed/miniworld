@@ -150,6 +150,39 @@ export const LOOKS: Record<Profile, ProfileLook> = {
     headband: '#f2ead8',
     tools: { man: 'sickle', woman: 'grinding-stone', child: 'basket' },
   },
+  // Hunters of western and central Asia (peopling.md section 5.1): fitted hide clothes.
+  'west-asia-hunter': {
+    skin: ['#8d5a3b', '#9c6845', '#a8714c'],
+    hair: DARK_HAIR,
+    top: { man: 'tunic', woman: 'tunic', child: 'tunic' },
+    bottom: { man: 'leg-wraps', woman: 'skirt', child: 'leg-wraps' },
+    hide: ['#c79d6a', '#b98d5c', '#d3ab78'],
+    trim: '#7b5434',
+    beads: '#efe3c8',
+    tools: { man: 'spear', woman: 'scraper', child: 'none' },
+  },
+  // Hunters of northern China, Korea and Japan (peopling.md section 5.1): hide and fur.
+  'east-asia-hunter': {
+    skin: ['#a8714c', '#b8835a', '#c4936a'],
+    hair: ['#141010', '#1a1412', '#221a16'],
+    top: { man: 'tunic', woman: 'tunic', child: 'tunic' },
+    bottom: { man: 'trousers', woman: 'trousers', child: 'trousers' },
+    hide: ['#9c7650', '#8a6744', '#a8835c'],
+    trim: '#e6dcc6',
+    boots: true,
+    tools: { man: 'spear', woman: 'basket', child: 'none' },
+  },
+  // First people of the Americas (peopling.md section 5.1): hide and plant fibre, light.
+  'first-americans': {
+    skin: ['#8d5a3b', '#9c6845', '#a8714c'],
+    hair: ['#141010', '#1a1412', '#221a16'],
+    top: { man: 'none', woman: 'wrap', child: 'none' },
+    bottom: { man: 'apron', woman: 'skirt', child: 'apron' },
+    hide: ['#b08a5c', '#a07c50', '#bf9a6a'],
+    trim: '#6e7a3a',
+    beads: '#e9dcc2',
+    tools: { man: 'spear', woman: 'basket', child: 'none' },
+  },
   // Pyramid builders of the Old Kingdom (giza.md section 11): white linen kilts
   // for the men, linen dresses for the women, short black hair.
   'old-kingdom-egyptian': {

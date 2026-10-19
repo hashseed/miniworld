@@ -42,10 +42,38 @@ export interface TreeLodging {
    * in layout metres, for their outings (section 8.1); 0 where water is close.
    */
   reach: number[];
+  /**
+   * How far round its hearth the camp has dry land all round, in layout metres, when it was
+   * built (section 8.1): catch is played on a smaller ring where it is short.
+   */
+  room?: number;
   /** Asset id of its model, from the architecture set of its culture. */
   kind: string;
   /** Tree cover at its camp's place, 0 to 1, when it was built (section 8.1); the band fells it first. */
   wood?: number;
+  /** The culture profile of its camp (peopling.md section 5.1); its people wear its clothes. */
+  culture?: string;
+  /**
+   * The first lodging of a camp founded across the sea (peopling.md section 6): the crossing's
+   * way, [lat, lon] in whole microdegrees, and for each stretch of the trip, from the old camp
+   * to the first point, between the points and on to this camp, whether it is paddled.
+   */
+  voyage?: { id: string; way: [number, number][]; water: boolean[] };
+}
+
+/** A red flag at a Neolithic threshold (peopling.md section 3.6). */
+export interface TreeFlag {
+  /** The threshold's id. */
+  id: string;
+  camp: number;
+  /** The day it goes up, and the day its camp moves away from rising water, or NEVER. */
+  day: Day;
+  until: Day;
+  /** The camp's place in whole microdegrees; settled camps move only away from water. */
+  lat: number;
+  lon: number;
+  /** The lodging slot it stands behind. */
+  slot: number;
 }
 
 export interface TreeBranch {
@@ -60,7 +88,14 @@ export interface TreeBranch {
 }
 
 /** Key moments of the tree, for the family tree view (section 6.2). */
-export type MomentKind = 'root' | 'first-born' | 'camp-founded' | 'camp-moved-away' | 'branch';
+export type MomentKind =
+  | 'root'
+  | 'first-born'
+  | 'camp-founded'
+  | 'camp-moved-away'
+  | 'branch'
+  | 'voyage'
+  | 'neolithic-threshold';
 
 export interface TreeMoment {
   day: Day;
@@ -78,6 +113,8 @@ export interface Tree {
   lodgings: TreeLodging[];
   branches: TreeBranch[];
   moments: TreeMoment[];
+  /** Red flags at the Neolithic thresholds (peopling.md section 3.6). */
+  flags?: TreeFlag[];
 }
 
 /** Whether a figure lives on a day: born and not yet lost. */

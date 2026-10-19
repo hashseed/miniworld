@@ -513,7 +513,7 @@ async function start(): Promise<void> {
   render(h(App, { store: ui, hot, i18n, actions }), document.getElementById('ui')!);
   try {
     const manifest = await loader.init();
-    tree.setChunks(manifest.tree?.files ?? [], manifest.windows);
+    tree.setChunks(manifest.tree?.files ?? [], manifest.tree?.days ?? []);
     // The lens grids load with the startup index; the first frame needs both.
     const [loadedIndex, lensBytes] = await Promise.all([
       loader.index(i18n.language),

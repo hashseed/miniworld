@@ -34,6 +34,10 @@ export interface Climate {
   foliageFiles: string[];
   /** Tree cover, 0 to 1, at a place on a day: the share of plant slots times the tree density (humankind.md section 4.3). */
   woodAt(lat: number, lon: number, day: number): number;
+  /** Annual mean temperature in °C at a place in the climate slice of a day, or undefined at sea (peopling.md section 5.2). */
+  temperatureAt(lat: number, lon: number, day: number): number | undefined;
+  /** Annual precipitation in mm at a place in the climate slice of a day, or undefined at sea. */
+  precipitationAt(lat: number, lon: number, day: number): number | undefined;
 }
 
 export function buildClimate(ctx: WriteContext, map: WorldMap): Climate {
@@ -92,10 +96,11 @@ export function buildClimate(ctx: WriteContext, map: WorldMap): Climate {
     ctx.sourceFiles('beyer-2020').find((p) => p.endsWith('/biome.json')) ??
     fail('beyer-2020: no biome');
   const biome = readExtract(biomeJson.replace(/\.json$/, ''));
+  const temperature = stack('beyer-2020', 'BIO1');
   const foliageInputs = {
     biome,
     precipitation,
-    temperature: stack('beyer-2020', 'BIO1'),
+    temperature,
     ice: iceStack,
     periods: humidPeriods,
   };
@@ -129,5 +134,37 @@ export function buildClimate(ctx: WriteContext, map: WorldMap): Climate {
     const share = recipeOf(g.classes[i]!).reduce((sum, [, part]) => sum + part, 0);
     return Math.min(1, share * (g.density[i]! / 255));
   };
-  return { seaLevel, seaLevelAt, iceDays, slices, climateFiles, foliageFiles, woodAt };
+  // Temperature and precipitation per slice and half-degree cell, sampled when first asked for.
+  const sampled = (stackOf: TimeStack) => {
+    const W = 720;
+    const H = 360;
+    const grids = new Map<number, Float32Array>();
+    return (lat: number, lon: number, day: number) => {
+      let k = 0;
+      while (k + 1 < iceDays.length && iceDays[k + 1]! <= day) k++;
+      let grid = grids.get(k);
+      if (!grid) grids.set(k, (grid = new Float32Array(W * H).fill(NaN)));
+      const c = Math.min(W - 1, Math.max(0, Math.floor(((lon + 180) / 360) * W)));
+      const r = Math.min(H - 1, Math.max(0, Math.floor(((90 - lat) / 180) * H)));
+      const i = r * W + c;
+      if (Number.isNaN(grid[i]!)) {
+        const v = stackOf.sample(90 - (r + 0.5) / 2, -180 + (c + 0.5) / 2, climateYears[k]!);
+        grid[i] = v === undefined ? Infinity : v;
+      }
+      return grid[i] === Infinity ? undefined : grid[i];
+    };
+  };
+  const temperatureAt = sampled(temperature);
+  const precipitationAt = sampled(precipitation);
+  return {
+    seaLevel,
+    seaLevelAt,
+    iceDays,
+    slices,
+    climateFiles,
+    foliageFiles,
+    woodAt,
+    temperatureAt,
+    precipitationAt,
+  };
 }

@@ -220,6 +220,78 @@
       "note": "Approved by Yang from the review sheets"
     },
     {
+      "id": "figure-west-asia-hunter-man",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A man of the hunters of western and central Asia (peopling.md section 5.1), waiting for Yang's review"
+    },
+    {
+      "id": "figure-west-asia-hunter-woman",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A woman of the hunters of western and central Asia (peopling.md section 5.1), waiting for Yang's review"
+    },
+    {
+      "id": "figure-west-asia-hunter-child",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A child of the hunters of western and central Asia (peopling.md section 5.1), waiting for Yang's review"
+    },
+    {
+      "id": "figure-east-asia-hunter-man",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A man of the hunters of northern China, Korea and Japan (peopling.md section 5.1), waiting for Yang's review"
+    },
+    {
+      "id": "figure-east-asia-hunter-woman",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A woman of the hunters of northern China, Korea and Japan (peopling.md section 5.1), waiting for Yang's review"
+    },
+    {
+      "id": "figure-east-asia-hunter-child",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A child of the hunters of northern China, Korea and Japan (peopling.md section 5.1), waiting for Yang's review"
+    },
+    {
+      "id": "figure-first-americans-man",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A man of the first people of the Americas (peopling.md section 5.1), waiting for Yang's review"
+    },
+    {
+      "id": "figure-first-americans-woman",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A woman of the first people of the Americas (peopling.md section 5.1), waiting for Yang's review"
+    },
+    {
+      "id": "figure-first-americans-child",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A child of the first people of the Americas (peopling.md section 5.1), waiting for Yang's review"
+    },
+    {
       "id": "shelter-hide-tent",
       "file": "assets/src/shelters.ts",
       "kind": "shelter",
@@ -314,6 +386,22 @@
       "generated": "Modelling script",
       "status": "generated",
       "note": "Roasting spit over the camp fire (humankind.md section 8.1), waiting for Yang's review"
+    },
+    {
+      "id": "prop-canoe",
+      "file": "assets/src/shelters.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "Small dugout canoe for sea crossings (peopling.md section 6), waiting for Yang's review"
+    },
+    {
+      "id": "prop-red-flag",
+      "file": "assets/src/shelters.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "Huge red flag marking a Neolithic threshold, a development marker (peopling.md section 3.6), waiting for Yang's review"
     },
     {
       "id": "prop-hearth",

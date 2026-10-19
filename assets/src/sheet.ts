@@ -69,6 +69,9 @@ const GROUND: Record<string, string> = {
   'steppe-beringia-hunter': '#dfe4dc',
   natufian: '#b8b06e',
   'old-kingdom-egyptian': '#e0c58e',
+  'west-asia-hunter': '#c8b37c',
+  'east-asia-hunter': '#b9c08e',
+  'first-americans': '#a9b86a',
 };
 
 const KINDS: Kind[] = ['man', 'woman', 'child'];

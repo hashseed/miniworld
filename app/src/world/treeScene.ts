@@ -8,7 +8,7 @@ import { hash01, hash32 } from '../core/hash.ts';
 import { detCos, detSin, RAD } from '../core/detmath.ts';
 import { msAtDay } from '../time/rate.ts';
 import type { Day } from '../time/calendar.ts';
-import { NEVER, type TreeFigure, type TreeLodging } from './tree.ts';
+import { NEVER, type TreeFigure, type TreeFlag, type TreeLodging } from './tree.ts';
 
 /** One time window's share of the tree (section 8). */
 export interface TreeChunk {
@@ -16,6 +16,8 @@ export interface TreeChunk {
   toDay: Day;
   figures: TreeFigure[];
   lodgings: TreeLodging[];
+  /** Red flags standing in the chunk's time (peopling.md section 3.6). */
+  flags?: TreeFlag[];
 }
 
 /**
@@ -49,11 +51,11 @@ const PACE: Record<'walk' | 'run' | 'carry' | 'pole' | 'crouch', number> = {
  * Lodgings stand this far from the hearth, in layout metres; lodgings are drawn at
  * figure size, three times the layout, so the ring keeps them clear of the people.
  */
-export const LODGING_RING_M = 16;
+export const LODGING_RING_M = 12;
 /** Places for lodgings round a hearth, evenly spaced so lodgings never overlap. */
 export const LODGING_SLOTS = 5;
 /** Spots for figures at a hearth: an inner ring and an outer ring, spaced so figures never overlap. */
-const INNER_SPOTS = 8;
+export const INNER_SPOTS = 8;
 const INNER_M = 5;
 const OUTER_SPOTS = 12;
 const OUTER_M = 8.5;
@@ -63,11 +65,16 @@ const OUTER_ORDER = [0, 6, 3, 9, 1, 7, 4, 10, 2, 8, 5, 11];
 /** Paths keep this far from the middle of the hearth, in layout metres, so nobody walks through the fire. */
 const FIRE_CLEAR_M = 3;
 /** Figures leave and enter a camp at this distance from its hearth, between the people and the lodgings. */
-const GATE_M = 11;
+const GATE_M = 7;
 /** The farthest out anyone goes, in layout metres; the build measures land this far out. */
 export const MAX_OUTING_M = 50;
-/** The build prefers camp spots with land all round out to this many layout metres, past the people's spots. */
-export const CAMP_ROOM_M = OUTER_M + 2;
+/**
+ * The build needs land all round a camp spot out to this many layout metres, past the inner
+ * ring of people's spots, which a band of three to five never outgrows (peopling.md
+ * section 4: coastal camps). Catch, on its wider ring, is played only where the land goes
+ * further.
+ */
+export const CAMP_ROOM_M = INNER_M + 2;
 /** Figures change between idle and work every 20 to 40 seconds of life, sped up by TEMPO. */
 const ACTIVITY_MIN_MS = 20_000 / TEMPO;
 const ACTIVITY_SPREAD_MS = Math.round(20_000 / TEMPO);
@@ -84,8 +91,31 @@ const BIND_POINT_MS = Math.round(7200 / TEMPO);
 const BUTCHER_MEAT_MS = Math.round(7200 / TEMPO);
 const ROAST_MS = Math.round(14_400 / TEMPO);
 const INSIDE_MS = Math.round(14_400 / TEMPO);
+/** Felling is done at least this far out, in layout metres, past the people's spots. */
+const FELL_MIN_M = 10;
+/**
+ * The layout offset of a figure on its way between camps, on leg `n` at `u` of it and `t` of
+ * the whole way: from the old camp's edge to the new camp's when there is one leg, else
+ * from the old camp's edge to nothing on the first leg and from nothing to the new camp's
+ * edge on the last, so the figure keeps to the route's way in between.
+ */
+function edgeOffset(
+  c: { exit: Pt; entry: Pt; legs: unknown[] },
+  n: number,
+  u: number,
+  t: number,
+): Pt {
+  if (c.legs.length === 1)
+    return { x: c.exit.x + (c.entry.x - c.exit.x) * t, z: c.exit.z + (c.entry.z - c.exit.z) * t };
+  if (n === 0) return { x: c.exit.x * (1 - u), z: c.exit.z * (1 - u) };
+  if (n === c.legs.length - 1) return { x: c.entry.x * u, z: c.entry.z * u };
+  return { x: 0, z: 0 };
+}
+
+/** A red flag stands this far from the hearth, behind a lodging and its rack (peopling.md section 3.6). */
+const FLAG_R = 24;
 /** Walks reach a lodging's door this far in front of its middle, before crouching in. */
-const HUT_DOOR_M = 4.8;
+export const HUT_DOOR_M = 4.8;
 /**
  * Camp events (section 8.1): catch and dancing last EVENT_MS once everyone is in place.
  * Children run round a ring CATCH_R from the hearth at a little over half a run, "it"
@@ -93,8 +123,8 @@ const HUT_DOOR_M = 4.8;
  */
 const EVENT_MS = Math.round(36_000 / TEMPO);
 const CHASE_MS = Math.round(9000 / TEMPO);
-const CATCH_R = 10.5;
-const DANCE_R = 6.5;
+const CATCH_R = 7;
+const DANCE_R = 4.5;
 const CATCH_SHARE = 1 / 3;
 const DANCE_SHARE = 1 / 12;
 /**
@@ -102,7 +132,7 @@ const DANCE_SHARE = 1 / 12;
  * and whoever scrapes a hide works from behind it, facing in (Yang, 2026-10-19: a kill
  * carried through a hide hung out to dry).
  */
-export const RACK_R = 22;
+export const RACK_R = 18;
 /** The scraper stands this far behind the rack, and walks round its end this far along it. */
 export const SCRAPE_BACK_M = 2;
 export const SCRAPE_SIDE_M = 5.6;
@@ -122,7 +152,25 @@ const GATHER_M = 22;
 /** Prey fades in when the hunter sets out and out once the meat is carried off. */
 const PREY_FADE_MS = 400;
 /** The animals the first people hunt (wildlife.md section 6 models). */
-const PREY_KINDS = ['animal-zebra', 'animal-eland'] as const;
+type PreyKind =
+  | 'animal-zebra'
+  | 'animal-eland'
+  | 'animal-gazelle'
+  | 'animal-kangaroo'
+  | 'animal-reindeer'
+  | 'animal-guanaco';
+/** What each culture hunts (peopling.md sections 5.5 and 9.1); the founder's people hunt zebra and eland. */
+const PREY_OF: Record<string, readonly PreyKind[]> = {
+  'african-stone-age': ['animal-zebra', 'animal-eland'],
+  'coastal-asia-hunter': ['animal-gazelle'],
+  'west-asia-hunter': ['animal-gazelle'],
+  'east-asia-hunter': ['animal-gazelle'],
+  natufian: ['animal-gazelle'],
+  'first-australians': ['animal-kangaroo'],
+  'ice-age-hunter': ['animal-reindeer'],
+  'steppe-beringia-hunter': ['animal-reindeer'],
+  'first-americans': ['animal-guanaco'],
+};
 /**
  * Hunts (section 8.1): the hunter throws from this far short of the animal (layout
  * metres; about 5 life-size metres at the figures' scale, so the flight reads), and a
@@ -228,7 +276,8 @@ export type TreeClip =
   | 'crouch'
   | 'dance'
   | 'scrape'
-  | 'crack';
+  | 'crack'
+  | 'paddle';
 
 /** A point of the scene: a place on the globe, and an offset there in layout metres east and north. */
 export interface Placed {
@@ -252,6 +301,8 @@ export interface FigurePose extends Placed {
   unarmed?: boolean;
   /** Inside its hut, out of sight (section 8.1). */
   hidden?: boolean;
+  /** The culture whose clothes it wears (peopling.md section 5.3); the founder's when not given. */
+  profile?: string;
 }
 
 export type PreyClip = 'idle' | 'walk' | 'run' | 'fall' | 'bound' | 'hung';
@@ -260,7 +311,7 @@ export type PreyClip = 'idle' | 'walk' | 'run' | 'fall' | 'bound' | 'hung';
 export interface PreyPose extends Placed {
   /** The hunter's id and the turn of the hunt, unique while it is shown. */
   id: string;
-  kind: (typeof PREY_KINDS)[number];
+  kind: PreyKind;
   clip: PreyClip;
   clipMs: number;
   /** 0 to 1, fading in and out. */
@@ -295,7 +346,7 @@ export interface SparkPose {
 /** A prop of camp life at a layout point: a drying rack beside a lodging, a spit over the fire. */
 export interface CampPropPose extends Placed {
   id: string;
-  kind: 'prop-drying-rack' | 'prop-spit';
+  kind: 'prop-drying-rack' | 'prop-spit' | 'prop-canoe' | 'prop-red-flag';
 }
 
 /** Where the trees make way for a camp: 1 cleared, 0 grown back. */
@@ -345,11 +396,27 @@ export function lookOf(id: number): FigureLook {
 
 const deg = (micro: number) => micro / 1e6;
 
-function distanceKm(a: TreeLodging, b: TreeLodging): number {
-  const x = (deg(b.lon) - deg(a.lon)) * detCos(((deg(a.lat) + deg(b.lat)) / 2) * RAD);
-  const y = deg(b.lat) - deg(a.lat);
+/** Degrees east from one longitude to another, the short way round, across the date line too. */
+const eastOf = (from: number, to: number): number => {
+  const d = to - from;
+  return d > 180 ? d - 360 : d < -180 ? d + 360 : d;
+};
+/** A longitude brought back between -180 and 180. */
+const wrapLon = (lon: number): number => (lon > 180 ? lon - 360 : lon < -180 ? lon + 360 : lon);
+
+/** A place in degrees. */
+interface LatLon {
+  lat: number;
+  lon: number;
+}
+
+function kmBetween(a: LatLon, b: LatLon): number {
+  const x = eastOf(a.lon, b.lon) * detCos(((a.lat + b.lat) / 2) * RAD);
+  const y = b.lat - a.lat;
   return Math.sqrt(x * x + y * y) * KM_PER_DEG;
 }
+
+const placeOf = (l: TreeLodging): LatLon => ({ lat: deg(l.lat), lon: deg(l.lon) });
 
 interface Pt {
   x: number;
@@ -442,12 +509,6 @@ function activity(
   return { clip, clipMs };
 }
 
-/** How long a figure takes to walk from one lodging to another, in milliseconds of watching. */
-function walkMs(from: TreeLodging, to: TreeLodging): number {
-  const km = distanceKm(from, to);
-  return km < SAME_PLACE_KM ? 0 : Math.ceil(km / WALK_KM_PER_MS);
-}
-
 /**
  * Where a figure stands while the band builds or takes down a lodging: around it on the
  * hearth's side, the `k`-th of `n`, evenly spread so they never overlap.
@@ -471,6 +532,19 @@ function buildSpot(k: number, n: number, lodging: TreeLodging): Pt {
  * when the straight line would pass through it.
  */
 function route(a: Pt, b: Pt, camp?: number): Pt[] {
+  // The same walks are asked for frame after frame: remember them (a pure function).
+  const key = `${camp}|${a.x}|${a.z}|${b.x}|${b.z}`;
+  const known = routes.get(key);
+  if (known) return known;
+  if (routes.size >= ROUTES_KEPT) routes.clear();
+  const way = routeOf(a, b, camp);
+  routes.set(key, way);
+  return way;
+}
+const routes = new Map<string, Pt[]>();
+const ROUTES_KEPT = 50_000;
+
+function routeOf(a: Pt, b: Pt, camp?: number): Pt[] {
   const all = camp === undefined ? FIRE_ONLY : campObstacles(camp);
   // Obstacles at either end are where the walk is going, or leaving from: a hut door, a rack.
   const live = all.filter(
@@ -663,9 +737,86 @@ function outingOf(id: number, look: FigureLook, turn: number): Outing {
   return 'rest';
 }
 
+/** A figure's stay at one of its homes (section 8.1). */
+interface Stay {
+  f: TreeFigure;
+  i: number;
+  home: TreeLodging;
+  look: FigureLook;
+  /** Its spot's number at the hearth, and the spot. */
+  s: number;
+  spot: Pt;
+  hut: Pt;
+  plan: Itinerary;
+  free: number;
+  busy: number;
+  leave: number;
+  takes: boolean;
+  takeSpot: Pt;
+  /** The clothes it came in, while they differ from its new camp's, and when it changes them. */
+  wore: string | undefined;
+  changeAt: number;
+}
+
+/**
+ * What the scene of a chunk works out that does not change with the clock: lodgings by id,
+ * builders and takers, when each lodging appears, who lives at each camp, the places camps
+ * stand, and the stays, hunts, events and walks between camps worked out so far. Kept per
+ * chunk, so each frame only works out what is new; the scene is a pure function of the
+ * clock either way.
+ */
+interface Memo {
+  startDay: Day;
+  ready: boolean;
+  lodgings: Map<number, TreeLodging>;
+  builders: Map<number, number[]>;
+  takers: Map<number, number[]>;
+  appears: Map<number, number>;
+  campmates: Map<number, TreeFigure[]>;
+  places: Map<string, Place>;
+  stays: Map<string, Stay | undefined>;
+  hunts: Map<string, Hunt | undefined>;
+  events: Map<string, CampEvent | undefined>;
+  crossings: Map<string, unknown>;
+}
+const memos = new WeakMap<TreeChunk, Memo>();
+function memoOf(chunk: TreeChunk, startDay: Day): Memo {
+  let m = memos.get(chunk);
+  if (!m || m.startDay !== startDay) {
+    m = {
+      startDay,
+      ready: false,
+      lodgings: new Map(chunk.lodgings.map((l) => [l.id, l])),
+      builders: new Map(),
+      takers: new Map(),
+      appears: new Map(),
+      campmates: new Map(),
+      places: new Map(),
+      stays: new Map(),
+      hunts: new Map(),
+      events: new Map(),
+      crossings: new Map(),
+    };
+    memos.set(chunk, m);
+  }
+  return m;
+}
+
 /** Everything the tree shows at a clock time (section 8.1). */
-export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScene {
-  const lodgings = new Map(chunk.lodgings.map((l) => [l.id, l]));
+export function treeScene(
+  chunk: TreeChunk,
+  ms: number,
+  startDay: Day,
+  /**
+   * Whether a camp at a place may be in view: figures whose home and last home are both
+   * out of view are left out, unless they are on their way between camps (humankind.md
+   * section 8). Without it, everyone is worked out.
+   */
+  near?: (lat: number, lon: number) => boolean,
+): TreeScene {
+  // What does not change with the clock is worked out once per chunk and kept (memoOf).
+  const memo = memoOf(chunk, startDay);
+  const lodgings = memo.lodgings;
   const at = (day: Day) => msAtDay(day, startDay);
 
   // When each lodging's people start taking it down, so it is gone by the day they leave.
@@ -676,30 +827,30 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
 
   // The builders of each lodging (moving in on the day it is built) and the figures that
   // take it down (leaving on the day it is gone), by id.
-  const builders = new Map<number, number[]>();
-  const takers = new Map<number, number[]>();
-  for (const f of chunk.figures)
-    f.homes.forEach(([day, id], i) => {
-      const l = lodgings.get(id);
-      if (!l) return;
-      if (l.built === day) builders.set(id, [...(builders.get(id) ?? []), f.id]);
-      const next = f.homes[i + 1];
-      if (next && l.gone === next[0]) takers.set(id, [...(takers.get(id) ?? []), f.id]);
-    });
+  const { builders, takers, appears, stays, hunts, events, campmates, places } = memo;
+  if (!memo.ready)
+    for (const f of chunk.figures)
+      f.homes.forEach(([day, id], i) => {
+        const l = lodgings.get(id);
+        if (!l) return;
+        if (l.built === day) builders.set(id, [...(builders.get(id) ?? []), f.id]);
+        const next = f.homes[i + 1];
+        if (next && l.gone === next[0]) takers.set(id, [...(takers.get(id) ?? []), f.id]);
+      });
 
   // When each lodging appears: when it is built, or when its builder reaches it from far away.
-  const appears = new Map<number, number>();
-  for (const l of chunk.lodgings) appears.set(l.id, at(l.built));
-  for (const f of chunk.figures)
-    for (let i = 1; i < f.homes.length; i++) {
-      const [day, id] = f.homes[i]!;
-      const to = lodgings.get(id);
-      const c = crossing(f, i);
-      if (!to || !c || to.builder !== f.id || day !== to.built) continue;
-      const crew = builders.get(id)!;
-      const work = buildSpot(crew.indexOf(f.id), crew.length, to);
-      appears.set(id, c.end + Math.ceil(routeLength(route(c.entry, work, to.camp)) / PACE.walk));
-    }
+  if (!memo.ready) for (const l of chunk.lodgings) appears.set(l.id, at(l.built));
+  if (!memo.ready)
+    for (const f of chunk.figures)
+      for (let i = 1; i < f.homes.length; i++) {
+        const [day, id] = f.homes[i]!;
+        const to = lodgings.get(id);
+        const c = crossing(f, i);
+        if (!to || !c || to.builder !== f.id || day !== to.built) continue;
+        const crew = builders.get(id)!;
+        const work = buildSpot(crew.indexOf(f.id), crew.length, to);
+        appears.set(id, c.end + Math.ceil(routeLength(route(c.entry, work, to.camp)) / PACE.walk));
+      }
 
   const scene: TreeScene = {
     figures: [],
@@ -712,68 +863,67 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     hearths: [],
     clearings: [],
   };
-  // Stays and hunts worked out this frame, by figure and home, and by hunter and turn.
-  const stays = new Map<string, Stay | undefined>();
-  const hunts = new Map<string, Hunt | undefined>();
-  const events = new Map<string, CampEvent | undefined>();
   // Who ever lives at each camp, so the camp-wide lookups of hunts, helpers, events and
   // kills look only at its people, not everyone.
-  const campmates = new Map<number, TreeFigure[]>();
-  for (const f of chunk.figures)
-    for (const c of new Set(f.homes.map(([, id]) => lodgings.get(id)?.camp))) {
-      if (c === undefined) continue;
-      const list = campmates.get(c);
-      if (list) list.push(f);
-      else campmates.set(c, [f]);
-    }
+  if (!memo.ready)
+    for (const f of chunk.figures)
+      for (const c of new Set(f.homes.map(([, id]) => lodgings.get(id)?.camp))) {
+        if (c === undefined) continue;
+        const list = campmates.get(c);
+        if (list) list.push(f);
+        else campmates.set(c, [f]);
+      }
   const mates = (camp: number) => campmates.get(camp) ?? [];
   // Each place a camp stands: from the band's arrival up to the last lodging gone, with
   // the felling and the lighting of its fire (section 8.1).
-  const places = new Map<string, Place>();
   const placeKey = (l: TreeLodging) => `${l.camp}:${l.lat}:${l.lon}`;
-  for (const l of chunk.lodgings) {
-    const arrived = appears.get(l.id)!;
-    const gone = l.gone === NEVER ? Infinity : at(l.gone);
-    const p = places.get(placeKey(l));
-    if (!p)
-      places.set(placeKey(l), {
-        camp: l.camp,
-        lat: deg(l.lat),
-        lon: deg(l.lon),
-        from: arrived,
-        to: gone,
-        wood: l.wood ?? 0,
-        first: l,
-        fellEnd: arrived,
-        litStart: arrived,
-        litEnd: arrived,
-      });
-    else {
-      if (arrived < p.from) [p.from, p.first] = [arrived, l];
-      p.to = Math.max(p.to, gone);
-      p.wood = Math.max(p.wood, l.wood ?? 0);
+  if (!memo.ready) setPlaces();
+  memo.ready = true;
+  function setPlaces() {
+    for (const l of chunk.lodgings) {
+      const arrived = appears.get(l.id)!;
+      const gone = l.gone === NEVER ? Infinity : at(l.gone);
+      const p = places.get(placeKey(l));
+      if (!p)
+        places.set(placeKey(l), {
+          camp: l.camp,
+          lat: deg(l.lat),
+          lon: deg(l.lon),
+          from: arrived,
+          to: gone,
+          wood: l.wood ?? 0,
+          first: l,
+          fellEnd: arrived,
+          litStart: arrived,
+          litEnd: arrived,
+        });
+      else {
+        if (arrived < p.from) [p.from, p.first] = [arrived, l];
+        p.to = Math.max(p.to, gone);
+        p.wood = Math.max(p.wood, l.wood ?? 0);
+      }
     }
-  }
-  for (const p of places.values()) {
-    if (p.from <= 0) continue;
-    p.fellEnd = p.from + (p.wood >= WOOD_MIN ? FELL_WOOD_MS : 0);
-    p.litStart = p.fellEnd;
-    p.litEnd = p.litStart + FLINT_MS;
-  }
-  // No lodging goes up before the felling is done, nor the lighter's before the fire is lit.
-  for (const l of chunk.lodgings) {
-    const p = places.get(placeKey(l))!;
-    if (p.from <= 0) continue;
-    let shown = Math.max(appears.get(l.id)!, p.fellEnd);
-    if (l === p.first) {
-      const crew = builders.get(l.id) ?? [l.builder];
-      const work = buildSpot(Math.max(0, crew.indexOf(l.builder)), crew.length, l);
-      shown = Math.max(
-        shown,
-        p.litEnd + Math.ceil(routeLength(route(lightSpot(l.builder), work, l.camp)) / PACE.walk),
-      );
+    for (const p of places.values()) {
+      if (p.from <= 0) continue;
+      p.fellEnd = p.from + (p.wood >= WOOD_MIN ? FELL_WOOD_MS : 0);
+      p.litStart = p.fellEnd;
+      p.litEnd = p.litStart + FLINT_MS;
     }
-    appears.set(l.id, shown);
+    // No lodging goes up before the felling is done, nor the lighter's before the fire is lit.
+    for (const l of chunk.lodgings) {
+      const p = places.get(placeKey(l))!;
+      if (p.from <= 0) continue;
+      let shown = Math.max(appears.get(l.id)!, p.fellEnd);
+      if (l === p.first) {
+        const crew = builders.get(l.id) ?? [l.builder];
+        const work = buildSpot(Math.max(0, crew.indexOf(l.builder)), crew.length, l);
+        shown = Math.max(
+          shown,
+          p.litEnd + Math.ceil(routeLength(route(lightSpot(l.builder), work, l.camp)) / PACE.walk),
+        );
+      }
+      appears.set(l.id, shown);
+    }
   }
   for (const l of chunk.lodgings) {
     const shown = appears.get(l.id)!;
@@ -828,6 +978,22 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
           : 1 - (ms - p.to) / REGROW_MS;
     if (amount > 0) scene.clearings.push({ lat: p.lat, lon: p.lon, amount, felling: ms < p.to });
   }
+  // Red flags at the Neolithic thresholds, behind a lodging of their settled camps.
+  for (const flag of chunk.flags ?? []) {
+    if (ms < at(flag.day) || (flag.until !== NEVER && ms >= at(flag.until))) continue;
+    const p = slotPoint(flag.camp, flag.slot);
+    const r = FLAG_R / LODGING_RING_M;
+    scene.props.push({
+      id: `flag:${flag.id}`,
+      kind: 'prop-red-flag',
+      lat: deg(flag.lat),
+      lon: deg(flag.lon),
+      x: p.x * r,
+      z: p.z * r,
+      dirX: -p.x / LODGING_RING_M,
+      dirZ: -p.z / LODGING_RING_M,
+    });
+  }
   // In place order, so a time window's chunk gives the same scene as the whole tree.
   scene.clearings.sort((a, b) => a.lat - b.lat || a.lon - b.lon || a.amount - b.amount);
 
@@ -836,8 +1002,23 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     if (ms < born || (f.lost !== NEVER && ms >= at(f.lost))) continue;
     let i = 0;
     while (i + 1 < f.homes.length && at(f.homes[i + 1]![0]) <= ms) i++;
+    if (near) {
+      const home = lodgings.get(f.homes[i]![1]);
+      const last = i > 0 ? lodgings.get(f.homes[i - 1]![1]) : undefined;
+      const seen = (l: TreeLodging | undefined) => !!l && near(deg(l.lat), deg(l.lon));
+      if (!seen(home) && !seen(last)) {
+        const c = crossing(f, i);
+        if (!c || ms >= c.end) continue;
+      }
+    }
     const pose = poseAt(f, i, ms);
-    if (pose) scene.figures.push(pose);
+    if (!pose) continue;
+    // Its clothes: the old camp's until it changes in its new hut (peopling.md section 5.3).
+    const c = crossing(f, i);
+    const st = c && ms < c.end ? undefined : stayOf(f, i);
+    const profile = st ? (ms < st.changeAt ? st.wore : st.home.culture) : c?.prev.culture;
+    if (profile) pose.profile = profile;
+    scene.figures.push(pose);
   }
   // Each hunt's animal, spears and pole, once; an animal lies by the camp after its hunt.
   const shown = new Set<string>();
@@ -857,23 +1038,48 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
    * the edge of the new camp facing the old one, so it never walks through a fire.
    */
   function crossing(f: TreeFigure, i: number) {
+    const key = `${f.id}:${i}`;
+    if (memo.crossings.has(key)) return memo.crossings.get(key) as ReturnType<typeof crossingOf>;
+    const c = crossingOf(f, i);
+    memo.crossings.set(key, c);
+    return c;
+  }
+  function crossingOf(f: TreeFigure, i: number) {
     const home = lodgings.get(f.homes[i]![1]);
     const prev = i > 0 ? lodgings.get(f.homes[i - 1]![1]) : undefined;
     if (!home || !prev) return undefined;
-    const travel = walkMs(prev, home);
-    if (travel === 0) return undefined;
-    const way = towards(
-      0,
-      0,
-      (deg(home.lon) - deg(prev.lon)) * detCos(deg(home.lat) * RAD),
-      deg(home.lat) - deg(prev.lat),
-    );
+    // The band that founds a camp along a route follows the route's way, by canoe across
+    // water (peopling.md section 6); everyone else walks straight from camp to camp.
+    const voyage =
+      home.voyage && home.built === f.homes[i]![0] && prev.camp !== home.camp
+        ? home.voyage
+        : undefined;
+    const stops: LatLon[] = [
+      placeOf(prev),
+      ...(voyage?.way.map(([lat, lon]) => ({ lat: deg(lat), lon: deg(lon) })) ?? []),
+      placeOf(home),
+    ];
+    const kms = stops.slice(1).map((b, k) => kmBetween(stops[k]!, b));
+    const km = kms.reduce((a, b) => a + b, 0);
+    if (km < SAME_PLACE_KM) return undefined;
+    const travel = Math.ceil(km / WALK_KM_PER_MS);
+    const heading = (a: LatLon, b: LatLon) =>
+      towards(0, 0, eastOf(a.lon, b.lon) * detCos(b.lat * RAD), b.lat - a.lat);
+    const way = heading(stops[0]!, stops[1]!);
+    const inward = heading(stops.at(-2)!, stops.at(-1)!);
     const exit = { x: way.dirX * GATE_M, z: way.dirZ * GATE_M };
-    const entry = { x: -exit.x, z: -exit.z };
+    const entry = { x: -inward.dirX * GATE_M, z: -inward.dirZ * GATE_M };
     const out = route(endOfStay(f, i - 1), exit, prev.camp);
     const start = at(f.homes[i]![0]);
     const across = start + Math.ceil(routeLength(out) / PACE.walk);
-    return { prev, home, way, out, start, across, end: across + travel, exit, entry };
+    const legs = kms.map((k, n) => ({
+      from: stops[n]!,
+      to: stops[n + 1]!,
+      km: k,
+      water: voyage?.water[n] ?? false,
+      way: heading(stops[n]!, stops[n + 1]!),
+    }));
+    return { prev, home, way, out, start, across, end: across + travel, exit, entry, legs, km };
   }
 
   /** Where a figure stands at the end of its stay in its `i`-th home: at its spot, or where it took the lodging down. */
@@ -925,7 +1131,10 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     until: number,
   ): CampEvent | undefined {
     const ref = members[0]!;
-    const r = kind === 'catch' ? CATCH_R : DANCE_R;
+    // Catch runs round its ring past the people's spots only where there is land all round
+    // it; else round the dancers' ring (peopling.md section 4: camps by the water).
+    const r =
+      kind === 'catch' && (ref.home.room ?? CATCH_R + 1.5) >= CATCH_R + 1.5 ? CATCH_R : DANCE_R;
     const a0 = hash01(ref.home.camp, w, 99) * 2 * Math.PI;
     const ev: CampEvent = {
       id: `${ref.home.camp}:${w}`,
@@ -1013,22 +1222,6 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
   }
 
   /** A figure's stay in its `i`-th home: the camp, its spot, its plan up to when it is free, and when it must be busy again. */
-  interface Stay {
-    f: TreeFigure;
-    i: number;
-    home: TreeLodging;
-    look: FigureLook;
-    /** Its spot's number at the hearth, and the spot. */
-    s: number;
-    spot: Pt;
-    hut: Pt;
-    plan: Itinerary;
-    free: number;
-    busy: number;
-    leave: number;
-    takes: boolean;
-    takeSpot: Pt;
-  }
 
   function stayOf(f: TreeFigure, i: number): Stay | undefined {
     const key = `${f.id}:${i}`;
@@ -1061,12 +1254,18 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       // builder lights the fire with flint stones (section 8.1).
       const place = places.get(placeKey(home))!;
       if (builds && plan.t < place.fellEnd && place.fellEnd > place.from) {
-        // Out in a gap between the lodgings, as far as its land goes, facing out.
-        const gap = hash32(f.id, place.camp, 107) % LODGING_SLOTS;
-        const d = gapDirection(home.camp, gap);
-        const r = Math.min(LODGING_RING_M + 4, Math.max(10, (home.reach[gap] ?? 0) - 1));
-        const at = { x: d.x * r, z: d.z * r };
-        plan.go(at).stay(place.fellEnd, 'work', { x: at.x * 2, z: at.z * 2 });
+        // Out in a gap between the lodgings, as far as its land goes, facing out: its own gap,
+        // or the one with the most land when its own has too little.
+        const own = hash32(f.id, place.camp, 107) % LODGING_SLOTS;
+        const most = home.reach.indexOf(Math.max(...home.reach));
+        const gap = (home.reach[own] ?? 0) >= FELL_MIN_M + 1 ? own : most;
+        const reach = home.reach[gap] ?? 0;
+        if (reach >= FELL_MIN_M + 1) {
+          const d = gapDirection(home.camp, gap);
+          const r = Math.min(LODGING_RING_M + 4, reach - 1);
+          const at = { x: d.x * r, z: d.z * r };
+          plan.go(at).stay(place.fellEnd, 'work', { x: at.x * 2, z: at.z * 2 });
+        }
       }
       if (builds && home === place.first && f.id === home.builder && place.from > 0)
         plan
@@ -1080,6 +1279,17 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
           .stay(shown + BUILD_MS, 'work', hut);
         plan.go(spot);
       } else plan.go(spot);
+      // Into a new land: into the hut, and out in its people's clothes (peopling.md section 5.3).
+      const wore = prev && prev.culture !== home.culture ? prev.culture : undefined;
+      let changeAt = -Infinity;
+      if (wore !== undefined) {
+        plan.go(doorOf(home)).go(hut, 'crouch');
+        changeAt = plan.t + INSIDE_MS / 2;
+        plan
+          .stay(plan.t + INSIDE_MS, 'inside')
+          .go(doorOf(home), 'crouch')
+          .go(spot);
+      }
       const free = plan.t;
       const next = f.homes[i + 1];
       const leave = next ? at(next[0]) : f.lost !== NEVER ? at(f.lost) : Infinity;
@@ -1104,6 +1314,8 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
         leave,
         takes,
         takeSpot,
+        wore,
+        changeAt,
       };
     }
     stays.set(key, st);
@@ -1171,7 +1383,8 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       for (let g = 1; g < reach.length; g++) if (reach[g]! < reach[gap]!) gap = g;
       if (reach[gap]! >= MAX_OUTING_M - 1) return { go: 'rest' };
       const d = gapDirection(camp, gap);
-      const edge = Math.max(9, reach[gap]! - 1);
+      // Where the water comes within the gap's first metres, to the edge of the camp's room.
+      const edge = reach[gap]! >= 10 ? reach[gap]! - 1 : Math.min(9, (st.home.room ?? 9.5) - 0.5);
       const far = { x: d.x * edge, z: d.z * edge };
       trip
         .go(far)
@@ -1427,7 +1640,10 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       end,
       lat: deg(st.home.lat),
       lon: deg(st.home.lon),
-      kind: PREY_KINDS[hash32(st.f.id, k, 79) % PREY_KINDS.length]!,
+      kind: (() => {
+        const kinds = PREY_OF[st.home.culture ?? ''] ?? PREY_OF['african-stone-age']!;
+        return kinds[hash32(st.f.id, k, 79) % kinds.length]!;
+      })(),
       out,
       entry,
       arrive,
@@ -1621,9 +1837,6 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     if (!home) return undefined;
     const look = lookOf(f.id);
     const base = { id: f.id, look, lat: deg(home.lat), lon: deg(home.lon) };
-    const prev = i > 0 ? lodgings.get(f.homes[i - 1]![1]) : undefined;
-    const travel = prev ? walkMs(prev, home) : 0;
-
     const c = crossing(f, i);
     if (c && ms < c.across) {
       // Leaving: round the old fire to the edge of the old camp.
@@ -1640,18 +1853,37 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       };
     }
     if (c && ms < c.end) {
-      // On the way to the new home: across the land, from the edge of one camp to the next.
-      const t = (ms - c.across) / travel;
-      return {
+      // On the way to the new home: across the land, from the edge of one camp to the next,
+      // leg by leg, paddling a canoe where a leg crosses water.
+      const t = (ms - c.across) / (c.end - c.across);
+      let km = t * c.km;
+      let n = 0;
+      while (n + 1 < c.legs.length && km > c.legs[n]!.km) km -= c.legs[n++]!.km;
+      const leg = c.legs[n]!;
+      const u = leg.km > 0 ? Math.min(1, km / leg.km) : 1;
+      const pose: FigurePose = {
         ...base,
-        lat: deg(c.prev.lat) + (deg(home.lat) - deg(prev!.lat)) * t,
-        lon: deg(c.prev.lon) + (deg(home.lon) - deg(prev!.lon)) * t,
-        x: c.exit.x + (c.entry.x - c.exit.x) * t,
-        z: c.exit.z + (c.entry.z - c.exit.z) * t,
-        ...c.way,
-        clip: 'walk',
+        lat: leg.from.lat + (leg.to.lat - leg.from.lat) * u,
+        lon: wrapLon(leg.from.lon + eastOf(leg.from.lon, leg.to.lon) * u),
+        // From the edge of the old camp on its first leg, to the edge of the new one on its
+        // last: a straight walk has both, a route keeps to its way in between.
+        ...edgeOffset(c, n, u, t),
+        ...leg.way,
+        clip: leg.water ? 'paddle' : 'walk',
         clipMs: ms - c.start,
       };
+      if (leg.water)
+        scene.props.push({
+          id: `canoe:${f.id}`,
+          kind: 'prop-canoe',
+          lat: pose.lat,
+          lon: pose.lon,
+          x: pose.x,
+          z: pose.z,
+          dirX: pose.dirX,
+          dirZ: pose.dirZ,
+        });
+      return pose;
     }
 
     const st = stayOf(f, i)!;
@@ -1854,7 +2086,7 @@ interface Hunt {
   end: number;
   lat: number;
   lon: number;
-  kind: (typeof PREY_KINDS)[number];
+  kind: PreyKind;
   /** The hunter's lane, out from the hearth. */
   out: { dirX: number; dirZ: number };
   /** Where the hunted animal comes out of the trees, and when it has walked in to graze. */

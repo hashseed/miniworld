@@ -1,0 +1,97 @@
+{
+  "description": "Sea crossings made in small canoes (spec peopling.md, section 6). way runs from a shore of a land large enough for camps, over the straits and the islands between, to the far shore, as [lat, lon]; the tree's first band crosses there once its bce has come.",
+  "crossings": [
+    {
+      "id": "bab-el-mandeb",
+      "en": "Bab-el-Mandeb",
+      "de": "Bab al-Mandab",
+      "bce": 60000,
+      "widthKm": 10,
+      "way": [
+        [12.3, 43.1],
+        [12.62, 43.32],
+        [12.9, 43.5]
+      ],
+      "source": "Lambeck et al. 2011, Sea level and shoreline reconstructions for the Red Sea, Quaternary Science Reviews 30"
+    },
+    {
+      "id": "wallace-line",
+      "en": "Across the Wallace Line",
+      "de": "Über die Wallace-Linie",
+      "bce": 51000,
+      "widthKm": 30,
+      "way": [
+        [-8.3, 115.5],
+        [-8.4, 116.1],
+        [-8.7, 117.8],
+        [-8.6, 119.7],
+        [-8.0, 120.6],
+        [-6.3, 120.5],
+        [-5.4, 120.3]
+      ],
+      "source": "Kealy, Louys and O'Connor 2018, Least-cost pathway models indicate northern human dispersal from Sunda to Sahul, Journal of Human Evolution 125"
+    },
+    {
+      "id": "timor-sahul",
+      "en": "From Timor to Sahul",
+      "de": "Von Timor nach Sahul",
+      "bce": 50000,
+      "widthKm": 90,
+      "way": [
+        [-8.3, 115.5],
+        [-8.4, 116.1],
+        [-8.7, 117.8],
+        [-8.6, 119.7],
+        [-8.5, 122.8],
+        [-8.3, 124.3],
+        [-9.0, 125.3],
+        [-9.4, 126.6],
+        [-10.8, 127.8],
+        [-12.0, 129.0]
+      ],
+      "source": "Bird et al. 2019, Early human settlement of Sahul was not an accident, Scientific Reports 9"
+    },
+    {
+      "id": "bismarck",
+      "en": "To the Bismarck Archipelago",
+      "de": "Zum Bismarck-Archipel",
+      "bce": 38000,
+      "widthKm": 30,
+      "way": [
+        [-5.7, 147.8],
+        [-5.6, 148.4],
+        [-5.2, 150.0],
+        [-4.3, 152.2],
+        [-4.1, 152.8],
+        [-3.0, 151.3]
+      ],
+      "source": "Leavesley et al. 2002, Buang Merabak: early evidence for human occupation in the Bismarck Archipelago, Papua New Guinea, Asian Perspectives 41"
+    },
+    {
+      "id": "korea-japan",
+      "en": "From Korea to Japan",
+      "de": "Von Korea nach Japan",
+      "bce": 36000,
+      "widthKm": 40,
+      "way": [
+        [35.1, 129.0],
+        [34.4, 129.3],
+        [33.6, 129.9],
+        [33.2, 130.6]
+      ],
+      "source": "Kaifu et al. 2020, Palaeolithic voyage for invisible islands beyond the horizon, Scientific Reports 10"
+    },
+    {
+      "id": "channel-islands",
+      "en": "To the Channel Islands of California",
+      "de": "Zu den Kanalinseln Kaliforniens",
+      "bce": 11000,
+      "widthKm": 10,
+      "way": [
+        [34.4, -119.7],
+        [34.0, -120.0]
+      ],
+      "source": "Erlandson et al. 2011, Paleoindian seafaring, maritime technologies, and coastal foraging on California's Channel Islands, Science 331"
+    }
+  ]
+}

@@ -40,6 +40,14 @@ export interface HabitatInputs {
   elevation(lat: number, lon: number): number;
   /** Tree cover, 0 to 1, on a day (section 4.3); camps prefer open ground. */
   wood?(lat: number, lon: number, day: Day): number;
+  /** The highest ground anyone may camp on; each culture area may set a lower limit (peopling.md section 5.2). */
+  highestM?: number;
+  /**
+   * Whether a point is wet enough for its warmth to be no desert, by Köppen's rule for dry
+   * climates (peopling.md section 5.2): the dry cold steppes of the Ice Age get little rain
+   * but are no desert. Without it, the aridity alone decides.
+   */
+  wetForItsWarmth?(lat: number, lon: number, day: Day): boolean;
 }
 
 /** The cell value of a centred latitude-longitude grid at a point. */
@@ -72,8 +80,8 @@ export function climateHabitat(input: HabitatInputs): Habitat {
     !input.isSea(lat, lon, day) &&
     !input.isLake(lat, lon) &&
     iceKm(lat, lon, day) < -ICE_CLEAR_KM &&
-    aridity(lat, lon, day) < DESERT_ARIDITY &&
-    input.elevation(lat, lon) < MAX_CAMP_M;
+    (aridity(lat, lon, day) < DESERT_ARIDITY || (input.wetForItsWarmth?.(lat, lon, day) ?? false)) &&
+    input.elevation(lat, lon) < (input.highestM ?? MAX_CAMP_M);
 
   /** Whether sea, a lake or a river lies at the point or around it. */
   const nearWater = (lat: number, lon: number, day: Day) => {
@@ -94,6 +102,7 @@ export function climateHabitat(input: HabitatInputs): Habitat {
 
   return {
     habitable,
+    land: (lat, lon, day) => !input.isSea(lat, lon, day) && !input.isLake(lat, lon),
     dry: (lat, lon) => !input.inRiver(lat, lon),
     wood: input.wood,
     score: (lat, lon, day) =>

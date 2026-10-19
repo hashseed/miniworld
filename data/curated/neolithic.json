@@ -1,0 +1,78 @@
+{
+  "description": "Neolithic thresholds (spec peopling.md, section 3.6): where and when a local population of foragers is about to start farming or herding on its own. The tree's camps there settle and the nearest raises a red flag; the farming plan continues from them.",
+  "thresholds": [
+    {
+      "id": "fertile-crescent",
+      "bce": 9500,
+      "lat": 31.87,
+      "lon": 35.44,
+      "en": "Fertile Crescent",
+      "de": "Fruchtbarer Halbmond",
+      "source": "Zeder 2011, The origins of agriculture in the Near East, Current Anthropology 52 S4"
+    },
+    {
+      "id": "amazonia",
+      "bce": 8300,
+      "lat": -13.6,
+      "lon": -65.4,
+      "en": "Southwestern Amazonia",
+      "de": "Südwestliches Amazonien",
+      "source": "Lombardo et al. 2020, Early Holocene crop cultivation and landscape modification in Amazonia, Nature 581"
+    },
+    {
+      "id": "mesoamerica",
+      "bce": 8000,
+      "lat": 16.95,
+      "lon": -96.43,
+      "en": "Mesoamerica",
+      "de": "Mesoamerika",
+      "source": "Smith 1997, The initial domestication of Cucurbita pepo in the Americas 10,000 years ago, Science 276"
+    },
+    {
+      "id": "andes",
+      "bce": 8000,
+      "lat": -6.85,
+      "lon": -79.2,
+      "en": "Northern Andes",
+      "de": "Nördliche Anden",
+      "source": "Dillehay et al. 2007, Preceramic adoption of peanut, squash, and cotton in northern Peru, Science 316"
+    },
+    {
+      "id": "yellow-river",
+      "bce": 8000,
+      "lat": 36.58,
+      "lon": 114.1,
+      "en": "Yellow River",
+      "de": "Gelber Fluss",
+      "source": "Lu et al. 2009, Earliest domestication of common millet (Panicum miliaceum) in East Asia extended to 10,000 years ago, PNAS 106"
+    },
+    {
+      "id": "new-guinea",
+      "bce": 8000,
+      "lat": -5.78,
+      "lon": 144.33,
+      "en": "New Guinea Highlands",
+      "de": "Hochland von Neuguinea",
+      "source": "Denham et al. 2003, Origins of agriculture at Kuk Swamp in the highlands of New Guinea, Science 301",
+      "debated": true
+    },
+    {
+      "id": "yangtze",
+      "bce": 7500,
+      "lat": 29.45,
+      "lon": 119.97,
+      "en": "Lower Yangtze",
+      "de": "Unterer Jangtsekiang",
+      "source": "Zuo et al. 2017, Dating rice remains through phytolith carbon-14 study reveals domestication at the beginning of the Holocene, PNAS 114"
+    },
+    {
+      "id": "south-asia-farming",
+      "bce": 7000,
+      "lat": 29.38,
+      "lon": 67.62,
+      "en": "Mehrgarh",
+      "de": "Mehrgarh",
+      "source": "Jarrige et al. 1995, Mehrgarh: Field Reports 1974-1985, from Neolithic Times to the Indus Civilization"
+    }
+  ]
+}

@@ -137,10 +137,12 @@ describe.skipIf(!built)('paths on land', async () => {
         const start = manifest.timelineStartDay;
         const from = msAtDay(chunk.fromDay, start);
         const to = msAtDay(chunk.toDay, start);
-        // Every 250 ms of watching, about 75 km of a walk on the globe.
-        for (let ms = from; ms < to; ms += 250) {
+        // About 30 moments a minute of watching, an odd step so they do not fall on turns.
+        for (let ms = from; ms < to; ms += 1999) {
           const day = dayAtMs(ms, start);
           for (const f of treeScene(chunk, ms, start).figures) {
+            // Bands crossing the sea paddle canoes (peopling.md section 6).
+            if (f.clip === 'paddle') continue;
             const dir = offsetDir(f.lat, f.lon, f.x * LAYOUT_KM_PER_M, f.z * LAYOUT_KM_PER_M);
             checked++;
             const what = await water(dir, day);

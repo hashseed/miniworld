@@ -1,5 +1,5 @@
 {
-  "description": "Provisional culture areas for the tree of humankind until the culture profile records exist (spec humankind.md, section 5). Per culture, its density (milestone 2, section 3.3) and one polygon per snapshot, as [longitude, latitude] points; a snapshot holds from its date (years before 1950, approximate) until the next one. The habitat at each date (land, no ice, no desert, not high mountains) cuts the polygon down to where people could live, so it only needs to keep out the land a culture had not reached.",
+  "description": "Provisional culture areas for the tree of humankind until the culture profile records exist (spec humankind.md, section 5; peopling.md, section 5). Areas are matched in order, the first area holding a point decides its culture, so smaller areas come before the larger ones they cut into. coldestC and highestM are the limits of peopling.md section 5.2 (3,500 m when not given). Per culture, its density (milestone 2, section 3.3) and one polygon per snapshot, as [longitude, latitude] points; a snapshot holds from its date (years before 1950, approximate) until the next one. The habitat at each date (land, no ice, no desert, not high mountains) cuts the polygon down to where people could live, so it only needs to keep out the land a culture had not reached.",
   "areas": [
     {
       "culture": "african-stone-age",
@@ -28,6 +28,454 @@
             [5, -2],
             [-5, 2],
             [-20, 5]
+          ]
+        },
+        {
+          "fromBP": 63950,
+          "label": "All of Africa without Madagascar, once the prologue front has reached the Sahara band; the desert keeps camps out of the Sahara until it greens",
+          "source": "Scerri et al. 2014, Middle Stone Age industries of North Africa: a review, Quaternary Science Reviews 101; Drake et al. 2011, Ancient watercourses and biogeography of the Sahara explain the peopling of the desert, PNAS 108",
+          "ring": [
+            [-17.5, 21],
+            [-17.5, 28],
+            [-10.5, 30],
+            [-6.5, 35.9],
+            [-2, 35.6],
+            [3, 37.2],
+            [10, 37.6],
+            [11.5, 33.5],
+            [20, 33],
+            [25, 32.2],
+            [32.3, 31.5],
+            [32.6, 29.9],
+            [33.6, 27.5],
+            [35, 26],
+            [36.7, 24],
+            [38.2, 21],
+            [40, 18],
+            [41.3, 15],
+            [42.8, 13.2],
+            [43.25, 12.5],
+            [44, 11.4],
+            [51.5, 11.8],
+            [52.5, 11.5],
+            [46, -2],
+            [41.5, -10],
+            [41.2, -16],
+            [37, -24],
+            [34, -27],
+            [28, -36],
+            [15, -36],
+            [8, -18],
+            [5, -2],
+            [-5, 2],
+            [-20, 5],
+            [-20, 18]
+          ]
+        }
+      ],
+      "coldestC": 5
+    },
+    {
+      "culture": "natufian",
+      "density": "low",
+      "coldestC": 0,
+      "snapshots": [
+        {
+          "fromBP": 14450,
+          "label": "The Levant and upper Mesopotamia",
+          "source": "Bar-Yosef 1998, The Natufian culture in the Levant, threshold to the origins of agriculture, Evolutionary Anthropology 6",
+          "ring": [
+            [34.2, 29.4],
+            [33.9, 31.5],
+            [35.0, 34.0],
+            [35.8, 36.8],
+            [38.0, 37.9],
+            [41.5, 37.6],
+            [41.5, 35.0],
+            [39.0, 33.0],
+            [37.0, 31.0],
+            [35.6, 29.3]
+          ]
+        }
+      ]
+    },
+    {
+      "culture": "east-asia-hunter",
+      "density": "sparse",
+      "coldestC": -6,
+      "highestM": 4800,
+      "snapshots": [
+        {
+          "fromBP": 39950,
+          "label": "The Tibetan Plateau",
+          "source": "Zhang et al. 2018, The earliest human occupation of the high-altitude Tibetan Plateau 40 thousand to 30 thousand years ago, Science 362",
+          "ring": [
+            [78, 35.5],
+            [80, 31],
+            [88, 28.3],
+            [98, 29],
+            [102, 32],
+            [98, 37],
+            [90, 38],
+            [80, 36.5]
+          ]
+        }
+      ]
+    },
+    {
+      "culture": "first-americans",
+      "density": "sparse",
+      "coldestC": -6,
+      "highestM": 4800,
+      "snapshots": [
+        {
+          "fromBP": 12450,
+          "label": "The central Andes",
+          "source": "Rademaker et al. 2014, Paleoindian settlement of the high-altitude Peruvian Andes, Science 346",
+          "ring": [
+            [-80.5, -5],
+            [-75, -8],
+            [-70, -13.5],
+            [-67, -17],
+            [-66, -23],
+            [-69.5, -24],
+            [-72, -18],
+            [-76, -14.5],
+            [-80.5, -8]
+          ]
+        }
+      ]
+    },
+    {
+      "culture": "coastal-asia-hunter",
+      "density": "sparse",
+      "coldestC": 5,
+      "snapshots": [
+        {
+          "fromBP": 61950,
+          "label": "Arabia, the coasts of Iran, India and Sri Lanka, mainland Southeast Asia, Sundaland, Wallacea and southern China",
+          "source": "Bae, Douka and Petraglia 2017, On the origin of modern humans: Asian perspectives, Science 358",
+          "ring": [
+            [34.6, 29.3],
+            [39, 32],
+            [48, 31],
+            [52, 29.5],
+            [57, 28.5],
+            [62, 27],
+            [66, 28],
+            [71, 32],
+            [75, 33.5],
+            [78, 31],
+            [84, 28.5],
+            [88, 27.5],
+            [92, 28],
+            [97, 28],
+            [100, 27.5],
+            [104, 27.2],
+            [110, 27],
+            [116, 27],
+            [121, 28.2],
+            [123.5, 26],
+            [125, 22],
+            [124, 18],
+            [127.5, 8],
+            [128.5, 2],
+            [131, 1.5],
+            [130.2, -3],
+            [128.2, -7.2],
+            [126.5, -9.6],
+            [124.5, -11.5],
+            [118, -11.5],
+            [105, -9.5],
+            [95, -6],
+            [90, 2],
+            [80, 4],
+            [72, 8],
+            [60, 12],
+            [52, 12],
+            [43.42, 12.3],
+            [43.42, 13.2],
+            [41.8, 15],
+            [40.3, 18],
+            [38.5, 21],
+            [36.9, 24],
+            [35.3, 26],
+            [34.8, 27.5]
+          ]
+        }
+      ]
+    },
+    {
+      "culture": "first-australians",
+      "density": "low",
+      "coldestC": 0,
+      "snapshots": [
+        {
+          "fromBP": 51950,
+          "label": "Sahul: Australia, New Guinea and Tasmania, with the Bismarck Archipelago",
+          "source": "O'Connell et al. 2018, When did Homo sapiens first reach Southeast Asia and Sahul?, PNAS 115",
+          "ring": [
+            [131.2, 1.5],
+            [141, -1.5],
+            [146, -2],
+            [150, -1],
+            [153.8, -3],
+            [155.5, -6.5],
+            [156, -10],
+            [154, -25],
+            [151, -34],
+            [150.5, -38],
+            [149, -44.5],
+            [144, -45],
+            [140, -39.5],
+            [130, -33],
+            [114, -35.5],
+            [112, -26],
+            [113, -21],
+            [121, -17.5],
+            [124.8, -13.3],
+            [127.4, -10.6],
+            [129, -8],
+            [130.5, -4]
+          ]
+        }
+      ]
+    },
+    {
+      "culture": "west-asia-hunter",
+      "density": "low",
+      "coldestC": 0,
+      "snapshots": [
+        {
+          "fromBP": 49950,
+          "label": "The Levant, Anatolia, the Zagros, the Caucasus and the lands east to the Altai",
+          "source": "Boaretto et al. 2021, The absolute chronology of Boker Tachtit (Israel) and implications for the Middle to Upper Paleolithic transition in the Levant, PNAS 118",
+          "ring": [
+            [34.6, 29.3],
+            [34.0, 31.3],
+            [34.5, 33.5],
+            [35.8, 36.0],
+            [32, 36],
+            [28, 36.5],
+            [26.0, 38.5],
+            [26.0, 39.5],
+            [26.3, 40.3],
+            [29.0, 41.0],
+            [29.2, 41.3],
+            [31, 41.6],
+            [36, 42.2],
+            [41.5, 41.7],
+            [39, 44],
+            [41, 45],
+            [47, 44.5],
+            [50, 46.5],
+            [55, 48],
+            [62, 49],
+            [70, 50.5],
+            [80, 51.5],
+            [88, 51],
+            [90, 49],
+            [88, 45],
+            [80, 42.5],
+            [75, 38.5],
+            [71, 36.5],
+            [66, 33],
+            [61, 30.5],
+            [57, 28.8],
+            [52, 29.8],
+            [48, 31.2],
+            [39, 32.3],
+            [36, 31.2]
+          ]
+        }
+      ]
+    },
+    {
+      "culture": "east-asia-hunter",
+      "density": "low",
+      "coldestC": 0,
+      "snapshots": [
+        {
+          "fromBP": 39950,
+          "label": "Northern China, Korea and Japan",
+          "source": "Fu et al. 2013, DNA analysis of an early modern human from Tianyuan Cave, China, PNAS 110",
+          "ring": [
+            [98, 30],
+            [104, 27.6],
+            [110, 27.4],
+            [116, 27.4],
+            [121.5, 28.6],
+            [124, 31],
+            [128, 32.5],
+            [129.8, 30.5],
+            [131.5, 30.8],
+            [135, 33],
+            [140, 34.5],
+            [142.5, 38],
+            [146, 44],
+            [142, 46.5],
+            [139, 44],
+            [135, 43.5],
+            [130, 43.8],
+            [124, 42.3],
+            [120, 44.5],
+            [115, 43.5],
+            [105, 42.5],
+            [98, 38.5]
+          ]
+        }
+      ]
+    },
+    {
+      "culture": "ice-age-hunter",
+      "density": "low",
+      "coldestC": -15,
+      "snapshots": [
+        {
+          "fromBP": 46950,
+          "label": "Europe from the Atlantic to the Urals, Britain joined to it at low sea level; the ice keeps camps out of the north",
+          "source": "Hublin et al. 2020, Initial Upper Palaeolithic Homo sapiens from Bacho Kiro Cave, Bulgaria, Nature 581",
+          "ring": [
+            [-10.5, 36.1],
+            [-5.6, 36.05],
+            [-2, 36.6],
+            [3, 39],
+            [9, 38.6],
+            [12, 37.7],
+            [15.5, 36.6],
+            [19, 39.5],
+            [22, 36.3],
+            [26, 35.5],
+            [26.0, 38.5],
+            [26.0, 39.5],
+            [26.3, 40.3],
+            [29.0, 41.0],
+            [29.2, 41.3],
+            [31, 41.6],
+            [36, 42.2],
+            [41.5, 41.7],
+            [39, 44],
+            [41, 45],
+            [47, 44.5],
+            [50, 46.5],
+            [55, 48],
+            [60, 52],
+            [60, 60],
+            [60, 68],
+            [45, 69],
+            [30, 72],
+            [15, 72],
+            [5, 63],
+            [-5, 61],
+            [-12, 56],
+            [-11, 48],
+            [-10.5, 42]
+          ]
+        }
+      ]
+    },
+    {
+      "culture": "steppe-beringia-hunter",
+      "density": "sparse",
+      "coldestC": -28,
+      "snapshots": [
+        {
+          "fromBP": 44950,
+          "label": "Siberia from the Urals to the Pacific, and Beringia west of the date line",
+          "source": "Fu et al. 2014, Genome sequence of a 45,000-year-old modern human from western Siberia, Nature 514; Pitulko et al. 2004, The Yana RHS site: humans in the Arctic before the Last Glacial Maximum, Science 303",
+          "ring": [
+            [60, 52],
+            [62, 49],
+            [70, 50.5],
+            [80, 51.5],
+            [88, 51],
+            [90, 49],
+            [98, 47],
+            [105, 45],
+            [115, 43.5],
+            [120, 44.5],
+            [124, 42.3],
+            [130, 43.8],
+            [135, 43.5],
+            [139, 44],
+            [142, 46.5],
+            [145, 51],
+            [157, 50],
+            [163, 56],
+            [172, 60],
+            [180, 62],
+            [180, 78],
+            [100, 79],
+            [60, 76],
+            [60, 68],
+            [60, 60]
+          ]
+        }
+      ]
+    },
+    {
+      "culture": "steppe-beringia-hunter",
+      "density": "sparse",
+      "coldestC": -28,
+      "snapshots": [
+        {
+          "fromBP": 24950,
+          "label": "Beringia east of the date line: the land bridge, Alaska and the Yukon",
+          "source": "Hoffecker, Elias and O'Rourke 2014, Out of Beringia?, Science 343",
+          "ring": [
+            [-180, 50],
+            [-180, 76],
+            [-155, 73],
+            [-140, 71],
+            [-125, 70],
+            [-125, 62],
+            [-138, 58],
+            [-150, 58],
+            [-160, 54],
+            [-170, 51]
+          ]
+        }
+      ]
+    },
+    {
+      "culture": "first-americans",
+      "density": "low",
+      "coldestC": -5,
+      "snapshots": [
+        {
+          "fromBP": 15950,
+          "label": "The Americas south of the ice sheets",
+          "source": "Davis et al. 2019, Late Upper Paleolithic occupation at Cooper's Ferry, Idaho, USA, ~16,000 years ago, Science 365; Dillehay et al. 2008, Monte Verde: seaweed, food, medicine, and the peopling of South America, Science 320",
+          "ring": [
+            [-138, 58],
+            [-125, 62],
+            [-100, 63],
+            [-80, 63],
+            [-64, 61],
+            [-52, 52],
+            [-58, 43],
+            [-70, 40],
+            [-75, 33],
+            [-80, 25],
+            [-79, 20],
+            [-60, 15],
+            [-50, 5],
+            [-34, -5],
+            [-38, -15],
+            [-47, -26],
+            [-56, -36],
+            [-60, -45],
+            [-64, -55],
+            [-70, -57],
+            [-76, -52],
+            [-76, -40],
+            [-74, -24],
+            [-82, -6],
+            [-92, 12],
+            [-106, 19],
+            [-118, 30],
+            [-125, 40],
+            [-133, 53]
           ]
         }
       ]

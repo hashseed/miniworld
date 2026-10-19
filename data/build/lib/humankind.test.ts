@@ -12,6 +12,7 @@ import {
   checkTree,
   treeChunks,
   distanceKm,
+  onGlobe,
   type Habitat,
   type TreeSettings,
 } from './humankind.ts';
@@ -191,11 +192,10 @@ function strays(t: typeof tree, ok: (lat: number, lon: number) => boolean) {
   };
   const end = msAtDay(settings.endDay, settings.startDay);
   const km = LAYOUT_KM_PER_M;
-  const okAt = (p: { lat: number; lon: number; x: number; z: number }) =>
-    ok(
-      p.lat + (p.z * km) / 111.195,
-      p.lon + (p.x * km) / (111.195 * Math.cos((p.lat * Math.PI) / 180)),
-    );
+  const okAt = (p: { lat: number; lon: number; x: number; z: number }) => {
+    const q = onGlobe(p.lat, p.lon, p.x * km, p.z * km);
+    return ok(q.lat, q.lon);
+  };
   const where: string[] = [];
   let seen = 0;
   // About 600 moments over the tree's span, an odd step so they do not fall on turns.

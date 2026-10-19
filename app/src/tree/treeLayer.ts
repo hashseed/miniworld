@@ -29,9 +29,12 @@ import {
   type TreeActor,
 } from '../vignettes/figures.ts';
 import type { StandIn } from '../vignettes/standIns.ts';
+import type { Profile } from '../world/cultures.ts';
 import type { SurfaceSource } from '../vignettes/vignetteLayer.ts';
 import type { Obstacle } from '../wildlife/wildlifeLayer.ts';
 
+/** Camps this far beyond the horizon, in radians, are still worked out, for the history lens. */
+const NEAR_MARGIN = 0.3;
 /** Half sizes of what wild animals keep clear of, in life-size metres (wildlife.md section 4). */
 const FIGURE_HALF_M = 0.4;
 const PREY_HALF_M = 1.3;
@@ -48,6 +51,8 @@ export class TreeLayer {
   private chunks = new Map<number, TreeChunk>();
   private requested = new Set<number>();
   private figures = new Map<number, TreeActor>();
+  /** The culture each figure's model was built for. */
+  private profiles = new Map<number, Profile>();
   private lodgings = new Map<number, StandIn | undefined>();
   private hearths = new Map<number, StandIn | undefined>();
   private prey = new Map<string, StandIn | undefined>();
@@ -115,15 +120,30 @@ export class TreeLayer {
       return;
     }
     this.request(w + 1);
-    const scene = treeScene(chunk, ms, startDay);
+    // Only the camps on the camera's side of the globe, with a margin for the history lens.
+    const camDir = this.v2.copy(camera.position).normalize();
+    const limit = Math.acos(Math.min(1, EARTH_RADIUS_KM / camera.position.length())) + NEAR_MARGIN;
+    const cosLimit = Math.cos(Math.min(Math.PI, limit));
+    const near = (lat: number, lon: number) => {
+      const [x, y, z] = latLonToDir(lat, lon);
+      return x * camDir.x + y * camDir.y + z * camDir.z >= cosLimit;
+    };
+    const scene = treeScene(chunk, ms, startDay, near);
 
     const seen = new Set<number>();
     for (const f of scene.figures) {
       seen.add(f.id);
       let actor = this.figures.get(f.id);
+      // A figure in new clothes is a new model (peopling.md section 5.3).
+      const profile = (f.profile ?? 'african-stone-age') as Profile;
+      if (actor && this.profiles.get(f.id) !== profile) {
+        this.prune(this.figures, new Set([...this.figures.keys()].filter((id) => id !== f.id)));
+        actor = undefined;
+      }
       if (!actor) {
-        actor = buildTreeFigure(f.look, f.id);
+        actor = buildTreeFigure(f.look, f.id, profile);
         this.figures.set(f.id, actor);
+        this.profiles.set(f.id, profile);
         this.group.add(actor.root);
       }
       if (!this.place(actor.root, f)) continue;
@@ -172,7 +192,8 @@ export class TreeLayer {
         this.spears.delete(id);
       }
 
-    // Drying racks beside the lodgings, and the spit over a fire while meat roasts.
+    // Drying racks beside the lodgings, the spit over a fire while meat roasts, canoes on
+    // the water and red flags at the Neolithic thresholds.
     const standing = new Set<string>();
     for (const q of scene.props) {
       standing.add(q.id);
