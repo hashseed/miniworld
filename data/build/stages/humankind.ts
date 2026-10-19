@@ -12,6 +12,7 @@ import { climateHabitat } from '../lib/habitat.ts';
 import { buildTree, checkTree, distanceKm, treeChunks } from '../lib/humankind.ts';
 import { NEVER, type TreeLodging } from '../../../app/src/world/tree.ts';
 import { flies, swims, WILD_GROUPS } from '../../../app/src/world/wildlife.ts';
+import type { DrawnGround } from '../lib/drawnGround.ts';
 import type { Climate } from './climate.ts';
 import { ROOT, type WriteContext } from './context.ts';
 import type { WorldMap } from './terrain.ts';
@@ -32,6 +33,7 @@ export function buildHumankind(
   ctx: WriteContext,
   map: WorldMap,
   climate: Climate,
+  drawn: DrawnGround,
 ): { files: TreeFiles; camps: CampPlace[] } {
   const { log, fail } = ctx;
   // The fixture map has no Africa.
@@ -42,11 +44,14 @@ export function buildHumankind(
   const { connection, lakes, rivers, elevation } = map;
   const habitat = climateHabitat({
     slices: climate.slices,
+    // Water in the source grids or as the globe draws it, whichever reaches further,
+    // so nobody stands or walks where the drawn shore lies (section 4).
     isSea: (lat, lon, day) => {
       const v = connection.nearest(lat, lon);
-      return v !== OCEAN_NEVER && OCEAN_MIN_LEVEL + v <= climate.seaLevelAt(day);
+      const level = climate.seaLevelAt(day);
+      return (v !== OCEAN_NEVER && OCEAN_MIN_LEVEL + v <= level) || drawn.sea(lat, lon, level);
     },
-    isLake: (lat, lon) => lakes.nearest(lat, lon) >= 128,
+    isLake: (lat, lon) => lakes.nearest(lat, lon) >= 128 || drawn.lake(lat, lon),
     isRiver: (lat, lon) => rivers.nearest(lat, lon) > 0,
     // The globe draws a river where its field passes 128; the bank starts a little before.
     inRiver: (lat, lon) => rivers.bilinear(lat, lon) >= RIVER_BANK_FIELD,

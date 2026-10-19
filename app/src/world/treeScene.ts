@@ -47,7 +47,7 @@ const PACE: Record<'walk' | 'run' | 'carry', number> = {
  * Lodgings stand this far from the hearth, in layout metres; lodgings are drawn at
  * figure size, three times the layout, so the ring keeps them clear of the people.
  */
-const LODGING_RING_M = 16;
+export const LODGING_RING_M = 16;
 /** Places for lodgings round a hearth, evenly spaced so lodgings never overlap. */
 export const LODGING_SLOTS = 5;
 /** Spots for figures at a hearth: an inner ring and an outer ring, spaced so figures never overlap. */

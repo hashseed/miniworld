@@ -64,6 +64,7 @@ import {
 import { validateHumidPeriods, type HumidPeriod } from '../lib/climate.ts';
 import type { Content } from './content.ts';
 import type { BuildContext, WriteContext } from './context.ts';
+import type { DrawnGround, DrawnTiles } from '../lib/drawnGround.ts';
 
 /** Simplified map (spec milestone 1, section 4.2). */
 const SMOOTHING_KM = 80;
@@ -246,14 +247,17 @@ export function placeLandmarks(ctx: BuildContext, map: WorldMap, landmarks: Cont
  * The ground mask of every wildlife group, in the order of wildlife.json:
  * open lowland, or open sea for sea animals (wildlife.md section 4).
  */
-export function buildWildlifeMasks(ctx: BuildContext, map: WorldMap): string[] {
+export function buildWildlifeMasks(ctx: BuildContext, map: WorldMap, drawn: DrawnGround): string[] {
   const { connection, lakes, heights } = map;
   const relief = heights.levels[0]!;
+  // Water in the source grids or as the globe draws it, whichever reaches
+  // further, so no animal stands where the drawn shore lies (section 4).
+  const lake = (lat: number, lon: number) => lakes.bilinear(lat, lon) > 127 || drawn.lake(lat, lon);
   const masks = wildMasks(WILD_GROUPS, {
     height: (lat, lon) => relief.bilinear(lat, lon),
     wet: (lat, lon) =>
-      lakes.bilinear(lat, lon) > 127 || connection.nearest(lat, lon) <= -OCEAN_MIN_LEVEL,
-    lake: (lat, lon) => lakes.bilinear(lat, lon) > 127,
+      lake(lat, lon) || connection.nearest(lat, lon) <= -OCEAN_MIN_LEVEL || drawn.sea(lat, lon, 0),
+    lake,
   });
   WILD_GROUPS.forEach((g, i) =>
     ctx.log(
@@ -279,7 +283,8 @@ function place(layer: LayerOut, key: TileKey): { chunks: Record<string, string>;
 }
 
 /** Writes the terrain tiles of every level up to the context's maximum. */
-export function buildTerrain(ctx: WriteContext, map: WorldMap): LayerOut {
+/** Writes the terrain tiles, handing the finest to `drawn` for the checks of the later stages. */
+export function buildTerrain(ctx: WriteContext, map: WorldMap, drawn?: DrawnTiles): LayerOut {
   const { log, output, maxLevel } = ctx;
   const { ocean } = map;
   // Coarse levels sample a coast prefiltered for their spacing (section 4.2).
@@ -311,7 +316,9 @@ export function buildTerrain(ctx: WriteContext, map: WorldMap): LayerOut {
     });
     const target = place(terrain, key);
     const path = tilePath(key);
-    if (isDeepTile(tile)) target.deep.push(path);
+    const deep = isDeepTile(tile);
+    drawn?.add(tile, deep);
+    if (deep) target.deep.push(path);
     else
       target.chunks[chunkKey(path, 'all', 'xx')] = output.write(
         `terrain/${path}`,
