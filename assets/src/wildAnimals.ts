@@ -2,8 +2,10 @@
 // metres, facing +Z, feet on y = 0, built like the prehistoric animals.
 
 import * as THREE from 'three';
+import { hash01 } from '../../app/src/core/hash.ts';
 import {
   type Model,
+  type Pattern,
   type Vec3,
   ModelBuilder,
   blob,
@@ -202,9 +204,37 @@ function elephant(id: WildAnimalId, african: boolean): Model {
   return mb.build(id);
 }
 
+/**
+ * A reticulated coat: brown patches in a net of pale lines, painted on (Yang,
+ * 2026-10-18: stuck-on spots "look like tumors"). The patches are the cells of
+ * a jittered grid of `cell` metres; a point is in the net where its nearest two
+ * cell centres are less than `line` metres apart in distance.
+ */
+function reticulated(patch: THREE.ColorRepresentation, cell: number, line: number): Pattern {
+  return (p) => {
+    const [x, y, z] = [p.x / cell, p.y / cell, p.z / cell];
+    const [xi, yi, zi] = [Math.floor(x), Math.floor(y), Math.floor(z)];
+    let d1 = Infinity;
+    let d2 = Infinity;
+    for (let i = -1; i <= 1; i++)
+      for (let j = -1; j <= 1; j++)
+        for (let k = -1; k <= 1; k++) {
+          const [a, b, c] = [xi + i, yi + j, zi + k];
+          const dx = a + 0.15 + 0.7 * hash01(a, b, c, 1) - x;
+          const dy = b + 0.15 + 0.7 * hash01(a, b, c, 2) - y;
+          const dz = c + 0.15 + 0.7 * hash01(a, b, c, 3) - z;
+          const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          if (d < d1) [d1, d2] = [d, d1];
+          else if (d < d2) d2 = d;
+        }
+    return (d2 - d1) * cell < line ? undefined : patch;
+  };
+}
+
 function giraffe(): Model {
-  const coat = '#d9a65c';
+  const coat = '#e3b874';
   const patch = '#8a5228';
+  const body = reticulated(patch, 0.45, 0.1);
   const p = quadruped({
     shoulder: 2.9,
     length: 1.9,
@@ -217,31 +247,17 @@ function giraffe(): Model {
     belly: '#efd9ad',
     legColour: '#e2c28a',
     hoof: '#3a2c22',
+    pattern: { body, chest: body, segments: 11 },
   });
   const { mb, headAt, bodyY, front } = p;
-  // A second, thicker neck along the first, so the long neck reads from afar.
+  // A second, thicker neck along the first, so the long neck reads from afar,
+  // with smaller patches painted on it.
   mb.add(
-    limb([0, bodyY + 0.35, front * 0.9], [0, headAt.y - 0.35, headAt.z - 0.25], 0.26, 0.13, 6),
+    limb([0, bodyY + 0.35, front * 0.9], [0, headAt.y - 0.35, headAt.z - 0.25], 0.26, 0.13, 8, 8),
     coat,
     'head',
+    reticulated(patch, 0.28, 0.07),
   );
-  // Brown patches on the body and neck.
-  const spots: Vec3[] = [
-    [0.4, 0.2, 0.55],
-    [-0.4, 0.15, 0.5],
-    [0.42, 0.1, -0.25],
-    [-0.42, 0.22, -0.3],
-    [0.3, 0.42, 0.1],
-    [-0.3, 0.42, 0.05],
-    [0.0, 0.48, -0.55],
-  ];
-  for (const [x, y, z] of spots)
-    mb.add(blob([x, bodyY + y, z], [0.13, 0.15, 0.17], 5), patch, 'body');
-  for (const t of [0.3, 0.6]) {
-    const y = bodyY + 0.5 + (headAt.y - bodyY - 0.9) * t;
-    const z = front * 0.9 + (headAt.z - front * 0.9) * t;
-    for (const s of [1, -1]) mb.add(blob([s * 0.15, y, z], [0.07, 0.13, 0.1], 5), patch, 'head');
-  }
   // Dark mane along the back of the thick neck, sunk a little into it.
   const na: Vec3 = [0, bodyY + 0.35, front * 0.9];
   const nb: Vec3 = [0, headAt.y - 0.35, headAt.z - 0.25];

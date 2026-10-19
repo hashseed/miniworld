@@ -144,7 +144,7 @@ New clay models in `assets/src/animals.ts`, built like the existing animals, at 
 | --- | --- | --- |
 | `animal-elephant` | African bush elephant | Grey, huge ears on the sides of the head, trunk, short tusks, legs close under the body, round column feet with toenails (Yang, 2026-10-18: no flat feet) |
 | `animal-asian-elephant` | Asian elephant | Dusty grey-brown, a little warmer than the African elephant (Yang, 2026-10-18: "asian elephant is too dark"), small ears, domed twin-bumped head, no visible tusks |
-| `animal-giraffe` | Giraffe | Tall neck and legs, tan with brown patches, ossicones, a short dark mane along the back of the neck |
+| `animal-giraffe` | Giraffe | Tall neck and legs, tan with brown patches painted on in a net of pale lines, never stuck on (Yang, 2026-10-18: stuck-on spots "look like tumors"), smaller on the neck, ossicones, a short dark mane along the back of the neck |
 | `animal-zebra` | Plains zebra | Horse body in white with bold black stripes painted on, never stuck on (Yang, 2026-10-18): upright bands on the body, across the thighs on the rump, rings round the legs, across the neck and the face; a short upright striped mane |
 | `animal-wildebeest` | Blue wildebeest | Grey-blue, heavy front, dark mane and beard, curved horns |
 | `animal-lion` | Lion | Tawny cat with a big dark mane; the first member of a lion group |
