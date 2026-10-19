@@ -104,14 +104,44 @@ export function humankindSettings(c: CultureAreas, world: PeoplingInputs): TreeS
     ...a,
     snapshots: a.snapshots.map((s) => ({ day: sliceDay(s.fromBP), ring: s.ring })),
   }));
-  /** The first area holding a point on a day. */
-  const areaAt = (lat: number, lon: number, day: Day) => {
+  /** The first area holding a point on a day, worked out from the polygons. */
+  const areaFromRings = (lat: number, lon: number, day: Day) => {
     for (const a of areas) {
       let ring: Ring | undefined;
       for (const s of a.snapshots) if (s.day <= day) ring = s.ring;
       if (ring && insideRing(ring, lat, lon)) return a;
     }
     return undefined;
+  };
+  // The areas only change on their snapshot days, so each place's area is worked out once
+  // per stretch between them and looked up after (the tree asks for the same sites millions
+  // of times; the build spent most of its time in the polygons).
+  const changeDays = [...new Set(areas.flatMap((a) => a.snapshots.map((s) => s.day)))].sort(
+    (a, b) => a - b,
+  );
+  const stretchOf = (day: Day) => {
+    let lo = 0;
+    let hi = changeDays.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (changeDays[mid]! <= day) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo; // stretch k holds from changeDays[k - 1] (or the start) to changeDays[k]
+  };
+  const byPlace = new Map<string, (Area | undefined | null)[]>();
+  type Area = (typeof areas)[number];
+  const areaAt = (lat: number, lon: number, day: Day): Area | undefined => {
+    const key = `${lat},${lon}`;
+    let row = byPlace.get(key);
+    if (!row) byPlace.set(key, (row = new Array(changeDays.length + 1).fill(null)));
+    const k = stretchOf(day);
+    let hit = row[k];
+    if (hit === null) {
+      hit = areaFromRings(lat, lon, k === 0 ? -Infinity : changeDays[k - 1]!);
+      row[k] = hit;
+    }
+    return hit;
   };
   return {
     sites: world.sites,
