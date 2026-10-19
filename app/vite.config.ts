@@ -10,6 +10,9 @@ export default defineConfig(({ mode }) => {
   const port = Number(process.env.MINIWORLD_PORT ?? loadEnv(mode, root, '').MINIWORLD_PORT ?? 8800);
   return {
     root,
+    // Relative URLs, so the build works from any folder, such as GitHub Pages'
+    // /miniworld/ (spec section 11).
+    base: './',
     publicDir: 'public',
     build: {
       outDir: '../dist',
