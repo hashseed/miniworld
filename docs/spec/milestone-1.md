@@ -76,13 +76,13 @@ All are npm scripts, run in the dev container or any machine with the pinned Nod
 | `npm run simplify-data` | Turns the original downloads into the simplified extracts under `data/sources/` and records their checksums; used only when adding or updating a source |
 | `npm run build-data` | Runs the offline data build (section 10): terrain tiles, ocean mask, ice, sea-level curve, startup index, chunks, manifest |
 | `npm run dev` | The dev server on port 8800 |
-| `npm run staging` | Starts, in the background, the watcher that keeps the staging checkout on the latest `main` and its dev server on port 8800 running (spec section 11); data built with `--max-level 5`; `-- --stop` stops it |
+| `npm run staging` | The former staging watcher, which kept a checkout on the latest `main` with its dev server on port 8800; no longer used in the devenv (spec section 11) |
 | `npm run build` | Production build of app plus data into `dist/` |
 | `npm run check` | Lint, typecheck, unit and golden tests, data validation |
 | `npm run coverage` | Unit and golden tests with the coverage report and its thresholds (section 2.4) |
 | `npm run golden` | The golden tests (section 13) on the data in `app/public/data`; `npm run golden -- -u` stores new results after an intended change |
 | `npm run test:browser` | Playwright tests at desktop and phone sizes |
-| `npm run pool` | Runs the checks or browser tests for a commit in a worktree of the test pool (section 2.5) |
+| `npm run pool` | The former test pool of git worktrees; no longer used in the devenv (section 2.5) |
 | `npm run fixture-key` | Prints the hash of everything the fixture data build reads, the key of its cache (section 2.4) |
 | `npm run notices` | Regenerates `app/public/third-party-notices.txt` from the licences of the runtime dependencies (spec section 13) |
 | `npm run perf` | Runs the stress scene and prints the performance report (section 11.4) |
@@ -95,12 +95,11 @@ GitHub Actions runs on every pull request and on `main`: lint, typecheck, unit a
 
 ### 2.5 Running tests locally
 
-Tests run in Yang's devenv container, but never in the checkout that serves the app on port 8800, which is the staging copy Yang looks at. `npm run pool -- <ref> [check|browser|all]` runs them for any commit in a pool of git worktrees beside that checkout (`../miniworld-pool/slot-<n>`, two slots by default):
+Tests run in Yang's devenv container, in its one development checkout (spec section 11); there are no git worktrees and no test pool (Yang, 2026-10-18).
 
-- A run takes a free slot under a lock, so runs from different threads never share one, checks the commit out there, and frees the slot when it ends. The lock is kept alive by a heartbeat file, so a run that is killed frees its slot a minute later. Worktrees stay for the next run.
-- Dependencies are installed only when `package-lock.json` changed since the slot's last run, with the pool's own npm cache and a time limit. The fixture data comes from a cache shared by all slots under the same key as in CI, and is built only when the key is new.
-- Each slot's browser tests start their own dev server on port 8810 + n. The browser tests never use port 8800 or a server that is already running, so they cannot test the staging copy by mistake.
-- Logs and the Playwright report of the last run are kept in the slot's `.pool/last/`. `npm run pool -- --prune` removes the slots and old caches.
+- `npm run check` runs the static checks and the unit and golden tests there, next to the running dev server.
+- The browser tests need the fixture data, and `npm run build-data -- --fixture` replaces the content in `app/public/data` that the dev server on port 8800 serves. After a local browser test run, `npm run build-data` puts the real content back (and the dev server is restarted, as it keeps serving stale files otherwise). When that is not worth it, the browser tests are left to CI (section 2.4).
+- The browser tests start their own dev server on port 8810, never on port 8800 and never on a server that is already running, so they do not test or disturb the server Yang looks at.
 
 The browser tests read three settings from the environment: `MINIWORLD_PORT` (default 8810), `PW_WORKERS`, the number of tests at a time (default 1), and `MINIWORLD_CHROMIUM`, the path of a system Chromium for machines where Playwright's own download is not available.
 

@@ -4,9 +4,9 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig(({ mode }) => {
-  // 8800 is the staging server; a preview sets its own port in app/.env.local
-  // and test runs in the environment, which wins (spec section 11, milestone 1
-  // section 2.5).
+  // 8800 is the development checkout's server; app/.env.local or, winning over
+  // it, the environment can set another, as the browser tests do (spec section
+  // 11, milestone 1 section 2.5).
   const port = Number(process.env.MINIWORLD_PORT ?? loadEnv(mode, root, '').MINIWORLD_PORT ?? 8800);
   return {
     root,
