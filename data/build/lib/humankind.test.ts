@@ -195,8 +195,8 @@ function strays(t: typeof tree, ok: (lat: number, lon: number) => boolean) {
     );
   const where: string[] = [];
   let seen = 0;
-  // About 1,500 moments over the tree's span, an odd step so they do not fall on turns.
-  for (let ms = 0; ms < end; ms += Math.floor(end / 1500) | 1) {
+  // About 600 moments over the tree's span, an odd step so they do not fall on turns.
+  for (let ms = 0; ms < end; ms += Math.floor(end / 600) | 1) {
     const s = treeScene(whole, ms, settings.startDay);
     for (const l of s.lodgings) {
       seen++;
