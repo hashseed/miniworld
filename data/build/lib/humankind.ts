@@ -41,10 +41,11 @@ import {
 
 export { distanceKm, onGlobe } from './geo.ts';
 
-export type Density = 'sparse' | 'low' | 'medium';
+export type Density = 'remote' | 'sparse' | 'low' | 'medium';
 
 /** Camp spacing per density (section 4.1, Proposed); every band is 3 to 5 (Yang, 2026-10-18). */
 export const DENSITIES: Record<Density, { spacingKm: number; band: [number, number] }> = {
+  remote: { spacingKm: 1800, band: [3, 5] },
   sparse: { spacingKm: 1350, band: [3, 5] },
   low: { spacingKm: 900, band: [3, 5] },
   medium: { spacingKm: 600, band: [3, 5] },
@@ -78,13 +79,20 @@ const JOIN_HOPS = 6;
 const CROWD_HOPS = 12;
 
 /** What the build tells about the tree without failing: bands that had to crowd a neighbour. */
-export const treeStats = { crowded: 0, stuck: 0 };
+export const treeStats = {
+  crowded: 0,
+  stuck: 0,
+};
+/** A band is on a point's own land when it walks to the site nearest the point in this many links. */
+const SAME_LAND_HOPS = 24;
 /** A stranded band paddles to a site at most this far away, in km (sites.md section 3). */
 const STRANDED_KM = 16 * SITE_STEP_KM;
 /** A route needs no band once a band of its culture stands this close to its arrival point, in km. */
 const ROUTE_NEAR_KM = 1000;
 /** A route's band comes from at most this many links away. */
 const ROUTE_HOPS = 80;
+/** A planned leg's target is a site within this far of its arrival point (sites.md section 4). */
+const PLAN_KM = 3000;
 /** Bands change culture at a moment chosen within this many years of a morph (sites.md section 5). */
 const MORPH_YEARS = 100;
 
@@ -143,6 +151,8 @@ export interface TreeSettings {
 /** A route's arrival point (peopling.md section 4): its way's last point and its day. */
 export interface Voyage {
   id: string;
+  /** The route's previous point, whose leg's target is this leg's origin (sites.md section 4). */
+  from?: string;
   day: Day;
   way: { lat: number; lon: number }[];
 }
@@ -314,6 +324,25 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       ring = next;
     }
     return found;
+  };
+
+  /** As reach, but on foot only: open links that are not canoe crossings. */
+  const walk = (from: Site, day: Day, hops: number, keep: (site: Site) => boolean) => {
+    const seen = new Set<number>([from.id]);
+    let ring: Site[] = [from];
+    for (let n = 1; n <= hops && ring.length; n++) {
+      const next: Site[] = [];
+      for (const site of ring)
+        for (const l of linksOf[site.id]!) {
+          const to = other(l, site);
+          if (seen.has(to.id) || l.crossing || !open(l, day)) continue;
+          seen.add(to.id);
+          if (keep(to)) return [to];
+          next.push(to);
+        }
+      ring = next;
+    }
+    return [];
   };
 
   /** The best of some sites by the habitat score, with a little hash. */
@@ -747,6 +776,101 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
    * along links goes to the best free site within a camp spacing of it.
    */
   const voyages = (s.voyages ?? []).map((v) => ({ ...v, done: false, next: v.day }));
+  const legById = new Map(voyages.map((v) => [v.id, v]));
+  /** Whether a standing or claimed camp overlaps a site (sites.md section 2). */
+  const overlapped = (site: Site) =>
+    [...held.values()].some(
+      (h) => distanceKm(h.lat, h.lon, site.lat, site.lon) < footprintM(site.key) * LAYOUT_KM_PER_M,
+    ) ||
+    camps.some(
+      (c) =>
+        c.lodgings.length > 0 &&
+        distanceKm(c.site.lat, c.site.lon, site.lat, site.lon) <
+          (footprintM(site.key) / site.width + footprintM(c.site.key) / c.site.width) *
+            LAYOUT_KM_PER_M,
+    );
+  /** The camp sites nearest a point first, within PLAN_KM of it (no waypoints). */
+  const nearestSites = new Map<string, Site[]>();
+  const sitesNear = (id: string, p: { lat: number; lon: number }) => {
+    let list = nearestSites.get(id);
+    if (!list) {
+      list = sites
+        .filter((x) => !x.pass && distanceKm(x.lat, x.lon, p.lat, p.lon) <= PLAN_KM)
+        .sort(
+          (a, b) =>
+            distanceKm(a.lat, a.lon, p.lat, p.lon) - distanceKm(b.lat, b.lon, p.lat, p.lon) ||
+            a.id - b.id,
+        );
+      nearestSites.set(id, list);
+    }
+    return list;
+  };
+  /** A leg's planned target as the geography gives it on the leg's own day: its next leg's origin. */
+  const planned = new Map<string, Site | undefined>();
+  const plannedTarget = (v: Voyage): Site | undefined => {
+    if (!planned.has(v.id))
+      planned.set(
+        v.id,
+        sitesNear(v.id, v.way.at(-1)!).find((x) => usable(x, v.day)),
+      );
+    return planned.get(v.id);
+  };
+  /**
+   * Whether a site is on a point's own land: it walks, over open links that are not canoe
+   * crossings, to the leg's planned target (or the site nearest the point) on a day, so a camp across a
+   * strait does not count for the land beyond it (Korea for Japan).
+   */
+  const anchors = new Map<string, Site>();
+  const sameLand = (x: Site, id: string, p: { lat: number; lon: number }, day: Day) => {
+    // The leg's planned target, which its culture can use (so the far shore of a strait),
+    // else the site nearest the point.
+    let anchor = anchors.get(id);
+    if (!anchor) {
+      const leg = legById.get(id);
+      anchor =
+        (leg && plannedTarget(leg)) ??
+        sites.reduce((a, b) =>
+          distanceKm(b.lat, b.lon, p.lat, p.lon) < distanceKm(a.lat, a.lon, p.lat, p.lon) ? b : a,
+        );
+      anchors.set(id, anchor);
+    }
+    if (x === anchor) return true;
+    return walk(x, day, SAME_LAND_HOPS, (y) => y === anchor).length > 0;
+  };
+  /** A band that can send a group along a route: not settled, not just joined, three or more. */
+  const canSend = (c: Camp | undefined): c is Camp =>
+    !!c && !c.settled && !joined.has(c) && headcount(c) >= 3;
+  /**
+   * A planned leg (sites.md section 4): the band at the leg's origin, or the nearest to it
+   * along links, sends a group from the origin along open links to the site nearest the point
+   * that its culture can use today. Undefined when the leg has no plan; false while it waits.
+   */
+  const plannedLeg = (v: Voyage, day: Day): boolean | undefined => {
+    const from = v.from ? legById.get(v.from) : undefined;
+    const origin = from && plannedTarget(from);
+    const far = v.way.at(-1)!;
+    const onLand = (x: Site) => sameLand(x, v.id, far, day);
+    const options = sitesNear(v.id, far).filter(
+      (x) => x !== origin && usable(x, day) && !bandAt.has(x.id) && !overlapped(x) && onLand(x),
+    );
+    // Keeping the density's spacing where a site allows it, else as near as the route needs.
+    const target = options.find((x) => free(x, day)) ?? options[0];
+    if (!origin || !target) return undefined;
+    const leg = reach(origin, day, ROUTE_HOPS, (x) => x === target)[0];
+    if (!leg) return false;
+    let toOrigin: Path = [origin];
+    if (!canSend(bandAt.get(origin.id))) {
+      const src = reach(origin, day, ROUTE_HOPS, (x) => canSend(bandAt.get(x.id)))[0];
+      if (!src) return false;
+      toOrigin = [...src.path].reverse();
+    }
+    const band = bandAt.get(toOrigin[0]!.id)!;
+    const group = groupOf(band, day, 64);
+    if (!group.length) return false;
+    const child = found(group, [...toOrigin, ...leg.path.slice(1)], day);
+    moment('voyage', day, group[0]!, child);
+    return true;
+  };
   const voyage = (v: Voyage & { next: Day }, day: Day): boolean => {
     const far = v.way.at(-1)!;
     const culture = s.culture?.(far.lat, far.lon, day);
@@ -755,14 +879,24 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         (c) =>
           c.lodgings.length > 0 &&
           c.culture === culture &&
-          distanceKm(c.site.lat, c.site.lon, far.lat, far.lon) <= ROUTE_NEAR_KM,
+          distanceKm(c.site.lat, c.site.lon, far.lat, far.lon) <= ROUTE_NEAR_KM &&
+          sameLand(c.site, v.id, far, day),
       )
-    )
+    ) {
       return true;
+    }
     if (day < v.next) return false;
     v.next = after(day, BUD_MS);
-    const spacing = DENSITIES[s.density(far.lat, far.lon, day) ?? 'low'].spacingKm;
-    // The free sites nearest the point: within a spacing of it, or farther where none is.
+    const plannedResult = plannedLeg(v, day);
+    if (plannedResult !== undefined) return plannedResult;
+    // The free sites nearest the point: within a spacing of it, or farther where none is; in
+    // a remote area no farther than a route counts as near, so its wide spacing does not
+    // leave the point unreached.
+    const density = s.density(far.lat, far.lon, day) ?? 'low';
+    const spacing =
+      density === 'remote'
+        ? Math.min(ROUTE_NEAR_KM, DENSITIES.remote.spacingKm)
+        : DENSITIES[density].spacingKm;
     let targets: Site[] = [];
     for (let r = 1; r <= 3 && !targets.length; r++)
       targets = sites.filter(

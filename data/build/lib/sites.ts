@@ -116,6 +116,8 @@ export interface SiteInputs {
   /** Rows of latitude to lay sites on, south to north. */
   fromLat?: number;
   toLat?: number;
+  /** How many lattice steps apart the sites are at a point, from the culture areas; 1 when not given. */
+  stepAt?(lat: number, lon: number): number;
 }
 
 /** A point of a site's layout, in layout metres east and north of its hearth. */
@@ -362,6 +364,9 @@ export function buildSites(input: SiteInputs): SiteMap {
     for (let k = 0; k < n; k++) {
       let lon = -180 + step * (k + (row % 2 ? 0.5 : 0));
       if (lon >= 180) lon -= 360;
+      // A coarser lattice keeps every n-th row and every n-th point along it.
+      const every = input.stepAt?.(lat, lon) ?? 1;
+      if (every > 1 && (row % every !== 0 || k % every !== 0)) continue;
       const site = bestInCell(sites.length, lat, lon, step, input);
       if (site) sites.push(site);
     }
@@ -472,14 +477,22 @@ export function buildSites(input: SiteInputs): SiteMap {
   // Links by canoe at the listed crossings: from the site nearest each shore; the band paddles
   // whatever stretch of the way is not dry on the day it goes.
   for (const x of input.crossings) {
-    // The three sites near each shore that stay dry the longest.
-    const shore = (p: { lat: number; lon: number }) =>
+    // The three sites near each shore that stay dry the longest, each on its own side: nearer
+    // its shore than the far one, so both ends of the Korea-Japan crossing are not in Korea.
+    type P = { lat: number; lon: number };
+    const shore = (p: P, far: P) =>
       sites
-        .filter((s) => !s.pass && distanceKm(s.lat, s.lon, p.lat, p.lon) <= SHORE_KM)
+        .filter(
+          (s) =>
+            !s.pass &&
+            distanceKm(s.lat, s.lon, p.lat, p.lon) <= SHORE_KM &&
+            distanceKm(s.lat, s.lon, p.lat, p.lon) < distanceKm(s.lat, s.lon, far.lat, far.lon),
+        )
         .sort((a, b) => fitOf(b) - fitOf(a) || a.id - b.id)
         .slice(0, 3);
-    for (const a of shore(x.way[0]!))
-      for (const b of shore(x.way.at(-1)!)) {
+    const [from, to] = [x.way[0]!, x.way.at(-1)!];
+    for (const a of shore(from, to))
+      for (const b of shore(to, from)) {
         if (a === b) continue;
         const km = distanceKm(a.lat, a.lon, b.lat, b.lon);
         links.push({ a: a.id, b: b.id, km, level: -Infinity, crossing: x });

@@ -7,7 +7,7 @@
 import { hash01, hash32 } from '../core/hash.ts';
 import { detCos, detSin, RAD } from '../core/detmath.ts';
 import { msAtDay } from '../time/rate.ts';
-import type { Day } from '../time/calendar.ts';
+import { astronomicalYear, dayOfYearStart, type Day } from '../time/calendar.ts';
 import { NEVER, type TreeFigure, type TreeFlag, type TreeLodging } from './tree.ts';
 
 /** One time window's share of the tree (section 8). */
@@ -158,7 +158,8 @@ type PreyKind =
   | 'animal-gazelle'
   | 'animal-kangaroo'
   | 'animal-reindeer'
-  | 'animal-guanaco';
+  | 'animal-guanaco'
+  | 'animal-mammoth';
 /** What each culture hunts (peopling.md sections 5.5 and 9.1); the founder's people hunt zebra and eland. */
 const PREY_OF: Record<string, readonly PreyKind[]> = {
   'african-stone-age': ['animal-zebra', 'animal-eland'],
@@ -167,8 +168,8 @@ const PREY_OF: Record<string, readonly PreyKind[]> = {
   'east-asia-hunter': ['animal-gazelle'],
   natufian: ['animal-gazelle'],
   'first-australians': ['animal-kangaroo'],
-  'ice-age-hunter': ['animal-reindeer'],
-  'steppe-beringia-hunter': ['animal-reindeer'],
+  'ice-age-hunter': ['animal-reindeer', 'animal-mammoth'],
+  'steppe-beringia-hunter': ['animal-reindeer', 'animal-mammoth'],
   'first-americans': ['animal-guanaco'],
 };
 /**
@@ -226,6 +227,30 @@ const HUNT_CLEARING_KM = 8 * LAYOUT_KM_PER_M;
 const PREY_WALK = (WALK_M_PER_S * 2.4 * TEMPO) / 1000;
 const HERD_SIDE_M = 3.5;
 const GRAZE_FIRST_MS = Math.round(1500 / TEMPO);
+/**
+ * The survivors scatter to their own spots aside, stand there looking back for this long and
+ * more by hash, and fade one by one (Yang, 2026-10-19: they should not fade right away).
+ */
+const SCATTER_LINGER_MS = Math.round(10_000 / TEMPO);
+const SCATTER_MORE_MS = Math.round(10_000 / TEMPO);
+/**
+ * Mammoth hunts (Yang, 2026-10-19: "implement mammoth hunting"): a mammoth is far too big
+ * for the pole, so hunter and helper butcher it where it falls and carry the meat home, and
+ * its remains lie there a while. Being large, it grazes further out, the hunter throws from
+ * further off and the herd keeps further apart; only in lanes with land to MAX_OUTING_M, and
+ * only while mammoths lived on the mainland, to 10,000 BCE (wildlife.md section 2).
+ */
+const MAMMOTH = {
+  graze: 38,
+  fall: 42,
+  gap: THROW_GAP_M + 5,
+  kneel: 8,
+  herdSide: 9,
+  reach: MAX_OUTING_M,
+  butcher: Math.round(7000 / TEMPO),
+  remains: Math.round(20_000 / TEMPO),
+};
+const MAMMOTH_UNTIL: Day = dayOfYearStart(astronomicalYear(10_000, 'BCE'));
 
 /** Clip changes ease over this long (milestone 2, section 5.3). */
 export const BLEND_MS = 350;
@@ -1555,7 +1580,7 @@ export function treeScene(
         const gs = stayAt(g, turnStartOf(g.id, k));
         if (!gs || !sameCamp(gs, st)) continue;
         const h = huntOf(gs, k);
-        if (h && h.helper !== undefined && h.laid <= t && t < h.gone - PREY_FADE_MS) return h;
+        if (h && h.pole && h.laid <= t && t < h.gone - PREY_FADE_MS) return h;
       }
     }
     return undefined;
@@ -1649,34 +1674,57 @@ export function treeScene(
   function huntPlan(st: Stay, k: number, helper: Stay | undefined): Hunt {
     const camp = st.home.camp;
     const lane = (d: number) => outingPoint(st.s, camp, d);
-    const out = towards(0, 0, lane(PREY_GRAZE_M).x, lane(PREY_GRAZE_M).z);
+    const start = turnStartOf(st.f.id, k);
+    // What it hunts, by hash; a mammoth only where and when it can be (MAMMOTH).
+    const kinds = PREY_OF[st.home.culture ?? ''] ?? PREY_OF['african-stone-age']!;
+    let kind = kinds[hash32(st.f.id, k, 79) % kinds.length]!;
+    if (
+      kind === 'animal-mammoth' &&
+      (start >= at(MAMMOTH_UNTIL) || outingRoom(st.s, st.home) < MAMMOTH.reach)
+    )
+      kind = kinds.find((x) => x !== 'animal-mammoth')!;
+    const big = kind === 'animal-mammoth';
+    const grazeM = big ? MAMMOTH.graze : PREY_GRAZE_M;
+    const fallM = big ? MAMMOTH.fall : PREY_FALL_M;
+    const gapM = big ? MAMMOTH.gap : THROW_GAP_M;
+    const out = towards(0, 0, lane(grazeM).x, lane(grazeM).z);
     const side = { x: -out.dirZ, z: out.dirX };
     const offset = (p: Pt, along: number, across: number): Pt => ({
       x: p.x + out.dirX * along + side.x * across,
       z: p.z + out.dirZ * along + side.z * across,
     });
-    const start = turnStartOf(st.f.id, k);
-    const graze = lane(PREY_GRAZE_M);
+    const graze = lane(grazeM);
     const miss = hash01(st.f.id, k, 87) < MISS_SHARE;
-    const kill = miss ? lane(PREY_FALL_M) : graze;
+    const kill = miss ? lane(fallM) : graze;
     // The herd comes out of the trees at the far end of the lane, where its land ends.
     const entry = lane(Math.min(outingRoom(st.s, st.home), MAX_OUTING_M) - 1);
     const arrive =
       start +
       PREY_FADE_MS +
       Math.ceil(Math.sqrt((entry.x - graze.x) ** 2 + (entry.z - graze.z) ** 2) / PREY_WALK);
+    const herdSide = big ? MAMMOTH.herdSide : HERD_SIDE_M;
     const herd = Array.from({ length: 1 + (hash32(st.f.id, k, 89) % 2) }, (_, n) => {
-      const across = (n === 0 ? 1 : -1) * HERD_SIDE_M;
-      return { entry: offset(entry, 0, across), graze: offset(graze, 1.5 * n, across) };
+      const sign = n === 0 ? 1 : -1;
+      const across = sign * herdSide;
+      return {
+        entry: offset(entry, 0, across),
+        graze: offset(graze, 1.5 * n, across),
+        // Its own spot aside, a little short of the trees, where it stands looking back.
+        scatter: offset(
+          entry,
+          -2 - 6 * hash01(st.f.id, k, 91 + n),
+          across * (1.3 + 0.4 * hash01(st.f.id, k, 93 + n)),
+        ),
+        linger: SCATTER_LINGER_MS + Math.round(SCATTER_MORE_MS * hash01(st.f.id, k, 95 + n)),
+      };
     });
-    const hunter = new Itinerary(start, st.spot, camp).go(lane(PREY_GRAZE_M - THROW_GAP_M));
-    const aide =
-      helper && new Itinerary(start, helper.spot, camp).go(lane(PREY_GRAZE_M - THROW_GAP_M - 3));
+    const hunter = new Itinerary(start, st.spot, camp).go(lane(grazeM - gapM));
+    const aide = helper && new Itinerary(start, helper.spot, camp).go(lane(grazeM - gapM - 3));
     const ready = Math.max(hunter.t, aide?.t ?? 0, arrive + GRAZE_FIRST_MS);
     hunter.stay(ready, 'idle', graze).stay(ready + THROW_MS, 'throw', graze);
     const flights: Flight[] = [];
     const first = {
-      from: lane(PREY_GRAZE_M - THROW_GAP_M),
+      from: lane(grazeM - gapM),
       to: miss ? offset(graze, MISS_BEYOND_M, MISS_SIDE_M) : graze,
       release: ready + RELEASE_MS,
       hit: !miss,
@@ -1690,7 +1738,7 @@ export function treeScene(
       hunter.go(offset(first.to, -1.2, 0)).stay(hunter.t + PICK_MS, 'work', first.to);
       first.pulled = hunter.t - PICK_MS / 2;
       alert = first.release + FLIGHT_MS;
-      const from = lane(PREY_FALL_M - THROW_GAP_M);
+      const from = lane(fallM - gapM);
       hunter.go(from);
       const t2 = hunter.t;
       hunter.stay(t2 + THROW_MS, 'throw', kill);
@@ -1705,7 +1753,18 @@ export function treeScene(
     let put = Infinity;
     let laid = Infinity;
     const drop = lane(DROP_M);
-    if (aide) {
+    if (aide && big) {
+      // A mammoth: both butcher it where it fell, either side of it, and carry the meat home.
+      aide.stay(thrown, 'idle', kill);
+      hunter.go(offset(kill, 0, MAMMOTH.kneel));
+      aide.go(offset(kill, 0, -MAMMOTH.kneel));
+      bind = Math.max(hunter.t, aide.t);
+      hunter.stay(bind, 'idle', kill).stay(bind + MAMMOTH.butcher, 'work', kill);
+      aide.stay(bind, 'idle', kill).stay(bind + MAMMOTH.butcher, 'work', kill);
+      hit.pulled = bind;
+      hunter.go(st.spot, 'carry');
+      aide.go(helper!.spot, 'carry');
+    } else if (aide) {
       // Kneel on either side of the kill and bind its legs to the pole.
       aide.stay(thrown, 'idle', kill);
       hunter.go(offset(kill, 0, KNEEL_SIDE_M));
@@ -1731,28 +1790,40 @@ export function treeScene(
       aide.go(helper!.spot);
     } else {
       // Alone: butcher the kill where it fell and carry the meat home.
-      hunter.go(offset(kill, -1.5, 0));
+      hunter.go(offset(kill, big ? -MAMMOTH.kneel : -1.5, 0));
       bind = hunter.t;
-      hunter.stay(bind + BUTCHER_MS, 'work', kill);
+      hunter.stay(bind + (big ? MAMMOTH.butcher : BUTCHER_MS), 'work', kill);
       hit.pulled = bind;
       hunter.go(st.spot, 'carry');
     }
     const end = Math.max(hunter.t, aide?.t ?? 0);
-    const gone = aide ? laid + DROP_LINGER_MS + PREY_FADE_MS : bind + BUTCHER_MS + PREY_FADE_MS;
+    const pole = !!aide && !big;
+    const landed = flights[0]!.release + FLIGHT_MS;
+    // The last survivor fades once it has run to its spot and stood there.
+    const herdGone = Math.max(
+      0,
+      ...herd.map((c) => scatterAt(c, landed) + c.linger + PREY_FADE_MS),
+    );
+    const gone = Math.max(
+      herdGone,
+      pole
+        ? laid + DROP_LINGER_MS + PREY_FADE_MS
+        : big
+          ? bind + MAMMOTH.butcher + MAMMOTH.remains + PREY_FADE_MS
+          : bind + BUTCHER_MS + PREY_FADE_MS,
+    );
     return {
       id: `${st.f.id}:${k}`,
       spot: st.s,
       camp: st.home.camp,
       hunter: st.f.id,
       helper: helper?.f.id,
+      pole,
       start,
       end,
       lat: deg(st.home.lat),
       lon: deg(st.home.lon),
-      kind: (() => {
-        const kinds = PREY_OF[st.home.culture ?? ''] ?? PREY_OF['african-stone-age']!;
-        return kinds[hash32(st.f.id, k, 79) % kinds.length]!;
-      })(),
+      kind,
       out,
       entry,
       arrive,
@@ -1816,7 +1887,7 @@ export function treeScene(
     else if (ms < h.killed)
       // Bolted from the missed spear; standing alert, looking back.
       prey = { ...base, ...h.kill, ...inward, clip: 'idle', clipMs: ms - h.alert, visibility };
-    else if (ms < h.bind || h.helper === undefined)
+    else if (ms < h.bind || !h.pole)
       prey = { ...base, ...h.kill, ...sideOn, clip: 'fall', clipMs: ms - h.killed, visibility };
     else if (ms < h.carry)
       prey = { ...base, ...h.kill, ...inward, clip: 'bound', clipMs: ms - h.bind, visibility };
@@ -1831,17 +1902,15 @@ export function treeScene(
       };
     else prey = { ...base, ...h.drop, ...inward, clip: 'bound', clipMs: BIND_MS * 10, visibility };
     scene.prey.push(prey);
-    // The rest of the herd: in beside it, grazing, then back to the trees once a spear lands.
+    // The rest of the herd: in beside it, grazing, then off to its own spot once a spear
+    // lands, where it stands looking back for a while before it fades.
     const landed = h.flights[0]!.release + FLIGHT_MS;
     h.herd.forEach((c, n) => {
       const id = `${h.id}:${n}`;
-      const fled =
-        landed +
-        Math.ceil(
-          Math.sqrt((c.graze.x - c.entry.x) ** 2 + (c.graze.z - c.entry.z) ** 2) / PACE.run,
-        );
-      if (ms >= fled + PREY_FADE_MS) return;
-      const seen = Math.min(fadeIn, Math.min(1, (fled + PREY_FADE_MS - ms) / PREY_FADE_MS));
+      const there = scatterAt(c, landed);
+      const fades = there + c.linger;
+      if (ms >= fades + PREY_FADE_MS) return;
+      const seen = Math.min(fadeIn, Math.min(1, (fades + PREY_FADE_MS - ms) / PREY_FADE_MS));
       const herdBase = { ...base, id };
       if (ms < h.arrive)
         scene.prey.push({
@@ -1861,13 +1930,22 @@ export function treeScene(
           clipMs: ms - h.arrive + 911 * n,
           visibility: seen,
         });
+      else if (ms < there)
+        scene.prey.push({
+          ...herdBase,
+          ...lerp(c.graze, c.scatter, t(landed, there)),
+          ...towards(c.graze.x, c.graze.z, c.scatter.x, c.scatter.z),
+          clip: 'run',
+          clipMs: ms - landed,
+          visibility: seen,
+        });
       else
         scene.prey.push({
           ...herdBase,
-          ...lerp(c.graze, c.entry, t(landed, fled)),
-          ...h.out,
-          clip: 'run',
-          clipMs: ms - landed,
+          ...c.scatter,
+          ...inward,
+          clip: 'idle',
+          clipMs: ms - there + 577 * n,
           visibility: seen,
         });
     });
@@ -1926,7 +2004,7 @@ export function treeScene(
     });
 
     // The pole: laid along the bound legs, lifted onto the shoulders, carried, laid down.
-    if (h.helper === undefined || ms < h.bind + BIND_MS / 2) return;
+    if (!h.pole || ms < h.bind + BIND_MS / 2) return;
     let height = POLE_ON_GROUND_M;
     let at = h.kill;
     if (ms >= h.lift && ms < h.carry)
@@ -2200,6 +2278,8 @@ interface Hunt {
   camp: number;
   hunter: number;
   helper: number | undefined;
+  /** Hunter and helper carry the kill home on the pole (not a mammoth, not alone). */
+  pole: boolean;
   start: number;
   end: number;
   lat: number;
@@ -2210,8 +2290,11 @@ interface Hunt {
   /** Where the hunted animal comes out of the trees, and when it has walked in to graze. */
   entry: Pt;
   arrive: number;
-  /** One or two of its herd, which walk in beside it and bolt back when the spear lands. */
-  herd: { entry: Pt; graze: Pt }[];
+  /**
+   * One or two of its herd, which walk in beside it, scatter to their own spots when the
+   * spear lands, stand there for `linger` and fade one by one.
+   */
+  herd: HerdMate[];
   graze: Pt;
   kill: Pt;
   drop: Pt;
@@ -2227,6 +2310,21 @@ interface Hunt {
   gone: number;
   flights: Flight[];
   legs: Map<number, Leg[]>;
+}
+
+interface HerdMate {
+  entry: Pt;
+  graze: Pt;
+  scatter: Pt;
+  linger: number;
+}
+
+/** When a herd mate that bolts as the first spear lands reaches its spot aside. */
+function scatterAt(c: HerdMate, landed: number): number {
+  return (
+    landed +
+    Math.ceil(Math.sqrt((c.scatter.x - c.graze.x) ** 2 + (c.scatter.z - c.graze.z) ** 2) / PACE.run)
+  );
 }
 
 const smoothstep = (x: number) => x * x * (3 - 2 * x);

@@ -38,13 +38,24 @@ describe('wildlife groups (wildlife.md section 3)', () => {
     }
   });
 
-  it('has at most two groups of each species, of 2 or 3 animals unless set', () => {
-    const per = new Map<string, number>();
+  it('has at most two groups of each species at a date, of 2 or 3 animals unless set', () => {
     WILD_GROUPS.forEach((g, i) => {
-      per.set(g.species, (per.get(g.species) ?? 0) + 1);
       expect(g.size !== undefined ? [g.size] : [2, 3]).toContain(groupSize(g, i));
     });
-    for (const n of per.values()) expect(n).toBeLessThanOrEqual(2);
+    // Solitary animals, such as the tigers, may have three groups of one (section 4).
+    for (const year of [-60000, -30000, -15000, -11000, -9000, -5000, 0, 1500, 1900]) {
+      const per = new Map<string, { n: number; solitary: boolean }>();
+      for (const g of WILD_GROUPS) {
+        const on = (g.spans ?? [{}]).some(
+          (s) => (s.from ?? -Infinity) <= year && year < (s.to ?? Infinity),
+        );
+        if (!on) continue;
+        const p = per.get(g.species) ?? { n: 0, solitary: true };
+        per.set(g.species, { n: p.n + 1, solitary: p.solitary && g.size === 1 });
+      }
+      for (const [species, p] of per)
+        expect(p.n, `${species} in ${year}`).toBeLessThanOrEqual(p.solitary ? 3 : 2);
+    }
   });
 
   it('keeps the homes of groups shown at the same time apart', () => {

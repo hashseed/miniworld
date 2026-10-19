@@ -234,6 +234,19 @@
     {
       "species": "woolly-mammoth",
       "model": "animal-mammoth",
+      "home": "Lugovskoye, West Siberia",
+      "lat": 61.0,
+      "lon": 69.0,
+      "spans": [
+        {
+          "to": -10000
+        }
+      ],
+      "source": "Zenin, Leshchinskiy, Zolotarev, Grootes and Nadeau 2006, Lugovskoe: geoarchaeology and culture of a Paleolithic site, Archaeology, Ethnology and Anthropology of Eurasia 25; a mammoth site with traces of human hunting"
+    },
+    {
+      "species": "woolly-mammoth",
+      "model": "animal-mammoth",
       "home": "Wrangel Island",
       "lat": 71.2,
       "lon": -179.5,
@@ -264,6 +277,7 @@
       "home": "Eastern Alps, Slovenia",
       "lat": 46.0,
       "lon": 14.5,
+      "size": 1,
       "spans": [
         {
           "to": -22000
@@ -277,6 +291,7 @@
       "home": "Carpathians, Romania",
       "lat": 46.5,
       "lon": 25.0,
+      "size": 1,
       "source": "IUCN Red List range map"
     },
     {
@@ -360,9 +375,28 @@
       "species": "amur-tiger",
       "model": "animal-tiger",
       "home": "Sikhote-Alin, Russian Far East",
-      "lat": 45.5,
-      "lon": 136.0,
+      "lat": 45.8,
+      "lon": 136.6,
+      "size": 1,
       "source": "IUCN Red List range map"
+    },
+    {
+      "species": "amur-tiger",
+      "model": "animal-tiger",
+      "home": "Bolshekhekhtsirsky, near Khabarovsk",
+      "lat": 48.7,
+      "lon": 135.0,
+      "size": 1,
+      "source": "IUCN Red List range map; tigers live alone (Yang, 2026-10-19)"
+    },
+    {
+      "species": "amur-tiger",
+      "model": "animal-tiger",
+      "home": "Lazovsky, Russian Far East",
+      "lat": 43.0,
+      "lon": 133.4,
+      "size": 1,
+      "source": "IUCN Red List range map; tigers live alone (Yang, 2026-10-19)"
     },
     {
       "species": "bengal-tiger",
@@ -370,7 +404,26 @@
       "home": "Kanha, India",
       "lat": 22.3,
       "lon": 80.6,
+      "size": 1,
       "source": "IUCN Red List range map"
+    },
+    {
+      "species": "bengal-tiger",
+      "model": "animal-tiger",
+      "home": "Ranthambore, India",
+      "lat": 26.0,
+      "lon": 76.5,
+      "size": 1,
+      "source": "IUCN Red List range map; tigers live alone (Yang, 2026-10-19)"
+    },
+    {
+      "species": "bengal-tiger",
+      "model": "animal-tiger",
+      "home": "Simlipal, India",
+      "lat": 21.8,
+      "lon": 86.3,
+      "size": 1,
+      "source": "IUCN Red List range map; tigers live alone (Yang, 2026-10-19)"
     },
     {
       "species": "capybara",

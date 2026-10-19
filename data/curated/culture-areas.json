@@ -376,7 +376,8 @@
     },
     {
       "culture": "steppe-beringia-hunter",
-      "density": "sparse",
+      "density": "remote",
+      "siteStepKm": 450,
       "coldestC": -28,
       "snapshots": [
         {
@@ -415,7 +416,8 @@
     },
     {
       "culture": "steppe-beringia-hunter",
-      "density": "sparse",
+      "density": "remote",
+      "siteStepKm": 450,
       "coldestC": -28,
       "snapshots": [
         {

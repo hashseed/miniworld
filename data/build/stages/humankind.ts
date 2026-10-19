@@ -15,6 +15,7 @@ import {
   FOUNDER_LODGING,
   FRONT_KM_PER_YEAR,
   humankindSettings,
+  siteStepAt,
   validateCultureAreas,
   type CultureAreas,
 } from '../lib/cultureAreas.ts';
@@ -184,6 +185,7 @@ export function buildHumankind(
   }>('key-places.json');
   const sites = buildSites({
     keyPlaces,
+    stepAt: (lat, lon) => siteStepAt(cultureAreas, lat, lon),
     widthAt,
     campFlood,
     walkFlood,
