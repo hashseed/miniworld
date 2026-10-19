@@ -501,12 +501,16 @@ input:focus-visible {
 }
 
 .march-walker {
-  color: #6b4632;
-  opacity: 0.14;
+  fill: #4e3224;
+  opacity: 0.12;
   transform: translateX(-12px);
   transition:
     opacity 0.45s ease,
     transform 0.45s ease;
+}
+
+.march-walker .far {
+  fill: #7a5442;
 }
 
 .march-walker.shown {
@@ -514,9 +518,18 @@ input:focus-visible {
   transform: none;
 }
 
-.march-globe {
-  color: #2f7fc1;
-  fill: #8fd0f5;
+.march-globe circle {
+  fill: #5fb3e8;
+  stroke: #2f6f9e;
+  stroke-width: 1;
+}
+
+.march-globe-land {
+  fill: #6fbf5a;
+}
+
+.march-spear {
+  fill: #8a6040;
 }
 
 .march-track {
