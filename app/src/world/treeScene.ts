@@ -584,6 +584,8 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
           : 1 - (ms - p.to) / REGROW_MS;
     if (amount > 0) scene.clearings.push({ lat: p.lat, lon: p.lon, amount, felling: ms < p.to });
   }
+  // In place order, so a time window's chunk gives the same scene as the whole tree.
+  scene.clearings.sort((a, b) => a.lat - b.lat || a.lon - b.lon || a.amount - b.amount);
 
   for (const f of chunk.figures) {
     const born = at(f.born);

@@ -73,6 +73,8 @@ export const DAYS_PER_YEAR = MEAN_YEAR_DAYS;
 
 /** First day of the timeline: 1 January 70,000 BCE. */
 export const TIMELINE_START: Day = dayOfYearStart(astronomicalYear(70000, 'BCE'));
+/** The last day of the timeline, the content cutoff of data/curated/release.json (spec section 2.5). */
+export const TIMELINE_END: Day = dayFromDate(1991, 12, 26);
 
 /** Day the app opens at on first start: the start of the timeline, on the first person (spec humankind.md, section 7). */
 export const OPENING_DAY: Day = TIMELINE_START;

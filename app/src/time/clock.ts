@@ -75,7 +75,7 @@ export class Clock {
 
   /** History's rate in years per minute at the current speed mode. */
   get yearsPerMinute(): number {
-    return yearsPerMinute(this.speedMode);
+    return yearsPerMinute(this.speedMode, this.day);
   }
 
   /** -1 while a jump runs backwards, 1 forwards, 0 when none is under way. */

@@ -183,18 +183,32 @@ const ORIENTATIONS: [number, number][] = [
   [R, -R],
 ];
 
+/**
+ * A repeated vignette's periods are a cadence of watching time (section 6.6): `per`
+ * years count as they did at the old even rate of 25 years a minute (10 years are 24
+ * seconds), so a scene recurs as often in the deep past as in written history. A
+ * singular vignette, one period for its whole span, keeps the span.
+ */
+export function periodMsOf(v: CompiledVignette, startDay: number): number {
+  if (v.periodDays >= v.toDay - v.fromDay)
+    return Math.max(1, msAtDay(v.toDay, startDay) - msAtDay(v.fromDay, startDay));
+  return Math.max(1, Math.round((v.periodDays * 960000) / 146097));
+}
+
 /** The instances of a repeated vignette shown at a clock time (section 18.5). */
 export function instancesAt(v: CompiledVignette, ms: number, startDay: number): Instance[] {
   const day = dayAtMs(ms, startDay);
   if (day < v.fromDay) return [];
   const loopMs = v.template.loopMs;
+  const first = msAtDay(v.fromDay, startDay);
+  const last = msAtDay(v.toDay, startDay);
+  const each = periodMsOf(v, startDay);
   const out: Instance[] = [];
   // An instance can run past its period when the period is shorter than its script.
-  let period = Math.floor((Math.min(day, v.toDay - 1) - v.fromDay) / v.periodDays);
+  let period = Math.floor((Math.min(ms, last - 1) - first) / each);
   for (; period >= 0; period--) {
-    const periodStart = msAtDay(v.fromDay + period * v.periodDays, startDay);
-    const periodMs = msAtDay(v.fromDay + (period + 1) * v.periodDays, startDay) - periodStart;
-    if (periodStart + Math.max(periodMs, 2 * loopMs) <= ms) break;
+    const periodStart = first + period * each;
+    if (periodStart + Math.max(each, 2 * loopMs) <= ms) break;
     for (const i of periodInstances(v, period, startDay))
       if (i.startMs <= ms && ms < i.endMs) out.push(i);
   }
@@ -207,11 +221,14 @@ export function instancesAt(v: CompiledVignette, ms: number, startDay: number): 
  * before the period's end, at least one.
  */
 export function periodInstances(v: CompiledVignette, period: number, startDay: number): Instance[] {
-  const fromDay = v.fromDay + period * v.periodDays;
-  if (period < 0 || fromDay >= v.toDay) return [];
-  const toDay = Math.min(fromDay + v.periodDays, v.toDay);
-  const periodStart = msAtDay(fromDay, startDay);
-  const periodMs = msAtDay(toDay, startDay) - periodStart;
+  const first = msAtDay(v.fromDay, startDay);
+  const last = msAtDay(v.toDay, startDay);
+  const each = periodMsOf(v, startDay);
+  const periodStart = first + period * each;
+  if (period < 0 || periodStart >= last) return [];
+  const periodMs = Math.min(periodStart + each, last) - periodStart;
+  const fromDay = dayAtMs(periodStart, startDay);
+  const toDay = dayAtMs(periodStart + periodMs, startDay);
   const t = v.template;
   const seed = hashString(v.id);
   const candidates = v.sites.filter(

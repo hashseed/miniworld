@@ -9,6 +9,7 @@ import {
   buildSpears,
   instancesAt,
   periodInstances,
+  periodMsOf,
   loopErrors,
   phaseOf,
   posesAt,
@@ -43,7 +44,14 @@ const bce = (y: number) => dayOfYearStart(astronomicalYear(y, 'BCE'));
 const T = hunt.template;
 /** The hunt of the 1,000-year period that contains a year. */
 const huntOf = (y: number) =>
-  periodInstances(hunt, Math.floor((bce(y) - hunt.fromDay) / hunt.periodDays), TIMELINE_START)[0]!;
+  periodInstances(
+    hunt,
+    Math.floor(
+      (msAtDay(bce(y), TIMELINE_START) - msAtDay(hunt.fromDay, TIMELINE_START)) /
+        periodMsOf(hunt, TIMELINE_START),
+    ),
+    TIMELINE_START,
+  )[0]!;
 const msOf = (day: number) => msAtDay(day, TIMELINE_START);
 
 describe('vignette player', () => {
@@ -82,7 +90,7 @@ describe('vignette player', () => {
 
   it('repeats a loop in whole loops from its first beat', () => {
     const looping = { ...hunt, template: { ...T, once: false } };
-    const i = periodInstances(looping, 18, TIMELINE_START)[0]!;
+    const i = periodInstances(looping, 2, TIMELINE_START)[0]!;
     expect(i.startMs - msOf(i.fromDay)).toBeLessThan(T.loopMs);
     expect((i.endMs - i.startMs) % T.loopMs).toBe(0);
     expect(i.endMs).toBeLessThanOrEqual(msOf(i.toDay));

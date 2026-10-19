@@ -62,7 +62,6 @@ function setup() {
       era('C', 'world', 500, 900),
       era('D', 'europe', 0, 1000),
     ],
-    axisYears: 50,
   } as unknown as StartupIndex);
   // On the true time scale one pixel is about one year.
   timeline.setMode('true', false);

@@ -8,7 +8,6 @@ import { parse as parseYaml } from 'yaml';
 import type { SourceInfo, StartupIndex } from '../../../app/src/content/types.ts';
 import { LANGUAGES, type Language } from '../../../app/src/i18n/messages.ts';
 import { TIMELINE_START } from '../../../app/src/time/calendar.ts';
-import { AXIS_K_YEARS } from '../../../app/src/time/axis.ts';
 import {
   checkEraList,
   erasForLanguage,
@@ -179,7 +178,6 @@ export function buildContent(
     const idx: StartupIndex = {
       language,
       ...erasForLanguage(content.eras, language),
-      axisYears: AXIS_K_YEARS,
       seaLevel: climate.seaLevel,
       iceSlices: climate.iceDays,
       regions: grid,

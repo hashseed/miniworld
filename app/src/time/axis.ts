@@ -1,34 +1,36 @@
-// The timeline's logarithmic axis (spec milestone 1, section 7.2): a day sits at
-// x = 1 − ln(1 + (end − day) / k) / ln(1 + (end − start) / k), from 0 at the
-// start of the timeline to 1 at its end. Drawing and content windows only; the
-// clock and the world never depend on it.
+// The timeline's axis (spec section 7.1 and milestone 1, section 7.2): linear in
+// watching time, so a day sits where the clock reaches it, from 0 at the start of
+// the timeline to 1 at its end. Positions are continuous, for drawing; the content
+// time windows are cut on it too (section 10.3).
 
-import { DAYS_PER_YEAR, type Day } from './calendar.ts';
+import { CURVE_DAYS, CURVE_MS } from './curve.ts';
 
-/** The constant k, in years (Proposed). */
-export const AXIS_K_YEARS = 50;
+const LAST = CURVE_MS.length - 1;
+const TOTAL = CURVE_MS[LAST]!;
 
-export interface LogAxis {
-  startDay: Day;
-  endDay: Day;
-  /** k in days. */
-  k: number;
+/** Position of a (continuous) day on the watching-time axis, from 0 to 1. */
+export function axisPosition(day: number): number {
+  let i = 0;
+  let hi = LAST - 1;
+  while (i < hi) {
+    const mid = (i + hi + 1) >> 1;
+    if (CURVE_DAYS[mid]! <= day) i = mid;
+    else hi = mid - 1;
+  }
+  const f = (day - CURVE_DAYS[i]!) / (CURVE_DAYS[i + 1]! - CURVE_DAYS[i]!);
+  return (CURVE_MS[i]! + f * (CURVE_MS[i + 1]! - CURVE_MS[i]!)) / TOTAL;
 }
 
-export function logAxis(startDay: Day, endDay: Day, kYears = AXIS_K_YEARS): LogAxis {
-  return { startDay, endDay, k: kYears * DAYS_PER_YEAR };
-}
-
-function total(a: LogAxis): number {
-  return Math.log1p((a.endDay - a.startDay) / a.k);
-}
-
-/** Position of a (continuous) day on the axis, from 0 to 1. */
-export function axisPosition(a: LogAxis, day: number): number {
-  return 1 - Math.log1p(Math.max(0, a.endDay - day) / a.k) / total(a);
-}
-
-/** The continuous day at a position on the axis. */
-export function dayAtPosition(a: LogAxis, x: number): number {
-  return a.endDay - a.k * Math.expm1((1 - x) * total(a));
+/** The continuous day at a position on the watching-time axis. */
+export function dayAtPosition(x: number): number {
+  const w = x * TOTAL;
+  let i = 0;
+  let hi = LAST - 1;
+  while (i < hi) {
+    const mid = (i + hi + 1) >> 1;
+    if (CURVE_MS[mid]! <= w) i = mid;
+    else hi = mid - 1;
+  }
+  const f = (w - CURVE_MS[i]!) / (CURVE_MS[i + 1]! - CURVE_MS[i]!);
+  return CURVE_DAYS[i]! + f * (CURVE_DAYS[i + 1]! - CURVE_DAYS[i]!);
 }

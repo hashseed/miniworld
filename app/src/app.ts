@@ -28,6 +28,7 @@ import { WildlifeLayer } from './wildlife/wildlifeLayer.ts';
 import { OPENING_DAY, TIMELINE_START } from './time/calendar.ts';
 import { TreeLayer } from './tree/treeLayer.ts';
 import { Clock } from './time/clock.ts';
+import { yearsPerMinuteAt } from './time/rate.ts';
 import { Timeline } from './timeline/timeline.ts';
 import { App } from './ui/App.tsx';
 import type { Actions, HotState, UiState, VignetteCard } from './ui/state.ts';
@@ -310,7 +311,7 @@ const actions: Actions = {
     saveSettings(next);
     ui.update({ settings: next });
     if (key === 'language') void switchLanguage(next.language);
-    if (key === 'trueTimeScale') timeline?.setMode(value ? 'true' : 'log');
+    if (key === 'trueTimeScale') timeline?.setMode(value ? 'true' : 'watch');
     if (key === 'lensStrength') globe.lens.setStrength((value as number) / 100);
   },
   closeLensHint: () => actions.setSetting('lensHintSeen', true),
@@ -319,13 +320,13 @@ const actions: Actions = {
       yearsPerMinute: 0,
       stationary: true,
     });
-    const b = { id: newId(), name, ms: clock.ms, camera: { ...controller.state } };
+    const b = { id: newId(), name, day: clock.day, camera: { ...controller.state } };
     setBookmarks([b, ...ui.value.bookmarks].slice(0, MAX_BOOKMARKS));
   },
   goToBookmark: (id) => {
     const b = ui.value.bookmarks.find((x) => x.id === id);
     if (!b) return;
-    clock.setMs(b.ms);
+    clock.setDay(b.day);
     controller.flyTo(b.camera);
     if (isPhone) ui.update({ panel: 'none' });
   },
@@ -360,7 +361,7 @@ const actions: Actions = {
     timeline.onLayout = () => layoutTimeline();
     if (index) {
       timeline.setIndex(index);
-      timeline.setMode(ui.value.settings.trueTimeScale ? 'true' : 'log', false);
+      timeline.setMode(ui.value.settings.trueTimeScale ? 'true' : 'watch', false);
     }
     lastRegion = undefined;
     updateVisibleLanes();
@@ -492,7 +493,7 @@ let lastSavedView = '';
 function persistView(): void {
   if (STRESS || !index) return;
   const view = {
-    ms: clock.ms,
+    day: clock.day,
     camera: { ...controller.state },
     playState: clock.playState,
     speedMode: clock.speedMode,
@@ -533,8 +534,7 @@ async function start(): Promise<void> {
     clock.configure({
       startDay: manifest.timelineStartDay,
       endDay: manifest.cutoffDay,
-      ms: STRESS ? undefined : savedView?.ms,
-      day: STRESS ? STRESS_DAY : OPENING_DAY,
+      day: STRESS ? STRESS_DAY : (savedView?.day ?? OPENING_DAY),
       playState: STRESS ? 'playing' : (savedView?.playState ?? 'paused'),
       speedMode: STRESS ? 'regular' : savedView?.speedMode,
     });
@@ -553,7 +553,7 @@ async function start(): Promise<void> {
     });
     if (timeline) {
       timeline.setIndex(index);
-      timeline.setMode(ui.value.settings.trueTimeScale ? 'true' : 'log', false);
+      timeline.setMode(ui.value.settings.trueTimeScale ? 'true' : 'watch', false);
       updateVisibleLanes();
       layoutTimeline();
     }
@@ -624,6 +624,8 @@ if (import.meta.env.DEV)
        * Fixes the render scale for browser screenshots, so they do not depend
        * on how fast the software renderer draws (section 11.3).
        */
+      /** History's rate at a day at regular speed, for the browser tests (spec section 2.1). */
+      rateAt: (day: number) => yearsPerMinuteAt(day),
       /** Holds the frame loop for a screenshot, or releases it (section 13). */
       holdFrames: (on: boolean) => loop.hold(on),
       pinRenderScale: (scale: number) => {

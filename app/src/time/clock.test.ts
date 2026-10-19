@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DAYS_PER_YEAR, OPENING_DAY, TIMELINE_START, dayFromDate } from './calendar.ts';
 import { Clock, JUMP_MS } from './clock.ts';
-import { msAtDay } from './rate.ts';
+import { msAtDay, yearsPerMinuteAt } from './rate.ts';
 
 const END = dayFromDate(1991, 12, 26);
 const MID = dayFromDate(-3000, 1, 1);
@@ -11,37 +11,40 @@ function make(day = OPENING_DAY) {
 }
 
 describe('clock', () => {
-  it('advances 25 years per minute in regular mode', () => {
-    const c = make();
+  it('advances watching time at real time, and history time by the curve', () => {
+    const c = make(dayFromDate(1914, 1, 1));
+    const ms = c.ms;
     c.tick(60000);
-    expect((c.day - OPENING_DAY) / DAYS_PER_YEAR).toBeCloseTo(25, 2);
-    expect(c.ms).toBe(msAtDay(OPENING_DAY, TIMELINE_START) + 60000);
-    expect(c.yearsPerMinute).toBe(25);
+    expect(c.ms).toBe(ms + 60000);
+    // A year a minute in the 20th century.
+    expect((c.day - dayFromDate(1914, 1, 1)) / DAYS_PER_YEAR).toBeCloseTo(1, 1);
+    expect(c.yearsPerMinute).toBeCloseTo(yearsPerMinuteAt(c.day), 9);
   });
 
-  it('runs at the same rate in every era', () => {
+  it('runs history faster in the deep past than in written history', () => {
     const a = make();
     const b = make(dayFromDate(1914, 1, 1));
-    a.tick(2400);
-    b.tick(2400);
-    expect(a.day - OPENING_DAY).toBe(b.day - dayFromDate(1914, 1, 1));
+    a.tick(6000);
+    b.tick(6000);
+    expect(a.day - OPENING_DAY).toBeGreaterThan(100 * (b.day - dayFromDate(1914, 1, 1)));
   });
 
   it('applies the speed modes', () => {
     const c = make();
+    const rate = () => yearsPerMinuteAt(c.day);
     c.setSpeedMode('snail');
     const m0 = c.ms;
     c.tick(10000);
     expect(c.ms - m0).toBe(1000);
-    expect(c.yearsPerMinute).toBe(2.5);
+    expect(c.yearsPerMinute).toBeCloseTo(rate() / 10, 9);
     c.setSpeedMode('fast');
     c.tick(1000);
     expect(c.ms - m0).toBe(11000);
-    expect(c.yearsPerMinute).toBe(250);
+    expect(c.yearsPerMinute).toBeCloseTo(rate() * 10, 9);
     c.setSpeedMode('fastest');
     c.tick(1000);
     expect(c.ms - m0).toBe(111000);
-    expect(c.yearsPerMinute).toBe(2500);
+    expect(c.yearsPerMinute).toBeCloseTo(rate() * 100, 9);
   });
 
   it('steps through the modes with [ and ], staying at the ends', () => {
@@ -125,7 +128,7 @@ describe('clock', () => {
     c.setDay(OPENING_DAY);
     expect(c.jumping).toBe(0);
     c.tick(2000);
-    expect(c.day).toBe(OPENING_DAY + Math.floor((2000 * 146097) / 960000));
+    expect(c.ms).toBe(msAtDay(OPENING_DAY, TIMELINE_START) + 2000);
     c.jumpYears(100);
     c.beginScrub();
     expect(c.jumping).toBe(0);
@@ -173,7 +176,7 @@ describe('clock', () => {
   });
 
   it('restores a saved clock time over a day', () => {
-    const c = new Clock({ startDay: TIMELINE_START, endDay: END, ms: 123456789 });
-    expect(c.ms).toBe(123456789);
+    const c = new Clock({ startDay: TIMELINE_START, endDay: END, ms: 81_234_567 });
+    expect(c.ms).toBe(81_234_567);
   });
 });
