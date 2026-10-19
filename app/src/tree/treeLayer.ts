@@ -14,6 +14,7 @@ import {
   CAMP_CLEARING_KM,
   FIGURE_KM_PER_M,
   LAYOUT_KM_PER_M,
+  POLE_ON_GROUND_M,
   TEMPO,
   treeScene,
   type Placed,
@@ -22,6 +23,7 @@ import {
 import {
   buildLodging,
   buildProp,
+  buildSpearObject,
   buildTreeFigure,
   buildTreePrey,
   type TreeActor,
@@ -49,6 +51,8 @@ export class TreeLayer {
   private lodgings = new Map<number, StandIn | undefined>();
   private hearths = new Map<number, StandIn | undefined>();
   private prey = new Map<string, StandIn | undefined>();
+  private spears = new Map<string, THREE.Object3D>();
+  private poles = new Map<string, StandIn | undefined>();
   private camera: THREE.PerspectiveCamera | undefined;
   private cleared: Clearing[] = [];
   private blocking: Obstacle[] = [];
@@ -125,8 +129,57 @@ export class TreeLayer {
       if (f.from)
         actor.blend(f.from.clip, sec(f.from.clipMs), f.clip, sec(f.clipMs), f.from.weight);
       else actor.pose(f.clip, sec(f.clipMs));
+      if (f.unarmed) actor.hideTool();
     }
     this.prune(this.figures, seen);
+
+    // Spears away from the hand: their middle at its height, along their flight.
+    const flying = new Set<string>();
+    for (const sp of scene.spears) {
+      flying.add(sp.id);
+      let pivot = this.spears.get(sp.id);
+      if (!pivot) {
+        pivot = new THREE.Group();
+        const spear = buildSpearObject();
+        // The model's shaft runs up from its grip; its middle goes to the pivot.
+        spear.position.set(0, -1.1, 0);
+        pivot.add(spear);
+        this.group.add(pivot);
+        this.spears.set(sp.id, pivot);
+      }
+      if (!this.place(pivot, sp)) continue;
+      const up = this.v1.copy(this.dir);
+      northEast(up, this.n2, this.e2);
+      const ahead = this.e2.multiplyScalar(sp.dirX).addScaledVector(this.n2, sp.dirZ);
+      const along = ahead.addScaledVector(up, sp.slope).normalize();
+      pivot.quaternion.setFromUnitVectors(this.yAxis, along);
+      pivot.position.addScaledVector(up, sp.height * FIGURE_KM_PER_M);
+      pivot.scale.setScalar(FIGURE_KM_PER_M);
+    }
+    for (const [id, pivot] of this.spears)
+      if (!flying.has(id)) {
+        this.group.remove(pivot);
+        this.spears.delete(id);
+      }
+
+    // Carrying poles: on the ground, lifted, carried and laid down again.
+    const carried = new Set<string>();
+    for (const pole of scene.poles) {
+      carried.add(pole.id);
+      if (!this.poles.has(pole.id)) {
+        const prop = buildProp('asset', 'prop-carry-pole');
+        if (prop) this.group.add(prop.root);
+        this.poles.set(pole.id, prop);
+      }
+      const prop = this.poles.get(pole.id);
+      if (!prop || !this.place(prop.root, pole)) continue;
+      prop.root.position.addScaledVector(
+        this.dir,
+        (pole.height - POLE_ON_GROUND_M) * FIGURE_KM_PER_M,
+      );
+      prop.root.scale.setScalar(FIGURE_KM_PER_M);
+    }
+    this.prune(this.poles, carried);
 
     const hunted = new Set<string>();
     for (const p of scene.prey) {
@@ -171,8 +224,8 @@ export class TreeLayer {
 
     seen.clear();
     this.cleared = scene.clearings.map((c) => ({
-      dir: latLonToDir(c.lat, c.lon),
-      km: CAMP_CLEARING_KM,
+      dir: c.x === undefined ? latLonToDir(c.lat, c.lon) : this.offsetDir(c.lat, c.lon, c.x, c.z!),
+      km: c.km ?? CAMP_CLEARING_KM,
       amount: c.amount,
       felling: c.felling,
     }));
@@ -194,6 +247,17 @@ export class TreeLayer {
     this.prune(this.hearths, seen);
   }
 
+  /** The true direction of a point of the scene: layout metres east and north of a place. */
+  private offsetDir(lat: number, lon: number, x: number, z: number): [number, number, number] {
+    const up = this.v1.set(...latLonToDir(lat, lon));
+    northEast(up, this.n2, this.e2);
+    up.multiplyScalar(EARTH_RADIUS_KM)
+      .addScaledVector(this.e2, x * LAYOUT_KM_PER_M)
+      .addScaledVector(this.n2, z * LAYOUT_KM_PER_M)
+      .normalize();
+    return [up.x, up.y, up.z];
+  }
+
   private request(w: number): void {
     const file = this.files[w];
     if (!file || this.requested.has(w)) return;
@@ -209,6 +273,9 @@ export class TreeLayer {
     this.prune(this.lodgings, new Set());
     this.prune(this.hearths, new Set());
     this.prune(this.prey, new Set());
+    this.prune(this.poles, new Set());
+    for (const pivot of this.spears.values()) this.group.remove(pivot);
+    this.spears.clear();
     this.cleared = [];
   }
 

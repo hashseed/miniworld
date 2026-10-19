@@ -158,7 +158,8 @@ export function buildProp(kind: 'shelter' | 'asset', look: string): StandIn | un
   } else if (look === 'prop-hearth' && drawable.has(look)) {
     const hearth = buildHearth();
     return wrap(hearth, (_clip, seconds) => flickerHearth(hearth, seconds));
-  }
+  } else if ((SHELTERS as readonly string[]).includes(look) && drawable.has(look))
+    model = buildShelter(look as ShelterId);
   if (!model) return undefined;
   return wrap(model, () => {});
 }
@@ -172,6 +173,8 @@ export function buildSpearObject(): THREE.Object3D {
 export interface TreeActor extends StandIn {
   /** Poses a change of clip under way: `weight` 0 shows `from`, 1 shows `to`. */
   blend(from: Clip, fromSeconds: number, to: Clip, toSeconds: number, weight: number): void;
+  /** Hides the held tool after posing, while a hunter's spear is away from his hand. */
+  hideTool(): void;
 }
 
 /**
@@ -191,10 +194,14 @@ export function buildTreeFigure(
         : { profile, kind: look, variant: id % 997 },
     );
     const actor = wrap(model, (clip, s) => animatePerson(model, clip, s));
-    return { ...actor, blend: (a, as, b, bs, w) => blendPerson(model, a, as, b, bs, w) };
+    return {
+      ...actor,
+      blend: (a, as, b, bs, w) => blendPerson(model, a, as, b, bs, w),
+      hideTool: () => void (model.bones.get('tool')!.visible = false),
+    };
   }
   const standIn = buildStandIn('human', profile, `tree:${id}`, undefined);
-  return { ...standIn, blend: (_a, _as, b, bs) => standIn.pose(b, bs) };
+  return { ...standIn, blend: (_a, _as, b, bs) => standIn.pose(b, bs), hideTool: () => {} };
 }
 
 /** A lodging of the tree by its asset id, facing +X like the stage, or undefined without an approved model. */

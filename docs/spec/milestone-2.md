@@ -398,7 +398,7 @@ The first models are the people, shelters and animals of the seven culture profi
 
 | Profile | Clothing | Tools in hand |
 | --- | --- | --- |
-| `african-stone-age` | Short hide wrap or apron, ostrich-eggshell bead strings | Spear, digging stick, bow (bows from c. 62,000 BCE, Sibudu) |
+| `african-stone-age` | Short hide wrap or apron, ostrich-eggshell bead strings | Spear, digging stick (the men carry spears, not bows; Yang, 2026-10-19) |
 | `neanderthal` | Draped untailored hide over the shoulders, fur wraps on the legs | Heavy thrusting spear, stone scraper |
 | `coastal-asia-hunter` | Plant-fibre skirt or hide wrap | Fishing spear, shell basket |
 | `first-australians` | Possum-skin cloak (in the south), ochre lines on the skin | Spear, digging stick, wooden dish |

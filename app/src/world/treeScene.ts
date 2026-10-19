@@ -38,10 +38,11 @@ export const LAYOUT_KM_PER_M = FIGURE_KM_PER_M / 3;
 /** Drawn kilometres a figure covers per millisecond of watching. */
 const WALK_KM_PER_MS = (TEMPO * WALK_M_PER_S * FIGURE_KM_PER_M) / 1000;
 /** Layout metres covered per millisecond of watching, by clip. */
-const PACE: Record<'walk' | 'run' | 'carry', number> = {
+const PACE: Record<'walk' | 'run' | 'carry' | 'pole', number> = {
   walk: (WALK_M_PER_S * 3 * TEMPO) / 1000,
   run: (RUN_M_PER_S * 3 * TEMPO) / 1000,
   carry: (CARRY_M_PER_S * 3 * TEMPO) / 1000,
+  pole: (CARRY_M_PER_S * 3 * TEMPO) / 1000,
 };
 /**
  * Lodgings stand this far from the hearth, in layout metres; lodgings are drawn at
@@ -82,13 +83,58 @@ const LOOK_MS = Math.round(4000 / TEMPO);
 const PREY_GRAZE_M = 34;
 const PREY_FALL_M = 40;
 const PREY_REACH_M = PREY_FALL_M + 4;
-/** Gatherers pick this far out, and hunters walk this far before they run (layout metres). */
+/** Gatherers pick this far out (layout metres). */
 const GATHER_M = 22;
-const STALK_M = 26;
 /** Prey fades in when the hunter sets out and out once the meat is carried off. */
 const PREY_FADE_MS = 400;
 /** The animals the first people hunt (wildlife.md section 6 models). */
 const PREY_KINDS = ['animal-zebra', 'animal-eland'] as const;
+/**
+ * Hunts (section 8.1): the hunter throws from this far short of the animal (layout
+ * metres; about 5 life-size metres at the figures' scale, so the flight reads), and a
+ * missed spear sticks this far beyond it, a little to the side; the animal bolts this far.
+ */
+const THROW_GAP_M = 16;
+const MISS_BEYOND_M = 5;
+const MISS_SIDE_M = 1.6;
+/** About one throw in three misses (section 8.1). */
+const MISS_SHARE = 0.35;
+/** The throw clip runs this long; the spear leaves the hand at THROW_RELEASE (0.55 s of clip). */
+const THROW_MS = Math.ceil(1600 / TEMPO);
+const RELEASE_MS = Math.round(550 / TEMPO);
+/** A spear is in the air this long. */
+const FLIGHT_MS = 600;
+/** It leaves the hand this high and lands this high in the animal, in life-size metres. */
+const HAND_H = 1.7;
+const HIT_H = 1.05;
+/** The arc of a flight rises by this share of its length at the figures' scale. */
+const SPEAR_ARC = 0.18;
+/** The animal runs from the missed spear for this long. */
+const BOLT_MS = 450;
+/** A hunter pulls a missed spear out of the ground over this long. */
+const PICK_MS = Math.round(1200 / TEMPO);
+/** Hunter and helper kneel this far to either side of the kill, and bind it for BIND_SECONDS. */
+const KNEEL_SIDE_M = 3.5;
+const BIND_MS = Math.ceil(2400 / TEMPO);
+/**
+ * Half the length of the carrying pole in layout metres (1.6 life-size metres at the figures'
+ * scale), and how long lifting it and laying it down take.
+ */
+const POLE_HALF_M = 4.5;
+const LIFT_MS = Math.round(1200 / TEMPO);
+const PUT_MS = Math.round(1200 / TEMPO);
+/**
+ * Height of the pole on the carriers' shoulders and of its middle lying on the ground, in
+ * life-size metres (POLE_HEIGHT in assets/src/clips.ts, POLE_R in assets/src/shelters.ts).
+ */
+export const POLE_ON_SHOULDERS_M = 1.42;
+export const POLE_ON_GROUND_M = 0.045;
+/** The kill is carried to here in the hunter's gap, between the people and the lodgings. */
+const DROP_M = 14;
+/** It lies there this long before it fades away. */
+const DROP_LINGER_MS = Math.round(9000 / TEMPO);
+/** Trees make way this far round points of a hunt's lane, in drawn kilometres. */
+const HUNT_CLEARING_KM = 9 * LAYOUT_KM_PER_M;
 
 /** Clip changes ease over this long (milestone 2, section 5.3). */
 export const BLEND_MS = 350;
@@ -116,7 +162,7 @@ const SAME_PLACE_KM = 1;
 const KM_PER_DEG = 111.195;
 
 export type FigureLook = 'founder' | 'woman' | 'man' | 'child';
-export type TreeClip = 'idle' | 'work' | 'knap' | 'walk' | 'run' | 'carry';
+export type TreeClip = 'idle' | 'work' | 'knap' | 'walk' | 'run' | 'carry' | 'throw' | 'pole';
 
 /** A point of the scene: a place on the globe, and an offset there in layout metres east and north. */
 export interface Placed {
@@ -136,9 +182,11 @@ export interface FigurePose extends Placed {
   clipMs: number;
   /** The clip being eased out of, while a change is under way. */
   from?: { clip: TreeClip; clipMs: number; weight: number };
+  /** The hand is empty: the figure's spear is in the air, in the prey or in the grass. */
+  unarmed?: boolean;
 }
 
-export type PreyClip = 'idle' | 'run' | 'fall';
+export type PreyClip = 'idle' | 'run' | 'fall' | 'bound' | 'hung';
 
 /** An animal of a hunt: it grazes, flees when the hunter runs at it, falls and is butchered. */
 export interface PreyPose extends Placed {
@@ -171,11 +219,31 @@ export interface ClearingPose {
   amount: number;
   /** True while the trees are being felled, false while they grow back. */
   felling: boolean;
+  /** Off the hearth in layout metres, and the radius in drawn kilometres, for a hunt's ground. */
+  x?: number;
+  z?: number;
+  km?: number;
+}
+
+/** A hunter's spear away from his hand: its middle, height above the ground in life-size metres, and pitch. */
+export interface SpearPose extends Placed {
+  id: string;
+  height: number;
+  /** Rise per unit along (dirX, dirZ), tip first; negative points down. */
+  slope: number;
+}
+
+/** The carrying pole of a hunt: its middle, and its height above the ground in life-size metres. */
+export interface PolePose extends Placed {
+  id: string;
+  height: number;
 }
 
 export interface TreeScene {
   figures: FigurePose[];
   prey: PreyPose[];
+  spears: SpearPose[];
+  poles: PolePose[];
   lodgings: LodgingPose[];
   hearths: HearthPose[];
   clearings: ClearingPose[];
@@ -357,7 +425,7 @@ class Itinerary {
     this.t = t;
     this.at = at;
   }
-  go(to: Pt, clip: 'walk' | 'run' | 'carry' = 'walk'): this {
+  go(to: Pt, clip: 'walk' | 'run' | 'carry' | 'pole' = 'walk'): this {
     const way = route(this.at, to);
     const m = routeLength(way);
     if (m < 1e-6) return this;
@@ -448,7 +516,18 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       appears.set(id, c.end + Math.ceil(routeLength(route(c.entry, work)) / PACE.walk));
     }
 
-  const scene: TreeScene = { figures: [], prey: [], lodgings: [], hearths: [], clearings: [] };
+  const scene: TreeScene = {
+    figures: [],
+    prey: [],
+    spears: [],
+    poles: [],
+    lodgings: [],
+    hearths: [],
+    clearings: [],
+  };
+  // Stays and hunts worked out this frame, by figure and home, and by hunter and turn.
+  const stays = new Map<string, Stay | undefined>();
+  const hunts = new Map<string, Hunt | undefined>();
   // Each place a camp stands: from the first lodging up to the last one gone.
   const places = new Map<
     string,
@@ -502,9 +581,19 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     if (ms < born || (f.lost !== NEVER && ms >= at(f.lost))) continue;
     let i = 0;
     while (i + 1 < f.homes.length && at(f.homes[i + 1]![0]) <= ms) i++;
-    const pose = poseAt(f, i, ms, scene.prey);
+    const pose = poseAt(f, i, ms);
     if (pose) scene.figures.push(pose);
   }
+  // Each hunt's animal, spears and pole, once; an animal lies by the camp after its hunt.
+  const shown = new Set<string>();
+  for (const f of chunk.figures)
+    for (let k = turnOf(f.id, ms) - 2; k <= turnOf(f.id, ms); k++) {
+      const st = stayAt(f, turnStartOf(f.id, k));
+      const h = st && huntOf(st, k);
+      if (!h || shown.has(h.id)) continue;
+      shown.add(h.id);
+      huntProps(h, ms);
+    }
   return scene;
 
   /**
@@ -540,22 +629,455 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     return figureSpot(f.homes[i]![2], home.camp);
   }
 
-  function poseAt(f: TreeFigure, i: number, ms: number, preys: PreyPose[]): FigurePose | undefined {
+  /** A figure's stay in its `i`-th home: the camp, its spot, its plan up to when it is free, and when it must be busy again. */
+  interface Stay {
+    f: TreeFigure;
+    i: number;
+    home: TreeLodging;
+    look: FigureLook;
+    /** Its spot's number at the hearth, and the spot. */
+    s: number;
+    spot: Pt;
+    hut: Pt;
+    plan: Itinerary;
+    free: number;
+    busy: number;
+    leave: number;
+    takes: boolean;
+    takeSpot: Pt;
+  }
+
+  function stayOf(f: TreeFigure, i: number): Stay | undefined {
+    const key = `${f.id}:${i}`;
+    if (stays.has(key)) return stays.get(key);
+    const home = lodgings.get(f.homes[i]![1]);
+    let st: Stay | undefined;
+    if (home) {
+      const s = f.homes[i]![2];
+      const spot = figureSpot(s, home.camp);
+      const prev = i > 0 ? lodgings.get(f.homes[i - 1]![1]) : undefined;
+      const left = at(f.homes[i]![0]);
+      const born = at(f.born);
+      // Figures that move in on the day their lodging is built help build it.
+      const shown = appears.get(home.id)!;
+      const builds = f.homes[i]![0] === home.built && shown > 0;
+      const crew = builders.get(home.id) ?? [f.id];
+      const work = builds ? buildSpot(crew.indexOf(f.id), crew.length, home) : spot;
+      const hut = lodgingSpot(home);
+      const c = crossing(f, i);
+      // The stay, leg by leg: arriving, building, outings and rests, taking down.
+      const plan = c
+        ? new Itinerary(c.end, c.entry)
+        : prev
+          ? new Itinerary(left, endOfStay(f, i - 1))
+          : i === 0 && born > 0
+            ? new Itinerary(born, hut)
+            : new Itinerary(-Infinity, spot);
+      if (builds) {
+        plan
+          .go(work)
+          .stay(shown, 'idle', hut)
+          .stay(shown + BUILD_MS, 'work', hut);
+        plan.go(spot);
+      } else plan.go(spot);
+      const free = plan.t;
+      const next = f.homes[i + 1];
+      const leave = next ? at(next[0]) : f.lost !== NEVER ? at(f.lost) : Infinity;
+      const takeCrew = takers.get(home.id);
+      const takes = !!takeCrew?.includes(f.id) && home.gone !== NEVER;
+      const takeSpot = takes ? buildSpot(takeCrew!.indexOf(f.id), takeCrew!.length, home) : spot;
+      const takeStart = takes ? takeDown(home) : leave;
+      const busy = takes
+        ? takeStart - Math.ceil(routeLength(route(spot, takeSpot)) / PACE.walk)
+        : leave;
+      st = {
+        f,
+        i,
+        home,
+        look: lookOf(f.id),
+        s,
+        spot,
+        hut,
+        plan,
+        free,
+        busy,
+        leave,
+        takes,
+        takeSpot,
+      };
+    }
+    stays.set(key, st);
+    return st;
+  }
+
+  /** The stay of a figure at a clock time, if it is alive and at a camp then. */
+  function stayAt(f: TreeFigure, t: number): Stay | undefined {
+    if (t < at(f.born) || (f.lost !== NEVER && t >= at(f.lost))) return undefined;
+    let i = 0;
+    while (i + 1 < f.homes.length && at(f.homes[i + 1]![0]) <= t) i++;
+    return stayOf(f, i);
+  }
+
+  /** The start of a figure's `k`-th turn, and the turn a clock time falls in. */
+  function turnStartOf(id: number, k: number): number {
+    return k * TURN_MS - (hash32(id, 73) % TURN_MS);
+  }
+  function turnOf(id: number, t: number): number {
+    return Math.floor((t + (hash32(id, 73) % TURN_MS)) / TURN_MS);
+  }
+
+  /**
+   * What a figure goes out to do in its `k`-th turn on its own, as far as its gap has land
+   * (section 8.1): a gathering or a stroll with its legs, a hunt (planned as a camp event
+   * by huntOf), or nothing.
+   */
+  function soloTurn(st: Stay, k: number): { go: Outing; trip?: Itinerary } {
+    const turnStart = turnStartOf(st.f.id, k);
+    if (turnStart < st.free) return { go: 'rest' };
+    const outing = outingOf(st.f.id, st.look, k);
+    // Outings stay on land: each goes only as far as its gap has land, or not at all.
+    const room = outingRoom(st.s, st.home);
+    const kind =
+      outing === 'hunt' && room < PREY_REACH_M ? (room >= GATHER_M ? 'gather' : 'rest') : outing;
+    const sure = kind === 'gather' && room < GATHER_M ? (room >= 16 ? 'stroll' : 'rest') : kind;
+    const go = sure === 'stroll' && room < 13 ? 'rest' : sure;
+    const camp = st.home.camp;
+    const trip = new Itinerary(turnStart, st.spot);
+    if (go === 'gather') {
+      const far = outingPoint(st.s, camp, GATHER_M);
+      trip.go(far).stay(trip.t + GATHER_MS, 'work', { x: far.x * 2, z: far.z * 2 });
+      trip.go(st.spot, 'carry');
+    } else if (go === 'stroll') {
+      const far = outingPoint(st.s, camp, 13);
+      trip
+        .go(far)
+        .stay(trip.t + LOOK_MS, 'idle', { x: far.x * 2, z: far.z * 2 })
+        .go(st.spot);
+    } else return { go };
+    return trip.t <= Math.min(st.busy, turnStart + TURN_MS) ? { go, trip } : { go: 'rest' };
+  }
+
+  /** Whether two stays are at the same camp: the same camp number and place. */
+  function sameCamp(a: Stay, b: Stay): boolean {
+    return a.home.camp === b.home.camp && a.home.lat === b.home.lat && a.home.lon === b.home.lon;
+  }
+
+  /**
+   * The hunt a figure leads in its `k`-th turn, if it hunts then and it fits (section 8.1):
+   * with a helper from its camp when one is free, else alone. The same for every clock time.
+   */
+  function huntOf(st: Stay, k: number): Hunt | undefined {
+    const key = `${st.f.id}:${k}`;
+    if (hunts.has(key)) return hunts.get(key);
+    hunts.set(key, undefined);
+    let hunt: Hunt | undefined;
+    const turnStart = turnStartOf(st.f.id, k);
+    if (soloTurn(st, k).go === 'hunt') {
+      const until = Math.min(st.busy, turnStart + TURN_MS);
+      // Helpers: grown-ups of the camp, free for the whole hunt, not hunting then and not
+      // helping a hunter with a lower id, in an order chosen by hash.
+      const helpers = chunk.figures
+        .filter((g) => g.id !== st.f.id && lookOf(g.id) !== 'child')
+        .map((g) => stayAt(g, turnStart))
+        .filter((h): h is Stay => !!h && sameCamp(h, st) && h.free <= turnStart)
+        .sort((a, b) => hash01(st.f.id, k, a.f.id, 83) - hash01(st.f.id, k, b.f.id, 83));
+      for (const h of helpers) {
+        const plan = huntPlan(st, k, h);
+        if (plan.end > until || plan.end > h.busy || huntsDuring(h, turnStart, plan.end)) continue;
+        if (helpedBefore(st, h, turnStart, plan.end)) continue;
+        hunt = plan;
+        break;
+      }
+      if (!hunt) {
+        const alone = huntPlan(st, k, undefined);
+        if (alone.end <= until) hunt = alone;
+      }
+    }
+    hunts.set(key, hunt);
+    return hunt;
+  }
+
+  /** Whether a figure leads a hunt of its own that overlaps a span. */
+  function huntsDuring(st: Stay, from: number, to: number): boolean {
+    for (let k = turnOf(st.f.id, from) - 1; k <= turnOf(st.f.id, to); k++) {
+      if (soloTurn(st, k).go !== 'hunt') continue;
+      const start = turnStartOf(st.f.id, k);
+      if (start < to && start + TURN_MS > from) return true;
+    }
+    return false;
+  }
+
+  /** Whether a hunter of the camp with a lower id than `hunter` already has `helper` in a span. */
+  function helpedBefore(hunter: Stay, helper: Stay, from: number, to: number): boolean {
+    for (const g of chunk.figures) {
+      if (g.id >= hunter.f.id || g.id === helper.f.id) continue;
+      for (let k = turnOf(g.id, from - TURN_MS); k <= turnOf(g.id, to); k++) {
+        const gs = stayAt(g, turnStartOf(g.id, k));
+        if (!gs || !sameCamp(gs, hunter)) continue;
+        const h = huntOf(gs, k);
+        if (h && h.helper === helper.f.id && h.start < to && h.end > from) return true;
+      }
+    }
+    return false;
+  }
+
+  /** The hunts in which a figure takes part, as hunter or helper, that overlap a span. */
+  function huntsOf(st: Stay, from: number, to: number): Hunt[] {
+    const out: Hunt[] = [];
+    for (const g of chunk.figures) {
+      if (lookOf(g.id) === 'child') continue;
+      for (let k = turnOf(g.id, from - TURN_MS); k <= turnOf(g.id, to); k++) {
+        const gs = g.id === st.f.id ? st : stayAt(g, turnStartOf(g.id, k));
+        if (!gs || !sameCamp(gs, st)) continue;
+        const h = huntOf(gs, k);
+        if (h && (h.hunter === st.f.id || h.helper === st.f.id) && h.start < to && h.end > from)
+          out.push(h);
+      }
+    }
+    return out;
+  }
+
+  /**
+   * A hunt from start to end (section 8.1): both walk out, the hunter throws, perhaps
+   * misses, picks the spear up and throws again; then they bind the kill to the pole and
+   * carry it back, or a hunter alone butchers it and carries the meat.
+   */
+  function huntPlan(st: Stay, k: number, helper: Stay | undefined): Hunt {
+    const camp = st.home.camp;
+    const lane = (d: number) => outingPoint(st.s, camp, d);
+    const out = towards(0, 0, lane(PREY_GRAZE_M).x, lane(PREY_GRAZE_M).z);
+    const side = { x: -out.dirZ, z: out.dirX };
+    const offset = (p: Pt, along: number, across: number): Pt => ({
+      x: p.x + out.dirX * along + side.x * across,
+      z: p.z + out.dirZ * along + side.z * across,
+    });
+    const start = turnStartOf(st.f.id, k);
+    const graze = lane(PREY_GRAZE_M);
+    const miss = hash01(st.f.id, k, 87) < MISS_SHARE;
+    const kill = miss ? lane(PREY_FALL_M) : graze;
+    const hunter = new Itinerary(start, st.spot).go(lane(PREY_GRAZE_M - THROW_GAP_M));
+    const aide =
+      helper && new Itinerary(start, helper.spot).go(lane(PREY_GRAZE_M - THROW_GAP_M - 3));
+    const ready = Math.max(hunter.t, aide?.t ?? 0);
+    hunter.stay(ready, 'idle', graze).stay(ready + THROW_MS, 'throw', graze);
+    const flights: Flight[] = [];
+    const first = {
+      from: lane(PREY_GRAZE_M - THROW_GAP_M),
+      to: miss ? offset(graze, MISS_BEYOND_M, MISS_SIDE_M) : graze,
+      release: ready + RELEASE_MS,
+      hit: !miss,
+      pulled: Infinity,
+    };
+    flights.push(first);
+    let killed = first.release + FLIGHT_MS;
+    let alert = Infinity;
+    if (miss) {
+      // Walk to the spear, pull it out of the ground, walk closer and throw again.
+      hunter.go(offset(first.to, -1.2, 0)).stay(hunter.t + PICK_MS, 'work', first.to);
+      first.pulled = hunter.t - PICK_MS / 2;
+      alert = first.release + FLIGHT_MS;
+      const from = lane(PREY_FALL_M - THROW_GAP_M);
+      hunter.go(from);
+      const t2 = hunter.t;
+      hunter.stay(t2 + THROW_MS, 'throw', kill);
+      flights.push({ from, to: kill, release: t2 + RELEASE_MS, hit: true, pulled: Infinity });
+      killed = t2 + RELEASE_MS + FLIGHT_MS;
+    }
+    const thrown = hunter.t;
+    const hit = flights.at(-1)!;
+    let bind: number;
+    let lift = Infinity;
+    let carry = Infinity;
+    let put = Infinity;
+    let laid = Infinity;
+    const drop = lane(DROP_M);
+    if (aide) {
+      // Kneel on either side of the kill and bind its legs to the pole.
+      aide.stay(thrown, 'idle', kill);
+      hunter.go(offset(kill, 0, KNEEL_SIDE_M));
+      aide.go(offset(kill, 0, -KNEEL_SIDE_M));
+      bind = Math.max(hunter.t, aide.t);
+      hunter.stay(bind, 'idle', kill).stay(bind + BIND_MS, 'work', kill);
+      aide.stay(bind, 'idle', kill).stay(bind + BIND_MS, 'work', kill);
+      hit.pulled = bind + BIND_MS / 2;
+      // To the ends of the pole, the hunter in front; lift it and carry it home in step.
+      hunter.go(offset(kill, -POLE_HALF_M, 0));
+      aide.go(offset(kill, POLE_HALF_M, 0));
+      lift = Math.max(hunter.t, aide.t);
+      hunter.stay(lift, 'idle', kill).stay(lift + LIFT_MS, 'work', drop);
+      aide.stay(lift, 'idle', kill).stay(lift + LIFT_MS, 'work', drop);
+      carry = lift + LIFT_MS;
+      hunter.go(offset(drop, -POLE_HALF_M, 0), 'pole');
+      aide.go(offset(drop, POLE_HALF_M, 0), 'pole');
+      put = Math.max(hunter.t, aide.t);
+      hunter.stay(put + PUT_MS, 'work', drop);
+      aide.stay(put + PUT_MS, 'work', drop);
+      laid = put + PUT_MS;
+      hunter.go(st.spot);
+      aide.go(helper!.spot);
+    } else {
+      // Alone: butcher the kill where it fell and carry the meat home.
+      hunter.go(offset(kill, -1.5, 0));
+      bind = hunter.t;
+      hunter.stay(bind + BUTCHER_MS, 'work', kill);
+      hit.pulled = bind;
+      hunter.go(st.spot, 'carry');
+    }
+    const end = Math.max(hunter.t, aide?.t ?? 0);
+    const gone = aide ? laid + DROP_LINGER_MS + PREY_FADE_MS : bind + BUTCHER_MS + PREY_FADE_MS;
+    return {
+      id: `${st.f.id}:${k}`,
+      spot: st.s,
+      camp: st.home.camp,
+      hunter: st.f.id,
+      helper: helper?.f.id,
+      start,
+      end,
+      lat: deg(st.home.lat),
+      lon: deg(st.home.lon),
+      kind: PREY_KINDS[hash32(st.f.id, k, 79) % PREY_KINDS.length]!,
+      out,
+      graze,
+      kill,
+      drop,
+      alert,
+      killed,
+      bind,
+      lift,
+      carry,
+      put,
+      laid,
+      gone,
+      flights,
+      legs: new Map([
+        [st.f.id, hunter.legs],
+        ...(aide ? [[helper!.f.id, aide.legs] as const] : []),
+      ]),
+    };
+  }
+
+  /** The hunted animal, the spears away from the hand and the pole of a hunt at a clock time. */
+  function huntProps(h: Hunt, ms: number): void {
+    if (ms < h.start || ms >= h.gone) return;
+    const base = { id: h.id, kind: h.kind, lat: h.lat, lon: h.lon };
+    const inward = { dirX: -h.out.dirX, dirZ: -h.out.dirZ };
+    const sideOn = { dirX: -h.out.dirZ, dirZ: h.out.dirX };
+    const fadeIn = Math.min(1, (ms - h.start) / PREY_FADE_MS);
+    const fadeOut = Math.min(1, (h.gone - ms) / PREY_FADE_MS);
+    const visibility = Math.min(fadeIn, fadeOut);
+    const t = (from: number, to: number) => Math.min(1, Math.max(0, (ms - from) / (to - from)));
+    const lerp = (a: Pt, b: Pt, f: number) => ({
+      x: a.x + (b.x - a.x) * f,
+      z: a.z + (b.z - a.z) * f,
+    });
+    let prey: PreyPose;
+    if (ms < h.alert && ms < h.killed)
+      // Grazing side on to the camp until the spear comes.
+      prey = { ...base, ...h.graze, ...sideOn, clip: 'idle', clipMs: ms - h.start, visibility };
+    else if (h.alert < Infinity && ms < h.alert + BOLT_MS)
+      prey = {
+        ...base,
+        ...lerp(h.graze, h.kill, t(h.alert, h.alert + BOLT_MS)),
+        ...h.out,
+        clip: 'run',
+        clipMs: ms - h.alert,
+        visibility,
+      };
+    else if (ms < h.killed)
+      // Bolted from the missed spear; standing alert, looking back.
+      prey = { ...base, ...h.kill, ...inward, clip: 'idle', clipMs: ms - h.alert, visibility };
+    else if (ms < h.bind || h.helper === undefined)
+      prey = { ...base, ...h.kill, ...sideOn, clip: 'fall', clipMs: ms - h.killed, visibility };
+    else if (ms < h.carry)
+      prey = { ...base, ...h.kill, ...inward, clip: 'bound', clipMs: ms - h.bind, visibility };
+    else if (ms < h.put)
+      prey = {
+        ...base,
+        ...lerp(h.kill, h.drop, t(h.carry, h.put)),
+        ...inward,
+        clip: 'hung',
+        clipMs: ms - h.carry,
+        visibility,
+      };
+    else prey = { ...base, ...h.drop, ...inward, clip: 'bound', clipMs: BIND_MS * 10, visibility };
+    scene.prey.push(prey);
+    // The trees make way along the hunter's lane while the hunt is on (as for the animals,
+    // wildlife.md section 4), so trees beyond the camp's clearing never hide it.
+    for (const d of [DROP_M + 4, (DROP_M + PREY_FALL_M) / 2, PREY_FALL_M])
+      scene.clearings.push({
+        lat: h.lat,
+        lon: h.lon,
+        ...outingPoint(h.spot, h.camp, d),
+        km: HUNT_CLEARING_KM,
+        amount: visibility,
+        felling: ms < h.end,
+      });
+
+    // The spears: in the air, stuck in the animal or the ground, or back in the hand.
+    h.flights.forEach((fl, n) => {
+      const land = fl.release + FLIGHT_MS;
+      if (ms < fl.release || ms >= fl.pulled) return;
+      const dist = Math.sqrt((fl.to.x - fl.from.x) ** 2 + (fl.to.z - fl.from.z) ** 2);
+      const way = towards(fl.from.x, fl.from.z, fl.to.x, fl.to.z);
+      const id = `${h.id}:${n}`;
+      if (ms < land) {
+        // At the figures' scale: three layout metres to a life-size one.
+        const life = dist / 3;
+        const f = (ms - fl.release) / FLIGHT_MS;
+        const end = fl.hit ? HIT_H : 0;
+        const arc = SPEAR_ARC * life;
+        const height = HAND_H + (end - HAND_H) * f + 4 * f * (1 - f) * arc;
+        const climb = end - HAND_H + 4 * arc * (1 - 2 * f);
+        scene.spears.push({
+          id,
+          lat: h.lat,
+          lon: h.lon,
+          ...lerp(fl.from, fl.to, f),
+          ...way,
+          height,
+          slope: climb / life,
+        });
+      } else {
+        // Stuck: in the grass, slanting down from where it came; or in the animal, sinking
+        // with it as it falls.
+        const sink = fl.hit ? Math.min(1, (ms - land) / 1000) : 0;
+        const back = 0.5;
+        scene.spears.push({
+          id,
+          lat: h.lat,
+          lon: h.lon,
+          x: fl.to.x - way.dirX * back,
+          z: fl.to.z - way.dirZ * back,
+          ...way,
+          height: fl.hit ? HIT_H - 0.45 * sink : 0.55,
+          slope: fl.hit ? -0.5 - 0.3 * sink : -1.3,
+        });
+      }
+    });
+
+    // The pole: laid along the bound legs, lifted onto the shoulders, carried, laid down.
+    if (h.helper === undefined || ms < h.bind + BIND_MS / 2) return;
+    let height = POLE_ON_GROUND_M;
+    let at = h.kill;
+    if (ms >= h.lift && ms < h.carry)
+      height += (POLE_ON_SHOULDERS_M - POLE_ON_GROUND_M) * smoothstep(t(h.lift, h.carry));
+    else if (ms >= h.carry && ms < h.put) {
+      height = POLE_ON_SHOULDERS_M;
+      at = lerp(h.kill, h.drop, t(h.carry, h.put));
+    } else if (ms >= h.put) {
+      at = h.drop;
+      height += (POLE_ON_SHOULDERS_M - POLE_ON_GROUND_M) * (1 - smoothstep(t(h.put, h.laid)));
+    }
+    scene.poles.push({ id: h.id, lat: h.lat, lon: h.lon, ...at, ...inward, height });
+  }
+
+  function poseAt(f: TreeFigure, i: number, ms: number): FigurePose | undefined {
     const home = lodgings.get(f.homes[i]![1]);
     if (!home) return undefined;
     const look = lookOf(f.id);
-    const spot = figureSpot(f.homes[i]![2], home.camp);
     const base = { id: f.id, look, lat: deg(home.lat), lon: deg(home.lon) };
     const prev = i > 0 ? lodgings.get(f.homes[i - 1]![1]) : undefined;
-    const left = at(f.homes[i]![0]);
     const travel = prev ? walkMs(prev, home) : 0;
-    const born = at(f.born);
-    // Figures that move in on the day their lodging is built help build it.
-    const shown = appears.get(home.id)!;
-    const builds = f.homes[i]![0] === home.built && shown > 0;
-    const crew = builders.get(home.id) ?? [f.id];
-    const work = builds ? buildSpot(crew.indexOf(f.id), crew.length, home) : spot;
-    const hut = lodgingSpot(home);
 
     const c = crossing(f, i);
     if (c && ms < c.across) {
@@ -587,110 +1109,30 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
       };
     }
 
-    // The stay, leg by leg: arriving, building, outings and rests, taking down.
-    const plan = c
-      ? new Itinerary(c.end, c.entry)
-      : prev
-        ? new Itinerary(left, endOfStay(f, i - 1))
-        : i === 0 && born > 0
-          ? new Itinerary(born, hut)
-          : new Itinerary(-Infinity, spot);
-    if (builds) {
-      plan
-        .go(work)
-        .stay(shown, 'idle', hut)
-        .stay(shown + BUILD_MS, 'work', hut);
-      plan.go(spot);
-    } else plan.go(spot);
-    const free = plan.t;
-    const next = f.homes[i + 1];
-    const leave = next ? at(next[0]) : f.lost !== NEVER ? at(f.lost) : Infinity;
-    const takeCrew = takers.get(home.id);
-    const takes = !!takeCrew?.includes(f.id) && home.gone !== NEVER;
-    const takeSpot = takes ? buildSpot(takeCrew!.indexOf(f.id), takeCrew!.length, home) : spot;
-    const takeStart = takes ? takeDown(home) : leave;
-    const busy = takes
-      ? takeStart - Math.ceil(routeLength(route(spot, takeSpot)) / PACE.walk)
-      : leave;
-
-    if (ms >= busy && takes) {
-      plan.stay(Math.max(free, busy), 'rest').go(takeSpot).stay(leave, 'work', hut);
-    } else if (ms >= free) {
-      // Turns of the day: an outing that fits before it must be busy again, or a rest.
-      const shift = hash32(f.id, 73) % TURN_MS;
-      const k = Math.floor((ms + shift) / TURN_MS);
-      const turnStart = k * TURN_MS - shift;
-      const outing = outingOf(f.id, look, k);
-      const trip = new Itinerary(turnStart, spot);
-      let hunt: { chase: number; caught: number; done: number; grazing: Pt; falls: Pt } | undefined;
-      const s = f.homes[i]![2];
-      // Outings stay on land: each goes only as far as its gap has land, or not at all.
-      const room = outingRoom(s, home);
-      const kind =
-        outing === 'hunt' && room < PREY_REACH_M ? (room >= GATHER_M ? 'gather' : 'rest') : outing;
-      const sure = kind === 'gather' && room < GATHER_M ? (room >= 16 ? 'stroll' : 'rest') : kind;
-      const go = sure === 'stroll' && room < 13 ? 'rest' : sure;
-      if (go === 'gather') {
-        const far = outingPoint(s, home.camp, GATHER_M);
-        trip.go(far).stay(trip.t + GATHER_MS, 'work', { x: far.x * 2, z: far.z * 2 });
-        trip.go(spot, 'carry');
-      } else if (go === 'hunt') {
-        // Walk out, run at the grazing animal as it flees, butcher it where it falls.
-        const grazing = outingPoint(s, home.camp, PREY_GRAZE_M);
-        const falls = outingPoint(s, home.camp, PREY_FALL_M);
-        trip.go(outingPoint(s, home.camp, STALK_M));
-        const chase = trip.t;
-        trip.go(outingPoint(s, home.camp, PREY_FALL_M - 3), 'run');
-        const caught = trip.t;
-        trip.stay(trip.t + BUTCHER_MS, 'work', falls);
-        hunt = { chase, caught, done: trip.t, grazing, falls };
-        trip.go(spot, 'carry');
-      } else if (go === 'stroll') {
-        const far = outingPoint(s, home.camp, 13);
-        trip
-          .go(far)
-          .stay(trip.t + LOOK_MS, 'idle', { x: far.x * 2, z: far.z * 2 })
-          .go(spot);
-      }
-      if (go !== 'rest' && turnStart >= free && trip.t <= Math.min(busy, turnStart + TURN_MS)) {
-        plan.stay(turnStart, 'rest');
-        plan.legs.push(...trip.legs);
-        plan.t = trip.t;
-        if (hunt && ms < hunt.done + PREY_FADE_MS) {
-          const kind = PREY_KINDS[hash32(f.id, k, 79) % PREY_KINDS.length]!;
-          const prey = { id: `${f.id}:${k}`, kind, lat: base.lat, lon: base.lon };
-          const out = towards(hunt.grazing.x, hunt.grazing.z, hunt.falls.x, hunt.falls.z);
-          if (ms < hunt.chase)
-            // Grazing side on to the camp until the hunter runs at it.
-            preys.push({
-              ...prey,
-              ...hunt.grazing,
-              dirX: -out.dirZ,
-              dirZ: out.dirX,
-              clip: 'idle',
-              clipMs: ms - turnStart,
-              visibility: Math.min(1, (ms - turnStart) / PREY_FADE_MS),
-            });
-          else if (ms < hunt.caught) {
-            const t = (ms - hunt.chase) / (hunt.caught - hunt.chase);
-            preys.push({
-              ...prey,
-              x: hunt.grazing.x + (hunt.falls.x - hunt.grazing.x) * t,
-              z: hunt.grazing.z + (hunt.falls.z - hunt.grazing.z) * t,
-              ...out,
-              clip: 'run',
-              clipMs: ms - hunt.chase,
-              visibility: 1,
-            });
-          } else
-            preys.push({
-              ...prey,
-              ...hunt.falls,
-              ...out,
-              clip: 'fall',
-              clipMs: ms - hunt.caught,
-              visibility: Math.min(1, (hunt.done + PREY_FADE_MS - ms) / PREY_FADE_MS),
-            });
+    const st = stayOf(f, i)!;
+    const plan = new Itinerary(st.plan.t, st.plan.at);
+    plan.legs.push(...st.plan.legs);
+    let unarmed = false;
+    if (ms >= st.busy && st.takes) {
+      plan.stay(Math.max(st.free, st.busy), 'rest').go(st.takeSpot).stay(st.leave, 'work', st.hut);
+    } else if (ms >= st.free) {
+      // Turns of the day: the hunts it takes part in, else its own outing, or a rest.
+      const k = turnOf(f.id, ms);
+      const turnStart = turnStartOf(f.id, k);
+      const joined = huntsOf(st, turnStart, turnStart + TURN_MS).sort((a, b) => a.start - b.start);
+      const hunt = joined.find((h) => ms < h.end) ?? joined.at(-1);
+      if (hunt) {
+        plan.stay(hunt.start, 'rest');
+        plan.legs.push(...hunt.legs.get(f.id)!);
+        plan.t = hunt.end;
+        if (hunt.hunter === f.id)
+          unarmed = hunt.flights.some((fl) => ms >= fl.release && ms < fl.pulled);
+      } else {
+        const own = soloTurn(st, k);
+        if (own.trip && turnStart >= st.free) {
+          plan.stay(turnStart, 'rest');
+          plan.legs.push(...own.trip.legs);
+          plan.t = own.trip.t;
         }
       }
     }
@@ -713,6 +1155,7 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
         ? activity(f.id, ms, look !== 'child')
         : { clip: leg.clip, clipMs: ms - (leg.start === -Infinity ? 0 : leg.start) };
     const pose: FigurePose = { ...base, x: p.x, z: p.z, ...face, ...motion };
+    if (unarmed) pose.unarmed = true;
     if (before && ms - leg.start < BLEND_MS && before.clip !== leg.clip && before.clip !== 'rest')
       pose.from = {
         clip: before.clip,
@@ -727,3 +1170,46 @@ export function treeScene(chunk: TreeChunk, ms: number, startDay: Day): TreeScen
     return pose;
   }
 }
+
+/** A spear's flight in a hunt: from the hand to the animal or the grass, and when it is pulled out. */
+interface Flight {
+  from: Pt;
+  to: Pt;
+  release: number;
+  hit: boolean;
+  pulled: number;
+}
+
+/** A hunt (section 8.1): who takes part, the places and the moments of its steps. */
+interface Hunt {
+  id: string;
+  /** The hunter's spot at the hearth and the camp, whose lane the hunt follows. */
+  spot: number;
+  camp: number;
+  hunter: number;
+  helper: number | undefined;
+  start: number;
+  end: number;
+  lat: number;
+  lon: number;
+  kind: (typeof PREY_KINDS)[number];
+  /** The hunter's lane, out from the hearth. */
+  out: { dirX: number; dirZ: number };
+  graze: Pt;
+  kill: Pt;
+  drop: Pt;
+  /** When a missed spear lands and the animal bolts (Infinity without a miss). */
+  alert: number;
+  killed: number;
+  bind: number;
+  lift: number;
+  carry: number;
+  put: number;
+  laid: number;
+  /** When the animal has faded away. */
+  gone: number;
+  flights: Flight[];
+  legs: Map<number, Leg[]>;
+}
+
+const smoothstep = (x: number) => x * x * (3 - 2 * x);

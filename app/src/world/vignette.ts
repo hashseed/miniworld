@@ -42,7 +42,11 @@ export type Clip =
   | 'throw'
   | 'cheer'
   | 'struggle'
-  | 'fall';
+  | 'fall'
+  // The tree's hunts (humankind.md section 8.1): the pole carry, a kill bound and hung.
+  | 'pole'
+  | 'bound'
+  | 'hung';
 
 /** Stage speeds in centimetres per second, three times life (section 18.3). */
 const SPEED_CM_S: Partial<Record<Verb, number>> = {

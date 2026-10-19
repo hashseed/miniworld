@@ -5,10 +5,9 @@
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "52213b83f00d5c90",
+      "status": "generated",
       "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "note": "Approved by Yang from the review sheets; spear instead of bow (Yang, 2026-10-19), waiting for Yang's review"
     },
     {
       "id": "figure-african-stone-age-woman",
@@ -299,6 +298,14 @@
       "geometry": "14e28cf7dc95c7d1",
       "reviewed": "2026-10-18",
       "note": "Approved by Yang from the review sheets"
+    },
+    {
+      "id": "prop-carry-pole",
+      "file": "assets/src/shelters.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "Carrying pole for hunted animals (humankind.md section 8.1), waiting for Yang's review"
     },
     {
       "id": "prop-hearth",

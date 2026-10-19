@@ -4,6 +4,7 @@ import { msAtDay } from '../time/rate.ts';
 import { NEVER } from './tree.ts';
 import {
   BLEND_MS,
+  POLE_ON_SHOULDERS_M,
   TAKE_DOWN_MS,
   lodgingSpot,
   lookOf,
@@ -206,15 +207,49 @@ describe('the tree scene', () => {
     expect(knappers.has('child')).toBe(false);
   });
 
-  it('has hunters chase a zebra or an eland, which falls where they butcher it', () => {
+  it('has hunters spear a zebra or an eland and carry it home on a pole (section 8.1)', () => {
     const clips = new Set<string>();
-    for (let t = ms(d0 + years(25)); t < ms(moveDay) - 10_000; t += 97)
-      for (const p of treeScene(chunk, t, d0).prey) {
+    let flying = 0;
+    let missed = 0;
+    let carried = 0;
+    for (let t = ms(d0 + years(25)); t < ms(moveDay) - 10_000; t += 97) {
+      const scene = treeScene(chunk, t, d0);
+      for (const p of scene.prey) {
         clips.add(p.clip);
         expect(['animal-zebra', 'animal-eland']).toContain(p.kind);
-        expect(p.x * p.x + p.z * p.z).toBeGreaterThan(30 * 30);
+        // Out beyond the people's ring, or laid down between them and the lodgings.
+        expect(Math.sqrt(p.x * p.x + p.z * p.z)).toBeGreaterThan(13);
       }
-    expect(clips).toEqual(new Set(['idle', 'run', 'fall']));
+      for (const sp of scene.spears) {
+        expect(sp.height).toBeGreaterThan(0);
+        expect(sp.height).toBeLessThan(3);
+        if (sp.slope > -0.3 && sp.height > 1) flying++;
+        if (sp.height === 0.55) missed++;
+      }
+      // While a spear is away, its hunter's hand is empty.
+      if (scene.spears.length)
+        expect(scene.figures.some((f) => f.unarmed || f.clip === 'throw')).toBe(true);
+      // The kill hangs under the pole, at shoulder height, between two carriers in step.
+      for (const p of scene.prey.filter((q) => q.clip === 'hung')) {
+        const pole = scene.poles.find((q) => Math.abs(q.x - p.x) + Math.abs(q.z - p.z) < 0.01);
+        expect(pole?.height).toBeCloseTo(POLE_ON_SHOULDERS_M, 5);
+        const carriers = scene.figures.filter(
+          (f) => f.clip === 'pole' && Math.sqrt((f.x - p.x) ** 2 + (f.z - p.z) ** 2) < 4.6,
+        );
+        if (carriers.length < 2) continue;
+        carried++;
+        expect(
+          Math.sqrt(
+            (carriers[0]!.x - carriers[1]!.x) ** 2 + (carriers[0]!.z - carriers[1]!.z) ** 2,
+          ),
+        ).toBeCloseTo(9, 1);
+        expect(carriers[0]!.clipMs).toBe(carriers[1]!.clipMs);
+      }
+    }
+    expect(clips).toEqual(new Set(['idle', 'run', 'fall', 'bound', 'hung']));
+    expect(flying).toBeGreaterThan(0);
+    expect(missed).toBeGreaterThan(0);
+    expect(carried).toBeGreaterThan(0);
   });
 
   it('fells the trees where the band arrives and lets them grow back where it left', () => {

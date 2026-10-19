@@ -26,8 +26,12 @@ export const SHELTERS = [
   'shelter-bark',
   'shelter-natufian-house',
   'prop-drying-rack',
+  'prop-carry-pole',
 ] as const;
 export type ShelterId = (typeof SHELTERS)[number];
+
+/** Radius of the carrying pole; its middle stands this high when it lies on the ground. */
+export const POLE_R = 0.045;
 
 /** Bones named this and a number are the steps of putting a shelter up, in order. */
 export const BUILD_BONE = 'build-';
@@ -393,6 +397,14 @@ export function buildShelter(id: ShelterId): Model {
         ],
       ];
       mb.add(sheet(rows), '#c9a171');
+      break;
+    }
+    case 'prop-carry-pole': {
+      // A carrying pole along +Z, the way models face, lying on the ground with its
+      // middle over the origin, and two lashings of hide cord where an animal's legs
+      // are bound to it (humankind.md section 8.1).
+      mb.add(rod([0, POLE_R, -1.6], [0, POLE_R, 1.6], POLE_R, 5), POLE);
+      for (const z of [-0.45, 0.4]) mb.add(blob([0, POLE_R, z], [0.07, 0.07, 0.09], 5), '#8a5f38');
       break;
     }
   }

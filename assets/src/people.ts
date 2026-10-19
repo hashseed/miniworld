@@ -84,7 +84,8 @@ export const LOOKS: Record<Profile, ProfileLook> = {
     hide: ['#b98a57', '#a8794a', '#c49a66'],
     trim: '#8a5f38',
     beads: '#f4ecd8',
-    tools: { man: 'bow', woman: 'digging-stick', child: 'none' },
+    // Spears, not bows (Yang, 2026-10-19).
+    tools: { man: 'spear', woman: 'digging-stick', child: 'none' },
     knaps: true,
   },
   neanderthal: {
