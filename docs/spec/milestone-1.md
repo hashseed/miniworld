@@ -58,7 +58,7 @@ data/
   assets/         asset manifest and approved assets
   out/            downloads and build caches (not committed)
 tests/browser/    Playwright tests
-scripts/          development tools, such as the test pool (section 2.5)
+scripts/          development tools
 dist/             build output (not committed)
 ```
 
@@ -82,7 +82,6 @@ All are npm scripts, run in the dev container or any machine with the pinned Nod
 | `npm run coverage` | Unit and golden tests with the coverage report and its thresholds (section 2.4) |
 | `npm run golden` | The golden tests (section 13) on the data in `app/public/data`; `npm run golden -- -u` stores new results after an intended change |
 | `npm run test:browser` | Playwright tests at desktop and phone sizes |
-| `npm run pool` | The former test pool of git worktrees; no longer used in the devenv (section 2.5) |
 | `npm run fixture-key` | Prints the hash of everything the fixture data build reads, the key of its cache (section 2.4) |
 | `npm run notices` | Regenerates `app/public/third-party-notices.txt` from the licences of the runtime dependencies (spec section 13) |
 | `npm run perf` | Runs the stress scene and prints the performance report (section 11.4) |

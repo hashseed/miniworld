@@ -1,6 +1,6 @@
 // Prints a hash of everything the fixture data build reads: the build code
 // and every module it imports, the data inputs and the spec's event lists
-// (spec milestone 1, section 2.4). CI and the test pool keep built fixture
+// (spec milestone 1, section 2.4). CI keeps built fixture
 // data under this key and build again only when it changes.
 //
 // Usage: node data/build/fixture-key.ts [build arguments...]
