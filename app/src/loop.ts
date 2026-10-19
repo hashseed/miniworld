@@ -187,6 +187,7 @@ export class FrameLoop {
     if (v.playState !== clock.playState) patch.playState = clock.playState;
     if (v.speedMode !== clock.speedMode) patch.speedMode = clock.speedMode;
     if (v.scrubbing !== clock.isScrubbing) patch.scrubbing = clock.isScrubbing;
+    if (v.jumping !== clock.jumping) patch.jumping = clock.jumping;
     if (v.yearsPerMinute !== clock.yearsPerMinute) patch.yearsPerMinute = clock.yearsPerMinute;
     if ((this.inputs().showStats || this.parts.stress) && now - this.lastStats > 500) {
       this.lastStats = now;

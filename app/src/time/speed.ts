@@ -1,16 +1,21 @@
-// The three speed modes (spec section 2.2 and milestone 1, section 3.3).
+// The four speed modes (spec section 2.2 and milestone 1, section 3.3).
 
 import { YEARS_PER_MINUTE } from './rate.ts';
 
-export type SpeedMode = 'snail' | 'regular' | 'fast';
+export type SpeedMode = 'snail' | 'regular' | 'fast' | 'fastest';
 
 /** Slowest first, the order of the buttons and of the [ and ] keys. */
-export const SPEED_MODES: readonly SpeedMode[] = ['snail', 'regular', 'fast'];
+export const SPEED_MODES: readonly SpeedMode[] = ['snail', 'regular', 'fast', 'fastest'];
 
-export const SPEED_FACTOR: Record<SpeedMode, number> = { snail: 1 / 8, regular: 1, fast: 16 };
+export const SPEED_FACTOR: Record<SpeedMode, number> = {
+  snail: 1 / 10,
+  regular: 1,
+  fast: 10,
+  fastest: 100,
+};
 
 export function isSpeedMode(v: unknown): v is SpeedMode {
-  return v === 'snail' || v === 'regular' || v === 'fast';
+  return SPEED_MODES.includes(v as SpeedMode);
 }
 
 /** The next slower (−1) or faster (+1) mode, staying at the ends. */

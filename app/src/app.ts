@@ -69,6 +69,8 @@ const settings = loadSettings({
   showStats: false,
   lensStrength: 100,
   lensHintSeen: false,
+  backStep: 1,
+  forwardStep: 1,
 });
 const savedView = STRESS ? undefined : loadView();
 const i18n = new I18n(settings.language);
@@ -85,6 +87,7 @@ const hot = new Store<HotState>({
   speedMode: clock.speedMode,
   yearsPerMinute: clock.yearsPerMinute,
   scrubbing: false,
+  jumping: 0,
   stats: { fps: 0, avg: 0, p99: 0, calls: 0, triangles: 0, scale: 1 },
 });
 const ui = new Store<UiState>({
@@ -333,7 +336,8 @@ const actions: Actions = {
   },
   deleteBookmark: (id) => setBookmarks(ui.value.bookmarks.filter((b) => b.id !== id)),
   resetCamera: () => controller.resetOrientation(),
-  tiltCamera: (degrees) => controller.tiltBy(degrees),
+  jump: (dir) =>
+    clock.jumpYears(dir * (dir < 0 ? ui.value.settings.backStep : ui.value.settings.forwardStep)),
   followPlayhead: () => timeline?.setFollow(true),
   toggleLanes: () => {
     actions.setSetting('timelineExpanded', !ui.value.settings.timelineExpanded);

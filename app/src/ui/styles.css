@@ -119,19 +119,10 @@ input:focus-visible {
   top: calc(max(12px, env(safe-area-inset-top)) + 56px);
 }
 
-.tilt {
-  position: fixed;
-  right: max(12px, env(safe-area-inset-right));
-  top: calc(max(12px, env(safe-area-inset-top)) + 104px);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
 .lens-hint {
   position: fixed;
   right: max(12px, env(safe-area-inset-right));
-  top: calc(max(12px, env(safe-area-inset-top)) + 208px);
+  top: calc(max(12px, env(safe-area-inset-top)) + 104px);
   width: min(300px, calc(100vw - 24px));
   box-sizing: border-box;
   padding: 10px 58px 10px 14px;
@@ -344,38 +335,65 @@ input:focus-visible {
 }
 
 /* The three speed modes (milestone 1, section 3.3). */
-.speed-modes {
+.pop-options {
   display: flex;
-  /* Snail nearest the play button, fast forward at the top. */
+  /* The slowest mode or smallest step nearest its button, the largest at the top. */
   flex-direction: column-reverse;
   gap: 4px;
   width: 100%;
 }
 
-.speed-mode {
+.pop-option {
   width: 100%;
 }
 
-.speed-mode[aria-checked='true'] {
+.pop-option[aria-checked='true'] {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-text, #fff);
 }
 
-.speed-mode svg,
-.speed-badge svg {
+.pop-option svg {
   fill: currentColor;
 }
 
-.speed-badge {
-  display: inline-flex;
-  width: 14px;
-  height: 14px;
+/* The step inside the circular arrow of the back and forward buttons. */
+.circle-arrow text {
+  fill: currentColor;
+  font-family: inherit;
 }
 
-.speed-badge svg {
-  width: 14px;
-  height: 14px;
+/* Paused, the play button pulses gently (section 8.1). */
+.btn.play.paused {
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+/* A glow only, never a change of size, so the button holds still for pointing at. */
+@keyframes pulse {
+  50% {
+    box-shadow:
+      var(--shadow),
+      0 0 0 5px var(--accent-soft);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn.play.paused {
+    animation: none;
+  }
+}
+
+.rate {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  font-variant-numeric: tabular-nums;
+}
+
+.rate svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
 }
 
 .fold-box output {

@@ -153,13 +153,6 @@ export class CameraController {
     this.flyTo({ ...this.state, heading: 0, tilt: 0 });
   }
 
-  /** Tilts the view by some degrees: positive is flatter, towards the horizon. */
-  tiltBy(degrees: number): void {
-    const auto = autoTilt(this.state.altitudeKm);
-    const tilt = THREE.MathUtils.clamp(this.state.tilt + degrees, -auto, MAX_TILT - auto);
-    this.flyTo({ ...this.state, tilt });
-  }
-
   update(dtMs: number, now = performance.now()): void {
     const dt = Math.min(dtMs, 100) / 1000;
     const s = this.state;

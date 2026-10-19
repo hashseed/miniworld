@@ -52,6 +52,24 @@ export const HorseIcon = () => (
   </svg>
 );
 
+/** Fastest: a running cheetah, slim and long-tailed, legs stretched out. */
+export const CheetahIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <ellipse cx="11.5" cy="11.2" rx="6.4" ry="2.3" />
+    <circle cx="19" cy="9.6" r="2" />
+    <path d="M20.4 9.2l2.4.8-2 1.1z" />
+    <g
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M16 12.4l3.2 2.2 2.6.4M15 12.8l1.4 3.4 2 .8M7.5 12.6l-3.4 2.4-2.4-.2M8.6 13l-2.2 3-2 .6M5.4 10.4C3.4 9.6 2 10 1.2 8" />
+    </g>
+  </svg>
+);
+
 export const BookmarkIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M6 3h12v18l-6-4-6 4z" />
@@ -61,12 +79,6 @@ export const BookmarkIcon = () => (
 export const GearIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M12 8a4 4 0 100 8 4 4 0 000-8zm9 5.5v-3l-2.4-.6a7 7 0 00-.8-1.9l1.3-2.1-2.1-2.1-2.1 1.3a7 7 0 00-1.9-.8L12.5 2h-3l-.6 2.4a7 7 0 00-1.9.8L4.9 3.9 2.8 6l1.3 2.1a7 7 0 00-.8 1.9L1 10.5v3l2.4.6c.2.7.4 1.3.8 1.9l-1.3 2.1L5 20.2l2.1-1.3c.6.4 1.2.6 1.9.8l.6 2.3h3l.6-2.4c.7-.2 1.3-.4 1.9-.8l2.1 1.3 2.1-2.1-1.3-2.1c.4-.6.6-1.2.8-1.9z" />
-  </svg>
-);
-
-export const InfoIcon = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M12 2a10 10 0 110 20 10 10 0 010-20zm-1 8v8h2v-8zm0-4v2h2V6z" />
   </svg>
 );
 
@@ -83,17 +95,46 @@ export const CompassIcon = () => (
   </svg>
 );
 
-export const TiltFlatterIcon = () => (
+/** A jump back under way: two triangles pointing left, like rewind. */
+export const FastReverseIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M3 18h18v2H3z" />
-    <path d="M4 15l8-5 8 5-1.1 1.6L12 12.4l-6.9 4.2z" />
+    <path d="M11.5 5v14L2 12zM22 5v14l-9.5-7z" />
   </svg>
 );
 
-export const TiltSteeperIcon = () => (
+/** A jump forward under way: two triangles pointing right. */
+export const FastForwardIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M3 18h18v2H3z" />
-    <path d="M11 3h2v8.2l2.6-2.6 1.4 1.4-5 5-5-5 1.4-1.4 2.6 2.6z" />
+    <path d="M2 5v14l9.5-7zM12.5 5v14L22 12z" />
+  </svg>
+);
+
+/**
+ * The back (counter-clockwise) or forward (clockwise) button: a circular
+ * arrow around its step, written small enough to fit (section 8.1).
+ */
+export const CircleArrowIcon = ({ clockwise, label }: { clockwise: boolean; label: string }) => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" class="circle-arrow">
+    <g transform={clockwise ? 'translate(24 0) scale(-1 1)' : undefined}>
+      <path
+        d="M12 2.6A9.4 9.4 0 1 1 4.2 6.8"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+      />
+      <path d="M8.2 2.6L13 0v5.2z" />
+    </g>
+    <text
+      x="12"
+      y="12.5"
+      text-anchor="middle"
+      dominant-baseline="central"
+      font-size={label.length > 2 ? 7.5 : 9.5}
+      font-weight="700"
+    >
+      {label}
+    </text>
   </svg>
 );
 
