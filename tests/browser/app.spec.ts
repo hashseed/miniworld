@@ -112,7 +112,7 @@ test('language switch changes every string without a reload', async ({ page }) =
   expect(after.playState).toBe(before.playState);
 });
 
-test('settings and bookmarks survive a reload', async ({ page }) => {
+test('settings and bookmarks survive a reload', async ({ page }, info) => {
   await open(page);
   // The back button plays back one year (365 whole days) fast; forward presses
   // during a jump are queued; a step picked from the fold stays on the button.
@@ -131,7 +131,11 @@ test('settings and bookmarks survive a reload', async ({ page }) => {
   await page.getByTestId('forward').click();
   await expect.poll(day, { timeout: 30_000 }).toBe(start + 1365);
   expect((await world(page)).playState).toBe('paused');
-  await page.getByTestId('back').hover();
+  // Pointing opens the steps; on a touch screen a tap does, which also jumps back a year.
+  if (info.project.name === 'phone') {
+    await page.getByTestId('back').tap();
+    await expect.poll(day, { timeout: 30_000 }).toBe(start + 1000);
+  } else await page.getByTestId('back').hover();
   await page.getByTestId('back-1000').click();
   await expect(page.getByTestId('back').locator('text')).toHaveText(en['controls.stepThousand']!);
   await page.getByTestId('back').click();
