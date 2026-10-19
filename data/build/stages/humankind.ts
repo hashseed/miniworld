@@ -269,24 +269,26 @@ export function buildHumankind(
     .slice(0, 16);
   const sitesCache = join(ROOT, 'data/out/sites', `${sitesKey}.json`);
   let sites: SiteMap;
-  if (existsSync(sitesCache)) {
+  if (ctx.landCache.on && existsSync(sitesCache)) {
     sites = JSON.parse(readFileSync(sitesCache, 'utf8'), (_k, v: unknown) =>
       v === '-Infinity' ? -Infinity : v === 'Infinity' ? Infinity : v,
     ) as SiteMap;
     log(`camp sites from ${relative(ROOT, sitesCache)}`);
   } else {
     sites = buildSites(siteInputs);
-    mkdirSync(join(ROOT, 'data/out/sites'), { recursive: true });
-    // Only the newest is kept: one build's sites are about 10 MB.
-    for (const old of readdirSync(join(ROOT, 'data/out/sites')))
-      rmSync(join(ROOT, 'data/out/sites', old));
-    // JSON has no infinities, which the flood levels use (lakes, never flooded).
-    writeFileSync(
-      sitesCache,
-      JSON.stringify(sites, (_k, v: unknown) =>
-        v === -Infinity ? '-Infinity' : v === Infinity ? 'Infinity' : v,
-      ),
-    );
+    if (ctx.landCache.on) {
+      mkdirSync(join(ROOT, 'data/out/sites'), { recursive: true });
+      // Only the newest is kept: one build's sites are about 10 MB.
+      for (const old of readdirSync(join(ROOT, 'data/out/sites')))
+        rmSync(join(ROOT, 'data/out/sites', old));
+      // JSON has no infinities, which the flood levels use (lakes, never flooded).
+      writeFileSync(
+        sitesCache,
+        JSON.stringify(sites, (_k, v: unknown) =>
+          v === -Infinity ? '-Infinity' : v === Infinity ? 'Infinity' : v,
+        ),
+      );
+    }
   }
   mkdirSync(join(ROOT, 'data/build/tree'), { recursive: true });
   writeFileSync(join(ROOT, 'data/build/tree/sites.json'), JSON.stringify(sites));
