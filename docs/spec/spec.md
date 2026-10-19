@@ -275,7 +275,7 @@ Card texts and "Learn more" sections load on demand when a card opens. Models an
 
 **Determinism is unaffected by loading.** The world query computes the same scene whether or not a chunk has arrived. Missing models show a neutral placeholder and missing text shows a loading state; nothing about the world's state depends on network timing.
 
-**Hosting.** All content is static files, so any static host or CDN can serve it; there is no content server to run.
+**Hosting.** All content is static files, so any static host or CDN can serve it; there is no content server to run. The app is published on GitHub Pages at https://hashseed.github.io/miniworld/ (Yang, 2026-10-19): every push to `main` builds the full data and the app (`npm run build`) and deploys `dist/` without the Brotli copies, which GitHub Pages does not serve. The build uses relative URLs, so it runs from that folder as from the root.
 
 ## 11. Development environment
 

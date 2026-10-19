@@ -594,7 +594,7 @@ function firstView(): Promise<void> {
 function registerServiceWorker(): void {
   if (!('serviceWorker' in navigator)) return;
   if (import.meta.env.DEV && !params.has('sw')) return;
-  void navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+  void navigator.serviceWorker.register('sw.js').catch(() => undefined);
 }
 
 export function startApp(): void {
