@@ -67,16 +67,19 @@ jobs:
       fail-fast: false
       # One test at a time per job: SwiftShader renders on every core, so two
       # tests on one runner slow each other down more than they gain. The
-      # desktop tests are split over three runners and the phone tests over
-      # two instead.
+      # golden screenshots (four tests per size, the slowest) get runners of
+      # their own, two tests each, so no runner waits on all of them; the
+      # other desktop tests are split over two runners.
       matrix:
         include:
-          - { project: desktop, shard: 1/3 }
-          - { project: desktop, shard: 2/3 }
-          - { project: desktop, shard: 3/3 }
-          - { project: phone, shard: 1/2 }
-          - { project: phone, shard: 2/2 }
-          - { project: perf, shard: 1/1 }
+          - { project: desktop, tests: app, shard: 1/2 }
+          - { project: desktop, tests: app, shard: 2/2 }
+          - { project: desktop, tests: golden, shard: 1/2 }
+          - { project: desktop, tests: golden, shard: 2/2 }
+          - { project: phone, tests: app, shard: 1/1 }
+          - { project: phone, tests: golden, shard: 1/2 }
+          - { project: phone, tests: golden, shard: 2/2 }
+          - { project: perf, tests: all, shard: 1/1 }
     env:
       PERF_SECONDS: 10
     steps:
@@ -102,7 +105,10 @@ jobs:
         run: npx playwright install --with-deps chromium
       - if: steps.browsers.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
-      - run: npx playwright test --project=${{ matrix.project }} --shard=${{ matrix.shard }}
+      - run: >-
+          npx playwright test --project=${{ matrix.project }} --shard=${{ matrix.shard }}
+          ${{ matrix.tests == 'golden' && '--grep "golden dates"' || '' }}
+          ${{ matrix.tests == 'app' && '--grep-invert "golden dates"' || '' }}
       - uses: actions/upload-artifact@v7
         if: always()
         with:

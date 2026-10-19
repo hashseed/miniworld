@@ -47,6 +47,7 @@ interface Hooks {
     };
     loader: { pending: number };
     pinRenderScale(scale: number): void;
+    holdFrames(on: boolean): Promise<void>;
   };
 }
 
@@ -70,43 +71,40 @@ function showDate(page: Page, date: number | 'today'): Promise<{ day: number; se
   );
 }
 
-for (const [view, camera] of Object.entries(VIEWS)) {
-  test(`screenshots at the golden dates over ${view} with the lens on and off`, async ({
-    page,
-  }, info) => {
-    test.setTimeout(480_000);
-    await page.addInitScript(
-      ({ camera, day }) => {
-        // A first visit in English, at the view and the first date, with the lens at 100%.
-        if (sessionStorage.getItem('miniworld.test.started')) return;
-        sessionStorage.setItem('miniworld.test.started', '1');
-        localStorage.clear();
-        localStorage.setItem(
-          'miniworld.settings.v1',
-          JSON.stringify({ language: 'en', lensStrength: 100, lensHintSeen: true }),
-        );
-        localStorage.setItem('miniworld.view.v2', JSON.stringify({ day, camera }));
-      },
-      { camera, day: DATES[0]![1] as number },
-    );
-    await page.goto('/');
-    await expect(page.locator('.overlay')).toHaveCount(0, { timeout: 60_000 });
-    // Slow frames would otherwise move the render scale while the test runs
-    // (section 11.3); half the cap is the lowest it goes, and the quickest to draw.
-    await page.evaluate(() => (globalThis as unknown as Hooks).__miniworld.pinRenderScale(0.5));
-    const blend = () =>
-      page.evaluate(() => (globalThis as unknown as Hooks).__miniworld.globe.lens.blend);
+// One test per view and lens setting, so CI runs them on separate runners at
+// once; the lens strength comes from the saved settings, as the slider has its
+// own test (app.spec.ts).
+for (const [view, camera] of Object.entries(VIEWS))
+  for (const lens of [100, 0])
+    test(`screenshots at the golden dates over ${view} with the lens at ${lens}%`, async ({
+      page,
+    }, info) => {
+      test.setTimeout(300_000);
+      await page.addInitScript(
+        ({ camera, day, lens }) => {
+          // A first visit in English, at the view and the first date, with the lens set.
+          if (sessionStorage.getItem('miniworld.test.started')) return;
+          sessionStorage.setItem('miniworld.test.started', '1');
+          localStorage.clear();
+          localStorage.setItem(
+            'miniworld.settings.v1',
+            JSON.stringify({ language: 'en', lensStrength: lens, lensHintSeen: true }),
+          );
+          localStorage.setItem('miniworld.view.v2', JSON.stringify({ day, camera }));
+        },
+        { camera, day: DATES[0]![1] as number, lens },
+      );
+      await page.goto('/');
+      await expect(page.locator('.overlay')).toHaveCount(0, { timeout: 60_000 });
+      // Slow frames would otherwise move the render scale while the test runs
+      // (section 11.3); half the cap is the lowest it goes, and the quickest to draw.
+      await page.evaluate(() => (globalThis as unknown as Hooks).__miniworld.pinRenderScale(0.5));
+      const hold = (on: boolean) =>
+        page.evaluate((on) => (globalThis as unknown as Hooks).__miniworld.holdFrames(on), on);
+      const blend = () =>
+        page.evaluate(() => (globalThis as unknown as Hooks).__miniworld.globe.lens.blend);
+      await expect.poll(blend, { timeout: 60_000 }).toBe(lens / 100);
 
-    for (const lens of [100, 0]) {
-      if (lens !== 100) {
-        await page.getByTestId('lens-button').click();
-        await page.getByTestId('lens-strength').fill(String(lens));
-        // A press outside folds the slider away again, so it covers nothing.
-        await page.mouse.click(10, 10);
-        await expect(page.getByTestId('lens-strength')).toBeHidden();
-        await expect.poll(blend, { timeout: 120_000 }).toBe(lens / 100);
-      }
-      expect(await blend()).toBe(lens / 100);
       const seaLevels = new Map<string, number>();
       for (const [label, date] of DATES) {
         const shown = await showDate(page, date);
@@ -118,16 +116,18 @@ for (const [view, camera] of Object.entries(VIEWS)) {
         await expect(page.getByTestId('date')).toHaveText(
           formatDateReadout(shown.day, 'en', { yearsPerMinute: ypm, stationary: true }),
         );
+        // With the loop held the page is idle, so the screenshot takes the
+        // last frame at once instead of waiting for the software renderer.
+        await hold(true);
         await info.attach(`${view}-${label}-lens-${lens}.png`, {
           body: await page.screenshot({ animations: 'disabled' }),
           contentType: 'image/png',
         });
+        await hold(false);
       }
       // The sea rises from the last glacial maximum to today (section 5.1).
       const sea = (label: string) => seaLevels.get(label)!;
       expect(sea('20000-bce')).toBeLessThan(sea('12000-bce'));
       expect(sea('12000-bce')).toBeLessThan(sea('8000-bce'));
       expect(sea('8000-bce')).toBeLessThan(sea('today'));
-    }
-  });
-}
+    });
