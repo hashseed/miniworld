@@ -651,7 +651,7 @@ function campObstacles(camp: number): Circle[] {
     list = [...FIRE_ONLY];
     for (let k = 0; k < LODGING_SLOTS; k++) {
       list.push({ ...slotPoint(camp, k), r: layoutOf(camp).clear });
-      if (!isCompact(camp)) list.push({ ...rackAt(camp, k), r: RACK_CLEAR_M });
+      if (hasRack(camp, k)) list.push({ ...rackAt(camp, k), r: RACK_CLEAR_M });
     }
     obstacles.set(camp, list);
   }
@@ -1026,8 +1026,8 @@ export function treeScene(
     if (ms < shown || ms >= gone) continue;
     const spot = lodgingSpot(l);
     const down = takeDown(l);
-    // A drying rack stands beside every lodging that is up (section 8.1), but at compact camps.
-    if (ms >= shown + BUILD_MS && ms < down && !isCompact(l.camp)) {
+    // A drying rack stands behind some lodgings while they are up (section 8.1).
+    if (ms >= shown + BUILD_MS && ms < down && hasRack(l.camp, l.slot)) {
       const rack = rackSpot(l);
       scene.props.push({
         id: `rack:${l.id}`,
@@ -1460,7 +1460,7 @@ export function treeScene(
     let go: Outing = sure === 'stroll' && room < 13 ? 'rest' : sure;
     if (go === 'firewood' && room < FIREWOOD_M + 1) go = 'rest';
     // A compact camp has no drying racks.
-    if (go === 'scrape' && isCompact(st.home.camp)) go = 'rest';
+    if (go === 'scrape' && !hasRack(st.home.camp, st.home.slot)) go = 'rest';
     const camp = st.home.camp;
     const trip = new Itinerary(turnStart, st.spot, st.home.camp);
     const out = (p: Pt): Pt => ({ x: p.x * 2, z: p.z * 2 });
@@ -2159,6 +2159,15 @@ function doorOf(l: TreeLodging): Pt {
 }
 
 /** Where the drying rack of a lodging slot stands: behind the lodging, out of the lanes. */
+/**
+ * Whether a lodging place of a camp has a drying rack behind it: about one in three, by hash,
+ * never at a compact camp (section 8.1; Yang, 2026-10-19: "every camp has hides hung up.
+ * that's weird. let's only have some").
+ */
+export function hasRack(camp: number, slot: number): boolean {
+  return !isCompact(camp) && hash32(camp, slot, 151) % 3 === 0;
+}
+
 function rackAt(camp: number, slot: number): Pt {
   const p = slotPoint(camp, slot);
   return { x: (p.x * RACK_R) / LODGING_RING_M, z: (p.z * RACK_R) / LODGING_RING_M };

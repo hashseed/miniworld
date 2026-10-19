@@ -26,10 +26,13 @@ import {
   buildSpearObject,
   buildTreeFigure,
   buildTreePrey,
+  treeFigureBatch,
   type TreeActor,
 } from '../vignettes/figures.ts';
 import type { StandIn } from '../vignettes/standIns.ts';
 import type { Profile } from '../world/cultures.ts';
+import { animatePerson, blendPerson } from '../../../assets/src/clips.ts';
+import { PosedBatches } from './posedBatches.ts';
 import type { SurfaceSource } from '../vignettes/vignetteLayer.ts';
 import type { Obstacle } from '../wildlife/wildlifeLayer.ts';
 
@@ -39,6 +42,16 @@ const NEAR_MARGIN = 0.3;
 const FIGURE_HALF_M = 0.4;
 const PREY_HALF_M = 1.3;
 const LODGING_HALF_M = 1.4;
+/**
+ * Levels of detail by size on screen (milestone 2 section 5.5): a figure (FIGURE_M tall)
+ * drawn smaller than FIGURE_PX pixels is not drawn, nor its camp's animals, spears, poles
+ * and props; lodgings and hearths go below LODGING_PX.
+ */
+const FIGURE_M = 1.7;
+const FIGURE_PX = 5;
+const LODGING_PX = 3;
+/** A red flag stands this tall, in life-size metres. */
+const FLAG_M = 12.8;
 /** Lodgings are drawn at most this wide, in life-size metres, so every culture's fits the camp's layout. */
 const LODGING_MAX_M = 2.7;
 const HEARTH_HALF_M = 1;
@@ -84,6 +97,7 @@ export class TreeLayer {
   constructor(loader: ContentLoader, surface: SurfaceSource) {
     this.loader = loader;
     this.surface = surface;
+    this.group.add(this.batches.group);
   }
 
   /** The tree chunk files of the manifest, one per time window starting on `windows[i]`. */
@@ -97,8 +111,30 @@ export class TreeLayer {
     return this.blocking.slice(0, this.blocked);
   }
 
+  /** Screen pixels per life-size metre at each camp this frame, by place. */
+  private pixels = new Map<string, number>();
+  private probe = new THREE.Vector3();
+  /** Whether a figure-sized thing at a camp would be drawn smaller than `px` pixels tall. */
+  private tiny(p: { lat: number; lon: number }, px: number): boolean {
+    const key = `${p.lat}:${p.lon}`;
+    let perM = this.pixels.get(key);
+    if (perM === undefined) {
+      const camera = this.camera!;
+      const at = this.probe.set(...this.surface.toDrawn(latLonToDir(p.lat, p.lon)));
+      at.normalize().multiplyScalar(EARTH_RADIUS_KM);
+      const km = Math.max(1, at.distanceTo(camera.position));
+      const fov = (camera.fov * Math.PI) / 180;
+      perM = (FIGURE_KM_PER_M * innerHeight) / (2 * km * Math.tan(fov / 2));
+      this.pixels.set(key, perM);
+    }
+    return perM * FIGURE_M < px;
+  }
+
   /** The scale that keeps a lodging model at most LODGING_MAX_M across, by its kind. */
   private fits = new Map<string, number>();
+  /** The figures with approved models, drawn as copies of a few models (posedBatches.ts). */
+  private batches = new PosedBatches();
+  private scratch = new THREE.Object3D();
   private fitOf(kind: string, root: THREE.Object3D): number {
     let fit = this.fits.get(kind);
     if (fit === undefined) {
@@ -141,13 +177,15 @@ export class TreeLayer {
     const day = dayAtMs(ms, startDay);
     let w = -1;
     while (w + 1 < this.windows.length && this.windows[w + 1]! <= day) w++;
-    const chunk = this.chunks.get(w);
+    // The minute's chunk, and those around it ahead of time; until it arrives the nearest
+    // loaded one stands in, so the camps do not blink out between minutes.
+    for (const k of [w, w + 1, w + 2, w + 3, w - 1]) this.request(k);
+    for (const k of this.chunks.keys()) if (k < w - 2 || k > w + 4) this.chunks.delete(k);
+    const chunk = this.chunks.get(w) ?? this.chunks.get(w - 1) ?? this.chunks.get(w + 1);
     if (!chunk) {
-      this.request(w);
       this.clear();
       return;
     }
-    this.request(w + 1);
     // Only the camps on the camera's side of the globe, with a margin for the history lens.
     const camDir = this.v2.copy(camera.position).normalize();
     const limit = Math.acos(Math.min(1, EARTH_RADIUS_KM / camera.position.length())) + NEAR_MARGIN;
@@ -157,11 +195,52 @@ export class TreeLayer {
       return x * camDir.x + y * camDir.y + z * camDir.z >= cosLimit;
     };
     const scene = treeScene(chunk, ms, startDay, near);
+    this.pixels.clear();
+    // What is too small on screen to see is left out (milestone 2 section 5.5).
+    const big = <T extends { lat: number; lon: number }>(list: T[], px: number) =>
+      list.filter((x) => !this.tiny(x, px));
+    scene.prey = big(scene.prey, FIGURE_PX);
+    scene.spears = big(scene.spears, FIGURE_PX);
+    scene.poles = big(scene.poles, FIGURE_PX);
+    // The red flags are huge, to be seen from far out (peopling.md section 3.6).
+    scene.props = scene.props.filter((q) =>
+      q.kind === 'prop-red-flag'
+        ? !this.tiny(q, (LODGING_PX * FIGURE_M) / FLAG_M)
+        : !this.tiny(q, FIGURE_PX),
+    );
+    scene.sparks = big(scene.sparks, FIGURE_PX);
+    scene.lodgings = big(scene.lodgings, LODGING_PX);
+    scene.hearths = big(scene.hearths, LODGING_PX);
 
     const seen = new Set<number>();
+    // Clips play TEMPO times faster, matching the faster pace on the ground.
+    const sec = (clipMs: number) => (clipMs * TEMPO) / 1000;
+    this.batches.begin();
     for (const f of scene.figures) {
       seen.add(f.id);
       let actor = this.figures.get(f.id);
+      // Too small on screen to see: neither built nor posed (milestone 2 section 5.5).
+      if (this.tiny(f, FIGURE_PX)) {
+        if (actor) actor.root.visible = false;
+        continue;
+      }
+      // A figure with an approved model is a copy in its model's batch (posedBatches.ts).
+      const profile0 = (f.profile ?? 'african-stone-age') as Profile;
+      const batch = treeFigureBatch(f.look, f.id, profile0);
+      if (batch) {
+        const at = this.scratch;
+        if (!this.place(at, f, false) || f.hidden) continue;
+        this.block(at, FIGURE_HALF_M);
+        at.scale.setScalar(FIGURE_KM_PER_M);
+        at.updateMatrix();
+        this.batches.add(batch.key, batch.build, at.matrix, (m) => {
+          if (f.from)
+            blendPerson(m, f.from.clip, sec(f.from.clipMs), f.clip, sec(f.clipMs), f.from.weight);
+          else animatePerson(m, f.clip, sec(f.clipMs));
+          if (f.unarmed) m.bones.get('tool')!.visible = false;
+        });
+        continue;
+      }
       // A figure in new clothes is a new model (peopling.md section 5.3).
       const profile = (f.profile ?? 'african-stone-age') as Profile;
       if (actor && this.profiles.get(f.id) !== profile) {
@@ -182,14 +261,13 @@ export class TreeLayer {
       }
       this.block(actor.root, FIGURE_HALF_M);
       actor.root.scale.setScalar(FIGURE_KM_PER_M);
-      // Clips play TEMPO times faster, matching the faster pace on the ground.
-      const sec = (clipMs: number) => (clipMs * TEMPO) / 1000;
       if (f.from)
         actor.blend(f.from.clip, sec(f.from.clipMs), f.clip, sec(f.clipMs), f.from.weight);
       else actor.pose(f.clip, sec(f.clipMs));
       if (f.unarmed) actor.hideTool();
     }
     this.prune(this.figures, seen);
+    this.batches.end();
 
     // Spears away from the hand: their middle at its height, along their flight.
     const flying = new Set<string>();
@@ -337,6 +415,21 @@ export class TreeLayer {
       prop.setLit?.(h.lit);
     }
     this.prune(this.hearths, seen);
+    this.park();
+  }
+
+  /**
+   * Takes everything hidden this frame out of the scene: behind the globe, too small to see,
+   * inside a hut. Hidden objects in the scene still cost a matrix update each frame; out of
+   * it they cost nothing, and place() puts them back as soon as they are seen again.
+   */
+  private park(): void {
+    const kept: THREE.Object3D[] = [];
+    for (const o of this.group.children) {
+      if (o.visible) kept.push(o);
+      else o.parent = null;
+    }
+    this.group.children = kept;
   }
 
   /** The true direction of a point of the scene: layout metres east and north of a place. */
@@ -361,6 +454,8 @@ export class TreeLayer {
   }
 
   private clear(): void {
+    this.batches.begin();
+    this.batches.end();
     this.prune(this.figures, new Set());
     this.prune(this.lodgings, new Set());
     this.prune(this.hearths, new Set());
@@ -391,7 +486,7 @@ export class TreeLayer {
    * facing along its direction, whatever the camera does.
    * Returns false, and hides it, when it is on the far side of the globe.
    */
-  private place(root: THREE.Object3D, p: Placed): boolean {
+  private place(root: THREE.Object3D, p: Placed, attach = true): boolean {
     const { up, east, north, dir } = this;
     up.set(...this.surface.toDrawn(latLonToDir(p.lat, p.lon))).normalize();
     northEast(up, north, east);
@@ -406,6 +501,7 @@ export class TreeLayer {
     const toCam = this.v1.copy(this.camera!.position).sub(root.position);
     root.visible = toCam.dot(dir) > 0;
     if (!root.visible) return false;
+    if (attach && root.parent !== this.group) this.group.add(root);
     northEast(dir, this.n2, this.e2);
     // Local frame x east, y up, z south; then turn to face along (dirX east, dirZ north).
     root.quaternion.setFromRotationMatrix(this.basis.makeBasis(this.e2, dir, this.n2.negate()));
