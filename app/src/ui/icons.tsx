@@ -64,12 +64,6 @@ export const GearIcon = () => (
   </svg>
 );
 
-export const InfoIcon = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M12 2a10 10 0 110 20 10 10 0 010-20zm-1 8v8h2v-8zm0-4v2h2V6z" />
-  </svg>
-);
-
 export const CloseIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M5.6 4.2L12 10.6l6.4-6.4 1.4 1.4-6.4 6.4 6.4 6.4-1.4 1.4-6.4-6.4-6.4 6.4-1.4-1.4 6.4-6.4-6.4-6.4z" />
@@ -83,17 +77,10 @@ export const CompassIcon = () => (
   </svg>
 );
 
-export const TiltFlatterIcon = () => (
+/** Back two years: two triangles pointing left, like rewind. */
+export const BackIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M3 18h18v2H3z" />
-    <path d="M4 15l8-5 8 5-1.1 1.6L12 12.4l-6.9 4.2z" />
-  </svg>
-);
-
-export const TiltSteeperIcon = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M3 18h18v2H3z" />
-    <path d="M11 3h2v8.2l2.6-2.6 1.4 1.4-5 5-5-5 1.4-1.4 2.6 2.6z" />
+    <path d="M11.5 5v14L2 12zM22 5v14l-9.5-7z" />
   </svg>
 );
 

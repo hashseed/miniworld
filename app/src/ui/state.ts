@@ -66,8 +66,8 @@ export interface Actions {
   renameBookmark(id: string, name: string): void;
   deleteBookmark(id: string): void;
   resetCamera(): void;
-  /** Positive degrees tilt towards the horizon. */
-  tiltCamera(degrees: number): void;
+  /** Steps the date back two years, keeping the play state (section 8.1). */
+  stepBack(): void;
   followPlayhead(): void;
   toggleLanes(): void;
   closeLensHint(): void;

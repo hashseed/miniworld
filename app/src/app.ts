@@ -25,7 +25,7 @@ import { FrameLoop } from './loop.ts';
 import { LandmarkLayer } from './landmarks/landmarkLayer.ts';
 import { VignetteLayer } from './vignettes/vignetteLayer.ts';
 import { WildlifeLayer } from './wildlife/wildlifeLayer.ts';
-import { OPENING_DAY, TIMELINE_START } from './time/calendar.ts';
+import { DAYS_PER_YEAR, OPENING_DAY, TIMELINE_START } from './time/calendar.ts';
 import { TreeLayer } from './tree/treeLayer.ts';
 import { Clock } from './time/clock.ts';
 import { Timeline } from './timeline/timeline.ts';
@@ -333,7 +333,7 @@ const actions: Actions = {
   },
   deleteBookmark: (id) => setBookmarks(ui.value.bookmarks.filter((b) => b.id !== id)),
   resetCamera: () => controller.resetOrientation(),
-  tiltCamera: (degrees) => controller.tiltBy(degrees),
+  stepBack: () => clock.setDay(clock.day - Math.round(2 * DAYS_PER_YEAR)),
   followPlayhead: () => timeline?.setFollow(true),
   toggleLanes: () => {
     actions.setSetting('timelineExpanded', !ui.value.settings.timelineExpanded);

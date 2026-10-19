@@ -17,12 +17,10 @@ import type { Settings } from './storage.ts';
 import {
   BookmarkIcon,
   CloseIcon,
+  BackIcon,
   CompassIcon,
-  TiltFlatterIcon,
-  TiltSteeperIcon,
   FollowIcon,
   GearIcon,
-  InfoIcon,
   LanesIcon,
   LensIcon,
   PauseIcon,
@@ -97,14 +95,6 @@ export function App({ store, hot, i18n, actions }: Props) {
         >
           <GearIcon />
         </button>
-        <button
-          class="btn"
-          aria-label={t('menu.about')}
-          title={t('menu.about')}
-          onClick={() => actions.setPanel(s.panel === 'about' ? 'none' : 'about')}
-        >
-          <InfoIcon />
-        </button>
       </div>
 
       <button
@@ -115,24 +105,6 @@ export function App({ store, hot, i18n, actions }: Props) {
       >
         <CompassIcon />
       </button>
-      <div class="tilt">
-        <button
-          class="btn"
-          aria-label={t('camera.tiltFlatter')}
-          title={t('camera.tiltFlatter')}
-          onClick={() => actions.tiltCamera(15)}
-        >
-          <TiltFlatterIcon />
-        </button>
-        <button
-          class="btn"
-          aria-label={t('camera.tiltSteeper')}
-          title={t('camera.tiltSteeper')}
-          onClick={() => actions.tiltCamera(-15)}
-        >
-          <TiltSteeperIcon />
-        </button>
-      </div>
       {s.ready && !s.stressScene && !s.settings.lensHintSeen && (
         <LensHint t={t} actions={actions} />
       )}
@@ -176,6 +148,15 @@ function PlayControls({
   const stateText = s.playState === 'playing' ? t('controls.playing') : t('controls.paused');
   return (
     <>
+      <button
+        class="btn"
+        aria-label={t('controls.backTwoYears')}
+        title={t('controls.backTwoYears')}
+        data-testid="back-two-years"
+        onClick={() => actions.stepBack()}
+      >
+        <BackIcon />
+      </button>
       <Fold
         class="play-fold"
         button={(open) =>
@@ -472,6 +453,10 @@ function SettingsPanel({ s, t, actions }: { s: UiState; t: T; actions: Actions }
         value={s.settings.showStats}
         onChange={(v) => set('showStats', v)}
       />
+      {/* The About panel, with the attribution the data licences require (section 8.5). */}
+      <button class="link" data-testid="about-link" onClick={() => actions.setPanel('about')}>
+        {t('menu.aboutLink')}
+      </button>
     </PanelFrame>
   );
 }

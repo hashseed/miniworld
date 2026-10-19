@@ -114,8 +114,24 @@ test('language switch changes every string without a reload', async ({ page }) =
 
 test('settings and bookmarks survive a reload', async ({ page }) => {
   await open(page);
+  // The back button steps two years (730 whole days) back, and stops at the start.
+  const start = (await world(page)).day;
+  await page.evaluate(
+    (day) =>
+      (
+        globalThis as unknown as { __miniworld: { clock: { setDay(d: number): void } } }
+      ).__miniworld.clock.setDay(day),
+    start + 1000,
+  );
+  await page.getByTestId('back-two-years').click();
+  expect((await world(page)).day).toBe(start + 270);
+  await page.getByTestId('back-two-years').click();
+  expect((await world(page)).day).toBe(start);
   await page.getByRole('button', { name: en['menu.settings'] }).click();
   await page.getByLabel(en['settings.trueTimeScale']!).check();
+  // The About panel, with the sources' licences, opens from the settings.
+  await page.getByTestId('about-link').click();
+  await expect(page.getByRole('heading', { name: en['about.title'] })).toBeVisible();
   await page.getByRole('button', { name: en['dialog.close'] }).click();
   await page.getByRole('button', { name: en['timeline.expand'] }).click();
   await page.getByRole('button', { name: en['menu.bookmarks'] }).click();
