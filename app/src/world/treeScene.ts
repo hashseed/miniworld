@@ -244,7 +244,7 @@ const MAMMOTH = {
   graze: 38,
   fall: 42,
   gap: THROW_GAP_M + 5,
-  kneel: 8,
+  kneel: 7,
   herdSide: 9,
   reach: MAX_OUTING_M,
   butcher: Math.round(7000 / TEMPO),
@@ -1756,8 +1756,10 @@ export function treeScene(
     if (aide && big) {
       // A mammoth: both butcher it where it fell, either side of it, and carry the meat home.
       aide.stay(thrown, 'idle', kill);
-      hunter.go(offset(kill, 0, MAMMOTH.kneel));
-      aide.go(offset(kill, 0, -MAMMOTH.kneel));
+      // In front of it and behind it along the lane, whose land the hunt needs anyway: to
+      // either side they could stand off the lane, in the water.
+      hunter.go(offset(kill, -MAMMOTH.kneel, 0));
+      aide.go(offset(kill, MAMMOTH.kneel, 0));
       bind = Math.max(hunter.t, aide.t);
       hunter.stay(bind, 'idle', kill).stay(bind + MAMMOTH.butcher, 'work', kill);
       aide.stay(bind, 'idle', kill).stay(bind + MAMMOTH.butcher, 'work', kill);
