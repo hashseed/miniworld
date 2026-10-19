@@ -435,9 +435,10 @@
       "file": "assets/src/wildAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Wildlife (wildlife.md section 6), jointed legs; patches painted on instead of stuck on, waiting for Yang's review",
-      "reviewed": "2026-10-18"
+      "status": "approved",
+      "geometry": "5c2be3df539c87f8",
+      "note": "Wildlife (wildlife.md section 6), jointed legs, patches painted on; approved by Yang on 2026-10-19 (\"Land the giraffe\")",
+      "reviewed": "2026-10-19"
     },
     {
       "id": "animal-zebra",
