@@ -120,35 +120,42 @@ describe.skipIf(!built)('paths on land', async () => {
     return `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
   };
 
-  it('keeps every figure of the tree of humankind on land', async () => {
-    const files = manifest.tree?.files ?? [];
-    const wet = report();
-    let checked = 0;
-    for (const [w, file] of files.entries()) {
-      if (!file) continue;
-      const chunk = JSON.parse(await readFile(join(DATA, file), 'utf8')) as TreeChunk;
-      const start = manifest.timelineStartDay;
-      const from = msAtDay(chunk.fromDay, start);
-      const to = msAtDay(chunk.toDay, start);
-      // Every 250 ms of watching, about 75 km of a walk on the globe.
-      for (let ms = from; ms < to; ms += 250) {
-        const day = dayAtMs(ms, start);
-        for (const f of treeScene(chunk, ms, start).figures) {
-          const dir = offsetDir(f.lat, f.lon, f.x * LAYOUT_KM_PER_M, f.z * LAYOUT_KM_PER_M);
-          checked++;
-          const what = await water(dir, day);
-          if (what)
-            wet.add(
-              `figure ${f.id}`,
-              what,
-              `window ${w}, ${ms} ms: figure ${f.id} (${f.clip}) in the ${what} at ${where(dir)}`,
-            );
+  // The fixture map has no tree of humankind (humankind.md section 5).
+  const treeFiles = built ? (manifest.tree?.files ?? []).filter((f) => f !== null) : [];
+
+  it.skipIf(treeFiles.length === 0)(
+    'keeps every figure of the tree of humankind on land',
+    async () => {
+      const files = manifest.tree?.files ?? [];
+      const wet = report();
+      let checked = 0;
+      for (const [w, file] of files.entries()) {
+        if (!file) continue;
+        const chunk = JSON.parse(await readFile(join(DATA, file), 'utf8')) as TreeChunk;
+        const start = manifest.timelineStartDay;
+        const from = msAtDay(chunk.fromDay, start);
+        const to = msAtDay(chunk.toDay, start);
+        // Every 250 ms of watching, about 75 km of a walk on the globe.
+        for (let ms = from; ms < to; ms += 250) {
+          const day = dayAtMs(ms, start);
+          for (const f of treeScene(chunk, ms, start).figures) {
+            const dir = offsetDir(f.lat, f.lon, f.x * LAYOUT_KM_PER_M, f.z * LAYOUT_KM_PER_M);
+            checked++;
+            const what = await water(dir, day);
+            if (what)
+              wet.add(
+                `figure ${f.id}`,
+                what,
+                `window ${w}, ${ms} ms: figure ${f.id} (${f.clip}) in the ${what} at ${where(dir)}`,
+              );
+          }
         }
       }
-    }
-    expect(wet.lines()).toEqual([]);
-    expect(checked).toBeGreaterThan(0);
-  }, 600_000);
+      expect(wet.lines()).toEqual([]);
+      expect(checked).toBeGreaterThan(0);
+    },
+    600_000,
+  );
 
   it('keeps every walking animal on land', async () => {
     const masks = index.wildlife.map((hex) => (hex ? decodeWildMask(hex) : undefined));

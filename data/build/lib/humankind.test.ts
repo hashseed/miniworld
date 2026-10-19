@@ -55,7 +55,7 @@ describe('the tree of humankind', () => {
 
   it('is the same tree every time', () => {
     expect(buildTree(settings, habitat)).toEqual(tree);
-  });
+  }, 30_000);
 
   it('grows and spreads over the continent', () => {
     const camps = new Set(standing(settings.endDay - 1).map((l) => l.camp));

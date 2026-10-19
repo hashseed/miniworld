@@ -185,10 +185,10 @@ export function wildMasks(groups: readonly WildGroup[], ground: WildGround): str
           const [lat, lon] = at(g, e + de, n + dn);
           return sea ? openSea(ground, g, e + de, n + dn) : openAt(ground, lat, lon, homeM);
         });
-        // A land cell is also free of lakes at its corners, so lakes smaller than a cell are not walked over.
+        // A land cell is also dry at its corners, so lakes smaller than a cell are not walked
+        // over and a coast cutting a corner keeps the animals out (Yang, 2026-10-19).
         const dry =
           sea ||
-          !ground.lake ||
           (
             [
               [q, q],
@@ -196,7 +196,7 @@ export function wildMasks(groups: readonly WildGroup[], ground: WildGround): str
               [-q, q],
               [-q, -q],
             ] as const
-          ).every(([de, dn]) => !ground.lake!(...at(g, e + de, n + dn)));
+          ).every(([de, dn]) => !ground.wet(...at(g, e + de, n + dn)));
         mask[j * WILD_MASK_N + i] = open && dry ? 1 : 0;
       }
     reachable(mask);
