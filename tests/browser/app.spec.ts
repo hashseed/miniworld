@@ -451,54 +451,17 @@ test('keyboard zooms, tilts, turns and resets the camera', async ({ page }) => {
   await northUp(page);
 });
 
-test('the lens slider morphs the globe and keeps the point in view', async ({ page }) => {
-  // Two morphs and a reload: on the slow CI runners this needs more than the usual budget.
-  test.slow();
+test('the history lens is fixed at 120%, with no control for it', async ({ page }) => {
   await open(page);
-  const lens = () =>
-    page.evaluate(() => {
-      const m = (
-        globalThis as unknown as {
-          __miniworld: {
-            globe: { lens: { blend: number } };
-            controller: { state: { lat: number; lon: number } };
-          };
-        }
-      ).__miniworld;
-      return {
-        blend: m.globe.lens.blend,
-        lat: m.controller.state.lat,
-        lon: m.controller.state.lon,
-      };
-    });
-  const slider = page.getByTestId('lens-strength');
-  // The slider is folded behind the magnifier until it is opened.
-  await expect(slider).toBeHidden();
-  await page.getByTestId('lens-button').click();
-  await expect(slider).toBeVisible();
-  await expect(slider).toHaveValue('100');
-  await expect(page.locator('.lens-fold output')).toHaveText('100%');
-  expect((await lens()).blend).toBe(1);
-  const before = await lens();
-  const lensOn = await page.locator('#globe').screenshot();
-  await slider.fill('0');
-  // The blend passes through values between the two states, then settles at true sizes.
-  await expect.poll(async () => (await lens()).blend, { timeout: 90_000 }).toBe(0);
-  const after = await lens();
-  expect(after.lat).toBeCloseTo(before.lat, 6);
-  expect(after.lon).toBeCloseTo(before.lon, 6);
-  const lensOff = await page.locator('#globe').screenshot();
-  expect(lensOff.equals(lensOn)).toBe(false);
-  await slider.fill('200');
-  await expect.poll(async () => (await lens()).blend, { timeout: 90_000 }).toBe(2);
-  await expect(page.locator('.lens-fold output')).toHaveText('200%');
-  // The strength is saved.
-  await page.reload();
-  await expect(page.locator('.overlay')).toHaveCount(0, { timeout: 60_000 });
-  await expect(slider).toHaveValue('200');
-  expect((await lens()).blend).toBe(2);
+  const blend = () =>
+    page.evaluate(
+      () =>
+        (globalThis as unknown as { __miniworld: { globe: { lens: { blend: number } } } })
+          .__miniworld.globe.lens.blend,
+    );
+  await expect.poll(blend, { timeout: 60_000 }).toBe(1.2);
+  await expect(page.getByTestId('lens-button')).toHaveCount(0);
 });
-
 test('the speed modes fold behind the play button', async ({ page }, info) => {
   await open(page);
   const snail = page.getByTestId('speed-snail');

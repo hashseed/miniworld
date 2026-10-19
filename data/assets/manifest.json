@@ -404,6 +404,14 @@
       "note": "Huge red flag marking a Neolithic threshold, a development marker (peopling.md section 3.6), waiting for Yang's review"
     },
     {
+      "id": "shelter-small-hut",
+      "file": "assets/src/shelters.ts",
+      "kind": "shelter",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "Small brush shelter for one family, for minimal camps on narrow land (sites.md section 2), waiting for Yang's review"
+    },
+    {
       "id": "prop-hearth",
       "file": "assets/src/shelters.ts",
       "kind": "prop",

@@ -58,6 +58,7 @@ const settings: TreeSettings = {
     campFlood: (lat, lon) => (land(lat, lon) ? Infinity : -Infinity),
     walkFlood: (lat, lon) => (land(lat, lon) ? Infinity : -Infinity),
     lowestSea: 0,
+    highestSea: 0,
     crossings: [
       {
         id: crossing.id,

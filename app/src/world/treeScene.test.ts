@@ -255,6 +255,43 @@ describe('the tree scene', () => {
     expect(carried).toBeGreaterThan(0);
   });
 
+  it('roasts the meat of a kill on a spit over the fire (section 8.1)', () => {
+    // Four grown-ups at a camp that stands for 20,000 years (about half an hour of watching),
+    // so kills and free cooks meet.
+    const ids = Array.from({ length: 60 }, (_, k) => k + 1)
+      .filter((id) => lookOf(id) !== 'child')
+      .slice(0, 4);
+    const camp: TreeChunk = {
+      fromDay: d0,
+      toDay: d0 + years(20_000),
+      figures: ids.map((id, k) => ({
+        id,
+        parent: NEVER,
+        born: d0 + 1,
+        branch: 0,
+        depth: 1,
+        homes: [[d0 + 1, k < 2 ? 0 : 1, k]],
+        lost: NEVER,
+      })),
+      lodgings: [0, 1].map((id) => ({
+        id,
+        camp: 5,
+        lat: 0,
+        lon: 20_000_000,
+        built: d0,
+        gone: NEVER,
+        builder: ids[id * 2]!,
+        slot: id,
+        reach: [80, 80, 80, 80, 80],
+        kind: 'hut',
+      })),
+    };
+    let roasting = 0;
+    for (let t = 60_000; t < ms(d0 + years(20_000)) - 10_000; t += 250)
+      if (treeScene(camp, t, d0).props.some((p) => p.kind === 'prop-spit')) roasting++;
+    expect(roasting).toBeGreaterThan(0);
+  });
+
   it('has the hunted animal and its herd walk in from the trees, and the herd bolt back (section 8.1)', () => {
     let walkedIn = 0;
     let fled = 0;

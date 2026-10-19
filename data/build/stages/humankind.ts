@@ -98,6 +98,8 @@ export function buildHumankind(
   map: WorldMap,
   climate: Climate,
   drawn: DrawnGround,
+  /** Drawn km per true km at a place, from the history lens (sites.md section 2). */
+  widthAt: (lat: number, lon: number) => number = () => 1,
 ): { files: TreeFiles; camps: CampPlace[] } {
   const { log, fail } = ctx;
   // The fixture map has no Africa.
@@ -176,14 +178,17 @@ export function buildHumankind(
   const campFlood = (lat: number, lon: number) =>
     rivers.bilinear(lat, lon) >= RIVER_BANK_FIELD ? -Infinity : walkFlood(lat, lon);
   const lowestSea = Math.min(...climate.seaLevel.metres);
+  const highestSea = Math.max(...climate.seaLevel.metres);
   const { places: keyPlaces } = ctx.curated<{
     places: { id: string; lat: number; lon: number }[];
   }>('key-places.json');
   const sites = buildSites({
     keyPlaces,
+    widthAt,
     campFlood,
     walkFlood,
     lowestSea,
+    highestSea,
     crossings: crossings.map((c) => ({
       id: c.id,
       day: dayOfBce(c.bce),

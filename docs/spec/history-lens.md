@@ -2,7 +2,7 @@
 
 Most recorded history happened on a small share of the Earth's surface. Europe, the Nile valley, Mesopotamia, northern India and eastern China hold most of the events in the spec lists. Oceans, Siberia and the polar regions hold very few. On a true-scale globe the busy places are crowded and the empty ones take up most of the screen. The history lens enlarges the busy places and shrinks the empty ones a little, so that Europe and its neighbours have room for their towns, armies and markers.
 
-The lens is on by default, at the strength the build makes (100%). A slider sets it anywhere from 0% (true sizes) to 200% (section 1). It is built as part of milestone 1 (decided by Yang on 2026-10-17, [milestones.md](milestones.md#1-globe-and-time)), so the globe and its time travel are tried with it from the start.
+The lens is fixed at 120% of the warp the build makes, with no control for it (Yang, 2026-10-19: "let's set history lens to 120% and remove the controls. We can consider bringing it back in the future but for now let's have it fixed at 120%"); until then a slider set it from 0% (true sizes) to 200% (section 1). It is built as part of milestone 1 (decided by Yang on 2026-10-17, [milestones.md](milestones.md#1-globe-and-time)), so the globe and its time travel are tried with it from the start.
 
 ## 1. What the viewer sees
 
@@ -10,9 +10,8 @@ The lens is on by default, at the strength the build makes (100%). A slider sets
 - Shapes stay recognisable: Italy is still a boot and Britain still an island next to the continent. Size changes, but local shapes barely do (section 3).
 - Everything sits in its real place relative to the land: a town on a river stays on that river, and a battle on a coast stays on that coast. All geography and all positions pass through the same warp, so nothing contradicts the data.
 - Miniatures keep their usual size. An enlarged region gets more space between its towns, not bigger towns.
-- A slider "History lens" ("Geschichtslupe") sets the strength of the lens from 0% to 200% in steps of 10%, with the value shown next to it ("100%", German "100 %"). It folds away behind a magnifying-glass button at the bottom right, just above the timeline (changed by Yang on 2026-10-18; [milestone-1.md](milestone-1.md#81-screen-layout) section 8.1 describes how these buttons open). Pointing at the button shows a short explanation: "History lens: draws places with a lot of history bigger. 0% shows the true sizes." ("Geschichtslupe: zeichnet Orte mit viel Geschichte größer. 0 % zeigt die echten Größen.") At 0% the globe shows the true sizes, 100% is the warp of section 2, and 200% enlarges the busy places twice as much again (section 2). The slider replaces the earlier "True sizes" button and "Enlarge busy regions" setting (changed by Yang on 2026-10-18); it is the only control for the lens. It works by touch, mouse and keyboard, and its label leaves room for the longer German word.
-- Moving the slider morphs the globe: the land visibly grows and shrinks to the new strength (section 4.1), and while the slider is dragged the globe follows it smoothly, so the viewer sees which places were enlarged.
-- No hint about the stretched map is shown at start (removed at Yang's request on 2026-10-19: "remove the history lens explainer dialog"); the magnifying glass in the corner sets the lens.
+- The lens is fixed at 120% (Yang, 2026-10-19). The slider "History lens" that set it from 0% to 200% behind a magnifying-glass button, and morphed the globe as it moved (section 4.1), is removed for now and may come back.
+- No hint about the stretched map is shown at start (removed at Yang's request on 2026-10-19: "remove the history lens explainer dialog").
 
 ## 2. How big
 
@@ -92,7 +91,7 @@ Changing the strength morphs the globe instead of swapping it, so the viewer see
 ## 5. Settings and tests
 
 - The strength is kept with the other settings in local storage as a whole percentage from 0 to 200 ([spec.md](spec.md#76-what-is-saved) section 7.6, [milestone-1.md](milestone-1.md#82-settings) section 8.2). It is 100% by default on both desktop and phone. A saved value from the earlier on/off setting is read as 100% for on and 0% for off. Whether the hint of section 1 was closed is saved with it.
-- Golden snapshot tests of the world query need no change, because the world is computed in true coordinates. Browser screenshot tests run with the lens both on and off. A test also checks that turning a true point into a drawn one and back gives the same point to within 1 km, at 100% and at 200%.
+- Golden snapshot tests of the world query need no change, because the world is computed in true coordinates. Browser screenshot tests run with the lens at its fixed 120%. A test also checks that turning a true point into a drawn one and back gives the same point to within 1 km, at 100% and at 200%.
 - The extra cost is four texture lookups per terrain vertex and one grid lookup per placed object. That must fit the frame budgets in [spec.md section 9](spec.md#9-architecture).
 
 ## 6. Considered and left out

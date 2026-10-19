@@ -7,7 +7,6 @@
 import { detAtan2, detCos, detSin, RAD } from '../../../app/src/core/detmath.ts';
 import type { Day } from '../../../app/src/time/calendar.ts';
 import {
-  HUT_DOOR_M,
   LAYOUT_KM_PER_M,
   LODGING_SLOTS,
   MAX_OUTING_M,
@@ -43,6 +42,7 @@ const WAYPOINT_LINK_KM = 600;
 const SHORE_KM = 900;
 /** Every key place gets a site at most this far from it (section 2). */
 export const KEY_PLACE_KM = 300;
+const KEY_PLACE_FAR_KM = 450;
 /** How far round its hearth a camp's drawing reaches, in layout metres, by layout: full, compact, minimal. */
 export const footprintM = (key: number): number =>
   key >= MINIMAL_SITE ? 12.4 : key >= COMPACT_SITE ? 13.6 : 18;
@@ -64,6 +64,8 @@ export interface Site {
   compact: boolean;
   /** A waypoint, which bands pass through but never camp at (section 3). */
   pass?: boolean;
+  /** Drawn km per true km at it, from the history lens: its camp covers less true land where it is more. */
+  width: number;
   lat: number;
   lon: number;
   /** The sea level above which some point of its core is under water, in metres. */
@@ -103,8 +105,12 @@ export interface SiteInputs {
   walkFlood(lat: number, lon: number): number;
   /** The lowest sea level of the timeline: a site's hearth must be land then at least. */
   lowestSea: number;
+  /** The highest: a key place's site must stay dry then too (section 2). */
+  highestSea: number;
   /** The listed crossings, from their days (peopling.md section 6). */
   crossings: { id: string; day: Day; way: { lat: number; lon: number }[] }[];
+  /** Drawn km per true km at a place, from the history lens at its fixed strength; 1 without it. */
+  widthAt?(lat: number, lon: number): number;
   /** Places that must have a site near them (section 2). */
   keyPlaces?: { id: string; lat: number; lon: number }[];
   /** Rows of latitude to lay sites on, south to north. */
@@ -113,24 +119,30 @@ export interface SiteInputs {
 }
 
 /** A point of a site's layout, in layout metres east and north of its hearth. */
-const at = (s: { lat: number; lon: number }, x: number, z: number) =>
-  onGlobe(s.lat, s.lon, x * LAYOUT_KM_PER_M, z * LAYOUT_KM_PER_M);
+/**
+ * A point of a site's layout, in layout metres east and north of its hearth, as the globe
+ * draws it through the history lens: drawn km are fewer true km where the lens draws the
+ * land bigger (sites.md section 2).
+ */
+const at = (s: { lat: number; lon: number; w: number }, x: number, z: number) =>
+  onGlobe(s.lat, s.lon, (x * LAYOUT_KM_PER_M) / s.w, (z * LAYOUT_KM_PER_M) / s.w);
+/** Drawn km per true km at a place, set from the inputs while the sites are built. */
+let lensWidth: (lat: number, lon: number) => number = () => 1;
 
 /** The points a lodging place needs dry: its floor to the door, its builders, its rack and scrapers. */
 export function placePoints(siteId: number, k: number): { x: number; z: number }[] {
   const p = slotPoint(siteId, k);
   const compact = isCompact(siteId);
   const out = [p];
-  for (const r of [1, 2, 3, 4, HUT_DOOR_M])
-    for (let j = 0; j < 12; j++) {
-      const a = (j / 12) * 2 * Math.PI;
+  // Rings every metre or less out past the builders, 24 points each, so no lake slips between.
+  const { floor, build, clear } = layoutOf(siteId);
+  // Out past the builders and the ways round the lodging, which bend out 1.3 times its clear.
+  const b = Math.max(build + 1, clear * 1.3 + 0.5);
+  for (const r of [...floor, (floor.at(-1)! + b) / 2, b])
+    for (let j = 0; j < 24; j++) {
+      const a = (j / 24) * 2 * Math.PI;
       out.push({ x: p.x + r * detCos(a), z: p.z + r * detSin(a) });
     }
-  for (let j = 0; j < 12; j++) {
-    const a = (j / 12) * 2 * Math.PI;
-    const b = layoutOf(siteId).build + 1;
-    out.push({ x: p.x + b * detCos(a), z: p.z + b * detSin(a) });
-  }
   if (compact) return out;
   const len = Math.sqrt(p.x * p.x + p.z * p.z);
   const [ux, uz] = [p.x / len, p.z / len];
@@ -155,7 +167,7 @@ function siteAt(
   lon: number,
   flood: (lat: number, lon: number) => number,
 ): Site {
-  const s = { lat, lon };
+  const s = { lat, lon, w: lensWidth(lat, lon) };
   const compact = isCompact(key);
   let core = flood(lat, lon);
   for (let r = 0.75; r <= layoutOf(key).core + 1e-9; r += 0.75)
@@ -193,7 +205,7 @@ function siteAt(
     }
     return out;
   });
-  return { id, key, compact, lat, lon, core, places, lanes };
+  return { id, key, compact, lat, lon, width: s.w, core, places, lanes };
 }
 
 /** How far a lane of a site reaches at a sea level, in layout metres; 0 when not past LANE_FROM_M. */
@@ -241,7 +253,7 @@ function roughFit(
   lon: number,
   flood: (lat: number, lon: number) => number,
 ): number {
-  const s = { lat, lon };
+  const s = { lat, lon, w: lensWidth(lat, lon) };
   const compact = isCompact(key);
   let core = flood(lat, lon);
   for (const r of compact ? [2, layoutOf(key).core] : [3, 6, CORE_M])
@@ -309,30 +321,34 @@ function keySite(
   id: number,
   place: { lat: number; lon: number },
   input: SiteInputs,
+  radiusKm = KEY_PLACE_KM,
 ): Site | undefined {
+  // Rings every 25 km out to KEY_PLACE_KM, 24 places each.
   const points = [{ lat: place.lat, lon: place.lon }];
-  for (let r = 50; r <= KEY_PLACE_KM; r += 50)
-    for (let k = 0; k < 16; k++) {
-      const a = (k / 16) * 2 * Math.PI;
+  for (let r = 25; r <= radiusKm; r += 25)
+    for (let k = 0; k < 24; k++) {
+      const a = (k / 24) * 2 * Math.PI;
       points.push(onGlobe(place.lat, place.lon, r * detCos(a), r * detSin(a)));
     }
-  const land = points.filter((p) => input.campFlood(p.lat, p.lon) > input.lowestSea);
+  const land = points.filter((p) => input.campFlood(p.lat, p.lon) > input.highestSea);
+  // The largest layout whose camp stays dry even at the highest sea of the timeline.
   for (const key of [id, COMPACT_SITE + id, MINIMAL_SITE + id]) {
     const options = land
       .map((p) => ({ ...p, fit: roughFit(key, p.lat, p.lon, input.campFlood) }))
       .sort((a, b) => b.fit - a.fit || a.lat - b.lat || a.lon - b.lon);
     let best: Site | undefined;
-    for (const o of options.slice(0, 3)) {
+    for (const o of options.slice(0, 6)) {
       const site = siteAt(id, key, o.lat, o.lon, input.campFlood);
       if (!best || fitOf(site) > fitOf(best)) best = site;
     }
-    if (best && fitOf(best) > input.lowestSea) return best;
+    if (best && fitOf(best) > input.highestSea) return best;
   }
   return undefined;
 }
 
 /** Lays the sites and links them (sites.md sections 2 and 3). */
 export function buildSites(input: SiteInputs): SiteMap {
+  lensWidth = input.widthAt ?? (() => 1);
   const KM = 111.195;
   const sites: Site[] = [];
   const dLat = SITE_STEP_KM / KM;
@@ -353,9 +369,16 @@ export function buildSites(input: SiteInputs): SiteMap {
   // Every key place gets a site near it, of whatever layout fits there (section 2).
   const unplaced: string[] = [];
   for (const place of input.keyPlaces ?? []) {
-    const near = sites.some((x) => distanceKm(x.lat, x.lon, place.lat, place.lon) <= KEY_PLACE_KM);
+    // A site near it that stays dry at the highest sea, so it can be used in every age.
+    const near = sites.some(
+      (x) =>
+        fitOf(x) > input.highestSea &&
+        distanceKm(x.lat, x.lon, place.lat, place.lon) <= KEY_PLACE_KM,
+    );
     if (near) continue;
-    const site = keySite(sites.length, place, input);
+    // Within KEY_PLACE_KM, or a little farther where nothing fits nearer.
+    const site =
+      keySite(sites.length, place, input) ?? keySite(sites.length, place, input, KEY_PLACE_FAR_KM);
     if (site) sites.push(site);
     else unplaced.push(place.id);
   }
@@ -390,6 +413,7 @@ export function buildSites(input: SiteInputs): SiteMap {
         key: sites.length,
         compact: false,
         pass: true,
+        width: 1,
         lat,
         lon,
         core: -Infinity,

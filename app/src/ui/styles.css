@@ -221,10 +221,6 @@ input:focus-visible {
   display: inline-flex;
 }
 
-.lens-fold {
-  margin-left: auto;
-}
-
 .fold-panel {
   display: none;
   position: absolute;
@@ -254,10 +250,6 @@ input:focus-visible {
   box-shadow: none;
 }
 
-.lens-fold .fold-panel {
-  right: 100%;
-}
-
 .fold.open .fold-panel,
 .fold:has(:focus-visible) .fold-panel {
   display: flex;
@@ -282,10 +274,6 @@ input:focus-visible {
   box-shadow: var(--shadow);
   white-space: nowrap;
   user-select: none;
-}
-
-.lens-fold .fold-box {
-  flex-direction: row-reverse;
 }
 
 .fold-box input {

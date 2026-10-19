@@ -19,6 +19,8 @@ import {
 import {
   COMPACT_SITE,
   LAYOUT_KM_PER_M,
+  MINIMAL_LODGING,
+  MINIMAL_SITE,
   layoutOf,
   HEARTH_SPOTS,
   LODGING_SLOTS,
@@ -273,7 +275,9 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       const km = distanceKm(c.site.lat, c.site.lon, site.lat, site.lon);
       return (
         km >= Math.min(spacing, c.spacingKm) &&
-        km >= (footprintM(site.key) + footprintM(c.site.key)) * LAYOUT_KM_PER_M
+        km >=
+          (footprintM(site.key) / site.width + footprintM(c.site.key) / c.site.width) *
+            LAYOUT_KM_PER_M
       );
     });
   };
@@ -431,7 +435,11 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       slot,
       reach: Array.from({ length: LODGING_SLOTS }, (_, gap) => laneReach(site, gap, sea)),
       room: layoutOf(site.key).core,
-      kind: (camp.culture && s.lodgingOf?.(camp.culture)) || s.lodgingKind,
+      // A minimal camp's small shelter, else the culture's own (sites.md section 2).
+      kind:
+        site.key >= MINIMAL_SITE
+          ? MINIMAL_LODGING
+          : (camp.culture && s.lodgingOf?.(camp.culture)) || s.lodgingKind,
       ...(camp.culture ? { culture: camp.culture } : {}),
       ...(habitat.wood
         ? {
@@ -606,7 +614,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       while (people.length && headcount(to) < layoutOf(to.site.key).people) {
         // A neighbour's lodgings with room are walked to straight; farther ones need a new lodging.
         let room =
-          o.hops === 1
+          o.hops === 1 && !crossingOf(camp.site, o.site)
             ? to.lodgings.find((l) => residents.get(l)!.length < LODGING_CAPACITY)
             : undefined;
         if (room === undefined && to.lodgings.length < MAX_LODGINGS && hasPlace(to, at))

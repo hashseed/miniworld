@@ -10,7 +10,7 @@ import { Store } from './core/store.ts';
 import { CameraController } from './globe/cameraController.ts';
 import { Globe } from './globe/globe.ts';
 import { Foliage } from './globe/foliage.ts';
-import { Lens, decodeLensGrids } from './globe/lens.ts';
+import { Lens, decodeLensGrids, LENS_STRENGTH } from './globe/lens.ts';
 import { lowestSeaLevel } from './planet/state.ts';
 import { Clouds } from './globe/clouds.ts';
 import { Sky } from './globe/sky.ts';
@@ -69,7 +69,6 @@ const settings = loadSettings({
   timelineExpanded: false,
   trueTimeScale: false,
   showStats: false,
-  lensStrength: 100,
 });
 const savedView = STRESS ? undefined : loadView();
 const i18n = new I18n(settings.language);
@@ -184,7 +183,8 @@ controller.lens = {
   toTrue: (d) => globe.lens.toTrue(d),
   widthAt: (d) => globe.lens.widthAt(d),
 };
-globe.lens.setStrength(settings.lensStrength / 100, false);
+// The lens is fixed at 120% (history-lens.md section 1; Yang, 2026-10-19).
+globe.lens.setStrength(LENS_STRENGTH, false);
 
 let timeline: Timeline | undefined;
 const loop = new FrameLoop(
@@ -312,7 +312,6 @@ const actions: Actions = {
     ui.update({ settings: next });
     if (key === 'language') void switchLanguage(next.language);
     if (key === 'trueTimeScale') timeline?.setMode(value ? 'true' : 'watch');
-    if (key === 'lensStrength') globe.lens.setStrength((value as number) / 100);
   },
   addBookmark: () => {
     const name = formatDateReadout(clock.day, i18n.language, {

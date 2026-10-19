@@ -24,7 +24,6 @@ const defaults: Settings = {
   timelineExpanded: false,
   trueTimeScale: false,
   showStats: false,
-  lensStrength: 100,
 };
 
 describe('saved state', () => {
@@ -43,19 +42,6 @@ describe('saved state', () => {
       JSON.stringify({ language: 'fr', timelineExpanded: true }),
     );
     expect(loadSettings(defaults)).toEqual({ ...defaults, timelineExpanded: true });
-  });
-
-  it('reads the lens strength, and the earlier on/off setting as 100 or 0', () => {
-    const at = (v: object) => {
-      storage.setItem('miniworld.settings.v1', JSON.stringify(v));
-      return loadSettings(defaults).lensStrength;
-    };
-    expect(at({ lensStrength: 150 })).toBe(150);
-    expect(at({ lensStrength: 250 })).toBe(100);
-    expect(at({ lensStrength: 12.5 })).toBe(100);
-    expect(at({ historyLens: false })).toBe(0);
-    expect(at({ historyLens: true })).toBe(100);
-    expect(at({ lensStrength: 30, historyLens: false })).toBe(30);
   });
 
   it('restores a playing view as history paused, at its day', () => {

@@ -29,7 +29,8 @@ import { dayAtMs, msAtDay } from '../time/rate.ts';
 import { LAYOUT_KM_PER_M, treeScene, type TreeChunk } from './treeScene.ts';
 import { WILD_GROUPS, decodeWildMask, flies, swims, wildlifeAt } from './wildlife.ts';
 import { buildAnimal, type AnimalId } from '../../../assets/src/animals.ts';
-import { DRAWN_SIZE_M } from '../wildlife/wildlifeLayer.ts';
+import { DRAWN_SIZE_M, KM_PER_M } from '../wildlife/wildlifeLayer.ts';
+import { decodeLensGrids, LENS_STRENGTH, sampleScalar, widthFactors } from '../globe/lens.ts';
 
 const DATA = join(import.meta.dirname, '../../public/data');
 const built = existsSync(join(DATA, 'manifest.json'));
@@ -122,6 +123,15 @@ describe.skipIf(!built)('paths on land', async () => {
     return `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
   };
 
+  // The history lens at its fixed strength (history-lens.md section 1).
+  const width = built
+    ? widthFactors(
+        decodeLensGrids(new Uint8Array(await readFile(join(DATA, manifest.lens.file)))).forward,
+      )
+    : new Float32Array(0);
+  const lensWidth = (lat: number, lon: number) =>
+    1 + (sampleScalar(width, latLonToDir(lat, lon)) - 1) * LENS_STRENGTH;
+
   // The fixture map has no tree of humankind (humankind.md section 5).
   const treeFiles = built ? (manifest.tree?.files ?? []).filter((f) => f !== null) : [];
 
@@ -143,7 +153,14 @@ describe.skipIf(!built)('paths on land', async () => {
           for (const f of treeScene(chunk, ms, start).figures) {
             // Bands crossing the sea paddle canoes (peopling.md section 6).
             if (f.clip === 'paddle') continue;
-            const dir = offsetDir(f.lat, f.lon, f.x * LAYOUT_KM_PER_M, f.z * LAYOUT_KM_PER_M);
+            // Drawn km at the camp are fewer true km where the lens draws the land bigger.
+            const lens = lensWidth(f.lat, f.lon);
+            const dir = offsetDir(
+              f.lat,
+              f.lon,
+              (f.x * LAYOUT_KM_PER_M) / lens,
+              (f.z * LAYOUT_KM_PER_M) / lens,
+            );
             checked++;
             const what = await water(dir, day);
             if (what)
@@ -163,7 +180,7 @@ describe.skipIf(!built)('paths on land', async () => {
 
   /**
    * One body length at drawn size with the lens off, as the wildlife layer reckons it
-   * (wildlife.md section 1): 75 km a metre, the size clamped to 1.8 to 4 metres.
+   * (wildlife.md section 1): its km a metre, the size clamped to 1.8 to 4 metres.
    */
   const lengths = new Map<string, number>();
   const bodyKm = (model: string) => {
@@ -173,7 +190,7 @@ describe.skipIf(!built)('paths on land', async () => {
       const box = new THREE.Box3().setFromObject(m.object);
       const size = Math.max(box.max.y - box.min.y, (box.max.z - box.min.z) / 2);
       const drawn = DRAWN_SIZE_M[model] ?? Math.min(4, Math.max(1.8, size));
-      lengths.set(model, ((box.max.z - box.min.z) * 75 * drawn) / size);
+      lengths.set(model, ((box.max.z - box.min.z) * KM_PER_M * drawn) / size);
     }
     return lengths.get(model)!;
   };

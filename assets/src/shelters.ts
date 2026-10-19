@@ -30,6 +30,7 @@ export const SHELTERS = [
   'prop-spit',
   'prop-canoe',
   'prop-red-flag',
+  'shelter-small-hut',
 ] as const;
 export type ShelterId = (typeof SHELTERS)[number];
 
@@ -415,6 +416,41 @@ export function buildShelter(id: ShelterId): Model {
       }
       mb.add(rod([0, 0.79, -0.95], [0, 0.79, 0.95], 0.03, 5), POLE);
       mb.add(blob([0, 0.76, 0], [0.16, 0.13, 0.3], 7), '#8b3a26');
+      break;
+    }
+    case 'shelter-small-hut': {
+      // A small brush shelter for one family (sites.md section 2: minimal camps), where land
+      // is too narrow for a full camp: a few branches leant together into a low half dome,
+      // its open side the door, towards the hearth (+Z), and leafy boughs laid over it.
+      const R = 0.85;
+      const H = 1.0;
+      const apex: Vec3 = [0, H, -0.15];
+      const step = (k: number) => {
+        mb.bone({ name: `${BUILD_BONE}${k}`, pivot: [0, 0, 0] });
+        return `${BUILD_BONE}${k}`;
+      };
+      const frame = step(0);
+      // Six branches from the back half of a ring to the apex; none across the door.
+      for (let i = 0; i < 6; i++) {
+        const a = Math.PI * (0.25 + (1.5 * i) / 5);
+        mb.add(rod([Math.sin(a) * R, 0, Math.cos(a) * R], apex, 0.035, 4), POLE, frame);
+      }
+      // The boughs: leafy clumps over the frame in two rows, low and high, open at the door.
+      const leaves = step(1);
+      for (const [t, n, size] of [
+        [0.3, 6, 0.32],
+        [0.7, 4, 0.26],
+      ] as const)
+        for (let i = 0; i < n; i++) {
+          const a = Math.PI * (0.3 + (1.4 * (i + 0.5)) / n);
+          const x = Math.sin(a) * R * (1 - t) + apex[0] * t;
+          const z = Math.cos(a) * R * (1 - t) + apex[2] * t;
+          mb.add(
+            blob([x, H * t * 0.95, z], [size, size * 0.6, size], 6),
+            shade('#6f8a3c', 0.08 * (i % 3) - 0.08),
+            leaves,
+          );
+        }
       break;
     }
     case 'prop-canoe': {

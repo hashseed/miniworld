@@ -24,7 +24,7 @@ export interface TreeChunk {
  * Drawn kilometres per life-size metre of a figure: 1.7 times a vignette's 50 (milestone 2,
  * section 5.1; Yang, 2026-10-18: "make the humans and their buildings/fire places 70% larger").
  */
-export const FIGURE_KM_PER_M = 85;
+export const FIGURE_KM_PER_M = 72.25;
 /**
  * Figures act this many times faster than life: their clips play faster and they cover
  * ground faster, so the feet still do not slide (Yang, 2026-10-18: livelier camps).
@@ -444,6 +444,10 @@ export interface Layout {
   dance: number;
   build: number;
   people: number;
+  /** Walks keep this far from a lodging's middle. */
+  clear: number;
+  /** Rings round a lodging's middle, out to its door, that must be dry, in layout metres. */
+  floor: number[];
 }
 const FULL: Layout = {
   ring: LODGING_RING_M,
@@ -455,6 +459,8 @@ const FULL: Layout = {
   dance: DANCE_R,
   build: BUILD_RING_M,
   people: INNER_SPOTS + OUTER_SPOTS,
+  clear: 4.6,
+  floor: [1, 2, 3, 4, HUT_DOOR_M],
 };
 const COMPACT: Layout = {
   ring: 9,
@@ -466,18 +472,25 @@ const COMPACT: Layout = {
   dance: 3.4,
   build: BUILD_RING_M,
   people: INNER_SPOTS,
+  clear: 4.6,
+  floor: [1, 2, 3, 4, HUT_DOOR_M],
 };
+/** A minimal camp has one small brush shelter (shelter-small-hut, about 1.7 m across) near its fire. */
 const MINIMAL: Layout = {
-  ring: 7.6,
+  ring: 6.2,
   inner: 3.1,
-  door: 4.4,
+  door: 3.1,
   core: 3.6,
   gate: 3.4,
-  flag: 11,
+  flag: 9.5,
   dance: 3.1,
-  build: 3.6,
+  build: 3.2,
   people: 4,
+  clear: 3,
+  floor: [0.7, 1.4, 2.1, 2.6, 3.1],
 };
+/** The lodging of every minimal camp, whatever the culture. */
+export const MINIMAL_LODGING = 'shelter-small-hut';
 export const layoutOf = (camp: number): Layout =>
   camp >= MINIMAL_SITE ? MINIMAL : camp >= COMPACT_SITE ? COMPACT : FULL;
 /** The ring of lodging places round a camp's hearth. */
@@ -627,8 +640,7 @@ interface Circle {
 }
 
 const FIRE_ONLY: Circle[] = [{ x: 0, z: 0, r: FIRE_CLEAR_M }];
-/** Walks keep this far from the middle of a lodging, and of a drying rack (section 8.1). */
-const LODGING_CLEAR_M = 4.6;
+/** Walks keep this far from the middle of a drying rack (section 8.1); from a lodging, its layout's clear. */
 const RACK_CLEAR_M = 4.4;
 
 /** The fire, the lodgings of every slot and their racks: what walks at a camp go round. */
@@ -638,7 +650,7 @@ function campObstacles(camp: number): Circle[] {
   if (!list) {
     list = [...FIRE_ONLY];
     for (let k = 0; k < LODGING_SLOTS; k++) {
-      list.push({ ...slotPoint(camp, k), r: LODGING_CLEAR_M });
+      list.push({ ...slotPoint(camp, k), r: layoutOf(camp).clear });
       if (!isCompact(camp)) list.push({ ...rackAt(camp, k), r: RACK_CLEAR_M });
     }
     obstacles.set(camp, list);
