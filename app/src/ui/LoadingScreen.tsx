@@ -1,5 +1,5 @@
 // The loading screen (spec milestone 1, section 8.6): the "march of progress" from a
-// knuckle-walking ape to a child looking at a globe, walking along the progress bar. Each
+// knuckle-walking ape to a modern human, walking along the progress bar. Each
 // figure steps in once the bar passes its place in the line. The figures are filled
 // silhouettes built here from body parts (tapered limbs jointed at hip, knee, shoulder and
 // elbow, a torso outline and a head profile per species), with no text; the caption comes
@@ -41,154 +41,139 @@ export interface Walker {
   swing: number;
   /** An ape walks on its knuckles: its arms reach the ground. */
   knuckles?: boolean;
-  holds?: 'spear' | 'globe';
+  /** A shaggy outline, and long hair falling to the shoulders. */
+  fur?: boolean;
+  hair?: boolean;
+  holds?: 'club' | 'spear';
 }
 
-/** Ape, australopithecine, Homo habilis, Homo erectus, Neanderthal, modern child. */
+/** Chimpanzee, australopithecine, Homo habilis, Homo erectus and a modern human. */
 export const MARCH: Walker[] = [
   {
     thigh: 15,
     calf: 14,
     upper: 21,
     fore: 20,
-    torso: 36,
-    lean: 62,
-    front: [5, 10, 8.5],
-    back: [6, 8, 10.5],
-    limbs: [5.5, 3.6, 2.4, 5, 3.4, 2.6],
-    head: 8,
+    torso: 37,
+    lean: 58,
+    front: [6, 11, 10],
+    back: [7, 9, 12],
+    limbs: [7, 4.6, 3, 6.2, 4.4, 3.2],
+    head: 8.6,
     face: 0,
     brow: 0.6,
     long: 0,
     neck: 3,
-    pitch: -8,
-    leg: [-14, 34],
+    pitch: -14,
+    leg: [-16, 38],
     arm: [-6, 0],
-    stride: 16,
-    swing: 14,
+    stride: 14,
+    swing: 12,
     knuckles: true,
+    fur: true,
   },
   {
-    thigh: 15,
-    calf: 14.5,
-    upper: 16,
-    fore: 15.5,
-    torso: 29,
-    lean: 22,
-    front: [4.5, 8.5, 7],
-    back: [6, 5, 7],
-    limbs: [4.8, 3, 2, 3.8, 2.8, 2],
-    head: 7.6,
-    face: 0.3,
+    thigh: 18,
+    calf: 17,
+    upper: 19,
+    fore: 18,
+    torso: 33,
+    lean: 28,
+    front: [5.5, 10, 9],
+    back: [7.5, 6.5, 9.5],
+    limbs: [7, 4.4, 2.8, 5.4, 4, 2.8],
+    head: 8.6,
+    face: 0.25,
     brow: 0.5,
     long: 0,
     neck: 3,
+    pitch: -6,
+    leg: [-10, 24],
+    arm: [-8, -14],
+    stride: 16,
+    swing: 12,
+    fur: true,
+  },
+  {
+    thigh: 22,
+    calf: 21,
+    upper: 18,
+    fore: 17,
+    torso: 34,
+    lean: 13,
+    front: [6, 8.5, 9.5],
+    back: [8.5, 6, 8.5],
+    limbs: [7.2, 4.4, 2.7, 5.2, 3.8, 2.6],
+    head: 8.8,
+    face: 0.5,
+    brow: 0.55,
+    long: 0.1,
+    neck: 3.5,
     pitch: 0,
     leg: [-6, 14],
-    arm: [-6, -10],
-    stride: 18,
-    swing: 14,
-  },
-  {
-    thigh: 17,
-    calf: 16.5,
-    upper: 15,
-    fore: 14.5,
-    torso: 29,
-    lean: 12,
-    front: [4.5, 7.5, 7],
-    back: [6, 4.5, 6.5],
-    limbs: [4.8, 3, 2, 3.6, 2.7, 1.9],
-    head: 7.8,
-    face: 0.5,
-    brow: 0.45,
-    long: 0.05,
-    neck: 3.5,
-    pitch: 0,
-    leg: [-4, 9],
-    arm: [-4, -10],
-    stride: 20,
-    swing: 16,
-  },
-  {
-    thigh: 23,
-    calf: 22,
-    upper: 16,
-    fore: 15,
-    torso: 33,
-    lean: 4,
-    front: [4.5, 6, 7],
-    back: [6.5, 4, 6.5],
-    limbs: [5, 3.1, 2.1, 3.7, 2.7, 1.9],
-    head: 8.2,
-    face: 0.72,
-    brow: 0.7,
-    long: 0.25,
-    neck: 4.5,
-    pitch: 0,
-    leg: [-2, 5],
-    arm: [-3, -10],
-    stride: 22,
-    swing: 18,
-  },
-  {
-    thigh: 20,
-    calf: 18,
-    upper: 15,
-    fore: 13,
-    torso: 33,
-    lean: 4,
-    front: [5, 7.5, 8.5],
-    back: [7.5, 5.5, 8],
-    limbs: [6, 3.8, 2.6, 4.6, 3.4, 2.4],
-    head: 9.2,
-    face: 0.8,
-    brow: 0.8,
-    long: 0.3,
-    neck: 3.5,
-    pitch: 0,
-    leg: [-2, 5],
-    arm: [-22, -40],
+    arm: [-22, -30],
     stride: 20,
     swing: 0,
+    holds: 'club',
+  },
+  {
+    thigh: 25,
+    calf: 23.5,
+    upper: 18,
+    fore: 16.5,
+    torso: 36,
+    lean: 5,
+    front: [6, 7.5, 9.5],
+    back: [9, 6, 8.5],
+    limbs: [7.4, 4.5, 2.7, 5.2, 3.8, 2.6],
+    head: 9.2,
+    face: 0.75,
+    brow: 0.6,
+    long: 0.2,
+    neck: 4,
+    pitch: 0,
+    leg: [-3, 7],
+    arm: [-34, -40],
+    stride: 22,
+    swing: 0,
+    hair: true,
     holds: 'spear',
   },
   {
-    thigh: 16,
-    calf: 15.5,
-    upper: 11.5,
-    fore: 10.5,
-    torso: 23,
-    lean: 2,
-    front: [3.8, 5, 5.2],
-    back: [5, 3.4, 4.8],
-    limbs: [4, 2.6, 1.7, 2.9, 2.2, 1.6],
-    head: 8.6,
+    thigh: 26,
+    calf: 25,
+    upper: 18.5,
+    fore: 17,
+    torso: 37,
+    lean: 1,
+    front: [6, 7, 9.5],
+    back: [9, 6, 8.5],
+    limbs: [7.4, 4.5, 2.7, 5.2, 3.8, 2.6],
+    head: 9.4,
     face: 1,
     brow: 0,
     long: 0,
-    neck: 3,
-    pitch: 18,
+    neck: 4.5,
+    pitch: 0,
     leg: [-2, 5],
-    arm: [-12, -78],
-    stride: 16,
-    swing: 0,
-    holds: 'globe',
+    arm: [-2, -14],
+    stride: 22,
+    swing: 15,
   },
 ];
 
-const WIDTH = 610;
+const WIDTH = 560;
 const GROUND = 120;
-const HEIGHT = 130;
+const HEIGHT = 126;
 const FOOT_R = 2.2;
 /** Where each walker's hips are along the line. */
-export const PLACES = [48, 165, 262, 360, 462, 560];
+export const PLACES = [62, 172, 280, 388, 496];
 /** A stride, in seconds. */
 const STRIDE_S = 1.1;
 
 /** Whether the march walker `k` has stepped in at a share loaded of `loaded`. */
 export function stepsIn(k: number, loaded: number): boolean {
-  return loaded * WIDTH >= PLACES[k]! - 30;
+  return loaded * WIDTH >= PLACES[k]! - 40;
 }
 
 const rad = (deg: number) => (deg * Math.PI) / 180;
@@ -423,32 +408,46 @@ function Figure(props: { w: Walker; x: number; shown: boolean; still: boolean })
       </Joint>
     );
   };
-  // Where a still hand is, for the spear and the globe.
+  // Where a still hand is, for the club and the spear.
   const handAt = add(add(shoulder, down(upper, a1)), down(fore + rw * 1.5, a1 + a2));
 
+  // Long hair falls from the crown down behind the head to the shoulders.
+  const r = w.head;
+  const hair = smooth([
+    add(headAt, [0.2 * r, -1.05 * r]),
+    add(headAt, [-0.9 * r, -0.85 * r]),
+    add(headAt, [-1.35 * r, 0.3 * r]),
+    add(headAt, [-1.3 * r, 1.5 * r]),
+    add(headAt, [-0.6 * r, 2.1 * r]),
+    add(headAt, [-0.2 * r, 0.6 * r]),
+    add(headAt, [0.5 * r, -0.3 * r]),
+  ]);
+  // A club hangs from the hand, its heavy end down; a spear points ahead and up.
+  const tool =
+    w.holds === 'club' ? (
+      <path d={capsule(add(handAt, [4, -5]), 1.5, add(handAt, [-12, 27]), 4)} />
+    ) : w.holds === 'spear' ? (
+      <>
+        <path d={capsule(add(handAt, [-26, 17]), 1.2, add(handAt, [30, -20]), 1.1)} />
+        <path
+          d={`M${f1(handAt[0] + 27)},${f1(handAt[1] - 21)}L${f1(handAt[0] + 40)},${f1(handAt[1] - 28)}L${f1(handAt[0] + 31)},${f1(handAt[1] - 15)}Z`}
+        />
+      </>
+    ) : null;
+
   return (
-    <g class={`march-walker${props.shown ? ' shown' : ''}`}>
+    <g
+      class={`march-walker${props.shown ? ' shown' : ''}`}
+      filter={w.fur ? 'url(#march-fur)' : undefined}
+    >
       {arm(0.5, true)}
       {leg(0.5, true)}
+      {w.hair && <path d={hair} />}
       <path d={torso} />
-      <path d={capsule(neckBase, w.head * 0.42, headAt, w.head * 0.45)} />
+      <path d={capsule(neckBase, w.head * 0.45, headAt, w.head * 0.48)} />
       <path d={headPath(w, headAt)} />
       {leg(0, false)}
-      {w.holds === 'globe' && (
-        <g class="march-globe">
-          <circle cx={handAt[0] + 3} cy={handAt[1] - 4} r={6.5} />
-          <path
-            class="march-globe-land"
-            d={`M${f1(handAt[0] - 1)},${f1(handAt[1] - 8)}q3,-2 6,0q2,3 -1,5q-3,1 -5,-1zM${f1(handAt[0] + 4)},${f1(handAt[1] - 1)}q3,-1 5,1q-1,3 -4,2z`}
-          />
-        </g>
-      )}
-      {w.holds === 'spear' && (
-        <path
-          class="march-spear"
-          d={capsule([handAt[0] + 2, GROUND - 1], 1.1, [handAt[0] + 7, handAt[1] - 70], 0.9)}
-        />
-      )}
+      {tool}
       {arm(0, false)}
     </g>
   );
@@ -486,11 +485,25 @@ export function LoadingScreen(props: { loaded: number; ready: boolean; label: st
           aria-hidden="true"
           preserveAspectRatio="xMidYMax meet"
         >
+          <defs>
+            {/* A shaggy edge for the furry walkers. */}
+            <filter id="march-fur" x="-10%" y="-10%" width="120%" height="120%">
+              <feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves={2} seed={3} />
+              <feDisplacementMap in="SourceGraphic" scale={1.8} />
+            </filter>
+          </defs>
           {MARCH.map((w, k) => (
             <Figure key={k} w={w} x={PLACES[k]!} shown={stepsIn(k, share)} still={still} />
           ))}
-          <rect class="march-track" x={0} y={GROUND} width={WIDTH} height={7} rx={3.5} />
-          <rect class="march-bar" x={0} y={GROUND} width={WIDTH * share} height={7} rx={3.5} />
+          <rect class="march-track" x={0} y={GROUND - 0.5} width={WIDTH} height={3} rx={1.5} />
+          <rect
+            class="march-bar"
+            x={0}
+            y={GROUND - 0.5}
+            width={WIDTH * share}
+            height={3}
+            rx={1.5}
+          />
         </svg>
       </div>
     </div>

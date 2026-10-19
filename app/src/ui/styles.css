@@ -475,6 +475,9 @@ input:focus-visible {
 
 /* The loading screen (milestone-1 section 8.6). */
 .overlay.loading {
+  --march-ink: #1f2a4c;
+  background: #fbd3d1;
+  color: var(--march-ink);
   transition: opacity 0.5s ease;
 }
 
@@ -501,16 +504,12 @@ input:focus-visible {
 }
 
 .march-walker {
-  fill: #4e3224;
-  opacity: 0.12;
+  fill: var(--march-ink);
+  opacity: 0.1;
   transform: translateX(-12px);
   transition:
     opacity 0.45s ease,
     transform 0.45s ease;
-}
-
-.march-walker .far {
-  fill: #7a5442;
 }
 
 .march-walker.shown {
@@ -518,26 +517,13 @@ input:focus-visible {
   transform: none;
 }
 
-.march-globe circle {
-  fill: #5fb3e8;
-  stroke: #2f6f9e;
-  stroke-width: 1;
-}
-
-.march-globe-land {
-  fill: #6fbf5a;
-}
-
-.march-spear {
-  fill: #8a6040;
-}
-
 .march-track {
-  fill: #f0c7ae;
+  fill: var(--march-ink);
+  opacity: 0.18;
 }
 
 .march-bar {
-  fill: #e0703a;
+  fill: var(--march-ink);
   transition: width 0.3s ease;
 }
 
