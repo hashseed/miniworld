@@ -3,12 +3,13 @@
 // the output and the log.
 
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { TIME_WINDOWS } from '../../../app/src/content/formats.ts';
 import { DATA_MAX_LEVEL } from '../../../app/src/geo/cube.ts';
 import { TIMELINE_END, TIMELINE_START, dayFromDate } from '../../../app/src/time/calendar.ts';
 import { dayAtPosition } from '../../../app/src/time/axis.ts';
+import { BuildCache, cacheKey } from '../lib/buildCache.ts';
 import { checkLicences, type SourceEntry } from '../lib/licence.ts';
 import type { Output } from '../lib/output.ts';
 
@@ -32,6 +33,12 @@ export interface BuildContext {
   neFile(name: string): string;
   /** A file under data/curated, parsed as JSON. */
   curated<T>(name: string): T;
+  /**
+   * The cache of the land: the map grids, the coarse coasts and the climate slices, kept
+   * while the sources, the land's curated files, the build code that makes them and the
+   * options stay the same (section 10). `--fresh` turns it off.
+   */
+  landCache: BuildCache;
 }
 
 /** The context of the stages that write files, once the inputs are valid. */
@@ -42,6 +49,17 @@ export interface WriteContext extends BuildContext {
 export function sha256(path: string): string {
   return createHash('sha256').update(readFileSync(path)).digest('hex');
 }
+
+/** The curated files the land and its climate are made from (stages terrain and climate). */
+const LAND_CURATED = [
+  'straits.json',
+  'islands.json',
+  'removed-areas.json',
+  'mountains.json',
+  'humid-periods.json',
+  'rivers.json',
+  'inland-seas.json',
+];
 
 function fail(message: string): never {
   console.error(`build-data: ${message}`);
@@ -110,9 +128,48 @@ export function createContext(args: string[]): BuildContext {
     windows.push(i === 0 ? TIMELINE_START : Math.floor(dayAtPosition(i / TIME_WINDOWS)));
   log(`${windows.length} time windows of equal watching time`);
 
+  // Everything the land depends on: the sources, the land's curated files, the code.
+  const code = (dir: string, skip: string[] = []) =>
+    readdirSync(join(ROOT, dir))
+      .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts') && !skip.includes(f))
+      .sort()
+      .map((f) => join(ROOT, dir, f));
+  const landKey = cacheKey(
+    [
+      join(ROOT, 'data/sources.json'),
+      ...LAND_CURATED.map((f) => join(ROOT, 'data/curated', f)),
+      // The tree's own code and the sites' cache are left out: tuning the tree keeps the land.
+      ...code('data/build/lib', [
+        'humankind.ts',
+        'cultureAreas.ts',
+        'arrivals.ts',
+        'treeReport.ts',
+      ]),
+      join(ROOT, 'data/build/stages/terrain.ts'),
+      join(ROOT, 'data/build/stages/climate.ts'),
+      join(ROOT, 'data/build/stages/context.ts'),
+      ...[
+        'app/src/content',
+        'app/src/core',
+        'app/src/geo',
+        'app/src/planet',
+        'app/src/time',
+      ].flatMap((d) => code(d)),
+      join(ROOT, 'app/src/globe/foliageKinds.ts'),
+    ],
+    { fixture, maxLevel, cutoffDay },
+  );
+  const landCache = new BuildCache(
+    join(ROOT, 'data/out/cache'),
+    landKey,
+    !args.includes('--fresh'),
+  );
+  if (landCache.on) log(`land cache ${landKey}`);
+
   return {
     fixture,
     maxLevel,
+    landCache,
     release,
     registry,
     cutoffDay,

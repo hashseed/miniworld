@@ -2,6 +2,7 @@
 // mask, lakes and rivers on global grids, and the terrain tiles sampled from
 // them (spec milestone 1, sections 4.2, 5.1 and 10.1).
 
+import { fromPlain, plainGrid, type PlainGrid } from '../lib/buildCache.ts';
 import { KM_PER_DEG } from '../../../app/src/geo/earth.ts';
 import {
   encodeTerrainTile,
@@ -100,20 +101,6 @@ export interface WorldMap {
 /** Reads and simplifies the map (sections 4.2 and 5.1). */
 export function buildMap(ctx: BuildContext): WorldMap {
   const { log, fail, neFile } = ctx;
-  let source: Grid = ctx.fixture
-    ? fixtureElevation(readFeatures(neFile('ne_10m_land.geojson')))
-    : readElevation(
-        ctx
-          .sourceFiles('etopo-2022')
-          .find((p) => p.endsWith('elevation.json'))!
-          .replace(/\.json$/, ''),
-      );
-  // The map is simplified (section 4.2): the elevation extract is 4
-  // arc-minutes; finer grids (the fixture) are averaged down to at most 2.
-  while (source.width > 10800) {
-    const m = source.downsampleMean();
-    source = new Grid(m.width, m.height, Int16Array.from(m.data, Math.round));
-  }
   const straits = ctx.curated<{ straits: Strait[] }>('straits.json').straits;
   const keptIslands = ctx.curated<{ islands: KeptIsland[] }>('islands.json').islands;
   const removedAreas = ctx.curated<{ areas: RemovedArea[] }>('removed-areas.json').areas;
@@ -131,7 +118,26 @@ export function buildMap(ctx: BuildContext): WorldMap {
     ...validateInlandSeas(inlandSeas),
   ];
   if (mapErrors.length) fail(mapErrors.join('\n'));
-
+  // The grids from the land cache, when nothing they are made from has changed.
+  const cached = ctx.landCache.get<CachedMap>('map');
+  if (cached) {
+    log('map grids from the land cache');
+    return mapOf(cached, straits, humidPeriods);
+  }
+  let source: Grid = ctx.fixture
+    ? fixtureElevation(readFeatures(neFile('ne_10m_land.geojson')))
+    : readElevation(
+        ctx
+          .sourceFiles('etopo-2022')
+          .find((p) => p.endsWith('elevation.json'))!
+          .replace(/\.json$/, ''),
+      );
+  // The map is simplified (section 4.2): the elevation extract is 4
+  // arc-minutes; finer grids (the fixture) are averaged down to at most 2.
+  while (source.width > 10800) {
+    const m = source.downsampleMean();
+    source = new Grid(m.width, m.height, Int16Array.from(m.data, Math.round));
+  }
   // Islands are edited on today's coastline before anything else (section 4.2).
   removeAreas(source, removedAreas, keptIslands);
   const islands = enlargeIslands(source, keptIslands);
@@ -170,13 +176,6 @@ export function buildMap(ctx: BuildContext): WorldMap {
       `${mountains.length} famous mountains, ` +
       `${islands.removed} small islands removed, ${islands.grown} enlarged`,
   );
-  const heights = new GridPyramid(relief);
-  // The ice sheets stand on a heavily smoothed bed, the same in the terrain
-  // tiles and in the ice thickness, so their surface is smooth (section 5.2).
-  // It leaves out the listed mountains, so their snow caps (section 5.2) stand
-  // out from it.
-  const bedGrid = new GridPyramid(elevation).forSpacing(ICE_BED_SPACING_DEG);
-  const iceBed = (lat: number, lon: number) => Math.max(0, bedGrid.bilinear(lat, lon));
 
   const lakeLevel = new Grid(
     conn.width,
@@ -211,20 +210,57 @@ export function buildMap(ctx: BuildContext): WorldMap {
   );
   const flow = riverFlow(conn, rivers.data, riverContext);
   log(`${lakeCount} lakes, ${riverCount} river lines`);
+  const grids: CachedMap = {
+    connection: plainGrid(connection),
+    ocean: plainGrid(ocean),
+    elevation: plainGrid(elevation),
+    relief: plainGrid(relief),
+    lakeLevel: plainGrid(lakeLevel),
+    lakes: plainGrid(lakes),
+    rivers: plainGrid(rivers),
+    flowCos: { width: conn.width, height: conn.height, data: flow.cos },
+    flowSin: { width: conn.width, height: conn.height, data: flow.sin },
+    coast: plainGrid(coast),
+  };
+  ctx.landCache.put('map', grids);
+  return mapOf(grids, straits, humidPeriods);
+}
+
+/** The map's grids as the land cache keeps them (data/build/lib/buildCache.ts). */
+interface CachedMap {
+  connection: PlainGrid<Uint8Array>;
+  ocean: PlainGrid<Uint16Array>;
+  elevation: PlainGrid<Int16Array>;
+  relief: PlainGrid<Int16Array>;
+  lakeLevel: PlainGrid<Int16Array>;
+  lakes: PlainGrid<Uint8Array>;
+  rivers: PlainGrid<Uint8Array>;
+  flowCos: PlainGrid<Uint8Array>;
+  flowSin: PlainGrid<Uint8Array>;
+  coast: PlainGrid<Uint8Array>;
+}
+
+/** The map from its grids: the pyramids and the ice bed are quick to make again. */
+function mapOf(g: CachedMap, straits: Strait[], humidPeriods: HumidPeriod[]): WorldMap {
+  const elevation = fromPlain(g.elevation);
+  // The ice sheets stand on a heavily smoothed bed, the same in the terrain tiles and in the
+  // ice thickness, so their surface is smooth (section 5.2). It leaves out the listed
+  // mountains, so their snow caps (section 5.2) stand out from it.
+  const bedGrid = new GridPyramid(elevation).forSpacing(ICE_BED_SPACING_DEG);
   return {
-    connection,
-    ocean,
+    connection: fromPlain(g.connection),
+    ocean: fromPlain(g.ocean),
     straits,
     humidPeriods,
     elevation,
-    heights,
-    iceBed,
-    lakeLevel,
-    lakes,
-    rivers,
-    flowCos: new Grid(conn.width, conn.height, flow.cos),
-    flowSin: new Grid(conn.width, conn.height, flow.sin),
-    coast,
+    heights: new GridPyramid(fromPlain(g.relief)),
+    iceBed: (lat, lon) => Math.max(0, bedGrid.bilinear(lat, lon)),
+    lakeLevel: fromPlain(g.lakeLevel),
+    lakes: fromPlain(g.lakes),
+    rivers: fromPlain(g.rivers),
+    flowCos: fromPlain(g.flowCos),
+    flowSin: fromPlain(g.flowSin),
+    coast: fromPlain(g.coast),
   };
 }
 
@@ -288,15 +324,26 @@ export function buildTerrain(ctx: WriteContext, map: WorldMap, drawn?: DrawnTile
   const { log, output, maxLevel } = ctx;
   const { ocean } = map;
   // Coarse levels sample a coast prefiltered for their spacing (section 4.2).
-  const coarse = new Map<number, Grid<Uint16Array>>();
-  for (let level = 0; level <= maxLevel; level++) {
-    const spacingKm = ((90 / (1 << level)) * KM_PER_DEG) / TILE_N;
-    if (spacingKm < COARSE_MIN_SPACING_KM) break;
-    coarse.set(
-      level,
-      new Grid(ocean.width, ocean.height, coarseOcean(ocean, spacingKm, map.straits)),
-    );
-  }
+  const coarse = new Map<number, Grid<Uint16Array>>(
+    ctx.landCache
+      .through('coarse', () => {
+        const levels: [number, PlainGrid<Uint16Array>][] = [];
+        for (let level = 0; level <= maxLevel; level++) {
+          const spacingKm = ((90 / (1 << level)) * KM_PER_DEG) / TILE_N;
+          if (spacingKm < COARSE_MIN_SPACING_KM) break;
+          levels.push([
+            level,
+            {
+              width: ocean.width,
+              height: ocean.height,
+              data: coarseOcean(ocean, spacingKm, map.straits),
+            },
+          ]);
+        }
+        return levels;
+      })
+      .map(([level, g]) => [level, fromPlain(g)]),
+  );
   log(`coarse coasts for levels 0..${coarse.size - 1}`);
 
   const terrain: LayerOut = { chunks: {}, parts: new Map(), deep: [] };

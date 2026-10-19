@@ -426,6 +426,15 @@ The first view of the globe at 50,000 BCE on a phone must need at most about 3 M
 
 Sea level, ocean mask thresholds, ice cover and the climate band at a date are fully determined by the data. When a tile or climate slice has not arrived, the renderer shows the coarser parent tile, or the nearest loaded slices, until it does; this is a drawing fallback only, never a change to the computed values. Golden tests (section 13) compute these values directly from the data and never depend on what has loaded.
 
+### 10.7.1 Build caches
+
+The data build keeps the results of its slow stages in `data/out/` (git-ignored), so a build that changes only the tree of humankind or the content does not compute the land again (Yang, 2026-10-19: "can we have some sort of incremental rebuild?", and "I don't think we'll change terrain much in the future").
+
+- **The land cache** (`data/out/cache/<key>/`) holds the map grids, the coarse coasts of the terrain tiles and the climate and foliage slices, stored exactly. Its key is a hash of the source checksums (`data/sources.json`), the land's curated files (straits, islands, removed areas, mountains, humid periods, rivers, inland seas), the build code that makes the land and the climate (everything in `data/build/lib/` but the tree's own files, the terrain, climate and context stages, and the app modules they use) and the options.
+- **The camp sites** ([sites.md](sites.md) section 7) are kept the same way in `data/out/sites/`.
+- **Brotli copies** are kept by the hash of their file's bytes in `data/out/brotli/`, so unchanged files are not compressed again.
+- Each cache keeps only what the latest build used. `npm run build-data -- --fresh` uses and writes no cache. A cached build must write exactly the same files as a fresh one.
+
 ### 10.8 Data build validation
 
 The build fails when: a source has no licence entry, its licence is not allowed by the data licence policy, or its files under `data/sources/` do not match their checksums; an era record lacks a date, a source or its label in any supported language; a date is outside the timeline; an approximate flag is missing where [eras.md](eras.md) marks "c."; a chunk exceeds 1 MB; or a referenced asset is not `approved` in the asset manifest.
