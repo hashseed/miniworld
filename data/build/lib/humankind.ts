@@ -20,6 +20,9 @@ import {
   BUILD_RING_M,
   CAMP_ROOM_M,
   LODGING_RING_M,
+  RACK_R,
+  SCRAPE_BACK_M,
+  SCRAPE_SIDE_M,
   HEARTH_SPOTS,
   LAYOUT_KM_PER_M,
   LODGING_SLOTS,
@@ -42,17 +45,21 @@ export const DENSITIES: Record<Density, { spacingKm: number; band: [number, numb
 export const LODGING_CAPACITY = 4;
 export const MAX_LODGINGS = 5;
 
-const years = (y: number): number => Math.round(y * DAYS_PER_YEAR);
-/** One step of the build: 25 years of history, a minute of watching (section 4.3). */
-export const STEP_DAYS = years(25);
+// The tree's rhythms are set in watching time, so camps look the same in every era
+// (section 4.3; Yang, 2026-10-19), and converted to days by the curve of spec section 2.1.
+/** One step of the build, in milliseconds of watching (section 4.3). */
+const STEP_MS = 10_000;
 /** At most one figure comes out of a lodging in this time (section 4.3). */
-export const EMERGE_DAYS = years(50);
-/** A band moves its camp at the end of each residence window (section 4.4). */
-export const RESIDENCE_DAYS = years(100);
-/** A full camp waits this long between sending out groups. */
-export const BUD_DAYS = years(100);
+const EMERGE_MS = 60_000;
+/** A band moves its camp after one to two of these (section 4.4). */
+const RESIDENCE_MS = 60_000;
+/** A full camp waits this long between sending out groups, */
+const BUD_MS = 180_000;
 /** ...and this long after finding no free land. */
-const BUD_RETRY_DAYS = years(500);
+const BUD_RETRY_MS = 600_000;
+
+/** The day a span of watching time after a day, and at least the next day. */
+const after = (day: Day, ms: number): Day => Math.max(day + 1, dayAtWatch(watchAtDay(day) + ms));
 
 const KM_PER_DEG = 111.195;
 /** Rays across a gap between the lodgings, in radians from its middle, for how far people can go out. */
@@ -74,6 +81,8 @@ export interface Habitat {
    * ground; bands on the move ford rivers. Without it, all land is dry.
    */
   dry?(lat: number, lon: number): boolean;
+  /** Tree cover, 0 to 1, on a day: a band fells it before it builds (section 8.1). */
+  wood?(lat: number, lon: number, day: Day): number;
 }
 
 export interface TreeSettings {
@@ -142,7 +151,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     s.density(lat, lon, day) !== undefined &&
     habitat.habitable(lat, lon, day) &&
     // Lodgings go up during the step, so the land must last through it.
-    habitat.habitable(lat, lon, day + STEP_DAYS) &&
+    habitat.habitable(lat, lon, after(day, STEP_MS)) &&
     frontOk(lat, lon, day);
 
   const clearOfCamps = (lat: number, lon: number, spacingKm: number, except: Camp | undefined) =>
@@ -203,7 +212,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     lon: lon + (x * LAYOUT_KM_PER_M) / (KM_PER_DEG * detCos(lat * RAD)),
   });
   const landAt = (p: { lat: number; lon: number }, day: Day) =>
-    habitat.habitable(p.lat, p.lon, day) && habitat.habitable(p.lat, p.lon, day + STEP_DAYS);
+    habitat.habitable(p.lat, p.lon, day) && habitat.habitable(p.lat, p.lon, after(day, STEP_MS));
   /** Land with no river on it, for the camp itself: its lodgings, spots and outings. */
   const dryAt = (p: { lat: number; lon: number }, day: Day) =>
     landAt(p, day) && (habitat.dry?.(p.lat, p.lon) ?? true);
@@ -222,17 +231,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   /** Whether the people's spots round a hearth would all be on land (section 8.1). */
   /** How many lodging slots of a camp at a place have the lodging and its builders on dry land. */
   const drySlots = (campId: number, lat: number, lon: number, day: Day): number =>
-    Array.from({ length: LODGING_SLOTS }, (_, k) => slotPoint(campId, k)).filter((p) =>
-      [
-        p,
-        ...Array.from({ length: 12 }, (_, j) => {
-          const a = (j / 12) * 2 * Math.PI;
-          return {
-            x: p.x + (BUILD_RING_M + 1) * detCos(a),
-            z: p.z + (BUILD_RING_M + 1) * detSin(a),
-          };
-        }),
-      ].every((q) => dryAt(offset(lat, lon, q.x, q.z), day)),
+    Array.from({ length: LODGING_SLOTS }, (_, k) => k).filter((k) =>
+      slotFootprint(campId, k).every((q) => dryAt(offset(lat, lon, q.x, q.z), day)),
     ).length;
 
   const roomy = (lat: number, lon: number, day: Day) => {
@@ -262,14 +262,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     const free = Array.from({ length: LODGING_SLOTS }, (_, k) => k).filter((k) => !taken.has(k));
     const at = (q: { x: number; z: number }) => dryAt(offset(camp.lat, camp.lon, q.x, q.z), day);
     // The lodging and the builders round it, a little past where they stand.
-    const standsDry = (k: number) => {
-      const p = slotPoint(camp.id, k);
-      const round = Array.from({ length: 12 }, (_, j) => {
-        const a = (j / 12) * 2 * Math.PI;
-        return { x: p.x + (BUILD_RING_M + 1) * detCos(a), z: p.z + (BUILD_RING_M + 1) * detSin(a) };
-      });
-      return [p, ...round].every(at);
-    };
+    const standsDry = (k: number) => slotFootprint(camp.id, k).every(at);
     // The ground the builders cross to it from the people's ring, which they enter and leave
     // from any side: the wedge from the camp's room out past the builders, a point every
     // layout metre (Yang, 2026-10-19: people walked over Lake Malawi to a hut).
@@ -291,17 +284,9 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     const taken = new Set(camp.lodgings.map((l) => tree.lodgings[l]!.slot));
     return Array.from({ length: LODGING_SLOTS }, (_, k) => k).some((k) => {
       if (taken.has(k)) return false;
-      const p = slotPoint(camp.id, k);
-      return [
-        p,
-        ...Array.from({ length: 12 }, (_, j) => {
-          const a = (j / 12) * 2 * Math.PI;
-          return {
-            x: p.x + (BUILD_RING_M + 1) * detCos(a),
-            z: p.z + (BUILD_RING_M + 1) * detSin(a),
-          };
-        }),
-      ].every((q) => dryAt(offset(camp.lat, camp.lon, q.x, q.z), day));
+      return slotFootprint(camp.id, k).every((q) =>
+        dryAt(offset(camp.lat, camp.lon, q.x, q.z), day),
+      );
     });
   };
 
@@ -365,6 +350,9 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       slot: freeSlot(camp, day),
       reach: reachOf(camp, day),
       kind: s.lodgingKind,
+      ...(habitat.wood
+        ? { wood: Math.round(100 * habitat.wood(camp.lat, camp.lon, day)) / 100 }
+        : {}),
     };
     tree.lodgings.push(l);
     camp.lodgings.push(l.id);
@@ -400,8 +388,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       target: lo + (hash32(id, 7) % (hi - lo + 1)),
       lodgings: [],
       // Each band keeps its own rhythm of moving, so camps do not all move at once.
-      nextMove: day + RESIDENCE_DAYS + (hash32(id, 11) % RESIDENCE_DAYS),
-      nextBud: day + BUD_DAYS,
+      nextMove: after(day, RESIDENCE_MS + (hash32(id, 11) % RESIDENCE_MS)),
+      nextBud: after(day, BUD_MS),
     };
     camps.push(camp);
     return camp;
@@ -430,7 +418,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
 
   // The day the first person's first companion steps out: a minute of watching in.
   const aloneUntil = dayAtWatch(watchAtDay(s.startDay) + FOUNDER_ALONE_MS);
-  for (let day = s.startDay; day < s.endDay; day += STEP_DAYS) {
+  for (let day = s.startDay; day < s.endDay; day = after(day, STEP_MS)) {
+    const step = after(day, STEP_MS) - day;
     // Camps founded during this step wait for the next one.
     const count = camps.length;
     for (let ci = 0; ci < count; ci++) {
@@ -439,7 +428,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       const people = camp.lodgings.flatMap((l) => residents.get(l)!);
 
       // The land changes under the camp: move before the sea, ice or desert arrive.
-      if (!habitat.habitable(camp.lat, camp.lon, day + STEP_DAYS)) {
+      if (!habitat.habitable(camp.lat, camp.lon, day + step)) {
         const spot = findSpot(camp, day, 0.5, 3, 1, true);
         if (spot) {
           relocate(camp, spot.lat, spot.lon, day);
@@ -449,7 +438,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       }
       // The end of a residence window: the band moves a little way.
       if (day >= camp.nextMove) {
-        camp.nextMove += RESIDENCE_DAYS;
+        camp.nextMove = after(day, RESIDENCE_MS + (hash32(camp.id, day, 12) % RESIDENCE_MS));
         const spot = findSpot(camp, day, 0.2, 0.6, 2);
         if (spot) relocate(camp, spot.lat, spot.lon, day);
       }
@@ -460,12 +449,15 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         for (const l of camp.lodgings) {
           const inside = residents.get(l)!;
           if (inside.length === 0 || inside.length >= LODGING_CAPACITY) continue;
-          if (day - lastEmerge.get(l)! < EMERGE_DAYS && !(l === hut.id && inside.length === 1))
+          if (
+            watchAtDay(day) - watchAtDay(lastEmerge.get(l)!) < EMERGE_MS &&
+            !(l === hut.id && inside.length === 1)
+          )
             continue;
           // The first person stays alone for the first minute of watching (section 4.2).
-          if (tree.figures.length === 1 && day + STEP_DAYS <= aloneUntil) continue;
+          if (tree.figures.length === 1 && day + step <= aloneUntil) continue;
           const parent = inside[hash32(l, day, 1) % inside.length]!;
-          const born = Math.max(day + (hash32(l, day, 2) % STEP_DAYS), aloneUntil);
+          const born = Math.max(day + (hash32(l, day, 2) % step), aloneUntil);
           const f = newFigure(parent, born, tree.figures[parent]!.branch, l);
           lastEmerge.set(l, born);
           if (f.id === 1) moment('first-born', born, f.id, camp);
@@ -478,7 +470,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
           // Another lodging only where one can stand on dry land (section 4).
           if (full && hasDrySlot(camp, day)) {
             const builder = people[hash32(camp.id, day, 3) % people.length]!;
-            const l = newLodging(camp, builder, day + (hash32(camp.id, day, 4) % STEP_DAYS));
+            const l = newLodging(camp, builder, day + (hash32(camp.id, day, 4) % step));
             const from = tree.figures[builder]!.homes.at(-1)![1];
             moveIn(builder, from, l.id, l.built);
           }
@@ -487,10 +479,10 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         // A full camp sends out a small group to found a new one (section 4.3).
         const spot = findSpot(camp, day, 1, 2, 3, false, camps.length);
         if (!spot) {
-          camp.nextBud = day + BUD_RETRY_DAYS;
+          camp.nextBud = after(day, BUD_RETRY_MS);
           continue;
         }
-        camp.nextBud = day + BUD_DAYS;
+        camp.nextBud = after(day, BUD_MS);
         // Two or three walk off; the first person stays at home, and nobody leaves a camp empty.
         const candidates = people.filter((f) => f !== 0);
         const size = Math.min(
@@ -503,7 +495,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         for (let k = 0; k < size; k++)
           group.push(candidates.splice(hash32(camp.id, day, 6, k) % candidates.length, 1)[0]!);
         const child = newCamp(spot.lat, spot.lon, day);
-        const arrive = day + (hash32(camp.id, day, 8) % STEP_DAYS);
+        const arrive = day + (hash32(camp.id, day, 8) % step);
         const l = newLodging(child, group[0]!, arrive);
         for (const f of group) moveIn(f, tree.figures[f]!.homes.at(-1)![1], l.id, arrive);
         moment('camp-founded', arrive, group[0]!, child);
@@ -578,6 +570,31 @@ export function checkTree(tree: Tree, s: TreeSettings, habitat: Habitat): string
  * for a window after the tree ends. The tree is built only up to its end day,
  * so its figures and lodgings are taken away then.
  */
+/**
+ * What a lodging slot needs on dry land (section 8.1): the lodging, its builders round it a
+ * little past where they stand, and behind it its drying rack, end to end, and the place
+ * where its hide is scraped.
+ */
+function slotFootprint(campId: number, k: number): { x: number; z: number }[] {
+  const p = slotPoint(campId, k);
+  const out = [p];
+  for (let j = 0; j < 12; j++) {
+    const a = (j / 12) * 2 * Math.PI;
+    out.push({ x: p.x + (BUILD_RING_M + 1) * detCos(a), z: p.z + (BUILD_RING_M + 1) * detSin(a) });
+  }
+  const len = Math.sqrt(p.x * p.x + p.z * p.z);
+  const [ux, uz] = [p.x / len, p.z / len];
+  for (const [r, across] of [
+    [RACK_R, 0],
+    [RACK_R, 4],
+    [RACK_R, -4],
+    [RACK_R + SCRAPE_BACK_M + 1, 0],
+    [RACK_R + SCRAPE_BACK_M + 1, SCRAPE_SIDE_M],
+  ] as const)
+    out.push({ x: ux * r - uz * across, z: uz * r + ux * across });
+  return out;
+}
+
 /** The first person is alone for this long of watching (section 4.2). */
 const FOUNDER_ALONE_MS = 60_000;
 /** A camp site has room when at least this many of its lodging slots stand on dry land. */

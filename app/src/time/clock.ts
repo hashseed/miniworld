@@ -3,14 +3,16 @@
 // everything on screen. It advances by real time × the speed mode's factor
 // while playing; the date follows from it at 25 years per minute.
 
-import { DAYS_PER_YEAR, type Day } from './calendar.ts';
+import type { Day } from './calendar.ts';
 import { dayAtMs, msAtDay } from './rate.ts';
 import { SPEED_FACTOR, stepSpeed, yearsPerMinute, type SpeedMode } from './speed.ts';
 
 export type PlayState = 'playing' | 'paused';
 
-/** A jump runs this long in real time, however far it goes (section 3.3). */
+/** A jump runs this long in real time (section 3.3). */
 export const JUMP_MS = 1000;
+/** And covers this much watching time, back or forward (Yang, 2026-10-19). */
+export const JUMP_SECONDS = 10;
 
 export interface ClockOptions {
   startDay: Day;
@@ -84,11 +86,11 @@ export class Clock {
   }
 
   /**
-   * Jumps the date by whole years, back if negative, by playing very fast for
-   * JUMP_MS; queued behind a jump under way (section 3.3).
+   * Jumps the clock by some watching time, back if negative, by playing very fast
+   * for JUMP_MS; queued behind a jump under way (section 3.3).
    */
-  jumpYears(years: number): void {
-    this.queued.push(Math.round(years * DAYS_PER_YEAR));
+  jumpWatch(ms: number): void {
+    this.queued.push(Math.round(ms));
     if (!this.jump) this.nextJump();
     this.emit();
   }
@@ -97,10 +99,9 @@ export class Clock {
   private nextJump(): void {
     this.jump = undefined;
     while (this.queued.length > 0) {
-      const days = this.queued.shift()!;
+      const delta = this.queued.shift()!;
       const from = this.accumulator;
-      const day = Math.min(this.endDay, Math.max(this.startDay, this.day + days));
-      const to = msAtDay(day, this.startDay);
+      const to = this.clampMs(this.ms + delta);
       if (to !== this.ms) {
         this.jump = { from, to, ran: 0 };
         return;

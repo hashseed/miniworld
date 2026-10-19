@@ -28,6 +28,8 @@ import { isSea, LAKE_FIELD } from '../planet/surface.ts';
 import { dayAtMs, msAtDay } from '../time/rate.ts';
 import { LAYOUT_KM_PER_M, treeScene, type TreeChunk } from './treeScene.ts';
 import { WILD_GROUPS, decodeWildMask, flies, swims, wildlifeAt } from './wildlife.ts';
+import { buildAnimal, type AnimalId } from '../../../assets/src/animals.ts';
+import { DRAWN_SIZE_M } from '../wildlife/wildlifeLayer.ts';
 
 const DATA = join(import.meta.dirname, '../../public/data');
 const built = existsSync(join(DATA, 'manifest.json'));
@@ -157,6 +159,23 @@ describe.skipIf(!built)('paths on land', async () => {
     600_000,
   );
 
+  /**
+   * One body length at drawn size with the lens off, as the wildlife layer reckons it
+   * (wildlife.md section 1): 75 km a metre, the size clamped to 1.8 to 4 metres.
+   */
+  const lengths = new Map<string, number>();
+  const bodyKm = (model: string) => {
+    if (!lengths.has(model)) {
+      const m = buildAnimal(model as AnimalId);
+      m.object.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(m.object);
+      const size = Math.max(box.max.y - box.min.y, (box.max.z - box.min.z) / 2);
+      const drawn = DRAWN_SIZE_M[model] ?? Math.min(4, Math.max(1.8, size));
+      lengths.set(model, ((box.max.z - box.min.z) * 75 * drawn) / size);
+    }
+    return lengths.get(model)!;
+  };
+
   it('keeps every walking animal on land', async () => {
     const masks = index.wildlife.map((hex) => (hex ? decodeWildMask(hex) : undefined));
     const wet = report();
@@ -166,10 +185,17 @@ describe.skipIf(!built)('paths on land', async () => {
     const days = [...manifest.windows.filter((_, i) => i % 4 === 0), manifest.cutoffDay];
     for (const day of days)
       for (let s = 0; s < 3600; s += 5)
-        for (const a of wildlifeAt(day, s, WILD_GROUPS, masks)) {
+        for (const a of wildlifeAt(day, s, WILD_GROUPS, masks, bodyKm)) {
           const g = WILD_GROUPS[Number(a.key.split(':')[0])]!;
           if (flies(g) || swims(g) || a.grow <= 0) continue;
-          const dir = offsetDir(a.lat, a.lon, a.eastKm, a.northKm);
+          // Where the layer draws it: its group's spot plus its place in the group.
+          const r = bodyKm(a.model);
+          const dir = offsetDir(
+            a.lat,
+            a.lon,
+            a.eastKm + a.offset[0] * r,
+            a.northKm + a.offset[1] * r,
+          );
           checked++;
           const what = await water(dir, day);
           if (what)

@@ -68,7 +68,7 @@ export interface Actions {
   renameBookmark(id: string, name: string): void;
   deleteBookmark(id: string): void;
   resetCamera(): void;
-  /** Jumps back (-1) or forward (1) by the button's step, by playing very fast (section 3.3). */
+  /** Jumps back (-1) or forward (1) ten seconds of watching time, played fast (section 3.3). */
   jump(dir: -1 | 1): void;
   followPlayhead(): void;
   toggleLanes(): void;

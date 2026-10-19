@@ -4,6 +4,7 @@ import { msAtDay } from '../time/rate.ts';
 import { NEVER } from './tree.ts';
 import {
   BLEND_MS,
+  POLE_ON_SHOULDERS_M,
   TAKE_DOWN_MS,
   lodgingSpot,
   lookOf,
@@ -82,14 +83,14 @@ describe('the tree scene', () => {
     const s = treeScene(chunk, 5000, d0);
     expect(s.figures.map((f) => f.id)).toEqual([0]);
     expect(s.figures[0]!.look).toBe('founder');
-    expect(s.hearths).toEqual([{ camp: 0, lat: 0, lon: 36 }]);
+    expect(s.hearths).toEqual([{ camp: 0, lat: 0, lon: 36, lit: 1 }]);
     expect(s.lodgings).toHaveLength(1);
   });
 
-  it('lets a new figure come out of the door and walk to its spot', () => {
+  it('lets a new figure crouch out of the door and walk to its spot', () => {
     const born = ms(d0 + years(300));
     const out = treeScene(chunk, born + 10, d0).figures.find((f) => f.id === 1)!;
-    expect(out.clip).toBe('walk');
+    expect(out.clip).toBe('crouch');
     const later = treeScene(chunk, born + 60_000, d0).figures.find((f) => f.id === 1)!;
     expect(['idle', 'work']).toContain(later.clip);
     expect(later.x ** 2 + later.z ** 2).toBeLessThan(out.x ** 2 + out.z ** 2);
@@ -209,15 +210,71 @@ describe('the tree scene', () => {
     expect(knappers.has('child')).toBe(false);
   });
 
-  it('has hunters chase a zebra or an eland, which falls where they butcher it', () => {
+  it('has hunters spear a zebra or an eland and carry it home on a pole (section 8.1)', () => {
     const clips = new Set<string>();
-    for (let t = ms(d0 + years(25)); t < ms(moveDay) - 10_000; t += 97)
-      for (const p of treeScene(chunk, t, d0).prey) {
+    let flying = 0;
+    let missed = 0;
+    let carried = 0;
+    for (let t = ms(d0 + years(25)); t < ms(moveDay) - 10_000; t += 97) {
+      const scene = treeScene(chunk, t, d0);
+      for (const p of scene.prey) {
         clips.add(p.clip);
         expect(['animal-zebra', 'animal-eland']).toContain(p.kind);
-        expect(p.x * p.x + p.z * p.z).toBeGreaterThan(30 * 30);
+        // Out beyond the people's ring, or laid down between them and the lodgings.
+        expect(Math.sqrt(p.x * p.x + p.z * p.z)).toBeGreaterThan(13);
       }
-    expect(clips).toEqual(new Set(['idle', 'run', 'fall']));
+      for (const sp of scene.spears) {
+        expect(sp.height).toBeGreaterThan(0);
+        expect(sp.height).toBeLessThan(3);
+        if (sp.slope > -0.3 && sp.height > 1) flying++;
+        if (sp.height === 0.55) missed++;
+      }
+      // While a spear is away, its hunter's hand is empty.
+      if (scene.spears.length)
+        expect(scene.figures.some((f) => f.unarmed || f.clip === 'throw')).toBe(true);
+      // The kill hangs under the pole, at shoulder height, between two carriers in step.
+      for (const p of scene.prey.filter((q) => q.clip === 'hung')) {
+        const pole = scene.poles.find((q) => Math.abs(q.x - p.x) + Math.abs(q.z - p.z) < 0.01);
+        expect(pole?.height).toBeCloseTo(POLE_ON_SHOULDERS_M, 5);
+        const carriers = scene.figures.filter(
+          (f) => f.clip === 'pole' && Math.sqrt((f.x - p.x) ** 2 + (f.z - p.z) ** 2) < 4.6,
+        );
+        if (carriers.length < 2) continue;
+        carried++;
+        expect(
+          Math.sqrt(
+            (carriers[0]!.x - carriers[1]!.x) ** 2 + (carriers[0]!.z - carriers[1]!.z) ** 2,
+          ),
+        ).toBeCloseTo(9, 1);
+        expect(carriers[0]!.clipMs).toBe(carriers[1]!.clipMs);
+      }
+    }
+    expect(clips).toEqual(new Set(['walk', 'idle', 'run', 'fall', 'bound', 'hung']));
+    expect(flying).toBeGreaterThan(0);
+    expect(missed).toBeGreaterThan(0);
+    expect(carried).toBeGreaterThan(0);
+  });
+
+  it('has the hunted animal and its herd walk in from the trees, and the herd bolt back (section 8.1)', () => {
+    let walkedIn = 0;
+    let fled = 0;
+    let herd = 0;
+    for (let t = ms(d0 + years(25)); t < ms(moveDay) - 10_000; t += 97)
+      for (const p of treeScene(chunk, t, d0).prey) {
+        const r = Math.sqrt(p.x * p.x + p.z * p.z);
+        if (p.id.split(':').length > 2) herd++;
+        if (p.clip === 'walk') {
+          walkedIn++;
+          // In from the far end of the lane, never closer than the grazing place.
+          expect(r).toBeGreaterThan(33);
+          expect(p.dirX * p.x + p.dirZ * p.z).toBeLessThan(0);
+        }
+        if (p.clip === 'run' && p.id.split(':').length > 2 && p.dirX * p.x + p.dirZ * p.z > 0)
+          fled++;
+      }
+    expect(walkedIn).toBeGreaterThan(0);
+    expect(herd).toBeGreaterThan(0);
+    expect(fled).toBeGreaterThan(0);
   });
 
   it('fells the trees where the band arrives and lets them grow back where it left', () => {

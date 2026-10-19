@@ -20,8 +20,12 @@ export class Output {
   files = 0;
   /** Compressed size per file, for budgets; complete after finish(). */
   readonly sizes = new Map<string, number>();
-  /** Brotli copies being written, on Node's thread pool. */
-  private pending: Promise<void>[] = [];
+  /**
+   * Files waiting for their Brotli copies. They are compressed at the end, a few at a time,
+   * so the build's memory and the machine's cores are not all taken at once (small CI
+   * runners lost the job when every copy was queued while the build ran).
+   */
+  private pending: { name: string; path: string; bytes: Uint8Array }[] = [];
 
   constructor(root: string) {
     this.root = root;
@@ -47,23 +51,26 @@ export class Output {
     writeFileSync(path, bytes);
     this.rawBytes += bytes.length;
     this.files++;
-    this.pending.push(
-      compress(bytes, {
-        params: {
-          [constants.BROTLI_PARAM_QUALITY]: 9,
-          [constants.BROTLI_PARAM_SIZE_HINT]: bytes.length,
-        },
-      }).then((br) => {
-        writeFileSync(`${path}.br`, br);
-        this.compressedBytes += br.length;
-        this.sizes.set(name, br.length);
-      }),
-    );
+    this.pending.push({ name, path, bytes });
   }
 
-  /** Waits for every Brotli copy to be written. */
+  /** Writes every Brotli copy, two at a time. */
   async finish(): Promise<void> {
-    await Promise.all(this.pending);
+    const queue = this.pending;
     this.pending = [];
+    const worker = async () => {
+      for (let job = queue.shift(); job; job = queue.shift()) {
+        const br = await compress(job.bytes, {
+          params: {
+            [constants.BROTLI_PARAM_QUALITY]: 9,
+            [constants.BROTLI_PARAM_SIZE_HINT]: job.bytes.length,
+          },
+        });
+        writeFileSync(`${job.path}.br`, br);
+        this.compressedBytes += br.length;
+        this.sizes.set(job.name, br.length);
+      }
+    };
+    await Promise.all([worker(), worker()]);
   }
 }

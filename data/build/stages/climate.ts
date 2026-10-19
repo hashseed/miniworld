@@ -17,6 +17,8 @@ import { aridityGrid, iceThickness, meanSeaLevel, TimeStack } from '../lib/clima
 import { polarWeight } from '../lib/coast.ts';
 import { readExtract } from '../lib/extract.ts';
 import { foliageGrid } from '../lib/foliage.ts';
+import { FOLIAGE_GRID_H, FOLIAGE_GRID_W } from '../../../app/src/content/formats.ts';
+import { recipeOf } from '../../../app/src/globe/foliageKinds.ts';
 import { climateStepYears, iceGrid, seaLevelCurve, sliceDay } from '../lib/ice.ts';
 import type { WriteContext } from './context.ts';
 import type { WorldMap } from './terrain.ts';
@@ -30,6 +32,8 @@ export interface Climate {
   slices: ClimateSlice[];
   climateFiles: string[];
   foliageFiles: string[];
+  /** Tree cover, 0 to 1, at a place on a day: the share of plant slots times the tree density (humankind.md section 4.3). */
+  woodAt(lat: number, lon: number, day: number): number;
 }
 
 export function buildClimate(ctx: WriteContext, map: WorldMap): Climate {
@@ -95,8 +99,10 @@ export function buildClimate(ctx: WriteContext, map: WorldMap): Climate {
     ice: iceStack,
     periods: humidPeriods,
   };
+  const grids: { day: number; grid: ReturnType<typeof foliageGrid> }[] = [];
   const foliageFiles = climateYears.map((bp) => {
     const grid = foliageGrid(foliageInputs, bp);
+    grids.push({ day: sliceDay(bp), grid });
     return output.write(
       `foliage/${bp}`,
       'bin',
@@ -106,5 +112,22 @@ export function buildClimate(ctx: WriteContext, map: WorldMap): Climate {
   log(
     `${climateFiles.length} climate and foliage slices; lowest sea level ${Math.min(...seaLevel.metres)} m`,
   );
-  return { seaLevel, seaLevelAt, iceDays, slices, climateFiles, foliageFiles };
+  grids.sort((a, b) => a.day - b.day);
+  const woodAt = (lat: number, lon: number, day: number) => {
+    let k = 0;
+    while (k + 1 < grids.length && grids[k + 1]!.day <= day) k++;
+    const g = grids[k]!.grid;
+    const c = Math.min(
+      FOLIAGE_GRID_W - 1,
+      Math.max(0, Math.floor(((lon + 180) / 360) * FOLIAGE_GRID_W)),
+    );
+    const r = Math.min(
+      FOLIAGE_GRID_H - 1,
+      Math.max(0, Math.floor(((90 - lat) / 180) * FOLIAGE_GRID_H)),
+    );
+    const i = r * FOLIAGE_GRID_W + c;
+    const share = recipeOf(g.classes[i]!).reduce((sum, [, part]) => sum + part, 0);
+    return Math.min(1, share * (g.density[i]! / 255));
+  };
+  return { seaLevel, seaLevelAt, iceDays, slices, climateFiles, foliageFiles, woodAt };
 }

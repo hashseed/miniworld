@@ -56,6 +56,7 @@ export function buildHumankind(
     // The globe draws a river where its field passes 128; the bank starts a little before.
     inRiver: (lat, lon) => rivers.bilinear(lat, lon) >= RIVER_BANK_FIELD,
     elevation: (lat, lon) => elevation.bilinear(lat, lon),
+    wood: climate.woodAt,
   });
   const cultureAreas = ctx.curated<CultureAreas>('culture-areas.json');
   const areaErrors = validateCultureAreas(cultureAreas);

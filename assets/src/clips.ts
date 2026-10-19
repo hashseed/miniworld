@@ -20,7 +20,24 @@ export type Clip =
   | 'struggle'
   | 'fall'
   | 'fly'
-  | 'swim';
+  | 'swim'
+  | 'pole'
+  | 'bound'
+  | 'hung'
+  // Camp life (humankind.md section 8.1).
+  | 'strike'
+  | 'crouch'
+  | 'dance'
+  | 'scrape'
+  | 'crack';
+
+/**
+ * Height in metres of a carrying pole on the shoulders of two walking people
+ * (humankind.md section 8.1); a `hung` animal hangs from it.
+ */
+export const POLE_HEIGHT = 1.42;
+/** Seconds over which a fallen animal's legs are bound together. */
+export const BIND_SECONDS = 2.4;
 
 /** Seconds into the throw gesture when the spear leaves the hand. */
 export const THROW_RELEASE = 0.55;
@@ -40,6 +57,8 @@ export const GAITS = {
   walk: { period: 1.0, swing: 0.42, stance: 0.6, knee: 0.9 },
   run: { period: 0.6, swing: 0.6, stance: 0.4, knee: 1.7 },
   carry: { period: 1.15, swing: 0.36, stance: 0.62, knee: 0.7 },
+  pole: { period: 1.15, swing: 0.36, stance: 0.62, knee: 0.7 },
+  crouch: { period: 1.2, swing: 0.3, stance: 0.62, knee: 1.1 },
   haul: { period: 1.6, swing: 0.27, stance: 0.65, knee: 0.5 },
 } satisfies Record<string, Gait>;
 
@@ -96,6 +115,12 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
   const t = seconds;
   bone('tool').visible =
     clip !== 'carry' &&
+    clip !== 'pole' &&
+    clip !== 'strike' &&
+    clip !== 'crouch' &&
+    clip !== 'dance' &&
+    clip !== 'scrape' &&
+    clip !== 'crack' &&
     clip !== 'haul' &&
     clip !== 'work' &&
     clip !== 'knap' &&
@@ -104,7 +129,7 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
   // Knapping stones, on the models of cultures that knap.
   for (const name of ['knap', 'hammer']) {
     const stone = m.bones.get(name);
-    if (stone) stone.visible = clip === 'knap';
+    if (stone) stone.visible = clip === 'knap' || clip === 'crack';
   }
 
   const hipRest = (bone('hips').userData.rest as THREE.Vector3).y;
@@ -194,6 +219,105 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
       rot('armUpperR', -3.3, 0, -0.45);
       rot('armLowerL', -1.6);
       rot('armLowerR', -1.6);
+      break;
+    }
+    case 'pole': {
+      // Walking in step with a carrying pole on the right shoulder, the right hand
+      // up on the pole and the left arm swinging (humankind.md section 8.1).
+      const p = t / GAITS.pole.period;
+      const s = legs(p, GAITS.pole);
+      rot('torso', 0.1, 0.05 * s, 0.06);
+      rot('head', -0.05, -0.04 * s);
+      rot('armUpperR', -2.7, 0, -0.35);
+      rot('armLowerR', -1.7);
+      rot('armUpperL', -0.35 * s, 0, 0.12);
+      rot('armLowerL', -0.3 - 0.1 * lagOf(p));
+      break;
+    }
+    case 'strike': {
+      // Kneeling at the hearth, striking a flint down onto a stone held low, quick and
+      // sharp, to throw sparks onto the tinder (humankind.md section 8.1).
+      const u = t / 0.45 - Math.floor(t / 0.45);
+      const blow = u < 0.25 ? smooth(u / 0.25) : 1 - smooth((u - 0.25) / 0.75);
+      lift(-0.38 * hipRest);
+      rot('legUpperL', -1.45);
+      rot('legLowerL', 1.5);
+      rot('legUpperR', -0.35);
+      rot('legLowerR', 2.2);
+      rot('torso', 0.65);
+      rot('head', -0.4);
+      rot('armUpperL', -0.9, 0, -0.25);
+      rot('armLowerL', -0.5);
+      rot('armUpperR', -1.5 + 0.7 * blow, 0, 0.3);
+      rot('armLowerR', -1.1 + 0.6 * blow);
+      break;
+    }
+    case 'crouch': {
+      // Bent low through a hut's door, short steps, hands forward.
+      const p = t / GAITS.crouch.period;
+      const s = legs(p, GAITS.crouch);
+      lift(-0.28 * hipRest);
+      rot('legUpperL', (bone('legUpperL').rotation.x as number) - 0.55);
+      rot('legUpperR', (bone('legUpperR').rotation.x as number) - 0.55);
+      rot('legLowerL', (bone('legLowerL').rotation.x as number) + 0.7);
+      rot('legLowerR', (bone('legLowerR').rotation.x as number) + 0.7);
+      rot('torso', 0.95, 0.05 * s);
+      rot('head', -0.6);
+      rot('armUpperL', -0.9 - 0.15 * s, 0, 0.15);
+      rot('armUpperR', -0.9 + 0.15 * s, 0, -0.15);
+      rot('armLowerL', -0.4);
+      rot('armLowerR', -0.4);
+      break;
+    }
+    case 'dance': {
+      // Stamping in turn, knees high, the body bobbing and the arms up and swaying.
+      const p = t / 0.8;
+      const u = p - Math.floor(p);
+      const left = Math.max(0, Math.sin(u * TAU));
+      const right = Math.max(0, -Math.sin(u * TAU));
+      rot('legUpperL', -0.9 * left);
+      rot('legLowerL', 1.3 * left);
+      rot('legUpperR', -0.9 * right);
+      rot('legLowerR', 1.3 * right);
+      lift(0.05 * hipRest * Math.abs(Math.sin(u * TAU)));
+      const sway = Math.sin(u * TAU);
+      rot('torso', 0.1, 0.25 * sway, 0.08 * sway);
+      rot('head', -0.15, -0.2 * sway);
+      rot('armUpperL', -2.4 + 0.35 * sway, 0, 0.5);
+      rot('armUpperR', -2.4 - 0.35 * sway, 0, -0.5);
+      rot('armLowerL', -0.5);
+      rot('armLowerR', -0.5);
+      break;
+    }
+    case 'scrape': {
+      // Standing at the drying rack, leaning in and scraping the hide with long strokes.
+      const u = t / 1.1 - Math.floor(t / 1.1);
+      const push = u < 0.6 ? smooth(u / 0.6) : 1 - smooth((u - 0.6) / 0.4);
+      rot('legUpperL', -0.15);
+      rot('legUpperR', 0.15);
+      rot('torso', 0.35 + 0.1 * push);
+      rot('head', -0.2);
+      rot('armUpperL', -1.1 - 0.5 * push, 0, 0.15);
+      rot('armUpperR', -1.1 - 0.5 * push, 0, -0.15);
+      rot('armLowerL', -0.9 + 0.5 * push);
+      rot('armLowerR', -0.9 + 0.5 * push);
+      break;
+    }
+    case 'crack': {
+      // Sitting cross-legged by the fire, a nut on a flat stone, struck with another.
+      const u = t / 0.8 - Math.floor(t / 0.8);
+      const raise = (0.5 - 0.5 * Math.cos(TAU * u)) ** 2;
+      lift(-0.62 * hipRest);
+      rot('legUpperL', -1.4, 0.5);
+      rot('legUpperR', -1.4, -0.5);
+      rot('legLowerL', 2.3);
+      rot('legLowerR', 2.3);
+      rot('torso', 0.4);
+      rot('head', -0.35);
+      rot('armUpperL', -0.7, 0, -0.35);
+      rot('armLowerL', -0.8);
+      rot('armUpperR', -0.6 - 0.7 * raise, 0, 0.35);
+      rot('armLowerR', -0.9 - 0.4 * raise);
       break;
     }
     case 'haul': {
@@ -333,13 +457,23 @@ export function blendPerson(
   }
 }
 
+/** The highest vertex of a model in its own space, as posed. */
+function highestPoint(m: Model): number {
+  return extremePoint(m, -1);
+}
+
 /** The lowest vertex of a model in its own space, as posed. */
 function lowestPoint(m: Model): number {
+  return extremePoint(m, 1);
+}
+
+/** The lowest (sign 1) or highest (sign -1) vertex height of a model in its own space, as posed. */
+function extremePoint(m: Model, sign: 1 | -1): number {
   m.object.updateMatrixWorld(true);
   const toModel = m.object.matrixWorld.clone().invert();
   const matrix = new THREE.Matrix4();
   const v = new THREE.Vector3();
-  let lowest = Infinity;
+  let best = Infinity;
   m.object.traverse((o) => {
     const mesh = o as THREE.Mesh;
     // Ink hulls share their parent's geometry, so only the coloured meshes are read.
@@ -347,9 +481,9 @@ function lowestPoint(m: Model): number {
     matrix.multiplyMatrices(toModel, mesh.matrixWorld);
     const pos = mesh.geometry.getAttribute('position');
     for (let i = 0; i < pos.count; i++)
-      lowest = Math.min(lowest, v.fromBufferAttribute(pos, i).applyMatrix4(matrix).y);
+      best = Math.min(best, sign * v.fromBufferAttribute(pos, i).applyMatrix4(matrix).y);
   });
-  return lowest;
+  return sign * best;
 }
 
 /** Poses an animal built by buildAnimal. Times scale with its size, so a mammoth strides slower than a wolf. */
@@ -461,6 +595,48 @@ export function animateAnimal(m: Model, clip: Clip, seconds: number): void {
       rot('legBR', 0.35 * rear);
       rot('head', -0.45 * rear + 0.15 * Math.sin(p * TAU * 2), 0.3 * Math.sin(p * TAU));
       rot('tail', 0, 0.6 * Math.sin(p * TAU * 4));
+      break;
+    }
+    case 'bound': {
+      // Lying on its side as it fell, its legs drawn together over BIND_SECONDS
+      // and lashed, fore legs back and hind legs forward (humankind.md section 8.1).
+      const f = smooth(seconds / BIND_SECONDS);
+      body.rotation.z = (Math.PI / 2) * 0.92;
+      for (const [leg, way] of [
+        ['FL', 1],
+        ['FR', 1],
+        ['BL', -1],
+        ['BR', -1],
+      ] as const) {
+        rot(`leg${leg}`, way * 0.75 * f, 0, 0.3 * (1 - f));
+        const low = m.bones.get(`low${leg}`);
+        if (low) low.rotation.x = ((low.userData.flex as number) ?? 0) * 0.8 * f;
+      }
+      rot('head', 0.2 * f);
+      body.position.y = rest.y;
+      body.position.y += -lowestPoint(m) - 0.12 * rest.y;
+      break;
+    }
+    case 'hung': {
+      // Upside down under the carrying pole, the bound legs up to it and the head
+      // hanging, swaying a little with the carriers' steps.
+      const sway = Math.sin((seconds / GAITS.pole.period) * TAU);
+      body.rotation.set(0.04 * sway, 0, Math.PI + 0.06 * sway);
+      for (const [leg, way] of [
+        ['FL', 1],
+        ['FR', 1],
+        ['BL', -1],
+        ['BR', -1],
+      ] as const) {
+        rot(`leg${leg}`, way * 0.75);
+        const low = m.bones.get(`low${leg}`);
+        if (low) low.rotation.x = ((low.userData.flex as number) ?? 0) * 0.8;
+      }
+      rot('head', -0.7);
+      rot('tail', 0.4);
+      // The bound feet at the pole.
+      body.position.y = rest.y;
+      body.position.y += POLE_HEIGHT - highestPoint(m);
       break;
     }
     case 'fall': {
