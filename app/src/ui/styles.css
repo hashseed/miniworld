@@ -363,6 +363,14 @@ input:focus-visible {
   font-family: inherit;
 }
 
+/* A held press opens the choices; no callout, selection or magnifier gets in the way. */
+.play-fold .btn {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
 /* Paused, the play button pulses gently (section 8.1). */
 .btn.play.paused {
   animation: pulse 1.6s ease-in-out infinite;

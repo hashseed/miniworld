@@ -174,7 +174,8 @@ function PlayControls({
       <JumpFold dir={-1} step={settings.backStep} i18n={i18n} actions={actions} />
       <Fold
         class="play-fold"
-        button={(open) => (
+        holdToOpen
+        button={() => (
           <button
             class={playing ? 'btn play' : 'btn play paused'}
             aria-label={playing ? t('controls.pause') : t('controls.play')}
@@ -183,7 +184,6 @@ function PlayControls({
             onClick={() => {
               if (playing) actions.pause();
               else actions.play();
-              open();
             }}
           >
             <SpeedIcon mode={s.speedMode} />
@@ -240,7 +240,8 @@ function JumpFold({
   return (
     <Fold
       class="play-fold"
-      button={(open) => (
+      holdToOpen
+      button={() => (
         <button
           class="btn"
           aria-label={t(`controls.${name}`, { n: step })}
@@ -248,7 +249,6 @@ function JumpFold({
           data-testid={name}
           onClick={() => {
             actions.jump(dir);
-            open();
           }}
         >
           <CircleArrowIcon clockwise={dir > 0} label={stepLabel(step, i18n)} />
@@ -327,6 +327,9 @@ function TimelineCanvas({ s, t, actions }: { s: UiState; t: T; actions: Actions 
   );
 }
 
+/** How long a press on a touch screen is held to open a fold (section 8.1). */
+const HOLD_MS = 450;
+
 /**
  * A slider folded away behind an icon button (milestone-1.md, section 8.1): it
  * opens while pointed at or focused from the keyboard, and on touch screens
@@ -335,14 +338,47 @@ function TimelineCanvas({ s, t, actions }: { s: UiState; t: T; actions: Actions 
 function Fold({
   class: cls,
   button,
+  holdToOpen = false,
   children,
 }: {
   class: string;
   button: (open: () => void) => ComponentChildren;
+  /**
+   * On touch screens the button keeps its tap for its own action, and a press
+   * held for HOLD_MS opens the fold instead, as pointing does (section 8.1).
+   */
+  holdToOpen?: boolean;
   children: ComponentChildren;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const held = useRef(false);
+  const release = () => clearTimeout(timer.current);
+  const hold = holdToOpen
+    ? {
+        onPointerDown: (e: PointerEvent) => {
+          release();
+          held.current = false;
+          if (e.pointerType === 'mouse' || (e.target as Element).closest('.fold-panel')) return;
+          timer.current = setTimeout(() => {
+            held.current = true;
+            setOpen(true);
+          }, HOLD_MS);
+        },
+        onPointerUp: release,
+        onPointerCancel: release,
+        // The click that ends a hold only opened the fold; it does not also act.
+        onClickCapture: (e: MouseEvent) => {
+          if (!held.current) return;
+          held.current = false;
+          e.preventDefault();
+          e.stopPropagation();
+        },
+        onContextMenu: (e: MouseEvent) => e.preventDefault(),
+      }
+    : {};
+  useEffect(() => release, []);
   useEffect(() => {
     if (!open) return;
     const away = (e: PointerEvent) => {
@@ -355,7 +391,11 @@ function Fold({
     <div
       ref={ref}
       class={`fold ${cls}${open ? ' open' : ''}`}
-      onPointerLeave={(e) => e.pointerType === 'mouse' && setOpen(false)}
+      onPointerLeave={(e) => {
+        release();
+        if (e.pointerType === 'mouse') setOpen(false);
+      }}
+      {...hold}
     >
       {button(() => setOpen(true))}
       <div class="fold-panel">
