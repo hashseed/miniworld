@@ -35,6 +35,8 @@ export interface HotState {
   speedMode: SpeedMode;
   yearsPerMinute: number;
   scrubbing: boolean;
+  /** -1 or 1 while a jump back or forward is under way, else 0. */
+  jumping: -1 | 0 | 1;
   stats: { fps: number; avg: number; p99: number; calls: number; triangles: number; scale: number };
 }
 
@@ -66,8 +68,8 @@ export interface Actions {
   renameBookmark(id: string, name: string): void;
   deleteBookmark(id: string): void;
   resetCamera(): void;
-  /** Steps the date back two years, keeping the play state (section 8.1). */
-  stepBack(): void;
+  /** Jumps back (-1) or forward (1) by the button's step, by playing very fast (section 3.3). */
+  jump(dir: -1 | 1): void;
   followPlayhead(): void;
   toggleLanes(): void;
   closeLensHint(): void;

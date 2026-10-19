@@ -21,7 +21,16 @@ export interface Settings {
   lensStrength: number;
   /** The first-start hint about the lens was closed. */
   lensHintSeen: boolean;
+  /** The steps of the back and forward buttons, in years (section 8.1). */
+  backStep: JumpStep;
+  forwardStep: JumpStep;
 }
+
+/** The steps the back and forward buttons offer, in years. */
+export const JUMP_STEPS = [1, 10, 100, 1000] as const;
+export type JumpStep = (typeof JUMP_STEPS)[number];
+const stepOf = (v: unknown, fallback: JumpStep): JumpStep =>
+  JUMP_STEPS.includes(v as JumpStep) ? (v as JumpStep) : fallback;
 
 export interface ViewState {
   /** Clock time in whole milliseconds (spec milestone 1, section 3.3). */
@@ -90,6 +99,8 @@ export function loadSettings(defaults: Settings): Settings {
     showStats: isBool(v.showStats) ? v.showStats : defaults.showStats,
     lensStrength: lensStrengthOf(v, defaults.lensStrength),
     lensHintSeen: isBool(v.lensHintSeen) ? v.lensHintSeen : defaults.lensHintSeen,
+    backStep: stepOf(v.backStep, defaults.backStep),
+    forwardStep: stepOf(v.forwardStep, defaults.forwardStep),
   };
 }
 

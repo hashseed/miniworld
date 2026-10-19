@@ -25,7 +25,7 @@ import { FrameLoop } from './loop.ts';
 import { LandmarkLayer } from './landmarks/landmarkLayer.ts';
 import { VignetteLayer } from './vignettes/vignetteLayer.ts';
 import { WildlifeLayer } from './wildlife/wildlifeLayer.ts';
-import { DAYS_PER_YEAR, OPENING_DAY, TIMELINE_START } from './time/calendar.ts';
+import { OPENING_DAY, TIMELINE_START } from './time/calendar.ts';
 import { TreeLayer } from './tree/treeLayer.ts';
 import { Clock } from './time/clock.ts';
 import { Timeline } from './timeline/timeline.ts';
@@ -69,6 +69,8 @@ const settings = loadSettings({
   showStats: false,
   lensStrength: 100,
   lensHintSeen: false,
+  backStep: 1,
+  forwardStep: 1,
 });
 const savedView = STRESS ? undefined : loadView();
 const i18n = new I18n(settings.language);
@@ -85,6 +87,7 @@ const hot = new Store<HotState>({
   speedMode: clock.speedMode,
   yearsPerMinute: clock.yearsPerMinute,
   scrubbing: false,
+  jumping: 0,
   stats: { fps: 0, avg: 0, p99: 0, calls: 0, triangles: 0, scale: 1 },
 });
 const ui = new Store<UiState>({
@@ -333,7 +336,8 @@ const actions: Actions = {
   },
   deleteBookmark: (id) => setBookmarks(ui.value.bookmarks.filter((b) => b.id !== id)),
   resetCamera: () => controller.resetOrientation(),
-  stepBack: () => clock.setDay(clock.day - Math.round(2 * DAYS_PER_YEAR)),
+  jump: (dir) =>
+    clock.jumpYears(dir * (dir < 0 ? ui.value.settings.backStep : ui.value.settings.forwardStep)),
   followPlayhead: () => timeline?.setFollow(true),
   toggleLanes: () => {
     actions.setSetting('timelineExpanded', !ui.value.settings.timelineExpanded);

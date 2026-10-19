@@ -52,6 +52,24 @@ export const HorseIcon = () => (
   </svg>
 );
 
+/** Fastest: a running cheetah, slim and long-tailed, legs stretched out. */
+export const CheetahIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <ellipse cx="11.5" cy="11.2" rx="6.4" ry="2.3" />
+    <circle cx="19" cy="9.6" r="2" />
+    <path d="M20.4 9.2l2.4.8-2 1.1z" />
+    <g
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M16 12.4l3.2 2.2 2.6.4M15 12.8l1.4 3.4 2 .8M7.5 12.6l-3.4 2.4-2.4-.2M8.6 13l-2.2 3-2 .6M5.4 10.4C3.4 9.6 2 10 1.2 8" />
+    </g>
+  </svg>
+);
+
 export const BookmarkIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M6 3h12v18l-6-4-6 4z" />
@@ -77,10 +95,46 @@ export const CompassIcon = () => (
   </svg>
 );
 
-/** Back two years: two triangles pointing left, like rewind. */
-export const BackIcon = () => (
+/** A jump back under way: two triangles pointing left, like rewind. */
+export const FastReverseIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M11.5 5v14L2 12zM22 5v14l-9.5-7z" />
+  </svg>
+);
+
+/** A jump forward under way: two triangles pointing right. */
+export const FastForwardIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M2 5v14l9.5-7zM12.5 5v14L22 12z" />
+  </svg>
+);
+
+/**
+ * The back (counter-clockwise) or forward (clockwise) button: a circular
+ * arrow around its step, written small enough to fit (section 8.1).
+ */
+export const CircleArrowIcon = ({ clockwise, label }: { clockwise: boolean; label: string }) => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" class="circle-arrow">
+    <g transform={clockwise ? 'translate(24 0) scale(-1 1)' : undefined}>
+      <path
+        d="M12 2.6A9.4 9.4 0 1 1 4.2 6.8"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+      />
+      <path d="M8.2 2.6L13 0v5.2z" />
+    </g>
+    <text
+      x="12"
+      y="12.5"
+      text-anchor="middle"
+      dominant-baseline="central"
+      font-size={label.length > 2 ? 7.5 : 9.5}
+      font-weight="700"
+    >
+      {label}
+    </text>
   </svg>
 );
 

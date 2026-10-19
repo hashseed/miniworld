@@ -114,7 +114,8 @@ test('language switch changes every string without a reload', async ({ page }) =
 
 test('settings and bookmarks survive a reload', async ({ page }) => {
   await open(page);
-  // The back button steps two years (730 whole days) back, and stops at the start.
+  // The back button plays back one year (365 whole days) fast; forward presses
+  // during a jump are queued; a step picked from the fold stays on the button.
   const start = (await world(page)).day;
   await page.evaluate(
     (day) =>
@@ -123,10 +124,19 @@ test('settings and bookmarks survive a reload', async ({ page }) => {
       ).__miniworld.clock.setDay(day),
     start + 1000,
   );
-  await page.getByTestId('back-two-years').click();
-  expect((await world(page)).day).toBe(start + 270);
-  await page.getByTestId('back-two-years').click();
-  expect((await world(page)).day).toBe(start);
+  const day = async () => (await world(page)).day;
+  await page.getByTestId('back').click();
+  await expect.poll(day, { timeout: 30_000 }).toBe(start + 635);
+  await page.getByTestId('forward').click();
+  await page.getByTestId('forward').click();
+  await expect.poll(day, { timeout: 30_000 }).toBe(start + 1365);
+  expect((await world(page)).playState).toBe('paused');
+  await page.getByTestId('back').hover();
+  await page.getByTestId('back-1000').click();
+  await expect(page.getByTestId('back').locator('text')).toHaveText(en['controls.stepThousand']!);
+  await page.getByTestId('back').click();
+  // A thousand years back from 1365 days after the start stops at the start.
+  await expect.poll(day, { timeout: 30_000 }).toBe(start);
   await page.getByRole('button', { name: en['menu.settings'] }).click();
   await page.getByLabel(en['settings.trueTimeScale']!).check();
   // The About panel, with the sources' licences, opens from the settings.
@@ -502,7 +512,9 @@ test('the speed modes fold behind the play button', async ({ page }, info) => {
     await play.hover();
     await expect(snail).toBeVisible();
     // The modes pop up above the button and leave the date uncovered.
-    const modes = (await page.locator('.speed-modes').boundingBox())!;
+    const modes = (await page
+      .getByRole('radiogroup', { name: en['controls.speed'] })
+      .boundingBox())!;
     const button = (await play.boundingBox())!;
     const date = (await page.getByTestId('date').boundingBox())!;
     expect(modes.y + modes.height).toBeLessThanOrEqual(button.y);
@@ -511,10 +523,9 @@ test('the speed modes fold behind the play button', async ({ page }, info) => {
     await page.mouse.move(640, 200);
     await expect(snail).toBeHidden();
   }
-  // Folded, the button shows the chosen mode, and history runs at 25 / 8 years a minute.
-  await expect(page.getByTestId('speed-badge')).toBeVisible();
+  // The chosen mode stays on the button, and history runs at 2.5 years a minute.
   await expect(page.getByTestId('speed-snail')).toHaveAttribute('aria-checked', 'true');
-  expect((await world(page)).yearsPerMinute).toBe(25 / 8);
+  expect((await world(page)).yearsPerMinute).toBe(2.5);
 });
 
 test('the lens hint shows once until closed', async ({ page }) => {

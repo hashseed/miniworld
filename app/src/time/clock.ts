@@ -3,11 +3,14 @@
 // everything on screen. It advances by real time × the speed mode's factor
 // while playing; the date follows from it at 25 years per minute.
 
-import type { Day } from './calendar.ts';
+import { DAYS_PER_YEAR, type Day } from './calendar.ts';
 import { dayAtMs, msAtDay } from './rate.ts';
 import { SPEED_FACTOR, stepSpeed, yearsPerMinute, type SpeedMode } from './speed.ts';
 
 export type PlayState = 'playing' | 'paused';
+
+/** A jump runs this long in real time, however far it goes (section 3.3). */
+export const JUMP_MS = 1000;
 
 export interface ClockOptions {
   startDay: Day;
@@ -27,6 +30,10 @@ export class Clock {
 
   private accumulator = 0;
   private scrubbing = false;
+  /** The jump under way: from and to in clock time, and the real time it has run. */
+  private jump: { from: number; to: number; ran: number } | undefined;
+  /** Jumps queued behind it, in whole days. */
+  private queued: number[] = [];
   private listeners = new Set<() => void>();
 
   constructor(options: ClockOptions) {
@@ -71,9 +78,56 @@ export class Clock {
     return yearsPerMinute(this.speedMode);
   }
 
+  /** -1 while a jump runs backwards, 1 forwards, 0 when none is under way. */
+  get jumping(): -1 | 0 | 1 {
+    return !this.jump ? 0 : this.jump.to < this.jump.from ? -1 : 1;
+  }
+
+  /**
+   * Jumps the date by whole years, back if negative, by playing very fast for
+   * JUMP_MS; queued behind a jump under way (section 3.3).
+   */
+  jumpYears(years: number): void {
+    this.queued.push(Math.round(years * DAYS_PER_YEAR));
+    if (!this.jump) this.nextJump();
+    this.emit();
+  }
+
+  /** Starts the next queued jump that moves the date, from where the clock stands. */
+  private nextJump(): void {
+    this.jump = undefined;
+    while (this.queued.length > 0) {
+      const days = this.queued.shift()!;
+      const from = this.accumulator;
+      const day = Math.min(this.endDay, Math.max(this.startDay, this.day + days));
+      const to = msAtDay(day, this.startDay);
+      if (to !== this.ms) {
+        this.jump = { from, to, ran: 0 };
+        return;
+      }
+    }
+  }
+
+  private cancelJumps(): void {
+    this.jump = undefined;
+    this.queued = [];
+  }
+
   /** Advances the clock by a real-time interval. */
   tick(realMs: number): void {
-    if (realMs <= 0 || this.playState !== 'playing' || this.scrubbing) return;
+    if (realMs <= 0) return;
+    if (this.jump && !this.scrubbing) {
+      // A jump runs whether playing or paused; the play state resumes after the last.
+      const j = this.jump;
+      j.ran += realMs;
+      if (j.ran >= JUMP_MS) {
+        this.accumulator = j.to;
+        this.nextJump();
+      } else this.accumulator = j.from + ((j.to - j.from) * j.ran) / JUMP_MS;
+      this.emit();
+      return;
+    }
+    if (this.playState !== 'playing' || this.scrubbing) return;
     const before = this.day;
     this.accumulator += realMs * SPEED_FACTOR[this.speedMode];
     if (this.accumulator >= this.endMs) {
@@ -89,6 +143,7 @@ export class Clock {
   }
 
   setMs(ms: number): void {
+    this.cancelJumps();
     this.accumulator = this.clampMs(Math.floor(ms));
     this.emit();
   }
@@ -117,6 +172,7 @@ export class Clock {
   }
 
   beginScrub(): void {
+    this.cancelJumps();
     this.scrubbing = true;
     this.emit();
   }

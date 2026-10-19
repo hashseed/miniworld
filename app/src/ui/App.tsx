@@ -8,23 +8,31 @@ import type { Store } from '../core/store.ts';
 import { TIMELINE_START, dateFromDay } from '../time/calendar.ts';
 import { dayAtMs } from '../time/rate.ts';
 import { SPEED_MODES, type SpeedMode } from '../time/speed.ts';
-import { formatDateReadout, formatFullDate, formatYear, roundRate } from '../i18n/dates.ts';
+import {
+  formatDateReadout,
+  formatFullDate,
+  formatRateNumber,
+  formatYear,
+  roundRate,
+} from '../i18n/dates.ts';
 import { LANGUAGES, type Language } from '../i18n/messages.ts';
 import { LANGUAGE_NAMES, type I18n } from '../i18n/i18n.ts';
 import { useStore } from './hooks.ts';
 import type { Actions, HotState, UiState, VignetteCard } from './state.ts';
-import type { Settings } from './storage.ts';
+import { JUMP_STEPS, type JumpStep, type Settings } from './storage.ts';
 import {
   BookmarkIcon,
   CloseIcon,
-  BackIcon,
+  CheetahIcon,
+  CircleArrowIcon,
+  FastForwardIcon,
+  FastReverseIcon,
   CompassIcon,
   FollowIcon,
   GearIcon,
   LanesIcon,
   LensIcon,
   PauseIcon,
-  PlayIcon,
   TurtleIcon,
   WalkerIcon,
   HorseIcon,
@@ -119,7 +127,7 @@ export function App({ store, hot, i18n, actions }: Props) {
       <div class="bottom" ref={bottom}>
         {s.fixture && <div class="notice">{t('app.fixtureNotice')}</div>}
         <div class="bar">
-          <PlayControls hot={hot} i18n={i18n} actions={actions} />
+          <PlayControls hot={hot} i18n={i18n} settings={s.settings} actions={actions} />
           <LensFold s={s} t={t} i18n={i18n} actions={actions} />
         </div>
         <TimelineCanvas s={s} t={t} actions={actions} />
@@ -130,70 +138,63 @@ export function App({ store, hot, i18n, actions }: Props) {
 
 type T = I18n['t'];
 
-/** Play button, speed modes, date and rate: the parts that change while history plays. */
+/**
+ * Back button, play button with the speed modes, forward button, date and state
+ * readout: the parts that change while history plays (section 8.1).
+ */
 function PlayControls({
   hot,
   i18n,
+  settings,
   actions,
 }: {
   hot: Store<HotState>;
   i18n: I18n;
+  settings: Settings;
   actions: Actions;
 }) {
   const s = useStore(hot);
   const t = i18n.t.bind(i18n);
   const lang = i18n.language;
-  const stationary = s.playState !== 'playing' && !s.scrubbing;
+  const playing = s.playState === 'playing';
+  const stationary = !playing && !s.scrubbing && s.jumping === 0;
   const dateText = formatDateReadout(s.day, lang, { yearsPerMinute: s.yearsPerMinute, stationary });
-  const stateText = s.playState === 'playing' ? t('controls.playing') : t('controls.paused');
+  const rateText = t('controls.rate', { rate: roundRate(s.yearsPerMinute) });
+  // The readout: fast arrows during a jump, a pause sign when paused, else the bare rate.
+  const [readout, readoutText] =
+    s.jumping < 0
+      ? [<FastReverseIcon />, t('controls.jumpingBack')]
+      : s.jumping > 0
+        ? [<FastForwardIcon />, t('controls.jumpingForward')]
+        : playing
+          ? [formatRateNumber(s.yearsPerMinute, lang), rateText]
+          : [<PauseIcon />, t('controls.paused')];
   return (
     <>
-      <button
-        class="btn"
-        aria-label={t('controls.backTwoYears')}
-        title={t('controls.backTwoYears')}
-        data-testid="back-two-years"
-        onClick={() => actions.stepBack()}
-      >
-        <BackIcon />
-      </button>
+      <JumpFold dir={-1} step={settings.backStep} i18n={i18n} actions={actions} />
       <Fold
         class="play-fold"
-        button={(open) =>
-          s.playState === 'playing' ? (
-            <button
-              class="btn"
-              aria-label={t('controls.pause')}
-              title={t('controls.pauseHint')}
-              onClick={() => {
-                actions.pause();
-                open();
-              }}
-            >
-              <PauseIcon />
-              <SpeedBadge mode={s.speedMode} />
-            </button>
-          ) : (
-            <button
-              class="btn"
-              aria-label={t('controls.play')}
-              title={t('controls.playHint')}
-              onClick={() => {
-                actions.play();
-                open();
-              }}
-            >
-              <PlayIcon />
-              <SpeedBadge mode={s.speedMode} />
-            </button>
-          )
-        }
+        button={(open) => (
+          <button
+            class={playing ? 'btn play' : 'btn play paused'}
+            aria-label={playing ? t('controls.pause') : t('controls.play')}
+            title={playing ? t('controls.pauseHint') : t('controls.playHint')}
+            data-testid="play"
+            onClick={() => {
+              if (playing) actions.pause();
+              else actions.play();
+              open();
+            }}
+          >
+            <SpeedIcon mode={s.speedMode} />
+          </button>
+        )}
       >
-        <div class="speed-modes" role="radiogroup" aria-label={t('controls.speed')}>
+        <div class="pop-options" role="radiogroup" aria-label={t('controls.speed')}>
           {SPEED_MODES.map((mode) => (
             <button
               key={mode}
-              class="btn speed-mode"
+              class="btn pop-option"
               role="radio"
               aria-checked={s.speedMode === mode}
               aria-label={t(`controls.speed.${mode}`)}
@@ -206,33 +207,84 @@ function PlayControls({
           ))}
         </div>
       </Fold>
+      <JumpFold dir={1} step={settings.forwardStep} i18n={i18n} actions={actions} />
       <span class="date" aria-live="off" data-testid="date">
         {dateText}
       </span>
-      <span class="rate" title={stateText}>
-        {s.playState === 'playing'
-          ? t('controls.rate', { rate: roundRate(s.yearsPerMinute) })
-          : stateText}
+      <span class="rate" title={readoutText} aria-label={readoutText} data-testid="readout">
+        {readout}
       </span>
     </>
   );
 }
 
-const SPEED_ICONS = { snail: TurtleIcon, regular: WalkerIcon, fast: HorseIcon };
+/** How a step is written on its button: the number, or 1k for a thousand. */
+function stepLabel(step: JumpStep, i18n: I18n): string {
+  return step === 1000 ? i18n.t('controls.stepThousand') : i18n.number(step);
+}
+
+/** The back (-1) or forward (1) button, with its four steps folded behind it (section 8.1). */
+function JumpFold({
+  dir,
+  step,
+  i18n,
+  actions,
+}: {
+  dir: -1 | 1;
+  step: JumpStep;
+  i18n: I18n;
+  actions: Actions;
+}) {
+  const t = i18n.t.bind(i18n);
+  const name = dir < 0 ? 'back' : 'forward';
+  return (
+    <Fold
+      class="play-fold"
+      button={(open) => (
+        <button
+          class="btn"
+          aria-label={t(`controls.${name}`, { n: step })}
+          title={t(`controls.${name}`, { n: step })}
+          data-testid={name}
+          onClick={() => {
+            actions.jump(dir);
+            open();
+          }}
+        >
+          <CircleArrowIcon clockwise={dir > 0} label={stepLabel(step, i18n)} />
+        </button>
+      )}
+    >
+      <div class="pop-options" role="radiogroup" aria-label={t('controls.step')}>
+        {JUMP_STEPS.map((n) => (
+          <button
+            key={n}
+            class="btn pop-option"
+            role="radio"
+            aria-checked={step === n}
+            aria-label={t('controls.stepOption', { n })}
+            title={t('controls.stepOption', { n })}
+            data-testid={`${name}-${n}`}
+            onClick={() => actions.setSetting(dir < 0 ? 'backStep' : 'forwardStep', n)}
+          >
+            <CircleArrowIcon clockwise={dir > 0} label={stepLabel(n, i18n)} />
+          </button>
+        ))}
+      </div>
+    </Fold>
+  );
+}
+
+const SPEED_ICONS = {
+  snail: TurtleIcon,
+  regular: WalkerIcon,
+  fast: HorseIcon,
+  fastest: CheetahIcon,
+};
 
 function SpeedIcon({ mode }: { mode: SpeedMode }) {
   const Icon = SPEED_ICONS[mode];
   return <Icon />;
-}
-
-/** While folded, the play button shows a small snail or double arrow when not regular. */
-function SpeedBadge({ mode }: { mode: SpeedMode }) {
-  if (mode === 'regular') return null;
-  return (
-    <span class="speed-badge" data-testid="speed-badge">
-      <SpeedIcon mode={mode} />
-    </span>
-  );
 }
 
 function TimelineCanvas({ s, t, actions }: { s: UiState; t: T; actions: Actions }) {

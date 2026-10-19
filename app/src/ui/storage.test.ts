@@ -27,6 +27,8 @@ const defaults: Settings = {
   showStats: false,
   lensStrength: 100,
   lensHintSeen: false,
+  backStep: 1,
+  forwardStep: 1,
 };
 
 describe('saved state', () => {
