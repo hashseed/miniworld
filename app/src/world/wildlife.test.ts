@@ -243,7 +243,8 @@ describe('wildlifeAt (wildlife.md section 4)', () => {
           ).toBeLessThan(60); // a brisk walk away, never a jump of hundreds of km
         last.set(a.key, [a.eastKm, a.northKm]);
       }
-  });
+    // 2,800 steps over every group take about 4 s with coverage on a fast machine.
+  }, 30_000);
 
   it("lays a camp on the plane at a group's home", () => {
     const g = WILD_GROUPS.find((w) => w.species === 'giraffe')!;
