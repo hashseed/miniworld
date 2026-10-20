@@ -14,6 +14,7 @@ import {
   CAMP_CLEARING_KM,
   FIGURE_KM_PER_M,
   LAYOUT_KM_PER_M,
+  POLE_HALF_M,
   POLE_ON_GROUND_M,
   TEMPO,
   treeScene,
@@ -84,6 +85,7 @@ export class TreeLayer {
   private basis = new THREE.Matrix4();
   private turn = new THREE.Quaternion();
   private yAxis = new THREE.Vector3(0, 1, 0);
+  private zAxis = new THREE.Vector3(0, 0, 1);
   private up = new THREE.Vector3();
   private east = new THREE.Vector3();
   private north = new THREE.Vector3();
@@ -323,6 +325,16 @@ export class TreeLayer {
     const pole = treePropBatch('prop-carry-pole');
     for (const p of pole ? scene.poles : []) {
       if (!this.place(at, p, false)) continue;
+      // Its two ends rest on the carriers, who each stand on the ground under them: the
+      // middle at the mean of the two, the pole tilted along its length to match.
+      const [back, front] = this.poleEnds(p);
+      at.position.copy(this.dir).multiplyScalar(EARTH_RADIUS_KM + (back + front) / 2);
+      at.quaternion.multiply(
+        this.turn.setFromAxisAngle(
+          this.zAxis,
+          Math.atan2(front - back, 2 * POLE_HALF_M * LAYOUT_KM_PER_M),
+        ),
+      );
       at.position.addScaledVector(this.dir, (p.height - POLE_ON_GROUND_M) * FIGURE_KM_PER_M);
       at.scale.setScalar(FIGURE_KM_PER_M);
       copy(pole!);
@@ -335,6 +347,11 @@ export class TreeLayer {
       const batch = p.visibility >= 1 ? treePreyBatch(p.kind) : undefined;
       if (batch) {
         if (!this.place(at, p, false)) continue;
+        // Hung from the pole, it hangs at the pole's height, not the ground's under it.
+        if (p.clip === 'hung') {
+          const [back, front] = this.poleEnds(p);
+          at.position.copy(this.dir).multiplyScalar(EARTH_RADIUS_KM + (back + front) / 2);
+        }
         this.block(at, PREY_HALF_M);
         at.scale.setScalar(FIGURE_KM_PER_M);
         copy(batch, (m) => animateAnimal(m, p.clip, (p.clipMs * TEMPO) / 1000));
@@ -404,6 +421,25 @@ export class TreeLayer {
       else o.parent = null;
     }
     this.group.children = kept;
+  }
+
+  /**
+   * The drawn ground, in km above the globe's radius, under the two ends of a carrying pole
+   * facing along (dirX, dirZ): behind its middle and in front of it.
+   */
+  private poleEnds(p: Placed): [number, number] {
+    const at = (s: number) => {
+      const { up, east, north, v2 } = this;
+      up.set(...this.surface.toDrawn(latLonToDir(p.lat, p.lon))).normalize();
+      northEast(up, north, east);
+      v2.copy(up)
+        .multiplyScalar(EARTH_RADIUS_KM)
+        .addScaledVector(east, (p.x + s * p.dirX * POLE_HALF_M) * LAYOUT_KM_PER_M)
+        .addScaledVector(north, (p.z + s * p.dirZ * POLE_HALF_M) * LAYOUT_KM_PER_M)
+        .normalize();
+      return this.surface.surfaceKm([v2.x, v2.y, v2.z]);
+    };
+    return [at(-1), at(1)];
   }
 
   /** The true direction of a point of the scene: layout metres east and north of a place. */

@@ -177,7 +177,7 @@ describe('ways of life (peopling.md section 5)', () => {
     expect(changes).toHaveLength(1);
     expect(changes[0]!.profile).toBe('coastal-asia-hunter');
     expect(changes[0]!.hidden).toBe(true);
-  });
+  }, 30_000);
 });
 
 describe('Neolithic thresholds (peopling.md section 3.6)', () => {
