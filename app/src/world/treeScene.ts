@@ -1518,10 +1518,16 @@ export function treeScene(
    * (section 8.1): a gathering or a stroll with its legs, a hunt (planned as a camp event
    * by huntOf), or nothing.
    */
-  function soloTurn(st: Stay, k: number): { go: Outing; trip?: Itinerary } {
+  function soloTurn(st: Stay, k: number, plain = false): { go: Outing; trip?: Itinerary } {
     const turnStart = turnStartOf(st.f.id, k);
     if (turnStart < st.free) return { go: 'rest' };
-    const outing = outingOf(st.f.id, st.look, k);
+    // After a hunt that brought its kill home, the hunter roasts it on the spit, unless an
+    // earlier kill holds the fire (Yang, 2026-10-20). Whether a turn hunts never depends on
+    // this (`plain`), so working it out does not reach back through every earlier turn.
+    const planned = outingOf(st.f.id, st.look, k);
+    const own = !plain && planned !== 'hunt' ? huntOf(st, k - 1) : undefined;
+    const roast = !!own && own.pole && killAt(st, turnStart) === own;
+    const outing = roast ? 'cook' : planned;
     // Outings stay on land: each goes only as far as its gap has land, or not at all.
     const room = outingRoom(st.s, st.home);
     const kind =
@@ -1565,7 +1571,9 @@ export function treeScene(
       if (isCompact(camp) && reach[gap]! < 10) return { go: 'rest' };
       // Where the water comes within the gap's first metres, to the edge of the camp's room.
       const edge = reach[gap]! >= 10 ? reach[gap]! - 1 : Math.min(9, (st.home.room ?? 9.5) - 0.5);
-      const far = { x: d.x * edge, z: d.z * edge };
+      // Each a little further back by its spot, so two at the water never stand on one place.
+      const back = Math.max(Math.min(6, edge), edge - 2 * (st.s % 6));
+      const far = { x: d.x * back, z: d.z * back };
       trip.go(far);
       if (go === 'fish')
         // At the water's edge, spear raised, watching; a stab down; watching again; home
@@ -1656,16 +1664,20 @@ export function treeScene(
 
   /** The kill of a hunt lying at a figure's camp at a clock time, if any (section 8.1). */
   function killAt(st: Stay, t: number): Hunt | undefined {
+    // The one laid down first, whose meat goes on the spit first.
+    let first: Hunt | undefined;
     for (const g of mates(st.home.camp)) {
       if (lookOf(g.id) === 'child') continue;
       for (let k = turnOf(g.id, t) - 3; k <= turnOf(g.id, t); k++) {
         const gs = stayAt(g, turnStartOf(g.id, k));
         if (!gs || !sameCamp(gs, st)) continue;
         const h = huntOf(gs, k);
-        if (h && h.pole && h.laid <= t && t < h.gone - PREY_FADE_MS) return h;
+        if (h && h.pole && h.laid <= t && t < h.gone - PREY_FADE_MS)
+          if (!first || h.laid < first.laid || (h.laid === first.laid && h.id < first.id))
+            first = h;
       }
     }
-    return undefined;
+    return first;
   }
 
   /** Whether two stays are at the same camp: the same camp number and place. */
@@ -1683,7 +1695,7 @@ export function treeScene(
     hunts.set(key, undefined);
     let hunt: Hunt | undefined;
     const turnStart = turnStartOf(st.f.id, k);
-    if (soloTurn(st, k).go === 'hunt') {
+    if (soloTurn(st, k, true).go === 'hunt') {
       const until = Math.min(st.busy, turnStart + TURN_MS);
       // Helpers: grown-ups of the camp, free for the whole hunt, not hunting then and not
       // helping a hunter with a lower id, in an order chosen by hash.
@@ -1755,7 +1767,7 @@ export function treeScene(
   /** Whether a figure leads a hunt of its own that overlaps a span. */
   function huntsDuring(st: Stay, from: number, to: number): boolean {
     for (let k = turnOf(st.f.id, from) - 1; k <= turnOf(st.f.id, to); k++) {
-      if (soloTurn(st, k).go !== 'hunt') continue;
+      if (soloTurn(st, k, true).go !== 'hunt') continue;
       const start = turnStartOf(st.f.id, k);
       if (start < to && start + TURN_MS > from) return true;
     }

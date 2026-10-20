@@ -14,13 +14,27 @@ export function LoadingScreen(props: {
   phase: IntroPhase;
   /** How far down the window the caption stands, under the small globe, in CSS pixels. */
   captionY: number;
+  /** The small globe's radius on screen, and whether it is drawn yet. */
+  radius: number;
+  globeDrawn: boolean;
   label: string;
 }) {
-  const { loaded, phase, captionY, label } = props;
+  const { loaded, phase, captionY, radius, globeDrawn, label } = props;
   if (phase === 'done') return null;
   const percent = Math.round((phase === 'loading' ? loaded : 1) * 100);
   return (
     <div class={`overlay loading ${phase}`}>
+      {/* A still picture of the small globe, until the globe itself is drawn (section 8.6). */}
+      <img
+        class={globeDrawn ? 'loading-globe gone' : 'loading-globe'}
+        src="loading-globe.jpg"
+        alt=""
+        style={{
+          top: `${captionY - 20 - 2 * radius}px`,
+          width: `${2 * radius}px`,
+          height: `${2 * radius}px`,
+        }}
+      />
       <div
         class="loading-caption"
         style={{ top: `${captionY}px` }}

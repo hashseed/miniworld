@@ -456,12 +456,19 @@ export function buildShelter(id: ShelterId): Model {
       break;
     }
     case 'prop-canoe': {
-      // A small dugout canoe along +Z (peopling.md section 6): a hollowed log with pointed
-      // ends, its paddler sitting in the middle, a spare paddle along the side.
-      mb.add(blob([0, 0.17, 0], [0.34, 0.19, 1.85], 10), '#8a5a34');
-      mb.add(blob([0, 0.31, 0], [0.25, 0.07, 1.55], 8), '#3e2a1c');
-      mb.add(rod([0.22, 0.36, -0.9], [0.22, 0.36, 0.6], 0.025, 4), POLE);
-      mb.add(blob([0.22, 0.36, 0.75], [0.06, 0.02, 0.17], 5), POLE);
+      // A small dugout canoe along +Z (peopling.md section 6), as a caricature (Yang,
+      // 2026-10-20: "make the boats shorter and a bit more like a caricature"): a short, tubby
+      // hull whose bow and stern curl up into round knobs, a pale stripe under the rim, and
+      // a stubby spare paddle along the side.
+      mb.add(blob([0, 0.2, 0], [0.42, 0.24, 1.05], 10), '#9a6438');
+      mb.add(blob([0, 0.37, 0], [0.32, 0.07, 0.82], 8), '#3e2a1c');
+      mb.add(blob([0, 0.3, 0], [0.44, 0.05, 1.02], 10), '#d9b27a');
+      for (const z of [-1, 1]) {
+        mb.add(blob([0, 0.36, z * 0.92], [0.17, 0.2, 0.2], 6), '#9a6438');
+        mb.add(blob([0, 0.58, z * 1.02], [0.12, 0.12, 0.12], 6), '#9a6438');
+      }
+      mb.add(rod([0.3, 0.42, -0.5], [0.3, 0.42, 0.35], 0.03, 4), POLE);
+      mb.add(blob([0.3, 0.42, 0.48], [0.08, 0.025, 0.15], 5), POLE);
       break;
     }
     case 'prop-red-flag': {
