@@ -10,6 +10,8 @@ import { posedMaterials, type Model } from '../../../assets/src/kit.ts';
 
 interface Batch {
   template: Model;
+  /** For a model that is never posed: each part's matrix at rest, or undefined where hidden. */
+  rest?: (THREE.Matrix4 | undefined)[];
   /** The parts in the posed template, whose world matrices are the parts' poses. */
   parts: THREE.Mesh[];
   geometry: THREE.BufferGeometry;
@@ -38,17 +40,34 @@ export class PosedBatches {
   /**
    * Adds a copy of the model `key` (built once by `build`) placed by `root` and posed by
    * `pose`, which sets the template's bones; a part whose bone chain is hidden is hidden.
+   * Without `pose` the model stands as built, and its parts' matrices are worked out once
+   * (huts, racks and props: most copies of a camp).
    */
-  add(key: string, build: () => Model, root: THREE.Matrix4, pose: (m: Model) => void): void {
+  add(key: string, build: () => Model, root: THREE.Matrix4, pose?: (m: Model) => void): void {
     let b = this.batches.get(key);
     if (!b) {
       b = this.make(build());
       this.batches.set(key, b);
     }
     if (b.count === b.capacity) this.grow(b);
+    const row = b.count * b.parts.length * 16;
+    if (!pose) {
+      if (!b.rest) {
+        b.template.object.updateMatrixWorld(true);
+        b.rest = b.parts.map((p) =>
+          shown(p, b!.template.object) ? p.matrixWorld.clone() : undefined,
+        );
+      }
+      b.rest.forEach((m, k) => {
+        if (m) this.part.multiplyMatrices(root, m);
+        else this.part.copy(HIDDEN);
+        this.part.toArray(b!.poses, row + k * 16);
+      });
+      b.count++;
+      return;
+    }
     pose(b.template);
     b.template.object.updateMatrixWorld(true);
-    const row = b.count * b.parts.length * 16;
     b.parts.forEach((p, k) => {
       if (shown(p, b.template.object)) this.part.multiplyMatrices(root, p.matrixWorld);
       else this.part.copy(HIDDEN);

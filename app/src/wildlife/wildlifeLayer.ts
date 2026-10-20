@@ -210,6 +210,41 @@ export class WildlifeLayer {
     return { ground, along, across };
   }
 
+  /**
+   * slopeUnder, kept per animal while it stands where it stood and faces the way it faced:
+   * grazing animals, most of them most of the time, cost nothing more. (The history lens is
+   * fixed, so the drawn ground under a place does not change.)
+   */
+  private slopes = new Map<
+    string,
+    {
+      at: THREE.Vector3;
+      f: THREE.Vector3;
+      half: number;
+      s: ReturnType<WildlifeLayer['slopeUnder']>;
+    }
+  >();
+  private slopeCached(
+    key: string,
+    up: THREE.Vector3,
+    f: THREE.Vector3,
+    half: number,
+    height: number,
+  ) {
+    const c = this.slopes.get(key);
+    if (
+      c &&
+      c.half === half &&
+      c.at.distanceToSquared(up) < 1e-14 &&
+      c.f.distanceToSquared(f) < 1e-8
+    )
+      return c.s;
+    const s = this.slopeUnder(up, f, this.right, half, height);
+    if (this.slopes.size > 4096) this.slopes.clear();
+    this.slopes.set(key, { at: up.clone(), f: f.clone(), half, s });
+    return s;
+  }
+
   /** Clearings in the trees where the groups shown on a day graze around a clock time, in true directions. */
   clearings(day: number, ms: number, startDay: number): { dir: Vec3; km: number }[] {
     if (!this.masks) return [];
@@ -370,11 +405,14 @@ export class WildlifeLayer {
         .normalize();
       if (f.lengthSq() < 0.5) f.copy(this.north);
       this.right.crossVectors(up, f);
+      // Animals on the far side of the globe are skipped, before any ground is looked up.
+      if (this.v2.copy(camPos).sub(this.pos.copy(up).multiplyScalar(EARTH_RADIUS_KM)).dot(up) <= 0)
+        return;
       // Land animals stand on the ground and lean with its slope; birds and swimmers stay level.
       const level = a.liftKm > 0 || a.clip === 'swim';
       const { ground, along, across } = level
         ? { ground: this.surface.surfaceKm([up.x, up.y, up.z]), along: 0, across: 0 }
-        : this.slopeUnder(up, f, this.right, reach * a.grow * 0.35, s.height * s.scale * a.grow);
+        : this.slopeCached(a.key, up, f, reach * a.grow * 0.35, s.height * s.scale * a.grow);
       // Sea animals ride at the surface: their middle sits rise body heights above it.
       const swim = a.clip === 'swim' ? (a.rise - 0.5) * s.height * s.scale * a.grow : 0;
       this.pos.copy(up).multiplyScalar(EARTH_RADIUS_KM + ground + a.liftKm + swim);

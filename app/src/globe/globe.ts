@@ -235,16 +235,24 @@ export class Globe {
     const { key } = node;
     const lens = this.lens;
     const trueCentre = node.centre;
-    // Tiles are chosen and culled where they are drawn (history-lens.md, section 4).
-    const cd = lens.toDrawn(trueCentre, _drawnCentre);
-    const width = lens.widthAt(trueCentre);
-    let spread = 1;
-    if (lens.blend > 0)
-      for (const corner of node.corners) {
-        lens.toDrawn(corner, _drawnCorner);
-        const t = angleBetween(trueCentre, corner);
-        if (t > 0) spread = Math.max(spread, angleBetween(cd, _drawnCorner) / t);
-      }
+    // Tiles are chosen and culled where they are drawn (history-lens.md, section 4). Where that
+    // is only changes with the lens, so it is kept on the node until the lens moves.
+    let d = node.drawn;
+    if (!d || d.lens !== lens || d.blend !== lens.blend) {
+      const centre = lens.toDrawn(trueCentre, [0, 0, 0]);
+      let spread = 1;
+      if (lens.blend > 0)
+        for (const corner of node.corners) {
+          lens.toDrawn(corner, _drawnCorner);
+          const t = angleBetween(trueCentre, corner);
+          if (t > 0) spread = Math.max(spread, angleBetween(centre, _drawnCorner) / t);
+        }
+      d = { lens, blend: lens.blend, centre, width: lens.widthAt(trueCentre), spread };
+      node.drawn = d;
+    }
+    const cd = d.centre;
+    const width = d.width;
+    const spread = d.spread;
     const ang = tileAngularSize(key.level) * spread;
     const { camDir } = view;
     const angle = Math.acos(
@@ -482,6 +490,8 @@ interface TileNode {
   children: TileNode[] | undefined;
   /** The frame in which the selection last walked into the children. */
   childFrame: number;
+  /** Where the lens draws it: its centre, width and spread, for the lens and blend they were worked out at. */
+  drawn?: { lens: Lens; blend: number; centre: Vec3; width: number; spread: number };
 }
 
 function tileNode(key: TileKey): TileNode {
@@ -509,5 +519,4 @@ const _lookDir = new THREE.Vector3();
 const _centre = new THREE.Vector3();
 const _axis = new THREE.Vector3();
 const _sphere = new THREE.Sphere();
-const _drawnCentre: Vec3 = [0, 0, 0];
 const _drawnCorner: Vec3 = [0, 0, 0];

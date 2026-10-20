@@ -727,6 +727,29 @@ function catmullRomTangent(p0: P2, p1: P2, p2: P2, p3: P2, u: number): P2 {
  * each animal's place in its group against the mask. keepOuts holds the
  * camps each group keeps clear of, by index (section 4).
  */
+interface WildMemo {
+  spots: Map<string, [number, number, number]>;
+  paths: Map<string, P2[] | null>;
+}
+/** The memo for one set of groups, masks and keep-outs; a new set starts afresh. */
+const memos = new WeakMap<object, { masks: object; keepOuts: object; memo: WildMemo }>();
+/** Rounds kept per memo before it is cleared, so a long run does not grow it without end. */
+const MEMO_MAX = 20_000;
+function memoOf(
+  groups: readonly WildGroup[],
+  masks: readonly WildMask[],
+  keepOuts: readonly (readonly KeepOut[])[],
+): WildMemo {
+  let m = memos.get(groups);
+  if (!m || m.masks !== masks || m.keepOuts !== keepOuts) {
+    m = { masks, keepOuts, memo: { spots: new Map(), paths: new Map() } };
+    memos.set(groups, m);
+  }
+  if (m.memo.spots.size > MEMO_MAX) m.memo.spots.clear();
+  if (m.memo.paths.size > MEMO_MAX) m.memo.paths.clear();
+  return m.memo;
+}
+
 export function wildlifeAt(
   day: number,
   seconds: number,
@@ -736,6 +759,9 @@ export function wildlifeAt(
   keepOuts: readonly (readonly KeepOut[])[] = [],
 ): WildAnimal[] {
   const out: WildAnimal[] = [];
+  // Each member's spot of each round and each walk's route only change with the round, so
+  // they are worked out once and kept (the app asks every frame; the results are the same).
+  const memo = memoOf(groups, masks, keepOuts);
   groups.forEach((g, gi) => {
     const grow = groupGrowth(g, day);
     if (grow <= 0) return;
@@ -801,6 +827,17 @@ export function wildlifeAt(
       // The group closes up on narrow land; fits[j] is how far, at the group's spot j.
       const fits = new Map<number, number>();
       const own = (j: number): P2 => {
+        const key = `${gi}:${i}:${j}`;
+        const hit = memo.spots.get(key);
+        if (hit) {
+          fits.set(j, hit[2]);
+          return [hit[0], hit[1]];
+        }
+        const p = ownSpot(j);
+        memo.spots.set(key, [p[0], p[1], fits.get(j)!]);
+        return p;
+      };
+      const ownSpot = (j: number): P2 => {
         const avoid = avoidAt(j);
         const [sx, sy, fit] = spot(seed, j, roam, mask, places, avoid, half);
         fits.set(j, fit);
@@ -822,14 +859,19 @@ export function wildlifeAt(
       // A walk whose curve would cross closed ground (a lake, a bay) goes
       // round it instead, through open cells (Yang, 2026-10-18: "animals
       // still walk across lakes").
-      const curveOpen =
-        !mask ||
-        (clear(mask, roam, p1, p2) &&
-          [0.25, 0.5, 0.75].every((v) => {
-            const [cx, cy] = catmullRom(p0, p1, p2, p3, v);
-            return open(mask, roam, cx, cy);
-          }));
-      const path = curveOpen ? undefined : route(mask!, roam, p1, p2);
+      const walkKey = `${gi}:${i}:${k}`;
+      let path = memo.paths.get(walkKey);
+      if (path === undefined) {
+        const curveOpen =
+          !mask ||
+          (clear(mask, roam, p1, p2) &&
+            [0.25, 0.5, 0.75].every((v) => {
+              const [cx, cy] = catmullRom(p0, p1, p2, p3, v);
+              return open(mask, roam, cx, cy);
+            }));
+        path = curveOpen ? null : route(mask!, roam, p1, p2);
+        memo.paths.set(walkKey, path);
+      }
       const chord = path
         ? alongPath(path, 1).length
         : Math.sqrt((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2);
