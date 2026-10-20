@@ -8,7 +8,7 @@ import { hash01, hash32 } from '../core/hash.ts';
 import { detCos, detSin, RAD } from '../core/detmath.ts';
 import { msAtDay } from '../time/rate.ts';
 import { astronomicalYear, dayOfYearStart, type Day } from '../time/calendar.ts';
-import { NEVER, type TreeFigure, type TreeFlag, type TreeLodging } from './tree.ts';
+import { NEVER, type TreeFigure, type TreeFlag, type TreeLodging, type TreeStage } from './tree.ts';
 
 /** One time window's share of the tree (section 8). */
 export interface TreeChunk {
@@ -18,6 +18,8 @@ export interface TreeChunk {
   lodgings: TreeLodging[];
   /** Red flags standing in the chunk's time (peopling.md section 3.6). */
   flags?: TreeFlag[];
+  /** Scenes at anchors standing in the chunk's time (humankind.md section 8.2). */
+  stages?: TreeStage[];
 }
 
 /**
@@ -341,6 +343,8 @@ export type FigureLook = 'founder' | 'woman' | 'man' | 'child';
 export type TreeClip =
   | 'idle'
   | 'work'
+  // At a cave painting (section 8.2).
+  | 'paint'
   | 'knap'
   | 'walk'
   | 'run'
@@ -421,7 +425,12 @@ export interface SparkPose {
 /** A prop of camp life at a layout point: a drying rack beside a lodging, a spit over the fire. */
 export interface CampPropPose extends Placed {
   id: string;
-  kind: 'prop-drying-rack' | 'prop-spit' | 'prop-canoe' | 'prop-red-flag';
+  /** A drying rack, the spit, a canoe, a red flag, or a scene's wall or grave (section 8.2). */
+  kind: string;
+  /** 0 to 1: how far a scene's prop has grown in, painted or filled. */
+  built?: number;
+  /** A share of its full size, for a scene's prop at a smaller camp. */
+  scale?: number;
 }
 
 /** Where the trees make way for a camp: 1 cleared, 0 grown back. */
@@ -580,6 +589,112 @@ const campTurn = (camp: number) => hash01(camp, 41);
 export function slotPoint(camp: number, slot: number): Pt {
   const a = (campTurn(camp) + slot / LODGING_SLOTS) * 2 * Math.PI;
   return { x: ringOf(camp) * detCos(a), z: ringOf(camp) * detSin(a) };
+}
+
+/**
+ * A scene at an anchor stands this far beyond the ring of lodgings (humankind.md section 8.2),
+ * or, where the land is too narrow, nearer: the first of these that is dry.
+ */
+export const STAGE_BEYOND_M = [12, 10, 8];
+/** A scene's prop and places at a full, a compact and a minimal camp, as a share of full size. */
+export const stageScale = (camp: number) =>
+  camp >= MINIMAL_SITE ? 0.5 : camp >= COMPACT_SITE ? 0.75 : 1;
+/** Mourners stand round a grave this far from it, on the hearth's side. */
+const MOURN_R = 5.5;
+/** At most this many mourners at a burial, round the grave. */
+const MOURNERS = 6;
+
+/**
+ * The places of a scene behind a lodging place, in layout metres: its prop, a point `back`
+ * metres from it towards the hearth and `side` metres to one side, and the way there out of
+ * the gap beside the lodging (humankind.md section 8.2).
+ */
+export function stageSpots(camp: number, slot: number, beyond: number) {
+  const p = slotPoint(camp, slot);
+  const ring = ringOf(camp);
+  const u = { x: p.x / ring, z: p.z / ring };
+  // Smaller at a smaller camp, as its lodgings are (section 8.2).
+  const k = stageScale(camp);
+  const r = ring + beyond * k;
+  const prop = { x: u.x * r, z: u.z * r };
+  const at = (back: number, side: number): Pt => ({
+    x: prop.x - u.x * back * k - u.z * side * k,
+    z: prop.z - u.z * back * k + u.x * side * k,
+  });
+  const g = gapDirection(camp, slot);
+  const gap = { x: g.x * (ring + 4), z: g.z * (ring + 4) };
+  return { prop, u, at, gap };
+}
+
+/** Where the people of a scene stand: the painter and two watchers, or two diggers and the mourners. */
+function stageStands(camp: number, slot: number, beyond: number, kind: TreeStage['kind']): Pt[] {
+  const { at } = stageSpots(camp, slot, beyond);
+  // The wall is about 5 layout metres to each side of its middle and 2 deep; the grave 3 by 1.7.
+  if (kind === 'cave-painting') return [at(3, 0), at(6, -2.5), at(6, 2.5)];
+  const out = [at(2.4, -1.5), at(2.4, 1.5)];
+  for (let k = 0; k < MOURNERS; k++) {
+    const a = ((k + 0.5) / MOURNERS - 0.5) * (2 * Math.PI) * 0.45;
+    out.push(at(MOURN_R * detCos(a), MOURN_R * detSin(a)));
+  }
+  return out;
+}
+
+/** Every point of a scene that must be dry land: its prop and round it, its people's places and the way there. */
+export function stagePoints(
+  camp: number,
+  slot: number,
+  beyond: number,
+  kind: TreeStage['kind'],
+): Pt[] {
+  const { prop, gap, at } = stageSpots(camp, slot, beyond);
+  const out: Pt[] = [prop];
+  // Round the prop as it lies: the wall about 5 layout metres to each side and 2 deep, the grave 3 by 1.7.
+  const [wide, deep] = kind === 'cave-painting' ? [5.4, 2.4] : [3.4, 2];
+  for (let k = 0; k < 12; k++) {
+    const a = (k / 12) * 2 * Math.PI;
+    out.push(at(deep * detCos(a), wide * detSin(a)));
+  }
+  const stands = stageStands(camp, slot, beyond, kind);
+  out.push(...stands, gap);
+  for (const q of stands) {
+    const n = Math.ceil(Math.sqrt((q.x - gap.x) ** 2 + (q.z - gap.z) ** 2));
+    for (let k = 1; k < n; k++)
+      out.push({ x: gap.x + ((q.x - gap.x) * k) / n, z: gap.z + ((q.z - gap.z) * k) / n });
+  }
+  return out;
+}
+
+/**
+ * A scene's people are in place this long after their window starts and paint or bury for
+ * STAGE_MS, leaving time to walk back before the window ends.
+ */
+const STAGE_LEAD_MS = Math.round(15_000 / TEMPO);
+const STAGE_MS = Math.round(27_000 / TEMPO);
+/** A cave painting grows in this many sessions, one window in two (humankind.md section 8.2). */
+export const PAINT_SESSIONS = 6;
+
+/**
+ * The sessions of a scene (humankind.md section 8.2): the windows of its camp's day it takes,
+ * fixed from the anchor's day by the camp alone, whoever is free; each with the window's start,
+ * when its people are in place and when they stop.
+ */
+export function stageSessions(
+  stage: TreeStage,
+  startDay: Day,
+): { w: number; start: number; begin: number; stop: number }[] {
+  const shift = hash32(stage.camp, 113) % TURN_MS;
+  const w0 = Math.ceil((msAtDay(stage.from, startDay) + shift) / TURN_MS);
+  const end = msAtDay(stage.until, startDay);
+  const ws =
+    stage.kind === 'cave-painting'
+      ? Array.from({ length: PAINT_SESSIONS }, (_, k) => w0 + 2 * k)
+      : [w0 + 1];
+  return ws
+    .map((w) => {
+      const start = w * TURN_MS - shift;
+      return { w, start, begin: start + STAGE_LEAD_MS, stop: start + STAGE_LEAD_MS + STAGE_MS };
+    })
+    .filter((x) => x.start + TURN_MS <= end);
 }
 
 /** Where a lodging stands around its hearth, in layout metres, by its slot. Its door faces the hearth. */
@@ -1190,6 +1305,32 @@ export function treeScene(
       dirZ: -p.z / ringOf(flag.camp),
     });
   }
+  // Scenes at anchors (section 8.2): the painted wall grows in over its sessions and stays;
+  // the grave fills in its session and stays until the anchor's end.
+  for (const stage of chunk.stages ?? []) {
+    if (ms < at(stage.shown) || ms >= at(stage.keep)) continue;
+    const sessions = stageSessions(stage, startDay);
+    const done = (q: { begin: number; stop: number }) =>
+      Math.min(1, Math.max(0, (ms - q.begin) / (q.stop - q.begin)));
+    if (stage.kind === 'burial' && (!sessions[0] || ms < sessions[0].begin)) continue;
+    const built =
+      stage.kind === 'burial'
+        ? done(sessions[0]!)
+        : sessions.reduce((n, q) => n + done(q), 0) / PAINT_SESSIONS;
+    const { prop, u } = stageSpots(stage.camp, stage.slot, stage.beyond);
+    scene.props.push({
+      id: `stage:${stage.id}`,
+      kind: stage.prop,
+      lat: deg(stage.lat),
+      lon: deg(stage.lon),
+      x: prop.x,
+      z: prop.z,
+      dirX: -u.x,
+      dirZ: -u.z,
+      built,
+      scale: stageScale(stage.camp),
+    });
+  }
   // In place order, so a time window's chunk gives the same scene as the whole tree.
   scene.clearings.sort((a, b) => a.lat - b.lat || a.lon - b.lon || a.amount - b.amount);
 
@@ -1307,6 +1448,19 @@ export function treeScene(
     events.set(key, undefined);
     const shift = hash32(camp, 113) % TURN_MS;
     const start = w * TURN_MS - shift;
+    // A scene's session takes its window: no catch or dance then (section 8.2).
+    const stage = (chunk.stages ?? []).find(
+      (x) =>
+        x.camp === camp &&
+        x.lat === ref.home.lat &&
+        x.lon === ref.home.lon &&
+        stageSessions(x, startDay).some((q) => q.w === w),
+    );
+    if (stage) {
+      const ev = stageEvent(stage, w, start, start + TURN_MS);
+      events.set(key, ev);
+      return ev;
+    }
     const roll = hash01(camp, w, 97);
     const kind =
       roll < CATCH_SHARE
@@ -1336,6 +1490,77 @@ export function treeScene(
     }
     events.set(key, ev);
     return ev;
+  }
+
+  /**
+   * A scene's session (section 8.2): the camp's people free for the whole window walk out
+   * beside a lodging to the wall or the grave; one grown-up paints and two watch, or two dig
+   * and the others mourn; then they walk back. Undefined when nobody can come.
+   */
+  function stageEvent(stage: TreeStage, w: number, start: number, until: number) {
+    const members = mates(stage.camp)
+      .map((g) => stayAt(g, start))
+      .filter(
+        (g): g is Stay =>
+          !!g &&
+          g.home.camp === stage.camp &&
+          g.home.lat === stage.lat &&
+          g.home.lon === stage.lon &&
+          g.free <= start &&
+          g.busy >= until &&
+          huntsOf(g, start, until).length === 0,
+      );
+    const grown = members.filter((m) => lookOf(m.f.id) !== 'child');
+    const others = members.filter((m) => lookOf(m.f.id) === 'child');
+    // Grown-ups first: the painter, or the two who dig.
+    const cast = [...grown, ...others];
+    const paint = stage.kind === 'cave-painting';
+    // A grown-up paints or digs where there is one, else a child: children made hand stencils too.
+    if (cast.length < (paint ? 1 : 2)) return undefined;
+    const stands = stageStands(stage.camp, stage.slot, stage.beyond, stage.kind);
+    const session = stageSessions(stage, startDay).find((q) => q.w === w)!;
+    const { prop, gap } = stageSpots(stage.camp, stage.slot, stage.beyond);
+    // Each place goes to the next of the cast who can be there when the session begins and
+    // back by the end of the window; whoever cannot stays at the camp.
+    const chosen: Stay[] = [];
+    const legs = new Map<number, Leg[]>();
+    let end = start;
+    for (const m of cast) {
+      const i = chosen.length;
+      if (i === stands.length) break;
+      const trip = new Itinerary(start, m.spot, m.home.camp).go(gap).go(stands[i]!);
+      if (trip.t > session.begin) continue;
+      trip.stay(session.begin, 'idle', prop);
+      trip.legs.push({
+        start: session.begin,
+        end: session.stop,
+        clip: 'event',
+        route: [stands[i]!],
+      });
+      trip.t = session.stop;
+      trip.at = stands[i]!;
+      trip.go(gap).go(m.spot);
+      if (trip.t > until || trip.t > m.busy) continue;
+      chosen.push(m);
+      legs.set(m.f.id, trip.legs);
+      end = Math.max(end, trip.t);
+    }
+    if (chosen.length < (paint ? 1 : 2)) return undefined;
+    return {
+      id: `${stage.id}:${w}`,
+      kind: paint ? 'paint' : 'burial',
+      camp: stage.camp,
+      members: chosen.map((m) => m.f.id),
+      a0: 0,
+      r: 0,
+      start,
+      begin: session.begin,
+      stop: session.stop,
+      end,
+      legs,
+      stands: stands.slice(0, chosen.length),
+      face: prop,
+    } satisfies CampEvent;
   }
 
   /** Everyone walks to their place on the ring, plays or dances, and walks back. */
@@ -1407,6 +1632,12 @@ export function treeScene(
     const i = ev.members.indexOf(id);
     const p = eventPoint(ev, i, ms);
     const tau = ms - ev.begin;
+    // At a scene: the painter paints and the others watch; two dig and the others mourn.
+    if (ev.kind === 'paint' || ev.kind === 'burial') {
+      const working = ev.kind === 'paint' ? i === 0 : i < 2;
+      const clip = !working ? 'idle' : ev.kind === 'paint' ? 'paint' : 'work';
+      return { ...base, ...p, ...towards(p.x, p.z, ev.face!.x, ev.face!.z), clip, clipMs: tau };
+    }
     if (ev.kind === 'dance')
       return { ...base, ...p, ...towards(p.x, p.z, 0, 0), clip: 'dance', clipMs: tau };
     const q = eventPoint(ev, i, ms + 30);
@@ -2465,7 +2696,8 @@ export function treeScene(
 /** A camp event (section 8.1): children's catch or a dance round the fire. */
 interface CampEvent {
   id: string;
-  kind: 'catch' | 'dance';
+  /** Catch and dancing, or a scene's session (section 8.2). */
+  kind: 'catch' | 'dance' | 'paint' | 'burial';
   camp: number;
   /** Figure ids, in their order round the ring. */
   members: number[];
@@ -2477,6 +2709,9 @@ interface CampEvent {
   stop: number;
   end: number;
   legs: Map<number, Leg[]>;
+  /** At a scene: where each member stands, and what they face. */
+  stands?: Pt[];
+  face?: Pt;
 }
 
 /** Catch is played at this share of a full run. */
@@ -2494,6 +2729,7 @@ function ringPoint(ev: CampEvent, i: number, turned: number): Pt {
  * the ring to catch the next and drops back into its place, so nobody crosses the fire.
  */
 function eventPoint(ev: CampEvent, i: number, ms: number): Pt {
+  if (ev.stands) return ev.stands[i]!;
   const tau = Math.min(Math.max(0, ms - ev.begin), ev.stop - ev.begin);
   const n = ev.members.length;
   if (ev.kind === 'dance') return ringPoint(ev, i, (tau * PACE.walk * 0.12) / ev.r);

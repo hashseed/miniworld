@@ -1,6 +1,12 @@
 import { createHash } from 'node:crypto';
-import { msAtDay } from '../../../app/src/time/rate.ts';
-import { LAYOUT_KM_PER_M, treeScene } from '../../../app/src/world/treeScene.ts';
+import { dayAtMs, msAtDay } from '../../../app/src/time/rate.ts';
+import {
+  LAYOUT_KM_PER_M,
+  PAINT_SESSIONS,
+  stageSessions,
+  treeScene,
+  type TreeChunk,
+} from '../../../app/src/world/treeScene.ts';
 import { describe, expect, it } from 'vitest';
 import { DAYS_PER_YEAR, TIMELINE_START } from '../../../app/src/time/calendar.ts';
 import { NEVER, aliveOn, homeOn, lineage } from '../../../app/src/world/tree.ts';
@@ -739,6 +745,70 @@ describe('encounters (sites.md section 4.3)', () => {
       for (const f of scene.figures) expect(onLand(f.lat, f.lon)).toBe(true);
       if (ms >= from + 1_000) expect(treeScene(chunk, ms, settings.startDay)).toEqual(scene);
     }
+  }, 60_000);
+});
+
+describe('scenes at anchors (section 8.2)', () => {
+  const place = { lat: 0, lon: 19 };
+  const day = TIMELINE_START + years(7_000);
+  const until = TIMELINE_START + years(9_000);
+  const sceneOf = (kind: 'cave-painting' | 'burial', prop: string) => {
+    const t = buildTree(
+      { ...settings, anchors: [{ id: 'scene', day, until, ...place, scene: { kind, prop } }] },
+      habitat,
+    );
+    const stage = t.stages![0]!;
+    const whole = { fromDay: settings.startDay, toDay: settings.endDay, ...t };
+    return { t, stage, whole, sessions: stageSessions(stage, settings.startDay) };
+  };
+  const propAt = (whole: TreeChunk, ms: number) =>
+    treeScene(whole, ms, settings.startDay).props.find((q) => q.id === 'stage:scene');
+
+  it('paints the wall in six sessions, someone painting in each, and the painting stays', () => {
+    const { stage, whole, sessions } = sceneOf('cave-painting', 'prop-cave-wall-chauvet');
+    expect(sessions.length).toBe(PAINT_SESSIONS);
+    let last = -1;
+    for (const q of sessions) {
+      const mid = Math.round((q.begin + q.stop) / 2);
+      const scene = treeScene(whole, mid, settings.startDay);
+      expect(scene.figures.filter((f) => f.clip === 'paint').length).toBe(1);
+      const built = propAt(whole, q.stop)!.built!;
+      expect(built).toBeGreaterThan(last);
+      last = built;
+    }
+    expect(last).toBeCloseTo(1);
+    // Bare before the first session; whole long after the anchor's end, its band gone.
+    expect(propAt(whole, sessions[0]!.begin)!.built).toBe(0);
+    const later = msAtDay(stage.until, settings.startDay) + 10_000;
+    expect(propAt(whole, later)?.built).toBe(1);
+  }, 30_000);
+
+  it("fills a grave in its session and keeps it to the anchor's end", () => {
+    const { stage, whole, sessions } = sceneOf('burial', 'prop-burial');
+    const q = sessions[0]!;
+    expect(propAt(whole, q.begin - 1)).toBeUndefined();
+    const mid = Math.round((q.begin + q.stop) / 2);
+    const scene = treeScene(whole, mid, settings.startDay);
+    expect(scene.figures.filter((f) => f.clip === 'work').length).toBeGreaterThanOrEqual(2);
+    expect(propAt(whole, q.stop)!.built).toBe(1);
+    expect(propAt(whole, msAtDay(stage.until, settings.startDay) + 1)).toBeUndefined();
+  }, 30_000);
+
+  it('shows the same scene in its chunks as in the whole tree', () => {
+    const { t, whole, sessions } = sceneOf('cave-painting', 'prop-cave-wall-sulawesi');
+    const windows = [
+      settings.startDay,
+      ...sessions.map((q) => dayAtMs(q.start, settings.startDay)),
+    ];
+    const chunks = treeChunks(t, [...windows, settings.endDay], settings.endDay);
+    for (const [w, q] of sessions.entries())
+      for (const ms of [q.start + 500, q.begin + 1_000, q.stop - 500]) {
+        const chunk = chunks[w + 1]!;
+        if (ms < msAtDay(chunk.fromDay, settings.startDay)) continue;
+        expect(treeScene(chunk, ms, settings.startDay)).toEqual(
+          treeScene(whole, ms, settings.startDay),
+        );
+      }
   }, 60_000);
 });
 

@@ -123,6 +123,31 @@ export interface Tree {
   moments: TreeMoment[];
   /** Red flags at the Neolithic thresholds (peopling.md section 3.6). */
   flags?: TreeFlag[];
+  /** Scenes at anchors: cave paintings and burials (humankind.md section 8.2). */
+  stages?: TreeStage[];
+}
+
+/** A scene at an anchor's camp (humankind.md section 8.2). */
+export interface TreeStage {
+  /** The anchor's id. */
+  id: string;
+  kind: 'cave-painting' | 'burial';
+  /** Asset id of its prop: the painted wall or the grave. */
+  prop: string;
+  /** The camp's site key and place in whole microdegrees. */
+  camp: number;
+  lat: number;
+  lon: number;
+  /** The lodging place it stands behind, and how far beyond the ring of lodgings, in layout metres. */
+  slot: number;
+  beyond: number;
+  /** Its prop shows from this day, when the anchor's band came. */
+  shown: Day;
+  /** Its sessions come from this day, to the anchor's end. */
+  from: Day;
+  until: Day;
+  /** Its prop stands until this day: a painting to the tree's end, a grave to the anchor's. */
+  keep: Day;
 }
 
 /** Whether a figure lives on a day: born and not yet lost. */

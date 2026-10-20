@@ -15,6 +15,7 @@ import {
   type Tree,
   type TreeFigure,
   type TreeLodging,
+  type TreeStage,
 } from '../../../app/src/world/tree.ts';
 import {
   COMPACT_SITE,
@@ -25,9 +26,12 @@ import {
   HEARTH_SPOTS,
   LODGING_SLOTS,
   REGROW_MS,
+  hasRack,
+  STAGE_BEYOND_M,
+  stagePoints,
   type TreeChunk,
 } from '../../../app/src/world/treeScene.ts';
-import { distanceKm } from './geo.ts';
+import { distanceKm, onGlobe } from './geo.ts';
 import {
   footprintM,
   laneReach,
@@ -202,6 +206,8 @@ export interface TreeSettings {
   seaLevel(day: Day): number;
   /** The sea level above which a point is sea for walkers, for stranded bands paddling away (sites.md section 3). */
   walkFlood?(lat: number, lon: number): number;
+  /** The same for a camp: lakes and rivers are never dry; for the places of scenes (humankind.md section 8.2). */
+  campFlood?(lat: number, lon: number): number;
   /** The density of the culture area at a place and day, or undefined outside every area. */
   density(lat: number, lon: number, day: Day): Density | undefined;
   /** A culture area's own camp spacing in km, overriding its density's (humankind.md section 4.1). */
@@ -246,6 +252,8 @@ export interface Anchor {
   until: Day;
   lat: number;
   lon: number;
+  /** A scene its band plays at its camp (humankind.md section 8.2). */
+  scene?: { kind: TreeStage['kind']; prop: string };
 }
 
 /** An encounter (sites.md section 4.3): parties of several bands meeting at a place. */
@@ -1077,7 +1085,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         sites
           .filter((y) => km(y) <= KEY_PLACE_FAR_KM)
           .sort((a, b) => km(a) - km(b) || a.id - b.id)
-          .find((y) => !s.walkFlood || wayLevel(y, p, s.walkFlood) > sea),
+          .find((y) => !s.walkFlood || wayLevel(y, p, s.walkFlood, false) > sea),
       );
     }
     return homes.get(key);
@@ -1883,6 +1891,54 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       }
     }
   }
+  // Scenes at anchors (humankind.md section 8.2): each behind the first lodging place of its
+  // camp with no drying rack whose prop, people's places and way there stay dry land for the
+  // anchor's whole stay.
+  const stages: TreeStage[] = [];
+  for (const a of s.anchors ?? []) {
+    if (!a.scene) continue;
+    const p = planByKey.get(placeKey('anchor', a.id))!;
+    const site = p.site;
+    const sea = seaMax(p.day, p.until);
+    const flood = s.campFlood ?? s.walkFlood ?? (() => Infinity);
+    const dryAt = (q: { x: number; z: number }) => {
+      const g = onGlobe(
+        site.lat,
+        site.lon,
+        (q.x * LAYOUT_KM_PER_M) / site.width,
+        (q.z * LAYOUT_KM_PER_M) / site.width,
+      );
+      return flood(g.lat, g.lon) > sea;
+    };
+    let slot: number | undefined;
+    let beyond = STAGE_BEYOND_M[0]!;
+    for (const b of STAGE_BEYOND_M) {
+      slot = Array.from({ length: LODGING_SLOTS }, (_, k) => k).find(
+        (k) => !hasRack(site.key, k) && stagePoints(site.key, k, b, a.scene!.kind).every(dryAt),
+      );
+      beyond = b;
+      if (slot !== undefined) break;
+    }
+    if (slot === undefined)
+      throw new Error(
+        `tree of humankind: the scene of anchor ${a.id} has no dry land behind a lodging place of its camp`,
+      );
+    stages.push({
+      id: a.id,
+      kind: a.scene.kind,
+      prop: a.scene.prop,
+      camp: site.key,
+      lat: micro(site.lat),
+      lon: micro(site.lon),
+      slot,
+      beyond,
+      shown: Math.min(p.met ?? p.day, p.day),
+      from: p.day,
+      until: p.until,
+      keep: a.scene.kind === 'cave-painting' ? s.endDay : p.until,
+    });
+  }
+  if (stages.length) tree.stages = stages;
   // Kept free (sites.md section 7): no band but a plan's own stood in its footprint during
   // its claim, after it was cleared.
   const keyed = new Map(sites.map((x) => [x.key, x.id]));
@@ -2030,12 +2086,14 @@ export function treeChunks(tree: Tree, windows: Day[], endDay: Day): (TreeChunk 
       figures.push({ ...rest, homes, lost: until(f.lost), ...(walks?.length ? { walks } : {}) });
     }
     const flags = (tree.flags ?? []).filter((f) => f.day < to);
+    const stages = (tree.stages ?? []).filter((x) => x.shown < to && until(x.keep) > earliest);
     return {
       fromDay: from,
       toDay: to,
       figures,
       lodgings: [...lodgings.values()],
       ...(flags.length ? { flags } : {}),
+      ...(stages.length ? { stages } : {}),
     };
   });
 }

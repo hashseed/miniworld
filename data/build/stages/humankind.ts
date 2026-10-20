@@ -10,7 +10,7 @@ import { OCEAN_MIN_LEVEL, OCEAN_NEVER } from '../../../app/src/content/formats.t
 import { TIMELINE_START } from '../../../app/src/time/calendar.ts';
 import { detCos, detSin } from '../../../app/src/core/detmath.ts';
 import { onGlobe } from '../lib/geo.ts';
-import { dayAtMs, dayAtWatch } from '../../../app/src/time/rate.ts';
+import { dayAtMs, dayAtWatch, msAtDay } from '../../../app/src/time/rate.ts';
 import {
   areasAt,
   FOUNDER,
@@ -39,6 +39,8 @@ import {
   BUILD_MS,
   shownAtMs,
   slotPoint,
+  stageSessions,
+  treeScene,
 } from '../../../app/src/world/treeScene.ts';
 import {
   arrivalMap,
@@ -255,6 +257,7 @@ export function buildHumankind(
       until?: number;
       lat: number;
       lon: number;
+      scene?: { kind: string; prop: string };
       en: string;
       de: string;
       source: string;
@@ -263,6 +266,16 @@ export function buildHumankind(
   for (const a of anchors)
     if (!a.id || !a.en || !a.de || !a.source || Math.abs(a.lat) > 90 || Math.abs(a.lon) > 180)
       fail(`anchors.json: ${a.id || '(no id)'} needs an id, a place, en, de and a source`);
+  // Scenes at anchors (humankind.md section 8.2).
+  const SCENE_PROPS: Record<string, string[]> = {
+    'cave-painting': ['prop-cave-wall-sulawesi', 'prop-cave-wall-chauvet'],
+    burial: ['prop-burial'],
+  };
+  for (const a of anchors)
+    if (a.scene && !SCENE_PROPS[a.scene.kind]?.includes(a.scene.prop))
+      fail(
+        `anchors.json: ${a.id}: a scene is a cave-painting (${SCENE_PROPS['cave-painting']!.join(', ')}) or a burial (prop-burial)`,
+      );
   // The records that need a band at a place and time, each laid a site of its own that stays
   // dry for its span (sites.md section 2.1); an anchor's close by (section 4.1).
   const anchorRecords = anchors.map((a) => ({
@@ -271,6 +284,9 @@ export function buildHumankind(
     until: a.until === undefined ? TREE_END : dayOfBce(a.until),
     lat: a.lat,
     lon: a.lon,
+    ...(a.scene
+      ? { scene: { kind: a.scene.kind as 'cave-painting' | 'burial', prop: a.scene.prop } }
+      : {}),
   }));
   const thresholdRecords = thresholds.map((t) => ({
     id: t.id,
@@ -460,6 +476,7 @@ export function buildHumankind(
   });
   treeSettings.anchors = anchorRecords;
   treeSettings.encounters = encounterRecords;
+  treeSettings.campFlood = campFlood;
   if (!habitat.habitable(treeSettings.founder.lat, treeSettings.founder.lon, TIMELINE_START))
     fail('tree of humankind: the first person stands on uninhabitable land');
   let tree: Tree;
@@ -602,6 +619,47 @@ export function buildHumankind(
     });
   }
   log(`events: ${events.length} arrivals in a new continent`);
+  // Scenes at anchors (humankind.md section 8.2): every session has its people, so nothing
+  // is painted or buried by itself; each scene is an event on the day of its first session.
+  const chunkAt = (ms: number) => {
+    let w = 0;
+    while (w + 1 < days.length && msAtDay(days[w + 1]!, TIMELINE_START) <= ms) w++;
+    return chunks[w];
+  };
+  for (const stage of tree.stages ?? []) {
+    const a = anchors.find((x) => x.id === stage.id)!;
+    const sessions = stageSessions(stage, TIMELINE_START);
+    const need = stage.kind === 'cave-painting' ? 1 : 2;
+    const clips = stage.kind === 'cave-painting' ? ['paint'] : ['work'];
+    for (const [k, q] of sessions.entries()) {
+      const ms = Math.round((q.begin + q.stop) / 2);
+      const chunk = chunkAt(ms);
+      const busy = chunk
+        ? treeScene(chunk, ms, TIMELINE_START).figures.filter(
+            (f) =>
+              Math.round(f.lat * 1e6) === stage.lat &&
+              Math.round(f.lon * 1e6) === stage.lon &&
+              clips.includes(f.clip),
+          ).length
+        : 0;
+      if (busy < need)
+        fail(
+          `tree of humankind: session ${k + 1} of the scene of ${stage.id} has nobody to ${stage.kind === 'cave-painting' ? 'paint' : 'dig the grave'}`,
+        );
+    }
+    if (sessions[0])
+      events.push({
+        id: `scene-${stage.id}`,
+        kind: 'scene',
+        title: { en: a.en, de: a.de },
+        day: Math.ceil(dayAtMs(sessions[0].begin, TIMELINE_START)),
+        lat: stage.lat / 1e6,
+        lon: stage.lon / 1e6,
+      });
+  }
+  log(
+    `scenes: ${(tree.stages ?? []).map((x) => `${x.id} (${x.kind}, ${stageSessions(x, TIMELINE_START).length} sessions)`).join(', ') || 'none'}`,
+  );
   return { files: { files, days, sites: sitesFile }, camps, events };
 }
 

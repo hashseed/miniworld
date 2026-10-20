@@ -302,6 +302,8 @@ export function wayLevel(
   a: { lat: number; lon: number },
   b: { lat: number; lon: number },
   flood: (lat: number, lon: number) => number,
+  // Walkers are drawn a little off the line; a place's own land needs only the line itself.
+  sides = true,
 ): number {
   const km = distanceKm(a.lat, a.lon, b.lat, b.lon);
   const n = Math.max(1, Math.ceil(km / WALK_CHECK_KM));
@@ -318,7 +320,7 @@ export function wayLevel(
     let lon = a.lon + (dLon * k) / n;
     if (lon > 180) lon -= 360;
     else if (lon < -180) lon += 360;
-    for (const sgn of [0, 1, -1])
+    for (const sgn of sides ? [0, 1, -1] : [0])
       level = Math.min(level, flood(lat + sgn * side.lat, lon + sgn * side.lon));
   }
   return level;
