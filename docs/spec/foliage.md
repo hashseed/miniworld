@@ -88,6 +88,7 @@ With few, fixed trees, foliage is cheap. The terrain is also being simplified (Y
 
 - Only the slots on the visible side of the globe are drawn; at most about 2,500 plants are in view, whatever the zoom.
 - All plants are instanced: one draw call per kind, 8 draw calls in all.
+- Each plant in view keeps its place in its kind's instance list until the slices, the sea level, the history lens or the tiles in view change. When only clearings change (camps, stages and animals coming and going), the plants within reach of a clearing are found through cells of one degree and only they, and those a clearing just let go, are written and sent to the GPU again; a plant cleared away keeps its place with an empty matrix (Yang, 2026-10-20: optimizations; until then every plant was placed again whenever any clearing changed).
 - Placement runs once per level-4 tile and date step and is cached; the camera moving never recomputes it.
 - Foliage starts loading only once the first view is ready (its foliage slices and the level-4 terrain tiles it places plants on, about 600 KB for a whole hemisphere), so it stays outside the first view's data budget (milestone 1, section 10.6) and the plants appear a moment after the globe.
 - Proposed limit: 400,000 foliage triangles per frame (there is one fixed quality, milestone 1 section 11.2).

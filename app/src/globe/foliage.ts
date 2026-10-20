@@ -110,6 +110,20 @@ export function treeLine(lat: number): number {
  * they have gone, 0 to 1. While `felling`, trees tip over as the amount rises; otherwise
  * they shrink away, or grow back as it falls.
  */
+/** The plants in view: kind, place in the kind's list and matrix of each, and the plants of each cell of a degree. */
+interface DrawnPlants {
+  kinds: Uint8Array;
+  slots: Uint32Array;
+  matrices: Float32Array;
+  cells: Map<number, number[]>;
+}
+
+const RAD = Math.PI / 180;
+
+/** The cell of a degree of latitude and longitude of a place, as one number; longitudes wrap. */
+const cellKey = (lat: number, lon: number) =>
+  (lat + 90) * 360 + ((((lon + 180) % 360) + 360) % 360);
+
 export interface Clearing {
   dir: Vec3;
   km: number;
@@ -132,7 +146,17 @@ export class Foliage {
   private requested: boolean[] = [];
   private samples = new Map<string, TileSamples>();
   private placed = new Map<string, Plant[]>();
-  private lastKey = '';
+  /** What the plants' places in the lists were worked out for, and the clearings last applied. */
+  private layoutKey = '';
+  private clearKey = '';
+  /** The plants in view, and those a clearing reached last time. */
+  private drawn: DrawnPlants = {
+    kinds: new Uint8Array(0),
+    slots: new Uint32Array(0),
+    matrices: new Float32Array(0),
+    cells: new Map(),
+  };
+  private cleared = new Set<number>();
   /** Plants drawn last frame. */
   count = 0;
   /** Set once the first view is ready; until then nothing is loaded or drawn. */
@@ -227,23 +251,92 @@ export class Foliage {
     const clearKey = clear
       .map((c) => `${c.at.map((x) => x.toFixed(4)).join(',')}:${c.cos}:${c.amount}:${c.felling}`)
       .join(';');
-    const frameKey = `${state}|${lens.blend}|${visible.map(tileId).join(',')}|${this.placed.size}|${clearKey}`;
-    /** The clearing a plant at a matrix's position gives way to most, if any. */
-    const clearing = (e: number[]) => {
-      const len = Math.hypot(e[12]!, e[13]!, e[14]!);
-      let most: (typeof clear)[number] | undefined;
-      for (const c of clear)
-        if ((c.at[0] * e[12]! + c.at[1] * e[13]! + c.at[2] * e[14]!) / len > c.cos)
-          if (!most || c.amount > most.amount) most = c;
-      return most;
-    };
+    // Where each plant stands changes only with the slices, the sea level, the lens and the
+    // tiles in view; then every plant gets its place in its kind's list again. In between,
+    // only the plants of tiles a clearing reaches, now or last frame, are written again.
+    const layoutKey = `${state}|${lens.blend}|${visible.map(tileId).join(',')}|${this.placed.size}`;
+    const relaid = layoutKey !== this.layoutKey;
+    if (!relaid && clearKey === this.clearKey) return;
+    this.clearKey = clearKey;
+    if (relaid) {
+      this.layoutKey = layoutKey;
+      this.layout(visible, state, planet, day, sa, sb, t);
+    }
+    // The plants each clearing reaches, found through the cells of the drawn globe.
+    const d = this.drawn;
+    const most = new Map<number, (typeof clear)[number]>();
+    for (const c of clear) {
+      const { lat, lon } = dirToLatLon(c.at);
+      const r = Math.acos(c.cos) / RAD;
+      const rLon = r / Math.max(0.05, Math.cos(lat * RAD));
+      for (let a = Math.floor(lat - r); a <= Math.floor(lat + r); a++)
+        for (let b = Math.floor(lon - rLon); b <= Math.floor(lon + rLon); b++)
+          for (const k of d.cells.get(cellKey(a, b)) ?? []) {
+            const x = d.matrices[k * 16 + 12]!;
+            const y = d.matrices[k * 16 + 13]!;
+            const z = d.matrices[k * 16 + 14]!;
+            if ((c.at[0] * x + c.at[1] * y + c.at[2] * z) / Math.hypot(x, y, z) <= c.cos) continue;
+            const m = most.get(k);
+            if (!m || c.amount > m.amount) most.set(k, c);
+          }
+    }
+    const m = new THREE.Matrix4();
     const shrink = new THREE.Matrix4();
-    if (frameKey === this.lastKey) return;
-    this.lastKey = frameKey;
+    const written = this.meshes.map(() => [] as number[]);
+    const write = (k: number) => {
+      m.fromArray(d.matrices, k * 16);
+      const c = most.get(k);
+      // Gone: a matrix of zeros keeps its place in the list without drawing anything.
+      if (c && c.amount >= 1) m.makeScale(0, 0, 0);
+      // Felled trees tip over about their foot; others shrink away or grow back.
+      else if (c && c.amount > 0)
+        m.multiply(
+          c.felling
+            ? shrink.makeRotationX(c.amount * c.amount * 1.5)
+            : shrink.makeScale(1 - c.amount, 1 - c.amount, 1 - c.amount),
+        );
+      this.meshes[d.kinds[k]!]!.setMatrixAt(d.slots[k]!, m);
+      written[d.kinds[k]!]!.push(d.slots[k]!);
+    };
+    if (relaid) for (let k = 0; k < d.kinds.length; k++) write(k);
+    else {
+      // Those in a clearing now, and those that were and are no longer.
+      for (const k of most.keys()) write(k);
+      for (const k of this.cleared) if (!most.has(k)) write(k);
+    }
+    this.cleared = new Set(most.keys());
+    this.meshes.forEach((mesh, kind) => {
+      const a = mesh.instanceMatrix;
+      a.clearUpdateRanges();
+      const slots = written[kind]!.sort((x, y) => x - y);
+      if (!relaid)
+        for (let i = 0; i < slots.length;) {
+          let j = i;
+          while (j + 1 < slots.length && slots[j + 1]! <= slots[j]! + 1) j++;
+          a.addUpdateRange(slots[i]! * 16, (slots[j]! - slots[i]! + 1) * 16);
+          i = j + 1;
+        }
+      a.needsUpdate = slots.length > 0;
+    });
+  }
 
+  /** Gives every plant of the tiles in view its place in its kind's list (see update). */
+  private layout(
+    visible: TileKey[],
+    state: string,
+    planet: PlanetState,
+    day: number,
+    sa: FoliageSlice,
+    sb: FoliageSlice,
+    t: number,
+  ): void {
     const counts = this.meshes.map(() => 0);
     const tint = new THREE.Color();
     const m = new THREE.Matrix4();
+    const kinds: number[] = [];
+    const slots: number[] = [];
+    const matrices: number[] = [];
+    const cells = new Map<number, number[]>();
     for (const key of visible) {
       const id = `${tileId(key)}|${state}`;
       let plants = this.placed.get(id);
@@ -255,29 +348,35 @@ export class Foliage {
       for (const p of plants) {
         const n = counts[p.kind]!;
         if (n >= CAPACITY || !this.matrixOf(p, m)) continue;
-        const c = clear.length > 0 ? clearing(m.elements) : undefined;
-        if (c && c.amount >= 1) continue;
-        // Felled trees tip over about their foot; others shrink away or grow back.
-        if (c && c.amount > 0)
-          m.multiply(
-            c.felling
-              ? shrink.makeRotationX(c.amount * c.amount * 1.5)
-              : shrink.makeScale(1 - c.amount, 1 - c.amount, 1 - c.amount),
-          );
-        const mesh = this.meshes[p.kind]!;
-        mesh.setMatrixAt(n, m);
-        mesh.setColorAt(n, tint.setScalar(p.tint));
+        const e = m.elements;
+        const k = kinds.length;
+        kinds.push(p.kind);
+        slots.push(n);
+        for (let a = 0; a < 16; a++) matrices.push(e[a]!);
+        const r = Math.hypot(e[12]!, e[13]!, e[14]!);
+        const { lat, lon } = dirToLatLon([e[12]! / r, e[13]! / r, e[14]! / r]);
+        const cell = cellKey(Math.floor(lat), Math.floor(lon));
+        const list = cells.get(cell);
+        if (list) list.push(k);
+        else cells.set(cell, [k]);
+        this.meshes[p.kind]!.setColorAt(n, tint.setScalar(p.tint));
         counts[p.kind] = n + 1;
       }
     }
+    this.drawn = {
+      kinds: Uint8Array.from(kinds),
+      slots: Uint32Array.from(slots),
+      matrices: Float32Array.from(matrices),
+      cells,
+    };
     // Keep the cache to the current state.
     if (this.placed.size > this.keys.length * 2)
       for (const k of [...this.placed.keys()]) if (!k.endsWith(state)) this.placed.delete(k);
     this.count = 0;
-    this.meshes.forEach((m, k) => {
-      m.count = counts[k]!;
-      m.instanceMatrix.needsUpdate = true;
-      if (m.instanceColor) m.instanceColor.needsUpdate = true;
+    this.cleared = new Set();
+    this.meshes.forEach((mesh, k) => {
+      mesh.count = counts[k]!;
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
       this.count += counts[k]!;
     });
   }
@@ -297,7 +396,7 @@ export class Foliage {
         return;
       }
       this.grounds[k] = groundTexture(this.slices[k]);
-      this.lastKey = '';
+      this.layoutKey = '';
     });
   }
 
