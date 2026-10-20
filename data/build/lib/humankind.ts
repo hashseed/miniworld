@@ -29,6 +29,10 @@ import {
   hasRack,
   lookOf,
   slotPoint,
+  CAVE_FADE_MS,
+  CAVE_LEAD_MS,
+  CAVE_LINGER_MS,
+  GRAVE_FADE_DAYS,
   STAGE_BEYOND_M,
   stageSessions,
   stagePoints,
@@ -2011,11 +2015,17 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     }
   }
   if (trespass.length) throw new Error(`tree of humankind: ${trespass.join('; ')}`);
-  // A cave is part of the land: it stands from the start of the timeline, long before its
-  // painters come; a grave shows from its burial (humankind.md section 8.2).
+  // A cave shows around its painting, from a minute before its first session to a little
+  // after its last; a grave from its burial until it has faded into the ground (humankind.md
+  // section 8.2).
   for (const x of stages) {
-    const p = planByKey.get(placeKey('anchor', x.id))!;
-    x.shown = x.kind === 'cave-painting' ? s.startDay : Math.min(p.met ?? p.day, p.day);
+    const q = stageSessions(x, s.startDay);
+    if (!q.length) continue;
+    const cave = x.kind === 'cave-painting';
+    x.shown = Math.floor(dayAtMs(q[0]!.begin - (cave ? CAVE_LEAD_MS : 0), s.startDay));
+    x.keep = cave
+      ? Math.ceil(dayAtMs(q.at(-1)!.stop + CAVE_LINGER_MS + CAVE_FADE_MS, s.startDay)) + 1
+      : Math.ceil(dayAtMs(q[0]!.stop, s.startDay)) + GRAVE_FADE_DAYS + 1;
   }
   // The plans beside their rows of the place table (sites.md section 4.2).
   for (const p of plans) {

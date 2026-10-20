@@ -6,7 +6,7 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { posedMaterials, type Model } from '../../../assets/src/kit.ts';
+import { lightUniforms, posedMaterials, type Model } from '../../../assets/src/kit.ts';
 
 interface Batch {
   template: Model;
@@ -74,6 +74,19 @@ export class PosedBatches {
       this.part.toArray(b.poses, row + k * 16);
     });
     b.count++;
+  }
+
+  /**
+   * Fades every copy of a model in the screen-door way, 1 drawn in full: for a model with a
+   * single copy in the world, such as a scene's cave or grave (humankind.md section 8.2).
+   */
+  fade(key: string, value: number): void {
+    const b = this.batches.get(key);
+    if (!b) return;
+    // Its own fade, not the one every model shares.
+    const u = (b.cel.material as THREE.ShaderMaterial).uniforms;
+    if (u.fade === lightUniforms.fade) u.fade = { value };
+    else u.fade!.value = value;
   }
 
   /** Ends a frame: draws as many copies as were added. */
