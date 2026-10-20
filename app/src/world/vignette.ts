@@ -53,6 +53,8 @@ export type Clip =
   | 'dance'
   | 'scrape'
   | 'crack'
+  // Painting a cave wall (humankind.md section 8.2).
+  | 'paint'
   // Crossing the sea in a canoe (peopling.md section 6).
   | 'paddle';
 

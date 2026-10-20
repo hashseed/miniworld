@@ -215,6 +215,30 @@ A camp is drawn like a vignette stage (milestone 2 section 5.1), but 1.7 times l
 - **Trees.** A camp keeps the trees clear for about 510 drawn kilometres around its hearth (the ring of lodgings and a margin) while it stands. When the band arrives at a new place the trees there are felled: they tip over while the band fells them (about 4 seconds of watching), or within about a second where the place had few trees; when it leaves, they grow back over about five years (12 seconds), so the place a camp left is not instantly forest again (section 7 and [foliage.md](foliage.md) section 4).
 - **Upright.** Figures stand upright on the ground whatever the camera does, as on stages (milestone 2 section 5.1), and keep their size at every zoom.
 
+### 8.2 Scenes at anchors
+
+Yang asked on 2026-10-20 for cave painting and burials ("do we have cave painting yet?"; "implement everything": the scenes at Leang Karampuang, Chauvet and Sungir). Before there are villages, the stories of the deep past are told by the camps themselves: an anchor (sites.md section 4.1) may carry a **scene**, which the band held at its site plays as part of its camp life. A scene is not a vignette (milestone-2 section 6): it has no cast of its own, only the anchor's band, so nobody is drawn twice and the band's people are the ones who paint or bury.
+
+| Field of `scene` | Meaning |
+| --- | --- |
+| `kind` | `cave-painting` or `burial` |
+| `prop` | The model it shows: for a cave painting its wall, `prop-cave-wall-sulawesi` or `prop-cave-wall-chauvet`; for a burial `prop-burial` |
+
+- **Its place at the camp.** The scene stands behind one of the camp's lodging places, out of every lane (as the red flag does, peopling.md section 3.6): the wall or grave 12 layout metres beyond the ring of lodgings, facing the hearth, so 24 metres out at a full camp, 21 at a compact one and 18.2 at a minimal one; where the land is too narrow for that, 10 or 8 metres beyond it. At a compact camp the scene is three quarters of its size, all its places and distances beyond the ring with it, and at a minimal camp half, as their lodgings are smaller (Leang Karampuang's camp is a minimal one). The build takes the first lodging place, by its number, that has no drying rack, where the prop, the people's places in front of it and the way there from beside the lodging (out of the gap at 4 metres past the ring) stay dry land for the anchor's whole stay; without one the build fails, naming the anchor. The cave stands for the real one: at a drawn metre to about 24 km, the camp covers the land round the cave, and on narrow land the anchor's site may lie a few hundred kilometres from it (Leang Karampuang's lies about 220 km up Sulawesi's south-western arm, which is too narrow for any camp, sites.md section 2).
+- **Sessions.** From the anchor's day the scene's sessions take whole windows of the camp's day (section 8.1), at fixed windows from the first after the anchor's day: a cave painting six sessions, every other window; a burial one, in the second window. Which windows they are depends only on the anchor and the camp, never on who is free, so the painting grows the same whatever happens at the camp and every time window's chunk agrees. In a session window the camp has no catch or dance. Its people are in place 5 seconds of watching into the window and paint or bury for 9 seconds, so they are back before it ends; each place at the wall or grave goes to the next of them who can be there in time and back by the window's end. The build checks that every session has its people (a painter, or two who dig), so nothing happens by itself.
+- **Cave painting.** The camp's people free for the whole window take part: one paints, a grown-up where there is one, else a child (children made hand stencils too), and up to two others watch. They walk out beside a lodging to the wall; the painter stands at the wall and paints (the new `paint` clip: an arm raised to the rock, dabbing), the watchers stand behind; then all walk back. Each session adds one part of the painting, which grows in over the session: at Leang Karampuang a warty pig in red ochre and three small figures with spears beside it (the oldest known painted story, Oktaviana et al. 2024); at Chauvet horses, lions and a rhinoceros in charcoal, and red dots (Quiles et al. 2016). The wall stands from the anchor's day to the tree's end: the band moves on at the end of its stay, and the paintings stay.
+- **Burial.** In the burial's window everyone free at the camp comes: two kneel at the grave and dig, grown-ups first, the others stand round it facing it. The grave fills in three steps over the session: the pit, the body laid in it wrapped and covered with mammoth-ivory beads, and the grave closed with earth and red ochre. At Sungir an adult and, in a second grave, two children were buried so, with thousands of beads and spears of mammoth ivory (Sikora et al. 2017); the card says so plainly. The grave stays until the anchor's end. Nothing bloody is shown and the body is only a wrapped bundle.
+- **The events dialog.** Each scene is an event of kind `scene` (milestone-1 section 8.3) on the day of its first session, at its camp, named by its anchor.
+- **Assets.** The three props and the `paint` clip are new; the props are generated and wait for Yang's approval like every model (spec section 13).
+
+The anchors with scenes (`data/curated/anchors.json`):
+
+| Anchor | From | To | Place | Scene |
+| --- | --- | --- | --- | --- |
+| `leang-karampuang` | 49,200 BCE | 47,200 BCE | Maros, south-western Sulawesi | Cave painting, `prop-cave-wall-sulawesi` |
+| `chauvet` | 35,000 BCE | 33,000 BCE | Ardèche, France | Cave painting, `prop-cave-wall-chauvet` |
+| `sungir` | 32,000 BCE | 31,000 BCE | Vladimir, Russia | Burial, `prop-burial` |
+
 ## 9. Open questions for Yang
 
 None at the moment.

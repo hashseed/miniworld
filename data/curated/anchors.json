@@ -10,6 +10,48 @@
       "en": "Göbekli Tepe: hunter-gatherers raise the stone enclosures",
       "de": "Göbekli Tepe: Jäger und Sammler errichten die Steinkreise",
       "source": "Schmidt 2010, Göbekli Tepe – the Stone Age sanctuaries, Documenta Praehistorica 37"
+    },
+    {
+      "id": "leang-karampuang",
+      "bce": 49200,
+      "until": 47200,
+      "lat": -4.92,
+      "lon": 119.7,
+      "scene": {
+        "kind": "cave-painting",
+        "prop": "prop-cave-wall-sulawesi"
+      },
+      "en": "The painted story of Leang Karampuang",
+      "de": "Die gemalte Geschichte von Leang Karampuang",
+      "source": "Oktaviana, A. A. et al. 2024, Narrative cave art in Indonesia by 51,200 years ago, Nature 631, 814-818"
+    },
+    {
+      "id": "chauvet",
+      "bce": 35000,
+      "until": 33000,
+      "lat": 44.388,
+      "lon": 4.416,
+      "scene": {
+        "kind": "cave-painting",
+        "prop": "prop-cave-wall-chauvet"
+      },
+      "en": "The paintings of the Chauvet Cave",
+      "de": "Die Bilder der Chauvet-Höhle",
+      "source": "Quiles, A. et al. 2016, A high-precision chronological model for the decorated Upper Paleolithic cave of Chauvet-Pont d'Arc, Ardèche, France, PNAS 113, 4670-4675"
+    },
+    {
+      "id": "sungir",
+      "bce": 32000,
+      "until": 31000,
+      "lat": 56.17,
+      "lon": 40.5,
+      "scene": {
+        "kind": "burial",
+        "prop": "prop-burial"
+      },
+      "en": "The burials of Sungir",
+      "de": "Die Gräber von Sungir",
+      "source": "Sikora, M. et al. 2017, Ancient genomes show social and reproductive behavior of early Upper Paleolithic foragers, Science 358, 659-662"
     }
   ]
 }

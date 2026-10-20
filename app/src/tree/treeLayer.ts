@@ -343,8 +343,11 @@ export class TreeLayer {
     for (const q of scene.props) {
       const batch = treePropBatch(q.kind);
       if (!batch || !this.place(at, q, false)) continue;
-      at.scale.setScalar(FIGURE_KM_PER_M);
-      copy(batch);
+      at.scale.setScalar(FIGURE_KM_PER_M * (q.scale ?? 1));
+      // A scene's wall or grave grows in step by step as it is painted or filled (humankind.md section 8.2).
+      if (q.built !== undefined && this.stepped(batch))
+        copy(batch, (m) => setBuilt(this.stepsOf(m), q.built!));
+      else copy(batch);
     }
 
     // Sparks from the flint stones while a new fire is lit, shrinking as they die.

@@ -31,6 +31,10 @@ export const SHELTERS = [
   'prop-canoe',
   'prop-red-flag',
   'shelter-small-hut',
+  // Scenes at anchors (humankind.md section 8.2).
+  'prop-cave-wall-sulawesi',
+  'prop-cave-wall-chauvet',
+  'prop-burial',
 ] as const;
 export type ShelterId = (typeof SHELTERS)[number];
 
@@ -483,6 +487,130 @@ export function buildShelter(id: ShelterId): Model {
         }),
       );
       mb.add(sheet(rows), '#d42323');
+      break;
+    }
+    case 'prop-cave-wall-sulawesi':
+    case 'prop-cave-wall-chauvet': {
+      // A rock face with a cave mouth, its front towards the hearth (+Z), and the painting
+      // on it in parts that are painted one after another (humankind.md section 8.2): the
+      // rock itself is no step, so it stands bare before the first session.
+      const sulawesi = id === 'prop-cave-wall-sulawesi';
+      const ROCK = sulawesi ? '#c4beb0' : '#d6c6a4';
+      const [rx, ry, rz, cy] = [1.7, 1.3, 0.7, 1.0];
+      mb.add(blob([0, cy, 0], [rx, ry, rz], 9), ROCK);
+      mb.add(blob([-1.45, 0.55, 0.15], [0.75, 0.6, 0.55], 7), shade(ROCK, -0.06));
+      mb.add(blob([1.55, 0.35, 0.2], [0.5, 0.38, 0.45], 7), shade(ROCK, 0.05));
+      // The cave mouth, dark, low on the left of the face.
+      mb.add(blob([-0.95, 0.55, 0.42], [0.42, 0.48, 0.32], 8), '#2f2724');
+      /** A point on the face at (x, y), standing a little proud of it. */
+      const face = (x: number, y: number, out = 0.035): Vec3 => {
+        const q = 1 - (x / rx) ** 2 - ((y - cy) / ry) ** 2;
+        return [x, y, rz * Math.sqrt(Math.max(0.05, q)) + out];
+      };
+      const dab = (x: number, y: number, w: number, h: number, colour: string, bone: string) =>
+        mb.add(blob(face(x, y), [w, h, 0.03], 6), colour, bone);
+      const line = (
+        a: [number, number],
+        b: [number, number],
+        r: number,
+        colour: string,
+        bone: string,
+      ) => mb.add(rod(face(...a), face(...b), r, 4), colour, bone);
+      const step = (k: number) => {
+        const name = `${BUILD_BONE}${k}`;
+        mb.bone({ name, pivot: face(0.2, 1.2, 0) });
+        return name;
+      };
+      if (sulawesi) {
+        // Leang Karampuang (Oktaviana et al. 2024): a warty pig in red ochre, three small
+        // figures with spears round it, and hands stencilled in red.
+        const RED = '#a8442a';
+        let b = step(0);
+        dab(0.35, 1.2, 0.36, 0.16, RED, b);
+        dab(0.74, 1.24, 0.13, 0.09, RED, b);
+        b = step(1);
+        for (const x of [0.12, 0.24, 0.48, 0.58]) line([x, 1.1], [x + 0.02, 0.9], 0.025, RED, b);
+        line([0.05, 1.3], [0.0, 1.38], 0.02, RED, b);
+        dab(0.42, 1.36, 0.16, 0.035, RED, b);
+        const figure = (x: number, y: number, k: number) => {
+          const f = step(k);
+          dab(x, y + 0.2, 0.045, 0.045, RED, f);
+          line([x, y + 0.15], [x, y - 0.02], 0.022, RED, f);
+          line([x, y - 0.02], [x - 0.06, y - 0.16], 0.018, RED, f);
+          line([x, y - 0.02], [x + 0.06, y - 0.16], 0.018, RED, f);
+          line([x - 0.12, y + 0.02], [x + 0.2, y + 0.16], 0.014, RED, f);
+        };
+        figure(-0.2, 1.2, 2);
+        figure(0.25, 1.62, 3);
+        figure(1.08, 1.3, 4);
+        b = step(5);
+        for (const [x, y] of [
+          [-0.55, 1.75],
+          [-0.2, 1.88],
+        ] as const) {
+          dab(x, y, 0.17, 0.2, RED, b);
+          dab(x, y - 0.03, 0.07, 0.09, ROCK, b);
+          for (let f = 0; f < 4; f++)
+            line([x - 0.06 + 0.04 * f, y + 0.04], [x - 0.08 + 0.055 * f, y + 0.15], 0.012, ROCK, b);
+        }
+      } else {
+        // Chauvet (Quiles et al. 2016): horses' heads, lions and a rhinoceros in charcoal, and
+        // red dots.
+        const BLACK = '#2a2522';
+        const horse = (x: number, y: number, k: number) => {
+          const b = step(k);
+          dab(x, y, 0.2, 0.08, BLACK, b);
+          dab(x - 0.15, y + 0.1, 0.11, 0.1, BLACK, b);
+          line([x - 0.2, y + 0.2], [x + 0.05, y + 0.22], 0.025, BLACK, b);
+          line([x - 0.22, y + 0.2], [x - 0.24, y + 0.3], 0.015, BLACK, b);
+        };
+        horse(0.5, 1.45, 0);
+        horse(0.6, 1.12, 1);
+        const lion = (x: number, y: number, k: number) => {
+          const b = step(k);
+          dab(x, y, 0.26, 0.07, BLACK, b);
+          dab(x + 0.27, y + 0.03, 0.1, 0.08, BLACK, b);
+          line([x - 0.25, y], [x - 0.36, y + 0.08], 0.014, BLACK, b);
+        };
+        lion(-0.25, 1.55, 2);
+        lion(-0.1, 1.28, 3);
+        let b = step(4);
+        dab(1.0, 0.95, 0.24, 0.11, BLACK, b);
+        line([1.22, 1.0], [1.36, 1.14], 0.03, BLACK, b);
+        line([1.15, 1.04], [1.24, 1.14], 0.02, BLACK, b);
+        b = step(5);
+        for (let i = 0; i < 9; i++)
+          dab(-0.55 + 0.11 * (i % 3), 0.95 + 0.1 * Math.floor(i / 3), 0.035, 0.035, '#a8442a', b);
+      }
+      break;
+    }
+    case 'prop-burial': {
+      // A grave beside the camp, along X (humankind.md section 8.2), filled in three steps:
+      // the pit with the dug earth beside it; the body laid in it wrapped, covered with
+      // mammoth-ivory beads, with ivory spears beside it; the grave closed with earth and
+      // red ochre. Nothing is shown of the body but the wrapped bundle.
+      const EARTH = '#7a5a3c';
+      const step = (k: number) => {
+        const name = `${BUILD_BONE}${k}`;
+        mb.bone({ name, pivot: [0, 0, 0] });
+        return name;
+      };
+      let b = step(0);
+      mb.add(blob([0, 0.02, 0], [1.0, 0.05, 0.45], 9), '#3e2f24', b);
+      mb.add(blob([0.1, 0.12, -0.78], [0.85, 0.16, 0.24], 8), EARTH, b);
+      b = step(1);
+      mb.add(blob([0, 0.12, 0], [0.8, 0.13, 0.22], 9), '#b49a72', b);
+      for (let i = 0; i < 18; i++)
+        mb.add(
+          blob([-0.68 + 0.08 * i, 0.24, 0.07 * Math.sin(i * 1.7)], [0.025, 0.025, 0.025], 4),
+          '#efe6d2',
+          b,
+        );
+      for (const z of [-0.3, 0.3])
+        mb.add(rod([-0.85, 0.08, z], [0.85, 0.08, z], 0.02, 4), '#e9dfc6', b);
+      b = step(2);
+      mb.add(blob([0, 0.12, 0], [1.05, 0.28, 0.55], 9), EARTH, b);
+      mb.add(blob([0, 0.32, 0], [0.8, 0.08, 0.4], 8), '#a3412a', b);
       break;
     }
     case 'prop-carry-pole': {

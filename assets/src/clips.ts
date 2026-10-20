@@ -30,6 +30,8 @@ export type Clip =
   | 'dance'
   | 'scrape'
   | 'crack'
+  // Painting a cave wall (humankind.md section 8.2).
+  | 'paint'
   // Crossing the sea in a canoe (peopling.md section 6).
   | 'paddle';
 
@@ -128,6 +130,7 @@ export const PERSON_LOOPS: Partial<Record<Clip, { loop: number } | { once: numbe
   paddle: { loop: 2.8 },
   work: { loop: 0.9 },
   knap: { loop: 5.6 },
+  paint: { loop: 2.4 },
   point: { loop: 1.6 },
   cheer: { loop: 0.7 },
   throw: { once: 3 },
@@ -153,6 +156,7 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
     clip !== 'haul' &&
     clip !== 'work' &&
     clip !== 'knap' &&
+    clip !== 'paint' &&
     !(clip === 'throw' && t >= THROW_RELEASE);
   bone('load').visible = clip === 'carry';
   // Knapping stones, on the models of cultures that knap.
@@ -414,6 +418,23 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
       rot('armLowerL', -0.9 - 0.3 * look);
       rot('armUpperR', -0.75 - 0.5 * raise * (1 - look), 0, 0.4);
       rot('armLowerR', -0.9 - 0.5 * raise * (1 - look));
+      break;
+    }
+    case 'paint': {
+      // Standing close to the rock, one arm raised to it, dabbing paint on with the
+      // fingers in short strokes; the other hand holds the colour low at the side, and
+      // now and then the painter leans back to look.
+      const u = t / 0.6 - Math.floor(t / 0.6);
+      const dab = Math.sin(TAU * u);
+      const look = Math.max(0, Math.sin((t / 2.4) * TAU)) ** 6;
+      rot('torso', 0.08 - 0.12 * look);
+      rot('head', -0.3 + 0.15 * look);
+      rot('armUpperR', -2.05 + 0.12 * dab + 0.25 * look, 0, -0.15);
+      rot('armLowerR', -0.35 - 0.2 * Math.max(0, dab));
+      rot('armUpperL', -0.55, 0, 0.25);
+      rot('armLowerL', -1.1);
+      rot('legUpperL', -0.12);
+      rot('legUpperR', 0.08);
       break;
     }
     case 'point': {
