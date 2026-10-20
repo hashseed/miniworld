@@ -568,7 +568,7 @@ export class CameraController {
 const SPIN_DECAY = 2.5;
 const SPIN_HOLD_MS = 80;
 /** A drag turning the heading less than this (degrees) did not mean to; it eases back at this rate per second. */
-const HEADING_KEEP_DEG = 30;
+const HEADING_KEEP_DEG = 20;
 const HEADING_RECOVER = 3;
 
 /** The signed turn in degrees from one heading to another, within ±180. */
