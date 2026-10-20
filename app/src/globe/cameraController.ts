@@ -43,6 +43,11 @@ interface Flight {
   start: number;
   duration: number;
   peak: number;
+  /**
+   * A spin-in (milestone-1 section 8.6): degrees of longitude to turn westward, and the turning
+   * speed at the start as a share of the average, so it carries on from a spin under way.
+   */
+  spin?: { degrees: number; start: number };
 }
 
 export interface SurfaceProvider {
@@ -149,6 +154,27 @@ export class CameraController {
     return duration;
   }
 
+  /**
+   * Spins and zooms in to a view (milestone-1 section 8.6): the camera keeps turning westward
+   * from `degPerS`, at least `ahead` degrees further, else once more all the way round, and
+   * comes to rest on the view. Returns how long it takes, in milliseconds.
+   */
+  spinTo(target: CameraState, degPerS: number, ahead: number, now = performance.now()): number {
+    const from = { ...this.state };
+    let degrees = (((from.lon - target.lon) % 360) + 360) % 360;
+    if (degrees < ahead) degrees += 360;
+    const duration = this.reducedMotion ? 250 : 3500 + (degrees > 360 ? 1500 : 0);
+    this.flight = {
+      from,
+      to: { ...target, heading: normaliseHeading(target.heading, from.heading) },
+      start: now,
+      duration,
+      peak: 0,
+      spin: { degrees, start: Math.min(3, (degPerS * duration) / 1000 / degrees) },
+    };
+    return duration;
+  }
+
   /** Whether a fly-to is under way. */
   get flying(): boolean {
     return this.flight !== undefined;
@@ -169,17 +195,37 @@ export class CameraController {
       const f = this.flight;
       const t = Math.min(1, (now - f.start) / f.duration);
       const e = t * t * (3 - 2 * t);
-      const a = new THREE.Vector3(...latLonToDir(f.from.lat, f.from.lon));
-      const b = new THREE.Vector3(...latLonToDir(f.to.lat, f.to.lon));
-      const dir = slerp(a, b, e);
-      const ll = dirToLatLon([dir.x, dir.y, dir.z]);
-      s.lat = ll.lat;
-      s.lon = ll.lon;
-      const logD = THREE.MathUtils.lerp(Math.log(f.from.altitudeKm), Math.log(f.to.altitudeKm), e);
-      s.altitudeKm = Math.max(Math.exp(logD), f.peak * Math.sin(Math.PI * e));
-      s.heading = THREE.MathUtils.lerp(f.from.heading, f.to.heading, e);
-      s.tilt = THREE.MathUtils.lerp(f.from.tilt, f.to.tilt, e);
-      if (t >= 1) this.flight = undefined;
+      if (f.spin) {
+        // From the spin's own speed to rest: a cubic with that slope at the start and none at the end.
+        const k = f.spin.start * (t * t * t - 2 * t * t + t) + (3 * t * t - 2 * t * t * t);
+        s.lon = f.from.lon - f.spin.degrees * k;
+        s.lat = THREE.MathUtils.lerp(f.from.lat, f.to.lat, e);
+        s.altitudeKm = Math.exp(
+          THREE.MathUtils.lerp(Math.log(f.from.altitudeKm), Math.log(f.to.altitudeKm), e),
+        );
+        s.heading = THREE.MathUtils.lerp(f.from.heading, f.to.heading, e);
+        s.tilt = THREE.MathUtils.lerp(f.from.tilt, f.to.tilt, e);
+        if (t >= 1) {
+          s.lon = f.to.lon;
+          this.flight = undefined;
+        }
+      } else {
+        const a = new THREE.Vector3(...latLonToDir(f.from.lat, f.from.lon));
+        const b = new THREE.Vector3(...latLonToDir(f.to.lat, f.to.lon));
+        const dir = slerp(a, b, e);
+        const ll = dirToLatLon([dir.x, dir.y, dir.z]);
+        s.lat = ll.lat;
+        s.lon = ll.lon;
+        const logD = THREE.MathUtils.lerp(
+          Math.log(f.from.altitudeKm),
+          Math.log(f.to.altitudeKm),
+          e,
+        );
+        s.altitudeKm = Math.max(Math.exp(logD), f.peak * Math.sin(Math.PI * e));
+        s.heading = THREE.MathUtils.lerp(f.from.heading, f.to.heading, e);
+        s.tilt = THREE.MathUtils.lerp(f.from.tilt, f.to.tilt, e);
+        if (t >= 1) this.flight = undefined;
+      }
     } else {
       this.applyKeys(dt);
       if (this.pointers.size === 0) {
