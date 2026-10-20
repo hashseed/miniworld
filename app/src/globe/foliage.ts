@@ -68,6 +68,22 @@ const GROW_ROLL = 0.02;
 const THINNED_BUSH = 0.25;
 /** Most plants of one kind in view; at most about 1,500 plants are on the visible side. */
 const CAPACITY = 4000;
+/**
+ * Each kind's sway (section 5.1, Proposed): how far its top swings, as a share of its height,
+ * and its base period in seconds. Kinds in the order of KINDS.
+ */
+const SWAY: [number, number][] = [
+  [0.035, 4.0], // rainforest
+  [0.045, 3.4], // broadleaf
+  [0.02, 4.5], // conifer
+  [0.035, 4.2], // acacia
+  [0.07, 3.0], // palm
+  [0.035, 3.6], // olive
+  [0.018, 4.8], // cypress
+  [0.06, 2.6], // bush
+];
+/** The wind's time wraps after this many seconds (a whole number of every cycle's periods is not needed: it only keeps the float precise). */
+const WIND_LOOP_S = 3600;
 
 /** A plant a slot can hold; whether it shows, and where, depends on the lens. */
 interface Plant {
@@ -157,6 +173,8 @@ export class Foliage {
     cells: new Map(),
   };
   private cleared = new Set<number>();
+  /** No wind: the system asks for reduced motion (section 5.1). */
+  still = false;
   /** Plants drawn last frame. */
   count = 0;
   /** Set once the first view is ready; until then nothing is loaded or drawn. */
@@ -167,20 +185,28 @@ export class Foliage {
   constructor(globe: Globe, loader: ChunkSource) {
     this.globe = globe;
     this.loader = loader;
-    this.material = new THREE.ShaderMaterial({
-      vertexShader: foliageVertex,
-      fragmentShader: foliageFragment,
-      // Palm fronds are thin strips, seen from both sides.
-      side: THREE.DoubleSide,
-      vertexColors: true,
-      uniforms: {
-        lightDir: { value: new THREE.Vector3(0, 0, 1) },
-        screenUp: { value: new THREE.Vector3(0, 1, 0) },
-        cameraWorld: { value: new THREE.Vector3() },
-      },
-    });
+    // One material per kind for its sway (section 5.1); the others' uniforms are shared.
+    const shared = {
+      lightDir: { value: new THREE.Vector3(0, 0, 1) },
+      screenUp: { value: new THREE.Vector3(0, 1, 0) },
+      cameraWorld: { value: new THREE.Vector3() },
+      windTime: { value: 0 },
+      windOn: { value: 1 },
+    };
+    const materials = KINDS.map(
+      (_, kind) =>
+        new THREE.ShaderMaterial({
+          vertexShader: foliageVertex,
+          fragmentShader: foliageFragment,
+          // Palm fronds are thin strips, seen from both sides.
+          side: THREE.DoubleSide,
+          vertexColors: true,
+          uniforms: { ...shared, sway: { value: new THREE.Vector2(...SWAY[kind]!) } },
+        }),
+    );
+    this.material = materials[0]!;
     KINDS.forEach((_, kind) => {
-      const mesh = new THREE.InstancedMesh(plantGeometry(kind), this.material, CAPACITY);
+      const mesh = new THREE.InstancedMesh(plantGeometry(kind), materials[kind]!, CAPACITY);
       mesh.setColorAt(0, new THREE.Color(1, 1, 1));
       mesh.count = 0;
       mesh.frustumCulled = false;
@@ -198,6 +224,9 @@ export class Foliage {
     const e = camera.matrixWorld.elements;
     u.screenUp!.value.set(e[4]!, e[5]!, e[6]!);
     u.cameraWorld!.value.copy(camera.position);
+    // The wind runs on the screen's time, also while history is paused (section 5.1).
+    u.windTime!.value = (performance.now() / 1000) % WIND_LOOP_S;
+    u.windOn!.value = this.still ? 0 : 1;
     if (!this.active) return;
 
     if (this.days.length === 0 && this.loader.manifest?.foliage) {

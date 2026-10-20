@@ -630,8 +630,35 @@ export const foliageVertex = /* glsl */ `
 varying vec3 vNormalW;
 varying vec3 vWorld;
 varying vec3 vColor;
+// The wind (foliage.md section 5.1): seconds of screen time, on or off, and this kind's sway:
+// how far its top swings as a share of its height, and its base period.
+uniform float windTime;
+uniform float windOn;
+uniform vec2 sway;
+const float TAU = 6.2831853;
 void main() {
   vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0);
+  if (windOn > 0.5) {
+    vec3 foot = (modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+    vec3 up = normalize(foot);
+    vec3 east = normalize(cross(vec3(0.0, 1.0, 0.0), up) + vec3(1e-6, 0.0, 0.0));
+    vec3 north = cross(up, east);
+    // One of four rhythms, and its own start, by a hash of the plant's place.
+    float seed = fract(dot(fract(up * 517.31), vec3(97.13, 13.71, 71.37)));
+    int v = int(seed * 4.0);
+    float period = sway.y * (v == 0 ? 1.0 : v == 1 ? 1.23 : v == 2 ? 0.82 : 1.41);
+    float amp = sway.x * (v == 0 ? 1.0 : v == 1 ? 0.8 : v == 2 ? 1.2 : 0.9);
+    // Gusts: a slow wave rolling west to east, a band about every 1,500 km.
+    float lon = atan(up.x, up.z);
+    float g = pow(0.5 + 0.5 * sin(lon * 26.7 - windTime * 0.5), 3.0);
+    float t = windTime / period + seed * 7.0;
+    float h = clamp(position.y, 0.0, 1.5);
+    float bend = h * h * length(instanceMatrix[1].xyz);
+    float swing = sin(TAU * t) + 0.25 * h * sin(TAU * t * 3.7 + seed * 11.0);
+    float along = amp * (0.4 + 1.2 * g + (1.0 + 1.5 * g) * swing);
+    float across = amp * 0.35 * sin(TAU * (t * 0.71 + seed));
+    w.xyz += (east * along + north * across) * bend;
+  }
   vWorld = w.xyz;
   vNormalW = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);
   vColor = color;

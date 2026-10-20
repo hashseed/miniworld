@@ -73,6 +73,15 @@ Desert, barren land, the colder tundra classes and land ice have no plants. Shar
 - Each model has up to about 400 triangles (crown balls with 80 faces each), since there are few trees and each is large on screen. A simpler far model (balls with 20 faces) may be added if the budget needs it.
 - **Later:** trees may sway very gently on the clock, standing still while history is paused.
 
+### 5.1 Wind
+
+Every plant sways in the wind (Yang, 2026-10-20: "every tree to sway in the wind in repeating animations, but not all using the exact same animation and period, 3-5 different animations per tree type"; "slow gust makes a lot of sense").
+
+- **Sway.** A plant bends downwind about its foot, its top moving most and its trunk's foot not at all, and swings back and forth around that lean. Each kind has four sway rhythms, differing in period (from about 2.5 to 5 seconds for broadleaf trees), in how far they swing and in a quicker small flutter on top; each plant takes one by a hash of its place and starts its cycle at its own moment, so neighbours never move in step. Stiff kinds (conifers, cypresses) swing least, palms and bushes most (**Proposed**).
+- **Gusts.** A slow wave of stronger wind rolls over the globe from west to east, about one band of gusts every 1,500 km, passing a place every 10 to 15 seconds: under it every plant leans further downwind and swings wider, so a forest moves together now and then.
+- **Clock.** The wind runs on the screen's time, like the lens morph (history-lens.md section 4), so the trees keep swaying while history is paused. With reduced motion requested by the system, the plants stand still.
+- **Cost.** All of it is worked out in the plants' vertex shader from the plant's place and a time value: no work on the CPU per plant or frame, no extra draw calls or textures.
+
 ## 6. The ground under the plants
 
 Trees are few and only hint at the vegetation. The ground itself carries the rest of it, so the globe looks alive without more polygons (Yang, 2026-10-18: "is there a way to add grass etc without adding polygons and regress performance? e.g. some sort of texture?"). Both parts are painted in the terrain's fragment shader and add no triangles.
