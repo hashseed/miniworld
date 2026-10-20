@@ -89,6 +89,8 @@ function peoplingReport(
   const lines: string[] = [];
   const years = (d: number) => Math.round(d / 365.2425);
   for (const p of arrivals.points) {
+    // A passage is walked across, not camped at.
+    if (p.passage) continue;
     const day = map.pointDays.get(p.id)!;
     const first = tree.lodgings.find(
       (l) => distanceKm(l.lat / 1e6, l.lon / 1e6, p.lat, p.lon) < 1000,

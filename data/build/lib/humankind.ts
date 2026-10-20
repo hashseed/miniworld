@@ -168,6 +168,8 @@ export interface Voyage {
   id: string;
   /** The route's previous point, whose leg's target is this leg's origin (sites.md section 4). */
   from?: string;
+  /** A way through, not a place to camp: nobody is sent to found a camp near it. */
+  passage?: boolean;
   day: Day;
   way: { lat: number; lon: number }[];
 }
@@ -1012,6 +1014,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     return true;
   };
   const voyage = (v: Voyage & { next: Day }, day: Day): boolean => {
+    // A passage only opens the way (peopling.md section 4); the next leg walks across it.
+    if (v.passage) return true;
     const far = v.way.at(-1)!;
     const culture = s.culture?.(far.lat, far.lon, day);
     if (

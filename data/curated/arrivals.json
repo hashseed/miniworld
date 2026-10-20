@@ -220,7 +220,8 @@
       "lon": -117.0,
       "en": "The corridor between the ice sheets, Alberta",
       "de": "Der Korridor zwischen den Eisschilden, Alberta",
-      "source": "Pedersen et al. 2016, Postglacial viability and colonization in North America's ice-free corridor, Nature 537"
+      "source": "Pedersen et al. 2016, Postglacial viability and colonization in North America's ice-free corridor, Nature 537",
+      "passage": true
     },
     {
       "id": "clovis",
