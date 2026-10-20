@@ -437,16 +437,21 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       }
       points.push(b);
     }
-    // Each stretch is paddled where it is not dry on the day the band goes.
+    // Each stretch is split where it changes between land and water on the day the band
+    // goes: the band walks to the water's edge, boards there, paddles only over water and
+    // lands at the far shore (peopling.md section 6; Yang, 2026-10-20: "they must not be on
+    // boats on land").
     const sea = seaMax(day, after(day, STEP_MS));
-    const water = points
-      .slice(1)
-      .map((b, i) => !!s.walkFlood && wayLevel(points[i]!, b, s.walkFlood) <= sea);
-    return {
-      id: 'path',
-      way: points.slice(1, -1).map((p) => [micro(p.lat), micro(p.lon)]),
-      water,
-    };
+    const way: [number, number][] = [];
+    const water: boolean[] = [];
+    for (let i = 1; i < points.length; i++) {
+      const [a, b] = [points[i - 1]!, points[i]!];
+      const part = s.walkFlood ? shores(a, b, sea) : { way: [], water: [false] };
+      water.push(...part.water);
+      way.push(...part.way);
+      if (i < points.length - 1) way.push([micro(b.lat), micro(b.lon)]);
+    }
+    return { id: 'path', way, water };
   };
   const crossingOf = (a: Site | undefined, b: Site | undefined) => {
     if (!a || !b) return undefined;
@@ -868,7 +873,11 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   };
 
   /** The points where the straight way between two sites changes between land and water, and which stretches are water. */
-  const shores = (a: Site, b: Site, sea: number) => {
+  const shores = (
+    a: { lat: number; lon: number },
+    b: { lat: number; lon: number },
+    sea: number,
+  ) => {
     const km = distanceKm(a.lat, a.lon, b.lat, b.lon);
     const n = Math.max(1, Math.ceil(km / 10));
     let dLon = b.lon - a.lon;
