@@ -7,7 +7,13 @@
     },
     {
       "id": "white-and-blue-nile",
-      "names": ["El Bahr el Abyad", "El Bahr el Azraq"]
+      "names": [
+        "El Bahr el Abyad",
+        "Bahr el Jebel",
+        "Albert Nile",
+        "Victoria Nile",
+        "El Bahr el Azraq"
+      ]
     },
     {
       "id": "euphrates-and-tigris",

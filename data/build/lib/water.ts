@@ -152,6 +152,8 @@ const MOUTH_SEARCH_KM = 80;
  * under the water it is not drawn.
  */
 const MOUTH_OVERRUN_CELLS = 16;
+/** A river end this close to another drawn line, in km, is a joint, not a mouth. */
+const JOINT_KM = 15;
 
 /**
  * Rasterises the picked rivers as a smooth field: 255 inside a river's core,
@@ -217,7 +219,11 @@ export function rasterizeRivers(
   const continueDownhill = (end: number[]): number[][] | undefined => {
     if (!context) return undefined;
     let cur = cellOf(end);
-    if (isMouth(cur) || nearestWater(cur) < 0) return undefined;
+    const near = nearestWater(cur);
+    if (isMouth(cur) || near < 0) return undefined;
+    // Into a lake or an inland sea such as the Caspian straight: the flood fill's way leads
+    // off to the ocean (the Volga once ran from its delta across Iran to the upper Indus).
+    if (context.lakes[near]! >= 128) return [end, centre(near)];
     const path: number[][] = [end];
     for (let step = 0; step < 2000 && !isMouth(cur); step++) {
       let next = context.parents[cur]!;
@@ -251,10 +257,9 @@ export function rasterizeRivers(
     return path.length > 1 ? path : undefined;
   };
 
-  for (const f of riverFeatures) {
+  const picked = riverFeatures.map((f) => {
     const name = String(f.properties['name'] ?? '');
-    const rank = Number(f.properties['scalerank'] ?? 10);
-    const lines = featureLines(f).filter((line) =>
+    return featureLines(f).filter((line) =>
       picks.some((p) => {
         if (p.name !== name) return false;
         if (!p.box) return true;
@@ -263,11 +268,30 @@ export function rasterizeRivers(
         return lon! >= west && lon! <= east && lat! >= south && lat! <= north;
       }),
     );
+  });
+  // Only a river's free ends, its mouths and sources, are led on to the water: an end within
+  // JOINT_KM of another line is a joint, such as Cairo, where the Nile's delta branches part.
+  const all = picked.flat();
+  const isJoint = (end: number[], own: number[][]) =>
+    all.some(
+      (line) =>
+        line !== own &&
+        line.some((p) => {
+          const dy = (p[1]! - end[1]!) * KM_PER_DEG;
+          if (Math.abs(dy) > JOINT_KM) return false;
+          const dx = (p[0]! - end[0]!) * KM_PER_DEG * Math.cos((end[1]! * Math.PI) / 180);
+          return dx * dx + dy * dy <= JOINT_KM * JOINT_KM;
+        }),
+    );
+  for (const [i, f] of riverFeatures.entries()) {
+    const rank = Number(f.properties['scalerank'] ?? 10);
+    const lines = picked[i]!;
     const core = riverCoreKm(rank);
     for (const raw of lines) {
       stamp(smoothLine(raw), core);
       count++;
       for (const end of [raw[0]!, raw[raw.length - 1]!]) {
+        if (isJoint(end, raw)) continue;
         const more = continueDownhill(end);
         if (more) {
           stamp(smoothLine(more), core);
