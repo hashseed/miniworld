@@ -777,10 +777,16 @@ describe('scenes at anchors (section 8.2)', () => {
       last = built;
     }
     expect(last).toBeCloseTo(1);
-    // Bare before the first session; whole long after the anchor's end, its band gone.
+    // Bare before the first session; fading in from a minute before it, out after the last.
     expect(propAt(whole, sessions[0]!.begin)!.built).toBe(0);
-    const later = msAtDay(stage.until, settings.startDay) + 10_000;
-    expect(propAt(whole, later)?.built).toBe(1);
+    expect(propAt(whole, sessions[0]!.begin)!.fade).toBe(1);
+    expect(propAt(whole, sessions[0]!.begin - 55_000)!.fade).toBeCloseTo(0.5, 1);
+    expect(propAt(whole, sessions[0]!.begin - 61_000)).toBeUndefined();
+    const end = sessions.at(-1)!.stop;
+    expect(propAt(whole, end + 50_000)!.fade).toBe(1);
+    expect(propAt(whole, end + 65_000)!.fade).toBeCloseTo(0.5, 1);
+    expect(propAt(whole, end + 71_000)).toBeUndefined();
+    void stage;
   }, 30_000);
 
   it("fills a grave in its session and keeps it to the anchor's end", () => {
@@ -797,7 +803,12 @@ describe('scenes at anchors (section 8.2)', () => {
     const scene = treeScene(whole, mid, settings.startDay);
     expect(scene.figures.filter((f) => f.clip === 'work').length).toBeGreaterThanOrEqual(2);
     expect(propAt(whole, q.stop)!.built).toBe(1);
-    expect(propAt(whole, msAtDay(stage.until, settings.startDay) + 1)).toBeUndefined();
+    // Closed with soil, it fades into the ground over the next 50 years.
+    const stopDay = dayAtMs(q.stop, settings.startDay);
+    const half = msAtDay(stopDay + years(25), settings.startDay);
+    expect(propAt(whole, half)!.fade).toBeCloseTo(0.5, 1);
+    expect(propAt(whole, msAtDay(stopDay + years(51), settings.startDay))).toBeUndefined();
+    void stage;
   }, 30_000);
 
   it('shows the same scene in its chunks as in the whole tree', () => {

@@ -6,7 +6,7 @@
 
 import { hash01, hash32 } from '../core/hash.ts';
 import { detCos, detSin, RAD } from '../core/detmath.ts';
-import { msAtDay } from '../time/rate.ts';
+import { dayAtMs, msAtDay } from '../time/rate.ts';
 import { astronomicalYear, dayOfYearStart, type Day } from '../time/calendar.ts';
 import { NEVER, type TreeFigure, type TreeFlag, type TreeLodging, type TreeStage } from './tree.ts';
 
@@ -433,6 +433,8 @@ export interface CampPropPose extends Placed {
   scale?: number;
   /** Whether a cave's torch is lit. */
   lit?: boolean;
+  /** 0 to 1: how far a scene's cave or grave has faded in, or not yet faded out. */
+  fade?: number;
 }
 
 /** Where the trees make way for a camp: 1 cleared, 0 grown back. */
@@ -682,6 +684,15 @@ export function stagePoints(
  */
 const STAGE_LEAD_MS = Math.round(15_000 / TEMPO);
 const STAGE_MS = Math.round(27_000 / TEMPO);
+/**
+ * A cave fades in over CAVE_FADE_MS of watching from CAVE_LEAD_MS before its first session,
+ * and out over CAVE_FADE_MS from CAVE_LINGER_MS after its last; a closed grave fades into the
+ * ground over GRAVE_FADE_DAYS (humankind.md section 8.2).
+ */
+export const CAVE_LEAD_MS = 60_000;
+export const CAVE_LINGER_MS = 60_000;
+export const CAVE_FADE_MS = 10_000;
+export const GRAVE_FADE_DAYS = Math.round(50 * 365.2425);
 /** A cave painting grows in this many sessions, one window in two (humankind.md section 8.2). */
 export const PAINT_SESSIONS = 6;
 
@@ -1325,6 +1336,21 @@ export function treeScene(
     const done = (q: { begin: number; stop: number }) =>
       Math.min(1, Math.max(0, (ms - q.begin) / (q.stop - q.begin)));
     if (stage.kind === 'burial' && (!sessions[0] || ms < sessions[0].begin)) continue;
+    // A cave fades in over CAVE_FADE_MS from CAVE_LEAD_MS before its first session and out
+    // over CAVE_FADE_MS from CAVE_LINGER_MS after its last; a grave fades into the ground
+    // over GRAVE_FADE_DAYS from its burial.
+    let fade: number;
+    if (stage.kind === 'cave-painting') {
+      if (!sessions.length) continue;
+      const from = sessions[0]!.begin - CAVE_LEAD_MS;
+      const to = sessions.at(-1)!.stop + CAVE_LINGER_MS;
+      fade = Math.min(1, (ms - from) / CAVE_FADE_MS, (to + CAVE_FADE_MS - ms) / CAVE_FADE_MS);
+    } else {
+      const stop = sessions[0]!.stop;
+      const end = msAtDay(dayAtMs(stop, startDay) + GRAVE_FADE_DAYS, startDay);
+      fade = ms <= stop ? 1 : 1 - (ms - stop) / Math.max(1, end - stop);
+    }
+    if (fade <= 0) continue;
     const built =
       stage.kind === 'burial'
         ? done(sessions[0]!)
@@ -1341,6 +1367,7 @@ export function treeScene(
       dirZ: -u.z,
       built,
       scale: stageScale(stage.camp),
+      fade,
       // A cave's torch burns while a session is painted.
       ...(stage.kind === 'cave-painting'
         ? { lit: sessions.some((q) => ms >= q.begin - 1500 && ms < q.stop) }

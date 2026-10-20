@@ -352,6 +352,8 @@ export class TreeLayer {
           if (torch) torch.visible = !!q.lit;
         });
       else copy(batch);
+      // A scene's cave or grave fades in and out (humankind.md section 8.2).
+      if (q.fade !== undefined) this.batches.fade(batch.key, q.fade);
     }
 
     // Sparks from the flint stones while a new fire is lit, shrinking as they die.
