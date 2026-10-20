@@ -21,7 +21,16 @@ body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #fbe3d4;
+  /* The sky's studio backdrop, as in index.html, so no other colour ever flashes. */
+  background: linear-gradient(
+      to top,
+      rgb(214, 168, 148) 0%,
+      rgb(194, 164, 176) 27%,
+      rgb(173, 161, 204) 55%,
+      rgb(154, 164, 206) 77%,
+      rgb(135, 168, 209) 100%
+    )
+    fixed;
   color: var(--text);
   font-family: 'Fredoka Variable', system-ui, sans-serif;
   font-weight: 500;

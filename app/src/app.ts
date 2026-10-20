@@ -131,7 +131,8 @@ const renderer = new THREE.WebGLRenderer({
   powerPreference: 'high-performance',
 });
 renderer.info.autoReset = false;
-renderer.setClearColor(0xfbe3d4);
+// The sky's middle colour, should a frame ever be cleared without the sky.
+renderer.setClearColor(0xada1cc);
 const frames = new FrameRenderer(renderer, isPhone ? 2 : 4, reversedDepth);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 1, 1e5);
