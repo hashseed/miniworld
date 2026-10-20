@@ -73,7 +73,8 @@ const deviceId = `${navigator.userAgent}|${screen.width}x${screen.height}@${devi
 const settings = loadSettings({
   language: detectLanguage(navigator.languages ?? [navigator.language]),
   timelineExpanded: false,
-  timelineMinimized: false,
+  // A first visit opens with the timeline fully collapsed, to its ruler (Yang, 2026-10-20).
+  timelineMinimized: true,
   trueTimeScale: false,
   showStats: false,
 });

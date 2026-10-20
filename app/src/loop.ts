@@ -152,7 +152,13 @@ export class FrameLoop {
       ...p.tree.clearings(),
       ...p.wildlife.clearings(day, p.clock.ms, p.clock.startDay),
     ];
-    p.foliage.update(p.camera, this.planet, day, u.lightDir!.value);
+    p.foliage.update(
+      p.camera,
+      this.planet,
+      day,
+      u.lightDir!.value,
+      p.clock.playState === 'playing',
+    );
     p.sky.update(p.camera);
     p.clouds.update(p.camera, p.clock.ms, u.lightDir!.value);
     p.stress?.update(now, p.globe, this.planet, p.camera, p.clock.ms);

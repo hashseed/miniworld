@@ -77,6 +77,8 @@ export interface Site {
    * MAX_OUTING_M, the sea level above which the lane up to there is under water somewhere.
    */
   lanes: number[][];
+  /** Its ground rises steeply round the hearth, out to the ring of children's catch (humankind.md section 8.1). */
+  steep?: boolean;
 }
 
 export interface Link {

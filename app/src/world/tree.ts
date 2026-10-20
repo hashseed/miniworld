@@ -47,6 +47,8 @@ export interface TreeLodging {
    * built (section 8.1): catch is played on a smaller ring where it is short.
    */
   room?: number;
+  /** On a steep mountainside: no game of catch on the slope round it (humankind.md section 8.1). */
+  steep?: boolean;
   /** Asset id of its model, from the architecture set of its culture. */
   kind: string;
   /** Tree cover at its camp's place, 0 to 1, when it was built (section 8.1); the band fells it first. */

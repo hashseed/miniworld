@@ -532,6 +532,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       slot,
       reach: Array.from({ length: LODGING_SLOTS }, (_, gap) => laneReach(site, gap, sea)),
       room: layoutOf(site.key).core,
+      ...(site.steep ? { steep: true } : {}),
       // A minimal camp's small shelter, else the culture's own (sites.md section 2).
       kind:
         site.key >= MINIMAL_SITE

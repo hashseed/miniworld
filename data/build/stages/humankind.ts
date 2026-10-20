@@ -8,6 +8,8 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { join, relative } from 'node:path';
 import { OCEAN_MIN_LEVEL, OCEAN_NEVER } from '../../../app/src/content/formats.ts';
 import { TIMELINE_START } from '../../../app/src/time/calendar.ts';
+import { detCos, detSin } from '../../../app/src/core/detmath.ts';
+import { onGlobe } from '../lib/geo.ts';
 import { dayAtMs, dayAtWatch } from '../../../app/src/time/rate.ts';
 import {
   areasAt,
@@ -151,6 +153,10 @@ export interface TreeEvent {
   lat: number;
   lon: number;
 }
+
+/** A camp site is steep where its ground rises this much (m) out to the ring of catch (layout m). */
+const STEEP_M = 600;
+const CATCH_RING_M = 8.5;
 
 export function buildHumankind(
   ctx: WriteContext,
@@ -375,6 +381,21 @@ export function buildHumankind(
   );
   if (sites.unplaced.length)
     log(`camp sites: no camp fits near the key places ${sites.unplaced.join(', ')}`);
+  // Sites on a steep mountainside: the ground out to the ring of children's catch rises or
+  // falls more than STEEP_M from the hearth (Yang, 2026-10-20: "I have kids running up the
+  // himalayas for playing catch").
+  for (const x of sites.sites) {
+    if (x.pass) continue;
+    const here = elevation.bilinear(x.lat, x.lon);
+    const km = (CATCH_RING_M * LAYOUT_KM_PER_M) / x.width;
+    let rise = 0;
+    for (let k = 0; k < 12; k++) {
+      const a = (k / 12) * 2 * Math.PI;
+      const p = onGlobe(x.lat, x.lon, km * detCos(a), km * detSin(a));
+      rise = Math.max(rise, Math.abs(elevation.bilinear(p.lat, p.lon) - here));
+    }
+    if (rise > STEEP_M) x.steep = true;
+  }
   const treeSettings = humankindSettings(cultureAreas, {
     sites,
     seaLevel: climate.seaLevelAt,
