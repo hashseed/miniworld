@@ -414,6 +414,18 @@
         [34.95, 29.45]
       ],
       "source": "Encyclopaedia Britannica, Gulf of Aqaba: https://www.britannica.com/place/Gulf-of-Aqaba"
+    },
+    {
+      "id": "lombok",
+      "name": "Lombok Strait",
+      "sill": -250,
+      "line": [
+        [115.85, -8.15],
+        [115.88, -8.45],
+        [115.82, -8.75],
+        [115.75, -9.1]
+      ],
+      "source": "Encyclopaedia Britannica, Lombok Strait: https://www.britannica.com/place/Lombok-Strait (about 250 m deep at its sill; the Wallace Line runs through it, and it stayed open at the lowest ice-age sea levels)"
     }
   ]
 }

@@ -419,6 +419,37 @@ export function buildHumankind(
   if (treeProblems.length) fail(`tree of humankind:\n${treeProblems.slice(0, 20).join('\n')}`);
   for (const line of [...arrived.notes, ...peoplingReport(tree, arrivals, thresholds, arrived)])
     log(`peopling: ${line}`);
+  // The constraints of the routes (peopling.md section 4): every arrival point reached within
+  // 500 years of its date, and lands that history keeps apart never joined on foot.
+  const late = peoplingReport(tree, arrivals, [], arrived).filter((l) =>
+    / reached | never /.test(l),
+  );
+  if (late.length) fail(`peopling: ${late.join('; ')}`);
+  const siteOf = new Map(treeStats.places.map((r) => [`${r.kind}:${r.id}`, r.site]));
+  const foot = new Map<number, number[]>();
+  for (const l of sites.links)
+    if (!l.crossing) {
+      foot.set(l.a, [...(foot.get(l.a) ?? []), l.b]);
+      foot.set(l.b, [...(foot.get(l.b) ?? []), l.a]);
+    }
+  for (const p of arrivals.points)
+    for (const other of p.apart ?? []) {
+      const [from, to] = [siteOf.get(`arrival:${p.id}`), siteOf.get(`arrival:${other}`)];
+      if (from === undefined || to === undefined) continue;
+      const seen = new Set([from]);
+      for (let ring = [from]; ring.length;) {
+        const next: number[] = [];
+        for (const i of ring)
+          for (const j of foot.get(i) ?? [])
+            if (!seen.has(j)) {
+              seen.add(j);
+              next.push(j);
+            }
+        ring = next;
+      }
+      if (seen.has(to))
+        fail(`peopling: ${p.id} is joined on foot to ${other}, which history keeps apart`);
+    }
   log(
     `tree of humankind: ${tree.figures.length} figures, ${tree.lodgings.length} lodgings, ` +
       `${tree.moments.filter((m) => m.kind === 'camp-founded').length + 1} camps founded`,

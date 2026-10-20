@@ -42,6 +42,8 @@ export interface ArrivalPoint {
   passage?: boolean;
   /** The first arrival in this continent: an event of the events dialog (milestone-1 section 8.3). */
   continent?: string;
+  /** Points whose land this point's is never joined to on foot, at any sea level (peopling.md section 4). */
+  apart?: string[];
 }
 
 export interface Arrivals {
