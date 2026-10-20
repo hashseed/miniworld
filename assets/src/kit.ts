@@ -389,6 +389,39 @@ mat4 pose() {
     texelFetch(poseTex, ivec2(x + 3, gl_InstanceID), 0));
 }
 #endif
+// Baked clips (milestone 2, section 5.3): row r of the clip texture holds every part's
+// matrix in one frame of a clip, four texels per part, and an all-zero matrix for a hidden
+// part. Per copy, clipFrom and clipTo name two neighbouring frames and how far between them
+// the time is; clipFrom.w is how far the copy has blended from the one clip into the other,
+// and clipTo.w names a part the copy hides (or -1). The copy stands at instanceMatrix.
+#ifdef USE_CLIPS
+uniform highp sampler2D clipTex;
+attribute float part;
+attribute vec4 clipFrom;
+attribute vec4 clipTo;
+mat4 clipRow(float row) {
+  int x = int(part + 0.5) * 4;
+  int y = int(row + 0.5);
+  return mat4(
+    texelFetch(clipTex, ivec2(x, y), 0),
+    texelFetch(clipTex, ivec2(x + 1, y), 0),
+    texelFetch(clipTex, ivec2(x + 2, y), 0),
+    texelFetch(clipTex, ivec2(x + 3, y), 0));
+}
+// Between two poses; a part hidden in either is taken from the nearer, so held things
+// switch over half way, as blendPerson does.
+mat4 between(mat4 a, mat4 b, float t) {
+  if (a[3][3] == 0.0 || b[3][3] == 0.0) return t < 0.5 ? a : b;
+  return a * (1.0 - t) + b * t;
+}
+mat4 pose() {
+  mat4 m = between(clipRow(clipFrom.x), clipRow(clipFrom.y), clipFrom.z);
+  if (clipFrom.w > 0.0)
+    m = between(m, between(clipRow(clipTo.x), clipRow(clipTo.y), clipTo.z), clipFrom.w);
+  if (abs(part - clipTo.w) < 0.5) m = mat4(0.0);
+  return instanceMatrix * m;
+}
+#endif
 `;
 
 // The log-depth chunks match the globe's logarithmic depth buffer in the app;
@@ -407,7 +440,7 @@ void main() {
   // Instanced models (wildlife.md section 5) carry each part's pose in instanceMatrix,
   // or, merged into one mesh, in a texture of every animal's part poses.
   mat4 model = modelMatrix;
-  #if defined(USE_POSE)
+  #if defined(USE_POSE) || defined(USE_CLIPS)
   model = modelMatrix * pose();
   #elif defined(USE_INSTANCING)
   model = modelMatrix * instanceMatrix;
@@ -484,7 +517,7 @@ uniform float inkPixels;
 uniform vec2 viewport;
 ${poseChunk}
 void main() {
-  #if defined(USE_POSE)
+  #if defined(USE_POSE) || defined(USE_CLIPS)
   mat4 posed = pose();
   vec4 clip = projectionMatrix * modelViewMatrix * posed * vec4(position, 1.0);
   vec3 nView = normalize(normalMatrix * mat3(posed) * normal);
@@ -562,6 +595,34 @@ export function posedMaterials(poseTex: THREE.Texture): {
       fragmentShader: inkFragment,
       side: THREE.BackSide,
       defines: { USE_POSE: '' },
+    }),
+  };
+}
+
+/**
+ * The clay and ink materials of a model merged into one mesh whose copies play baked clips
+ * from a clip texture (milestone 2, section 5.3), a row per frame.
+ */
+export function clipMaterials(clipTex: THREE.Texture): {
+  cel: THREE.ShaderMaterial;
+  ink: THREE.ShaderMaterial;
+} {
+  const uniforms = { ...lightUniforms, clipTex: { value: clipTex } };
+  return {
+    cel: new THREE.ShaderMaterial({
+      uniforms,
+      vertexShader: celVertex,
+      fragmentShader: celFragment,
+      vertexColors: true,
+      side: THREE.DoubleSide,
+      defines: { USE_CLIPS: '' },
+    }),
+    ink: new THREE.ShaderMaterial({
+      uniforms,
+      vertexShader: inkVertex,
+      fragmentShader: inkFragment,
+      side: THREE.BackSide,
+      defines: { USE_CLIPS: '' },
     }),
   };
 }

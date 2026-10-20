@@ -108,6 +108,32 @@ export function walkPeriod(m: Model): number {
   return m.bones.has('tail') ? 0.75 * stride : 0.9 * stride;
 }
 
+/**
+ * How a person's clip repeats, for baking it into an animation texture (milestone 2,
+ * section 5.3): `loop` seconds after which every pose comes round again, or `once`, the
+ * seconds after which a one-off gesture holds still. Clips only animals play are absent.
+ */
+export const PERSON_LOOPS: Partial<Record<Clip, { loop: number } | { once: number }>> = {
+  idle: { loop: 16 },
+  walk: { loop: GAITS.walk.period },
+  run: { loop: GAITS.run.period },
+  carry: { loop: GAITS.carry.period },
+  pole: { loop: GAITS.pole.period },
+  crouch: { loop: GAITS.crouch.period },
+  haul: { loop: GAITS.haul.period },
+  strike: { loop: 0.45 },
+  dance: { loop: 0.8 },
+  scrape: { loop: 1.1 },
+  crack: { loop: 0.8 },
+  paddle: { loop: 2.8 },
+  work: { loop: 0.9 },
+  knap: { loop: 5.6 },
+  point: { loop: 1.6 },
+  cheer: { loop: 0.7 },
+  throw: { once: 3 },
+  fall: { once: 0 },
+};
+
 /** Poses a person built by buildPerson for a clip at a time in seconds. */
 export function animatePerson(m: Model, clip: Clip, seconds: number): void {
   reset(m);
@@ -181,13 +207,14 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
   switch (clip) {
     case 'idle': {
       const b = Math.sin((t / 3.2) * TAU);
-      // Breathing, and a slow shift of weight from one leg to the other.
-      const w = Math.sin((t / 5.3) * TAU);
+      // Breathing, and a slow shift of weight from one leg to the other; the cycles fit
+      // PERSON_LOOPS.idle a whole number of times, so the clip can be baked as a loop.
+      const w = Math.sin((t / (16 / 3)) * TAU);
       rot('hips', 0, 0.03 * w, 0.025 * w);
       rot('legLowerL', 0.05 + 0.04 * Math.max(0, w) ** 2);
       rot('legLowerR', 0.05 + 0.04 * Math.max(0, -w) ** 2);
       rot('torso', 0.02 * b, 0, -0.02 * w);
-      rot('head', 0.04 * b, 0.25 * Math.sin((t / 7) * TAU));
+      rot('head', 0.04 * b, 0.25 * Math.sin((t / 8) * TAU));
       rot('armUpperL', 0.04 * b, 0, 0.1);
       rot('armUpperR', -0.06 - 0.04 * b, 0, -0.1);
       rot('armLowerR', -0.3);
@@ -375,7 +402,7 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
       // hammerstone; now and then a look at the edge.
       const u = t / 0.7 - Math.floor(t / 0.7);
       const raise = (0.5 - 0.5 * Math.cos(TAU * u)) ** 2;
-      const look = Math.max(0, Math.sin((t / 6) * TAU)) ** 4;
+      const look = Math.max(0, Math.sin((t / 5.6) * TAU)) ** 4;
       lift(-0.38 * (bone('hips').userData.rest as THREE.Vector3).y);
       rot('legUpperL', -1.45);
       rot('legLowerL', 1.5);
@@ -506,6 +533,32 @@ function extremePoint(m: Model, sign: 1 | -1): number {
       best = Math.min(best, sign * v.fromBufferAttribute(pos, i).applyMatrix4(matrix).y);
   });
   return sign * best;
+}
+
+/** How an animal's clip repeats, for baking it (as PERSON_LOOPS for people). */
+export function animalLoop(m: Model, clip: Clip): { loop: number } | { once: number } {
+  const stride = Math.sqrt((m.bones.get('body')!.userData.rest as THREE.Vector3).y);
+  const biped = m.bones.has('legL');
+  switch (clip) {
+    case 'swim':
+      return { loop: SWIM_SECONDS };
+    case 'fly':
+      return { loop: FLAP_SECONDS };
+    case 'walk':
+      return { loop: walkPeriod(m) };
+    case 'run':
+      return { loop: biped ? walkPeriod(m) * 0.6 : 0.55 * stride };
+    case 'struggle':
+      return { loop: 1.4 * stride };
+    case 'bound':
+      return { once: BIND_SECONDS };
+    case 'hung':
+      return { loop: GAITS.pole.period };
+    case 'fall':
+      return { once: 3 };
+    default:
+      return { loop: 6 * stride };
+  }
 }
 
 /** Poses an animal built by buildAnimal. Times scale with its size, so a mammoth strides slower than a wolf. */
@@ -673,9 +726,10 @@ export function animateAnimal(m: Model, clip: Clip, seconds: number): void {
       break;
     }
     default: {
+      // The cycles fit animalLoop's 6 strides a whole number of times, for baking.
       const b = Math.sin((seconds / (3 * stride)) * TAU);
-      rot('head', 0.06 * b, 0.12 * Math.sin((seconds / (5 * stride)) * TAU));
-      rot('tail', 0, 0.2 * Math.sin((seconds / 1.3) * TAU));
+      rot('head', 0.06 * b, 0.12 * Math.sin((seconds / (6 * stride)) * TAU));
+      rot('tail', 0, 0.2 * Math.sin((seconds / (1.5 * stride)) * TAU));
       body.position.y = rest.y + 0.005 * rest.y * b;
     }
   }
