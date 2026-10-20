@@ -91,12 +91,14 @@ export const treeStats = {
    * crossing. Positions in degrees.
    */
   reached: [] as { leg: string; day: Day; lat: number; lon: number }[],
+  /** Each occurrence of an encounter (sites.md section 4.3): its day, site and how many came. */
+  encounters: [] as { id: string; day: Day; site: number; parties: number; people: number }[],
   crossed: [] as { crossing: string; day: Day; lat: number; lon: number }[],
 };
 
 /** A record that needs a band at a place over a span of days (sites.md section 2.1). */
 export interface DatedPlace {
-  kind: 'arrival' | 'anchor' | 'threshold';
+  kind: 'arrival' | 'anchor' | 'threshold' | 'encounter';
   id: string;
   day: Day;
   until: Day;
@@ -121,7 +123,7 @@ export type PlanMeans = 'there' | 'moved' | 'group' | 'band';
 
 /** The dated places of the tree's settings (sites.md section 2.1). */
 export function datedPlaces(
-  s: Pick<TreeSettings, 'voyages' | 'anchors' | 'thresholds' | 'endDay'>,
+  s: Pick<TreeSettings, 'voyages' | 'anchors' | 'thresholds' | 'encounters' | 'endDay'>,
 ): DatedPlace[] {
   return [
     ...(s.voyages ?? [])
@@ -135,6 +137,18 @@ export function datedPlaces(
       })),
     ...(s.anchors ?? []).map((a) => ({ kind: 'anchor' as const, ...a })),
     ...(s.thresholds ?? []).map((t) => ({ kind: 'threshold' as const, ...t, until: s.endDay })),
+    // An encounter on open ground needs its meeting site for all its occurrences (sites.md
+    // section 4.3); at a host, the host's anchor has one.
+    ...(s.encounters ?? [])
+      .filter((e) => !e.host)
+      .map((e) => ({
+        kind: 'encounter' as const,
+        id: e.id,
+        day: e.days[0]!,
+        until: after(e.days.at(-1)!, e.stayMs),
+        lat: e.lat,
+        lon: e.lon,
+      })),
   ].map(({ kind, id, day, until, lat, lon }) => ({ kind, id, day, until, lat, lon }));
 }
 /** A site is on a place's own land when it walks to the site nearest the place in this many links. */
@@ -206,6 +220,8 @@ export interface TreeSettings {
   thresholds?: Threshold[];
   /** Places that must have a band from a day to a day (sites.md section 4.1). */
   anchors?: Anchor[];
+  /** Parties of several bands that meet at a place for a while (sites.md section 4.3). */
+  encounters?: Encounter[];
   /** The culture area holding a place on a day, as an index, for the band caps (sites.md section 4). */
   areaOf?(lat: number, lon: number, day: Day): number | undefined;
   /** At most this many bands in that area on that day, or no cap. */
@@ -230,6 +246,21 @@ export interface Anchor {
   until: Day;
   lat: number;
   lon: number;
+}
+
+/** An encounter (sites.md section 4.3): parties of several bands meeting at a place. */
+export interface Encounter {
+  id: string;
+  kind: string;
+  /** The day of each occurrence, in order. */
+  days: Day[];
+  /** How long the parties stay, in watching time. */
+  stayMs: number;
+  lat: number;
+  lon: number;
+  /** The anchor whose band receives the parties; without it they meet on open ground. */
+  host?: string;
+  roles: { id: string; lat: number; lon: number; km: number; people: number }[];
 }
 
 /** A Neolithic threshold (peopling.md section 3.6). */
@@ -259,6 +290,8 @@ interface Camp {
   range: Site[];
   /** An anchor holds it at its site, settled, until this day (sites.md section 4.1). */
   holdUntil: Day | undefined;
+  /** The camp of an encounter on open ground: it neither roams, buds nor grows (sites.md section 4.3). */
+  gathering?: boolean;
 }
 
 /**
@@ -267,7 +300,7 @@ interface Camp {
  */
 interface Plan {
   key: string;
-  kind: 'anchor' | 'threshold';
+  kind: 'anchor' | 'threshold' | 'encounter';
   id: string;
   day: Day;
   until: Day;
@@ -284,6 +317,28 @@ interface Plan {
   how: PlanMeans | undefined;
 }
 
+/** An occurrence of an encounter (sites.md section 4.3), as the planning pass keeps it. */
+interface Meeting {
+  encounter: Encounter;
+  day: Day;
+  /** The day its parties go home. */
+  leave: Day;
+  site: Site;
+  /** The plan keeping its meeting site free; at a host, the host's anchor's. */
+  plan: Plan;
+  /** The camp of an encounter on open ground, while it stands. */
+  camp: Camp | undefined;
+  /** Each party: its role, its lodgings there, and the band each of its people came from. */
+  parties: {
+    role: string;
+    culture: string | undefined;
+    lodgings: number[];
+    from: Map<number, Camp>;
+  }[];
+  started: boolean;
+  ended: boolean;
+}
+
 /** A path of sites along links, from the first to the last. */
 type Path = Site[];
 
@@ -296,6 +351,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   treeStats.stuck = 0;
   treeStats.places = [];
   treeStats.reached = [];
+  treeStats.encounters = [];
   treeStats.crossed = [];
   const { sites, linksOf } = s.sites;
   const camps: Camp[] = [];
@@ -550,7 +606,14 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   const campOf = (lodging: number) => campOfLodging.get(lodging)!;
 
   /** A lodging at the camp's site, on its lowest free dry place, its lanes as far as they stay dry. */
-  const newLodging = (camp: Camp, builder: number, day: Day, way?: TreeLodging['voyage']) => {
+  const newLodging = (
+    camp: Camp,
+    builder: number,
+    day: Day,
+    way?: TreeLodging['voyage'],
+    // A party at an encounter builds its own culture's lodging (sites.md section 4.3).
+    culture = camp.culture,
+  ) => {
     const site = camp.site;
     if (bandAt.get(site.id) !== camp)
       throw new Error(
@@ -580,8 +643,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       kind:
         site.key >= MINIMAL_SITE
           ? MINIMAL_LODGING
-          : (camp.culture && s.lodgingOf?.(camp.culture)) || s.lodgingKind,
-      ...(camp.culture ? { culture: camp.culture } : {}),
+          : (culture && s.lodgingOf?.(culture)) || s.lodgingKind,
+      ...(culture ? { culture } : {}),
       ...(habitat.wood
         ? {
             wood:
@@ -1235,6 +1298,46 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       how: undefined,
     };
   });
+  // Encounters (sites.md section 4.3): each occurrence is a plan with several roles. On open
+  // ground its meeting site is kept free from its day to its parties' leaving; at a host,
+  // the host's anchor's plan keeps its site.
+  const meetings: Meeting[] = [];
+  for (const e of s.encounters ?? []) {
+    const host = e.host ? plans.find((p) => p.kind === 'anchor' && p.id === e.host) : undefined;
+    if (e.host && !host)
+      throw new Error(`tree of humankind: encounter ${e.id} has no anchor ${e.host} for its host`);
+    const site = host?.site ?? placeSite.get(placeKey('encounter', e.id))!;
+    for (const [k, day] of e.days.entries()) {
+      const leave = after(day, e.stayMs);
+      const plan: Plan = host ?? {
+        key: `${placeKey('encounter', e.id)}:${k}`,
+        kind: 'encounter',
+        id: e.id,
+        day,
+        until: leave,
+        site,
+        claim: day,
+        footprint: footprintOf(site),
+        band: undefined,
+        bands: new Set<Camp>(),
+        cleared: undefined,
+        met: undefined,
+        how: undefined,
+      };
+      if (!host) plans.push(plan);
+      meetings.push({
+        encounter: e,
+        day,
+        leave,
+        site,
+        plan,
+        camp: undefined,
+        parties: [],
+        started: false,
+        ended: false,
+      });
+    }
+  }
   for (const p of plans)
     for (const k of p.footprint) {
       const list = claimsAt.get(k);
@@ -1277,6 +1380,30 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       impossible.push(
         `${name}: no land the arrival map has reached by ${yearOf(p.claim)} lies within ${ROUTE_HOPS} links of its site on its day`,
       );
+  }
+  for (const m of meetings) {
+    const e = m.encounter;
+    const name = `encounter ${e.id} (${yearOf(m.day)})`;
+    if (!e.host && e.roles.length < 2)
+      impossible.push(`${name}: it needs two roles on open ground`);
+    const lodgings = e.roles.reduce((n, r) => n + Math.ceil(r.people / LODGING_CAPACITY), 0);
+    const people = e.roles.reduce((n, r) => n + r.people, 0);
+    if (lodgings > MAX_LODGINGS || people > layoutOf(m.site.key).people)
+      impossible.push(
+        `${name}: its parties need ${lodgings} lodgings for ${people} people, more than its site holds`,
+      );
+    if (e.host && (m.day < m.plan.day || m.leave > m.plan.until))
+      impossible.push(`${name}: it falls outside the stay of its host ${e.host}`);
+    for (const r of e.roles) {
+      const near = (x: Site) => distanceKm(x.lat, x.lon, r.lat, r.lon) <= r.km;
+      if (
+        !(near(m.site) && peopled(m.site, m.day)) &&
+        reach(m.site, m.day, ROUTE_HOPS, (x) => near(x) && peopled(x, m.day)).length === 0
+      )
+        impossible.push(
+          `${name}, role ${r.id}: no land people have reached lies within ${r.km} km of its place and ${ROUTE_HOPS} open links of the site`,
+        );
+    }
   }
   // No clash: plans claimed at the same time on different sites whose camps overlap.
   for (const [i, a] of plans.entries())
@@ -1354,6 +1481,184 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     relocate(band, [...src.path].reverse(), day);
     hold(p, band, day, 'band');
   };
+  /** The people of a band who can go on a trip, never the first person, leaving one behind. */
+  const spare = (c: Camp) => {
+    const people = c.lodgings.flatMap((l) => residents.get(l)!);
+    return people.filter((f) => f !== 0).slice(0, Math.max(0, people.length - 1));
+  };
+  /**
+   * An occurrence begins (sites.md section 4.3): each role's party walks from the band nearest
+   * the site along open links that stands within the role's place, is not held and has the
+   * people to spare, and builds its own lodgings at the host's camp or the encounter's.
+   */
+  const startMeeting = (m: Meeting, day: Day) => {
+    m.started = true;
+    const e = m.encounter;
+    const name = `encounter ${e.id} (${yearOf(m.day)})`;
+    for (const [k, r] of e.roles.entries()) {
+      const near = (x: Site) => distanceKm(x.lat, x.lon, r.lat, r.lon) <= r.km;
+      // The party comes from the bands nearest the site along open links within the role's
+      // place, each sending whom it can spare, nearest first, until it is whole.
+      const sources = reach(m.site, day, ROUTE_HOPS, (x) => {
+        const c = bandAt.get(x.id);
+        return (
+          !!c &&
+          c.lodgings.length > 0 &&
+          near(x) &&
+          !isHeld(c, day) &&
+          !c.gathering &&
+          !joined.has(c) &&
+          spare(c).length > 0
+        );
+      });
+      const from = new Map<number, Camp>();
+      const ways = new Map<number, Path>();
+      for (const src of sources) {
+        if (from.size >= r.people) break;
+        const band = bandAt.get(src.site.id)!;
+        const pool = spare(band);
+        for (let i = 0; i < pool.length && from.size < r.people;) {
+          const f = pool.splice(hash32(band.id, day, 141 + 16 * k, from.size) % pool.length, 1)[0]!;
+          from.set(f, band);
+          ways.set(f, [...src.path].reverse());
+        }
+      }
+      if (from.size < r.people)
+        throw new Error(
+          `tree of humankind: ${name}, role ${r.id}: the bands within ${r.km} km of its place with an open way to the site can spare ${from.size} of its ${r.people} people`,
+        );
+      const people = [...from.keys()];
+      const culture = from.get(people[0]!)!.culture;
+      let camp = e.host ? m.plan.band : m.camp;
+      if (e.host && (!camp || camp.site !== m.site))
+        throw new Error(
+          `tree of humankind: ${name}: the band of its host ${e.host} is not at its site`,
+        );
+      if (!camp) {
+        camp = newCamp(m.site, day);
+        camp.gathering = true;
+        camp.holdUntil = m.leave;
+        takeRange(camp, day);
+        m.camp = camp;
+        m.plan.band = camp;
+        m.plan.bands.add(camp);
+      }
+      const need = Math.ceil(people.length / LODGING_CAPACITY);
+      if (
+        freePlaces(camp, day) < need ||
+        camp.lodgings.length + need > MAX_LODGINGS ||
+        headcount(camp) + people.length > layoutOf(camp.site.key).people
+      )
+        throw new Error(
+          `tree of humankind: ${name}, role ${r.id}: the camp at its site has no room for its party`,
+        );
+      const lodgings: number[] = [];
+      for (let i = 0; i < people.length; i += LODGING_CAPACITY) {
+        const group = people.slice(i, i + LODGING_CAPACITY);
+        const l = newLodging(camp, group[0]!, day, undefined, culture);
+        lodgings.push(l.id);
+        for (const f of group) {
+          moveIn(f, homeOf(f), l.id, day);
+          // Each walks its own way from its own band (humankind.md section 3.1).
+          const way = wayOf(ways.get(f)!, day);
+          if (way) (tree.figures[f]!.walks ??= []).push([day, l.id, way]);
+        }
+      }
+      m.parties.push({ role: r.id, culture, lodgings, from });
+    }
+    treeStats.encounters.push({
+      id: e.id,
+      day,
+      site: m.site.id,
+      parties: m.parties.length,
+      people: e.roles.reduce((n, r) => n + r.people, 0),
+    });
+  };
+  /**
+   * People of a party go home after an encounter (sites.md section 4.3): along open links to
+   * their band, wherever it stands (else the nearest band of their culture, else any), into
+   * lodgings of their own there if dry places are free, else into its lodgings with room, else
+   * they found a camp at the nearest free usable site; failing all that, they stay.
+   */
+  const goHome = (
+    m: Meeting,
+    from: Camp,
+    culture: string | undefined,
+    group: number[],
+    day: Day,
+  ) => {
+    const bandHere = (keep: (c: Camp) => boolean) =>
+      reach(m.site, day, ROUTE_HOPS, (x) => {
+        const c = bandAt.get(x.id);
+        return !!c && c.lodgings.length > 0 && !c.gathering && c !== m.plan.band && keep(c);
+      })[0];
+    let people = group;
+    const way =
+      (from.lodgings.length > 0 &&
+        from.site !== m.site &&
+        reach(m.site, day, ROUTE_HOPS, (x) => x === from.site)[0]) ||
+      bandHere((c) => c.culture === culture) ||
+      bandHere(() => true);
+    const home = way ? bandAt.get(way.site.id)! : undefined;
+    if (home && way) {
+      const route = wayOf(way.path, day);
+      const need = Math.ceil(people.length / LODGING_CAPACITY);
+      if (
+        home.lodgings.length + need <= MAX_LODGINGS &&
+        freePlaces(home, day) >= need &&
+        dry(home.site, day, headcount(home) + people.length)
+      ) {
+        for (let i = 0; i < people.length; i += LODGING_CAPACITY) {
+          const part = people.slice(i, i + LODGING_CAPACITY);
+          const l = newLodging(home, part[0]!, day, route);
+          for (const f of part) moveIn(f, homeOf(f), l.id, day);
+        }
+        people = [];
+      } else {
+        const left: number[] = [];
+        for (const f of people) {
+          const room =
+            headcount(home) < layoutOf(home.site.key).people
+              ? home.lodgings.find((l) => residents.get(l)!.length < LODGING_CAPACITY)
+              : undefined;
+          if (room === undefined) {
+            left.push(f);
+            continue;
+          }
+          moveIn(f, homeOf(f), room, day);
+          // Its own way home, not the lodging's (humankind.md section 3.1).
+          if (route) (tree.figures[f]!.walks ??= []).push([day, room, route]);
+        }
+        people = left;
+      }
+    }
+    if (!people.length) return;
+    const n = people.length;
+    const site = reach(m.site, day, FLEE_HOPS, (x) => usable(x, day, n) && free(x, day))[0];
+    if (site) found(people, site.path, day);
+  };
+  /**
+   * An occurrence ends (sites.md section 4.3): each party's people go home, each to the band
+   * it came from (goHome); an encounter's camp that someone could not leave stays a band.
+   */
+  const endMeeting = (m: Meeting, day: Day) => {
+    m.ended = true;
+    for (const party of m.parties) {
+      const here = party.lodgings.flatMap((l) => residents.get(l) ?? []);
+      // Those born there go with the first of the party.
+      const bandOf = (f: number) => party.from.get(f) ?? party.from.values().next().value!;
+      const groups = new Map<Camp, number[]>();
+      for (const f of here) groups.set(bandOf(f), [...(groups.get(bandOf(f)) ?? []), f]);
+      for (const [band, group] of groups) goHome(m, band, party.culture, group, day);
+    }
+    // Whoever could go nowhere stays: the camp becomes an ordinary band.
+    if (m.camp && m.camp.lodgings.length > 0) {
+      m.camp.gathering = false;
+      m.camp.holdUntil = undefined;
+      takeRange(m.camp, day);
+    }
+    if (!m.encounter.host) m.plan.band = undefined;
+  };
   /** Why no band reached a plan by its day, for the build's message. */
   const why = (p: Plan, day: Day) => {
     const near = reach(
@@ -1422,6 +1727,14 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     for (const t of thresholds) if (!t.flagged && day >= t.day) t.flagged = settle(t, day);
     for (const p of plans) {
       if (day < p.claim || day > p.until) continue;
+      // A meeting site is cleared for its encounter, which brings its own parties.
+      if (p.kind === 'encounter') {
+        if (p.cleared === undefined) {
+          p.cleared = day;
+          for (const c of inFootprint(p)) if (!isHeld(c, day)) makeWay(c, day);
+        }
+        continue;
+      }
       if (p.cleared === undefined) clear(p, day);
       // The held band must still stand at the site; before the day, it is brought again.
       if (p.band && (p.band.site !== p.site || p.band.lodgings.length === 0)) {
@@ -1437,12 +1750,17 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
           `tree of humankind: no band could reach ${p.key} by its day (${why(p, day)}); check its date and place`,
         );
     }
+    for (const m of meetings) {
+      if (!m.started && day >= m.day) startMeeting(m, day);
+      if (m.started && !m.ended && day >= m.leave) endMeeting(m, day);
+    }
     // Camps founded during this step wait for the next one.
     const count = camps.length;
     for (let ci = 0; ci < count; ci++) {
       const camp = camps[ci]!;
       // A camp that a band joined this step waits for the next, so nobody has two moves a day.
-      if (camp.lodgings.length === 0 || joined.has(camp)) continue;
+      // An encounter's camp neither roams, buds nor grows (sites.md section 4.3).
+      if (camp.lodgings.length === 0 || joined.has(camp) || camp.gathering) continue;
       // Near a Neolithic threshold that has come, camps settle (peopling.md section 3.6).
       if (
         !camp.settled &&
@@ -1584,6 +1902,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   if (trespass.length) throw new Error(`tree of humankind: ${trespass.join('; ')}`);
   // The plans beside their rows of the place table (sites.md section 4.2).
   for (const p of plans) {
+    if (p.kind === 'encounter') continue;
     const row = treeStats.places.find((r) => r.kind === p.kind && r.id === p.id);
     if (row) Object.assign(row, { claim: p.claim, met: p.met, how: p.how });
   }
@@ -1704,7 +2023,10 @@ export function treeChunks(tree: Tree, windows: Day[], endDay: Day): (TreeChunk 
       const next = later.findIndex(([d]) => d >= to);
       const homes = next < 0 ? later : later.slice(0, next + 1);
       for (const [, l] of homes) add(l);
-      figures.push({ ...f, homes, lost: until(f.lost) });
+      // Only the walks to the homes it keeps.
+      const { walks: all, ...rest } = f;
+      const walks = all?.filter((w) => homes.some((h) => h[0] === w[0] && h[1] === w[1]));
+      figures.push({ ...rest, homes, lost: until(f.lost), ...(walks?.length ? { walks } : {}) });
     }
     const flags = (tree.flags ?? []).filter((f) => f.day < to);
     return {

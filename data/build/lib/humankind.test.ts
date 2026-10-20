@@ -589,6 +589,159 @@ describe('the planning pass (sites.md section 4.2)', () => {
   }, 30_000);
 });
 
+describe('encounters (sites.md section 4.3)', () => {
+  const day = TIMELINE_START + years(7_000);
+  const meet = { lat: 0, lon: 4 };
+  const west = { id: 'west', lat: 0, lon: -12, km: 900, people: 2 };
+  const east = { id: 'east', lat: 0, lon: 14, km: 900, people: 3 };
+  const at = (l: { lat: number; lon: number }, p: { lat: number; lon: number }) =>
+    l.lat === Math.round(p.lat * 1e6) && l.lon === Math.round(p.lon * 1e6);
+  /** The figures that live at a place on a day, by the lodgings they live in. */
+  const livingAt = (t: ReturnType<typeof buildTree>, p: { lat: number; lon: number }, d: number) =>
+    t.figures.filter((f) => {
+      const l = homeOn(f, d);
+      return l !== NEVER && at(t.lodgings[l]!, p);
+    });
+
+  it('brings parties of two bands together on open ground and sends them home', () => {
+    const t = buildTree(
+      {
+        ...settings,
+        encounters: [
+          {
+            id: 'feast',
+            kind: 'gathering',
+            days: [day],
+            stayMs: 60_000,
+            ...meet,
+            roles: [west, east],
+          },
+        ],
+      },
+      habitat,
+    );
+    const row = treeStats.encounters.find((e) => e.id === 'feast')!;
+    expect(row.parties).toBe(2);
+    const site = treeStats.places.find((r) => r.kind === 'encounter' && r.id === 'feast')!;
+    const here = { lat: site.siteLat, lon: site.siteLon };
+    const guests = livingAt(t, here, row.day);
+    expect(guests.length).toBe(5);
+    // Two parties, each in its own lodgings, from two bands.
+    const from = new Set(
+      guests.map((f) => {
+        const i = f.homes.findIndex((h) => h[0] === row.day && at(t.lodgings[h[1]]!, here));
+        return t.lodgings[f.homes[i - 1]![1]]!.camp;
+      }),
+    );
+    expect(from.size).toBe(2);
+    // Gone home afterwards, nobody left at the meeting site.
+    const after = Math.max(
+      ...guests.map((f) => f.homes.find((h) => h[0] > row.day)?.[0] ?? row.day),
+    );
+    expect(after).toBeGreaterThan(row.day);
+    expect(livingAt(t, here, after)).toEqual([]);
+    for (const f of guests) {
+      const back = f.homes.find((h) => h[0] > row.day)!;
+      expect(at(t.lodgings[back[1]]!, here)).toBe(false);
+    }
+  }, 30_000);
+
+  it('lets parties visit a host and leaves its camp as it was', () => {
+    const place = { lat: 0, lon: 19 };
+    const t = buildTree(
+      {
+        ...settings,
+        anchors: [{ id: 'host', day, until: day + years(2_000), ...place }],
+        encounters: [
+          {
+            id: 'visit',
+            kind: 'visit',
+            days: [day + years(200)],
+            stayMs: 60_000,
+            ...place,
+            host: 'host',
+            roles: [{ id: 'visitors', lat: 0, lon: 0, km: 2_500, people: 2 }],
+          },
+        ],
+      },
+      habitat,
+    );
+    const row = treeStats.encounters.find((e) => e.id === 'visit')!;
+    const hostRow = treeStats.places.find((r) => r.kind === 'anchor' && r.id === 'host')!;
+    expect(row.site).toBe(hostRow.site);
+    const here = { lat: hostRow.siteLat, lon: hostRow.siteLon };
+    const before = livingAt(t, here, row.day - 1).length;
+    expect(livingAt(t, here, row.day).length).toBe(before + 2);
+    const leave = Math.min(
+      ...livingAt(t, here, row.day)
+        .filter((f) => f.homes.some((h) => h[0] === row.day))
+        .map((f) => f.homes.find((h) => h[0] > row.day)![0]),
+    );
+    // The visitors have left; the host's own people are still there.
+    const guests = livingAt(t, here, row.day).filter((f) => f.homes.some((h) => h[0] === row.day));
+    for (const f of guests) expect(at(t.lodgings[homeOn(f, leave)]!, here)).toBe(false);
+  }, 30_000);
+
+  it('fails before the tree grows when a role has no people near it', () => {
+    expect(() =>
+      buildTree(
+        {
+          ...settings,
+          encounters: [
+            {
+              id: 'lonely',
+              kind: 'trade',
+              days: [day],
+              stayMs: 60_000,
+              ...meet,
+              roles: [west, { id: 'sea', lat: 0, lon: 40, km: 100, people: 2 }],
+            },
+          ],
+        },
+        habitat,
+      ),
+    ).toThrow(/encounter lonely \(\d+ BCE\), role sea: no land people have reached/);
+  }, 30_000);
+
+  it('walks every trip on land', () => {
+    const t = buildTree(
+      {
+        ...settings,
+        encounters: [
+          {
+            id: 'feast',
+            kind: 'gathering',
+            days: [day],
+            stayMs: 60_000,
+            ...meet,
+            roles: [west, east],
+          },
+        ],
+      },
+      habitat,
+    );
+    const ways = [
+      ...t.lodgings.flatMap((l) => (l.voyage ? [l.voyage] : [])),
+      ...t.figures.flatMap((f) => (f.walks ?? []).map((w) => w[2])),
+    ];
+    for (const w of ways) {
+      for (const [lat, lon] of w.way) expect(onLand(lat / 1e6, lon / 1e6)).toBe(true);
+      expect(w.water.every((x) => !x)).toBe(true);
+    }
+    // The scene walks them there and back on land too, whole tree and chunks alike.
+    const row = treeStats.encounters.find((e) => e.id === 'feast')!;
+    const whole = { fromDay: settings.startDay, toDay: settings.endDay, ...t };
+    const from = msAtDay(row.day, settings.startDay);
+    const windows = [settings.startDay, row.day, settings.endDay];
+    const chunk = treeChunks(t, windows, settings.endDay)[1]!;
+    for (let ms = from - 2_000; ms < from + 150_000; ms += 1_250) {
+      const scene = treeScene(whole, ms, settings.startDay);
+      for (const f of scene.figures) expect(onLand(f.lat, f.lon)).toBe(true);
+      if (ms >= from + 1_000) expect(treeScene(chunk, ms, settings.startDay)).toEqual(scene);
+    }
+  }, 60_000);
+});
+
 describe('the place table (sites.md section 2.1)', () => {
   const place = { lat: 0, lon: 19 };
   const day = TIMELINE_START + years(7_000);

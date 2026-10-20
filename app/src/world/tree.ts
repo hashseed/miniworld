@@ -23,6 +23,12 @@ export interface TreeFigure {
   homes: [Day, number, number][];
   /** The day it is lost to an event, or NEVER. */
   lost: Day;
+  /**
+   * The ways of its trips to an encounter and home again (sites.md section 4.3), as [day,
+   * lodging id, way] of the home it walks to: it walks there along the way instead of the
+   * lodging's own.
+   */
+  walks?: [Day, number, NonNullable<TreeLodging['voyage']>][];
 }
 
 export interface TreeLodging {
