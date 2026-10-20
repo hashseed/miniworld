@@ -2011,10 +2011,11 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     }
   }
   if (trespass.length) throw new Error(`tree of humankind: ${trespass.join('; ')}`);
-  // A scene's prop shows from when its band came (humankind.md section 8.2).
+  // A cave is part of the land: it stands from the start of the timeline, long before its
+  // painters come; a grave shows from its burial (humankind.md section 8.2).
   for (const x of stages) {
     const p = planByKey.get(placeKey('anchor', x.id))!;
-    x.shown = Math.min(p.met ?? p.day, p.day);
+    x.shown = x.kind === 'cave-painting' ? s.startDay : Math.min(p.met ?? p.day, p.day);
   }
   // The plans beside their rows of the place table (sites.md section 4.2).
   for (const p of plans) {

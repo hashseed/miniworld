@@ -346,7 +346,11 @@ export class TreeLayer {
       at.scale.setScalar(FIGURE_KM_PER_M * (q.scale ?? 1));
       // A scene's wall or grave grows in step by step as it is painted or filled (humankind.md section 8.2).
       if (q.built !== undefined && this.stepped(batch))
-        copy(batch, (m) => setBuilt(this.stepsOf(m), q.built!));
+        copy(batch, (m) => {
+          setBuilt(this.stepsOf(m), q.built!);
+          const torch = m.bones.get('torch');
+          if (torch) torch.visible = !!q.lit;
+        });
       else copy(batch);
     }
 

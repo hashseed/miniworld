@@ -52,13 +52,15 @@ export class ModelBuilder {
     colour: THREE.ColorRepresentation,
     bone = ROOT,
     pattern?: Pattern,
+    // How lumpy this part is, if not the model's: faces are smoother, so eyes stay on them.
+    clay = this.clay,
   ): this {
     if (!this.bones.has(bone)) throw new Error(`Unknown bone ${bone}`);
     const g = geometry.index ? geometry.toNonIndexed() : geometry;
     for (const name of Object.keys(g.attributes)) {
       if (name !== 'position' && name !== 'normal') g.deleteAttribute(name);
     }
-    clayWobble(g, this.clay, this.seed++);
+    clayWobble(g, clay, this.seed++);
     const c = new THREE.Color(colour);
     const n = g.getAttribute('position').count;
     const colours = new Float32Array(n * 3);

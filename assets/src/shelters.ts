@@ -491,30 +491,47 @@ export function buildShelter(id: ShelterId): Model {
     }
     case 'prop-cave-wall-sulawesi':
     case 'prop-cave-wall-chauvet': {
-      // A cave in a hillside, its front towards the hearth (+Z; humankind.md section 8.2;
-      // Yang, 2026-10-20: "a slope in which the stone is recessed into, with a rock ledge
-      // slightly above it"): the slope rising behind, two grassy shoulders either side, the
-      // rock face set back between them with the dark cave mouth low on the left, and a ledge
-      // of rock jutting out above. The painting is in parts painted one after another; the
-      // rock itself is no step, so it stands bare before the first session.
+      // A cave as one pictures it (humankind.md section 8.2; Yang, 2026-10-20: "Make the caves
+      // look more like a cave ... with a torch to illuminate in the cave for drawing"): a
+      // rounded dome of brown rock with a wide arched mouth towards the hearth (+Z), boulders
+      // either side and tufts of grass; inside the mouth the pale back wall the painting grows
+      // on, in parts painted one after another, and a torch lit while it is painted. The rock
+      // is no step, so it stands bare before the first session.
       const sulawesi = id === 'prop-cave-wall-sulawesi';
-      const ROCK = sulawesi ? '#c4beb0' : '#d6c6a4';
-      const SLOPE = sulawesi ? '#6f9448' : '#8a9a58';
-      mb.add(blob([0, 0.9, -1.0], [2.9, 1.35, 2.1], 9), SLOPE);
-      for (const x of [-1, 1])
-        mb.add(blob([x * 1.75, 0.6, 0.5], [0.8, 0.9, 0.85], 7), shade(SLOPE, 0.05 * x));
-      const [cz, rx, ry, rz, cy] = [0.75, 1.55, 0.95, 0.42, 0.95];
-      mb.add(blob([0, cy, cz], [rx, ry, rz], 9), ROCK);
-      mb.add(blob([0, 2.0, 0.85], [1.9, 0.2, 0.65], 8), shade(ROCK, -0.12));
-      mb.add(blob([-0.85, 0.5, 1.05], [0.4, 0.45, 0.16], 7), '#2a221f');
-      /** A point on the rock face at (x, y), standing clear of it so its clay never hides it. */
-      const face = (x: number, y: number, out = 0.07): Vec3 => {
-        const q = 1 - (x / rx) ** 2 - ((y - cy) / ry) ** 2;
-        return [x, y, cz + rz * Math.sqrt(Math.max(0.05, q)) + out];
+      const ROCK = sulawesi ? '#8f7563' : '#9c826c';
+      const WALL = sulawesi ? '#e8c890' : '#efd6a2';
+      // The dome behind, two lobes either side of the mouth, and the arch over it.
+      mb.add(blob([0, 1.25, -1.45], [2.2, 1.6, 1.25], 9), ROCK);
+      for (const x of [-1, 1]) {
+        mb.add(blob([x * 1.5, 0.85, -0.3], [0.85, 1.2, 1.1], 7), shade(ROCK, 0.04 * x));
+        mb.add(blob([x * 1.15, 0.2, 1.05], [0.32, 0.22, 0.3], 5), '#6f6c68');
+        mb.add(blob([x * 1.6, 0.16, 1.2], [0.24, 0.17, 0.22], 5), shade('#6f6c68', 0.08));
+        mb.add(blob([x * 0.8, 0.12, 1.3], [0.18, 0.12, 0.16], 5), shade('#6f6c68', -0.05));
+      }
+      mb.add(blob([0, 2.05, -0.1], [1.4, 0.48, 0.85], 8), shade(ROCK, -0.05));
+      for (const [x, y, z] of [
+        [-1.3, 1.95, 0.0],
+        [0.9, 2.45, -0.2],
+        [1.7, 1.6, 0.2],
+      ] as const)
+        mb.add(cone([x, y, z], [x, y + 0.24, z], 0.14, 4), '#6f9448');
+      // The back wall inside the mouth, pale and warm as if lit, and the floor before it.
+      const [wz, wx, wy, wd, wc] = [-0.25, 0.95, 1.0, 0.1, 0.85];
+      mb.add(blob([0, wc, wz], [wx, wy, wd], 8), WALL, 'root', undefined, 0);
+      mb.add(blob([0, 0.03, 0.25], [0.85, 0.04, 0.6], 7), '#cdb38a');
+      /** A point on the back wall at (x, y), standing clear of it. */
+      const face = (x: number, y: number, out = 0.05): Vec3 => {
+        const q = 1 - (x / wx) ** 2 - ((y - wc) / wy) ** 2;
+        return [x, y, wz + wd * Math.sqrt(Math.max(0.05, q)) + out];
       };
+      // The torch, lit while a session is painted (the scene shows it then).
+      mb.bone({ name: 'torch', pivot: [0.62, 0, 0.2] });
+      mb.add(rod([0.62, 0, 0.25], [0.55, 1.15, 0.08], 0.03, 4), POLE, 'torch');
+      mb.add(blob([0.545, 1.26, 0.07], [0.09, 0.15, 0.09], 5), '#f08a2c', 'torch', undefined, 0);
+      mb.add(blob([0.545, 1.23, 0.1], [0.05, 0.09, 0.05], 4), '#ffd166', 'torch', undefined, 0);
       const step = (k: number) => {
         const name = `${BUILD_BONE}${k}`;
-        mb.bone({ name, pivot: face(0.3, 1.2, 0) });
+        mb.bone({ name, pivot: face(0, 0.9, 0) });
         return name;
       };
       const dab = (
@@ -524,9 +541,8 @@ export function buildShelter(id: ShelterId): Model {
         h: number,
         colour: string,
         bone: string,
-        out = 0.07,
-      ) => mb.add(blob(face(x, y, out), [w, h, 0.025], 5), colour, bone);
-      /** A line through points on the face, at (ox, oy) and scale k. */
+        out = 0.05,
+      ) => mb.add(blob(face(x, y, out), [w, h, 0.02], 5), colour, bone, undefined, 0);
       const stroke = (
         pts: [number, number][],
         ox: number,
@@ -543,104 +559,169 @@ export function buildShelter(id: ShelterId): Model {
             rod(face(ox + a0 * k, oy + a1 * k), face(ox + b0 * k, oy + b1 * k), r, 3),
             colour,
             bone,
+            undefined,
+            0,
           );
         }
       };
       if (sulawesi) {
-        // Leang Karampuang (Oktaviana et al. 2024): a warty pig in red ochre, three small
-        // figures with sticks round it, and hands stencilled in red.
-        const RED = '#a8442a';
-        let b = step(0);
-        dab(0.45, 1.15, 0.42, 0.18, RED, b);
-        dab(0.93, 1.2, 0.15, 0.11, RED, b);
-        dab(1.08, 1.17, 0.06, 0.05, RED, b);
-        b = step(1);
-        for (const x of [0.15, 0.3, 0.6, 0.72])
+        // Leang Karampuang (Oktaviana et al. 2024), in red-brown silhouettes: rows of warty
+        // pigs on the left, and human figures on the right, two with arms raised high holding
+        // fan-like objects, one smaller beside them, and a fan-shaped sign above.
+        const RED = '#9a3e24';
+        const pig = (ox: number, oy: number, bone: string) => {
+          dab(ox, oy, 0.17, 0.075, RED, bone);
+          dab(ox - 0.17, oy + 0.01, 0.07, 0.055, RED, bone);
+          dab(ox - 0.245, oy - 0.005, 0.03, 0.025, RED, bone);
+          for (const x of [-0.1, -0.03, 0.07, 0.13])
+            stroke(
+              [
+                [x, -0.05],
+                [x + 0.005, -0.15],
+              ],
+              ox,
+              oy,
+              0.016,
+              RED,
+              bone,
+            );
+          for (const x of [-0.08, 0.0, 0.08])
+            stroke(
+              [
+                [x, 0.06],
+                [x - 0.01, 0.11],
+              ],
+              ox,
+              oy,
+              0.01,
+              RED,
+              bone,
+            );
           stroke(
             [
-              [x, 1.05],
-              [x + 0.02, 0.82],
+              [0.16, 0.02],
+              [0.21, 0.07],
+            ],
+            ox,
+            oy,
+            0.01,
+            RED,
+            bone,
+          );
+        };
+        const person = (
+          ox: number,
+          oy: number,
+          k: number,
+          arms: 'up' | 'down',
+          fan: boolean,
+          bone: string,
+        ) => {
+          dab(ox, oy + 0.3 * k, 0.04 * k, 0.045 * k, RED, bone);
+          stroke(
+            [
+              [0, 0.25],
+              [0, 0.02],
+            ],
+            ox,
+            oy,
+            0.03 * k,
+            RED,
+            bone,
+            k,
+          );
+          stroke(
+            [
+              [0, 0.03],
+              [-0.05, -0.2],
+            ],
+            ox,
+            oy,
+            0.022 * k,
+            RED,
+            bone,
+            k,
+          );
+          stroke(
+            [
+              [0, 0.03],
+              [0.05, -0.2],
+            ],
+            ox,
+            oy,
+            0.022 * k,
+            RED,
+            bone,
+            k,
+          );
+          const hands: [number, number][] =
+            arms === 'up'
+              ? [
+                  [-0.09, 0.44],
+                  [0.09, 0.44],
+                ]
+              : [
+                  [-0.1, 0.05],
+                  [0.1, 0.07],
+                ];
+          for (const h of hands) stroke([[0, 0.22], h], ox, oy, 0.018 * k, RED, bone, k);
+          if (fan)
+            for (const [hx, hy] of hands) {
+              dab(ox + hx * k, oy + (hy + 0.06) * k, 0.06 * k, 0.035 * k, RED, bone);
+              for (const d of [-0.04, 0, 0.04])
+                stroke(
+                  [
+                    [hx, hy],
+                    [hx + d, hy + 0.09],
+                  ],
+                  ox,
+                  oy,
+                  0.008 * k,
+                  RED,
+                  bone,
+                  k,
+                );
+            }
+        };
+        pig(-0.42, 1.45, step(0));
+        pig(-0.45, 1.13, step(1));
+        let b = step(2);
+        pig(-0.5, 0.8, b);
+        pig(-0.08, 0.82, b);
+        b = step(3);
+        person(0.12, 1.12, 0.9, 'down', false, b);
+        b = step(4);
+        person(0.4, 0.62, 1.15, 'up', true, b);
+        person(0.66, 0.66, 1.15, 'up', true, b);
+        b = step(5);
+        person(0.82, 0.55, 0.75, 'down', false, b);
+        dab(0.45, 1.5, 0.11, 0.04, RED, b);
+        for (const d of [-0.07, -0.03, 0.03, 0.07])
+          stroke(
+            [
+              [0.45 + d * 0.3, 1.47],
+              [0.45 + d, 1.38],
             ],
             0,
             0,
-            0.03,
+            0.008,
             RED,
             b,
           );
-        stroke(
-          [
-            [0.05, 1.22],
-            [-0.05, 1.32],
-          ],
-          0,
-          0,
-          0.02,
-          RED,
-          b,
-        );
-        for (const [x, y] of [
-          [0.3, 1.25],
-          [0.55, 1.28],
-          [0.75, 1.22],
-        ] as const)
-          dab(x, y, 0.035, 0.035, '#7e2f1e', b, 0.09);
-        const figure = (x: number, y: number, to: [number, number], k: number) => {
-          const f = step(k);
-          dab(x, y + 0.22, 0.05, 0.05, RED, f);
-          stroke(
-            [
-              [x, y + 0.17],
-              [x, y - 0.02],
-              [x - 0.07, y - 0.18],
-            ],
-            0,
-            0,
-            0.022,
-            RED,
-            f,
-          );
-          stroke(
-            [
-              [x, y - 0.02],
-              [x + 0.07, y - 0.18],
-            ],
-            0,
-            0,
-            0.022,
-            RED,
-            f,
-          );
-          stroke([[x, y + 0.1], to], 0, 0, 0.016, RED, f);
-        };
-        figure(-0.15, 1.2, [0.1, 1.2], 2);
-        figure(0.5, 1.55, [0.55, 1.36], 3);
-        figure(1.25, 1.42, [1.05, 1.28], 4);
-        b = step(5);
-        for (const [x, y] of [
-          [-0.45, 1.6],
-          [-0.15, 1.72],
-        ] as const) {
-          dab(x, y, 0.17, 0.2, RED, b, 0.07);
-          dab(x, y - 0.03, 0.07, 0.09, ROCK, b, 0.1);
-          for (let f = 0; f < 4; f++)
-            mb.add(
-              rod(
-                face(x - 0.06 + 0.04 * f, y + 0.04, 0.1),
-                face(x - 0.08 + 0.055 * f, y + 0.15, 0.1),
-                0.014,
-                3,
-              ),
-              ROCK,
-              b,
-            );
-        }
       } else {
         // Chauvet (Clottes 2003; Quiles et al. 2016), in black charcoal outlines: the Panel of
         // the Horses, four heads one above another with upright manes; lions in profile; a
         // rhinoceros with its long curved horn; a bison; and red dots made with the palm.
         const BLACK = '#211c1a';
+        const k = 0.75;
         const horse = (ox: number, oy: number, bone: string) => {
-          mb.add(blob(face(ox - 0.04, oy, 0.05), [0.17, 0.09, 0.02], 5), '#7b716a', bone);
+          mb.add(
+            blob(face(ox - 0.03, oy, 0.035), [0.13, 0.07, 0.015], 5),
+            '#8a7e72',
+            bone,
+            undefined,
+            0,
+          );
           stroke(
             [
               [0.22, -0.18],
@@ -654,9 +735,10 @@ export function buildShelter(id: ShelterId): Model {
             ],
             ox,
             oy,
-            0.022,
+            0.018,
             BLACK,
             bone,
+            k,
           );
           for (const t of [0.15, 0.06, -0.02])
             stroke(
@@ -666,9 +748,10 @@ export function buildShelter(id: ShelterId): Model {
               ],
               ox,
               oy,
-              0.016,
+              0.013,
               BLACK,
               bone,
+              k,
             );
           stroke(
             [
@@ -677,22 +760,23 @@ export function buildShelter(id: ShelterId): Model {
             ],
             ox,
             oy,
-            0.016,
+            0.013,
             BLACK,
             bone,
+            k,
           );
-          dab(ox - 0.11, oy + 0.06, 0.025, 0.025, BLACK, bone);
+          dab(ox - 0.08, oy + 0.045, 0.02, 0.02, BLACK, bone);
         };
         let b = step(0);
-        horse(0.55, 1.52, b);
-        horse(0.67, 1.32, b);
+        horse(0.3, 1.55, b);
+        horse(0.38, 1.38, b);
         b = step(1);
-        horse(0.79, 1.12, b);
-        horse(0.91, 0.92, b);
+        horse(0.46, 1.21, b);
+        horse(0.54, 1.04, b);
         b = step(2);
         for (const [ox, oy] of [
-          [-0.05, 1.72],
-          [0.05, 1.5],
+          [-0.35, 1.55],
+          [-0.28, 1.36],
         ] as const) {
           stroke(
             [
@@ -706,9 +790,10 @@ export function buildShelter(id: ShelterId): Model {
             ],
             ox,
             oy,
-            0.02,
+            0.017,
             BLACK,
             b,
+            k,
           );
           stroke(
             [
@@ -717,29 +802,31 @@ export function buildShelter(id: ShelterId): Model {
             ],
             ox,
             oy,
-            0.015,
+            0.012,
             BLACK,
             b,
+            k,
           );
-          dab(ox + 0.18, oy + 0.03, 0.022, 0.022, BLACK, b);
+          dab(ox + 0.14, oy + 0.025, 0.018, 0.018, BLACK, b);
         }
         b = step(3);
         const body: [number, number][] = Array.from({ length: 9 }, (_, i) => {
           const a = (i / 8) * 2 * Math.PI;
           return [0.28 * Math.cos(a), 0.12 * Math.sin(a)];
         });
-        stroke(body, 0.25, 0.72, 0.022, BLACK, b);
+        stroke(body, 0.0, 0.62, 0.018, BLACK, b, k);
         stroke(
           [
             [-0.27, 0.02],
             [-0.42, -0.04],
             [-0.44, -0.1],
           ],
-          0.25,
-          0.72,
-          0.02,
+          0.0,
+          0.62,
+          0.016,
           BLACK,
           b,
+          k,
         );
         stroke(
           [
@@ -747,22 +834,24 @@ export function buildShelter(id: ShelterId): Model {
             [-0.5, 0.1],
             [-0.5, 0.2],
           ],
-          0.25,
-          0.72,
-          0.022,
+          0.0,
+          0.62,
+          0.018,
           BLACK,
           b,
+          k,
         );
         stroke(
           [
             [-0.3, 0.06],
             [-0.34, 0.13],
           ],
-          0.25,
-          0.72,
-          0.016,
+          0.0,
+          0.62,
+          0.012,
           BLACK,
           b,
+          k,
         );
         for (const x of [-0.16, 0.16])
           stroke(
@@ -770,11 +859,12 @@ export function buildShelter(id: ShelterId): Model {
               [x, -0.11],
               [x, -0.22],
             ],
-            0.25,
-            0.72,
-            0.018,
+            0.0,
+            0.62,
+            0.014,
             BLACK,
             b,
+            k,
           );
         b = step(4);
         stroke(
@@ -787,22 +877,24 @@ export function buildShelter(id: ShelterId): Model {
             [-0.18, -0.08],
             [0.2, -0.08],
           ],
-          1.15,
-          1.45,
-          0.02,
+          0.55,
+          0.68,
+          0.017,
           BLACK,
           b,
+          k,
         );
         stroke(
           [
             [-0.12, 0.08],
             [-0.18, 0.16],
           ],
-          1.15,
-          1.45,
-          0.016,
+          0.55,
+          0.68,
+          0.012,
           BLACK,
           b,
+          k,
         );
         for (const x of [-0.1, 0.12])
           stroke(
@@ -810,15 +902,16 @@ export function buildShelter(id: ShelterId): Model {
               [x, -0.08],
               [x, -0.18],
             ],
-            1.15,
-            1.45,
-            0.016,
+            0.55,
+            0.68,
+            0.012,
             BLACK,
             b,
+            k,
           );
         b = step(5);
         for (let i = 0; i < 12; i++)
-          dab(-0.55 + 0.09 * (i % 4), 1.0 + 0.1 * Math.floor(i / 4), 0.04, 0.035, '#a8442a', b);
+          dab(-0.6 + 0.07 * (i % 4), 0.95 + 0.08 * Math.floor(i / 4), 0.03, 0.028, '#a8442a', b);
       }
       break;
     }
