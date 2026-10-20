@@ -121,6 +121,8 @@ export class Foliage {
   /** The worker that places plants off the main thread (section 7), the tiles it is placing (with their day) and the slices it has. */
   private worker = startFoliageWorker((a) => this.placed_(a.id, a.plants));
   private pending = new Map<string, number>();
+  /** Each tile's latest plants, drawn while its plants for a new state are being worked out. */
+  private latest = new Map<string, Plant[]>();
   private sliceSent: boolean[] = [];
   private placed = new Map<string, Plant[]>();
   /** What the plants' places in the lists were worked out for, and the clearings last applied. */
@@ -348,9 +350,12 @@ export class Foliage {
       let plants = this.placed.get(id);
       if (!plants) {
         plants = this.place(key, planet, day, sa, sb, t, id, ka, kb);
-        if (!plants) continue;
-        this.placed.set(id, plants);
+        if (plants) this.placed.set(id, plants);
       }
+      // Until the worker answers, the tile keeps its plants of the state before (section 7).
+      if (plants) this.latest.set(tileId(key), plants);
+      else plants = this.latest.get(tileId(key));
+      if (!plants) continue;
       for (const p of plants) {
         const n = counts[p.kind]!;
         if (n >= CAPACITY || !this.matrixOf(p, m)) continue;
@@ -378,6 +383,10 @@ export class Foliage {
     // Keep the cache to the current state.
     if (this.placed.size > this.keys.length * 2)
       for (const k of [...this.placed.keys()]) if (!k.endsWith(state)) this.placed.delete(k);
+    if (this.latest.size > visible.length * 2) {
+      const seen = new Set(visible.map(tileId));
+      for (const k of [...this.latest.keys()]) if (!seen.has(k)) this.latest.delete(k);
+    }
     this.count = 0;
     this.cleared = new Set();
     this.meshes.forEach((mesh, k) => {
