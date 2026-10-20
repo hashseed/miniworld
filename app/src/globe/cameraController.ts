@@ -111,6 +111,8 @@ export class CameraController {
    * little, the heading the view eases back to (milestone-1 section 6.2).
    */
   private dragHeading = 0;
+  /** The last right-button press, for a right double-click (milestone-1 section 6.2). */
+  private lastRight = { t: -Infinity, x: 0, y: 0 };
   private recoverHeading: number | undefined;
   private keys = new Set<string>();
   private pointers = new Map<number, { x: number; y: number; button: number }>();
@@ -462,6 +464,17 @@ export class CameraController {
       this.lastDrag = 0;
       this.recoverHeading = undefined;
       this.dragHeading = this.state.heading;
+      // A right double-click turns north up and looks straight down, as the compass button does.
+      if (e.button === 2) {
+        const r = this.lastRight;
+        const twice =
+          e.timeStamp - r.t < RIGHT_DOUBLE_MS &&
+          Math.hypot(e.clientX - r.x, e.clientY - r.y) < RIGHT_DOUBLE_PX;
+        this.lastRight = twice
+          ? { t: -Infinity, x: 0, y: 0 }
+          : { t: e.timeStamp, x: e.clientX, y: e.clientY };
+        if (twice) this.resetOrientation();
+      }
       this.grabbed =
         this.pointers.size === 1 && e.button === 0 && !e.ctrlKey
           ? this.under(e.clientX, e.clientY)
@@ -569,6 +582,9 @@ const SPIN_DECAY = 2.5;
 const SPIN_HOLD_MS = 80;
 /** A drag turning the heading less than this (degrees) did not mean to; it eases back at this rate per second. */
 const HEADING_KEEP_DEG = 20;
+/** Two right-button presses this close in time (ms) and place (px) are a double-click. */
+const RIGHT_DOUBLE_MS = 400;
+const RIGHT_DOUBLE_PX = 8;
 const HEADING_RECOVER = 3;
 
 /** The signed turn in degrees from one heading to another, within ±180. */
