@@ -20,6 +20,7 @@ import {
   treeScene,
   type Placed,
   type TreeChunk,
+  type TreeScene,
 } from '../world/treeScene.ts';
 import {
   buildTreeFigure,
@@ -37,12 +38,30 @@ import { animalLoop, animateAnimal } from '../../../assets/src/clips.ts';
 import type { Model } from '../../../assets/src/kit.ts';
 import { buildSteps, flickerHearth, lightHearth, setBuilt } from '../../../assets/src/shelters.ts';
 import { ClipBatches } from './clipBatches.ts';
+import type { SceneMessage } from './sceneWorker.ts';
 import { PosedBatches } from './posedBatches.ts';
 import type { SurfaceSource } from '../vignettes/vignetteLayer.ts';
 import type { Obstacle } from '../wildlife/wildlifeLayer.ts';
 
 /** Camps this far beyond the horizon, in radians, are still worked out, for the history lens. */
 const NEAR_MARGIN = 0.3;
+/** The oldest camp scene from the worker drawn while the clock runs: a few frames' worth of watching. */
+const MAX_SCENE_LAG_MS = 100;
+
+/** The worker's answer: the camp scene of a tree file at a time. */
+interface SceneAnswer {
+  w: number;
+  ms: number;
+  scene?: TreeScene;
+}
+
+/** The camp scene worker, where the browser has workers; undefined in tests under Node. */
+function startSceneWorker(answer: (a: SceneAnswer) => void): Worker | undefined {
+  if (typeof Worker === 'undefined') return undefined;
+  const worker = new Worker(new URL('./sceneWorker.ts', import.meta.url), { type: 'module' });
+  worker.onmessage = (e: MessageEvent<SceneAnswer>) => answer(e.data);
+  return worker;
+}
 /** Half sizes of what wild animals keep clear of, in life-size metres (wildlife.md section 4). */
 const FIGURE_HALF_M = 0.4;
 const PREY_HALF_M = 1.3;
@@ -198,9 +217,14 @@ export class TreeLayer {
     // The minute's chunk, and those around it ahead of time; until it arrives the nearest
     // loaded one stands in, so the camps do not blink out between minutes.
     for (const k of [w, w + 1, w + 2, w + 3, w - 1]) this.request(k);
-    for (const k of this.chunks.keys()) if (k < w - 2 || k > w + 4) this.chunks.delete(k);
-    const chunk = this.chunks.get(w) ?? this.chunks.get(w - 1) ?? this.chunks.get(w + 1);
-    if (!chunk) {
+    for (const k of this.chunks.keys())
+      if (k < w - 2 || k > w + 4) {
+        this.chunks.delete(k);
+        this.worker?.postMessage({ type: 'drop', w: k } satisfies SceneMessage);
+      }
+    const key = [w, w - 1, w + 1].find((k) => this.chunks.has(k));
+    const chunk = key === undefined ? undefined : this.chunks.get(key);
+    if (!chunk || key === undefined) {
       this.clear();
       return;
     }
@@ -212,7 +236,7 @@ export class TreeLayer {
       const [x, y, z] = latLonToDir(lat, lon);
       return x * camDir.x + y * camDir.y + z * camDir.z >= cosLimit;
     };
-    const scene = treeScene(chunk, ms, startDay, near);
+    const scene = this.sceneAt(chunk, key, ms, startDay, near, camDir, cosLimit);
     this.pixels.clear();
     // What is too small on screen to see is left out (milestone 2 section 5.5).
     const big = <T extends { lat: number; lon: number }>(list: T[], px: number) =>
@@ -478,10 +502,56 @@ export class TreeLayer {
     if (!file || this.requested.has(w)) return;
     this.requested.add(w);
     this.loader.json<TreeChunk>(file).then(
-      (chunk) => this.chunks.set(w, chunk),
+      (chunk) => {
+        this.chunks.set(w, chunk);
+        this.worker?.postMessage({ type: 'chunk', w, chunk } satisfies SceneMessage);
+      },
       () => this.requested.delete(w),
     );
   }
+
+  /**
+   * The camp scene at a time (humankind.md section 8): while the clock runs, the newest one
+   * the worker worked out for this tree file, if it is at most MAX_SCENE_LAG_MS behind;
+   * otherwise (the clock standing still, a jump, no worker) worked out here. Either way the
+   * worker is asked for the next one.
+   */
+  private sceneAt(
+    chunk: TreeChunk,
+    key: number,
+    ms: number,
+    startDay: number,
+    near: (lat: number, lon: number) => boolean,
+    camDir: THREE.Vector3,
+    cosLimit: number,
+  ): TreeScene {
+    if (this.worker && !this.asked) {
+      this.asked = true;
+      this.worker.postMessage({
+        type: 'scene',
+        id: ++this.sceneId,
+        w: key,
+        ms,
+        startDay,
+        camDir: [camDir.x, camDir.y, camDir.z],
+        cosLimit,
+      } satisfies SceneMessage);
+    }
+    const got = this.answer;
+    // A copy, since the layer filters the lists of the scene it draws.
+    if (got?.scene && got.w === key && ms >= got.ms && ms - got.ms <= MAX_SCENE_LAG_MS)
+      return { ...got.scene };
+    return treeScene(chunk, ms, startDay, near);
+  }
+
+  /** The worker that works out the camp scene off the main thread, where workers exist. */
+  private worker = startSceneWorker((a) => {
+    this.asked = false;
+    this.answer = a;
+  });
+  private asked = false;
+  private sceneId = 0;
+  private answer: SceneAnswer | undefined;
 
   private clear(): void {
     this.batches.begin();
