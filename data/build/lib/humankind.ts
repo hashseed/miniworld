@@ -1493,10 +1493,15 @@ export function treeChunks(tree: Tree, windows: Day[], endDay: Day): (TreeChunk 
     const figures: TreeFigure[] = [];
     for (const f of tree.figures) {
       if (f.born >= to || until(f.lost) <= earliest) continue;
-      // The home at that minute's start and the one before it (for a walk under way), and later ones.
+      // The home at that minute's start and the one before it (for a walk under way), later
+      // ones, and the first after the window: what a figure does before a move depends on
+      // it (taking the lodging down, no dance before leaving), so the next file's lead minute
+      // shows the same scene and nobody jumps when the app moves on to it.
       let first = 0;
       while (first + 1 < f.homes.length && f.homes[first + 1]![0] <= earliest) first++;
-      const homes = f.homes.slice(Math.max(0, first - 1)).filter(([d]) => d < to);
+      const later = f.homes.slice(Math.max(0, first - 1));
+      const next = later.findIndex(([d]) => d >= to);
+      const homes = next < 0 ? later : later.slice(0, next + 1);
       for (const [, l] of homes) add(l);
       figures.push({ ...f, homes, lost: until(f.lost) });
     }
