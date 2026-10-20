@@ -64,7 +64,8 @@
       "lon": 150.8,
       "en": "New Ireland, Bismarck Archipelago",
       "de": "Neuirland, Bismarck-Archipel",
-      "source": "Leavesley et al. 2002, Buang Merabak: early evidence for human occupation in the Bismarck Archipelago, Papua New Guinea, Asian Perspectives 41"
+      "source": "Leavesley et al. 2002, Buang Merabak: early evidence for human occupation in the Bismarck Archipelago, Papua New Guinea, Asian Perspectives 41",
+      "passage": true
     },
     {
       "id": "southern-australia",
@@ -82,7 +83,8 @@
       "lon": 146.3,
       "en": "Warreen Cave, Tasmania (then joined to the mainland)",
       "de": "Warreen-Höhle, Tasmanien (damals mit dem Festland verbunden)",
-      "source": "Cosgrove et al. 2010, Overdone overkill: the archaeological perspective on Tasmanian megafaunal extinctions, Journal of Archaeological Science 37"
+      "source": "Cosgrove et al. 2010, Overdone overkill: the archaeological perspective on Tasmanian megafaunal extinctions, Journal of Archaeological Science 37",
+      "passage": true
     },
     {
       "id": "levant",
@@ -179,10 +181,10 @@
     {
       "id": "japan",
       "bce": 36000,
-      "lat": 33.0,
-      "lon": 130.7,
-      "en": "Kyushu, Japan",
-      "de": "Kyushu, Japan",
+      "lat": 34.6,
+      "lon": 133.0,
+      "en": "Western Honshu, Japan",
+      "de": "West-Honshu, Japan",
       "source": "Izuho and Kaifu 2015, The appearance and characteristics of the Early Upper Paleolithic in the Japanese Archipelago, in Emergence and Diversity of Modern Human Behavior in Paleolithic Asia"
     },
     {

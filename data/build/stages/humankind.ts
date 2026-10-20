@@ -17,6 +17,7 @@ import {
   FRONT_KM_PER_YEAR,
   humankindSettings,
   siteStepAt,
+  TREE_END,
   validateCultureAreas,
   type CultureAreas,
 } from '../lib/cultureAreas.ts';
@@ -46,7 +47,14 @@ import { CAMP_SHELTER } from '../../../assets/src/shelters.ts';
 import type { Profile } from '../../../app/src/world/cultures.ts';
 import type { Tree } from '../../../app/src/world/tree.ts';
 import { climateHabitat } from '../lib/habitat.ts';
-import { buildTree, checkTree, distanceKm, treeChunks, treeStats } from '../lib/humankind.ts';
+import {
+  buildTree,
+  checkTree,
+  datedPlaces,
+  distanceKm,
+  treeChunks,
+  treeStats,
+} from '../lib/humankind.ts';
 import { NEVER, type TreeLodging } from '../../../app/src/world/tree.ts';
 import { flies, swims, WILD_GROUPS } from '../../../app/src/world/wildlife.ts';
 import type { DrawnGround } from '../lib/drawnGround.ts';
@@ -78,7 +86,7 @@ const HIGHEST_CAMP_M = 4800;
 
 /**
  * What the build tells about the peopling (peopling.md section 4): per arrival point, how long
- * after its date the first camp near it stood; per threshold, when its flag went up.
+ * after its date a band first stood at its site; per threshold, when its flag went up.
  */
 function peoplingReport(
   tree: Tree,
@@ -92,12 +100,11 @@ function peoplingReport(
     // A passage is walked across, not camped at.
     if (p.passage) continue;
     const day = map.pointDays.get(p.id)!;
-    const first = tree.lodgings.find(
-      (l) => distanceKm(l.lat / 1e6, l.lon / 1e6, p.lat, p.lon) < 1000,
-    );
-    if (!first) lines.push(`${p.id}: no camp within 1,000 km`);
-    else if (first.built - day > 500 * 365.2425)
-      lines.push(`${p.id}: first camp ${years(first.built - day)} years after its date`);
+    // When a band first stood at the point's own site (sites.md section 2.1).
+    const reached = treeStats.reached.find((r) => r.leg === p.id);
+    if (!reached) lines.push(`${p.id}: never reached`);
+    else if (reached.day - day > 500 * 365.2425)
+      lines.push(`${p.id}: reached ${years(reached.day - day)} years after its date`);
   }
   for (const t of thresholds) {
     const flag = tree.flags?.find((f) => f.id === t.id);
@@ -238,11 +245,44 @@ export function buildHumankind(
   for (const a of anchors)
     if (!a.id || !a.en || !a.de || !a.source || Math.abs(a.lat) > 90 || Math.abs(a.lon) > 180)
       fail(`anchors.json: ${a.id || '(no id)'} needs an id, a place, en, de and a source`);
+  // The records that need a band at a place and time, each laid a site of its own that stays
+  // dry for its span (sites.md section 2.1); an anchor's close by (section 4.1).
+  const anchorRecords = anchors.map((a) => ({
+    id: a.id,
+    day: dayOfBce(a.bce),
+    until: a.until === undefined ? TREE_END : dayOfBce(a.until),
+    lat: a.lat,
+    lon: a.lon,
+  }));
+  const thresholdRecords = thresholds.map((t) => ({
+    id: t.id,
+    day: dayOfBce(t.bce),
+    lat: t.lat,
+    lon: t.lon,
+  }));
+  const dated = datedPlaces({
+    voyages: arrived.legs,
+    anchors: anchorRecords,
+    thresholds: thresholdRecords,
+    endDay: TREE_END,
+  });
+  const seaOver = (from: number, to: number) => {
+    const n = Math.max(8, Math.ceil((to - from) / (100 * 365.2425)));
+    let m = -Infinity;
+    for (let k = 0; k <= n; k++)
+      m = Math.max(m, climate.seaLevelAt(from + Math.floor(((to - from) * k) / n)));
+    return m;
+  };
   const siteInputs = {
-    // An anchor needs a site close by (sites.md section 4.1).
     keyPlaces: [
       ...keyPlaces,
-      ...anchors.map((a) => ({ id: a.id, lat: a.lat, lon: a.lon, km: ANCHOR_SITE_KM })),
+      ...dated.map((p) => ({
+        id: `${p.kind}:${p.id}`,
+        lat: p.lat,
+        lon: p.lon,
+        sea: seaOver(p.day, p.until),
+        ...(p.kind === 'anchor' ? { km: ANCHOR_SITE_KM } : {}),
+      })),
     ],
     stepAt: (lat: number, lon: number) => siteStepAt(cultureAreas, lat, lon),
     widthAt,
@@ -332,18 +372,28 @@ export function buildHumankind(
     arrival: arrived.dayAt,
     lodgingOf: (culture) => CAMP_SHELTER[culture as Profile] ?? FOUNDER_LODGING,
     voyages: arrived.legs,
-    thresholds: thresholds.map((t) => ({ id: t.id, day: dayOfBce(t.bce), lat: t.lat, lon: t.lon })),
+    thresholds: thresholdRecords,
   });
-  treeSettings.anchors = anchors.map((a) => ({
-    id: a.id,
-    day: dayOfBce(a.bce),
-    until: a.until === undefined ? treeSettings.endDay : dayOfBce(a.until),
-    lat: a.lat,
-    lon: a.lon,
-  }));
+  treeSettings.anchors = anchorRecords;
   if (!habitat.habitable(treeSettings.founder.lat, treeSettings.founder.lon, TIMELINE_START))
     fail('tree of humankind: the first person stands on uninhabitable land');
-  const tree = buildTree(treeSettings, habitat);
+  let tree: Tree;
+  try {
+    tree = buildTree(treeSettings, habitat);
+  } finally {
+    // The place table (sites.md section 2.1), also when the tree fails, to look into it.
+    writeFileSync(
+      join(ROOT, 'data/build/tree/places.json'),
+      JSON.stringify(treeStats.places, null, 1),
+    );
+  }
+  const farthest = treeStats.places.reduce((a, b) => (b.km > a.km ? b : a), treeStats.places[0]!);
+  log(
+    `place table: ${treeStats.places.length} dated places` +
+      (farthest
+        ? `, the farthest site ${farthest.km} km from ${farthest.kind} ${farthest.id}`
+        : ''),
+  );
   log(
     `tree of humankind: ${treeStats.crowded} bands crowded a neighbour, ${treeStats.stuck} steps a band found nowhere to go`,
   );

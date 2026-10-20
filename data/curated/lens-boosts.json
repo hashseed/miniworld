@@ -12,6 +12,45 @@
         [36.5, 139.5],
         [39.5, 140.8]
       ]
+    },
+    {
+      "id": "kyushu",
+      "reason": "Yang, 2026-10-20 (\"yes, let's do the lens boost\"): Kyushu was too narrow for even the smallest camp of the tree of humankind at its arrival point's date, so the place table (sites.md section 2.1) found no site on its own land.",
+      "weight": 48,
+      "points": [
+        [32.6, 130.6],
+        [33.4, 130.9]
+      ]
+    },
+    {
+      "id": "sulawesi",
+      "reason": "Yang, 2026-10-20 (\"yes, let's do the lens boost\"): Sulawesi was too narrow for even the smallest camp of the tree of humankind at its arrival point's date, so the place table (sites.md section 2.1) found no site on its own land. Leang Karampuang, the oldest known cave painting, is on its south-western arm.",
+      "weight": 48,
+      "points": [
+        [-5.0, 119.7],
+        [-3.5, 120.2],
+        [-1.5, 120.7],
+        [0.8, 123.5]
+      ]
+    },
+    {
+      "id": "new-ireland",
+      "reason": "Yang, 2026-10-20 (\"yes, let's do the lens boost\"): New Ireland and New Britain were too narrow for even the smallest camp of the tree of humankind at its arrival point's date, so the place table (sites.md section 2.1) found no site on its own land.",
+      "weight": 48,
+      "points": [
+        [-2.7, 150.9],
+        [-3.8, 152.2],
+        [-5.5, 150.5]
+      ]
+    },
+    {
+      "id": "tasmania",
+      "reason": "Yang, 2026-10-20 (\"yes, let's do the lens boost\"): Tasmania was too narrow for even the smallest camp of the tree of humankind at its arrival point's date, so the place table (sites.md section 2.1) found no site on its own land.",
+      "weight": 48,
+      "points": [
+        [-41.3, 146.4],
+        [-42.3, 146.6]
+      ]
     }
   ]
 }
