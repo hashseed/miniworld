@@ -85,6 +85,10 @@ const FIREWOOD_M = 20;
 const BREAK_MS = Math.round(7200 / TEMPO);
 const FILL_MS = Math.round(5400 / TEMPO);
 const SCRAPE_MS = Math.round(14_400 / TEMPO);
+/** Skinning a kill, hanging its hide on the rack, and taking a dried one down (section 8.1). */
+const FLAY_MS = Math.round(9000 / TEMPO);
+const HANG_HIDE_MS = Math.round(4800 / TEMPO);
+const TAKE_HIDE_MS = Math.round(4800 / TEMPO);
 const CRACK_MS = Math.round(14_400 / TEMPO);
 const KNAP_POINT_MS = Math.round(10_800 / TEMPO);
 const BIND_POINT_MS = Math.round(7200 / TEMPO);
@@ -126,7 +130,7 @@ const CHASE_MS = Math.round(9000 / TEMPO);
 const CATCH_R = 7;
 const DANCE_R = 4.5;
 const CATCH_SHARE = 1 / 3;
-const DANCE_SHARE = 1 / 12;
+const DANCE_SHARE = 1 / 6;
 /**
  * A lodging's drying rack stands behind it, this far from the hearth, out of every lane,
  * and whoever scrapes a hide works from behind it, facing in (Yang, 2026-10-19: a kill
@@ -159,16 +163,18 @@ type PreyKind =
   | 'animal-kangaroo'
   | 'animal-reindeer'
   | 'animal-guanaco'
-  | 'animal-mammoth';
+  | 'animal-mammoth'
+  | 'animal-aurochs';
 /** What each culture hunts (peopling.md sections 5.5 and 9.1); the founder's people hunt zebra and eland. */
 const PREY_OF: Record<string, readonly PreyKind[]> = {
   'african-stone-age': ['animal-zebra', 'animal-eland'],
   'coastal-asia-hunter': ['animal-gazelle'],
-  'west-asia-hunter': ['animal-gazelle'],
+  // Aurochs, the wild cattle of Europe, the Near East and North Africa (Yang, 2026-10-20).
+  'west-asia-hunter': ['animal-gazelle', 'animal-aurochs'],
   'east-asia-hunter': ['animal-gazelle'],
-  natufian: ['animal-gazelle'],
+  natufian: ['animal-gazelle', 'animal-aurochs'],
   'first-australians': ['animal-kangaroo'],
-  'ice-age-hunter': ['animal-reindeer', 'animal-mammoth'],
+  'ice-age-hunter': ['animal-reindeer', 'animal-aurochs', 'animal-mammoth'],
   'steppe-beringia-hunter': ['animal-reindeer', 'animal-mammoth'],
   'first-americans': ['animal-guanaco'],
 };
@@ -788,26 +794,33 @@ type Outing =
   | 'crack'
   | 'spear'
   | 'cook'
+  | 'flay'
+  | 'rack'
   | 'hut';
 
 /** Shares of a figure's turns by activity (section 8.1), the rest of its turns rests. */
+// Hunting was most of a man's turns until Yang, 2026-10-20: "activities are often just
+// hunting. what about other activities?"
 const OUTING_SHARES: Record<FigureLook, [Outing, number][]> = {
   man: [
-    ['hunt', 0.4],
+    ['hunt', 0.25],
     ['spear', 0.12],
     ['firewood', 0.1],
     ['water', 0.05],
-    ['hut', 0.06],
+    ['hut', 0.1],
+    ['flay', 0.08],
+    ['rack', 0.04],
     ['stroll', 0.05],
   ],
   founder: [
-    ['hunt', 0.25],
+    ['hunt', 0.18],
     ['gather', 0.1],
     ['firewood', 0.08],
     ['water', 0.06],
     ['crack', 0.1],
     ['cook', 0.08],
-    ['hut', 0.06],
+    ['flay', 0.05],
+    ['hut', 0.1],
     ['stroll', 0.05],
   ],
   woman: [
@@ -817,13 +830,15 @@ const OUTING_SHARES: Record<FigureLook, [Outing, number][]> = {
     ['water', 0.1],
     ['firewood', 0.08],
     ['cook', 0.12],
-    ['hut', 0.08],
+    ['flay', 0.06],
+    ['rack', 0.06],
+    ['hut', 0.1],
     ['stroll', 0.04],
   ],
   child: [
     ['gather', 0.15],
     ['crack', 0.12],
-    ['hut', 0.12],
+    ['hut', 0.14],
     ['stroll', 0.15],
   ],
 };
@@ -1495,7 +1510,8 @@ export function treeScene(
     let go: Outing = sure === 'stroll' && room < 13 ? 'rest' : sure;
     if (go === 'firewood' && room < FIREWOOD_M + 1) go = 'rest';
     // A compact camp has no drying racks.
-    if (go === 'scrape' && !hasRack(st.home.camp, st.home.slot)) go = 'rest';
+    if ((go === 'scrape' || go === 'rack' || go === 'flay') && !hasRack(st.home.camp, st.home.slot))
+      go = 'rest';
     const camp = st.home.camp;
     const trip = new Itinerary(turnStart, st.spot, st.home.camp);
     const out = (p: Pt): Pt => ({ x: p.x * 2, z: p.z * 2 });
@@ -1545,6 +1561,35 @@ export function treeScene(
         .go(side)
         .go(behind)
         .stay(trip.t + SCRAPE_MS, 'scrape', rack)
+        .go(side)
+        .go(st.spot);
+    } else if (go === 'rack') {
+      // A dried hide taken off the rack, carried in to the hut and back out.
+      const { side, behind, rack } = rackSides(st.home);
+      const door = doorOf(st.home);
+      trip
+        .go(side)
+        .go(behind)
+        .stay(trip.t + TAKE_HIDE_MS, 'work', rack)
+        .go(side, 'carry')
+        .go(door, 'carry')
+        .go(lodgingSpot(st.home), 'crouch')
+        .stay(trip.t + INSIDE_MS / 2, 'inside')
+        .go(door, 'crouch')
+        .go(st.spot);
+    } else if (go === 'flay') {
+      // Only while a kill lies at the camp: skin it, and hang the hide on the rack to dry.
+      const meat = killAt(st, turnStart);
+      if (!meat) return { go: 'rest' };
+      const by = { x: meat.drop.x * 0.88, z: meat.drop.z * 0.88 };
+      trip.go(by);
+      if (trip.t + FLAY_MS > meat.gone - PREY_FADE_MS) return { go: 'rest' };
+      const { side, behind, rack } = rackSides(st.home);
+      trip
+        .stay(trip.t + FLAY_MS, 'work', meat.drop)
+        .go(side, 'carry')
+        .go(behind, 'carry')
+        .stay(trip.t + HANG_HIDE_MS, 'work', rack)
         .go(side)
         .go(st.spot);
     } else if (go === 'crack') {
@@ -2261,6 +2306,15 @@ export function hasRack(camp: number, slot: number): boolean {
 function rackAt(camp: number, slot: number): Pt {
   const p = slotPoint(camp, slot);
   return { x: (p.x * RACK_R) / LODGING_RING_M, z: (p.z * RACK_R) / LODGING_RING_M };
+}
+
+/** Where a figure stands behind a lodging's rack, the way round its end to there, and the rack. */
+function rackSides(l: TreeLodging): { side: Pt; behind: Pt; rack: Pt } {
+  const rack = rackSpot(l);
+  const [ux, uz] = [rack.x / RACK_R, rack.z / RACK_R];
+  const behind = { x: rack.x + ux * SCRAPE_BACK_M, z: rack.z + uz * SCRAPE_BACK_M };
+  const side = { x: behind.x - uz * SCRAPE_SIDE_M, z: behind.z + ux * SCRAPE_SIDE_M };
+  return { side, behind, rack };
 }
 
 function rackSpot(l: TreeLodging): Pt {
