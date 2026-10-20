@@ -37,7 +37,8 @@
       "lon": 119.8,
       "en": "Sulawesi",
       "de": "Sulawesi",
-      "source": "Oktaviana et al. 2024, Narrative cave art in Indonesia by 51,200 years ago, Nature 631"
+      "source": "Oktaviana et al. 2024, Narrative cave art in Indonesia by 51,200 years ago, Nature 631",
+      "apart": ["sundaland", "sahul"]
     },
     {
       "id": "sahul",

@@ -1,28 +1,79 @@
 {
   "description": "The rivers drawn on the map (spec milestone 1, section 4.3): only a short list of the rivers history needs most, decided by Yang on 2026-10-17. Each river lists the Natural Earth names of its lines, including local spellings and delta branches; box [west, south, east, north] keeps only lines starting inside it, for names used twice. The lines are drawn in this order.",
   "rivers": [
-    { "id": "nile", "names": ["Nile", "Rosetta Branch", "Damietta Branch"] },
-    { "id": "white-and-blue-nile", "names": ["El Bahr el Abyad", "El Bahr el Azraq"] },
+    {
+      "id": "nile",
+      "names": ["Nile", "Rosetta Branch", "Damietta Branch"]
+    },
+    {
+      "id": "white-and-blue-nile",
+      "names": ["El Bahr el Abyad", "El Bahr el Azraq"]
+    },
     {
       "id": "euphrates-and-tigris",
       "names": ["Euphrates", "Firat", "Al Furat", "Tigris", "Dicle", "Shatt al Arab"]
     },
-    { "id": "indus", "names": ["Indus"] },
-    { "id": "ganges", "names": ["Ganges"] },
-    { "id": "yellow-river", "names": ["Huang"] },
-    { "id": "yangtze", "names": ["Yangtze", "Chang Jiang"] },
-    { "id": "mekong", "names": ["Mekong"] },
+    {
+      "id": "indus",
+      "names": ["Indus"]
+    },
+    {
+      "id": "ganges",
+      "names": ["Ganges"]
+    },
+    {
+      "id": "yellow-river",
+      "names": ["Huang"]
+    },
+    {
+      "id": "yangtze",
+      "names": ["Yangtze", "Chang Jiang"]
+    },
+    {
+      "id": "mekong",
+      "names": ["Mekong"]
+    },
     {
       "id": "danube",
       "names": ["Danube", "Donau", "Bratul Chillia", "Bratul Sulina", "Bratul Sfintu Gheorghe"]
     },
-    { "id": "rhine", "names": ["Rhine", "Rhein", "Rhin", "Waal"] },
-    { "id": "volga", "names": ["Volga"] },
-    { "id": "mississippi", "names": ["Mississippi"] },
-    { "id": "congo", "names": ["Congo"] },
-    { "id": "niger", "names": ["Niger"] },
-    { "id": "amazon", "names": ["Amazonas", "Madeira", "Xingu", "Tapajós"] },
-    { "id": "rio-negro", "names": ["Negro"], "box": [-80, -20, -45, 6] },
-    { "id": "blue-nile-to-lake-tana", "names": ["Abay"], "box": [33, 9, 39, 12.5] }
+    {
+      "id": "rhine",
+      "names": ["Rhine", "Rhein", "Rhin", "Waal"]
+    },
+    {
+      "id": "volga",
+      "names": ["Volga"]
+    },
+    {
+      "id": "mississippi",
+      "names": ["Mississippi"]
+    },
+    {
+      "id": "congo",
+      "names": ["Congo"]
+    },
+    {
+      "id": "niger",
+      "names": ["Niger"]
+    },
+    {
+      "id": "amazon",
+      "names": ["Amazonas", "Madeira", "Xingu", "Tapajós"]
+    },
+    {
+      "id": "rio-negro",
+      "names": ["Negro"],
+      "box": [-80, -20, -45, 6]
+    },
+    {
+      "id": "blue-nile-to-lake-tana",
+      "names": ["Abay"],
+      "box": [33, 9, 39, 12.5]
+    },
+    {
+      "id": "zambezi-and-shire",
+      "names": ["Zambezi", "Shire"]
+    }
   ]
 }

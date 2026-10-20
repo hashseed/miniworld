@@ -225,6 +225,31 @@ export function laneReach(site: Site, gap: number, sea: number): number {
 }
 
 /** The sea level above which the straight way between two points is under water somewhere. */
+/** How far off its drawn coast a crossing's shore point may lie, in km. */
+const SHORE_SLACK_KM = 25;
+/** Whether the straight way between two points is land, at points every WALK_CHECK_KM, at a sea level. */
+function landAlong(
+  a: { lat: number; lon: number },
+  b: { lat: number; lon: number },
+  flood: (lat: number, lon: number) => number,
+  sea: number,
+): boolean {
+  const km = distanceKm(a.lat, a.lon, b.lat, b.lon);
+  const n = Math.max(1, Math.ceil(km / WALK_CHECK_KM));
+  let dLon = b.lon - a.lon;
+  if (dLon > 180) dLon -= 360;
+  else if (dLon < -180) dLon += 360;
+  // The shore point itself may lie just off the drawn coast: its last SHORE_SLACK_KM are not checked.
+  const last = Math.floor(n * Math.max(0, 1 - SHORE_SLACK_KM / Math.max(km, 1e-6)));
+  for (let k = 0; k <= last; k++) {
+    let lon = a.lon + (dLon * k) / n;
+    if (lon > 180) lon -= 360;
+    else if (lon < -180) lon += 360;
+    if (flood(a.lat + ((b.lat - a.lat) * k) / n, lon) <= sea) return false;
+  }
+  return true;
+}
+
 export function wayLevel(
   a: { lat: number; lon: number },
   b: { lat: number; lon: number },
@@ -483,25 +508,54 @@ export function buildSites(input: SiteInputs): SiteMap {
       link(a, b, km);
     }
   }
-  // Links by canoe at the listed crossings: from the site nearest each shore; the band paddles
-  // whatever stretch of the way is not dry on the day it goes.
+  // Links by canoe at the listed crossings: from the sites of each shore's own land; the band
+  // paddles whatever stretch of the way is not dry on the day it goes.
+  const foot = new Map<number, number[]>();
+  for (const l of links) {
+    foot.set(l.a, [...(foot.get(l.a) ?? []), l.b]);
+    foot.set(l.b, [...(foot.get(l.b) ?? []), l.a]);
+  }
   for (const x of input.crossings) {
-    // The three sites near each shore that stay dry the longest, each on its own side: nearer
-    // its shore than the far one, so both ends of the Korea-Japan crossing are not in Korea.
+    // The three sites that stay dry the longest within SHORE_KM of each shore, on that shore's
+    // own land: they walk, at the lowest sea, to the shore's home, the camp site nearest it
+    // whose straight way to it is land. Until 2026-10-20 any site nearer one shore than the
+    // other would do, and with no site on Sulawesi the Wallace Line's far end lay in Borneo.
     type P = { lat: number; lon: number };
-    const shore = (p: P, far: P) =>
-      sites
-        .filter(
-          (s) =>
-            !s.pass &&
-            distanceKm(s.lat, s.lon, p.lat, p.lon) <= SHORE_KM &&
-            distanceKm(s.lat, s.lon, p.lat, p.lon) < distanceKm(s.lat, s.lon, far.lat, far.lon),
-        )
+    const shore = (p: P): Site[] => {
+      const km = (s: Site) => distanceKm(s.lat, s.lon, p.lat, p.lon);
+      const home = sites
+        .filter((s) => !s.pass && km(s) <= SHORE_KM)
+        .sort((a, b) => km(a) - km(b) || a.id - b.id)
+        // Along the line itself, not its sides: the shore lies at the water's edge.
+        .find((s) => landAlong(s, p, input.walkFlood, input.lowestSea));
+      if (!home) return [];
+      const seen = new Set<number>([home.id]);
+      let ring = [home.id];
+      while (ring.length) {
+        const next: number[] = [];
+        for (const i of ring)
+          for (const j of foot.get(i) ?? [])
+            if (!seen.has(j) && km(sites[j]!) <= SHORE_KM) {
+              seen.add(j);
+              next.push(j);
+            }
+        ring = next;
+      }
+      return [...seen]
+        .map((i) => sites[i]!)
+        .filter((s) => !s.pass)
         .sort((a, b) => fitOf(b) - fitOf(a) || a.id - b.id)
         .slice(0, 3);
+    };
     const [from, to] = [x.way[0]!, x.way.at(-1)!];
-    for (const a of shore(from, to))
-      for (const b of shore(to, from)) {
+    const [here, there] = [shore(from), shore(to)];
+    // A crossing to land too small for any camp (New Ireland) links nothing; it is reported.
+    if (!here.length || !there.length) {
+      unplaced.push(`crossing ${x.id} (${here.length ? 'far' : 'first'} shore)`);
+      continue;
+    }
+    for (const a of here)
+      for (const b of there) {
         if (a === b) continue;
         const km = distanceKm(a.lat, a.lon, b.lat, b.lon);
         links.push({ a: a.id, b: b.id, km, level: -Infinity, crossing: x });
