@@ -167,7 +167,8 @@ describe('the camp scene', () => {
       figures: tree.figures,
       lodgings: tree.lodgings,
     };
-    // Figures stand at least 2 layout metres apart, lodgings (about 10 across) 12.
+    // Figures stand at least 2 layout metres apart, lodgings (at most 2.7 life-size metres,
+    // 8.1 layout metres, across) 10: a compact camp's neighbouring huts stand 10.6 apart.
     const apart = <T extends { lat: number; lon: number; x: number; z: number }>(
       list: T[],
       min: number,
@@ -197,7 +198,7 @@ describe('the camp scene', () => {
         s.figures.filter((f) => f.clip === 'idle' || f.clip === 'work' || f.clip === 'knap'),
         1.85,
       );
-      apart(s.lodgings, 12);
+      apart(s.lodgings, 10);
     }
   }, 30_000);
 });
@@ -375,7 +376,7 @@ describe('camps by a river', () => {
 describe('the canonical tree', () => {
   it('keeps its hash, so any change to the rules is seen', () => {
     const hash = createHash('sha256').update(JSON.stringify(tree)).digest('hex').slice(0, 16);
-    expect(hash).toBe('b4c7591f69f84e50');
+    expect(hash).toBe('516cb7e8e47a64c7');
   });
 });
 
@@ -401,4 +402,56 @@ describe('tree chunks', () => {
       }
     }
   });
+});
+
+describe('anchors and caps (sites.md section 4)', () => {
+  // A place near the continent's eastern edge, far from the founder at its centre.
+  const place = { lat: 0, lon: 19 };
+  const anchorDay = TIMELINE_START + years(7_000);
+  const untilDay = TIMELINE_START + years(9_000);
+
+  it('brings a band to an anchor by its day and holds it there until its end', () => {
+    const anchored = buildTree(
+      { ...settings, anchors: [{ id: 'east', day: anchorDay, until: untilDay, ...place }] },
+      habitat,
+    );
+    const near = (day: number) =>
+      anchored.lodgings.filter(
+        (l) =>
+          l.built <= day &&
+          (l.gone === NEVER || day < l.gone) &&
+          distanceKm(l.lat / 1e6, l.lon / 1e6, place.lat, place.lon) <= 300,
+      );
+    for (const day of [anchorDay, anchorDay + years(1_000), untilDay - 1]) {
+      const here = near(day);
+      expect(here.length).toBeGreaterThan(0);
+      // The same camp all along: held, it does not roam.
+      expect(new Set(here.map((l) => l.camp)).size).toBe(1);
+      expect(here[0]!.camp).toBe(near(anchorDay)[0]!.camp);
+    }
+  }, 30_000);
+
+  it('fails the build when an anchor has no usable site', () => {
+    expect(() =>
+      buildTree(
+        { ...settings, anchors: [{ id: 'sea', day: anchorDay, until: untilDay, lat: 0, lon: 40 }] },
+        habitat,
+      ),
+    ).toThrow(/anchor sea/);
+  }, 30_000);
+
+  it('keeps a culture area to its cap of bands', () => {
+    const capped = buildTree(
+      { ...settings, areaOf: (lat, lon) => (onLand(lat, lon) ? 0 : undefined), maxBands: () => 3 },
+      habitat,
+    );
+    for (let day = settings.startDay; day < settings.endDay; day += years(500)) {
+      const camps = new Set(
+        capped.lodgings
+          .filter((l) => l.built <= day && (l.gone === NEVER || day < l.gone))
+          .map((l) => l.camp),
+      );
+      expect(camps.size).toBeLessThanOrEqual(3);
+    }
+  }, 30_000);
 });

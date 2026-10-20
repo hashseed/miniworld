@@ -28,6 +28,8 @@ export interface CultureAreas {
     highestM?: number;
     /** Its own camp spacing in km, overriding the density's (humankind.md section 4.1). */
     spacingKm?: number;
+    /** At most this many bands, as [year BCE, count] pairs, each from its year on (sites.md section 4). */
+    maxBands?: [number, number][];
     /** A coarser lattice of camp sites in the area, a multiple of SITE_STEP_KM (sites.md section 2). */
     siteStepKm?: number;
     snapshots: { fromBP: number; label: string; source: string; ring: Ring }[];
@@ -103,7 +105,11 @@ export function humankindSettings(c: CultureAreas, world: PeoplingInputs): TreeS
   const areas = c.areas.map((a) => ({
     ...a,
     snapshots: a.snapshots.map((s) => ({ day: sliceDay(s.fromBP), ring: s.ring })),
+    caps: (a.maxBands ?? [])
+      .map(([bce, count]) => [dayOfYearStart(astronomicalYear(bce, 'BCE')), count] as const)
+      .sort((p, q) => p[0] - q[0]),
   }));
+  const areaIndex = new Map(areas.map((a, i) => [a, i]));
   /** The first area holding a point on a day, worked out from the polygons. */
   const areaFromRings = (lat: number, lon: number, day: Day) => {
     for (const a of areas) {
@@ -167,5 +173,15 @@ export function humankindSettings(c: CultureAreas, world: PeoplingInputs): TreeS
     frontKmPerYear: FRONT_KM_PER_YEAR,
     density: (lat, lon, day) => areaAt(lat, lon, day)?.density,
     spacing: (lat, lon, day) => areaAt(lat, lon, day)?.spacingKm,
+    areaOf: (lat, lon, day) => {
+      const a = areaAt(lat, lon, day);
+      return a && areaIndex.get(a);
+    },
+    maxBands: (lat, lon, day) => {
+      const caps = areaAt(lat, lon, day)?.caps;
+      let cap: number | undefined;
+      for (const [from, count] of caps ?? []) if (from <= day) cap = count;
+      return cap;
+    },
   };
 }

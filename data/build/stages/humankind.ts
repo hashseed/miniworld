@@ -70,6 +70,9 @@ export type CampPlace = [number, number, number, number];
 const KOPPEN_DRY_MM_PER_C = 10;
 const KOPPEN_DRY_MM = 140;
 
+/** An anchor asks for a camp site within this far of its place, in km (sites.md section 4.1). */
+const ANCHOR_SITE_KM = 75;
+
 /** The highest ground of any culture area (peopling.md section 5.2: the Tibetan Plateau and the Andes). */
 const HIGHEST_CAMP_M = 4800;
 
@@ -217,8 +220,28 @@ export function buildHumankind(
   const { places: keyPlaces } = ctx.curated<{
     places: { id: string; lat: number; lon: number }[];
   }>('key-places.json');
+  // Anchors: places that must have a band from a year (sites.md section 4.1).
+  const { anchors } = ctx.curated<{
+    anchors: {
+      id: string;
+      bce: number;
+      until?: number;
+      lat: number;
+      lon: number;
+      en: string;
+      de: string;
+      source: string;
+    }[];
+  }>('anchors.json');
+  for (const a of anchors)
+    if (!a.id || !a.en || !a.de || !a.source || Math.abs(a.lat) > 90 || Math.abs(a.lon) > 180)
+      fail(`anchors.json: ${a.id || '(no id)'} needs an id, a place, en, de and a source`);
   const siteInputs = {
-    keyPlaces,
+    // An anchor needs a site close by (sites.md section 4.1).
+    keyPlaces: [
+      ...keyPlaces,
+      ...anchors.map((a) => ({ id: a.id, lat: a.lat, lon: a.lon, km: ANCHOR_SITE_KM })),
+    ],
     stepAt: (lat: number, lon: number) => siteStepAt(cultureAreas, lat, lon),
     widthAt,
     campFlood,
@@ -246,7 +269,7 @@ export function buildHumankind(
         ),
         flood: [oceanFlood, walkFlood, campFlood].map(String).concat(String(RIVER_BANK_FIELD)),
         lattices: cultureAreas.areas.map((a) => [a.siteStepKm, a.snapshots.map((s) => s.ring)]),
-        keyPlaces,
+        keyPlaces: siteInputs.keyPlaces,
         crossings,
         layout: [
           LAYOUT_KM_PER_M,
@@ -309,6 +332,13 @@ export function buildHumankind(
     voyages: arrived.legs,
     thresholds: thresholds.map((t) => ({ id: t.id, day: dayOfBce(t.bce), lat: t.lat, lon: t.lon })),
   });
+  treeSettings.anchors = anchors.map((a) => ({
+    id: a.id,
+    day: dayOfBce(a.bce),
+    until: a.until === undefined ? treeSettings.endDay : dayOfBce(a.until),
+    lat: a.lat,
+    lon: a.lon,
+  }));
   if (!habitat.habitable(treeSettings.founder.lat, treeSettings.founder.lon, TIMELINE_START))
     fail('tree of humankind: the first person stands on uninhabitable land');
   const tree = buildTree(treeSettings, habitat);
