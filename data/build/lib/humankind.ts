@@ -1041,9 +1041,9 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   const canSend = (c: Camp | undefined): c is Camp =>
     !!c && !c.settled && !joined.has(c) && headcount(c) >= 3;
   /**
-   * The band at a site (sites.md section 4.1): the one standing there, else a free band whose
+   * The band at a site (sites.md section 4.1): the one standing there, else a band whose
    * drawn camp would overlap the site's, moved onto it. Null when such a camp is in the way
-   * but cannot move (held, settled, or no way there today); undefined when none is near.
+   * but cannot move (held at an anchor, or no way there today); undefined when none is near.
    */
   /** A standing camp whose drawn camp would overlap a site's. */
   const overlapping = (site: Site) =>
@@ -1060,7 +1060,9 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     if (here) return null;
     const near = overlapping(site);
     if (!near) return undefined;
-    if (near.settled || (near.holdUntil !== undefined && near.holdUntil >= day)) return null;
+    // A camp held at another anchor's site stays; one that has only settled (near a Neolithic
+    // threshold) may still move onto the site, as history needs it there.
+    if (near.holdUntil !== undefined && near.holdUntil >= day) return null;
     const way = reach(near.site, day, ROUTE_HOPS, (x) => x === site)[0];
     if (!way || !usable(site, day, headcount(near))) return null;
     relocate(near, way.path, day);
@@ -1158,9 +1160,29 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     const site = anchorSite(a);
     const c = bandOn(site, day);
     if (c) return hold(a, c, day);
-    if (c === null) return;
+    // A camp in the way that cannot move onto the site (more people than it has room for)
+    // makes way, to the nearest free site it fits that keeps clear of it.
+    if (c === null && !giveWay(site, day)) return;
     const child = sendTo(site, day, 66);
     if (child) hold(a, child, day);
+  };
+  /** Moves a free camp overlapping a site off it; false when it is held or has nowhere to go. */
+  const giveWay = (site: Site, day: Day): boolean => {
+    const near = overlapping(site);
+    if (!near || isHeld(near, day) || bandAt.get(site.id)) return false;
+    const n = headcount(near);
+    const clear = (x: Site) =>
+      distanceKm(x.lat, x.lon, site.lat, site.lon) >=
+      (footprintM(site.key) / site.width + footprintM(x.key) / x.width) * LAYOUT_KM_PER_M;
+    const way = reach(
+      near.site,
+      day,
+      FLEE_HOPS,
+      (x) => x !== site && clear(x) && usable(x, day, n) && free(x, day, near),
+    )[0];
+    if (!way) return false;
+    relocate(near, way.path, day);
+    return !overlapping(site);
   };
   const thresholds = (s.thresholds ?? []).map((t) => ({ ...t, flagged: false }));
   /**

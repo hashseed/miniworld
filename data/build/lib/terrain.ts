@@ -16,7 +16,7 @@ import {
   TERRAIN_SAMPLES,
   type TerrainTile,
 } from '../../../app/src/content/formats.ts';
-import type { Grid, GridPyramid } from './grid.ts';
+import { Grid, type GridPyramid } from './grid.ts';
 import { NO_LAKE } from './water.ts';
 
 export interface TerrainInputs {
@@ -28,6 +28,8 @@ export interface TerrainInputs {
   /** Lake surface level per cell, spread to cover the smoothed lakes, or NO_LAKE. */
   lakeLevel: Grid<Int16Array>;
   lakes: Grid<Uint8Array>;
+  /** The level of the nearest lake for cells near one (within its smoothed field), or NO_LAKE (lakeNear). */
+  lakeNear?: Grid<Int16Array>;
   rivers: Grid<Uint8Array>;
   /** River flow phase cosine and sine, 128 ± 127. */
   flowCos: Grid<Uint8Array>;
@@ -36,6 +38,38 @@ export interface TerrainInputs {
   bed: (lat: number, lon: number) => number;
   /** Distance from today's smoothed coast in km, 0..255 (section 4.2). */
   coast: Grid<Uint8Array>;
+}
+
+/** The lake field from which a lake's shore starts sloping down to it (0..255, the shore at 127). */
+const SHORE_FROM = 10;
+
+/**
+ * For every cell within a lake's smoothed field, the level of the nearest lake cell, spread
+ * outwards from the lakes; NO_LAKE elsewhere.
+ */
+export function lakeNear(lakeLevel: Grid<Int16Array>, lakes: Grid<Uint8Array>): Grid<Int16Array> {
+  const { width: w, height: h } = lakeLevel;
+  const out = new Int16Array(w * h).fill(NO_LAKE);
+  let ring: number[] = [];
+  for (let i = 0; i < w * h; i++)
+    if (lakeLevel.data[i] !== NO_LAKE) {
+      out[i] = lakeLevel.data[i]!;
+      ring.push(i);
+    }
+  while (ring.length) {
+    const next: number[] = [];
+    for (const i of ring) {
+      const r = (i / w) | 0;
+      const c = i - r * w;
+      for (const j of [r * w + ((c + 1) % w), r * w + ((c - 1 + w) % w), i - w, i + w])
+        if (j >= 0 && j < w * h && out[j] === NO_LAKE && lakes.data[j]! > 0) {
+          out[j] = out[i]!;
+          next.push(j);
+        }
+    }
+    ring = next;
+  }
+  return new Grid(w, h, out);
 }
 
 export function buildTerrainTile(key: TileKey, inputs: TerrainInputs): TerrainTile {
@@ -60,6 +94,15 @@ export function buildTerrainTile(key: TileKey, inputs: TerrainInputs): TerrainTi
       const lakeField = inputs.lakes.bilinear(lat, lon);
       const lake = inputs.lakeLevel.nearest(lat, lon);
       if (lake !== NO_LAKE && lakeField >= 100) height = lake;
+      else if (inputs.lakeNear) {
+        // A lake's shore slopes down to its water instead of standing over it as a wall
+        // (section 4.3): the land's rise above the nearest lake shrinks as its field rises.
+        const near = inputs.lakeNear.nearest(lat, lon);
+        if (near !== NO_LAKE && lakeField > SHORE_FROM) {
+          const t = Math.min(1, (lakeField - SHORE_FROM) / (100 - SHORE_FROM));
+          height = near + Math.max(0, height - near) * (1 - t * t * (3 - 2 * t));
+        }
+      }
       if (inner) {
         const s = j * TERRAIN_SAMPLES + i;
         ocean[s] = Math.round(oceanGrid.bilinear(lat, lon));
