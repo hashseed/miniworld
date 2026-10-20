@@ -278,10 +278,60 @@ export function buildHumankind(
     lat: t.lat,
     lon: t.lon,
   }));
+  // Encounters: parties of several bands meeting at a place (sites.md section 4.3).
+  const { encounters } = ctx.curated<{
+    encounters: {
+      id: string;
+      kind: string;
+      bce: number;
+      every?: number;
+      until?: number;
+      stay?: number;
+      lat: number;
+      lon: number;
+      host?: string;
+      roles: { id: string; lat: number; lon: number; km: number; people: number }[];
+      en: string;
+      de: string;
+      source: string;
+    }[];
+  }>('encounters.json');
+  const KINDS = ['visit', 'gathering', 'trade', 'battle'];
+  for (const e of encounters) {
+    const name = `encounters.json: ${e.id || '(no id)'}`;
+    if (!e.id || !e.en || !e.de || !e.source || Math.abs(e.lat) > 90 || Math.abs(e.lon) > 180)
+      fail(`${name} needs an id, a place, en, de and a source`);
+    if (!KINDS.includes(e.kind)) fail(`${name}: kind must be one of ${KINDS.join(', ')}`);
+    if ((e.every === undefined) !== (e.until === undefined) || (e.every ?? 1) <= 0)
+      fail(`${name}: every and until come together, every more than 0 years`);
+    if (e.host && !anchors.some((a) => a.id === e.host)) fail(`${name}: no anchor ${e.host}`);
+    if (!e.roles?.length) fail(`${name} needs at least one role`);
+    for (const r of e.roles)
+      if (!r.id || !(r.people >= 2 && r.people <= 8) || !(r.km > 0))
+        fail(
+          `${name}: role ${r.id || '(no id)'} needs an id, a place, a km above 0 and 2 to 8 people`,
+        );
+  }
+  const encounterRecords = encounters.map((e) => {
+    const days: number[] = [];
+    for (let bce = e.bce; bce >= (e.until ?? e.bce); bce -= e.every ?? 1) days.push(dayOfBce(bce));
+    return {
+      id: e.id,
+      kind: e.kind,
+      days,
+      // Seconds of watching, a minute unless it says (sites.md section 4.3).
+      stayMs: (e.stay ?? 60) * 1000,
+      lat: e.lat,
+      lon: e.lon,
+      ...(e.host ? { host: e.host } : {}),
+      roles: e.roles.map(({ id, lat, lon, km, people }) => ({ id, lat, lon, km, people })),
+    };
+  });
   const dated = datedPlaces({
     voyages: arrived.legs,
     anchors: anchorRecords,
     thresholds: thresholdRecords,
+    encounters: encounterRecords,
     endDay: TREE_END,
   });
   const seaOver = (from: number, to: number) => {
@@ -409,6 +459,7 @@ export function buildHumankind(
     thresholds: thresholdRecords,
   });
   treeSettings.anchors = anchorRecords;
+  treeSettings.encounters = encounterRecords;
   if (!habitat.habitable(treeSettings.founder.lat, treeSettings.founder.lon, TIMELINE_START))
     fail('tree of humankind: the first person stands on uninhabitable land');
   let tree: Tree;
@@ -427,6 +478,10 @@ export function buildHumankind(
       (farthest
         ? `, the farthest site ${farthest.km} km from ${farthest.kind} ${farthest.id}`
         : ''),
+  );
+  const met = treeStats.encounters;
+  log(
+    `encounters: ${met.length} occurrences met, ${met.reduce((n, e) => n + e.people, 0)} people on trips`,
   );
   // How the planning pass met its plans (sites.md section 4.2).
   const means = new Map<string, number>();

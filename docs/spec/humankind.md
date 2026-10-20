@@ -36,6 +36,7 @@ Every ordinary figure that ever appears is one row:
 | `parent` | The figure it came from; none only for the roots |
 | `born` | Clock time at which it steps out of its lodging (a whole millisecond, so a whole day follows from it) |
 | `home` | Its lodgings over time: a list of (clock time, lodging id, spot); it walks from one to the next when the camp moves (section 4.4). The spot is its own place at the camp's hearth, the lowest one no other figure of the camp holds when it moves in (section 8.1) |
+| `walks` | Optional: the ways of its trips to an encounter and home again ([sites.md](sites.md#43-encounters) section 4.3), each as (clock time, lodging id, way): it walks to that home along the way instead of the lodging's own |
 | `branch` | The branch it belongs to (section 3.3), inherited from its parent unless it founds a new one |
 | `depth` | Number of steps from its root: a measure of how far the family has come, not a count of real generations |
 | `lost` | Clock time and the event id if it is lost to war, famine, epidemic or disaster; empty otherwise |

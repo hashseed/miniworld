@@ -1247,8 +1247,11 @@ export function treeScene(
     if (!home || !prev) return undefined;
     // The band that founds a camp along a route follows the route's way, by canoe across
     // water (peopling.md section 6); everyone else walks straight from camp to camp.
-    const voyage =
-      home.voyage && home.built === f.homes[i]![0] && prev.camp !== home.camp
+    // A trip to or from an encounter keeps its own way (sites.md section 4.3).
+    const walk = f.walks?.find((w) => w[0] === f.homes[i]![0] && w[1] === f.homes[i]![1]);
+    const voyage = walk
+      ? walk[2]
+      : home.voyage && home.built === f.homes[i]![0] && prev.camp !== home.camp
         ? home.voyage
         : undefined;
     const stops: LatLon[] = [
