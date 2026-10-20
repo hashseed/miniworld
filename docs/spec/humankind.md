@@ -20,7 +20,7 @@ Humankind never began with one person. Our species, *Homo sapiens*, arose in Afr
 - **Founder's card** (draft, both languages):
   - en: "The first person in this world. Our species, *Homo sapiens*, began in Africa about 300,000 years ago, and some of its oldest bones were found near Lake Turkana. Real humankind did not start with one person: she stands for the first people of Africa. Everyone you will see on this globe comes from here."
   - de: "Der erste Mensch dieser Welt. Unsere Art, *Homo sapiens*, entstand vor etwa 300.000 Jahren in Afrika, und einige ihrer ältesten Knochen wurden nahe dem Turkana-See gefunden. In Wirklichkeit begann die Menschheit nicht mit einem einzigen Menschen: Sie steht für die ersten Menschen Afrikas. Alle, die du auf diesem Globus sehen wirst, stammen von hier."
-- **Neanderthals** are not descendants of the first person: their ancestors left Africa hundreds of thousands of years earlier. They are a second, smaller tree whose camps already stand in Europe and western Asia at the start of the timeline (section 3.5; decided by Yang on 2026-10-18). Their card says that most people living today carry a little Neanderthal ancestry, because the two met and had children; the tree, being a tree, does not draw these links.
+- **Neanderthals: not shown for now** (Yang, 2026-10-20: "Do we even have neanderthals to begin with? If not, let's not add them"). The build has no Neanderthal tree, and none is planned; the paragraphs on them below stay as the design should they come later. Neanderthals are not descendants of the first person: their ancestors left Africa hundreds of thousands of years earlier. They are a second, smaller tree whose camps already stand in Europe and western Asia at the start of the timeline (section 3.5; decided by Yang on 2026-10-18). Their card says that most people living today carry a little Neanderthal ancestry, because the two met and had children; the tree, being a tree, does not draw these links.
 
 ## 3. What the tree holds
 
@@ -81,9 +81,9 @@ Each branch row holds an id, its parent branch, the figure and clock time it sta
 | Root | Figure 0 of the root | Where and when |
 | --- | --- | --- |
 | Modern humans | The first person, `african-stone-age` | Koobi Fora at clock time 0 (1 January 70,000 BCE) |
-| Neanderthals | One figure per Neanderthal camp present at clock time 0 | The Neanderthal culture area at 70,000 BCE (milestone 2 section 4), with camps at full density from the start |
+| Neanderthals (not shown for now, section 2) | One figure per Neanderthal camp present at clock time 0 | The Neanderthal culture area at 70,000 BCE (milestone 2 section 4), with camps at full density from the start |
 
-Neanderthal camps grow no further after the start (decided by Yang on 2026-10-18). From about 45,000 BCE their branch thins out and its last camps disappear by about 38,000 BCE, as an event "Neanderthals disappear" whose card explains that the reasons are still debated (small and scattered groups, climate swings, competition with modern humans) and that their genes live on in us.
+Should they come (they are not shown for now, section 2): Neanderthal camps grow no further after the start (decided by Yang on 2026-10-18). From about 45,000 BCE their branch thins out and its last camps disappear by about 38,000 BCE, as an event "Neanderthals disappear" whose card explains that the reasons are still debated (small and scattered groups, climate swings, competition with modern humans) and that their genes live on in us.
 
 ## 4. How the tree grows
 

@@ -150,24 +150,18 @@ The profile of a figure follows the culture area of its camp (humankind.md secti
 
 ### 5.4 Adaptation moments
 
+Only adaptations that can be seen at the scale of the globe are kept (Yang, 2026-10-20: "Remove the other things that are too small to adequately represent (also from the spec)"): bows, ground-edge axes, eyed needles, flutes and ivory figures, grinding stones, the first pottery, the spear-thrower and Clovis points were dropped, as a thing the size of a hand would be a speck beside the drawn camps.
+
 Some adaptations are worth a card of their own. They are events of type Invention or idea (spec section 5), each at the place of its earliest accepted evidence, with a timeline icon and a card in English and German; the first camp near it shows the thing being made or used, as an ordinary camp activity. The first list (**Proposed**, sources checked when the records are written):
 
 | Id | Date | Place | en | de | Source to check |
 | --- | --- | --- | --- | --- | --- |
-| `bows-and-arrows` | c. 62,000 BCE | Sibudu, South Africa | Bows and arrows | Pfeil und Bogen | Lombard and Phillipson 2010, *Antiquity* 84 (already a dated variant) |
 | `boats-to-sahul` | c. 50,000 BCE | Timor Sea | The first sea voyages | Die ersten Seereisen | Bird et al. 2019, *Scientific Reports* 9; Kaifu et al. 2020, *Scientific Reports* 10 (a dugout canoe paddled from Taiwan to Yonaguni in 2019 to test such a voyage) |
-| `ground-axes` | c. 45,000 BCE | Kimberley, Australia | Axes with ground edges | Geschliffene Beile | Hiscock et al. 2016, *Australian Archaeology* 82 |
-| `eyed-needles` | c. 38,000 BCE | Altai, southern Siberia | Sewing with eyed needles | Nähen mit Öhrnadeln | Gilligan 2010, *Journal of Archaeological Method and Theory* 17 |
-| `ice-age-music` | c. 40,000 BCE | Swabian Jura | The first flutes | Die ersten Flöten | Higham et al. 2012, *Journal of Human Evolution* 62 |
 | `living-high` | c. 38,000 BCE | Nwya Devu, Tibet | Living on the roof of the world | Leben auf dem Dach der Welt | Zhang et al. 2018, *Science* 362 |
 | `obsidian-voyages` | c. 36,000 BCE | Kōzushima, Japan | Sailing for stone | Mit dem Boot nach Stein | Ikeya 2015, in *Emergence and Diversity of Modern Human Behavior in Paleolithic Asia* |
-| `grinding-seeds` | c. 30,000 BCE | Cuddie Springs, Australia | Grinding seeds into flour | Samen zu Mehl mahlen | Fullagar and Field 1997, *Antiquity* 71 |
-| `first-pottery` | c. 18,000 BCE | Xianrendong Cave, China | The first cooking pots | Die ersten Kochtöpfe | Wu et al. 2012, *Science* 336 |
-| `spear-thrower` | c. 16,000 BCE | Southwest France | The spear-thrower | Die Speerschleuder | Already a dated variant (milestone 2 section 13.3) |
 | `mammoth-bone-huts` | c. 13,000 BCE | Mezhyrich, Ukraine | Houses of mammoth bones | Häuser aus Mammutknochen | Already in milestone 2 section 13.3 |
 | `first-dogs` | c. 13,000 BCE | Bonn-Oberkassel, Germany | People and their first dogs | Menschen und ihre ersten Hunde | Janssens et al. 2018, *Journal of Archaeological Science* 92 |
 | `kelp-highway` | c. 11,000 BCE | Channel Islands, California | Boats along the Pacific coast | Mit Booten die Pazifikküste entlang | Erlandson et al. 2011, *Science* 331 |
-| `clovis-points` | c. 11,100 BCE | Great Plains | Clovis spear points | Clovis-Speerspitzen | Waters et al. 2020, *Science Advances* 6 |
 
 **Dogs** (**Proposed**): from c. 13,000 BCE, camps of `ice-age-hunter`, `steppe-beringia-hunter` and `east-asia-hunter` keep one dog, which follows the figures on their outings, using a new model `animal-dog`. This moves the first dogs from milestone 3 (milestone 2 section 13.3) to this plan; the card says that wolves became dogs somewhere in Eurasia, perhaps earlier, and that the place and date are still debated (Bergström et al. 2020, *Science* 370).
 
