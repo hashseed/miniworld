@@ -609,6 +609,8 @@ async function start(): Promise<void> {
 /** The latitude the small globe is seen from while loading, its spin westward, and its radius on screen. */
 const INTRO_LAT = 15;
 const INTRO_SPIN_DEG_PER_S = 20;
+/** A place less than this far ahead of the spin already faces the camera: the spin-in goes round once more. */
+const INTRO_AHEAD_DEG = 90;
 /** How long the controls take to fade in after loading (styles.css, ui-arrive). */
 const ARRIVE_MS = 1600;
 const introRadiusPx = () => Math.min(90, innerWidth * 0.22);
@@ -669,7 +671,9 @@ async function handOver(): Promise<void> {
   const root = document.getElementById('ui')!;
   root.classList.replace('intro', 'arrive');
   setTimeout(() => root.classList.remove('arrive'), ARRIVE_MS);
-  controller.flyTo(introTarget);
+  // The small globe spins on into the view, once round more if the place already faces us.
+  if (controller.reducedMotion) controller.flyTo(introTarget);
+  else controller.spinTo(introTarget, INTRO_SPIN_DEG_PER_S, INTRO_AHEAD_DEG);
   await wait(FADE_MS);
   // The caption's screen stays, invisible, until the flight ends or the viewer takes over.
   while (controller.flying) await wait(100);
