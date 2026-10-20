@@ -1307,17 +1307,26 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         if (!camp.settled && !isHeld(camp, day)) {
           const n = headcount(camp);
           // Only among the sites of its home range (sites.md section 4).
-          const options = reach(
-            camp.site,
-            day,
-            2,
-            (site) =>
-              camp.range.includes(site) &&
-              distanceKm(site.lat, site.lon, camp.site.lat, camp.site.lon) <= MOVE_KM &&
-              usable(site, day, n) &&
-              free(site, day, camp),
-          );
-          const pick = best(options, day, 2);
+          const options = () =>
+            reach(
+              camp.site,
+              day,
+              2,
+              (site) =>
+                camp.range.includes(site) &&
+                distanceKm(site.lat, site.lon, camp.site.lat, camp.site.lon) <= MOVE_KM &&
+                usable(site, day, n) &&
+                free(site, day, camp),
+            );
+          let choice = options();
+          // A range whose other sites the desert, ice or sea have taken is taken anew from the
+          // sites usable now, so the band roams again (Yang, 2026-10-20: a camp in Sudan stood
+          // from 48,000 to 8000 BCE).
+          if (choice.length === 0) {
+            takeRange(camp, day);
+            choice = options();
+          }
+          const pick = best(choice, day, 2);
           if (pick) relocate(camp, pick.path, day);
         }
       }

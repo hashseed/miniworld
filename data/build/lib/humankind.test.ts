@@ -377,7 +377,7 @@ describe('camps by a river', () => {
 describe('the canonical tree', () => {
   it('keeps its hash, so any change to the rules is seen', () => {
     const hash = createHash('sha256').update(JSON.stringify(tree)).digest('hex').slice(0, 16);
-    expect(hash).toBe('516cb7e8e47a64c7');
+    expect(hash).toBe('aa88c85d3aac404f');
   });
 });
 

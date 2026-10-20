@@ -20,6 +20,7 @@ import {
   decodeWildMask,
   groupGrowth,
   keepOutsOf,
+  CLEAR_STEP_S,
   wildClearings,
   wildlifeAt,
   WILD_GROUPS,
@@ -45,6 +46,9 @@ export interface Obstacle {
   dir: THREE.Vector3;
   km: number;
 }
+/** The clock's stretches for the trees' clearings, and how long they take to fade in and out, in seconds (section 4). */
+const CLEAR_STRETCH_S = CLEAR_STEP_S;
+const CLEAR_FADE_S = 1.5;
 /** Most animals of one species drawn at once. */
 const CAPACITY = 12;
 
@@ -79,8 +83,8 @@ export class WildlifeLayer {
   private camps: readonly [number, number, number, number][] = [];
   private keepOutKey = '';
   private keepOutList: KeepOut[][] = [];
-  private clearKey = '';
-  private clearList: { dir: Vec3; km: number }[] = [];
+  /** The clearings of the last few stretches of the clock, by stretch and what they hang on. */
+  private clearCache = new Map<string, { dir: Vec3; km: number }[]>();
   /**
    * One body length of a model on the true globe at a group's home: its drawn
    * length over the history lens's width there, so the group keeps its drawn
@@ -241,8 +245,34 @@ export class WildlifeLayer {
   }
 
   /** Clearings in the trees where the groups shown on a day graze around a clock time, in true directions. */
-  clearings(day: number, ms: number, startDay: number): { dir: Vec3; km: number }[] {
+  clearings(
+    day: number,
+    ms: number,
+    startDay: number,
+  ): { dir: Vec3; km: number; amount: number }[] {
     if (!this.masks) return [];
+    // A stretch's clearings fade in over its first CLEAR_FADE_S, and the last stretch's
+    // fade out over the next CLEAR_FADE_S, so trees make way and grow back smoothly instead
+    // of vanishing at once (Yang, 2026-10-20: "sometimes trees disappear without being
+    // felled"); a tree in both stays cleared throughout.
+    const stretch = Math.floor(ms / 1000 / CLEAR_STRETCH_S);
+    const into = ms / 1000 - stretch * CLEAR_STRETCH_S;
+    const cur = this.stretchClearings(stretch, day, startDay);
+    const prev = this.stretchClearings(stretch - 1, day, startDay);
+    const fadeIn = Math.min(1, into / CLEAR_FADE_S);
+    const fadeOut = 1 - Math.min(1, Math.max(0, into - CLEAR_FADE_S) / CLEAR_FADE_S);
+    return [
+      ...cur.map((c) => ({ ...c, amount: fadeIn })),
+      ...(fadeOut > 0 ? prev.map((c) => ({ ...c, amount: fadeOut })) : []),
+    ];
+  }
+
+  /** The clearings of one stretch of CLEAR_STRETCH_S, kept for the stretch and the next. */
+  private stretchClearings(
+    stretch: number,
+    day: number,
+    startDay: number,
+  ): { dir: Vec3; km: number }[] {
     const keepOuts = this.keepOuts(startDay);
     const drawnLength = (model: string) => {
       const s = this.speciesOf(model);
@@ -252,23 +282,26 @@ export class WildlifeLayer {
       this.surface.widthAt?.(latLonToDir(g.lat, g.lon)) ?? 1;
     // The clearings change once a stretch, or when a group grows in or the lens moves.
     const key = [
-      Math.floor(ms / 1000 / 20),
+      stretch,
       this.keepOutKey,
       WILD_GROUPS.map((g) => (groupGrowth(g, day) > 0 ? 1 : 0)).join(''),
     ].join('|');
-    if (key === this.clearKey) return this.clearList;
-    this.clearKey = key;
-    this.clearList = wildClearings(
+    const hit = this.clearCache.get(key);
+    if (hit) return hit;
+    const list = wildClearings(
       day,
-      ms / 1000,
+      stretch * CLEAR_STRETCH_S,
       WILD_GROUPS,
-      this.masks,
+      this.masks!,
       this.reach,
       drawnLength,
       width,
       keepOuts,
     ).map((c) => ({ dir: this.offsetDir(c.lat, c.lon, c.eastKm, c.northKm), km: c.km }));
-    return this.clearList;
+    this.clearCache.set(key, list);
+    // Only this stretch's and the last one's are needed.
+    while (this.clearCache.size > 3) this.clearCache.delete(this.clearCache.keys().next().value!);
+    return list;
   }
 
   /** The true direction km east and north of a point. */

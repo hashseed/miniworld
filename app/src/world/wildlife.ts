@@ -103,7 +103,7 @@ const DIVE_PITCH = 0.4;
 /** Trees keep this far beyond an animal's half length, in drawn km: a big tree's crown (section 5). */
 const CLEARING_MARGIN_KM = 200;
 /** Clearings move on in stretches of this many seconds of the clock (section 5). */
-const CLEAR_STEP_S = 20;
+export const CLEAR_STEP_S = 20;
 /** Each animal is followed over a stretch at this step of the clock, in seconds (section 5). */
 const CLEAR_SAMPLE_S = 1;
 /** A new clearing goes round an animal once it has moved on this far, in drawn km (section 5). */

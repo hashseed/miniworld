@@ -405,7 +405,9 @@ export class TreeLayer {
       if (!this.prey.has(p.id)) this.prey.set(p.id, buildTreePrey(p.kind));
       const animal = this.prey.get(p.id);
       if (!animal || !this.place(animal.root, p)) continue;
-      this.block(animal.root, PREY_HALF_M);
+      // Its room grows as it fades in, so wild animals near it make way smoothly instead of
+      // jumping aside the moment it appears (wildlife.md section 5).
+      this.block(animal.root, PREY_HALF_M * p.visibility);
       animal.setFade?.(p.visibility);
       animal.root.scale.setScalar(FIGURE_KM_PER_M);
       animal.pose(p.clip, (p.clipMs * TEMPO) / 1000);
