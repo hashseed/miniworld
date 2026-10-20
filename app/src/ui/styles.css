@@ -657,6 +657,18 @@ input:focus-visible {
   opacity: 0;
 }
 
+.loading-globe {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  transition: opacity 0.3s ease;
+}
+
+.loading-globe.gone {
+  opacity: 0;
+}
+
 /* The controls stay hidden until the camera flies in, then slowly fade in. */
 #ui.intro > :not(.loading) {
   opacity: 0;

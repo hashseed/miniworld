@@ -83,6 +83,8 @@ export function App({ store, hot, i18n, actions }: Props) {
         loaded={s.loaded}
         phase={s.intro}
         captionY={s.introCaptionY}
+        radius={s.introRadius}
+        globeDrawn={s.introGlobe}
         label={t('app.loading')}
       />
 
