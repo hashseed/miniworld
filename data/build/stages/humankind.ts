@@ -428,6 +428,13 @@ export function buildHumankind(
         ? `, the farthest site ${farthest.km} km from ${farthest.kind} ${farthest.id}`
         : ''),
   );
+  // How the planning pass met its plans (sites.md section 4.2).
+  const means = new Map<string, number>();
+  for (const r of treeStats.places) if (r.how) means.set(r.how, (means.get(r.how) ?? 0) + 1);
+  log(
+    `planning pass: ${[...means.values()].reduce((a, b) => a + b, 0)} plans met` +
+      ([...means].length ? ` (${[...means].map(([k, n]) => `${n} ${k}`).join(', ')})` : ''),
+  );
   log(
     `tree of humankind: ${treeStats.crowded} bands crowded a neighbour, ${treeStats.stuck} steps a band found nowhere to go`,
   );
