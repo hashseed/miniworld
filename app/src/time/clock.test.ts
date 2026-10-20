@@ -76,6 +76,24 @@ describe('clock', () => {
     expect(c.ms).toBe(from + 10_000);
   });
 
+  it('travels to a day as an eased time lapse over a given time, back or forward', () => {
+    const c = make(MID);
+    c.togglePlay();
+    const from = c.ms;
+    const target = dayFromDate(-10_000, 1, 1);
+    const to = msAtDay(target, TIMELINE_START);
+    c.travelToDay(target, 2000);
+    c.tick(1000);
+    // Half way in time is half way in watching time, easing in and out.
+    expect(c.ms).toBe(Math.floor(from + (to - from) / 2));
+    c.tick(500);
+    expect(c.ms).toBeGreaterThan(to);
+    expect(c.ms - to).toBeLessThan(((from - to) * 0.2) | 0);
+    c.tick(500);
+    expect(c.ms).toBe(to);
+    expect(c.playState).toBe('paused');
+  });
+
   it('plays a jump back in reverse, and keeps playing after it', () => {
     const c = make(MID);
     const from = c.ms;

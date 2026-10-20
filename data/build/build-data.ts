@@ -39,7 +39,7 @@ async function main(args: string[]): Promise<void> {
   const climate = buildClimate(ctx, map);
   const { lens, widthAt } = buildLensStage(ctx);
   const humankind = buildHumankind(ctx, map, climate, drawn, widthAt);
-  const index = buildContent(ctx, content, climate, wildlife, humankind.camps);
+  const index = buildContent(ctx, content, climate, wildlife, humankind.camps, humankind.events);
   writeManifest(ctx, { index, lens, terrain, climate, tree: humankind.files });
 
   await output.finish();

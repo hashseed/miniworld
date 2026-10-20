@@ -78,7 +78,8 @@ export interface StartupIndex {
   iceSlices: number[];
   regions: { cols: number; rows: number; lanes: string[]; cells: string };
   sources: SourceInfo[];
-  events: unknown[];
+  /** The events of the events dialog, in chronological order (milestone-1 section 8.3). */
+  events: EventEntry[];
   people: unknown[];
   /** Vignette records (spec milestone 2, section 18.4). */
   vignettes: VignetteEntry[];
@@ -94,6 +95,19 @@ export interface StartupIndex {
   wildlifeCamps?: [number, number, number, number][];
   /** Card of each wildlife species: title in the index's language and its text file (wildlife.md section 8). */
   animals: AnimalEntry[];
+}
+
+/** An event of the events dialog (milestone-1 section 8.3): where and when it happens. */
+export interface EventEntry {
+  id: string;
+  /** A migration of the tree of humankind, a sea crossing's first canoe, or an event with its own scene. */
+  kind: 'migration' | 'crossing' | 'scene';
+  /** Name in the index's language. */
+  title: string;
+  day: number;
+  /** Place in degrees. */
+  lat: number;
+  lon: number;
 }
 
 export interface AnimalEntry {

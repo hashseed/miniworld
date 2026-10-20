@@ -13,13 +13,15 @@ export interface KeyTargets {
   closePanel(): boolean;
   /** The timeline canvas, which handles Home and End itself. */
   timelineCanvas(): HTMLCanvasElement | undefined;
+  /** Whether a dialog stands over the globe, so keys other than Escape are its own. */
+  modal?(): boolean;
 }
 
 export function attachKeys(t: KeyTargets): void {
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && t.closePanel()) return;
     const target = e.target as HTMLElement | null;
-    if (isTyping(target)) return;
+    if (isTyping(target) || t.modal?.()) return;
     if (e.key === ' ' || e.code === 'Space') {
       if (target?.tagName === 'BUTTON') return;
       e.preventDefault();

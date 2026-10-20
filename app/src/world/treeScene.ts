@@ -883,6 +883,16 @@ interface Memo {
   stayOf: Map<number, string>;
 }
 const memos = new WeakMap<TreeChunk, Memo>();
+
+/**
+ * When a lodging first shows in the scene, in watching ms: not the day it is built, but when
+ * its builder has walked there, the trees are felled and the fire lit (the events dialog
+ * travels there then, milestone-1 section 8.3). Undefined for a lodging not in the chunk.
+ */
+export function shownAtMs(chunk: TreeChunk, startDay: Day, id: number): number | undefined {
+  if (!memoOf(chunk, startDay).ready) treeScene(chunk, 0, startDay);
+  return memoOf(chunk, startDay).appears.get(id);
+}
 function memoOf(chunk: TreeChunk, startDay: Day): Memo {
   let m = memos.get(chunk);
   if (!m || m.startDay !== startDay) {

@@ -33,7 +33,8 @@ export class Clock {
   private accumulator = 0;
   private scrubbing = false;
   /** The jump under way: from and to in clock time, and the real time it has run. */
-  private jump: { from: number; to: number; ran: number } | undefined;
+  /** A jump under way; a travel (section 3.3, milestone-1 section 8.3) has its own length and eases in and out. */
+  private jump: { from: number; to: number; ran: number; length?: number } | undefined;
   /** Jumps queued behind it, in whole days. */
   private queued: number[] = [];
   private listeners = new Set<() => void>();
@@ -121,10 +122,15 @@ export class Clock {
       // A jump runs whether playing or paused; the play state resumes after the last.
       const j = this.jump;
       j.ran += realMs;
-      if (j.ran >= JUMP_MS) {
+      const length = j.length ?? JUMP_MS;
+      if (j.ran >= length) {
         this.accumulator = j.to;
         this.nextJump();
-      } else this.accumulator = j.from + ((j.to - j.from) * j.ran) / JUMP_MS;
+      } else {
+        const t = j.ran / length;
+        const e = j.length === undefined ? t : t * t * (3 - 2 * t);
+        this.accumulator = j.from + (j.to - j.from) * e;
+      }
       this.emit();
       return;
     }
@@ -136,6 +142,18 @@ export class Clock {
       this.playState = 'paused';
     }
     if (this.day !== before || this.playState !== 'playing') this.emit();
+  }
+
+  /**
+   * Runs history fast, forward or back, to the start of a day over `realMs` of real time,
+   * easing in and out like a camera flight, as a time lapse (milestone-1 section 8.3).
+   */
+  travelToDay(day: number, realMs: number): void {
+    this.cancelJumps();
+    const to = this.clampMs(msAtDay(Math.floor(day), this.startDay));
+    if (to !== this.ms)
+      this.jump = { from: this.accumulator, to, ran: 0, length: Math.max(1, realMs) };
+    this.emit();
   }
 
   /** Jumps to the start of a day. */

@@ -1,6 +1,6 @@
 // State the interface shows, kept by the app controller.
 
-import type { SourceInfo } from '../content/types.ts';
+import type { EventEntry, SourceInfo } from '../content/types.ts';
 import type { PlayState } from '../time/clock.ts';
 import type { SpeedMode } from '../time/speed.ts';
 import type { Bookmark, Settings } from './storage.ts';
@@ -53,6 +53,8 @@ export interface UiState {
   panel: Panel;
   settings: Settings;
   bookmarks: Bookmark[];
+  /** The events of the events dialog, in chronological order (milestone-1 section 8.3). */
+  events: EventEntry[];
   follow: boolean;
   isPhone: boolean;
   stressScene: boolean;
@@ -73,6 +75,10 @@ export interface Actions {
   goToBookmark(id: string): void;
   renameBookmark(id: string, name: string): void;
   deleteBookmark(id: string): void;
+  /** Flies to an event of the events dialog and sets the clock to its date. */
+  goToEvent(id: string): void;
+  /** The name of the region (timeline lane) a place lies in, in the current language. */
+  regionOf(lat: number, lon: number): string;
   resetCamera(): void;
   /** Jumps back (-1) or forward (1) ten seconds of watching time, played fast (section 3.3). */
   jump(dir: -1 | 1): void;
