@@ -305,6 +305,7 @@ export function buildHumankind(
     stepAt: (lat: number, lon: number) => siteStepAt(cultureAreas, lat, lon),
     widthAt,
     campFlood,
+    elevation: (lat: number, lon: number) => elevation.bilinear(lat, lon),
     walkFlood,
     lowestSea,
     highestSea,

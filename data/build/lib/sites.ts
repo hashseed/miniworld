@@ -40,6 +40,12 @@ const WAYPOINT_GAP_KM = 300;
 const WAYPOINT_LINK_KM = 600;
 /** A listed crossing links sites at most this far from its shores (section 3). */
 const SHORE_KM = 900;
+/**
+ * A camp stands only where its ground rises and falls at most this much between the hearth
+ * and the lodging places, in metres (section 2): at a drawn metre to many km, a camp on a
+ * mountain front would have its fire on the plain and its huts on the peaks.
+ */
+export const RELIEF_M = 1500;
 /** Every key place gets a site at most this far from it (section 2). */
 export const KEY_PLACE_KM = 300;
 export const KEY_PLACE_FAR_KM = 450;
@@ -79,6 +85,8 @@ export interface Site {
   lanes: number[][];
   /** Its ground rises steeply round the hearth, out to the ring of children's catch (humankind.md section 8.1). */
   steep?: boolean;
+  /** How far its ground rises and falls between the hearth and the lodging places, in metres (section 2). */
+  relief: number;
 }
 
 export interface Link {
@@ -118,6 +126,8 @@ export interface SiteInputs {
    * `sea` for one dry only up to that sea level, not the highest (a dated place, section 2.1).
    */
   keyPlaces?: { id: string; lat: number; lon: number; km?: number; sea?: number }[];
+  /** The height of the ground at a point, in metres, for a site's relief; flat without it. */
+  elevation?(lat: number, lon: number): number;
   /** Rows of latitude to lay sites on, south to north. */
   fromLat?: number;
   toLat?: number;
@@ -135,6 +145,34 @@ const at = (s: { lat: number; lon: number; w: number }, x: number, z: number) =>
   onGlobe(s.lat, s.lon, (x * LAYOUT_KM_PER_M) / s.w, (z * LAYOUT_KM_PER_M) / s.w);
 /** Drawn km per true km at a place, set from the inputs while the sites are built. */
 let lensWidth: (lat: number, lon: number) => number = () => 1;
+/** The height of the ground, set from the inputs while the sites are built. */
+let groundAt: (lat: number, lon: number) => number = () => 0;
+
+/**
+ * How far the ground rises and falls across a camp, in metres: between its hearth, the ring
+ * of its core and its lodging places, as the layout stands at one drawn metre to many km
+ * (section 2).
+ */
+function reliefAt(key: number, s: { lat: number; lon: number; w: number }): number {
+  let lo = groundAt(s.lat, s.lon);
+  let hi = lo;
+  const take = (x: number, z: number) => {
+    const p = at(s, x, z);
+    const h = groundAt(p.lat, p.lon);
+    lo = Math.min(lo, h);
+    hi = Math.max(hi, h);
+  };
+  const r = layoutOf(key).core;
+  for (let k = 0; k < 12; k++) {
+    const a = (k / 12) * 2 * Math.PI;
+    take(r * detCos(a), r * detSin(a));
+  }
+  for (let k = 0; k < LODGING_SLOTS; k++) {
+    const q = slotPoint(key, k);
+    take(q.x, q.z);
+  }
+  return hi - lo;
+}
 
 /** The points a lodging place needs dry: its floor to the door, its builders, its rack and scrapers. */
 export function placePoints(siteId: number, k: number): { x: number; z: number }[] {
@@ -183,9 +221,12 @@ function siteAt(
       const p = at(s, r * detCos(a), r * detSin(a));
       core = Math.min(core, flood(p.lat, p.lon));
     }
+  // A lodging place far above or below the hearth is no place (RELIEF_M).
+  const hearth = groundAt(lat, lon);
   const places = Array.from({ length: LODGING_SLOTS }, (_, k) =>
     placePoints(key, k).reduce((m, q) => {
       const p = at(s, q.x, q.z);
+      if (Math.abs(groundAt(p.lat, p.lon) - hearth) > RELIEF_M) return -Infinity;
       return Math.min(m, flood(p.lat, p.lon));
     }, Infinity),
   );
@@ -212,7 +253,7 @@ function siteAt(
     }
     return out;
   });
-  return { id, key, compact, lat, lon, width: s.w, core, places, lanes };
+  return { id, key, compact, lat, lon, width: s.w, core, places, lanes, relief: reliefAt(key, s) };
 }
 
 /** How far a lane of a site reaches at a sea level, in layout metres; 0 when not past LANE_FROM_M. */
@@ -330,11 +371,18 @@ function bestInCell(id: number, lat: number, lon: number, lonStep: number, input
       else if (lo < -180) lo += 360;
       if (input.campFlood(la, lo) > input.lowestSea) points.push({ lat: la, lon: lo });
     }
-  // A full camp where one fits, else a compact one (section 2.1).
+  // A full camp where one fits, else a compact one (section 2.1), on even ground.
   for (const key of [id, COMPACT_SITE + id]) {
     const options = points
-      .map((p) => ({ ...p, fit: roughFit(key, p.lat, p.lon, input.campFlood) }))
-      .sort((a, b) => b.fit - a.fit || a.lat - b.lat || a.lon - b.lon);
+      .map((p) => ({
+        ...p,
+        fit: roughFit(key, p.lat, p.lon, input.campFlood),
+        uneven: reliefAt(key, { ...p, w: lensWidth(p.lat, p.lon) }) > RELIEF_M,
+      }))
+      .sort(
+        (a, b) =>
+          Number(a.uneven) - Number(b.uneven) || b.fit - a.fit || a.lat - b.lat || a.lon - b.lon,
+      );
     let best: Site | undefined;
     for (const o of options.slice(0, 2)) {
       const site = siteAt(id, key, o.lat, o.lon, input.campFlood);
@@ -367,9 +415,17 @@ function keySite(
   // The largest layout whose camp stays dry even at the highest sea of the timeline (or of
   // the place's span).
   for (const key of [id, COMPACT_SITE + id, MINIMAL_SITE + id]) {
+    // On even ground where there is any near.
     const options = land
-      .map((p) => ({ ...p, fit: roughFit(key, p.lat, p.lon, input.campFlood) }))
-      .sort((a, b) => b.fit - a.fit || a.lat - b.lat || a.lon - b.lon);
+      .map((p) => ({
+        ...p,
+        fit: roughFit(key, p.lat, p.lon, input.campFlood),
+        uneven: reliefAt(key, { ...p, w: lensWidth(p.lat, p.lon) }) > RELIEF_M,
+      }))
+      .sort(
+        (a, b) =>
+          Number(a.uneven) - Number(b.uneven) || b.fit - a.fit || a.lat - b.lat || a.lon - b.lon,
+      );
     let best: Site | undefined;
     for (const o of options.slice(0, 6)) {
       const site = siteAt(id, key, o.lat, o.lon, input.campFlood);
@@ -383,6 +439,7 @@ function keySite(
 /** Lays the sites and links them (sites.md sections 2 and 3). */
 export function buildSites(input: SiteInputs): SiteMap {
   lensWidth = input.widthAt ?? (() => 1);
+  groundAt = input.elevation ?? (() => 0);
   const KM = 111.195;
   const sites: Site[] = [];
   const dLat = SITE_STEP_KM / KM;
@@ -459,6 +516,7 @@ export function buildSites(input: SiteInputs): SiteMap {
         lon,
         core: -Infinity,
         places: Array(LODGING_SLOTS).fill(-Infinity),
+        relief: 0,
         lanes,
       });
     }
