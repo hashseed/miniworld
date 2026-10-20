@@ -86,6 +86,10 @@ export class TreeLayer {
   private turn = new THREE.Quaternion();
   private yAxis = new THREE.Vector3(0, 1, 0);
   private zAxis = new THREE.Vector3(0, 0, 1);
+  private pos = new THREE.Vector3();
+  /** Drawn up per camp place, and drawn ground per spot of a camp (place()). */
+  private drawnUps = new Map<string, THREE.Vector3>();
+  private grounds = new Map<string, number>();
   private up = new THREE.Vector3();
   private east = new THREE.Vector3();
   private north = new THREE.Vector3();
@@ -280,7 +284,7 @@ export class TreeLayer {
     // Everything else of the camps is drawn as copies of a few models too (posedBatches.ts):
     // placed on the scratch object, scaled, and posed on the batch's template.
     const at = this.scratch;
-    const copy = (batch: TreeBatch, pose: (m: Model) => void = () => {}) => {
+    const copy = (batch: TreeBatch, pose?: (m: Model) => void) => {
       at.updateMatrix();
       this.batches.add(batch.key, batch.build, at.matrix, pose);
     };
@@ -492,7 +496,16 @@ export class TreeLayer {
    */
   private place(root: THREE.Object3D, p: Placed, attach = true): boolean {
     const { up, east, north, dir } = this;
-    up.set(...this.surface.toDrawn(latLonToDir(p.lat, p.lon))).normalize();
+    // The drawn up of a camp's place, and the ground under a spot of it, are kept: the
+    // history lens is fixed and the ground does not move, while the lookups are not cheap.
+    const placeKey = `${p.lat},${p.lon}`;
+    let drawnUp = this.drawnUps.get(placeKey);
+    if (!drawnUp) {
+      if (this.drawnUps.size > 4096) this.drawnUps.clear();
+      drawnUp = new THREE.Vector3(...this.surface.toDrawn(latLonToDir(p.lat, p.lon))).normalize();
+      this.drawnUps.set(placeKey, drawnUp);
+    }
+    up.copy(drawnUp);
     northEast(up, north, east);
     dir
       .copy(up)
@@ -500,8 +513,24 @@ export class TreeLayer {
       .addScaledVector(east, p.x * LAYOUT_KM_PER_M)
       .addScaledVector(north, p.z * LAYOUT_KM_PER_M)
       .normalize();
-    const ground = EARTH_RADIUS_KM + this.surface.surfaceKm([dir.x, dir.y, dir.z]);
-    root.position.copy(dir).multiplyScalar(ground);
+    // On the far side of the globe: hidden, before the ground is looked up.
+    if (
+      this.v1
+        .copy(this.camera!.position)
+        .sub(this.pos.copy(dir).multiplyScalar(EARTH_RADIUS_KM))
+        .dot(dir) <= 0
+    ) {
+      root.visible = false;
+      return false;
+    }
+    const spotKey = `${placeKey},${p.x},${p.z}`;
+    let surface = this.grounds.get(spotKey);
+    if (surface === undefined) {
+      if (this.grounds.size > 20_000) this.grounds.clear();
+      surface = this.surface.surfaceKm([dir.x, dir.y, dir.z]);
+      this.grounds.set(spotKey, surface);
+    }
+    root.position.copy(dir).multiplyScalar(EARTH_RADIUS_KM + surface);
     const toCam = this.v1.copy(this.camera!.position).sub(root.position);
     root.visible = toCam.dot(dir) > 0;
     if (!root.visible) return false;
