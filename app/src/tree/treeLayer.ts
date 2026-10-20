@@ -219,7 +219,9 @@ export class TreeLayer {
     for (const k of [w, w + 1, w + 2, w + 3, w - 1]) this.request(k);
     for (const k of this.chunks.keys())
       if (k < w - 2 || k > w + 4) {
+        // Forgotten, so it is fetched again when the clock comes back to it.
         this.chunks.delete(k);
+        this.requested.delete(k);
         this.worker?.postMessage({ type: 'drop', w: k } satisfies SceneMessage);
       }
     const key = [w, w - 1, w + 1].find((k) => this.chunks.has(k));
