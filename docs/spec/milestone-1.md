@@ -115,13 +115,12 @@ The browser tests read three settings from the environment: `MINIWORLD_PORT` (de
 
 | Range | English | German |
 | --- | --- | --- |
-| Before 10,000 BCE, playing or scrubbing | c. 50,000 BCE (rounded to 100 years) | ca. 50.000 v. Chr. |
-| 10,000 BCE to 1 BCE | 3250 BCE (whole years; "c." while playing in fast forward) | 3250 v. Chr. |
+| Before 1 CE | 50,042 BCE, 3250 BCE (the exact year, playing, scrubbing or paused, so it counts up year by year; until Yang, 2026-10-20, rounded to 100 years before 10,000 BCE and marked "c." while moving) | 50.042 v. Chr., 3250 v. Chr. |
 | 1 CE to 999 CE | 79 CE | 79 n. Chr. |
 | From 1000 | 1492 | 1492 |
 | When paused at or after 1500 | 14 July 1789 | 14. Juli 1789 |
 
-Rounding applies only to display; the clock keeps the exact day. Era dates marked approximate in [eras.md](eras.md) always show "c." ("ca."). Four-digit years are written without a thousands separator in both languages; five-digit years use one ("50,000" and "50.000"). Formatting lives in `src/i18n` and is covered by unit tests for both languages.
+Years are whole years of the exact day; the readout changes when a new year starts, at most once a frame. Era dates marked approximate in [eras.md](eras.md) always show "c." ("ca."). Four-digit years are written without a thousands separator in both languages; five-digit years use one ("50,000" and "50.000"). Formatting lives in `src/i18n` and is covered by unit tests for both languages.
 
 ### 3.3 The clock and the speed modes
 

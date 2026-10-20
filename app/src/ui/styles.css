@@ -161,6 +161,13 @@ input:focus-visible {
   box-shadow: var(--shadow);
   padding: 2px 16px 4px;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.date .digit {
+  display: inline-block;
+  width: 0.62em;
+  text-align: center;
 }
 
 .rate {

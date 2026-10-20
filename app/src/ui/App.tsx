@@ -209,8 +209,19 @@ function PlayControls({
         </div>
       </Fold>
       <JumpButton dir={1} i18n={i18n} actions={actions} />
-      <span class="date" aria-live="off" data-testid="date">
-        {dateText}
+      <span class="date" aria-live="off" data-testid="date" aria-label={dateText}>
+        {/* Every digit in a cell of its own width, so the readout keeps still as the years count. */}
+        {[...dateText].map((c, i) =>
+          c >= '0' && c <= '9' ? (
+            <span key={i} class="digit" aria-hidden="true">
+              {c}
+            </span>
+          ) : (
+            <span key={i} aria-hidden="true">
+              {c}
+            </span>
+          ),
+        )}
       </span>
       <span class="rate" title={readoutText} aria-label={readoutText} data-testid="readout">
         {readout}

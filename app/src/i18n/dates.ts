@@ -56,16 +56,8 @@ export interface DateDisplayContext {
 /** The date readout above the timeline (spec milestone 1, section 3.2). */
 export function formatDateReadout(day: Day, language: Language, ctx: DateDisplayContext): string {
   const { year, month, day: dom } = dateFromDay(day);
-  if (year <= -9999) {
-    // Before 10,000 BCE: rounded to 100 years while moving.
-    if (!ctx.stationary) {
-      const bce = 1 - year;
-      const rounded = Math.round(bce / 100) * 100;
-      return formatYear(1 - rounded, language, true);
-    }
-    return formatYear(year, language);
-  }
-  if (year <= 0) return formatYear(year, language, !ctx.stationary && ctx.yearsPerMinute > 50);
+  // The exact year, playing or not: it counts up year by year (Yang, 2026-10-20).
+  if (year <= 0) return formatYear(year, language);
   if (year >= 1500 && ctx.stationary) return formatFullDate(year, month, dom, language);
   return formatYear(year, language);
 }
