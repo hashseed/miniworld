@@ -472,6 +472,123 @@ describe('anchors and caps (sites.md section 4)', () => {
   }, 30_000);
 });
 
+describe('the planning pass (sites.md section 4.2)', () => {
+  const place = { lat: 0, lon: 19 };
+  const day = TIMELINE_START + years(7_000);
+  const until = TIMELINE_START + years(9_000);
+  const row = (id: string) => treeStats.places.find((r) => r.id === id)!;
+
+  it('meets an anchor even when its area may hold only one band', () => {
+    buildTree(
+      {
+        ...settings,
+        anchors: [{ id: 'east', day, until, ...place }],
+        areaOf: (lat, lon) => (onLand(lat, lon) ? 0 : undefined),
+        maxBands: () => 1,
+      },
+      habitat,
+    );
+    const r = row('east');
+    expect(r.how).toBeDefined();
+    expect(r.met!).toBeLessThanOrEqual(day);
+    expect(r.met!).toBeGreaterThanOrEqual(r.claim!);
+  }, 30_000);
+
+  it('clears its footprint: a camp in the way moves onto the site or makes way', () => {
+    // Near the founder, early: her band's camp overlaps the anchor's site.
+    const early = TIMELINE_START + years(600);
+    const near = { lat: 0, lon: 3 };
+    const t = buildTree(
+      { ...settings, anchors: [{ id: 'near', day: early, until: early + years(500), ...near }] },
+      habitat,
+    );
+    const r = row('near');
+    expect(['there', 'moved', 'group', 'band']).toContain(r.how);
+    // Only its band stands within its site's footprint while it is held (the build checks it too).
+    const at = (d: number) =>
+      new Set(
+        t.lodgings
+          .filter(
+            (l) =>
+              l.built <= d &&
+              (l.gone === NEVER || d < l.gone) &&
+              distanceKm(l.lat / 1e6, l.lon / 1e6, r.siteLat, r.siteLon) < 300,
+          )
+          .map((l) => l.camp),
+      );
+    expect(at(early).size).toBe(1);
+  }, 30_000);
+
+  it('fails before the tree grows when the site turns to desert within the stay', () => {
+    const dries = TIMELINE_START + years(8_900);
+    const drying: Habitat = {
+      ...habitat,
+      habitable: (lat, lon, d) =>
+        onLand(lat, lon) && !(d >= dries && distanceKm(lat, lon, place.lat, place.lon) < 600),
+    };
+    expect(() =>
+      buildTree({ ...settings, anchors: [{ id: 'dry', day, until, ...place }] }, drying),
+    ).toThrow(/anchor dry: its site is not livable about \d+ BCE, within its stay/);
+  }, 30_000);
+
+  it('fails before the tree grows when people reach the site only after its day', () => {
+    expect(() =>
+      buildTree(
+        {
+          ...settings,
+          anchors: [{ id: 'late', day, until, ...place }],
+          arrival: (lat, lon) =>
+            distanceKm(lat, lon, place.lat, place.lon) < 600 ? until : TIMELINE_START,
+        },
+        habitat,
+      ),
+    ).toThrow(/anchor late: the arrival map reaches its site only about/);
+  }, 30_000);
+
+  it('fails when two anchors claimed at once have different sites whose camps overlap', () => {
+    expect(() =>
+      buildTree(
+        {
+          ...settings,
+          anchors: [
+            { id: 'one', day, until, ...place },
+            { id: 'two', day, until, lat: 0, lon: 15 },
+          ],
+        },
+        habitat,
+      ),
+    ).toThrow(/anchor one and anchor two: their sites' camps overlap while both are claimed/);
+  }, 30_000);
+
+  it('lets two anchors on one site share its band, held to the later end', () => {
+    const t = buildTree(
+      {
+        ...settings,
+        anchors: [
+          { id: 'first', day, until: day + years(500), ...place },
+          { id: 'second', day: day + years(300), until, ...place },
+        ],
+      },
+      habitat,
+    );
+    expect(row('first').site).toBe(row('second').site);
+    const r = row('second');
+    const camps = (d: number) =>
+      new Set(
+        t.lodgings
+          .filter(
+            (l) =>
+              l.built <= d &&
+              (l.gone === NEVER || d < l.gone) &&
+              l.lat === Math.round(r.siteLat * 1e6) &&
+              l.lon === Math.round(r.siteLon * 1e6),
+          )
+          .map((l) => l.camp),
+      );
+    for (const d of [day, day + years(400), until - 1]) expect(camps(d).size).toBe(1);
+  }, 30_000);
+});
+
 describe('the place table (sites.md section 2.1)', () => {
   const place = { lat: 0, lon: 19 };
   const day = TIMELINE_START + years(7_000);

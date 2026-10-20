@@ -110,7 +110,14 @@ export interface PlaceRow extends DatedPlace {
   siteLat: number;
   siteLon: number;
   km: number;
+  /** For a planned record (sites.md section 4.2): the start of its claim, the day a band reached its site and how. */
+  claim?: Day;
+  met?: Day;
+  how?: PlanMeans;
 }
+
+/** How a plan's band came to its site (sites.md section 4.2). */
+export type PlanMeans = 'there' | 'moved' | 'group' | 'band';
 
 /** The dated places of the tree's settings (sites.md section 2.1). */
 export function datedPlaces(
@@ -142,6 +149,8 @@ const RANGE_MORE = 3;
 const ARRIVAL_SPAN_DAYS = Math.round(500 * 365.2425);
 /** An anchor's band sets off up to 500 years ahead (section 4.1). */
 const ANCHOR_LEAD_DAYS = Math.round(500 * 365.2425);
+/** In the last this many days before a plan's day, the nearest band moves there whole (sites.md section 4.2). */
+const LAST_RESORT_DAYS = Math.round(100 * 365.2425);
 /** Bands change culture at a moment chosen within this many years of a morph (sites.md section 5). */
 const MORPH_YEARS = 100;
 
@@ -252,6 +261,29 @@ interface Camp {
   holdUntil: Day | undefined;
 }
 
+/**
+ * A plan of the planning pass (sites.md section 4.2): a record that needs a band at its site
+ * from its day to its end, its claim and the sites of its footprint, kept for it.
+ */
+interface Plan {
+  key: string;
+  kind: 'anchor' | 'threshold';
+  id: string;
+  day: Day;
+  until: Day;
+  site: Site;
+  /** The claim starts here and ends at `until`. */
+  claim: Day;
+  footprint: Set<number>;
+  /** The band held at its site, and every band that has been. */
+  band: Camp | undefined;
+  bands: Set<Camp>;
+  /** The day its footprint was cleared, at the start of its claim. */
+  cleared: Day | undefined;
+  met: Day | undefined;
+  how: PlanMeans | undefined;
+}
+
 /** A path of sites along links, from the first to the last. */
 type Path = Site[];
 
@@ -351,8 +383,19 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   const spacingOf = (lat: number, lon: number, day: Day) =>
     s.spacing?.(lat, lon, day) ?? DENSITIES[s.density(lat, lon, day) ?? 'low'].spacingKm;
   const spacingAt = (site: Site, day: Day) => spacingOf(site.lat, site.lon, day);
-  /** Whether a site is far enough from every other band (sites.md section 4). */
+  /** The plans whose footprint holds each site, filled by the planning pass (sites.md section 4.2). */
+  const claimsAt = new Map<number, Plan[]>();
+  /** The plan claiming a site on a day, if any. */
+  const claimOn = (site: Site, day: Day) =>
+    claimsAt.get(site.id)?.find((p) => p.claim <= day && day <= p.until);
+  /** Whether a site is kept for a plan on a day, other than the plan's own band's. */
+  const claimed = (site: Site, day: Day, camp?: Camp) =>
+    (claimsAt.get(site.id) ?? []).some(
+      (p) => p.claim <= day && day <= p.until && (!camp || !p.bands.has(camp)),
+    );
+  /** Whether a site is far enough from every other band (sites.md section 4) and not kept for a plan. */
   const free = (site: Site, day: Day, except?: Camp) => {
+    if (claimed(site, day, except)) return false;
     const spacing = spacingAt(site, day);
     if ([...held.values()].some((h) => distanceKm(h.lat, h.lon, site.lat, site.lon) < spacing))
       return false;
@@ -599,6 +642,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
                 !x.pass &&
                 distanceKm(x.lat, x.lon, here.lat, here.lon) <= MOVE_KM &&
                 !reserved(x, camp) &&
+                !claimed(x, day, camp) &&
                 usable(x, day),
             )
             .sort(
@@ -762,7 +806,12 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     if (paddle(camp, day)) return true;
     // Last of all, any empty site it can use, even closer to a neighbour than its spacing.
     const crowd = nearestOf(
-      reach(camp.site, day, CROWD_HOPS, (site) => usable(site, day, n) && !bandAt.has(site.id)),
+      reach(
+        camp.site,
+        day,
+        CROWD_HOPS,
+        (site) => usable(site, day, n) && !bandAt.has(site.id) && !claimed(site, day, camp),
+      ),
       22,
     );
     if (!crowd) return false;
@@ -832,7 +881,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     ];
     for (const { site, crowd } of options) {
       const to = bandAt.get(site.id);
-      if (crowd && (to || !usable(site, day, n))) continue;
+      if (crowd && (to || !usable(site, day, n) || claimed(site, day, camp))) continue;
       const roomy = crowd
         ? true
         : to
@@ -1048,8 +1097,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     return planned.get(v.id);
   };
   /** A band that can send a group along a route: not settled, not just joined, three or more. */
-  const canSend = (c: Camp | undefined): c is Camp =>
-    !!c && !c.settled && !joined.has(c) && headcount(c) >= 3;
+  const canSend = (c: Camp | undefined, settledToo = false): c is Camp =>
+    !!c && (settledToo || !c.settled) && !joined.has(c) && headcount(c) >= 3;
   /**
    * The band at a site (sites.md section 4.1): the one standing there, else a band whose
    * drawn camp would overlap the site's, moved onto it. Null when such a camp is in the way
@@ -1079,9 +1128,9 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     return near;
   };
   /** A group of the band nearest a site along open links founds a camp there, if any can. */
-  const sendTo = (site: Site, day: Day, salt: number): Camp | undefined => {
+  const sendTo = (site: Site, day: Day, salt: number, settledToo = false): Camp | undefined => {
     if (overlapped(site)) return undefined;
-    const src = reach(site, day, ROUTE_HOPS, (x) => canSend(bandAt.get(x.id)))[0];
+    const src = reach(site, day, ROUTE_HOPS, (x) => canSend(bandAt.get(x.id), settledToo))[0];
     if (!src) return undefined;
     const group = groupOf(bandAt.get(src.site.id)!, day, salt);
     if (!group.length) return undefined;
@@ -1103,7 +1152,9 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   const voyage = (v: Voyage & { next: Day }, day: Day): boolean => {
     // A passage only opens the way (peopling.md section 4); the next leg walks across it.
     if (v.passage) return true;
-    const target = placeSite.get(placeKey('arrival', v.id))!;
+    // A target kept for a plan sends the leg to the plan's site (sites.md section 4.2).
+    const point = placeSite.get(placeKey('arrival', v.id))!;
+    const target = claimOn(point, day)?.site ?? point;
     const there = bandOn(target, day);
     if (there) return reached(v, day, there);
     // A camp overlapping the site that cannot move onto it (held, settled, or too many for
@@ -1145,54 +1196,175 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   };
 
   /**
-   * Anchors (sites.md section 4.1): from ANCHOR_LEAD_DAYS before its day, a band is brought
-   * to the anchor's site and held there, settled, until its end; the build fails when none
-   * stands there on the day.
+   * The planning pass (sites.md section 4.2): each anchor, and each Neolithic threshold, whose
+   * band is held as an anchor's to the tree's end (peopling.md section 3.6), gets a plan: its
+   * site from the place table, its claim from ANCHOR_LEAD_DAYS before its day to its end, and
+   * its footprint, the sites whose drawn camps would overlap its site's. Plans are checked
+   * before the tree grows, and during its claim a plan's footprint is kept for it.
    */
-  // A threshold's band is brought and held as an anchor's, to the tree's end (peopling.md
-  // section 3.6).
-  const anchorList = [
-    ...(s.anchors ?? []).map((a) => ({ ...a, key: placeKey('anchor', a.id) })),
-    ...(s.thresholds ?? []).map((t) => ({
-      ...t,
-      until: s.endDay,
-      key: placeKey('threshold', t.id),
-    })),
-  ].map((a) => ({ ...a, band: undefined as Camp | undefined }));
-  const anchorByKey = new Map(anchorList.map((a) => [a.key, a]));
-  const anchorSite = (a: { key: string }) => placeSite.get(a.key)!;
-  const hold = (a: (typeof anchorList)[number], camp: Camp, day: Day) => {
-    a.band = camp;
-    camp.holdUntil = a.until;
+  const footprintOf = (site: Site) =>
+    new Set(
+      sites
+        .filter(
+          (x) =>
+            !x.pass &&
+            distanceKm(x.lat, x.lon, site.lat, site.lon) <
+              (footprintM(site.key) / site.width + footprintM(x.key) / x.width) * LAYOUT_KM_PER_M,
+        )
+        .map((x) => x.id),
+    );
+  const plans: Plan[] = [
+    ...(s.anchors ?? []).map((a) => ({ ...a, kind: 'anchor' as const })),
+    ...(s.thresholds ?? []).map((t) => ({ ...t, until: s.endDay, kind: 'threshold' as const })),
+  ].map((a) => {
+    const key = placeKey(a.kind, a.id);
+    const site = placeSite.get(key)!;
+    return {
+      key,
+      kind: a.kind,
+      id: a.id,
+      day: a.day,
+      until: a.until,
+      site,
+      claim: a.day - ANCHOR_LEAD_DAYS,
+      footprint: footprintOf(site),
+      band: undefined,
+      bands: new Set<Camp>(),
+      cleared: undefined,
+      met: undefined,
+      how: undefined,
+    };
+  });
+  for (const p of plans)
+    for (const k of p.footprint) {
+      const list = claimsAt.get(k);
+      if (list) list.push(p);
+      else claimsAt.set(k, [p]);
+    }
+  const planByKey = new Map(plans.map((p) => [p.key, p]));
+  const yearOf = (day: Day) => {
+    const y = Math.round(2000 + day / DAYS_PER_YEAR);
+    return y <= 0 ? `${1 - y} BCE` : `${y} CE`;
+  };
+  /** Sites the arrival map has reached by a day, in a culture area: land where bands can be. */
+  const peopled = (x: Site, day: Day) =>
+    !x.pass &&
+    (s.arrival?.(x.lat, x.lon) ?? -Infinity) <= day &&
+    s.density(x.lat, x.lon, day) !== undefined;
+  const impossible: string[] = [];
+  for (const p of plans) {
+    const name = `${p.kind} ${p.id}`;
+    // Usable for the whole stay: livable at its day and every century to its end (its sea
+    // the place table has checked).
+    const centuries = Math.ceil((p.until - p.day) / (100 * DAYS_PER_YEAR));
+    for (let k = 0; k <= centuries; k++) {
+      const d = Math.min(p.until, p.day + Math.round(k * 100 * DAYS_PER_YEAR));
+      if (!livable(p.site, d)) {
+        impossible.push(
+          `${name}: its site is not livable about ${yearOf(d)}, within its stay (ice, desert, cold or height)`,
+        );
+        break;
+      }
+    }
+    // Reached by people in time.
+    const arrives = s.arrival?.(p.site.lat, p.site.lon) ?? -Infinity;
+    if (arrives > p.day)
+      impossible.push(`${name}: the arrival map reaches its site only about ${yearOf(arrives)}`);
+    else if (
+      !peopled(p.site, p.claim) &&
+      reach(p.site, p.day, ROUTE_HOPS, (x) => peopled(x, p.claim)).length === 0
+    )
+      impossible.push(
+        `${name}: no land the arrival map has reached by ${yearOf(p.claim)} lies within ${ROUTE_HOPS} links of its site on its day`,
+      );
+  }
+  // No clash: plans claimed at the same time on different sites whose camps overlap.
+  for (const [i, a] of plans.entries())
+    for (const b of plans.slice(i + 1))
+      if (
+        a.site !== b.site &&
+        a.footprint.has(b.site.id) &&
+        a.claim <= b.until &&
+        b.claim <= a.until
+      )
+        impossible.push(
+          `${a.kind} ${a.id} and ${b.kind} ${b.id}: their sites' camps overlap while both are claimed; give them one site or move one`,
+        );
+  if (impossible.length) throw new Error(`tree of humankind: ${impossible.join('; ')}`);
+
+  const hold = (p: Plan, camp: Camp, day: Day, how: PlanMeans) => {
+    p.band = camp;
+    p.bands.add(camp);
+    p.met = day;
+    p.how = how;
+    // Plans on one site share its band, held to the later end.
+    camp.holdUntil = Math.max(camp.holdUntil ?? -Infinity, p.until);
     takeRange(camp, day);
   };
-  const anchor = (a: (typeof anchorList)[number], day: Day) => {
-    const site = anchorSite(a);
-    const c = bandOn(site, day);
-    if (c) return hold(a, c, day);
-    // A camp in the way that cannot move onto the site (more people than it has room for)
-    // makes way, to the nearest free site it fits that keeps clear of it.
-    if (c === null && !giveWay(site, day)) return;
-    const child = sendTo(site, day, 66);
-    if (child) hold(a, child, day);
+  /** A camp leaves a plan's footprint: to the nearest free site it fits, else as from the sea. */
+  const makeWay = (camp: Camp, day: Day): void => {
+    const n = headcount(camp);
+    const way = reach(camp.site, day, FLEE_HOPS, (x) => usable(x, day, n) && free(x, day, camp))[0];
+    if (way) relocate(camp, way.path, day);
+    else if (!flee(camp, day)) treeStats.stuck++;
   };
-  /** Moves a free camp overlapping a site off it; false when it is held or has nowhere to go. */
-  const giveWay = (site: Site, day: Day): boolean => {
-    const near = overlapping(site);
-    if (!near || isHeld(near, day) || bandAt.get(site.id)) return false;
-    const n = headcount(near);
-    const clear = (x: Site) =>
-      distanceKm(x.lat, x.lon, site.lat, site.lon) >=
-      (footprintM(site.key) / site.width + footprintM(x.key) / x.width) * LAYOUT_KM_PER_M;
-    const way = reach(
-      near.site,
+  /** The bands standing in a plan's footprint, its own aside. */
+  const inFootprint = (p: Plan) =>
+    camps.filter((c) => c.lodgings.length > 0 && !p.bands.has(c) && p.footprint.has(c.site.id));
+  /**
+   * When a plan's claim begins, the bands in its footprint make room: the band on its site,
+   * or one overlapping it that fits there, becomes its band; the others make way.
+   */
+  const clear = (p: Plan, day: Day) => {
+    p.cleared = day;
+    deliver(p, day, false);
+    for (const c of inFootprint(p)) if (!isHeld(c, day)) makeWay(c, day);
+  };
+  /**
+   * Brings a band to a plan's site, by stronger means as its day comes nearer: the band on
+   * the site or one overlapping it moves on; a group from the band nearest along open links
+   * with people to spare, from halfway through the lead a settled one too; in the last
+   * LAST_RESORT_DAYS, the nearest band not held, whole.
+   */
+  const deliver = (p: Plan, day: Day, send = true) => {
+    const site = p.site;
+    const here = bandAt.get(site.id);
+    if (here && here.lodgings.length > 0) return hold(p, here, day, 'there');
+    const on = bandOn(site, day);
+    if (on) return hold(p, on, day, 'moved');
+    if (!send) return;
+    // A camp in the way that cannot move onto the site makes way.
+    for (const c of inFootprint(p)) if (!isHeld(c, day)) makeWay(c, day);
+    const settledToo = day >= p.claim + Math.round(ANCHOR_LEAD_DAYS / 2);
+    const child = sendTo(site, day, 66, settledToo);
+    if (child) return hold(p, child, day, 'group');
+    if (day < p.day - LAST_RESORT_DAYS) return;
+    const src = reach(site, day, ROUTE_HOPS, (x) => {
+      const c = bandAt.get(x.id);
+      return (
+        !!c &&
+        c.lodgings.length > 0 &&
+        !isHeld(c, day) &&
+        !joined.has(c) &&
+        usable(site, day, headcount(c))
+      );
+    })[0];
+    if (!src) return;
+    const band = bandAt.get(src.site.id)!;
+    relocate(band, [...src.path].reverse(), day);
+    hold(p, band, day, 'band');
+  };
+  /** Why no band reached a plan by its day, for the build's message. */
+  const why = (p: Plan, day: Day) => {
+    const near = reach(
+      p.site,
       day,
-      FLEE_HOPS,
-      (x) => x !== site && clear(x) && usable(x, day, n) && free(x, day, near),
+      ROUTE_HOPS,
+      (x) => (bandAt.get(x.id)?.lodgings.length ?? 0) > 0,
     )[0];
-    if (!way) return false;
-    relocate(near, way.path, day);
-    return !overlapping(site);
+    return near
+      ? `the nearest band is ${near.hops} links away`
+      : `no band stands within ${ROUTE_HOPS} links open on its day`;
   };
   const thresholds = (s.thresholds ?? []).map((t) => ({ ...t, flagged: false }));
   /**
@@ -1204,7 +1376,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       if (c.lodgings.length > 0 && distanceKm(c.site.lat, c.site.lon, t.lat, t.lon) <= SETTLE_KM)
         c.settled = true;
     // The band held at the threshold's site raises the flag.
-    const band = anchorByKey.get(placeKey('threshold', t.id))!.band;
+    const band = planByKey.get(placeKey('threshold', t.id))!.band;
     if (!band || band.lodgings.length === 0) return false;
     band.settled = true;
     const people = band.lodgings.flatMap((l) => residents.get(l)!);
@@ -1248,15 +1420,21 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     // Bands following a route set off first, at the step's start, before anyone is born in it.
     for (const v of voyages) if (!v.done && day >= v.day) v.done = voyage(v, day);
     for (const t of thresholds) if (!t.flagged && day >= t.day) t.flagged = settle(t, day);
-    for (const a of anchorList) {
-      if (day < a.day - ANCHOR_LEAD_DAYS || day > a.until) continue;
-      // The held band must still stand at the site: fleeing the sea breaks the anchor.
-      if (a.band && a.band.site !== anchorSite(a) && day >= a.day)
-        throw new Error(`tree of humankind: the band of ${a.key} left its site`);
-      if (!a.band || a.band.lodgings.length === 0) anchor(a, day);
-      if (day >= a.day && !a.band)
+    for (const p of plans) {
+      if (day < p.claim || day > p.until) continue;
+      if (p.cleared === undefined) clear(p, day);
+      // The held band must still stand at the site; before the day, it is brought again.
+      if (p.band && (p.band.site !== p.site || p.band.lodgings.length === 0)) {
+        if (day >= p.day && p.band.site !== p.site)
+          throw new Error(`tree of humankind: the band of ${p.key} left its site`);
+        const gone = p.band;
+        p.band = undefined;
+        if (!plans.some((q) => q.band === gone)) gone.holdUntil = undefined;
+      }
+      if (!p.band) deliver(p, day);
+      if (day >= p.day && !p.band)
         throw new Error(
-          `tree of humankind: no band could reach ${a.key} by its day; check its date and place`,
+          `tree of humankind: no band could reach ${p.key} by its day (${why(p, day)}); check its date and place`,
         );
     }
     // Camps founded during this step wait for the next one.
@@ -1386,6 +1564,28 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         );
       }
     }
+  }
+  // Kept free (sites.md section 7): no band but a plan's own stood in its footprint during
+  // its claim, after it was cleared.
+  const keyed = new Map(sites.map((x) => [x.key, x.id]));
+  const trespass: string[] = [];
+  for (const p of plans) {
+    if (p.cleared === undefined) continue;
+    for (const l of tree.lodgings) {
+      const at = keyed.get(l.camp);
+      if (at === undefined || !p.footprint.has(at)) continue;
+      const band = campOf(l.id);
+      if (p.bands.has(band) || l.built >= p.until || (l.gone !== NEVER && l.gone <= p.cleared))
+        continue;
+      trespass.push(`band ${band.id} stands in the footprint of ${p.key} from ${yearOf(l.built)}`);
+      break;
+    }
+  }
+  if (trespass.length) throw new Error(`tree of humankind: ${trespass.join('; ')}`);
+  // The plans beside their rows of the place table (sites.md section 4.2).
+  for (const p of plans) {
+    const row = treeStats.places.find((r) => r.kind === p.kind && r.id === p.id);
+    if (row) Object.assign(row, { claim: p.claim, met: p.met, how: p.how });
   }
   return tree;
 }
