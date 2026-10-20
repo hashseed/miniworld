@@ -163,4 +163,3 @@ export function placePlants(
     for (let ii = 0; ii < PALM_SLOTS; ii++) slot(PALM_SLOTS, ii, jj, true);
   return plants;
 }
-
