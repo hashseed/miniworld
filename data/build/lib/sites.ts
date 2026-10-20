@@ -42,7 +42,7 @@ const WAYPOINT_LINK_KM = 600;
 const SHORE_KM = 900;
 /** Every key place gets a site at most this far from it (section 2). */
 export const KEY_PLACE_KM = 300;
-const KEY_PLACE_FAR_KM = 450;
+export const KEY_PLACE_FAR_KM = 450;
 /** How far round its hearth a camp's drawing reaches, in layout metres, by layout: full, compact, minimal. */
 export const footprintM = (key: number): number =>
   key >= MINIMAL_SITE ? 12.4 : key >= COMPACT_SITE ? 13.6 : 18;
@@ -111,9 +111,11 @@ export interface SiteInputs {
   crossings: { id: string; day: Day; way: { lat: number; lon: number }[] }[];
   /** Drawn km per true km at a place, from the history lens at its fixed strength; 1 without it. */
   widthAt?(lat: number, lon: number): number;
-  /** Places that must have a site near them (section 2). */
-  /** Places that need a site near them; `km` asks for one nearer than KEY_PLACE_KM (an anchor's). */
-  keyPlaces?: { id: string; lat: number; lon: number; km?: number }[];
+  /**
+   * Places that need a site near them; `km` asks for one nearer than KEY_PLACE_KM (an anchor's),
+   * `sea` for one dry only up to that sea level, not the highest (a dated place, section 2.1).
+   */
+  keyPlaces?: { id: string; lat: number; lon: number; km?: number; sea?: number }[];
   /** Rows of latitude to lay sites on, south to north. */
   fromLat?: number;
   toLat?: number;
@@ -325,6 +327,7 @@ function keySite(
   place: { lat: number; lon: number },
   input: SiteInputs,
   radiusKm = KEY_PLACE_KM,
+  sea = input.highestSea,
 ): Site | undefined {
   // Rings every 25 km out to KEY_PLACE_KM, 24 places each.
   const points = [{ lat: place.lat, lon: place.lon }];
@@ -333,8 +336,9 @@ function keySite(
       const a = (k / 24) * 2 * Math.PI;
       points.push(onGlobe(place.lat, place.lon, r * detCos(a), r * detSin(a)));
     }
-  const land = points.filter((p) => input.campFlood(p.lat, p.lon) > input.highestSea);
-  // The largest layout whose camp stays dry even at the highest sea of the timeline.
+  const land = points.filter((p) => input.campFlood(p.lat, p.lon) > sea);
+  // The largest layout whose camp stays dry even at the highest sea of the timeline (or of
+  // the place's span).
   for (const key of [id, COMPACT_SITE + id, MINIMAL_SITE + id]) {
     const options = land
       .map((p) => ({ ...p, fit: roughFit(key, p.lat, p.lon, input.campFlood) }))
@@ -344,7 +348,7 @@ function keySite(
       const site = siteAt(id, key, o.lat, o.lon, input.campFlood);
       if (!best || fitOf(site) > fitOf(best)) best = site;
     }
-    if (best && fitOf(best) > input.highestSea) return best;
+    if (best && fitOf(best) > sea) return best;
   }
   return undefined;
 }
@@ -377,16 +381,18 @@ export function buildSites(input: SiteInputs): SiteMap {
   for (const place of input.keyPlaces ?? []) {
     // A site near it that stays dry at the highest sea, so it can be used in every age.
     const radius = place.km ?? KEY_PLACE_KM;
+    const sea = place.sea ?? input.highestSea;
     const near = sites.some(
-      (x) =>
-        fitOf(x) > input.highestSea && distanceKm(x.lat, x.lon, place.lat, place.lon) <= radius,
+      (x) => fitOf(x) > sea && distanceKm(x.lat, x.lon, place.lat, place.lon) <= radius,
     );
     if (near) continue;
     // Within its radius, or farther where nothing fits nearer.
     const site =
-      keySite(sites.length, place, input, radius) ??
-      (radius < KEY_PLACE_KM ? keySite(sites.length, place, input) : undefined) ??
-      keySite(sites.length, place, input, KEY_PLACE_FAR_KM);
+      keySite(sites.length, place, input, radius, sea) ??
+      (radius < KEY_PLACE_KM
+        ? keySite(sites.length, place, input, KEY_PLACE_KM, sea)
+        : undefined) ??
+      keySite(sites.length, place, input, KEY_PLACE_FAR_KM, sea);
     if (site) sites.push(site);
     else unplaced.push(place.id);
   }

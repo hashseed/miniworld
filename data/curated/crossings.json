@@ -76,8 +76,9 @@
       "way": [
         [35.1, 129.0],
         [34.4, 129.3],
-        [33.6, 129.9],
-        [33.2, 130.6]
+        [33.95, 130.2],
+        [33.95, 130.9],
+        [34.0, 131.2]
       ],
       "source": "Kaifu et al. 2020, Palaeolithic voyage for invisible islands beyond the horizon, Scientific Reports 10"
     },

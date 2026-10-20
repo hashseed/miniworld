@@ -11,6 +11,7 @@ import {
   buildTree,
   checkTree,
   treeChunks,
+  treeStats,
   distanceKm,
   onGlobe,
   type Habitat,
@@ -453,5 +454,50 @@ describe('anchors and caps (sites.md section 4)', () => {
       );
       expect(camps.size).toBeLessThanOrEqual(3);
     }
+  }, 30_000);
+});
+
+describe('the place table (sites.md section 2.1)', () => {
+  const place = { lat: 0, lon: 19 };
+  const day = TIMELINE_START + years(7_000);
+
+  it('gives each dated place its own site, and a route leg is reached there', () => {
+    buildTree(
+      {
+        ...settings,
+        voyages: [
+          { id: 'east', day, way: [place] },
+          { id: 'through', day, way: [{ lat: 5, lon: 10 }], passage: true },
+        ],
+      },
+      habitat,
+    );
+    // A passage needs no band, so it has no row.
+    expect(treeStats.places.map((p) => `${p.kind}:${p.id}`)).toEqual(['arrival:east']);
+    const row = treeStats.places[0]!;
+    expect(row.km).toBeLessThanOrEqual(450);
+    const reached = treeStats.reached.find((r) => r.leg === 'east')!;
+    expect(reached.day).toBeGreaterThanOrEqual(day);
+    expect([reached.lat, reached.lon]).toEqual([row.siteLat, row.siteLon]);
+  }, 30_000);
+
+  it('never gives a place a site across the water', () => {
+    // A small island off the east coast, too small for any camp, 200 km from the shore.
+    const island = { lat: 0, lon: 24.3 };
+    const land = (lat: number, lon: number) =>
+      onLand(lat, lon) || distanceKm(island.lat, island.lon, lat, lon) <= 60;
+    expect(() =>
+      buildTree(
+        {
+          ...settings,
+          sites: sitesOf(land),
+          walkFlood: (lat, lon) => (land(lat, lon) ? Infinity : -Infinity),
+          voyages: [{ id: 'island', day, way: [island] }],
+        },
+        habitat,
+      ),
+    ).toThrow(
+      /arrival island has no camp site within 450 km; the nearest, \d+ km away, is across water/,
+    );
   }, 30_000);
 });
