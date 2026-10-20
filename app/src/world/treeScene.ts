@@ -84,6 +84,9 @@ const TURN_MS = 60_000 / TEMPO;
 const FIREWOOD_M = 20;
 const BREAK_MS = Math.round(7200 / TEMPO);
 const FILL_MS = Math.round(5400 / TEMPO);
+/** Fishing at the water's edge: watching with the spear raised, and each stab down. */
+const FISH_WATCH_MS = Math.round(5400 / TEMPO);
+const FISH_STAB_MS = Math.round(2400 / TEMPO);
 const SCRAPE_MS = Math.round(14_400 / TEMPO);
 /** Skinning a kill, hanging its hide on the rack, and taking a dried one down (section 8.1). */
 const FLAY_MS = Math.round(9000 / TEMPO);
@@ -234,6 +237,14 @@ const PREY_WALK = (WALK_M_PER_S * 2.4 * TEMPO) / 1000;
 const HERD_SIDE_M = 3.5;
 const GRAZE_FIRST_MS = Math.round(1500 / TEMPO);
 /**
+ * The hunted animal comes out of the trees this long before the hunters set out, and grazes,
+ * so it is seen in its place before the hunt (Yang, 2026-10-20: "they should spawn and roam
+ * for some time before being hunted").
+ */
+const ROAM_MS = Math.round(30_000 / TEMPO);
+/** A hunted animal keeps this far from another camp's hearth, where its people are (layout m). */
+const OTHER_CAMP_M = 25;
+/**
  * The survivors scatter to their own spots aside, stand there looking back for this long and
  * more by hash, and fade one by one (Yang, 2026-10-19: they should not fade right away).
  */
@@ -247,6 +258,11 @@ const SCATTER_MORE_MS = Math.round(10_000 / TEMPO);
  * only while mammoths lived on the mainland, to 10,000 BCE (wildlife.md section 2).
  */
 const MAMMOTH = {
+  /** The hunting party: the hunter and up to three more; at least two more are needed. */
+  party: 4,
+  /** Across the lane between the party's throwers, and between their throws (layout m, ms). */
+  spread: 4.5,
+  throwEvery: Math.round(2200 / TEMPO),
   graze: 38,
   fall: 42,
   gap: THROW_GAP_M + 5,
@@ -336,7 +352,7 @@ export interface FigurePose extends Placed {
   profile?: string;
 }
 
-export type PreyClip = 'idle' | 'walk' | 'run' | 'fall' | 'bound' | 'hung';
+export type PreyClip = 'idle' | 'walk' | 'run' | 'fall' | 'bound' | 'hung' | 'struggle';
 
 /** An animal of a hunt: it grazes, flees when the hunter runs at it, falls and is butchered. */
 export interface PreyPose extends Placed {
@@ -796,6 +812,7 @@ type Outing =
   | 'cook'
   | 'flay'
   | 'rack'
+  | 'fish'
   | 'hut';
 
 /** Shares of a figure's turns by activity (section 8.1), the rest of its turns rests. */
@@ -807,6 +824,7 @@ const OUTING_SHARES: Record<FigureLook, [Outing, number][]> = {
     ['spear', 0.12],
     ['firewood', 0.1],
     ['water', 0.05],
+    ['fish', 0.08],
     ['hut', 0.1],
     ['flay', 0.08],
     ['rack', 0.04],
@@ -828,6 +846,7 @@ const OUTING_SHARES: Record<FigureLook, [Outing, number][]> = {
     ['scrape', 0.12],
     ['crack', 0.1],
     ['water', 0.1],
+    ['fish', 0.04],
     ['firewood', 0.08],
     ['cook', 0.12],
     ['flay', 0.06],
@@ -1167,8 +1186,9 @@ export function treeScene(
   }
   // Each hunt's animal, spears and pole, once; an animal lies by the camp after its hunt.
   const shown = new Set<string>();
+  // The next turn's too: its animal comes out of the trees before the hunters set out.
   for (const f of chunk.figures)
-    for (let k = turnOf(f.id, ms) - 2; k <= turnOf(f.id, ms); k++) {
+    for (let k = turnOf(f.id, ms) - 2; k <= turnOf(f.id, ms) + 1; k++) {
       const st = stayAt(f, turnStartOf(f.id, k));
       const h = st && huntOf(st, k);
       if (!h || shown.has(h.id)) continue;
@@ -1534,7 +1554,7 @@ export function treeScene(
         .go(far)
         .stay(trip.t + BREAK_MS, 'work', out(far))
         .go(st.spot, 'carry');
-    } else if (go === 'water') {
+    } else if (go === 'water' || go === 'fish') {
       // Out through the gap whose land ends nearest, to its last metre, if any is in reach.
       const reach = st.home.reach;
       let gap = 0;
@@ -1546,10 +1566,17 @@ export function treeScene(
       // Where the water comes within the gap's first metres, to the edge of the camp's room.
       const edge = reach[gap]! >= 10 ? reach[gap]! - 1 : Math.min(9, (st.home.room ?? 9.5) - 0.5);
       const far = { x: d.x * edge, z: d.z * edge };
-      trip
-        .go(far)
-        .stay(trip.t + FILL_MS, 'work', out(far))
-        .go(st.spot, 'carry');
+      trip.go(far);
+      if (go === 'fish')
+        // At the water's edge, spear raised, watching; a stab down; watching again; home
+        // with the catch (Yang, 2026-10-20: "can we have coastal people fish").
+        trip
+          .stay(trip.t + FISH_WATCH_MS, 'idle', out(far))
+          .stay(trip.t + FISH_STAB_MS, 'work', out(far))
+          .stay(trip.t + FISH_WATCH_MS, 'idle', out(far))
+          .stay(trip.t + FISH_STAB_MS, 'work', out(far));
+      else trip.stay(trip.t + FILL_MS, 'work', out(far));
+      trip.go(st.spot, 'carry');
     } else if (go === 'scrape') {
       // At the drying rack beside its own lodging.
       // Round the end of the rack to behind its middle, never through the hide.
@@ -1665,20 +1692,64 @@ export function treeScene(
         .map((g) => stayAt(g, turnStart))
         .filter((h): h is Stay => !!h && sameCamp(h, st) && h.free <= turnStart)
         .sort((a, b) => hash01(st.f.id, k, a.f.id, 83) - hash01(st.f.id, k, b.f.id, 83));
-      for (const h of helpers) {
-        const plan = huntPlan(st, k, h);
-        if (plan.end > until || plan.end > h.busy || huntsDuring(h, turnStart, plan.end)) continue;
-        if (helpedBefore(st, h, turnStart, plan.end)) continue;
+      const fits = (plan: Hunt, party: Stay[]) =>
+        plan.end <= until &&
+        party.every(
+          (h) =>
+            plan.end <= h.busy &&
+            !huntsDuring(h, turnStart, plan.end) &&
+            !helpedBefore(st, h, turnStart, plan.end),
+        );
+      if (preyKindOf(st, k) === 'animal-mammoth') {
+        // A mammoth takes a party of three or four, each throwing a spear (Yang, 2026-10-20:
+        // "mammoths need multiple hunters and multiple spears to go down"); without enough
+        // free hands the hunter goes after smaller game.
+        const party: Stay[] = [];
+        for (const h of helpers) {
+          if (party.length === MAMMOTH.party - 1) break;
+          if (fits(huntPlan(st, k, [...party, h]), [...party, h])) party.push(h);
+        }
+        if (party.length >= MAMMOTH.party - 2) hunt = huntPlan(st, k, party);
+      }
+      for (const h of hunt ? [] : helpers) {
+        const plan = huntPlan(st, k, [h], true);
+        if (!fits(plan, [h])) continue;
         hunt = plan;
         break;
       }
       if (!hunt) {
-        const alone = huntPlan(st, k, undefined);
+        const alone = huntPlan(st, k, [], true);
         if (alone.end <= until) hunt = alone;
       }
     }
+    // Not where its animal would come out among another camp's people (Yang, 2026-10-20:
+    // "when animals like mammoths spawn for the hunt, they often spawn on top of people").
+    if (
+      hunt &&
+      (nearOtherCamp(st, hunt.entry, hunt.appear) || nearOtherCamp(st, hunt.graze, hunt.appear))
+    )
+      hunt = undefined;
     hunts.set(key, hunt);
     return hunt;
+  }
+
+  /** Whether a point of a figure's camp lies near another camp standing at a clock time. */
+  function nearOtherCamp(st: Stay, p: Pt, t: number): boolean {
+    const lat = deg(st.home.lat);
+    const lon = deg(st.home.lon);
+    const kmLat = (p.z * LAYOUT_KM_PER_M) / 111.2;
+    const kmLon = (p.x * LAYOUT_KM_PER_M) / (111.2 * Math.max(0.05, detCos(lat * RAD)));
+    const at = { lat: lat + kmLat, lon: lon + kmLon };
+    const reach = OTHER_CAMP_M * LAYOUT_KM_PER_M;
+    for (const l of lodgings.values()) {
+      if (l.camp === st.home.camp && l.lat === st.home.lat && l.lon === st.home.lon) continue;
+      if (msAtDay(l.built, startDay) > t || (l.gone !== NEVER && msAtDay(l.gone, startDay) <= t))
+        continue;
+      const dLat = deg(l.lat) - at.lat;
+      const dLon = (deg(l.lon) - at.lon) * detCos(at.lat * RAD);
+      if (Math.sqrt(dLat * dLat + dLon * dLon) * 111.2 < reach) return true;
+    }
+    return false;
   }
 
   /** Whether a figure leads a hunt of its own that overlaps a span. */
@@ -1699,7 +1770,7 @@ export function treeScene(
         const gs = stayAt(g, turnStartOf(g.id, k));
         if (!gs || !sameCamp(gs, hunter)) continue;
         const h = huntOf(gs, k);
-        if (h && h.helper === helper.f.id && h.start < to && h.end > from) return true;
+        if (h && h.helpers.includes(helper.f.id) && h.start < to && h.end > from) return true;
       }
     }
     return false;
@@ -1714,7 +1785,12 @@ export function treeScene(
         const gs = g.id === st.f.id ? st : stayAt(g, turnStartOf(g.id, k));
         if (!gs || !sameCamp(gs, st)) continue;
         const h = huntOf(gs, k);
-        if (h && (h.hunter === st.f.id || h.helper === st.f.id) && h.start < to && h.end > from)
+        if (
+          h &&
+          (h.hunter === st.f.id || h.helpers.includes(st.f.id)) &&
+          h.start < to &&
+          h.end > from
+        )
           out.push(h);
       }
     }
@@ -1726,19 +1802,28 @@ export function treeScene(
    * misses, picks the spear up and throws again; then they bind the kill to the pole and
    * carry it back, or a hunter alone butchers it and carries the meat.
    */
-  function huntPlan(st: Stay, k: number, helper: Stay | undefined): Hunt {
+  /** What a hunt goes after, by hash; a mammoth only where and when it can be (MAMMOTH). */
+  function preyKindOf(st: Stay, k: number, small = false): PreyKind {
+    const kinds = PREY_OF[st.home.culture ?? ''] ?? PREY_OF['african-stone-age']!;
+    const kind = kinds[hash32(st.f.id, k, 79) % kinds.length]!;
+    const start = turnStartOf(st.f.id, k);
+    if (
+      kind === 'animal-mammoth' &&
+      (small || start >= at(MAMMOTH_UNTIL) || outingRoom(st.s, st.home) < MAMMOTH.reach)
+    ) {
+      const others = kinds.filter((x) => x !== 'animal-mammoth');
+      return others[hash32(st.f.id, k, 81) % others.length]!;
+    }
+    return kind;
+  }
+
+  function huntPlan(st: Stay, k: number, party: Stay[], small = false): Hunt {
     const camp = st.home.camp;
     const lane = (d: number) => outingPoint(st.s, camp, d);
     const start = turnStartOf(st.f.id, k);
-    // What it hunts, by hash; a mammoth only where and when it can be (MAMMOTH).
-    const kinds = PREY_OF[st.home.culture ?? ''] ?? PREY_OF['african-stone-age']!;
-    let kind = kinds[hash32(st.f.id, k, 79) % kinds.length]!;
-    if (
-      kind === 'animal-mammoth' &&
-      (start >= at(MAMMOTH_UNTIL) || outingRoom(st.s, st.home) < MAMMOTH.reach)
-    )
-      kind = kinds.find((x) => x !== 'animal-mammoth')!;
+    const kind = preyKindOf(st, k, small);
     const big = kind === 'animal-mammoth';
+    const helper = big ? undefined : party[0];
     const grazeM = big ? MAMMOTH.graze : PREY_GRAZE_M;
     const fallM = big ? MAMMOTH.fall : PREY_FALL_M;
     const gapM = big ? MAMMOTH.gap : THROW_GAP_M;
@@ -1753,8 +1838,9 @@ export function treeScene(
     const kill = miss ? lane(fallM) : graze;
     // The herd comes out of the trees at the far end of the lane, where its land ends.
     const entry = lane(Math.min(outingRoom(st.s, st.home), MAX_OUTING_M) - 1);
+    const appear = start - ROAM_MS;
     const arrive =
-      start +
+      appear +
       PREY_FADE_MS +
       Math.ceil(Math.sqrt((entry.x - graze.x) ** 2 + (entry.z - graze.z) ** 2) / PREY_WALK);
     const herdSide = big ? MAMMOTH.herdSide : HERD_SIDE_M;
@@ -1773,6 +1859,83 @@ export function treeScene(
         linger: SCATTER_LINGER_MS + Math.round(SCATTER_MORE_MS * hash01(st.f.id, k, 95 + n)),
       };
     });
+    if (big) {
+      // A mammoth: the party stands in a row across the lane and throws one after another;
+      // it struggles from the first spear and goes down with the last. Then they all butcher
+      // it where it fell, round it, and carry the meat home.
+      const members = [st, ...party];
+      const n = members.length;
+      const across = (i: number) => (i - (n - 1) / 2) * MAMMOTH.spread;
+      const stand = (i: number) => offset(lane(grazeM - gapM), 0, across(i));
+      const trips = members.map((m, i) => new Itinerary(start, m.spot, camp).go(stand(i)));
+      const ready = Math.max(...trips.map((x) => x.t), arrive + GRAZE_FIRST_MS);
+      const flights: Flight[] = members.map((_, i) => ({
+        from: stand(i),
+        // Into its flank, a little apart, so every spear shows.
+        to: offset(graze, (i - (n - 1) / 2) * 1.2, 0),
+        release: ready + i * MAMMOTH.throwEvery + RELEASE_MS,
+        hit: true,
+        pulled: Infinity,
+      }));
+      trips.forEach((trip, i) => {
+        const at = ready + i * MAMMOTH.throwEvery;
+        trip.stay(at, 'idle', graze).stay(at + THROW_MS, 'throw', graze);
+      });
+      const killed = flights.at(-1)!.release + FLIGHT_MS;
+      const round: [number, number][] = [
+        [-MAMMOTH.kneel, 0],
+        [MAMMOTH.kneel, 0],
+        [0, MAMMOTH.kneel * 0.7],
+        [0, -MAMMOTH.kneel * 0.7],
+      ];
+      trips.forEach((trip, i) => {
+        trip.stay(killed, 'idle', graze);
+        const [along, side] = round[i % round.length]!;
+        trip.go(offset(graze, along, side));
+      });
+      const bind = Math.max(...trips.map((x) => x.t));
+      trips.forEach((trip, i) => {
+        trip.stay(bind, 'idle', graze).stay(bind + MAMMOTH.butcher, 'work', graze);
+        trip.go(members[i]!.spot, 'carry');
+      });
+      for (const f of flights) f.pulled = bind;
+      const landed = flights[0]!.release + FLIGHT_MS;
+      const herdGone = Math.max(
+        0,
+        ...herd.map((c) => scatterAt(c, landed) + c.linger + PREY_FADE_MS),
+      );
+      return {
+        id: `${st.f.id}:${k}`,
+        spot: st.s,
+        camp: st.home.camp,
+        hunter: st.f.id,
+        helpers: party.map((h) => h.f.id),
+        pole: false,
+        start,
+        end: Math.max(...trips.map((x) => x.t)),
+        lat: deg(st.home.lat),
+        lon: deg(st.home.lon),
+        kind,
+        out,
+        entry,
+        appear,
+        arrive,
+        herd,
+        graze,
+        kill: graze,
+        drop: lane(DROP_M),
+        alert: Infinity,
+        killed,
+        bind,
+        lift: Infinity,
+        carry: Infinity,
+        put: Infinity,
+        laid: Infinity,
+        gone: Math.max(herdGone, bind + MAMMOTH.butcher + MAMMOTH.remains + PREY_FADE_MS),
+        flights,
+        legs: new Map(members.map((m, i) => [m.f.id, trips[i]!.legs] as const)),
+      };
+    }
     const hunter = new Itinerary(start, st.spot, camp).go(lane(grazeM - gapM));
     const aide = helper && new Itinerary(start, helper.spot, camp).go(lane(grazeM - gapM - 3));
     const ready = Math.max(hunter.t, aide?.t ?? 0, arrive + GRAZE_FIRST_MS);
@@ -1808,20 +1971,7 @@ export function treeScene(
     let put = Infinity;
     let laid = Infinity;
     const drop = lane(DROP_M);
-    if (aide && big) {
-      // A mammoth: both butcher it where it fell, either side of it, and carry the meat home.
-      aide.stay(thrown, 'idle', kill);
-      // In front of it and behind it along the lane, whose land the hunt needs anyway: to
-      // either side they could stand off the lane, in the water.
-      hunter.go(offset(kill, -MAMMOTH.kneel, 0));
-      aide.go(offset(kill, MAMMOTH.kneel, 0));
-      bind = Math.max(hunter.t, aide.t);
-      hunter.stay(bind, 'idle', kill).stay(bind + MAMMOTH.butcher, 'work', kill);
-      aide.stay(bind, 'idle', kill).stay(bind + MAMMOTH.butcher, 'work', kill);
-      hit.pulled = bind;
-      hunter.go(st.spot, 'carry');
-      aide.go(helper!.spot, 'carry');
-    } else if (aide) {
+    if (aide) {
       // Kneel on either side of the kill and bind its legs to the pole.
       aide.stay(thrown, 'idle', kill);
       hunter.go(offset(kill, 0, KNEEL_SIDE_M));
@@ -1874,7 +2024,7 @@ export function treeScene(
       spot: st.s,
       camp: st.home.camp,
       hunter: st.f.id,
-      helper: helper?.f.id,
+      helpers: helper ? [helper.f.id] : [],
       pole,
       start,
       end,
@@ -1883,6 +2033,7 @@ export function treeScene(
       kind,
       out,
       entry,
+      appear,
       arrive,
       herd,
       graze,
@@ -1906,11 +2057,11 @@ export function treeScene(
 
   /** The hunted animal, the spears away from the hand and the pole of a hunt at a clock time. */
   function huntProps(h: Hunt, ms: number): void {
-    if (ms < h.start || ms >= h.gone) return;
+    if (ms < h.appear || ms >= h.gone) return;
     const base = { id: h.id, kind: h.kind, lat: h.lat, lon: h.lon };
     const inward = { dirX: -h.out.dirX, dirZ: -h.out.dirZ };
     const sideOn = { dirX: -h.out.dirZ, dirZ: h.out.dirX };
-    const fadeIn = Math.min(1, (ms - h.start) / PREY_FADE_MS);
+    const fadeIn = Math.min(1, (ms - h.appear) / PREY_FADE_MS);
     const fadeOut = Math.min(1, (h.gone - ms) / PREY_FADE_MS);
     const visibility = Math.min(fadeIn, fadeOut);
     const t = (from: number, to: number) => Math.min(1, Math.max(0, (ms - from) / (to - from)));
@@ -1923,10 +2074,25 @@ export function treeScene(
       // Out of the trees and in to graze.
       prey = {
         ...base,
-        ...lerp(h.entry, h.graze, t(h.start + PREY_FADE_MS, h.arrive)),
+        ...lerp(h.entry, h.graze, t(h.appear + PREY_FADE_MS, h.arrive)),
         ...inward,
         clip: 'walk',
-        clipMs: ms - h.start,
+        clipMs: ms - h.appear,
+        visibility,
+      };
+    else if (
+      h.flights.length > 1 &&
+      h.alert === Infinity &&
+      ms >= h.flights[0]!.release + FLIGHT_MS &&
+      ms < h.killed
+    )
+      // A mammoth struck by the first spears, rearing and stamping until the last.
+      prey = {
+        ...base,
+        ...h.kill,
+        ...sideOn,
+        clip: 'struggle',
+        clipMs: ms - h.flights[0]!.release - FLIGHT_MS,
         visibility,
       };
     else if (ms < h.alert && ms < h.killed)
@@ -1972,10 +2138,10 @@ export function treeScene(
       if (ms < h.arrive)
         scene.prey.push({
           ...herdBase,
-          ...lerp(c.entry, c.graze, t(h.start + PREY_FADE_MS, h.arrive)),
+          ...lerp(c.entry, c.graze, t(h.appear + PREY_FADE_MS, h.arrive)),
           ...inward,
           clip: 'walk',
-          clipMs: ms - h.start + 137 * n,
+          clipMs: ms - h.appear + 137 * n,
           visibility: seen,
         });
       else if (ms < landed)
@@ -2343,7 +2509,8 @@ interface Hunt {
   spot: number;
   camp: number;
   hunter: number;
-  helper: number | undefined;
+  /** Who hunts with the hunter: one helper, or for a mammoth the rest of the party. */
+  helpers: number[];
   /** Hunter and helper carry the kill home on the pole (not a mammoth, not alone). */
   pole: boolean;
   start: number;
@@ -2353,8 +2520,12 @@ interface Hunt {
   kind: PreyKind;
   /** The hunter's lane, out from the hearth. */
   out: { dirX: number; dirZ: number };
-  /** Where the hunted animal comes out of the trees, and when it has walked in to graze. */
+  /**
+   * Where the hunted animal comes out of the trees, when it does (ROAM_MS before the
+   * hunters set out, so it is seen grazing first), and when it has walked in to graze.
+   */
   entry: Pt;
+  appear: number;
   arrive: number;
   /**
    * One or two of its herd, which walk in beside it, scatter to their own spots when the
