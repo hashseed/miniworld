@@ -727,7 +727,11 @@ function detour(a: Pt, b: Pt, circles: Circle[], depth: number): Pt[] {
   const { c, px, pz } = hit;
   const d = Math.sqrt((px - c.x) ** 2 + (pz - c.z) ** 2);
   const len = Math.sqrt(len2);
-  const [sx, sz] = d > 1e-6 ? [(px - c.x) / d, (pz - c.z) / d] : [-dz / len, dx / len];
+  let [sx, sz] = d > 1e-6 ? [(px - c.x) / d, (pz - c.z) / d] : [-dz / len, dx / len];
+  // Round a lodging or rack on the fire's side, not away from the hearth, where the land is
+  // not checked: an empty lodging place may lie in the sea (sites.md section 2).
+  const out = Math.sqrt(c.x * c.x + c.z * c.z);
+  if (out > 1e-6 && (sx * c.x + sz * c.z) / out > 0.5) [sx, sz] = [-c.x / out, -c.z / out];
   const w = { x: c.x + sx * c.r * 1.3, z: c.z + sz * c.r * 1.3 };
   return [...detour(a, w, circles, depth - 1), ...detour(w, b, circles, depth - 1).slice(1)];
 }

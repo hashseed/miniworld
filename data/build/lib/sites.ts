@@ -375,30 +375,39 @@ function bestInCell(id: number, lat: number, lon: number, lonStep: number, input
       if (input.campFlood(la, lo) > input.lowestSea) points.push({ lat: la, lon: lo });
     }
   // A full camp where one fits, else a compact one (section 2.1); on even ground where one
-  // fits there as well as on uneven, often a compact camp with its shorter reach.
-  const pick = (key: number, even: boolean) => {
+  // fits there as well as on uneven, often a compact camp with its shorter reach; else on
+  // the evenest ground that does, not the highest.
+  const pick = (key: number, ground: 'any' | 'even' | 'evenest') => {
     const options = points
       .map((p) => ({
         ...p,
         fit: roughFit(key, p.lat, p.lon, input.campFlood),
-        uneven: reliefAt(key, { ...p, w: lensWidth(p.lat, p.lon) }) > RELIEF_M,
+        relief: reliefAt(key, { ...p, w: lensWidth(p.lat, p.lon) }),
       }))
-      .filter((o) => !even || !o.uneven)
-      .sort((a, b) => b.fit - a.fit || a.lat - b.lat || a.lon - b.lon);
+      .filter((o) => ground !== 'even' || o.relief <= RELIEF_M)
+      .filter((o) => ground !== 'evenest' || o.fit > input.lowestSea)
+      .sort((a, b) =>
+        ground === 'evenest'
+          ? a.relief - b.relief || a.lat - b.lat || a.lon - b.lon
+          : b.fit - a.fit || a.lat - b.lat || a.lon - b.lon,
+      );
     let best: Site | undefined;
     for (const o of options.slice(0, 2)) {
       const site = siteAt(id, key, o.lat, o.lon, input.campFlood);
-      if (!best || fitOf(site) > fitOf(best)) best = site;
+      if (fitOf(site) <= input.lowestSea) continue;
+      if (!best || (ground === 'evenest' ? site.relief < best.relief : fitOf(site) > fitOf(best)))
+        best = site;
     }
-    return best && fitOf(best) > input.lowestSea ? best : undefined;
+    return best;
   };
-  const anywhere = pick(id, false) ?? pick(COMPACT_SITE + id, false);
+  const anywhere = pick(id, 'any') ?? pick(COMPACT_SITE + id, 'any');
   if (!anywhere) return undefined;
   const need = Math.min(fitOf(anywhere), input.highestSea);
-  for (const key of [id, COMPACT_SITE + id]) {
-    const even = pick(key, true);
-    if (even && fitOf(even) >= need) return even;
-  }
+  for (const ground of ['even', 'evenest'] as const)
+    for (const key of [id, COMPACT_SITE + id]) {
+      const site = pick(key, ground);
+      if (site && fitOf(site) >= need) return site;
+    }
   return anywhere;
 }
 
@@ -423,23 +432,29 @@ function keySite(
   const land = points.filter((p) => input.campFlood(p.lat, p.lon) > sea);
   // The largest layout whose camp stays dry even at the highest sea of the timeline (or of
   // the place's span).
-  // On even ground first, in the smaller layouts too, then wherever one fits.
-  for (const even of [true, false])
+  // On even ground first, in the smaller layouts too, then on the evenest that fits.
+  for (const ground of ['even', 'evenest'] as const)
     for (const key of [id, COMPACT_SITE + id, MINIMAL_SITE + id]) {
       const options = land
         .map((p) => ({
           ...p,
           fit: roughFit(key, p.lat, p.lon, input.campFlood),
-          uneven: reliefAt(key, { ...p, w: lensWidth(p.lat, p.lon) }) > RELIEF_M,
+          relief: reliefAt(key, { ...p, w: lensWidth(p.lat, p.lon) }),
         }))
-        .filter((o) => !even || !o.uneven)
-        .sort((a, b) => b.fit - a.fit || a.lat - b.lat || a.lon - b.lon);
+        .filter((o) => (ground === 'even' ? o.relief <= RELIEF_M : o.fit > sea))
+        .sort((a, b) =>
+          ground === 'even'
+            ? b.fit - a.fit || a.lat - b.lat || a.lon - b.lon
+            : a.relief - b.relief || a.lat - b.lat || a.lon - b.lon,
+        );
       let best: Site | undefined;
       for (const o of options.slice(0, 6)) {
         const site = siteAt(id, key, o.lat, o.lon, input.campFlood);
-        if (!best || fitOf(site) > fitOf(best)) best = site;
+        if (fitOf(site) <= sea) continue;
+        if (!best || (ground === 'even' ? fitOf(site) > fitOf(best) : site.relief < best.relief))
+          best = site;
       }
-      if (best && fitOf(best) > sea) return best;
+      if (best) return best;
     }
   return undefined;
 }
