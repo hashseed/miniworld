@@ -392,8 +392,10 @@
       "file": "assets/src/shelters.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Small dugout canoe for sea crossings (peopling.md section 6), a short, tubby caricature with curled ends (2026-10-20), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "073a44854ce03129",
+      "note": "Small dugout canoe for sea crossings (peopling.md section 6), a short, tubby caricature with curled ends, approved by Yang on 2026-10-20 (\"the canoe is fine\")",
+      "reviewed": "2026-10-20"
     },
     {
       "id": "prop-red-flag",
