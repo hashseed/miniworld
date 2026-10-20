@@ -40,6 +40,8 @@ export interface ArrivalPoint {
    * ice if need be, and nobody has to camp near it (Yang, 2026-10-20).
    */
   passage?: boolean;
+  /** The first arrival in this continent: an event of the events dialog (milestone-1 section 8.3). */
+  continent?: string;
 }
 
 export interface Arrivals {

@@ -1,5 +1,5 @@
 {
-  "description": "Arrival points and routes of the peopling of the world (spec peopling.md, sections 3 and 4), provisional until the Markdown records with cards exist. A route starts at an earlier point, or at the African front, and its points are reached in order; bce is the approximate year BCE of the earliest well-accepted evidence, debated where an older date is argued about.",
+  "description": "Arrival points and routes of the peopling of the world (spec peopling.md, sections 3 and 4), provisional until the Markdown records with cards exist. A route starts at an earlier point, or at the African front, and its points are reached in order; bce is the approximate year BCE of the earliest well-accepted evidence, debated where an older date is argued about. A point with `continent` is the first arrival in a new continent, listed as an event of the events dialog (milestone-1 section 8.3).",
   "points": [
     {
       "id": "bab-el-mandeb",
@@ -8,7 +8,8 @@
       "lon": 43.55,
       "en": "Crossing of the Bab-el-Mandeb into Arabia",
       "de": "Überquerung des Bab al-Mandab nach Arabien",
-      "source": "Bae, Douka and Petraglia 2017, On the origin of modern humans: Asian perspectives, Science 358"
+      "source": "Bae, Douka and Petraglia 2017, On the origin of modern humans: Asian perspectives, Science 358",
+      "continent": "Asia"
     },
     {
       "id": "south-asia",
@@ -46,7 +47,8 @@
       "en": "Arnhem Land, northern Australia",
       "de": "Arnhemland, Nordaustralien",
       "source": "O'Connell et al. 2018, When did Homo sapiens first reach Southeast Asia and Sahul?, PNAS 115; Clarkson et al. 2017, Human occupation of northern Australia by 65,000 years ago, Nature 547",
-      "debated": true
+      "debated": true,
+      "continent": "Australia"
     },
     {
       "id": "new-guinea-highlands",
@@ -103,7 +105,8 @@
       "en": "Bacho Kiro Cave, Bulgaria",
       "de": "Bacho-Kiro-Höhle, Bulgarien",
       "source": "Hublin et al. 2020, Initial Upper Palaeolithic Homo sapiens from Bacho Kiro Cave, Bulgaria, Nature 581; Slimak et al. 2022, Modern human incursion into Neanderthal territories 54,000 years ago at Mandrin, France, Science Advances 8",
-      "debated": true
+      "debated": true,
+      "continent": "Europe"
     },
     {
       "id": "swabian-jura",
@@ -148,7 +151,8 @@
       "lon": -168.0,
       "en": "Beringia land bridge",
       "de": "Landbrücke Beringia",
-      "source": "Hoffecker, Elias and O'Rourke 2014, Out of Beringia?, Science 343"
+      "source": "Hoffecker, Elias and O'Rourke 2014, Out of Beringia?, Science 343",
+      "continent": "the Americas"
     },
     {
       "id": "east-asia",
@@ -213,7 +217,8 @@
       "lon": -73.2,
       "en": "Monte Verde, Chile",
       "de": "Monte Verde, Chile",
-      "source": "Dillehay et al. 2008, Monte Verde: seaweed, food, medicine, and the peopling of South America, Science 320"
+      "source": "Dillehay et al. 2008, Monte Verde: seaweed, food, medicine, and the peopling of South America, Science 320",
+      "continent": "South America"
     },
     {
       "id": "ice-free-corridor",

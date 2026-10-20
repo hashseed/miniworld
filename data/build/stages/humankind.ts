@@ -456,11 +456,9 @@ export function buildHumankind(
     ]),
     links: sites.links.map((l) => [l.a, l.b, l.crossing ? 9999 : level(l.level)]),
   });
-  // The tree's migrations for the events dialog (milestone-1 section 8.3): each arrival point
-  // on the day a band first stood at its site (sites.md section 2.1), there; and each listed
-  // sea crossing's first canoe, where it landed. Passages are walked across, not events.
+  // The tree's migrations for the events dialog (milestone-1 section 8.3): each first arrival
+  // in a new continent, on the day a band first stood at its site (sites.md section 2.1), there.
   const points = new Map(arrivals.points.map((p) => [p.id, p]));
-  const seas = new Map(crossings.map((c) => [c.id, c]));
   const events: TreeEvent[] = [];
   // The day its camp first shows in the scene, built, at a place on the day its band set out
   // there (shownAtMs): the dialog travels to then, so the camp is in view.
@@ -476,7 +474,9 @@ export function buildHumankind(
   };
   for (const r of treeStats.reached) {
     const p = points.get(r.leg);
-    if (!p || p.passage || events.some((e) => e.id === `arrival-${p.id}`)) continue;
+    // Only the first arrival in a new continent is an event (Yang, 2026-10-20: "crossing
+    // into a new continent is ok. otherwise too many uninteresting events").
+    if (!p || !p.continent || events.some((e) => e.id === `arrival-${p.id}`)) continue;
     events.push({
       id: `arrival-${p.id}`,
       kind: 'migration',
@@ -486,22 +486,7 @@ export function buildHumankind(
       lon: r.lon,
     });
   }
-  for (const x of treeStats.crossed) {
-    const c = seas.get(x.crossing);
-    // Before its listed date the way was dry land (a land bridge), not a canoe trip.
-    if (!c || x.day < dayOfBce(c.bce)) continue;
-    // A crossing that is an arrival point of its own (the Bab-el-Mandeb) is listed once.
-    if (points.has(c.id)) continue;
-    events.push({
-      id: `crossing-${c.id}`,
-      kind: 'crossing',
-      title: { en: c.en, de: c.de },
-      day: shownDay(x.day, x.lat, x.lon),
-      lat: x.lat,
-      lon: x.lon,
-    });
-  }
-  log(`events: ${events.length} migrations and crossings`);
+  log(`events: ${events.length} arrivals in a new continent`);
   return { files: { files, days, sites: sitesFile }, camps, events };
 }
 
