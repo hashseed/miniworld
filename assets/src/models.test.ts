@@ -106,10 +106,11 @@ describe('people', () => {
 });
 
 describe('shelters and animals', () => {
-  it.each([...SHELTERS])('%s is deterministic, on the ground and within 1,000 triangles', (id) => {
+  it.each([...SHELTERS])('%s is deterministic, on the ground and within its triangles', (id) => {
     const m = buildShelter(id);
     expect(positions(m)).toEqual(positions(buildShelter(id)));
-    expect(m.triangles).toBeLessThanOrEqual(1000);
+    // A painted cave wall, of which there are a few in the world, has room for its drawing.
+    expect(m.triangles).toBeLessThanOrEqual(id.startsWith('prop-cave-wall-') ? 2000 : 1000);
     // Rocks and floors may sit partly in the ground, but not deep.
     expect(bounds(m).min.y).toBeGreaterThan(-0.5);
   });

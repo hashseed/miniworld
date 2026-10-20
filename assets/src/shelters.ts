@@ -491,104 +491,344 @@ export function buildShelter(id: ShelterId): Model {
     }
     case 'prop-cave-wall-sulawesi':
     case 'prop-cave-wall-chauvet': {
-      // A rock face with a cave mouth, its front towards the hearth (+Z), and the painting
-      // on it in parts that are painted one after another (humankind.md section 8.2): the
+      // A cave in a hillside, its front towards the hearth (+Z; humankind.md section 8.2;
+      // Yang, 2026-10-20: "a slope in which the stone is recessed into, with a rock ledge
+      // slightly above it"): the slope rising behind, two grassy shoulders either side, the
+      // rock face set back between them with the dark cave mouth low on the left, and a ledge
+      // of rock jutting out above. The painting is in parts painted one after another; the
       // rock itself is no step, so it stands bare before the first session.
       const sulawesi = id === 'prop-cave-wall-sulawesi';
       const ROCK = sulawesi ? '#c4beb0' : '#d6c6a4';
-      const [rx, ry, rz, cy] = [1.7, 1.3, 0.7, 1.0];
-      mb.add(blob([0, cy, 0], [rx, ry, rz], 9), ROCK);
-      mb.add(blob([-1.45, 0.55, 0.15], [0.75, 0.6, 0.55], 7), shade(ROCK, -0.06));
-      mb.add(blob([1.55, 0.35, 0.2], [0.5, 0.38, 0.45], 7), shade(ROCK, 0.05));
-      // The cave mouth, dark, low on the left of the face.
-      mb.add(blob([-0.95, 0.55, 0.42], [0.42, 0.48, 0.32], 8), '#2f2724');
-      /** A point on the face at (x, y), standing a little proud of it. */
-      const face = (x: number, y: number, out = 0.035): Vec3 => {
+      const SLOPE = sulawesi ? '#6f9448' : '#8a9a58';
+      mb.add(blob([0, 0.9, -1.0], [2.9, 1.35, 2.1], 9), SLOPE);
+      for (const x of [-1, 1])
+        mb.add(blob([x * 1.75, 0.6, 0.5], [0.8, 0.9, 0.85], 7), shade(SLOPE, 0.05 * x));
+      const [cz, rx, ry, rz, cy] = [0.75, 1.55, 0.95, 0.42, 0.95];
+      mb.add(blob([0, cy, cz], [rx, ry, rz], 9), ROCK);
+      mb.add(blob([0, 2.0, 0.85], [1.9, 0.2, 0.65], 8), shade(ROCK, -0.12));
+      mb.add(blob([-0.85, 0.5, 1.05], [0.4, 0.45, 0.16], 7), '#2a221f');
+      /** A point on the rock face at (x, y), standing clear of it so its clay never hides it. */
+      const face = (x: number, y: number, out = 0.07): Vec3 => {
         const q = 1 - (x / rx) ** 2 - ((y - cy) / ry) ** 2;
-        return [x, y, rz * Math.sqrt(Math.max(0.05, q)) + out];
+        return [x, y, cz + rz * Math.sqrt(Math.max(0.05, q)) + out];
       };
-      const dab = (x: number, y: number, w: number, h: number, colour: string, bone: string) =>
-        mb.add(blob(face(x, y), [w, h, 0.03], 6), colour, bone);
-      const line = (
-        a: [number, number],
-        b: [number, number],
+      const step = (k: number) => {
+        const name = `${BUILD_BONE}${k}`;
+        mb.bone({ name, pivot: face(0.3, 1.2, 0) });
+        return name;
+      };
+      const dab = (
+        x: number,
+        y: number,
+        w: number,
+        h: number,
+        colour: string,
+        bone: string,
+        out = 0.07,
+      ) => mb.add(blob(face(x, y, out), [w, h, 0.025], 5), colour, bone);
+      /** A line through points on the face, at (ox, oy) and scale k. */
+      const stroke = (
+        pts: [number, number][],
+        ox: number,
+        oy: number,
         r: number,
         colour: string,
         bone: string,
-      ) => mb.add(rod(face(...a), face(...b), r, 4), colour, bone);
-      const step = (k: number) => {
-        const name = `${BUILD_BONE}${k}`;
-        mb.bone({ name, pivot: face(0.2, 1.2, 0) });
-        return name;
+        k = 1,
+      ) => {
+        for (let i = 1; i < pts.length; i++) {
+          const [a0, a1] = pts[i - 1]!;
+          const [b0, b1] = pts[i]!;
+          mb.add(
+            rod(face(ox + a0 * k, oy + a1 * k), face(ox + b0 * k, oy + b1 * k), r, 3),
+            colour,
+            bone,
+          );
+        }
       };
       if (sulawesi) {
         // Leang Karampuang (Oktaviana et al. 2024): a warty pig in red ochre, three small
-        // figures with spears round it, and hands stencilled in red.
+        // figures with sticks round it, and hands stencilled in red.
         const RED = '#a8442a';
         let b = step(0);
-        dab(0.35, 1.2, 0.36, 0.16, RED, b);
-        dab(0.74, 1.24, 0.13, 0.09, RED, b);
+        dab(0.45, 1.15, 0.42, 0.18, RED, b);
+        dab(0.93, 1.2, 0.15, 0.11, RED, b);
+        dab(1.08, 1.17, 0.06, 0.05, RED, b);
         b = step(1);
-        for (const x of [0.12, 0.24, 0.48, 0.58]) line([x, 1.1], [x + 0.02, 0.9], 0.025, RED, b);
-        line([0.05, 1.3], [0.0, 1.38], 0.02, RED, b);
-        dab(0.42, 1.36, 0.16, 0.035, RED, b);
-        const figure = (x: number, y: number, k: number) => {
+        for (const x of [0.15, 0.3, 0.6, 0.72])
+          stroke(
+            [
+              [x, 1.05],
+              [x + 0.02, 0.82],
+            ],
+            0,
+            0,
+            0.03,
+            RED,
+            b,
+          );
+        stroke(
+          [
+            [0.05, 1.22],
+            [-0.05, 1.32],
+          ],
+          0,
+          0,
+          0.02,
+          RED,
+          b,
+        );
+        for (const [x, y] of [
+          [0.3, 1.25],
+          [0.55, 1.28],
+          [0.75, 1.22],
+        ] as const)
+          dab(x, y, 0.035, 0.035, '#7e2f1e', b, 0.09);
+        const figure = (x: number, y: number, to: [number, number], k: number) => {
           const f = step(k);
-          dab(x, y + 0.2, 0.045, 0.045, RED, f);
-          line([x, y + 0.15], [x, y - 0.02], 0.022, RED, f);
-          line([x, y - 0.02], [x - 0.06, y - 0.16], 0.018, RED, f);
-          line([x, y - 0.02], [x + 0.06, y - 0.16], 0.018, RED, f);
-          line([x - 0.12, y + 0.02], [x + 0.2, y + 0.16], 0.014, RED, f);
+          dab(x, y + 0.22, 0.05, 0.05, RED, f);
+          stroke(
+            [
+              [x, y + 0.17],
+              [x, y - 0.02],
+              [x - 0.07, y - 0.18],
+            ],
+            0,
+            0,
+            0.022,
+            RED,
+            f,
+          );
+          stroke(
+            [
+              [x, y - 0.02],
+              [x + 0.07, y - 0.18],
+            ],
+            0,
+            0,
+            0.022,
+            RED,
+            f,
+          );
+          stroke([[x, y + 0.1], to], 0, 0, 0.016, RED, f);
         };
-        figure(-0.2, 1.2, 2);
-        figure(0.25, 1.62, 3);
-        figure(1.08, 1.3, 4);
+        figure(-0.15, 1.2, [0.1, 1.2], 2);
+        figure(0.5, 1.55, [0.55, 1.36], 3);
+        figure(1.25, 1.42, [1.05, 1.28], 4);
         b = step(5);
         for (const [x, y] of [
-          [-0.55, 1.75],
-          [-0.2, 1.88],
+          [-0.45, 1.6],
+          [-0.15, 1.72],
         ] as const) {
-          dab(x, y, 0.17, 0.2, RED, b);
-          dab(x, y - 0.03, 0.07, 0.09, ROCK, b);
+          dab(x, y, 0.17, 0.2, RED, b, 0.07);
+          dab(x, y - 0.03, 0.07, 0.09, ROCK, b, 0.1);
           for (let f = 0; f < 4; f++)
-            line([x - 0.06 + 0.04 * f, y + 0.04], [x - 0.08 + 0.055 * f, y + 0.15], 0.012, ROCK, b);
+            mb.add(
+              rod(
+                face(x - 0.06 + 0.04 * f, y + 0.04, 0.1),
+                face(x - 0.08 + 0.055 * f, y + 0.15, 0.1),
+                0.014,
+                3,
+              ),
+              ROCK,
+              b,
+            );
         }
       } else {
-        // Chauvet (Quiles et al. 2016): horses' heads, lions and a rhinoceros in charcoal, and
-        // red dots.
-        const BLACK = '#2a2522';
-        const horse = (x: number, y: number, k: number) => {
-          const b = step(k);
-          dab(x, y, 0.2, 0.08, BLACK, b);
-          dab(x - 0.15, y + 0.1, 0.11, 0.1, BLACK, b);
-          line([x - 0.2, y + 0.2], [x + 0.05, y + 0.22], 0.025, BLACK, b);
-          line([x - 0.22, y + 0.2], [x - 0.24, y + 0.3], 0.015, BLACK, b);
+        // Chauvet (Clottes 2003; Quiles et al. 2016), in black charcoal outlines: the Panel of
+        // the Horses, four heads one above another with upright manes; lions in profile; a
+        // rhinoceros with its long curved horn; a bison; and red dots made with the palm.
+        const BLACK = '#211c1a';
+        const horse = (ox: number, oy: number, bone: string) => {
+          mb.add(blob(face(ox - 0.04, oy, 0.05), [0.17, 0.09, 0.02], 5), '#7b716a', bone);
+          stroke(
+            [
+              [0.22, -0.18],
+              [0.14, 0.05],
+              [-0.02, 0.16],
+              [-0.14, 0.1],
+              [-0.27, -0.06],
+              [-0.2, -0.12],
+              [-0.02, -0.1],
+              [0.08, -0.2],
+            ],
+            ox,
+            oy,
+            0.022,
+            BLACK,
+            bone,
+          );
+          for (const t of [0.15, 0.06, -0.02])
+            stroke(
+              [
+                [t, 0.07 + (0.14 - t) * 0.5],
+                [t + 0.03, 0.15 + (0.14 - t) * 0.5],
+              ],
+              ox,
+              oy,
+              0.016,
+              BLACK,
+              bone,
+            );
+          stroke(
+            [
+              [-0.02, 0.16],
+              [0.0, 0.25],
+            ],
+            ox,
+            oy,
+            0.016,
+            BLACK,
+            bone,
+          );
+          dab(ox - 0.11, oy + 0.06, 0.025, 0.025, BLACK, bone);
         };
-        horse(0.5, 1.45, 0);
-        horse(0.6, 1.12, 1);
-        const lion = (x: number, y: number, k: number) => {
-          const b = step(k);
-          dab(x, y, 0.26, 0.07, BLACK, b);
-          dab(x + 0.27, y + 0.03, 0.1, 0.08, BLACK, b);
-          line([x - 0.25, y], [x - 0.36, y + 0.08], 0.014, BLACK, b);
-        };
-        lion(-0.25, 1.55, 2);
-        lion(-0.1, 1.28, 3);
-        let b = step(4);
-        dab(1.0, 0.95, 0.24, 0.11, BLACK, b);
-        line([1.22, 1.0], [1.36, 1.14], 0.03, BLACK, b);
-        line([1.15, 1.04], [1.24, 1.14], 0.02, BLACK, b);
+        let b = step(0);
+        horse(0.55, 1.52, b);
+        horse(0.67, 1.32, b);
+        b = step(1);
+        horse(0.79, 1.12, b);
+        horse(0.91, 0.92, b);
+        b = step(2);
+        for (const [ox, oy] of [
+          [-0.05, 1.72],
+          [0.05, 1.5],
+        ] as const) {
+          stroke(
+            [
+              [-0.45, 0.02],
+              [-0.15, 0.06],
+              [0.12, 0.1],
+              [0.27, 0.05],
+              [0.31, -0.03],
+              [0.22, -0.07],
+              [0.0, -0.1],
+            ],
+            ox,
+            oy,
+            0.02,
+            BLACK,
+            b,
+          );
+          stroke(
+            [
+              [0.06, 0.1],
+              [0.09, 0.16],
+            ],
+            ox,
+            oy,
+            0.015,
+            BLACK,
+            b,
+          );
+          dab(ox + 0.18, oy + 0.03, 0.022, 0.022, BLACK, b);
+        }
+        b = step(3);
+        const body: [number, number][] = Array.from({ length: 9 }, (_, i) => {
+          const a = (i / 8) * 2 * Math.PI;
+          return [0.28 * Math.cos(a), 0.12 * Math.sin(a)];
+        });
+        stroke(body, 0.25, 0.72, 0.022, BLACK, b);
+        stroke(
+          [
+            [-0.27, 0.02],
+            [-0.42, -0.04],
+            [-0.44, -0.1],
+          ],
+          0.25,
+          0.72,
+          0.02,
+          BLACK,
+          b,
+        );
+        stroke(
+          [
+            [-0.38, -0.01],
+            [-0.5, 0.1],
+            [-0.5, 0.2],
+          ],
+          0.25,
+          0.72,
+          0.022,
+          BLACK,
+          b,
+        );
+        stroke(
+          [
+            [-0.3, 0.06],
+            [-0.34, 0.13],
+          ],
+          0.25,
+          0.72,
+          0.016,
+          BLACK,
+          b,
+        );
+        for (const x of [-0.16, 0.16])
+          stroke(
+            [
+              [x, -0.11],
+              [x, -0.22],
+            ],
+            0.25,
+            0.72,
+            0.018,
+            BLACK,
+            b,
+          );
+        b = step(4);
+        stroke(
+          [
+            [0.2, -0.08],
+            [0.17, 0.06],
+            [0.04, 0.15],
+            [-0.08, 0.1],
+            [-0.17, 0.0],
+            [-0.18, -0.08],
+            [0.2, -0.08],
+          ],
+          1.15,
+          1.45,
+          0.02,
+          BLACK,
+          b,
+        );
+        stroke(
+          [
+            [-0.12, 0.08],
+            [-0.18, 0.16],
+          ],
+          1.15,
+          1.45,
+          0.016,
+          BLACK,
+          b,
+        );
+        for (const x of [-0.1, 0.12])
+          stroke(
+            [
+              [x, -0.08],
+              [x, -0.18],
+            ],
+            1.15,
+            1.45,
+            0.016,
+            BLACK,
+            b,
+          );
         b = step(5);
-        for (let i = 0; i < 9; i++)
-          dab(-0.55 + 0.11 * (i % 3), 0.95 + 0.1 * Math.floor(i / 3), 0.035, 0.035, '#a8442a', b);
+        for (let i = 0; i < 12; i++)
+          dab(-0.55 + 0.09 * (i % 4), 1.0 + 0.1 * Math.floor(i / 4), 0.04, 0.035, '#a8442a', b);
       }
       break;
     }
     case 'prop-burial': {
-      // A grave beside the camp, along X (humankind.md section 8.2), filled in three steps:
-      // the pit with the dug earth beside it; the body laid in it wrapped, covered with
-      // mammoth-ivory beads, with ivory spears beside it; the grave closed with earth and
-      // red ochre. Nothing is shown of the body but the wrapped bundle.
+      // A grave beside the camp, along X (humankind.md section 8.2; Yang, 2026-10-20: "should
+      // the burial not be a furrow in the ground?"): a trench between two banks of dug earth,
+      // filled in three steps: the trench, dark and deep; the body laid in it, wrapped and
+      // covered with mammoth-ivory beads, ivory spears beside it; the trench closed with the
+      // earth and strewn with red ochre. Its parts stand a little above the ground, as the
+      // drawn ground is not flat across a prop drawn some 200 km long.
       const EARTH = '#7a5a3c';
       const step = (k: number) => {
         const name = `${BUILD_BONE}${k}`;
@@ -596,21 +836,22 @@ export function buildShelter(id: ShelterId): Model {
         return name;
       };
       let b = step(0);
-      mb.add(blob([0, 0.02, 0], [1.0, 0.05, 0.45], 9), '#3e2f24', b);
-      mb.add(blob([0.1, 0.12, -0.78], [0.85, 0.16, 0.24], 8), EARTH, b);
+      for (const z of [-1, 1])
+        mb.add(blob([0, 0.14, z * 0.52], [1.05, 0.17, 0.22], 8), shade(EARTH, 0.04 * z), b);
+      mb.add(blob([0, 0.08, 0], [0.95, 0.04, 0.32], 8), '#2b211a', b);
       b = step(1);
-      mb.add(blob([0, 0.12, 0], [0.8, 0.13, 0.22], 9), '#b49a72', b);
-      for (let i = 0; i < 18; i++)
+      mb.add(blob([0, 0.15, 0], [0.75, 0.09, 0.2], 8), '#a88f68', b);
+      for (let i = 0; i < 16; i++)
         mb.add(
-          blob([-0.68 + 0.08 * i, 0.24, 0.07 * Math.sin(i * 1.7)], [0.025, 0.025, 0.025], 4),
+          blob([-0.6 + 0.08 * i, 0.24, 0.06 * Math.sin(i * 1.7)], [0.025, 0.025, 0.025], 4),
           '#efe6d2',
           b,
         );
-      for (const z of [-0.3, 0.3])
-        mb.add(rod([-0.85, 0.08, z], [0.85, 0.08, z], 0.02, 4), '#e9dfc6', b);
+      for (const z of [-0.25, 0.25])
+        mb.add(rod([-0.85, 0.12, z], [0.85, 0.12, z], 0.02, 3), '#e9dfc6', b);
       b = step(2);
-      mb.add(blob([0, 0.12, 0], [1.05, 0.28, 0.55], 9), EARTH, b);
-      mb.add(blob([0, 0.32, 0], [0.8, 0.08, 0.4], 8), '#a3412a', b);
+      mb.add(blob([0, 0.17, 0], [1.0, 0.13, 0.42], 8), EARTH, b);
+      mb.add(blob([0, 0.29, 0], [0.7, 0.03, 0.28], 7), '#a3412a', b);
       break;
     }
     case 'prop-carry-pole': {

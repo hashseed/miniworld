@@ -64,6 +64,7 @@ Later milestones need a band at an exact place and time: the camp that becomes t
 | `lat`, `lon` | The place: the anchor's site is the camp site nearest it, within 300 km, that a camp can use on that day (dry and habitable for the culture there) |
 | `until` | Optional: the year to which the band stays; without it, to the end of the tree |
 | `scene` | Optional: a scene its band plays at its camp, a cave painting or a burial ([humankind.md](humankind.md#82-scenes-at-anchors) section 8.2) |
+| `camp` | Optional: a `lat` and `lon` where its camp should stand, near the place, for a scene that faces the place from there (humankind.md section 8.2); its site is laid and chosen there |
 | `en`, `de`, `source` | What it is, in both languages, and the source of its date and place |
 
 The build makes it so:

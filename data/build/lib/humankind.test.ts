@@ -784,8 +784,14 @@ describe('scenes at anchors (section 8.2)', () => {
   }, 30_000);
 
   it("fills a grave in its session and keeps it to the anchor's end", () => {
-    const { stage, whole, sessions } = sceneOf('burial', 'prop-burial');
+    const { t, stage, whole, sessions } = sceneOf('burial', 'prop-burial');
     const q = sessions[0]!;
+    // Someone of the band has died just before: the one buried.
+    const dead = t.figures.filter((f) => f.lost !== NEVER);
+    expect(dead.length).toBe(1);
+    const lostAt = msAtDay(dead[0]!.lost, settings.startDay);
+    expect(lostAt).toBeLessThanOrEqual(q.begin);
+    expect(lostAt).toBeGreaterThan(q.start - 2 * 60_000);
     expect(propAt(whole, q.begin - 1)).toBeUndefined();
     const mid = Math.round((q.begin + q.stop) / 2);
     const scene = treeScene(whole, mid, settings.startDay);

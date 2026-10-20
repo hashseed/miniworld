@@ -258,6 +258,7 @@ export function buildHumankind(
       lat: number;
       lon: number;
       scene?: { kind: string; prop: string };
+      camp?: { lat: number; lon: number };
       en: string;
       de: string;
       source: string;
@@ -287,6 +288,7 @@ export function buildHumankind(
     ...(a.scene
       ? { scene: { kind: a.scene.kind as 'cave-painting' | 'burial', prop: a.scene.prop } }
       : {}),
+    ...(a.camp ? { camp: { lat: a.camp.lat, lon: a.camp.lon } } : {}),
   }));
   const thresholdRecords = thresholds.map((t) => ({
     id: t.id,

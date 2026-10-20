@@ -7,7 +7,7 @@
 
 import { hash32, hash01 } from '../../../app/src/core/hash.ts';
 import { DAYS_PER_YEAR, type Day } from '../../../app/src/time/calendar.ts';
-import { dayAtWatch, watchAtDay } from '../../../app/src/time/rate.ts';
+import { dayAtMs, dayAtWatch, watchAtDay } from '../../../app/src/time/rate.ts';
 import {
   NEVER,
   aliveOn,
@@ -27,7 +27,10 @@ import {
   LODGING_SLOTS,
   REGROW_MS,
   hasRack,
+  lookOf,
+  slotPoint,
   STAGE_BEYOND_M,
+  stageSessions,
   stagePoints,
   type TreeChunk,
 } from '../../../app/src/world/treeScene.ts';
@@ -139,7 +142,8 @@ export function datedPlaces(
         until: v.day + ARRIVAL_SPAN_DAYS,
         ...v.way.at(-1)!,
       })),
-    ...(s.anchors ?? []).map((a) => ({ kind: 'anchor' as const, ...a })),
+    // An anchor's site is laid and chosen where its camp should stand (humankind.md section 8.2).
+    ...(s.anchors ?? []).map((a) => ({ kind: 'anchor' as const, ...a, ...(a.camp ?? {}) })),
     ...(s.thresholds ?? []).map((t) => ({ kind: 'threshold' as const, ...t, until: s.endDay })),
     // An encounter on open ground needs its meeting site for all its occurrences (sites.md
     // section 4.3); at a host, the host's anchor has one.
@@ -254,6 +258,8 @@ export interface Anchor {
   lon: number;
   /** A scene its band plays at its camp (humankind.md section 8.2). */
   scene?: { kind: TreeStage['kind']; prop: string };
+  /** Where its camp should stand, near the place, for a scene that faces the place from there. */
+  camp?: { lat: number; lon: number };
 }
 
 /** An encounter (sites.md section 4.3): parties of several bands meeting at a place. */
@@ -1708,6 +1714,78 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     return true;
   };
 
+  // Scenes at anchors (humankind.md section 8.2): each behind the lodging place of its camp
+  // that points most nearly towards the anchor's place, of those with no drying rack whose
+  // prop, people's places and way there stay dry land for the anchor's whole stay.
+  const stages: TreeStage[] = [];
+  for (const a of s.anchors ?? []) {
+    if (!a.scene) continue;
+    const p = planByKey.get(placeKey('anchor', a.id))!;
+    const site = p.site;
+    const sea = seaMax(p.day, p.until);
+    const flood = s.campFlood ?? s.walkFlood ?? (() => Infinity);
+    const dryAt = (q: { x: number; z: number }) => {
+      const g = onGlobe(
+        site.lat,
+        site.lon,
+        (q.x * LAYOUT_KM_PER_M) / site.width,
+        (q.z * LAYOUT_KM_PER_M) / site.width,
+      );
+      return flood(g.lat, g.lon) > sea;
+    };
+    // Towards the real cave or grave, in layout directions (x east, z north).
+    const toward = {
+      x:
+        distanceKm(site.lat, site.lon, site.lat, a.lon) *
+        Math.sign(((a.lon - site.lon + 540) % 360) - 180),
+      z: distanceKm(site.lat, site.lon, a.lat, site.lon) * Math.sign(a.lat - site.lat),
+    };
+    const facing = (k: number) => {
+      const q = slotPoint(site.key, k);
+      return q.x * toward.x + q.z * toward.z;
+    };
+    let slot: number | undefined;
+    let beyond = STAGE_BEYOND_M[0]!;
+    for (const b of STAGE_BEYOND_M) {
+      slot = Array.from({ length: LODGING_SLOTS }, (_, k) => k)
+        .filter(
+          (k) => !hasRack(site.key, k) && stagePoints(site.key, k, b, a.scene!.kind).every(dryAt),
+        )
+        .sort((x, y) => facing(y) - facing(x) || x - y)[0];
+      beyond = b;
+      if (slot !== undefined) break;
+    }
+    if (slot === undefined)
+      throw new Error(
+        `tree of humankind: the scene of anchor ${a.id} has no dry land behind a lodging place of its camp`,
+      );
+    stages.push({
+      id: a.id,
+      kind: a.scene.kind,
+      prop: a.scene.prop,
+      camp: site.key,
+      lat: micro(site.lat),
+      lon: micro(site.lon),
+      slot,
+      beyond,
+      shown: Math.min(p.met ?? p.day, p.day),
+      from: p.day,
+      until: p.until,
+      keep: a.scene.kind === 'cave-painting' ? s.endDay : p.until,
+    });
+  }
+  if (stages.length) tree.stages = stages;
+
+  /** The day each burial's dead dies: the start of its session's window (humankind.md section 8.2). */
+  const deaths = stages
+    .filter((x) => x.kind === 'burial')
+    .flatMap((x) => {
+      const first = stageSessions(x, s.startDay)[0];
+      return first
+        ? [{ stage: x, day: Math.floor(dayAtMs(first.start, s.startDay)), done: false }]
+        : [];
+    });
+
   // The first person, alone by Lake Turkana (section 4.2), at the site nearest her place.
   const home = [...sites]
     .filter((site) => dry(site, s.startDay) && livable(site, s.startDay))
@@ -1733,6 +1811,30 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     // Bands following a route set off first, at the step's start, before anyone is born in it.
     for (const v of voyages) if (!v.done && day >= v.day) v.done = voyage(v, day);
     for (const t of thresholds) if (!t.flagged && day >= t.day) t.flagged = settle(t, day);
+    // Someone dies before a burial (humankind.md section 8.2): the oldest grown-up of the
+    // anchor's band, never the first person, where two others remain to bury them.
+    for (const d of deaths) {
+      if (d.done || after(day, STEP_MS) <= d.day) continue;
+      d.done = true;
+      const band = planByKey.get(placeKey('anchor', d.stage.id))!.band;
+      if (!band || band.site.key !== d.stage.camp) continue;
+      const people = band.lodgings.flatMap((l) => residents.get(l)!).filter((f) => f !== 0);
+      if (band.lodgings.flatMap((l) => residents.get(l)!).length < 3) continue;
+      const grown = people.filter((f) => lookOf(f) !== 'child');
+      const dead = (grown.length ? grown : people).sort(
+        (x, y) => tree.figures[x]!.born - tree.figures[y]!.born || x - y,
+      )[0];
+      if (dead === undefined) continue;
+      const home = homeOf(dead);
+      const list = residents.get(home)!;
+      list.splice(list.indexOf(dead), 1);
+      tree.figures[dead]!.lost = Math.max(d.day, tree.figures[dead]!.homes.at(-1)![0] + 1);
+      if (list.length === 0) {
+        tree.lodgings[home]!.gone = tree.figures[dead]!.lost;
+        band.lodgings = band.lodgings.filter((l) => l !== home);
+        residents.delete(home);
+      }
+    }
     for (const p of plans) {
       if (day < p.claim || day > p.until) continue;
       // A meeting site is cleared for its encounter, which brings its own parties.
@@ -1891,54 +1993,6 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       }
     }
   }
-  // Scenes at anchors (humankind.md section 8.2): each behind the first lodging place of its
-  // camp with no drying rack whose prop, people's places and way there stay dry land for the
-  // anchor's whole stay.
-  const stages: TreeStage[] = [];
-  for (const a of s.anchors ?? []) {
-    if (!a.scene) continue;
-    const p = planByKey.get(placeKey('anchor', a.id))!;
-    const site = p.site;
-    const sea = seaMax(p.day, p.until);
-    const flood = s.campFlood ?? s.walkFlood ?? (() => Infinity);
-    const dryAt = (q: { x: number; z: number }) => {
-      const g = onGlobe(
-        site.lat,
-        site.lon,
-        (q.x * LAYOUT_KM_PER_M) / site.width,
-        (q.z * LAYOUT_KM_PER_M) / site.width,
-      );
-      return flood(g.lat, g.lon) > sea;
-    };
-    let slot: number | undefined;
-    let beyond = STAGE_BEYOND_M[0]!;
-    for (const b of STAGE_BEYOND_M) {
-      slot = Array.from({ length: LODGING_SLOTS }, (_, k) => k).find(
-        (k) => !hasRack(site.key, k) && stagePoints(site.key, k, b, a.scene!.kind).every(dryAt),
-      );
-      beyond = b;
-      if (slot !== undefined) break;
-    }
-    if (slot === undefined)
-      throw new Error(
-        `tree of humankind: the scene of anchor ${a.id} has no dry land behind a lodging place of its camp`,
-      );
-    stages.push({
-      id: a.id,
-      kind: a.scene.kind,
-      prop: a.scene.prop,
-      camp: site.key,
-      lat: micro(site.lat),
-      lon: micro(site.lon),
-      slot,
-      beyond,
-      shown: Math.min(p.met ?? p.day, p.day),
-      from: p.day,
-      until: p.until,
-      keep: a.scene.kind === 'cave-painting' ? s.endDay : p.until,
-    });
-  }
-  if (stages.length) tree.stages = stages;
   // Kept free (sites.md section 7): no band but a plan's own stood in its footprint during
   // its claim, after it was cleared.
   const keyed = new Map(sites.map((x) => [x.key, x.id]));
@@ -1957,6 +2011,11 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     }
   }
   if (trespass.length) throw new Error(`tree of humankind: ${trespass.join('; ')}`);
+  // A scene's prop shows from when its band came (humankind.md section 8.2).
+  for (const x of stages) {
+    const p = planByKey.get(placeKey('anchor', x.id))!;
+    x.shown = Math.min(p.met ?? p.day, p.day);
+  }
   // The plans beside their rows of the place table (sites.md section 4.2).
   for (const p of plans) {
     if (p.kind === 'encounter') continue;

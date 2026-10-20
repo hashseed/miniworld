@@ -31,6 +31,10 @@
       "until": 33000,
       "lat": 44.388,
       "lon": 4.416,
+      "camp": {
+        "lat": 44.55,
+        "lon": 4.0
+      },
       "scene": {
         "kind": "cave-painting",
         "prop": "prop-cave-wall-chauvet"
