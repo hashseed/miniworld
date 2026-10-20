@@ -4,9 +4,9 @@
     {
       "species": "african-elephant",
       "model": "animal-elephant",
-      "home": "Tsavo, Kenya",
-      "lat": -3.0,
-      "lon": 38.5,
+      "home": "Garamba, DR Congo",
+      "lat": 4.0,
+      "lon": 29.3,
       "source": "IUCN Red List range map"
     },
     {
