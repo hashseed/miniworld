@@ -403,6 +403,21 @@ describe('tree chunks', () => {
       }
     }
   });
+
+  it('agree where they meet: the last moments of a window, in its file and in the next', () => {
+    // The app moves on to the next file at the window's end; nobody may jump then.
+    const windows = Array.from({ length: 40 }, (_, w) => settings.startDay + years(250 * w));
+    const chunks = treeChunks(tree, windows, settings.endDay);
+    for (let w = 0; w + 1 < chunks.length && chunks[w + 1]; w++) {
+      const end = msAtDay(chunks[w]!.toDay, settings.startDay);
+      for (const back of [50, 400, 1500, 4000]) {
+        const ms = end - back;
+        expect(treeScene(chunks[w + 1]!, ms, settings.startDay).figures).toEqual(
+          treeScene(chunks[w]!, ms, settings.startDay).figures,
+        );
+      }
+    }
+  }, 60_000);
 });
 
 describe('anchors and caps (sites.md section 4)', () => {
