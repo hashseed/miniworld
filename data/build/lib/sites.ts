@@ -328,6 +328,7 @@ function roughFit(
 ): number {
   const s = { lat, lon, w: lensWidth(lat, lon) };
   const compact = isCompact(key);
+  const hearth = groundAt(lat, lon);
   let core = flood(lat, lon);
   for (const r of compact ? [2, layoutOf(key).core] : [3, 6, CORE_M])
     for (let k = 0; k < 24; k++) {
@@ -343,6 +344,8 @@ function roughFit(
       ? [len, len + layoutOf(key).build]
       : [len, RACK_R + SCRAPE_BACK_M + 1]) {
       const p = at(s, (q.x / len) * r, (q.z / len) * r);
+      // As in siteAt: a place far above or below the hearth is no place.
+      if (Math.abs(groundAt(p.lat, p.lon) - hearth) > RELIEF_M) return -Infinity;
       m = Math.min(m, flood(p.lat, p.lon));
     }
     return m;
@@ -371,26 +374,57 @@ function bestInCell(id: number, lat: number, lon: number, lonStep: number, input
       else if (lo < -180) lo += 360;
       if (input.campFlood(la, lo) > input.lowestSea) points.push({ lat: la, lon: lo });
     }
-  // A full camp where one fits, else a compact one (section 2.1), on even ground.
-  for (const key of [id, COMPACT_SITE + id]) {
-    const options = points
-      .map((p) => ({
+  // A full camp where one fits, else a compact one (section 2.1); on even ground where one
+  // fits there as well as on uneven, often a compact camp with its shorter reach; else on
+  // the evenest ground that does, not the highest.
+  // Each place is looked at once per layout, and worked out in full once.
+  const rough = new Map<number, { lat: number; lon: number; fit: number; relief: number }[]>();
+  const roughOf = (key: number) => {
+    let list = rough.get(key);
+    if (!list) {
+      list = points.map((p) => ({
         ...p,
         fit: roughFit(key, p.lat, p.lon, input.campFlood),
-        uneven: reliefAt(key, { ...p, w: lensWidth(p.lat, p.lon) }) > RELIEF_M,
-      }))
-      .sort(
-        (a, b) =>
-          Number(a.uneven) - Number(b.uneven) || b.fit - a.fit || a.lat - b.lat || a.lon - b.lon,
+        relief: reliefAt(key, { ...p, w: lensWidth(p.lat, p.lon) }),
+      }));
+      rough.set(key, list);
+    }
+    return list;
+  };
+  const full = new Map<string, Site>();
+  const siteOf = (key: number, lat: number, lon: number) => {
+    const k = `${key}|${lat}|${lon}`;
+    let site = full.get(k);
+    if (!site) full.set(k, (site = siteAt(id, key, lat, lon, input.campFlood)));
+    return site;
+  };
+  const pick = (key: number, ground: 'any' | 'even' | 'evenest') => {
+    const options = roughOf(key)
+      .filter((o) => ground !== 'even' || o.relief <= RELIEF_M)
+      .filter((o) => ground !== 'evenest' || o.fit > input.lowestSea)
+      .sort((a, b) =>
+        ground === 'evenest'
+          ? a.relief - b.relief || a.lat - b.lat || a.lon - b.lon
+          : b.fit - a.fit || a.lat - b.lat || a.lon - b.lon,
       );
     let best: Site | undefined;
     for (const o of options.slice(0, 2)) {
-      const site = siteAt(id, key, o.lat, o.lon, input.campFlood);
-      if (!best || fitOf(site) > fitOf(best)) best = site;
+      const site = siteOf(key, o.lat, o.lon);
+      if (fitOf(site) <= input.lowestSea) continue;
+      if (!best || (ground === 'evenest' ? site.relief < best.relief : fitOf(site) > fitOf(best)))
+        best = site;
     }
-    if (best && fitOf(best) > input.lowestSea) return best;
-  }
-  return undefined;
+    return best;
+  };
+  const anywhere = pick(id, 'any') ?? pick(COMPACT_SITE + id, 'any');
+  if (!anywhere) return undefined;
+  const need = Math.min(fitOf(anywhere), input.highestSea);
+  for (const ground of ['even', 'evenest'] as const)
+    for (const key of [id, COMPACT_SITE + id]) {
+      const site = pick(key, ground);
+      if (site && fitOf(site) >= need) return site;
+    }
+  return anywhere;
 }
 
 /**
@@ -414,25 +448,38 @@ function keySite(
   const land = points.filter((p) => input.campFlood(p.lat, p.lon) > sea);
   // The largest layout whose camp stays dry even at the highest sea of the timeline (or of
   // the place's span).
-  for (const key of [id, COMPACT_SITE + id, MINIMAL_SITE + id]) {
-    // On even ground where there is any near.
-    const options = land
-      .map((p) => ({
+  // On even ground first, in the smaller layouts too, then on the evenest that fits.
+  const rough = new Map<number, { lat: number; lon: number; fit: number; relief: number }[]>();
+  const roughOf = (key: number) => {
+    let list = rough.get(key);
+    if (!list) {
+      list = land.map((p) => ({
         ...p,
         fit: roughFit(key, p.lat, p.lon, input.campFlood),
-        uneven: reliefAt(key, { ...p, w: lensWidth(p.lat, p.lon) }) > RELIEF_M,
-      }))
-      .sort(
-        (a, b) =>
-          Number(a.uneven) - Number(b.uneven) || b.fit - a.fit || a.lat - b.lat || a.lon - b.lon,
-      );
-    let best: Site | undefined;
-    for (const o of options.slice(0, 6)) {
-      const site = siteAt(id, key, o.lat, o.lon, input.campFlood);
-      if (!best || fitOf(site) > fitOf(best)) best = site;
+        relief: reliefAt(key, { ...p, w: lensWidth(p.lat, p.lon) }),
+      }));
+      rough.set(key, list);
     }
-    if (best && fitOf(best) > sea) return best;
-  }
+    return list;
+  };
+  for (const ground of ['even', 'evenest'] as const)
+    for (const key of [id, COMPACT_SITE + id, MINIMAL_SITE + id]) {
+      const options = roughOf(key)
+        .filter((o) => (ground === 'even' ? o.relief <= RELIEF_M : o.fit > sea))
+        .sort((a, b) =>
+          ground === 'even'
+            ? b.fit - a.fit || a.lat - b.lat || a.lon - b.lon
+            : a.relief - b.relief || a.lat - b.lat || a.lon - b.lon,
+        );
+      let best: Site | undefined;
+      for (const o of options.slice(0, 6)) {
+        const site = siteAt(id, key, o.lat, o.lon, input.campFlood);
+        if (fitOf(site) <= sea) continue;
+        if (!best || (ground === 'even' ? fitOf(site) > fitOf(best) : site.relief < best.relief))
+          best = site;
+      }
+      if (best) return best;
+    }
   return undefined;
 }
 
