@@ -1893,8 +1893,9 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       const at = keyed.get(l.camp);
       if (at === undefined || !p.footprint.has(at)) continue;
       const band = campOf(l.id);
-      if (p.bands.has(band) || l.built >= p.until || (l.gone !== NEVER && l.gone <= p.cleared))
-        continue;
+      // Bands joining others leave at the end of the step (flee, join).
+      const left = after(p.cleared, STEP_MS);
+      if (p.bands.has(band) || l.built >= p.until || (l.gone !== NEVER && l.gone <= left)) continue;
       trespass.push(`band ${band.id} stands in the footprint of ${p.key} from ${yearOf(l.built)}`);
       break;
     }
