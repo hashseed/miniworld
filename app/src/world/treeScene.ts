@@ -203,7 +203,7 @@ const BIND_MS = Math.ceil(2400 / TEMPO);
  * Half the length of the carrying pole in layout metres (1.6 life-size metres at the figures'
  * scale), and how long lifting it and laying it down take.
  */
-const POLE_HALF_M = 4.5;
+export const POLE_HALF_M = 4.5;
 const LIFT_MS = Math.round(1200 / TEMPO);
 const PUT_MS = Math.round(1200 / TEMPO);
 /**
