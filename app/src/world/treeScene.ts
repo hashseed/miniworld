@@ -1267,7 +1267,8 @@ export function treeScene(
     const roll = hash01(camp, w, 97);
     const kind =
       roll < CATCH_SHARE
-        ? isCompact(camp)
+        ? // Not at a compact camp, nor on a steep mountainside (Yang, 2026-10-20).
+          isCompact(camp) || ref.home.steep
           ? undefined
           : 'catch'
         : roll < CATCH_SHARE + DANCE_SHARE

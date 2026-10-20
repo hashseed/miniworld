@@ -79,7 +79,7 @@ Every plant sways in the wind (Yang, 2026-10-20: "every tree to sway in the wind
 
 - **Sway.** A plant bends downwind about its foot, its top moving most and its trunk's foot not at all, and swings back and forth around that lean. Each kind has four sway rhythms, differing in period (from about 2.5 to 5 seconds for broadleaf trees), in how far they swing and in a quicker small flutter on top; each plant takes one by a hash of its place and starts its cycle at its own moment, so neighbours never move in step. Stiff kinds (conifers, cypresses) swing least, palms and bushes most (**Proposed**).
 - **Gusts.** A slow wave of stronger wind rolls over the globe from west to east, about one band of gusts every 1,500 km, passing a place every 10 to 15 seconds: under it every plant leans further downwind and swings wider, so a forest moves together now and then.
-- **Clock.** The wind runs on the screen's time, like the lens morph (history-lens.md section 4), so the trees keep swaying while history is paused. With reduced motion requested by the system, the plants stand still.
+- **Clock.** The wind blows at the screen's pace while history plays and stills when it is paused (Yang, 2026-10-20: "trees should not sway in the wind when the time is stopped"; until then it ran on the screen's time throughout). With reduced motion requested by the system, the plants stand still.
 - **Cost.** All of it is worked out in the plants' vertex shader from the plant's place and a time value: no work on the CPU per plant or frame, no extra draw calls or textures.
 
 ## 6. The ground under the plants

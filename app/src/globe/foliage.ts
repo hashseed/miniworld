@@ -136,6 +136,9 @@ export class Foliage {
   private cleared = new Set<number>();
   /** No wind: the system asks for reduced motion (section 5.1). */
   still = false;
+  /** Seconds the wind has blown, and when it was last advanced. */
+  private windS = 0;
+  private lastWindAt: number | undefined;
   /** Plants drawn last frame. */
   count = 0;
   /** Set once the first view is ready; until then nothing is loaded or drawn. */
@@ -179,14 +182,25 @@ export class Foliage {
         for (let x = 0; x < 1 << SLOT_LEVEL; x++) this.keys.push({ face, level: SLOT_LEVEL, x, y });
   }
 
-  update(camera: THREE.Camera, planet: PlanetState, day: number, lightDir: THREE.Vector3): void {
+  update(
+    camera: THREE.Camera,
+    planet: PlanetState,
+    day: number,
+    lightDir: THREE.Vector3,
+    playing = true,
+  ): void {
     const u = this.material.uniforms;
     u.lightDir!.value.copy(lightDir);
     const e = camera.matrixWorld.elements;
     u.screenUp!.value.set(e[4]!, e[5]!, e[6]!);
     u.cameraWorld!.value.copy(camera.position);
-    // The wind runs on the screen's time, also while history is paused (section 5.1).
-    u.windTime!.value = (performance.now() / 1000) % WIND_LOOP_S;
+    // The wind blows while history plays, at the screen's pace, and stills when it is paused
+    // (section 5.1).
+    const now = performance.now();
+    if (playing && this.lastWindAt !== undefined)
+      this.windS = (this.windS + Math.min(0.1, (now - this.lastWindAt) / 1000)) % WIND_LOOP_S;
+    this.lastWindAt = now;
+    u.windTime!.value = this.windS;
     u.windOn!.value = this.still ? 0 : 1;
     if (!this.active) return;
 
