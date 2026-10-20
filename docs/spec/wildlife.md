@@ -31,7 +31,7 @@ Africa's groups are spread over the east, the south and the Sahel and west (Yang
 
 | Species | Model | Home | Lat, lon | Spans |
 | --- | --- | --- | --- | --- |
-| African elephant | `animal-elephant` | Tsavo, Kenya | −3.0, 38.5 | All |
+| African elephant | `animal-elephant` | Garamba, DR Congo (Tsavo until Yang, 2026-10-20: its herd wandered into the sea off the Kenyan coast) | 4.0, 29.3 | All |
 | African elephant | `animal-elephant` | Gourma, Mali (the northernmost elephants of Africa) | 15.3, −1.6 | All |
 | Asian elephant | `animal-asian-elephant` | Irrawaddy plains, Myanmar | 21.0, 95.5 | All |
 | Giraffe | `animal-giraffe` | Marsabit, Kenya | 3.2, 38.6 | All |
