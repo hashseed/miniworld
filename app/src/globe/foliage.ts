@@ -10,62 +10,37 @@ import {
   type FoliageSlice,
 } from '../content/formats.ts';
 import type { ChunkSource } from '../content/loader.ts';
-import { hash01, valueNoise } from '../core/hash.ts';
 import {
   FACE_COUNT,
   TILE_N,
   dirToLatLon,
   faceUvToDir,
-  tileAngularSize,
   tileId,
   tileSampleUv,
   type TileKey,
   type Vec3,
 } from '../geo/cube.ts';
-import { BUSH, groundOf, isDry, KINDS, PALM, pickKind, recipeOf } from './foliageKinds.ts';
+import { groundOf, KINDS } from './foliageKinds.ts';
 import { plantGeometry } from './foliageModels.ts';
-import { bilinear as bilinearGrid, bilinearBordered } from '../planet/sample.ts';
 import { iceSlicePair, type PlanetState } from '../planet/state.ts';
-import { groundM } from '../planet/surface.ts';
-import { EXAGGERATION, type Globe } from './globe.ts';
+import type { Globe } from './globe.ts';
 import { foliageFragment, foliageVertex } from './shaders.ts';
-import { CAP_KM_PER_M, snowCap } from './snowCap.ts';
 import { sampleTile, type TileSamples } from './terrainStore.ts';
+import {
+  ICE_CLEARANCE_KM,
+  placePlants,
+  SLOT_LEVEL,
+  SLOTS,
+  treeLine,
+  type Plant,
+} from './foliagePlace.ts';
+import type { FoliageMessage } from './foliageWorker.ts';
 import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 
-/**
- * Slots (section 4): with the true sizes, plants stand about one per
- * (tile / SLOTS)² of each tile at this level, about 260 km apart. The slots
- * lie on a finer grid of TREE_SLOTS, and where the history lens enlarges the
- * land more of them hold a plant, so plants keep their drawn size and spacing.
- */
-export const SLOT_LEVEL = 4;
-export const SLOTS = 2.4;
-const TREE_SLOTS = 8;
-/** Desert rivers get a finer row of palm slots (section 4). */
-const PALM_SLOTS = 12;
-/** Palm crowns relative to the main slot spacing: palms are as big as other trees. */
-const PALM_SCALE = 1;
-/** Share of the palm slots on a desert river bank that hold a palm, at true size. */
-const PALM_SHARE = 0.1;
-/** Smallest plant and size range, relative to the kind's size (section 4). */
-const SIZE_MIN = 0.6;
-const SIZE_RANGE = 0.8;
-/** Crown width relative to the slot spacing, per kind. */
-const KIND_SCALE = [1.15, 1.05, 0.85, 1.1, 1.0, 0.85, 0.65, 0.6];
-const CROWN = 0.935;
-/** Where plants never stand (section 4). */
-const MIN_COAST_KM = 2.5;
 /** Drawn radius of the clearing around a vignette stage, so trees never hide a diorama (section 4). */
 export const CLEARING_KM = 800;
-const MAX_WATER_FIELD = 0.42;
-const ICE_CLEARANCE_KM = 25;
-/** River field of the bank band that gets palms in dry land. */
-const BANK_FIELD = 0.03;
 /** Range of the slot hash over which a plant grows in as the lens raises its share. */
 const GROW_ROLL = 0.02;
-/** Share of the trees removed by a low tree density that become bushes. */
-const THINNED_BUSH = 0.25;
 /** Most plants of one kind in view; at most about 1,500 plants are on the visible side. */
 const CAPACITY = 4000;
 /**
@@ -85,22 +60,6 @@ const SWAY: [number, number][] = [
 /** The wind's time wraps after this many seconds (a whole number of every cycle's periods is not needed: it only keeps the float precise). */
 const WIND_LOOP_S = 3600;
 
-/** A plant a slot can hold; whether it shows, and where, depends on the lens. */
-interface Plant {
-  kind: number;
-  /** True direction of its spot. */
-  dir: Vec3;
-  /** Crown size in km and drawn ground height in km before the lens's width factor. */
-  size: number;
-  groundKm: number;
-  /** The slot's hash and its share of used slots at true size (section 4). */
-  roll: number;
-  share: number;
-  turn: number;
-  tint: number;
-}
-
-/** Tree line in metres: high in the tropics, lower towards the poles. */
 /**
  * A plant's rotation standing on the unit vector up, turned about it by turn
  * radians: model y along up, x west and z north, the way the plants faced
@@ -117,9 +76,7 @@ export function plantRotation(up: THREE.Vector3, turn: number): THREE.Quaternion
   return q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), turn));
 }
 
-export function treeLine(lat: number): number {
-  return 3800 - Math.max(0, Math.abs(lat) - 25) * 75;
-}
+export { treeLine, SLOT_LEVEL, SLOTS };
 
 /**
  * A place plants make way for: a direction, a radius in drawn kilometres and how far
@@ -161,6 +118,10 @@ export class Foliage {
   private grounds: (THREE.DataTexture | undefined)[] = [];
   private requested: boolean[] = [];
   private samples = new Map<string, TileSamples>();
+  /** The worker that places plants off the main thread (section 7), the tiles it is placing (with their day) and the slices it has. */
+  private worker = startFoliageWorker((a) => this.placed_(a.id, a.plants));
+  private pending = new Map<string, number>();
+  private sliceSent: boolean[] = [];
   private placed = new Map<string, Plant[]>();
   /** What the plants' places in the lists were worked out for, and the clearings last applied. */
   private layoutKey = '';
@@ -289,7 +250,7 @@ export class Foliage {
     this.clearKey = clearKey;
     if (relaid) {
       this.layoutKey = layoutKey;
-      this.layout(visible, state, planet, day, sa, sb, t);
+      this.layout(visible, state, planet, day, sa, sb, t, ka, kb);
     }
     // The plants each clearing reaches, found through the cells of the drawn globe.
     const d = this.drawn;
@@ -358,6 +319,8 @@ export class Foliage {
     sa: FoliageSlice,
     sb: FoliageSlice,
     t: number,
+    ka: number,
+    kb: number,
   ): void {
     const counts = this.meshes.map(() => 0);
     const tint = new THREE.Color();
@@ -370,7 +333,7 @@ export class Foliage {
       const id = `${tileId(key)}|${state}`;
       let plants = this.placed.get(id);
       if (!plants) {
-        plants = this.place(key, planet, day, sa, sb, t);
+        plants = this.place(key, planet, day, sa, sb, t, id, ka, kb);
         if (!plants) continue;
         this.placed.set(id, plants);
       }
@@ -425,19 +388,14 @@ export class Foliage {
         return;
       }
       this.grounds[k] = groundTexture(this.slices[k]);
+      this.worker?.postMessage({
+        type: 'slice',
+        k,
+        slice: this.slices[k],
+      } satisfies FoliageMessage);
+      this.sliceSent[k] = true;
       this.layoutKey = '';
     });
-  }
-
-  /** The foliage cell of a point, looked up with a wobble so forest edges are soft, or -1. */
-  private cell(lat: number, lon: number): number {
-    const jl = (valueNoise(lon * 1.7, lat * 1.7, 5) - 0.5) * 0.9;
-    const jo = (valueNoise(lon * 1.7, lat * 1.7, 9) - 0.5) * 0.9;
-    const r = Math.floor((90 - (lat + jl)) / 0.5);
-    if (r < 0 || r >= FOLIAGE_GRID_H) return -1;
-    const c =
-      ((Math.floor((lon + jo + 180) / 0.5) % FOLIAGE_GRID_W) + FOLIAGE_GRID_W) % FOLIAGE_GRID_W;
-    return r * FOLIAGE_GRID_W + c;
   }
 
   /**
@@ -459,7 +417,10 @@ export class Foliage {
     return true;
   }
 
-  /** Plants of one slot tile, or undefined while its terrain is not loaded. */
+  /**
+   * Plants of one slot tile, or undefined while its terrain is not loaded or while the
+   * foliage worker works them out (section 7; then the tile has none for a moment).
+   */
   private place(
     key: TileKey,
     planet: PlanetState,
@@ -467,6 +428,9 @@ export class Foliage {
     sa: FoliageSlice,
     sb: FoliageSlice,
     t: number,
+    id: string,
+    ka: number,
+    kb: number,
   ): Plant[] | undefined {
     const sid = tileId(key);
     let s = this.samples.get(sid);
@@ -476,69 +440,38 @@ export class Foliage {
       s = sampleTile(key, src);
       this.samples.set(sid, s);
     }
-    const plants: Plant[] = [];
-    const seed = key.face * 1000003 + key.level * 7919;
-    const edgeKm = EARTH_RADIUS_KM * tileAngularSize(key.level);
-    const slot = (n: number, ii: number, jj: number, palmsOnly: boolean) => {
-      const gx = key.x * n + ii;
-      const gy = key.y * n + jj;
-      const h = (k: number) => hash01(seed + n, gx, gy, k);
-      const fi = ((ii + 0.15 + 0.7 * h(2)) / n) * TILE_N;
-      const fj = ((jj + 0.15 + 0.7 * h(3)) / n) * TILE_N;
-      const ocean = bilinear(s.oceanLevel, fi, fj);
-      if (ocean <= planet.seaLevel + 1) return;
-      const river = bilinear(s.rivers, fi, fj);
-      const lake = bilinear(s.lake, fi, fj);
-      if (lake > 0.3 || river > MAX_WATER_FIELD) return;
-      const coastKm = bilinear(s.coast, fi, fj);
-      if (coastKm < MIN_COAST_KM) return;
-      const uv = tileSampleUv(key, fi, fj);
-      const dir = faceUvToDir(key.face, uv.u, uv.v) as Vec3;
-      const height = bilinearBordered(s.heights, fi, fj);
-      const { lat, lon } = dirToLatLon(dir);
-      if (height > treeLine(lat)) return;
-      // Clear of the mountain snow caps as of the ice (section 5.2).
-      const cap = snowCap(height, bilinear(s.bed, fi, fj), Math.abs(lat), planet.glacialIndex);
-      if (cap * CAP_KM_PER_M > -ICE_CLEARANCE_KM) return;
-      if (this.globe.query.iceKmAt(dir, day) > -ICE_CLEARANCE_KM) return;
-      // Between two slices each slot switches at its own hashed moment.
-      const slice = h(4) < t ? sb : sa;
-      const i = this.cell(lat, lon);
-      if (i < 0) return;
-      const code = slice.cells[i]!;
-      let kind: number;
-      if (palmsOnly) {
-        if (!(river > BANK_FIELD && isDry(code))) return;
-        kind = PALM;
-      } else kind = isDry(code) && river > BANK_FIELD ? -1 : pickKind(recipeOf(code), h(1));
-      // Near the ice and in cold or dry climates trees thin out to open land
-      // with a bush here and there (spec foliage.md, section 2).
-      if (kind >= 0 && kind !== BUSH && kind !== PALM && h(9) * 255 >= slice.density[i]!)
-        kind = h(10) < THINNED_BUSH ? BUSH : -1;
-      if (kind < 0) return;
+    if (this.worker && this.sliceSent[ka] && this.sliceSent[kb]) {
+      if (!this.pending.has(id)) {
+        this.pending.set(id, day);
+        this.worker.postMessage({
+          type: 'place',
+          id,
+          key,
+          samples: s,
+          ka,
+          kb,
+          t,
+          seaLevel: planet.seaLevel,
+          glacialIndex: planet.glacialIndex,
+        } satisfies FoliageMessage);
+      }
+      return undefined;
+    }
+    return this.iceFree(placePlants(key, s, planet.seaLevel, planet.glacialIndex, sa, sb, t), day);
+  }
 
-      // Plants keep their size whatever the lens does.
-      const spacing = (edgeKm / SLOTS) * (palmsOnly ? PALM_SCALE : 1);
-      // Most plants are mid-sized, a few are much bigger.
-      plants.push({
-        kind,
-        dir,
-        size: spacing * KIND_SCALE[kind]! * CROWN * (SIZE_MIN + SIZE_RANGE * h(5) * h(5)),
-        groundKm:
-          groundM({ height, oceanLevel: ocean, lake, bed: height, coastKm }, planet.seaLevel) *
-          EXAGGERATION *
-          0.001,
-        roll: h(8),
-        share: palmsOnly ? PALM_SHARE : (SLOTS * SLOTS) / (n * n),
-        turn: h(6) * Math.PI * 2,
-        tint: 0.88 + 0.24 * h(7),
-      });
-    };
-    for (let jj = 0; jj < TREE_SLOTS; jj++)
-      for (let ii = 0; ii < TREE_SLOTS; ii++) slot(TREE_SLOTS, ii, jj, false);
-    for (let jj = 0; jj < PALM_SLOTS; jj++)
-      for (let ii = 0; ii < PALM_SLOTS; ii++) slot(PALM_SLOTS, ii, jj, true);
-    return plants;
+  /** The plants clear of the ice sheets of a day, which the main thread holds. */
+  private iceFree(plants: Plant[], day: number): Plant[] {
+    return plants.filter((p) => this.globe.query.iceKmAt(p.dir, day) <= -ICE_CLEARANCE_KM);
+  }
+
+  /** A tile's plants from the foliage worker: kept, and the plants in view laid out again. */
+  private placed_(id: string, plants: Plant[] | undefined): void {
+    const day = this.pending.get(id);
+    this.pending.delete(id);
+    if (day === undefined || !plants) return;
+    this.placed.set(id, this.iceFree(plants, day));
+    this.layoutKey = '';
   }
 }
 
@@ -590,9 +523,13 @@ function blurGrid(src: Float32Array): Float32Array {
   return out;
 }
 
-const S = TILE_N + 1;
-
-/** Bilinear sample of a per-sample field (TILE_N + 1 squared) at fractional sample coordinates. */
-function bilinear(f: Float32Array, fi: number, fj: number): number {
-  return bilinearGrid(f, S, fi, fj);
+/** The foliage worker, where the browser has workers; undefined in tests under Node. */
+function startFoliageWorker(
+  answer: (a: { id: string; plants: Plant[] | undefined }) => void,
+): Worker | undefined {
+  if (typeof Worker === 'undefined') return undefined;
+  const worker = new Worker(new URL('./foliageWorker.ts', import.meta.url), { type: 'module' });
+  worker.onmessage = (e: MessageEvent<{ id: string; plants: Plant[] | undefined }>) =>
+    answer(e.data);
+  return worker;
 }

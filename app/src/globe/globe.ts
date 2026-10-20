@@ -28,7 +28,8 @@ import { EARTH_RADIUS_KM } from '../geo/earth.ts';
 import { TerrainStore } from './terrainStore.ts';
 import type { TerrainTile } from '../content/formats.ts';
 
-export const EXAGGERATION = 100;
+import { EXAGGERATION } from './exaggeration.ts';
+export { EXAGGERATION };
 export const MAX_RENDER_LEVEL = 5;
 /** Meshes kept beyond those touched this frame; touched meshes are never evicted. */
 const MAX_CACHED_MESHES = 1500;
