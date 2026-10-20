@@ -10,7 +10,9 @@ import { MODELS, geometryHash } from './approval.ts';
 import {
   BLEND_SECONDS,
   GAITS,
+  PERSON_LOOPS,
   THROW_RELEASE,
+  animalLoop,
   animateAnimal,
   animatePerson,
   blendPerson,
@@ -154,6 +156,54 @@ describe('clips', () => {
     animatePerson(m, 'run', 0.4);
     animatePerson(m, clip, 1.234);
     expect(pose(m)).toEqual(first);
+  });
+
+  // Baked into animation textures (milestone 2, section 5.3), a clip must come round again
+  // after its loop, or hold still after a one-off gesture.
+  it.each(Object.entries(PERSON_LOOPS))('%s repeats as PERSON_LOOPS says', (clip, how) => {
+    const m = buildPerson({ profile: 'ice-age-hunter', kind: 'man' });
+    const visible = () => [...m.bones.values()].map((b) => b.visible);
+    const at = (t: number) => {
+      animatePerson(m, clip as Clip, t);
+      return [...pose(m), ...visible().map(Number)];
+    };
+    // Times off the clips' stroke boundaries, where floor() is at the mercy of rounding.
+    for (const t of [0.13, 0.37, 1.91, 4.05]) {
+      const [a, b] = 'loop' in how ? [t, t + 3 * how.loop] : [how.once + t, how.once + t + 7];
+      const p = at(a);
+      const q = at(b);
+      for (let i = 0; i < p.length; i++) expect(q[i]).toBeCloseTo(p[i]!, 6);
+    }
+  });
+
+  const animalClips: Clip[] = [
+    'idle',
+    'walk',
+    'run',
+    'swim',
+    'fly',
+    'struggle',
+    'bound',
+    'hung',
+    'fall',
+  ];
+  it.each(ANIMALS)('%s repeats as animalLoop says', (id) => {
+    const m = buildAnimal(id);
+    const pose = () =>
+      [...m.bones.values()].flatMap(
+        (b) => [...b.rotation.toArray().slice(0, 3), ...b.position.toArray()] as number[],
+      );
+    for (const clip of animalClips) {
+      const how = animalLoop(m, clip);
+      for (const t of [0.13, 0.37, 1.91]) {
+        const [a, b] = 'loop' in how ? [t, t + 2 * how.loop] : [how.once + t, how.once + t + 7];
+        animateAnimal(m, clip, a);
+        const p = pose();
+        animateAnimal(m, clip, b);
+        const q = pose();
+        for (let i = 0; i < p.length; i++) expect(q[i]).toBeCloseTo(p[i]!, 6);
+      }
+    }
   });
 
   /** The world position of the lowest point of a foot in the rest pose, as posed now. */

@@ -33,9 +33,10 @@ import {
 } from '../vignettes/figures.ts';
 import type { StandIn } from '../vignettes/standIns.ts';
 import type { Profile } from '../world/cultures.ts';
-import { animateAnimal, animatePerson, blendPerson } from '../../../assets/src/clips.ts';
+import { animalLoop, animateAnimal } from '../../../assets/src/clips.ts';
 import type { Model } from '../../../assets/src/kit.ts';
 import { buildSteps, flickerHearth, lightHearth, setBuilt } from '../../../assets/src/shelters.ts';
+import { ClipBatches } from './clipBatches.ts';
 import { PosedBatches } from './posedBatches.ts';
 import type { SurfaceSource } from '../vignettes/vignetteLayer.ts';
 import type { Obstacle } from '../wildlife/wildlifeLayer.ts';
@@ -102,7 +103,7 @@ export class TreeLayer {
   constructor(loader: ContentLoader, surface: SurfaceSource) {
     this.loader = loader;
     this.surface = surface;
-    this.group.add(this.batches.group);
+    this.group.add(this.batches.group, this.clips.group, this.preyClips.group);
   }
 
   /** The tree chunk files of the manifest, one per time window starting on `windows[i]`. */
@@ -139,6 +140,10 @@ export class TreeLayer {
   private fits = new Map<string, number>();
   /** Everything of the camps with approved models, drawn as copies of a few models (posedBatches.ts). */
   private batches = new PosedBatches();
+  /** The people of the camps with approved models, playing baked clips on the GPU (clipBatches.ts). */
+  private clips = new ClipBatches();
+  /** The hunted animals of the camps, likewise (clipBatches.ts). */
+  private preyClips = new ClipBatches(animateAnimal, animalLoop);
   private scratch = new THREE.Object3D();
   private fitOf(batch: TreeBatch): number {
     let fit = this.fits.get(batch.key);
@@ -229,6 +234,8 @@ export class TreeLayer {
     // Clips play TEMPO times faster, matching the faster pace on the ground.
     const sec = (clipMs: number) => (clipMs * TEMPO) / 1000;
     this.batches.begin();
+    this.clips.begin();
+    this.preyClips.begin();
     for (const f of scene.figures) {
       seen.add(f.id);
       let actor = this.figures.get(f.id);
@@ -237,7 +244,8 @@ export class TreeLayer {
         if (actor) actor.root.visible = false;
         continue;
       }
-      // A figure with an approved model is a copy in its model's batch (posedBatches.ts).
+      // A figure with an approved model is a copy in its model's batch, playing baked clips
+      // (clipBatches.ts).
       const profile0 = (f.profile ?? 'african-stone-age') as Profile;
       const batch = treeFigureBatch(f.look, f.id, profile0);
       if (batch) {
@@ -246,11 +254,13 @@ export class TreeLayer {
         this.block(at, FIGURE_HALF_M);
         at.scale.setScalar(FIGURE_KM_PER_M);
         at.updateMatrix();
-        this.batches.add(batch.key, batch.build, at.matrix, (m) => {
-          if (f.from)
-            blendPerson(m, f.from.clip, sec(f.from.clipMs), f.clip, sec(f.clipMs), f.from.weight);
-          else animatePerson(m, f.clip, sec(f.clipMs));
-          if (f.unarmed) m.bones.get('tool')!.visible = false;
+        this.clips.add(batch.key, batch.build, at.matrix, {
+          clip: f.clip,
+          seconds: sec(f.clipMs),
+          ...(f.from
+            ? { from: { clip: f.from.clip, seconds: sec(f.from.clipMs), weight: f.from.weight } }
+            : {}),
+          ...(f.unarmed ? { hide: 'tool' } : {}),
         });
         continue;
       }
@@ -358,7 +368,11 @@ export class TreeLayer {
         }
         this.block(at, PREY_HALF_M);
         at.scale.setScalar(FIGURE_KM_PER_M);
-        copy(batch, (m) => animateAnimal(m, p.clip, (p.clipMs * TEMPO) / 1000));
+        at.updateMatrix();
+        this.preyClips.add(batch.key, batch.build, at.matrix, {
+          clip: p.clip,
+          seconds: (p.clipMs * TEMPO) / 1000,
+        });
         continue;
       }
       fading.add(p.id);
@@ -410,6 +424,8 @@ export class TreeLayer {
       });
     }
     this.batches.end();
+    this.clips.end();
+    this.preyClips.end();
     this.park();
   }
 
@@ -470,6 +486,10 @@ export class TreeLayer {
   private clear(): void {
     this.batches.begin();
     this.batches.end();
+    this.clips.begin();
+    this.preyClips.begin();
+    this.clips.end();
+    this.preyClips.end();
     this.prune(this.figures, new Set());
     this.prune(this.prey, new Set());
     for (const bead of this.sparks) bead.visible = false;
