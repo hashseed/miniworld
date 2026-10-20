@@ -47,6 +47,9 @@ export interface UiState {
   /** The loading screen's phase, and how far down the window its caption stands (milestone-1 section 8.6). */
   intro: IntroPhase;
   introCaptionY: number;
+  /** The small globe's radius on screen, and whether the globe itself is drawn yet; until then a still picture of it stands in. */
+  introRadius: number;
+  introGlobe: boolean;
   /** The share of the first view loaded so far, 0 to 1, for the loading screen. */
   loaded: number;
   error: string | undefined;

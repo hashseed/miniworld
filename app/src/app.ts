@@ -50,6 +50,8 @@ import { groupSpanAt, WILD_GROUPS } from './world/wildlife.ts';
 
 const params = new URLSearchParams(location.search);
 const STRESS = params.get('scene') === 'stress';
+/** Development only: the loading screen's small globe stays, unturned, for its still picture. */
+const INTRO_HOLD = import.meta.env.DEV && params.has('introHold');
 /** The first view: the first person's camp at Lake Turkana (spec humankind.md, section 7). */
 const DEFAULT_CAMERA: CameraState = {
   lat: 3.95,
@@ -96,6 +98,8 @@ const hot = new Store<HotState>({
 const ui = new Store<UiState>({
   intro: 'loading',
   introCaptionY: innerHeight * 0.75,
+  introRadius: Math.min(90, innerWidth * 0.22),
+  introGlobe: false,
   loaded: 0.05,
   error: undefined,
   panel: 'none',
@@ -617,6 +621,9 @@ async function start(): Promise<void> {
     placeIntro();
     loop.start();
     await firstView();
+    // For the still picture of the loading screen (scripts/loading-shot.ts): the small globe
+    // stays, unturned.
+    if (INTRO_HOLD) return;
     await handOver();
     // The first view's data budget counts what was requested before this mark.
     performance.mark('miniworld:first-view');
@@ -633,6 +640,11 @@ async function start(): Promise<void> {
 /** The latitude the small globe is seen from while loading, its spin westward, and its radius on screen. */
 const INTRO_LAT = 15;
 const INTRO_SPIN_DEG_PER_S = 20;
+/** The longitude the small globe first shows, as in the still picture (scripts/loading-shot.ts). */
+const INTRO_LON = 20;
+/** Frames the globe is drawn before the picture gives way, so its first tiles have settled. */
+const INTRO_SETTLE_FRAMES = 20;
+let introDrawnFrames = 0;
 /** A place less than this far ahead of the spin already faces the camera: the spin-in goes round once more. */
 const INTRO_AHEAD_DEG = 90;
 /** How long the controls take to fade in after loading (styles.css, ui-arrive). */
@@ -652,7 +664,8 @@ function startIntro(): void {
   }
   introTarget = { ...controller.state };
   document.getElementById('ui')!.classList.add('intro');
-  controller.state = { ...controller.state, lat: INTRO_LAT, lon: introTarget.lon + 40 };
+  // The globe faces as in the still picture that stands in until it is drawn (loading-globe.jpg).
+  controller.state = { ...controller.state, lat: INTRO_LAT, lon: INTRO_LON };
   placeIntro();
 }
 
@@ -670,7 +683,7 @@ function placeIntro(): void {
   controller.farKm = altitudeKm;
   controller.state = { ...controller.state, altitudeKm, heading: 0, tilt: 0 };
   const centreY = full / 2 - (camera.view?.offsetY ?? 0);
-  ui.update({ introCaptionY: centreY + introRadiusPx() + 20 });
+  ui.update({ introCaptionY: centreY + introRadiusPx() + 20, introRadius: introRadiusPx() });
 }
 
 /**
@@ -683,7 +696,13 @@ function introFrame(dtMs: number): void {
   clouds.mesh.visible = !loading || globe.drawnTiles > 0;
   for (const layer of [landmarks.group, vignettes.group, wildlife.group, tree.group])
     layer.visible = !loading;
-  if (loading && !controller.reducedMotion)
+  // The still picture stands in until the globe's tiles are drawn; it spins from then on.
+  if (loading && !ui.value.introGlobe && globe.drawnTiles > 0) {
+    introDrawnFrames++;
+    if (introDrawnFrames > INTRO_SETTLE_FRAMES) ui.update({ introGlobe: true });
+  }
+  if (INTRO_HOLD && !ui.value.introGlobe) ui.update({ introGlobe: true });
+  if (loading && ui.value.introGlobe && !controller.reducedMotion && !INTRO_HOLD)
     controller.state.lon -= (INTRO_SPIN_DEG_PER_S * Math.min(dtMs, 100)) / 1000;
 }
 
