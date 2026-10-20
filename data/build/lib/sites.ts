@@ -145,6 +145,11 @@ const at = (s: { lat: number; lon: number; w: number }, x: number, z: number) =>
   onGlobe(s.lat, s.lon, (x * LAYOUT_KM_PER_M) / s.w, (z * LAYOUT_KM_PER_M) / s.w);
 /** Drawn km per true km at a place, set from the inputs while the sites are built. */
 let lensWidth: (lat: number, lon: number) => number = () => 1;
+/**
+ * Whether lodging places must lie within RELIEF_M of their hearth's height: off only for a
+ * key place that gets no site otherwise, such as Sulawesi's steep arms (section 2).
+ */
+let evenPlaces = true;
 /** The height of the ground, set from the inputs while the sites are built. */
 let groundAt: (lat: number, lon: number) => number = () => 0;
 
@@ -226,7 +231,7 @@ function siteAt(
   const places = Array.from({ length: LODGING_SLOTS }, (_, k) =>
     placePoints(key, k).reduce((m, q) => {
       const p = at(s, q.x, q.z);
-      if (Math.abs(groundAt(p.lat, p.lon) - hearth) > RELIEF_M) return -Infinity;
+      if (evenPlaces && Math.abs(groundAt(p.lat, p.lon) - hearth) > RELIEF_M) return -Infinity;
       return Math.min(m, flood(p.lat, p.lon));
     }, Infinity),
   );
@@ -345,7 +350,7 @@ function roughFit(
       : [len, RACK_R + SCRAPE_BACK_M + 1]) {
       const p = at(s, (q.x / len) * r, (q.z / len) * r);
       // As in siteAt: a place far above or below the hearth is no place.
-      if (Math.abs(groundAt(p.lat, p.lon) - hearth) > RELIEF_M) return -Infinity;
+      if (evenPlaces && Math.abs(groundAt(p.lat, p.lon) - hearth) > RELIEF_M) return -Infinity;
       m = Math.min(m, flood(p.lat, p.lon));
     }
     return m;
@@ -472,7 +477,9 @@ function keySite(
             : a.relief - b.relief || a.lat - b.lat || a.lon - b.lon,
         );
       let best: Site | undefined;
-      for (const o of options.slice(0, 6)) {
+      // The last layout, the minimal camp, is worked out at every place: on narrow land its one
+      // hut stands dry at only a few, which the rough look does not find.
+      for (const o of options.slice(0, key >= MINIMAL_SITE ? options.length : 6)) {
         const site = siteAt(id, key, o.lat, o.lon, input.campFlood);
         if (fitOf(site) <= sea) continue;
         if (!best || (ground === 'even' ? fitOf(site) > fitOf(best) : site.relief < best.relief))
@@ -518,8 +525,17 @@ export function buildSites(input: SiteInputs): SiteMap {
     );
     if (near) continue;
     // Within its radius, or farther where nothing fits nearer.
+    const uneven = () => {
+      evenPlaces = false;
+      try {
+        return keySite(sites.length, place, input, radius, sea);
+      } finally {
+        evenPlaces = true;
+      }
+    };
     const site =
       keySite(sites.length, place, input, radius, sea) ??
+      uneven() ??
       (radius < KEY_PLACE_KM
         ? keySite(sites.length, place, input, KEY_PLACE_KM, sea)
         : undefined) ??

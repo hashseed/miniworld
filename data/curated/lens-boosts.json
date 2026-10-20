@@ -24,8 +24,8 @@
     },
     {
       "id": "sulawesi",
-      "reason": "Yang, 2026-10-20 (\"yes, let's do the lens boost\"): Sulawesi was too narrow for even the smallest camp of the tree of humankind at its arrival point's date, so the place table (sites.md section 2.1) found no site on its own land. Leang Karampuang, the oldest known cave painting, is on its south-western arm.",
-      "weight": 48,
+      "reason": "Yang, 2026-10-20 (\"yes, let's do the lens boost\"): Sulawesi was too narrow for even the smallest camp of the tree of humankind at its arrival point's date, so the place table (sites.md section 2.1) found no site on its own land. Leang Karampuang, the oldest known cave painting, is on its south-western arm. Weight 96 (48 until 2026-10-20), as camps there fitted only by chance of their layout's turn.",
+      "weight": 96,
       "points": [
         [-5.0, 119.7],
         [-3.5, 120.2],
