@@ -106,6 +106,12 @@ export class CameraController {
   private grabbed: THREE.Vector3 | undefined;
   private spin = { axis: new THREE.Vector3(1, 0, 0), rate: 0 };
   private lastDrag = 0;
+  /**
+   * The heading when a drag began, and, once it is let go having turned the heading only a
+   * little, the heading the view eases back to (milestone-1 section 6.2).
+   */
+  private dragHeading = 0;
+  private recoverHeading: number | undefined;
   private keys = new Set<string>();
   private pointers = new Map<number, { x: number; y: number; button: number }>();
   private gesture: { dist: number; angle: number; midY: number } | undefined;
@@ -143,6 +149,7 @@ export class CameraController {
 
   /** Flies the camera to a view; returns how long the flight takes, in milliseconds. */
   flyTo(target: CameraState, now = performance.now()): number {
+    this.recoverHeading = undefined;
     const from = { ...this.state };
     const a = new THREE.Vector3(...latLonToDir(from.lat, from.lon));
     const b = new THREE.Vector3(...latLonToDir(target.lat, target.lon));
@@ -239,6 +246,13 @@ export class CameraController {
         if (this.spin.rate > 1e-4) {
           this.turn(_spinQ.setFromAxisAngle(this.spin.axis, this.spin.rate * dt));
           this.spin.rate *= Math.exp(-dt * SPIN_DECAY);
+        }
+        if (this.recoverHeading !== undefined) {
+          const d = headingDelta(this.recoverHeading, s.heading);
+          if (Math.abs(d) < 0.05) {
+            s.heading = this.recoverHeading;
+            this.recoverHeading = undefined;
+          } else s.heading += d * (1 - Math.exp(-dt * HEADING_RECOVER));
         }
         s.lat += this.velocity.lat * dt;
         s.lon += this.velocity.lon * dt;
@@ -357,6 +371,7 @@ export class CameraController {
     if (k.has('-') || k.has('e')) this.zoom(Math.exp(dt * 1.5));
     if (k.has('PageUp')) this.state.tilt += 40 * dt;
     if (k.has('PageDown')) this.state.tilt -= 40 * dt;
+    if (k.has(',') || k.has('.')) this.recoverHeading = undefined;
     if (k.has(',')) this.state.heading -= 60 * dt;
     if (k.has('.')) this.state.heading += 60 * dt;
     this.velocity.lat = 0;
@@ -445,6 +460,8 @@ export class CameraController {
       this.velocity = { lat: 0, lon: 0 };
       this.spin.rate = 0;
       this.lastDrag = 0;
+      this.recoverHeading = undefined;
+      this.dragHeading = this.state.heading;
       this.grabbed =
         this.pointers.size === 1 && e.button === 0 && !e.ctrlKey
           ? this.under(e.clientX, e.clientY)
@@ -471,6 +488,13 @@ export class CameraController {
       this.gesture = undefined;
       // Held still before letting go, it stays; flung, it turns on and slows down.
       if (!this.grabbed || e.timeStamp - this.lastDrag > SPIN_HOLD_MS) this.spin.rate = 0;
+      // A drag that turned the heading only a little did not mean to: north eases back to
+      // where it pointed (Yang, 2026-10-20), while the globe keeps where it was moved to.
+      if (
+        this.grabbed &&
+        Math.abs(headingDelta(this.dragHeading, this.state.heading)) < HEADING_KEEP_DEG
+      )
+        this.recoverHeading = this.dragHeading;
       this.grabbed = undefined;
       el.style.cursor = 'grab';
     };
@@ -543,6 +567,14 @@ export class CameraController {
 /** How fast a flung globe slows down (per second), and how long a pause before letting go stops it, in ms. */
 const SPIN_DECAY = 2.5;
 const SPIN_HOLD_MS = 80;
+/** A drag turning the heading less than this (degrees) did not mean to; it eases back at this rate per second. */
+const HEADING_KEEP_DEG = 30;
+const HEADING_RECOVER = 3;
+
+/** The signed turn in degrees from one heading to another, within ±180. */
+function headingDelta(to: number, from: number): number {
+  return ((((to - from) % 360) + 540) % 360) - 180;
+}
 const _ndc = new THREE.Vector2();
 const _ray = new THREE.Raycaster();
 const _sphere = new THREE.Sphere(new THREE.Vector3(), EARTH_RADIUS_KM);
