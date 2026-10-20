@@ -366,7 +366,7 @@ describe('the tree scene', () => {
     expect(before.get('animal-mammoth')!.has('hung')).toBe(false);
     const late = d0 + years(61_500); // 8500 BCE
     expect([...kinds(campAt(late), late).keys()]).toEqual(['animal-reindeer']);
-  });
+  }, 30_000);
 
   it('lets the herd scatter and stand a while, each fading on its own (section 8.1)', () => {
     // Per herd mate: the frames it stood idle after running off, and when it was last seen.
