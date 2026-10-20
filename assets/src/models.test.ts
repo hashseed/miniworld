@@ -70,9 +70,9 @@ describe('people', () => {
   });
 
   it.each(people)(
-    '$profile $kind stays within 1,050 triangles, carried bundle included',
+    '$profile $kind stays within 1,100 triangles, carried bundle included',
     ({ profile, kind }) => {
-      expect(buildPerson({ profile, kind }).triangles).toBeLessThanOrEqual(1050);
+      expect(buildPerson({ profile, kind }).triangles).toBeLessThanOrEqual(1100);
     },
   );
 
@@ -407,7 +407,7 @@ describe('asset manifest', () => {
     const waiting = Object.keys(MODELS).filter((id) => entries.get(id)?.status !== 'approved');
     expect(
       waiting.every((id) =>
-        /^(stone-sledge|figure-african-stone-age-man|figure-(west-asia-hunter|east-asia-hunter|first-americans)-(man|woman|child)|prop-(carry-pole|spit|canoe|red-flag|cave-wall-sulawesi|cave-wall-chauvet|burial)|shelter-small-hut)$/.test(
+        /^(stone-sledge|figure-.+|prop-(carry-pole|spit|canoe|red-flag|cave-wall-sulawesi|cave-wall-chauvet|burial)|shelter-small-hut)$/.test(
           id,
         ),
       ),

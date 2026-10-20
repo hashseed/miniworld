@@ -14,210 +14,168 @@
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "d503e7ad2e6edb10",
-      "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "status": "generated",
+      "note": "Approved by Yang from the review sheets; face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "figure-african-stone-age-child",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "24703d631aafbf07",
-      "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "status": "generated",
+      "note": "Approved by Yang from the review sheets; face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "figure-first-person",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson with founder",
-      "status": "approved",
-      "geometry": "e0990416e272119e",
-      "note": "Approved by Yang from the review sheets and the motion film",
-      "reviewed": "2026-10-18"
+      "status": "generated",
+      "note": "Approved by Yang from the review sheets and the motion film; face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "figure-neanderthal-man",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "a77717de244dbc22",
-      "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "status": "generated",
+      "note": "Approved by Yang from the review sheets; face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "figure-neanderthal-woman",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "4e154ff21ffecf7a",
-      "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "status": "generated",
+      "note": "Approved by Yang from the review sheets; face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "figure-neanderthal-child",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "c25efdd9e9a7ea4b",
-      "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "status": "generated",
+      "note": "Approved by Yang from the review sheets; face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "figure-coastal-asia-hunter-man",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "df5cabf967e67f42",
-      "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "status": "generated",
+      "note": "Approved by Yang from the review sheets; face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "figure-coastal-asia-hunter-woman",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "5a10d9ed21ea2f64",
-      "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "status": "generated",
+      "note": "Approved by Yang from the review sheets; face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "figure-coastal-asia-hunter-child",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "80cc5d20d87fa745",
-      "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "status": "generated",
+      "note": "Approved by Yang from the review sheets; face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "figure-first-australians-man",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "80becea5ba644cd8",
-      "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "status": "generated",
+      "note": "Approved by Yang from the review sheets; face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "figure-first-australians-woman",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "c7d5bdcd0244b129",
-      "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "status": "generated",
+      "note": "Approved by Yang from the review sheets; face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "figure-first-australians-child",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "1bb6ba104e280739",
-      "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "status": "generated",
+      "note": "Approved by Yang from the review sheets; face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "figure-ice-age-hunter-man",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "d4f80bead1f141f6",
-      "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets; hides lightened and trim made white at Yang's request on 2026-10-18"
+      "status": "generated",
+      "note": "Approved by Yang from the review sheets; hides lightened and trim made white at Yang's request on 2026-10-18; face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "figure-ice-age-hunter-woman",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "17d4ba477ebb6c67",
-      "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets; hides lightened and trim made white at Yang's request on 2026-10-18"
+      "status": "generated",
+      "note": "Approved by Yang from the review sheets; hides lightened and trim made white at Yang's request on 2026-10-18; face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "figure-ice-age-hunter-child",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "0d1e63fff16b9994",
-      "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets; hides lightened and trim made white at Yang's request on 2026-10-18"
+      "status": "generated",
+      "note": "Approved by Yang from the review sheets; hides lightened and trim made white at Yang's request on 2026-10-18; face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "figure-steppe-beringia-hunter-man",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "d13121a4f6d11bd0",
-      "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "status": "generated",
+      "note": "Approved by Yang from the review sheets; face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "figure-steppe-beringia-hunter-woman",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "43564bf669c7ab86",
-      "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "status": "generated",
+      "note": "Approved by Yang from the review sheets; face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "figure-steppe-beringia-hunter-child",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "b322a2329389fd05",
-      "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "status": "generated",
+      "note": "Approved by Yang from the review sheets; face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "figure-natufian-man",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "b642c37eb50459de",
-      "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "status": "generated",
+      "note": "Approved by Yang from the review sheets; face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "figure-natufian-woman",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "7631b195877cd060",
-      "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "status": "generated",
+      "note": "Approved by Yang from the review sheets; face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "figure-natufian-child",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "4560f54270597848",
-      "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets"
+      "status": "generated",
+      "note": "Approved by Yang from the review sheets; face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "figure-west-asia-hunter-man",
@@ -1032,30 +990,24 @@
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "a887d3b6d296dc69",
-      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself is shelved (giza.md section 12)",
-      "reviewed": "2026-10-18"
+      "status": "generated",
+      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself is shelved (giza.md section 12); face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "figure-old-kingdom-egyptian-woman",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "8cddd36911a8a89f",
-      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself is shelved (giza.md section 12)",
-      "reviewed": "2026-10-18"
+      "status": "generated",
+      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself is shelved (giza.md section 12); face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "figure-old-kingdom-egyptian-child",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "approved",
-      "geometry": "69919aaac7ad8fbd",
-      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself is shelved (giza.md section 12)",
-      "reviewed": "2026-10-18"
+      "status": "generated",
+      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself is shelved (giza.md section 12); face redone on 2026-10-20 (eyes, nose and mouth on a smoother head), waiting for Yang's review again"
     },
     {
       "id": "giza-khufu",

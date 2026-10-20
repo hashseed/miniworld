@@ -378,16 +378,44 @@ export function buildPerson(o: PersonOptions): Model {
       'head',
     );
   } else {
-    mb.add(blob([0, headY, 0], [hr, hr * 1.02, hr * 0.98], 7), skin, 'head');
+    // Smooth and rounder than other parts, so the face reads (Yang, 2026-10-20: "people have
+    // very unreal faces").
+    mb.add(blob([0, headY, 0], [hr, hr * 1.02, hr * 0.98], 8), skin, 'head', undefined, 0.2);
   }
-  // Eyes: two dark dots, the only facial detail.
+  // The face (Yang, 2026-10-20): two dark eyes standing clear of the head, a small nose and a
+  // mouth, each set on the head's surface so no lump of clay swallows it.
+  const front = (x: number, y: number) =>
+    hr * 0.98 * Math.sqrt(Math.max(0.05, 1 - (x / hr) ** 2 - (y / (hr * 1.02)) ** 2));
   for (const s of [1, -1]) {
+    const [x, y] = [s * hr * 0.34, hr * 0.1];
     mb.add(
-      blob([s * hr * 0.36, headY + hr * 0.08, hr * 0.86], [hr * 0.1, hr * 0.13, hr * 0.06], 4),
+      blob([x, headY + y, front(x, y) - hr * 0.01], [hr * 0.11, hr * 0.14, hr * 0.07], 4),
       '#1d1410',
       'head',
+      undefined,
+      0,
     );
   }
+  if (!neanderthal) {
+    mb.add(
+      blob([0, headY - hr * 0.12, front(0, -hr * 0.12)], [hr * 0.12, hr * 0.1, hr * 0.09], 4),
+      shade(skin, -0.08),
+      'head',
+      undefined,
+      0,
+    );
+  }
+  mb.add(
+    blob(
+      [0, headY - hr * 0.38, front(0, -hr * 0.38) - hr * 0.01],
+      [hr * 0.18, hr * 0.035, hr * 0.04],
+      5,
+    ),
+    shade(skin, -0.3),
+    'head',
+    undefined,
+    0,
+  );
 
   // Hair or hood.
   if (top === 'parka') {
