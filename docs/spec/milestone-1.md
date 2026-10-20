@@ -276,6 +276,8 @@ Sea level, ice and deserts come from published reconstructions (decided by Yang 
 | Zoom in to a point | Double-click | Double-tap | |
 | Reset heading and tilt | Compass button | Compass button | N |
 
+**Grabbing the globe** (Yang, 2026-10-20: "I want the feel of google earth"). A left drag or one-finger drag grabs the point of the globe under the pointer and keeps it under the pointer wherever it goes, at the globe's middle and its edge alike (past the edge, the nearest point of the outline is held): the whole view turns about the globe's centre, heading included, and nothing about the poles is special, so a drag passes straight over them. Let go while moving, the globe keeps turning the same way and slows to rest within about a second; held still for a moment before letting go, it stays. Over the globe the pointer is an open hand, closed while the globe is held. Right drag still tilts (up and down) and turns the heading in place (left and right).
+
 Keyboard controls are active whenever focus is not in a text field. Touch gestures on the globe never scroll or zoom the page.
 
 ### 6.3 Fly-to

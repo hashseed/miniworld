@@ -99,6 +99,13 @@ export class CameraController {
   private surface: SurfaceProvider;
   private element: HTMLElement;
   private velocity = { lat: 0, lon: 0 };
+  /**
+   * A drag grabs the drawn point under the pointer and keeps it there, as in Google Earth
+   * (milestone-1 section 6.2); letting go leaves the globe turning on, slowing down.
+   */
+  private grabbed: THREE.Vector3 | undefined;
+  private spin = { axis: new THREE.Vector3(1, 0, 0), rate: 0 };
+  private lastDrag = 0;
   private keys = new Set<string>();
   private pointers = new Map<number, { x: number; y: number; button: number }>();
   private gesture: { dist: number; angle: number; midY: number } | undefined;
@@ -229,6 +236,10 @@ export class CameraController {
     } else {
       this.applyKeys(dt);
       if (this.pointers.size === 0) {
+        if (this.spin.rate > 1e-4) {
+          this.turn(_spinQ.setFromAxisAngle(this.spin.axis, this.spin.rate * dt));
+          this.spin.rate *= Math.exp(-dt * SPIN_DECAY);
+        }
         s.lat += this.velocity.lat * dt;
         s.lon += this.velocity.lon * dt;
         const decay = Math.exp(-dt * 4);
@@ -236,7 +247,8 @@ export class CameraController {
         this.velocity.lon *= decay;
       }
     }
-    s.lat = THREE.MathUtils.clamp(s.lat, -89.5, 89.5);
+    // Only a hair from the poles, where north has no direction; drags pass over them.
+    s.lat = THREE.MathUtils.clamp(s.lat, -89.95, 89.95);
     s.lon = ((((s.lon + 180) % 360) + 360) % 360) - 180;
     s.altitudeKm = THREE.MathUtils.clamp(s.altitudeKm, MIN_DISTANCE_KM, this.maxDistance);
     const auto = autoTilt(s.altitudeKm);
@@ -351,6 +363,56 @@ export class CameraController {
     this.velocity.lon = 0;
   }
 
+  /**
+   * The drawn direction under a screen point on the globe's sphere, or, off the globe, the
+   * nearest point of its outline, so a drag past the edge keeps hold.
+   */
+  private under(clientX: number, clientY: number): THREE.Vector3 {
+    const rect = this.element.getBoundingClientRect();
+    _ndc.set(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1,
+    );
+    _ray.setFromCamera(_ndc, this.camera);
+    const hit = _ray.ray.intersectSphere(_sphere, _hit);
+    if (hit) return hit.clone().normalize();
+    _ray.ray.closestPointToPoint(_origin, _hit);
+    return _hit.clone().normalize();
+  }
+
+  /** Turns the whole view about the globe's centre by a rotation of the drawn globe. */
+  private turn(q: THREE.Quaternion): void {
+    const s = this.state;
+    const up = _tUp.fromArray(this.lens.toDrawn(latLonToDir(s.lat, s.lon)));
+    northEast(up, _north, _east);
+    const h = THREE.MathUtils.degToRad(s.heading);
+    const fwd = _tFwd.copy(_north).multiplyScalar(Math.cos(h)).addScaledVector(_east, Math.sin(h));
+    up.applyQuaternion(q).normalize();
+    fwd.applyQuaternion(q);
+    northEast(up, _north, _east);
+    s.heading = THREE.MathUtils.radToDeg(Math.atan2(fwd.dot(_east), fwd.dot(_north)));
+    const ll = dirToLatLon(this.lens.toTrue([up.x, up.y, up.z]));
+    s.lat = ll.lat;
+    s.lon = ll.lon;
+  }
+
+  /** A drag with one finger or the left button: the grabbed point follows the pointer. */
+  private drag(clientX: number, clientY: number, now: number): void {
+    if (!this.grabbed) return;
+    const at = this.under(clientX, clientY);
+    const angle = at.angleTo(this.grabbed);
+    if (angle < 1e-7) return;
+    _dragQ.setFromUnitVectors(at, this.grabbed);
+    this.turn(_dragQ);
+    this.place(0);
+    // The turning speed it leaves when let go, smoothed over the last moves.
+    const dt = Math.max(1, now - this.lastDrag) / 1000;
+    const rate = angle / dt;
+    this.spin.axis.crossVectors(at, this.grabbed).normalize();
+    this.spin.rate = this.lastDrag ? this.spin.rate * 0.5 + rate * 0.5 : 0;
+    this.lastDrag = now;
+  }
+
   /** Ray from a screen point to the globe sphere, as a true direction. */
   pick(clientX: number, clientY: number): Vec3 | undefined {
     const rect = this.element.getBoundingClientRect();
@@ -372,6 +434,8 @@ export class CameraController {
   private attach(): void {
     const el = this.element;
     el.style.touchAction = 'none';
+    // An open hand over the globe, a closed one while it is held (Yang, 2026-10-20).
+    el.style.cursor = 'grab';
     el.addEventListener('contextmenu', (e) => e.preventDefault());
     el.addEventListener('pointerdown', (e) => {
       el.setPointerCapture(e.pointerId);
@@ -379,6 +443,13 @@ export class CameraController {
       this.gesture = undefined;
       this.cancelFlight();
       this.velocity = { lat: 0, lon: 0 };
+      this.spin.rate = 0;
+      this.lastDrag = 0;
+      this.grabbed =
+        this.pointers.size === 1 && e.button === 0 && !e.ctrlKey
+          ? this.under(e.clientX, e.clientY)
+          : undefined;
+      if (this.grabbed) el.style.cursor = 'grabbing';
     });
     el.addEventListener('pointermove', (e) => {
       const p = this.pointers.get(e.pointerId);
@@ -389,7 +460,7 @@ export class CameraController {
         if (p.button === 2 || e.ctrlKey) {
           this.state.heading += dx * 0.3;
           this.state.tilt -= dy * 0.2;
-        } else this.pan(dx, dy);
+        } else this.drag(e.clientX, e.clientY, e.timeStamp);
       }
       p.x = e.clientX;
       p.y = e.clientY;
@@ -398,6 +469,10 @@ export class CameraController {
     const end = (e: PointerEvent) => {
       this.pointers.delete(e.pointerId);
       this.gesture = undefined;
+      // Held still before letting go, it stays; flung, it turns on and slows down.
+      if (!this.grabbed || e.timeStamp - this.lastDrag > SPIN_HOLD_MS) this.spin.rate = 0;
+      this.grabbed = undefined;
+      el.style.cursor = 'grab';
     };
     el.addEventListener('pointerup', end);
     el.addEventListener('pointercancel', end);
@@ -464,6 +539,19 @@ export class CameraController {
     this.gesture = { dist, angle, midY };
   }
 }
+
+/** How fast a flung globe slows down (per second), and how long a pause before letting go stops it, in ms. */
+const SPIN_DECAY = 2.5;
+const SPIN_HOLD_MS = 80;
+const _ndc = new THREE.Vector2();
+const _ray = new THREE.Raycaster();
+const _sphere = new THREE.Sphere(new THREE.Vector3(), EARTH_RADIUS_KM);
+const _hit = new THREE.Vector3();
+const _origin = new THREE.Vector3();
+const _tUp = new THREE.Vector3();
+const _tFwd = new THREE.Vector3();
+const _dragQ = new THREE.Quaternion();
+const _spinQ = new THREE.Quaternion();
 
 function slerp(a: THREE.Vector3, b: THREE.Vector3, t: number): THREE.Vector3 {
   const angle = a.angleTo(b);
