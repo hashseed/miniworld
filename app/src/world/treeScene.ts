@@ -119,6 +119,34 @@ function edgeOffset(
   return { x: 0, z: 0 };
 }
 
+/**
+ * A band on its way walks as a loose group, not on one line (Yang, 2026-10-20: "multiple
+ * people bunched together"): by its spot at the new camp, each walker leaves and comes in
+ * GROUP_SIDE_M (layout metres) to one side of the camps' gates, in the middle or to the
+ * other side, and walks in rows of three GROUP_BACK_M apart, the rows forming over the first
+ * GROUP_FADE of the way and closing up over the last.
+ */
+const GROUP_SIDE_M = 2.2;
+const GROUP_BACK_M = 3;
+const GROUP_FADE = 0.1;
+function groupOffset(
+  p: Pt,
+  way: { dirX: number; dirZ: number },
+  spot: number,
+  t: number,
+  km: number,
+  side = 0,
+): Pt {
+  const fade = Math.max(0, Math.min(1, t / GROUP_FADE, (1 - t) / GROUP_FADE));
+  // Never further behind than a twentieth of the walk: less than the way covered while the
+  // rows form, so nobody walks backwards on a short walk.
+  const back = Math.min(Math.floor(spot / 3) * GROUP_BACK_M, (0.05 * km) / LAYOUT_KM_PER_M) * fade;
+  return {
+    x: p.x - way.dirX * back - way.dirZ * side,
+    z: p.z - way.dirZ * back + way.dirX * side,
+  };
+}
+
 /** A red flag stands this far from the hearth, behind a lodging and its rack (peopling.md section 3.6). */
 const FLAG_R = 24;
 /** Walks reach a lodging's door this far in front of its middle, before crouching in. */
@@ -1237,8 +1265,16 @@ export function treeScene(
       towards(0, 0, eastOf(a.lon, b.lon) * detCos(at.lat * RAD), b.lat - a.lat);
     const way = heading(stops[0]!, stops[1]!, stops[0]!);
     const inward = heading(stops.at(-2)!, stops.at(-1)!);
-    const exit = { x: way.dirX * gateM(prev.camp), z: way.dirZ * gateM(prev.camp) };
-    const entry = { x: -inward.dirX * gateM(home.camp), z: -inward.dirZ * gateM(home.camp) };
+    // Each walker leaves and comes in at its own place beside the others (groupOffset).
+    const side = ((f.homes[i]![2] % 3) - 1) * GROUP_SIDE_M;
+    const exit = {
+      x: way.dirX * gateM(prev.camp) - way.dirZ * side,
+      z: way.dirZ * gateM(prev.camp) + way.dirX * side,
+    };
+    const entry = {
+      x: -inward.dirX * gateM(home.camp) - inward.dirZ * side,
+      z: -inward.dirZ * gateM(home.camp) + inward.dirX * side,
+    };
     const out = route(endOfStay(f, i - 1), exit, prev.camp);
     const start = at(f.homes[i]![0]);
     const across = start + Math.ceil(routeLength(out) / PACE.walk);
@@ -2293,8 +2329,21 @@ export function treeScene(
         lat: leg.from.lat + (leg.to.lat - leg.from.lat) * u,
         lon: wrapLon(leg.from.lon + eastOf(leg.from.lon, leg.to.lon) * u),
         // From the edge of the old camp on its first leg, to the edge of the new one on its
-        // last: a straight walk has both, a route keeps to its way in between.
-        ...edgeOffset(c, n, u, t),
+        // last: a straight walk has both, a route keeps to its way in between; each walker
+        // keeps its own place in the group, beside and behind the others.
+        ...groupOffset(
+          edgeOffset(c, n, u, t),
+          leg.way,
+          f.homes[i]![2],
+          t,
+          c.km,
+          // Along a route's way, between the camps' edges, the walker keeps its side too.
+          c.legs.length === 1
+            ? 0
+            : ((f.homes[i]![2] % 3) - 1) *
+                GROUP_SIDE_M *
+                (n === 0 ? u : n === c.legs.length - 1 ? 1 - u : 1),
+        ),
         ...leg.way,
         clip: leg.water ? 'paddle' : 'walk',
         clipMs: ms - c.start,
