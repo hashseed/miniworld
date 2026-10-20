@@ -41,14 +41,14 @@ describe('dates', () => {
 
   it('rounds the deep past while moving', () => {
     const d = dayFromDate(astronomicalYear(50042, 'BCE'), 6, 1);
-    expect(formatDateReadout(d, 'en', moving)).toBe('c. 50,000 BCE');
-    expect(formatDateReadout(d, 'de', moving)).toBe('ca. 50.000 v. Chr.');
+    expect(formatDateReadout(d, 'en', moving)).toBe('50,042 BCE');
+    expect(formatDateReadout(d, 'de', moving)).toBe('50.042 v. Chr.');
     expect(formatDateReadout(d, 'en', still)).toBe('50,042 BCE');
   });
 
-  it('marks fast-moving BCE years as approximate', () => {
+  it('shows the exact BCE year while moving', () => {
     const d = dayFromDate(astronomicalYear(3250, 'BCE'), 1, 1);
-    expect(formatDateReadout(d, 'en', moving)).toBe('c. 3250 BCE');
+    expect(formatDateReadout(d, 'en', moving)).toBe('3250 BCE');
     expect(formatDateReadout(d, 'en', { yearsPerMinute: 40, stationary: false })).toBe('3250 BCE');
   });
 
