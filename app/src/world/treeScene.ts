@@ -431,6 +431,8 @@ export interface CampPropPose extends Placed {
   built?: number;
   /** A share of its full size, for a scene's prop at a smaller camp. */
   scale?: number;
+  /** Whether a cave's torch is lit. */
+  lit?: boolean;
 }
 
 /** Where the trees make way for a camp: 1 cleared, 0 grown back. */
@@ -623,14 +625,16 @@ export function stageSpots(camp: number, slot: number, beyond: number) {
   });
   const g = gapDirection(camp, slot);
   const gap = { x: g.x * (ring + 4), z: g.z * (ring + 4) };
-  return { prop, u, at, gap };
+  // In front of a cave's mouth, past its boulders: the way in (section 8.2).
+  const door = at(6, 0);
+  return { prop, u, at, gap, door };
 }
 
 /** Where the people of a scene stand: the painter and two watchers, or two diggers and the mourners. */
 function stageStands(camp: number, slot: number, beyond: number, kind: TreeStage['kind']): Pt[] {
   const { at } = stageSpots(camp, slot, beyond);
-  // The wall is about 5 layout metres to each side of its middle and 2 deep; the grave 3 by 1.7.
-  if (kind === 'cave-painting') return [at(3, 0), at(6, -2.5), at(6, 2.5)];
+  // The painter in the cave's mouth at its back wall, the watchers at the mouth; the grave 3 by 1.7.
+  if (kind === 'cave-painting') return [at(0.6, 0), at(3.6, -1.4), at(3.6, 1.4)];
   const out = [at(2.4, -1.5), at(2.4, 1.5)];
   for (let k = 0; k < MOURNERS; k++) {
     const a = ((k + 0.5) / MOURNERS - 0.5) * (2 * Math.PI) * 0.45;
@@ -646,20 +650,28 @@ export function stagePoints(
   beyond: number,
   kind: TreeStage['kind'],
 ): Pt[] {
-  const { prop, gap, at } = stageSpots(camp, slot, beyond);
+  const { prop, gap, at, door } = stageSpots(camp, slot, beyond);
   const out: Pt[] = [prop];
-  // Round the prop as it lies: the wall about 5 layout metres to each side and 2 deep, the grave 3 by 1.7.
-  const [wide, deep] = kind === 'cave-painting' ? [5.4, 2.4] : [3.4, 2];
+  // Round the prop as it lies, in layout metres: the cave about 7 to each side, 8 behind its
+  // middle and 4.5 in front; the grave 3.4 by 2.
+  const cave = kind === 'cave-painting';
+  const [wide, deep, mid] = cave ? [7.2, 6.4, -1.8] : [3.4, 2, 0];
   for (let k = 0; k < 12; k++) {
     const a = (k / 12) * 2 * Math.PI;
-    out.push(at(deep * detCos(a), wide * detSin(a)));
+    out.push(at(mid + deep * detCos(a), wide * detSin(a)));
   }
   const stands = stageStands(camp, slot, beyond, kind);
   out.push(...stands, gap);
-  for (const q of stands) {
-    const n = Math.ceil(Math.sqrt((q.x - gap.x) ** 2 + (q.z - gap.z) ** 2));
+  const line = (a: Pt, b: Pt) => {
+    const n = Math.ceil(Math.sqrt((b.x - a.x) ** 2 + (b.z - a.z) ** 2));
     for (let k = 1; k < n; k++)
-      out.push({ x: gap.x + ((q.x - gap.x) * k) / n, z: gap.z + ((q.z - gap.z) * k) / n });
+      out.push({ x: a.x + ((b.x - a.x) * k) / n, z: a.z + ((b.z - a.z) * k) / n });
+  };
+  for (const q of stands) {
+    if (cave) {
+      line(gap, door);
+      line(door, q);
+    } else line(gap, q);
   }
   return out;
 }
@@ -1329,6 +1341,10 @@ export function treeScene(
       dirZ: -u.z,
       built,
       scale: stageScale(stage.camp),
+      // A cave's torch burns while a session is painted.
+      ...(stage.kind === 'cave-painting'
+        ? { lit: sessions.some((q) => ms >= q.begin - 1500 && ms < q.stop) }
+        : {}),
     });
   }
   // In place order, so a time window's chunk gives the same scene as the whole tree.
@@ -1519,7 +1535,9 @@ export function treeScene(
     if (cast.length < (paint ? 1 : 2)) return undefined;
     const stands = stageStands(stage.camp, stage.slot, stage.beyond, stage.kind);
     const session = stageSessions(stage, startDay).find((q) => q.w === w)!;
-    const { prop, gap } = stageSpots(stage.camp, stage.slot, stage.beyond);
+    const { prop, gap, door } = stageSpots(stage.camp, stage.slot, stage.beyond);
+    // Into a cave by its mouth, never through the rock.
+    const way = (trip: Itinerary) => (paint ? trip.go(gap).go(door) : trip.go(gap));
     // Each place goes to the next of the cast who can be there when the session begins and
     // back by the end of the window; whoever cannot stays at the camp.
     const chosen: Stay[] = [];
@@ -1528,7 +1546,7 @@ export function treeScene(
     for (const m of cast) {
       const i = chosen.length;
       if (i === stands.length) break;
-      const trip = new Itinerary(start, m.spot, m.home.camp).go(gap).go(stands[i]!);
+      const trip = way(new Itinerary(start, m.spot, m.home.camp)).go(stands[i]!);
       if (trip.t > session.begin) continue;
       trip.stay(session.begin, 'idle', prop);
       trip.legs.push({
@@ -1539,6 +1557,7 @@ export function treeScene(
       });
       trip.t = session.stop;
       trip.at = stands[i]!;
+      if (paint) trip.go(door);
       trip.go(gap).go(m.spot);
       if (trip.t > until || trip.t > m.busy) continue;
       chosen.push(m);

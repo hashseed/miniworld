@@ -141,7 +141,7 @@ export interface TreeStage {
   /** The lodging place it stands behind, and how far beyond the ring of lodgings, in layout metres. */
   slot: number;
   beyond: number;
-  /** Its prop shows from this day, when the anchor's band came. */
+  /** Its prop shows from this day: a cave from the start of the timeline, a grave from its burial. */
   shown: Day;
   /** Its sessions come from this day, to the anchor's end. */
   from: Day;
