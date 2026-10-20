@@ -52,7 +52,7 @@ import {
   validateMountains,
   type Mountain,
 } from '../lib/relief.ts';
-import { allTileKeys, buildTerrainTile, isDeepTile } from '../lib/terrain.ts';
+import { allTileKeys, buildTerrainTile, isDeepTile, lakeNear } from '../lib/terrain.ts';
 import {
   NO_LAKE,
   rasterizeLakes,
@@ -347,6 +347,7 @@ export function buildTerrain(ctx: WriteContext, map: WorldMap, drawn?: DrawnTile
   log(`coarse coasts for levels 0..${coarse.size - 1}`);
 
   const terrain: LayerOut = { chunks: {}, parts: new Map(), deep: [] };
+  const nearLakes = lakeNear(map.lakeLevel, map.lakes);
   let tileCount = 0;
   for (const key of allTileKeys(maxLevel)) {
     const tile = buildTerrainTile(key, {
@@ -355,6 +356,7 @@ export function buildTerrain(ctx: WriteContext, map: WorldMap, drawn?: DrawnTile
       coarseOcean: coarse,
       lakeLevel: map.lakeLevel,
       lakes: map.lakes,
+      lakeNear: nearLakes,
       rivers: map.rivers,
       flowCos: map.flowCos,
       flowSin: map.flowSin,

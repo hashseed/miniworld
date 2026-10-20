@@ -15,8 +15,8 @@ export const NO_LAKE = -32768;
 
 /**
  * Rasterises lakes onto the grid. Natural Earth has no lake levels, so each
- * lake's surface is taken as the 20th percentile of the heights of the cells
- * just outside its shore.
+ * lake's surface is taken as the median of the heights of the cells just outside
+ * its shore, so the water stands nearly as high as its coast (section 4.3).
  */
 export function rasterizeLakes(
   heights: Grid<GridData>,
@@ -61,7 +61,7 @@ export function rasterizeLakes(
         }
       }
       shore.sort((a, b) => a - b);
-      const level = Math.round(shore[Math.floor(shore.length * 0.2)] ?? 0);
+      const level = Math.round(shore[Math.floor(shore.length * 0.5)] ?? 0);
       for (const i of cells) {
         out[i] = level;
         inside[i] = 0;
@@ -146,8 +146,12 @@ export interface RiverContext {
 export const FLOW_PERIOD_KM = 150;
 /** How near (km) a river end must come to the sea at some date to be continued downhill. */
 const MOUTH_SEARCH_KM = 80;
-/** Cells a river runs on past its mouth. */
-const MOUTH_OVERRUN_CELLS = 4;
+/**
+ * Cells a river runs on into the water past its mouth, so the smoothed shore, which can lie
+ * well out from the mask's (the Nile's western delta arm at 19,100 BCE), never cuts it off;
+ * under the water it is not drawn.
+ */
+const MOUTH_OVERRUN_CELLS = 16;
 
 /**
  * Rasterises the picked rivers as a smooth field: 255 inside a river's core,

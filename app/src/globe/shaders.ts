@@ -417,10 +417,12 @@ vec3 waterFields(vec2 uv) {
  * Cel steps on the ground: three light bands whose edges are blurred over a
  * wide stretch, so the shading of the slopes fades in smoothly instead of
  * showing the steps of the terrain triangles (section 3.6; Yang, 2026-10-19:
- * "shadows are often jagged").
+ * "shadows are often jagged"; 2026-10-20: "further blur the shadows on the terrain. I sometimes
+ * still see jagged triangles in the shadows"): the bands now overlap, so the light falls off
+ * almost evenly with only a hint of the clay's steps.
  */
 float cel(float x) {
-  return 0.5 * (smoothstep(0.19, 0.39, x) + smoothstep(0.52, 0.72, x));
+  return 0.5 * (smoothstep(0.08, 0.5, x) + smoothstep(0.4, 0.84, x));
 }
 
 /** Ink line where a varying crosses a value, about px pixels wide. */
@@ -435,7 +437,8 @@ vec3 studio(vec3 albedo, vec3 n, vec3 viewDir) {
   float fillT = dot(n, screenUp) * 0.5 + 0.5;
   vec3 fill = mix(vec3(0.42, 0.30, 0.24), vec3(0.30, 0.36, 0.48), fillT);
   vec3 c = albedo * (vec3(1.0, 0.96, 0.9) * (0.25 + 0.6 * cel(wrap)) + fill);
-  float rim = smoothstep(0.62, 0.66, 1.0 - clamp(dot(n, viewDir), 0.0, 1.0)) * (1.0 - cel(wrap) * 0.7);
+  // The rim light on the ground is soft too, so it never traces the triangles.
+  float rim = smoothstep(0.55, 0.8, 1.0 - clamp(dot(n, viewDir), 0.0, 1.0)) * (1.0 - cel(wrap) * 0.7);
   c += vec3(1.0, 0.95, 0.92) * rim * 0.22;
   return c;
 }
@@ -533,7 +536,11 @@ void main() {
   // The water and ice fields are clamped so the lines keep an even width.
   float ink = inkLine(min(dot(up, viewDir), 0.25), 0.0, 5.0) * limbInk;
   // No coast line across a river mouth.
-  if (riverF < riverThreshold && !hasIce) ink = max(ink, inkLine(clamp(water, -30.0, 30.0), 0.0, 1.6));
+  // The coast line follows water that is positive in the sea and in a lake alike, so where an
+  // inland sea's lake part meets its sea part (the Black Sea's shelf at low sea levels) no
+  // line is drawn across the water, only at the shore.
+  float shoreW = lakeF > 0.5 ? max(seaW, lakeW) : water;
+  if (riverF < riverThreshold && !hasIce) ink = max(ink, inkLine(clamp(shoreW, -30.0, 30.0), 0.0, 1.6));
   // Pack ice and the ice sheets read as one ice: no line where they meet.
   float iceInk = seaW > 0.0 ? max(iceKm, packKm) : iceKm;
   ink = max(ink, inkLine(clamp(iceInk, -30.0, 30.0), 0.0, 1.6));
