@@ -151,13 +151,27 @@ test('settings and bookmarks survive a reload', async ({ page }) => {
   await expect(page.getByRole('heading', { name: en['about.title'] })).toBeVisible();
   await page.getByRole('button', { name: en['dialog.close'] }).click();
   await page.getByRole('button', { name: en['timeline.expand'] }).click();
+  // The events and bookmarks dialog opens on its events tab (milestone-1 section 8.3);
+  // the fixture map has no tree of humankind, so it has no events.
   await page.getByRole('button', { name: en['menu.bookmarks'] }).click();
+  await expect(page.getByRole('tab', { name: en['events.tab'] })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(page.getByText(en['events.empty']!)).toBeVisible();
+  await page.getByRole('tab', { name: en['bookmarks.tab'] }).click();
   await page.getByRole('button', { name: en['bookmarks.add'] }).click();
-  await expect(page.locator('.bookmark')).toHaveCount(1);
+  const rows = page.locator('.dialog tbody tr');
+  await expect(rows).toHaveCount(1);
+  // The search filters the list by name and region.
+  await page.getByLabel(en['bookmarks.search']!).fill('no such place');
+  await expect(rows).toHaveCount(0);
+  await expect(page.getByText(en['bookmarks.none']!)).toBeVisible();
   await page.reload();
   await expect(page.locator('.overlay')).toHaveCount(0, { timeout: 60_000 });
   await page.getByRole('button', { name: en['menu.bookmarks'] }).click();
-  await expect(page.locator('.bookmark')).toHaveCount(1);
+  await page.getByRole('tab', { name: en['bookmarks.tab'] }).click();
+  await expect(rows).toHaveCount(1);
   await page.getByRole('button', { name: en['dialog.close'] }).click();
   await page.getByRole('button', { name: en['menu.settings'] }).click();
   await expect(page.getByLabel(en['settings.trueTimeScale']!)).toBeChecked();

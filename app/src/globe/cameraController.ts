@@ -129,7 +129,8 @@ export class CameraController {
     return Math.max(this.farKm, maxDistanceKm(this.camera.fov, this.camera.aspect));
   }
 
-  flyTo(target: CameraState, now = performance.now()): void {
+  /** Flies the camera to a view; returns how long the flight takes, in milliseconds. */
+  flyTo(target: CameraState, now = performance.now()): number {
     const from = { ...this.state };
     const a = new THREE.Vector3(...latLonToDir(from.lat, from.lon));
     const b = new THREE.Vector3(...latLonToDir(target.lat, target.lon));
@@ -145,6 +146,7 @@ export class CameraController {
       duration,
       peak,
     };
+    return duration;
   }
 
   /** Whether a fly-to is under way. */

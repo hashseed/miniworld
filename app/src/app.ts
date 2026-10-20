@@ -60,6 +60,8 @@ const DEFAULT_CAMERA: CameraState = {
 };
 const VIEW_SAVE_MS = 2000;
 
+/** Height the camera flies to for an event: a camp and its people in view (milestone-1 section 8.3). */
+const EVENT_ALTITUDE_KM = 1500;
 const isPhone =
   matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 600;
 const deviceId = `${navigator.userAgent}|${screen.width}x${screen.height}@${devicePixelRatio}`;
@@ -106,6 +108,7 @@ const ui = new Store<UiState>({
   version: '',
   cutoffDay: 0,
   sources: [],
+  events: [],
   vignette: undefined,
 });
 
@@ -245,10 +248,9 @@ window.addEventListener('resize', resize);
 
 // --- Timeline -----------------------------------------------------------------------
 
-function regionLane(): string | undefined {
+function regionLane(lat = controller.state.lat, lon = controller.state.lon): string | undefined {
   if (!index) return undefined;
   const r = index.regions;
-  const { lat, lon } = controller.state;
   const cell = 180 / r.rows;
   const col = Math.min(r.cols - 1, Math.max(0, Math.floor((lon + 180) / cell)));
   const row = Math.min(r.rows - 1, Math.max(0, Math.floor((90 - lat) / cell)));
@@ -338,9 +340,8 @@ const actions: Actions = {
   goToBookmark: (id) => {
     const b = ui.value.bookmarks.find((x) => x.id === id);
     if (!b) return;
-    clock.setDay(b.day);
-    controller.flyTo(b.camera);
-    if (isPhone) ui.update({ panel: 'none' });
+    clock.travelToDay(b.day, controller.flyTo(b.camera));
+    ui.update({ panel: 'none' });
   },
   renameBookmark: (id, name) => {
     const trimmed = name.trim().slice(0, 80);
@@ -348,6 +349,25 @@ const actions: Actions = {
     setBookmarks(ui.value.bookmarks.map((b) => (b.id === id ? { ...b, name: trimmed } : b)));
   },
   deleteBookmark: (id) => setBookmarks(ui.value.bookmarks.filter((b) => b.id !== id)),
+  goToEvent: (id) => {
+    const e = ui.value.events.find((x) => x.id === id);
+    if (!e) return;
+    // Straight down onto its place, close enough to see the band or scene (the camera's place
+    // is the point below it, so a tilt would look past it), while history runs there fast.
+    const ms = controller.flyTo({
+      lat: e.lat,
+      lon: e.lon,
+      altitudeKm: EVENT_ALTITUDE_KM,
+      heading: 0,
+      tilt: 0,
+    });
+    clock.travelToDay(e.day, ms);
+    ui.update({ panel: 'none' });
+  },
+  regionOf: (lat, lon) => {
+    const lane = regionLane(lat, lon);
+    return index?.lanes.find((l) => l.id === lane)?.label ?? '';
+  },
   resetCamera: () => controller.resetOrientation(),
   jump: (dir) => clock.jumpWatch(dir * JUMP_SECONDS * 1000),
   followPlayhead: () => timeline?.setFollow(true),
@@ -424,7 +444,7 @@ async function switchLanguage(lang: Settings['language']): Promise<void> {
   if (open && ui.value.panel === 'vignette') void openVignette(open);
   if (ui.value.panel === 'vignette' && ui.value.vignette?.animal && openAnimalGroup !== undefined)
     void openAnimal(openAnimalGroup);
-  ui.update({ sources: next.sources });
+  ui.update({ sources: next.sources, events: next.events });
 }
 
 /** The group whose animal card is open, so a language change can reopen it. */
@@ -491,6 +511,8 @@ attachKeys({
     return true;
   },
   timelineCanvas: () => timeline?.canvas,
+  // The events dialog stands over the globe: keys go to it alone (milestone-1 section 8.3).
+  modal: () => ui.value.panel === 'bookmarks',
 });
 
 // --- Saved view ---------------------------------------------------------------------
@@ -576,6 +598,7 @@ async function start(): Promise<void> {
       version: manifest.version,
       cutoffDay: manifest.cutoffDay,
       sources: index.sources,
+      events: index.events,
     });
     hot.update({
       day: clock.day,

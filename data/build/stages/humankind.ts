@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { join, relative } from 'node:path';
 import { OCEAN_MIN_LEVEL, OCEAN_NEVER } from '../../../app/src/content/formats.ts';
 import { TIMELINE_START } from '../../../app/src/time/calendar.ts';
-import { dayAtWatch } from '../../../app/src/time/rate.ts';
+import { dayAtMs, dayAtWatch } from '../../../app/src/time/rate.ts';
 import {
   areasAt,
   FOUNDER,
@@ -34,6 +34,8 @@ import {
   RACK_R,
   SCRAPE_BACK_M,
   SCRAPE_SIDE_M,
+  BUILD_MS,
+  shownAtMs,
   slotPoint,
 } from '../../../app/src/world/treeScene.ts';
 import {
@@ -140,6 +142,16 @@ const SITES_CODE = [
   'app/src/core/detmath.ts',
 ];
 
+/** An event of the events dialog, named in every language (milestone-1 section 8.3). */
+export interface TreeEvent {
+  id: string;
+  kind: 'migration' | 'crossing' | 'scene';
+  title: Record<'en' | 'de', string>;
+  day: number;
+  lat: number;
+  lon: number;
+}
+
 export function buildHumankind(
   ctx: WriteContext,
   map: WorldMap,
@@ -147,12 +159,12 @@ export function buildHumankind(
   drawn: DrawnGround,
   /** Drawn km per true km at a place, from the history lens (sites.md section 2). */
   widthAt: (lat: number, lon: number) => number = () => 1,
-): { files: TreeFiles; camps: CampPlace[] } {
+): { files: TreeFiles; camps: CampPlace[]; events: TreeEvent[] } {
   const { log, fail } = ctx;
   // The fixture map has no Africa.
   if (ctx.fixture) {
     log('tree of humankind skipped on the fixture map');
-    return { files: undefined, camps: [] };
+    return { files: undefined, camps: [], events: [] };
   }
   const { connection, lakes, rivers, elevation } = map;
   // Water in the source grids or as the globe draws it, whichever reaches further,
@@ -427,7 +439,8 @@ export function buildHumankind(
     if (day >= treeSettings.endDay) break;
     days.push(day);
   }
-  const files = treeChunks(tree, days, treeSettings.endDay).map((chunk, w) =>
+  const chunks = treeChunks(tree, days, treeSettings.endDay);
+  const files = chunks.map((chunk, w) =>
     chunk ? ctx.output.writeJson(`tree/m${w}`, chunk) : null,
   );
   // The sites and links for the development view (sites.md section 7).
@@ -443,7 +456,53 @@ export function buildHumankind(
     ]),
     links: sites.links.map((l) => [l.a, l.b, l.crossing ? 9999 : level(l.level)]),
   });
-  return { files: { files, days, sites: sitesFile }, camps };
+  // The tree's migrations for the events dialog (milestone-1 section 8.3): each arrival point
+  // on the day a band first stood at its site (sites.md section 2.1), there; and each listed
+  // sea crossing's first canoe, where it landed. Passages are walked across, not events.
+  const points = new Map(arrivals.points.map((p) => [p.id, p]));
+  const seas = new Map(crossings.map((c) => [c.id, c]));
+  const events: TreeEvent[] = [];
+  // The day its camp first shows in the scene, built, at a place on the day its band set out
+  // there (shownAtMs): the dialog travels to then, so the camp is in view.
+  const shownDay = (day: number, lat: number, lon: number) => {
+    const l = tree.lodgings.find(
+      (x) => x.built === day && x.lat === Math.round(lat * 1e6) && x.lon === Math.round(lon * 1e6),
+    );
+    let w = 0;
+    while (w + 1 < days.length && days[w + 1]! <= day) w++;
+    const chunk = chunks[w];
+    const ms = l && chunk ? shownAtMs(chunk, TIMELINE_START, l.id) : undefined;
+    return ms === undefined ? day : Math.ceil(dayAtMs(ms + BUILD_MS, TIMELINE_START));
+  };
+  for (const r of treeStats.reached) {
+    const p = points.get(r.leg);
+    if (!p || p.passage || events.some((e) => e.id === `arrival-${p.id}`)) continue;
+    events.push({
+      id: `arrival-${p.id}`,
+      kind: 'migration',
+      title: { en: p.en, de: p.de },
+      day: shownDay(r.day, r.lat, r.lon),
+      lat: r.lat,
+      lon: r.lon,
+    });
+  }
+  for (const x of treeStats.crossed) {
+    const c = seas.get(x.crossing);
+    // Before its listed date the way was dry land (a land bridge), not a canoe trip.
+    if (!c || x.day < dayOfBce(c.bce)) continue;
+    // A crossing that is an arrival point of its own (the Bab-el-Mandeb) is listed once.
+    if (points.has(c.id)) continue;
+    events.push({
+      id: `crossing-${c.id}`,
+      kind: 'crossing',
+      title: { en: c.en, de: c.de },
+      day: shownDay(x.day, x.lat, x.lon),
+      lat: x.lat,
+      lon: x.lon,
+    });
+  }
+  log(`events: ${events.length} migrations and crossings`);
+  return { files: { files, days, sites: sitesFile }, camps, events };
 }
 
 /** Each place a camp stands, from its first lodging built to its last taken down, as the app shows it. */

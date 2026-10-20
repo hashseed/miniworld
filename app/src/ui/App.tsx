@@ -24,6 +24,7 @@ import { JUMP_SECONDS } from '../time/clock.ts';
 import {
   BookmarkIcon,
   CloseIcon,
+  TravelIcon,
   CheetahIcon,
   CircleArrowIcon,
   FastForwardIcon,
@@ -118,7 +119,7 @@ export function App({ store, hot, i18n, actions }: Props) {
       </button>
 
       {s.panel === 'settings' && <SettingsPanel s={s} t={t} actions={actions} />}
-      {s.panel === 'bookmarks' && <BookmarksPanel s={s} t={t} lang={lang} actions={actions} />}
+      {s.panel === 'bookmarks' && <EventsDialog s={s} t={t} lang={lang} actions={actions} />}
       {s.panel === 'about' && <AboutPanel s={s} t={t} lang={lang} actions={actions} />}
       {s.panel === 'vignette' && s.vignette && (
         <VignettePanel card={s.vignette} t={t} lang={lang} actions={actions} />
@@ -463,7 +464,11 @@ function SettingsPanel({ s, t, actions }: { s: UiState; t: T; actions: Actions }
   );
 }
 
-function BookmarksPanel({
+/** Lower case without accents, so a search finds "Göbekli" as "gobekli" (milestone-1 section 8.3). */
+const folded = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+
+/** The events and bookmarks dialog (milestone-1 section 8.3): two tabs, each a searchable list. */
+function EventsDialog({
   s,
   t,
   lang,
@@ -474,75 +479,199 @@ function BookmarksPanel({
   lang: Language;
   actions: Actions;
 }) {
+  const [tab, setTab] = useState<'events' | 'bookmarks'>('events');
+  const [query, setQuery] = useState({ events: '', bookmarks: '' });
   const [editing, setEditing] = useState<string | undefined>(undefined);
   const [draft, setDraft] = useState('');
+  const date = (day: number) =>
+    formatDateReadout(day, lang, { yearsPerMinute: 0, stationary: true });
+  const matches = (q: string, ...texts: string[]) =>
+    !q.trim() || texts.some((x) => folded(x).includes(folded(q.trim())));
+  const events = s.events
+    .map((e) => ({ ...e, region: actions.regionOf(e.lat, e.lon) }))
+    .filter((e) => matches(query.events, e.title, e.region));
+  const bookmarks = [...s.bookmarks]
+    .sort((a, b) => a.day - b.day)
+    .map((b) => ({ ...b, region: actions.regionOf(b.camera.lat, b.camera.lon) }))
+    .filter((b) => matches(query.bookmarks, b.name, b.region));
+  const title = t('events.dialog');
+  const tabs = [
+    ['events', t('events.tab')],
+    ['bookmarks', t('bookmarks.tab')],
+  ] as const;
   return (
-    <PanelFrame title={t('bookmarks.title')} t={t} actions={actions}>
-      <p>
-        <button class="btn" onClick={() => actions.addBookmark()}>
-          <BookmarkIcon />
-          {t('bookmarks.add')}
-        </button>
-      </p>
-      {s.bookmarks.length === 0 && <p>{t('bookmarks.empty')}</p>}
-      {s.bookmarks.map((b) =>
-        editing === b.id ? (
-          <form
-            key={b.id}
-            class="bookmark"
-            onSubmit={(e) => {
-              e.preventDefault();
-              actions.renameBookmark(b.id, draft);
-              setEditing(undefined);
-            }}
+    <div
+      class="dialog-backdrop"
+      onPointerDown={(e) => {
+        if (e.target === e.currentTarget) actions.setPanel('none');
+      }}
+    >
+      <section class="dialog" role="dialog" aria-modal="true" aria-label={title}>
+        <div class="tabs" role="tablist">
+          {tabs.map(([id, label]) => (
+            <button
+              key={id}
+              role="tab"
+              id={`tab-${id}`}
+              aria-selected={tab === id}
+              aria-controls={`tabpanel-${id}`}
+              class={tab === id ? 'tab selected' : 'tab'}
+              onClick={() => setTab(id)}
+            >
+              {label}
+            </button>
+          ))}
+          <button
+            class="btn close"
+            aria-label={t('dialog.close')}
+            title={t('dialog.close')}
+            onClick={() => actions.setPanel('none')}
           >
+            <CloseIcon />
+          </button>
+        </div>
+        <div class="tabpanel" role="tabpanel" id={`tabpanel-${tab}`} aria-labelledby={`tab-${tab}`}>
+          <div class="tools">
             <input
-              type="text"
-              class="name"
-              aria-label={t('bookmarks.name')}
-              value={draft}
-              maxLength={80}
-              onInput={(e) => setDraft((e.target as HTMLInputElement).value)}
-              ref={(el) => el?.focus()}
+              key={tab}
+              type="search"
+              class="search"
+              placeholder={t(tab === 'events' ? 'events.search' : 'bookmarks.search')}
+              aria-label={t(tab === 'events' ? 'events.search' : 'bookmarks.search')}
+              value={query[tab]}
+              onInput={(e) => setQuery({ ...query, [tab]: (e.target as HTMLInputElement).value })}
+              ref={(el) => el?.focus({ preventScroll: true })}
             />
-            <button class="btn" type="submit">
-              {t('bookmarks.save')}
-            </button>
-          </form>
-        ) : (
-          <div key={b.id} class="bookmark">
-            <button
-              class="btn name"
-              aria-label={t('bookmarks.go', { name: b.name })}
-              title={formatDateReadout(b.day, lang, {
-                yearsPerMinute: 0,
-                stationary: true,
-              })}
-              onClick={() => actions.goToBookmark(b.id)}
-            >
-              {b.name}
-            </button>
-            <button
-              class="btn"
-              onClick={() => {
-                setDraft(b.name);
-                setEditing(b.id);
-              }}
-            >
-              {t('bookmarks.rename')}
-            </button>
-            <button
-              class="btn"
-              aria-label={t('bookmarks.delete')}
-              title={t('bookmarks.delete')}
-              onClick={() => actions.deleteBookmark(b.id)}
-            >
-              <CloseIcon />
-            </button>
+            {tab === 'bookmarks' && (
+              <button class="btn" onClick={() => actions.addBookmark()}>
+                <BookmarkIcon />
+                {t('bookmarks.add')}
+              </button>
+            )}
           </div>
-        ),
-      )}
-    </PanelFrame>
+          <div class="rows-scroll">
+            <table class="rows">
+              <thead>
+                <tr>
+                  <th scope="col" class="go">
+                    <span class="visually-hidden">{t('list.go')}</span>
+                  </th>
+                  <th scope="col">{t('list.date')}</th>
+                  <th scope="col">{t('list.name')}</th>
+                  <th scope="col" class="region">
+                    {t('list.region')}
+                  </th>
+                  {tab === 'bookmarks' && <th scope="col" class="actions" />}
+                </tr>
+              </thead>
+              <tbody>
+                {tab === 'events' &&
+                  events.map((e) => (
+                    <tr key={e.id} class="row" onClick={() => actions.goToEvent(e.id)}>
+                      <td class="go">
+                        <button
+                          class="btn"
+                          aria-label={t('events.go', { name: e.title })}
+                          title={t('events.go', { name: e.title })}
+                        >
+                          <TravelIcon />
+                        </button>
+                      </td>
+                      <td class="when">{date(e.day)}</td>
+                      <td class="name">
+                        {e.title}
+                        <span class="sub">{e.region}</span>
+                      </td>
+                      <td class="region">{e.region}</td>
+                    </tr>
+                  ))}
+                {tab === 'bookmarks' &&
+                  bookmarks.map((b) => (
+                    <tr
+                      key={b.id}
+                      class="row"
+                      onClick={() => editing !== b.id && actions.goToBookmark(b.id)}
+                    >
+                      <td class="go">
+                        <button
+                          class="btn"
+                          aria-label={t('bookmarks.go', { name: b.name })}
+                          title={t('bookmarks.go', { name: b.name })}
+                        >
+                          <TravelIcon />
+                        </button>
+                      </td>
+                      <td class="when">{date(b.day)}</td>
+                      <td class="name">
+                        {editing === b.id ? (
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              actions.renameBookmark(b.id, draft);
+                              setEditing(undefined);
+                            }}
+                          >
+                            <input
+                              type="text"
+                              aria-label={t('bookmarks.name')}
+                              value={draft}
+                              maxLength={80}
+                              onInput={(e) => setDraft((e.target as HTMLInputElement).value)}
+                              onClick={(e) => e.stopPropagation()}
+                              ref={(el) => el?.focus()}
+                            />
+                          </form>
+                        ) : (
+                          b.name
+                        )}
+                        <span class="sub">{b.region}</span>
+                      </td>
+                      <td class="region">{b.region}</td>
+                      <td class="actions" onClick={(e) => e.stopPropagation()}>
+                        {editing === b.id ? (
+                          <button
+                            class="btn"
+                            onClick={() => {
+                              actions.renameBookmark(b.id, draft);
+                              setEditing(undefined);
+                            }}
+                          >
+                            {t('bookmarks.save')}
+                          </button>
+                        ) : (
+                          <button
+                            class="btn"
+                            onClick={() => {
+                              setDraft(b.name);
+                              setEditing(b.id);
+                            }}
+                          >
+                            {t('bookmarks.rename')}
+                          </button>
+                        )}
+                        <button
+                          class="btn"
+                          aria-label={t('bookmarks.delete')}
+                          title={t('bookmarks.delete')}
+                          onClick={() => actions.deleteBookmark(b.id)}
+                        >
+                          <CloseIcon />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+            {tab === 'events' && events.length === 0 && (
+              <p class="empty">{t(s.events.length ? 'events.none' : 'events.empty')}</p>
+            )}
+            {tab === 'bookmarks' && bookmarks.length === 0 && (
+              <p class="empty">{t(s.bookmarks.length ? 'bookmarks.none' : 'bookmarks.empty')}</p>
+            )}
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }
 

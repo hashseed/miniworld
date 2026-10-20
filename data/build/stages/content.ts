@@ -5,7 +5,7 @@
 import { join } from 'node:path';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { parse as parseYaml } from 'yaml';
-import type { SourceInfo, StartupIndex } from '../../../app/src/content/types.ts';
+import type { EventEntry, SourceInfo, StartupIndex } from '../../../app/src/content/types.ts';
 import { LANGUAGES, type Language } from '../../../app/src/i18n/messages.ts';
 import { TIMELINE_START } from '../../../app/src/time/calendar.ts';
 import {
@@ -132,6 +132,15 @@ export function buildContent(
   climate: { seaLevel: StartupIndex['seaLevel']; iceDays: number[] },
   wildlife: string[],
   wildlifeCamps: [number, number, number, number][],
+  /** The events of the events dialog, named in every language (milestone-1 section 8.3). */
+  events: {
+    id: string;
+    kind: EventEntry['kind'];
+    title: Record<Language, string>;
+    day: number;
+    lat: number;
+    lon: number;
+  }[] = [],
 ): Record<Language, string> {
   const { output, log } = ctx;
   const sources: SourceInfo[] = ctx.registry
@@ -182,7 +191,9 @@ export function buildContent(
       iceSlices: climate.iceDays,
       regions: grid,
       sources,
-      events: [],
+      events: [...events]
+        .sort((a, b) => a.day - b.day || a.id.localeCompare(b.id))
+        .map((e) => ({ ...e, title: e.title[language] })),
       people: [],
       vignettes: vignetteFiles.map(({ v, structure, text }) => ({
         id: v.structure.id,
