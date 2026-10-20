@@ -112,7 +112,8 @@ export interface SiteInputs {
   /** Drawn km per true km at a place, from the history lens at its fixed strength; 1 without it. */
   widthAt?(lat: number, lon: number): number;
   /** Places that must have a site near them (section 2). */
-  keyPlaces?: { id: string; lat: number; lon: number }[];
+  /** Places that need a site near them; `km` asks for one nearer than KEY_PLACE_KM (an anchor's). */
+  keyPlaces?: { id: string; lat: number; lon: number; km?: number }[];
   /** Rows of latitude to lay sites on, south to north. */
   fromLat?: number;
   toLat?: number;
@@ -375,15 +376,17 @@ export function buildSites(input: SiteInputs): SiteMap {
   const unplaced: string[] = [];
   for (const place of input.keyPlaces ?? []) {
     // A site near it that stays dry at the highest sea, so it can be used in every age.
+    const radius = place.km ?? KEY_PLACE_KM;
     const near = sites.some(
       (x) =>
-        fitOf(x) > input.highestSea &&
-        distanceKm(x.lat, x.lon, place.lat, place.lon) <= KEY_PLACE_KM,
+        fitOf(x) > input.highestSea && distanceKm(x.lat, x.lon, place.lat, place.lon) <= radius,
     );
     if (near) continue;
-    // Within KEY_PLACE_KM, or a little farther where nothing fits nearer.
+    // Within its radius, or farther where nothing fits nearer.
     const site =
-      keySite(sites.length, place, input) ?? keySite(sites.length, place, input, KEY_PLACE_FAR_KM);
+      keySite(sites.length, place, input, radius) ??
+      (radius < KEY_PLACE_KM ? keySite(sites.length, place, input) : undefined) ??
+      keySite(sites.length, place, input, KEY_PLACE_FAR_KM);
     if (site) sites.push(site);
     else unplaced.push(place.id);
   }

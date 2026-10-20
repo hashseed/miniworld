@@ -93,6 +93,13 @@ const ROUTE_NEAR_KM = 1000;
 const ROUTE_HOPS = 80;
 /** A planned leg's target is a site within this far of its arrival point (sites.md section 4). */
 const PLAN_KM = 3000;
+/** A band roams among its site and up to this many more (sites.md section 4). */
+const RANGE_MORE = 3;
+/** A leg waits up to this long for a target within ROUTE_NEAR_KM of its point (sites.md section 4). */
+const LEG_WAIT_DAYS = Math.round(500 * 365.2425);
+/** An anchor's site is within this far of its place, and its band sets off up to 500 years ahead (section 4.1). */
+const ANCHOR_KM = 300;
+const ANCHOR_LEAD_DAYS = Math.round(500 * 365.2425);
 /** Bands change culture at a moment chosen within this many years of a morph (sites.md section 5). */
 const MORPH_YEARS = 100;
 
@@ -148,6 +155,12 @@ export interface TreeSettings {
   voyages?: Voyage[];
   /** Neolithic thresholds, where camps settle and raise a red flag (peopling.md section 3.6). */
   thresholds?: Threshold[];
+  /** Places that must have a band from a day to a day (sites.md section 4.1). */
+  anchors?: Anchor[];
+  /** The culture area holding a place on a day, as an index, for the band caps (sites.md section 4). */
+  areaOf?(lat: number, lon: number, day: Day): number | undefined;
+  /** At most this many bands in that area on that day, or no cap. */
+  maxBands?(lat: number, lon: number, day: Day): number | undefined;
 }
 
 /** A route's arrival point (peopling.md section 4): its way's last point and its day. */
@@ -155,8 +168,19 @@ export interface Voyage {
   id: string;
   /** The route's previous point, whose leg's target is this leg's origin (sites.md section 4). */
   from?: string;
+  /** A way through, not a place to camp: nobody is sent to found a camp near it. */
+  passage?: boolean;
   day: Day;
   way: { lat: number; lon: number }[];
+}
+
+/** A place that must have a band from a day until a day (sites.md section 4.1). */
+export interface Anchor {
+  id: string;
+  day: Day;
+  until: Day;
+  lat: number;
+  lon: number;
 }
 
 /** A Neolithic threshold (peopling.md section 3.6). */
@@ -182,6 +206,10 @@ interface Camp {
   settled: boolean;
   /** The day it takes on its site's new culture, once a morph has come (sites.md section 5). */
   morphAt: Day | undefined;
+  /** Its home range: the sites it roams among, which no other band buds onto (sites.md section 4). */
+  range: Site[];
+  /** An anchor holds it at its site, settled, until this day (sites.md section 4.1). */
+  holdUntil: Day | undefined;
 }
 
 /** A path of sites along links, from the first to the last. */
@@ -510,6 +538,66 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   };
   const homeOf = (f: number) => tree.figures[f]!.homes.at(-1)![1];
 
+  /** Which band holds each site in its home range (sites.md section 4). */
+  const ownerOf = new Map<number, Camp>();
+  /** Whether a site is in another standing band's home range. */
+  const reserved = (site: Site, camp?: Camp) => {
+    const o = ownerOf.get(site.id);
+    return !!o && o !== camp && o.lodgings.length > 0;
+  };
+  /**
+   * A band's home range: its site and up to RANGE_MORE usable sites linked to it within the
+   * roaming distance that no other band holds, nearest first; an anchored band's is its site.
+   */
+  const takeRange = (camp: Camp, day: Day) => {
+    for (const x of camp.range) if (ownerOf.get(x.id) === camp) ownerOf.delete(x.id);
+    const here = camp.site;
+    const more =
+      camp.holdUntil !== undefined && camp.holdUntil >= day
+        ? []
+        : linksOf[here.id]!.filter((l) => !l.crossing && open(l, day))
+            .map((l) => other(l, here))
+            .filter(
+              (x) =>
+                !x.pass &&
+                distanceKm(x.lat, x.lon, here.lat, here.lon) <= MOVE_KM &&
+                !reserved(x, camp) &&
+                usable(x, day),
+            )
+            .sort(
+              (a, b) =>
+                distanceKm(a.lat, a.lon, here.lat, here.lon) -
+                  distanceKm(b.lat, b.lon, here.lat, here.lon) || a.id - b.id,
+            )
+            .slice(0, RANGE_MORE);
+    camp.range = [here, ...more];
+    for (const x of camp.range) ownerOf.set(x.id, camp);
+  };
+  /** Bands standing per culture area on a day, for the caps (sites.md section 4). */
+  let capDay = NaN;
+  const perArea = new Map<number, number>();
+  /** Whether a site's area is full for a band moving into it from elsewhere. */
+  const areaFullFor = (site: Site, day: Day, mover: Camp) => {
+    const k = s.areaOf?.(site.lat, site.lon, day);
+    if (k !== undefined && k === s.areaOf?.(mover.site.lat, mover.site.lon, day)) return false;
+    return areaFull(site, day);
+  };
+  const areaFull = (site: Site, day: Day) => {
+    const cap = s.maxBands?.(site.lat, site.lon, day);
+    if (cap === undefined || !s.areaOf) return false;
+    if (capDay !== day) {
+      capDay = day;
+      perArea.clear();
+      for (const c of camps) {
+        if (c.lodgings.length === 0) continue;
+        const k = s.areaOf(c.site.lat, c.site.lon, day);
+        if (k !== undefined) perArea.set(k, (perArea.get(k) ?? 0) + 1);
+      }
+    }
+    return (perArea.get(s.areaOf(site.lat, site.lon, day) ?? -1) ?? 0) >= cap;
+  };
+  const isHeld = (c: Camp, day: Day) => c.holdUntil !== undefined && c.holdUntil >= day;
+
   const newCamp = (site: Site, day: Day): Camp => {
     const density = {
       ...DENSITIES[s.density(site.lat, site.lon, day) ?? 'low'],
@@ -529,9 +617,13 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       culture: s.culture?.(site.lat, site.lon, day),
       settled: false,
       morphAt: undefined,
+      range: [],
+      holdUntil: undefined,
     };
     camps.push(camp);
     bandAt.set(site.id, camp);
+    takeRange(camp, day);
+    capDay = NaN;
     return camp;
   };
 
@@ -551,6 +643,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       bandAt.set(to.id, camp);
     }
     camp.site = to;
+    if (!camp.range.includes(to)) takeRange(camp, day);
+    capDay = NaN;
     camp.lodgings = [];
     camp.culture = s.culture?.(to.lat, to.lon, day) ?? camp.culture;
     camp.morphAt = undefined;
@@ -611,15 +705,24 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         day,
         salt,
       );
+    // Into a culture area with room under its cap if it can (sites.md section 4), else any.
+    const fits = (site: Site) => usable(site, day, n) && free(site, day, camp);
     const pick = nearestOf(
-      reach(camp.site, day, FLEE_HOPS, (site) => usable(site, day, n) && free(site, day, camp)),
+      reach(camp.site, day, FLEE_HOPS, (site) => fits(site) && !areaFullFor(site, day, camp)),
       21,
     );
     if (pick) {
       relocate(camp, pick.path, day);
       return true;
     }
-    if (join(camp, day) || paddle(camp, day)) return true;
+    // Joining a band nearby comes before moving into an area at its cap.
+    if (join(camp, day)) return true;
+    const intoFull = nearestOf(reach(camp.site, day, FLEE_HOPS, fits), 21);
+    if (intoFull) {
+      relocate(camp, intoFull.path, day);
+      return true;
+    }
+    if (paddle(camp, day)) return true;
     // Last of all, any empty site it can use, even closer to a neighbour than its spacing.
     const crowd = nearestOf(
       reach(camp.site, day, CROWD_HOPS, (site) => usable(site, day, n) && !bandAt.has(site.id)),
@@ -784,6 +887,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
    */
   const voyages = (s.voyages ?? []).map((v) => ({ ...v, done: false, next: v.day }));
   const legById = new Map(voyages.map((v) => [v.id, v]));
+  /** The band each leg founded: the route's own band for its next leg (sites.md section 4). */
+  const legBand = new Map<string, Camp>();
   /** Whether a standing or claimed camp overlaps a site (sites.md section 2). */
   const overlapped = (site: Site) =>
     [...held.values()].some(
@@ -834,8 +939,11 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     let anchor = anchors.get(id);
     if (!anchor) {
       const leg = legById.get(id);
+      const planned = leg && plannedTarget(leg);
       anchor =
-        (leg && plannedTarget(leg)) ??
+        (planned && distanceKm(planned.lat, planned.lon, p.lat, p.lon) <= ROUTE_NEAR_KM
+          ? planned
+          : undefined) ??
         sites.reduce((a, b) =>
           distanceKm(b.lat, b.lon, p.lat, p.lon) < distanceKm(a.lat, a.lon, p.lat, p.lon) ? b : a,
         );
@@ -863,10 +971,36 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     // Keeping the density's spacing where a site allows it, else as near as the route needs.
     const target = options.find((x) => free(x, day)) ?? options[0];
     if (!origin || !target) return undefined;
+    // A target far from the point waits a while for the land near it to open (ice retreating,
+    // the arrival map's front coming), before the route settles for the far one.
+    if (
+      distanceKm(target.lat, target.lon, far.lat, far.lon) > ROUTE_NEAR_KM &&
+      day < v.day + LEG_WAIT_DAYS
+    )
+      return false;
     const leg = reach(origin, day, ROUTE_HOPS, (x) => x === target)[0];
-    if (!leg) return false;
+    if (!leg) {
+      // The origin is cut off from the target today (a land bridge under the sea): the band
+      // nearest the target along open links goes instead.
+      const near = reach(target, day, ROUTE_HOPS, (x) => canSend(bandAt.get(x.id)))[0];
+      if (!near) return false;
+      const group = groupOf(bandAt.get(near.site.id)!, day, 65);
+      if (!group.length) return false;
+      const child = found(group, [...near.path].reverse(), day);
+      moment('voyage', day, group[0]!, child);
+      legBand.set(v.id, child);
+      return true;
+    }
     let toOrigin: Path = [origin];
-    if (!canSend(bandAt.get(origin.id))) {
+    // The route keeps its own band: the one the previous leg founded, wherever it roams now.
+    const own = v.from ? legBand.get(v.from) : undefined;
+    const ownWay =
+      canSend(own) && own.site !== origin
+        ? reach(own.site, day, ROUTE_HOPS, (x) => x === origin)[0]
+        : undefined;
+    if (canSend(own) && own.site === origin) toOrigin = [origin];
+    else if (ownWay) toOrigin = ownWay.path;
+    else if (!canSend(bandAt.get(origin.id))) {
       const src = reach(origin, day, ROUTE_HOPS, (x) => canSend(bandAt.get(x.id)))[0];
       if (!src) return false;
       toOrigin = [...src.path].reverse();
@@ -876,9 +1010,12 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     if (!group.length) return false;
     const child = found(group, [...toOrigin, ...leg.path.slice(1)], day);
     moment('voyage', day, group[0]!, child);
+    legBand.set(v.id, child);
     return true;
   };
   const voyage = (v: Voyage & { next: Day }, day: Day): boolean => {
+    // A passage only opens the way (peopling.md section 4); the next leg walks across it.
+    if (v.passage) return true;
     const far = v.way.at(-1)!;
     const culture = s.culture?.(far.lat, far.lon, day);
     if (
@@ -937,6 +1074,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       if (!group.length) continue;
       const child = found(group, [...src.path].reverse(), day);
       moment('voyage', day, group[0]!, child);
+      legBand.set(v.id, child);
       return true;
     }
     return false;
@@ -946,6 +1084,67 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
    * A Neolithic threshold is reached (peopling.md section 3.6): the camps near it settle,
    * and the nearest camp within reach raises a red flag. False while no camp is near.
    */
+  /**
+   * Anchors (sites.md section 4.1): from ANCHOR_LEAD_DAYS before its day, a band is brought
+   * to the anchor's site and held there, settled, until its end; the build fails when none
+   * stands there on the day.
+   */
+  const anchorList = (s.anchors ?? []).map((a) => ({ ...a, band: undefined as Camp | undefined }));
+  const anchorSites = new Map<string, Site>();
+  const anchorSite = (a: Anchor) => {
+    let site = anchorSites.get(a.id);
+    if (!site) {
+      site = sites
+        .filter(
+          (x) => !x.pass && distanceKm(x.lat, x.lon, a.lat, a.lon) <= ANCHOR_KM && usable(x, a.day),
+        )
+        .sort(
+          (p, q) =>
+            distanceKm(p.lat, p.lon, a.lat, a.lon) - distanceKm(q.lat, q.lon, a.lat, a.lon) ||
+            p.id - q.id,
+        )[0];
+      if (!site)
+        throw new Error(
+          `tree of humankind: anchor ${a.id} has no usable camp site within ${ANCHOR_KM} km`,
+        );
+      anchorSites.set(a.id, site);
+    }
+    return site;
+  };
+  const hold = (a: (typeof anchorList)[number], camp: Camp, day: Day) => {
+    a.band = camp;
+    camp.holdUntil = a.until;
+    takeRange(camp, day);
+  };
+  const anchor = (a: (typeof anchorList)[number], day: Day) => {
+    const site = anchorSite(a);
+    const here = bandAt.get(site.id);
+    if (here && here.lodgings.length > 0) return hold(a, here, day);
+    // A camp whose drawn camp would overlap the site's moves onto it.
+    const near = camps.find(
+      (c) =>
+        c.lodgings.length > 0 &&
+        distanceKm(c.site.lat, c.site.lon, site.lat, site.lon) <
+          (footprintM(site.key) / site.width + footprintM(c.site.key) / c.site.width) *
+            LAYOUT_KM_PER_M,
+    );
+    if (near) {
+      const way = reach(near.site, day, ROUTE_HOPS, (x) => x === site)[0];
+      if (way && usable(site, day, headcount(near))) {
+        relocate(near, way.path, day);
+        return hold(a, near, day);
+      }
+      return;
+    }
+    if (overlapped(site)) return;
+    const src = reach(site, day, ROUTE_HOPS, (x) => canSend(bandAt.get(x.id)))[0];
+    if (!src) return;
+    const group = groupOf(bandAt.get(src.site.id)!, day, 66);
+    if (!group.length) return;
+    const child = found(group, [...src.path].reverse(), day);
+    moment('voyage', day, group[0]!, child);
+    hold(a, child, day);
+  };
   const thresholds = (s.thresholds ?? []).map((t) => ({ ...t, flagged: false }));
   const settle = (t: Threshold, day: Day): boolean => {
     let nearest: Camp | undefined;
@@ -1002,6 +1201,17 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     // Bands following a route set off first, at the step's start, before anyone is born in it.
     for (const v of voyages) if (!v.done && day >= v.day) v.done = voyage(v, day);
     for (const t of thresholds) if (!t.flagged && day >= t.day) t.flagged = settle(t, day);
+    for (const a of anchorList) {
+      if (day < a.day - ANCHOR_LEAD_DAYS || day > a.until) continue;
+      // The held band must still stand at the site: fleeing the sea breaks the anchor.
+      if (a.band && a.band.site !== anchorSite(a) && day >= a.day)
+        throw new Error(`tree of humankind: the band of anchor ${a.id} left its site`);
+      if (!a.band || a.band.lodgings.length === 0) anchor(a, day);
+      if (day >= a.day && !a.band)
+        throw new Error(
+          `tree of humankind: no band could reach anchor ${a.id} by its day; check its date and place`,
+        );
+    }
     // Camps founded during this step wait for the next one.
     const count = camps.length;
     for (let ci = 0; ci < count; ci++) {
@@ -1048,13 +1258,15 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       // The end of a residence window: the band moves along a link, unless it has settled.
       if (day >= camp.nextMove) {
         camp.nextMove = after(day, RESIDENCE_MS + (hash32(camp.id, day, 12) % RESIDENCE_MS));
-        if (!camp.settled) {
+        if (!camp.settled && !isHeld(camp, day)) {
           const n = headcount(camp);
+          // Only among the sites of its home range (sites.md section 4).
           const options = reach(
             camp.site,
             day,
-            1,
+            2,
             (site) =>
+              camp.range.includes(site) &&
               distanceKm(site.lat, site.lon, camp.site.lat, camp.site.lon) <= MOVE_KM &&
               usable(site, day, n) &&
               free(site, day, camp),
@@ -1095,14 +1307,15 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
             moveIn(builder, homeOf(builder), l.id, l.built);
           }
         }
-      } else if (day >= camp.nextBud && !camp.settled) {
+      } else if (day >= camp.nextBud && !camp.settled && !isHeld(camp, day)) {
         // A full camp sends out a small group to the best free site within a few links (section 4.3).
         camp.nextBud = after(day, BUD_MS);
         const options = reach(
           camp.site,
           day,
           BUD_HOPS,
-          (site) => usable(site, day) && free(site, day),
+          // Not into another band's home range, nor a culture area at its cap (sites.md section 4).
+          (site) => usable(site, day) && free(site, day) && !reserved(site) && !areaFull(site, day),
         );
         const pick = best(options, day, 3);
         if (!pick) continue;

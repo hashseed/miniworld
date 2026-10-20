@@ -239,7 +239,8 @@
             [114, -20]
           ]
         }
-      ]
+      ],
+      "maxBands": [[52000, 3]]
     },
     {
       "culture": "first-australians",
@@ -448,7 +449,8 @@
             [60, 60]
           ]
         }
-      ]
+      ],
+      "maxBands": [[45000, 1]]
     },
     {
       "culture": "steppe-beringia-hunter",
@@ -473,7 +475,8 @@
             [-170, 51]
           ]
         }
-      ]
+      ],
+      "maxBands": [[25000, 1]]
     },
     {
       "culture": "first-americans",
@@ -506,7 +509,8 @@
             [-79, 8]
           ]
         }
-      ]
+      ],
+      "maxBands": [[16000, 10]]
     },
     {
       "culture": "first-americans",

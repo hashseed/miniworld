@@ -35,6 +35,11 @@ export interface ArrivalPoint {
   de: string;
   source: string;
   debated?: boolean;
+  /**
+   * A way through, not a place to camp (peopling.md section 4): bands walk across it, over
+   * ice if need be, and nobody has to camp near it (Yang, 2026-10-20).
+   */
+  passage?: boolean;
 }
 
 export interface Arrivals {
@@ -79,7 +84,13 @@ export interface ArrivalMap {
    * 200 km and at both ends of every crossing (peopling.md section 4: the tree follows it).
    */
   /** Each leg of a route to its point, from the previous point of the route (none from Africa). */
-  legs: { id: string; from?: string; day: Day; way: { lat: number; lon: number }[] }[];
+  legs: {
+    id: string;
+    from?: string;
+    day: Day;
+    way: { lat: number; lon: number }[];
+    passage?: boolean;
+  }[];
 }
 
 export const dayOfBce = (bce: number): Day => dayOfYearStart(astronomicalYear(bce, 'BCE'));
@@ -336,7 +347,13 @@ export function arrivalMap(input: ArrivalInputs): ArrivalMap {
             { lat: q.lat, lon: q.lon },
           ];
           fullWays.set(id, full);
-          legs.push({ id, from: prev.id === 'africa' ? undefined : prev.id, day: dq, way: full });
+          legs.push({
+            id,
+            from: prev.id === 'africa' ? undefined : prev.id,
+            day: dq,
+            way: full,
+            passage: q.passage,
+          });
         }
       }
       prev = { ...q, day: dq };

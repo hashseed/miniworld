@@ -1,0 +1,15 @@
+{
+  "description": "Places that must have a band of the tree of humankind from a year on (spec sites.md section 4.1): the build brings the nearest band there and holds it, and fails if it cannot.",
+  "anchors": [
+    {
+      "id": "gobekli-tepe",
+      "bce": 9500,
+      "until": 8000,
+      "lat": 37.223,
+      "lon": 38.922,
+      "en": "Göbekli Tepe: hunter-gatherers raise the stone enclosures",
+      "de": "Göbekli Tepe: Jäger und Sammler errichten die Steinkreise",
+      "source": "Schmidt 2010, Göbekli Tepe – the Stone Age sanctuaries, Documenta Praehistorica 37"
+    }
+  ]
+}
