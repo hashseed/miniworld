@@ -182,6 +182,7 @@ vignettes.onMiss = (x, y) => {
 vignettes.onFly = (lat, lon, altitudeKm) =>
   controller.flyTo({ ...controller.state, lat, lon, altitudeKm });
 controller.reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+foliage.still = controller.reducedMotion;
 // The camera sees the lens through the globe, which swaps in the loaded warp.
 controller.lens = {
   toDrawn: (d) => globe.lens.toDrawn(d),
