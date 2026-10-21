@@ -55,6 +55,8 @@ import type { Obstacle } from '../wildlife/wildlifeLayer.ts';
  */
 const CAVE_CUT_M = 13;
 const CAVE_CUT_DEEP_M = 1.8;
+/** A grave's heap lies this deep (life-size metres) beneath the ground when it has sunk away. */
+const GRAVE_DEPTH_M = 0.75;
 /** Below this share of its depth a cut has no wall; low, so the wall sinks into the ground rather than popping off. */
 const CAVE_WALL_FROM = 0.04;
 /** The cut, and its wall, run this many layout metres behind the painting. */
@@ -390,7 +392,11 @@ export class TreeLayer {
       if (q.rise !== undefined && !cave) {
         // A grave's heap of earth rises out of the ground and sinks back (humankind.md section 8.2).
         const r = q.rise * q.rise * (3 - 2 * q.rise);
-        at.scale.set(km * (0.6 + 0.4 * r), km * Math.max(0.02, r), km * (0.6 + 0.4 * r));
+        // Whole and in shape, it comes up out of the ground and goes back down through it,
+        // never squashed flat (Yang, 2026-10-21: "I would rather have the burial mound sink
+        // through the ground").
+        at.scale.setScalar(km);
+        at.position.addScaledVector(this.dir, -(1 - r) * GRAVE_DEPTH_M * km);
       } else at.scale.setScalar(km);
       if (q.height) at.position.addScaledVector(this.dir, q.height * FIGURE_KM_PER_M);
       // A scene's wall or grave grows in step by step as it is painted or filled (humankind.md section 8.2).

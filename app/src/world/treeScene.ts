@@ -707,7 +707,7 @@ const STAGE_LEAD_MS = Math.round(15_000 / TEMPO);
 const BURIAL_LEAD_MS = Math.round(10_000 / TEMPO);
 /** From the heap's rise: the grave is dug this long, and the dead is laid in at BODY_AFTER_MS. */
 const DIG_MS = 1_500;
-const BODY_AFTER_MS = 8_800;
+const BODY_AFTER_MS = 10_300;
 /** The two diggers fetch the dead, and lift it, this long after the digging, then carry it in. */
 const FETCH_MS = 3_000;
 /** The belongings are added, then the grave covered, in this long after the dead is laid in. */
@@ -716,6 +716,8 @@ const CORPSE_LIFT_MS = 500;
 /** The dead is set down into the grave over this long before it is laid in. */
 const LAY_MS = 1_200;
 const CARRIED_M = 0.9;
+/** The two who carry the dead stand this far (layout metres) before and behind its middle, at its head and feet. */
+const BEARER_HALF_M = 3;
 const STAGE_MS = Math.round(27_000 / TEMPO);
 /**
  * A cave fades in over CAVE_FADE_MS of watching from CAVE_LEAD_MS before its first session,
@@ -1758,13 +1760,23 @@ export function treeScene(
         trip.stay(g!.dig, 'idle', prop);
         trip.legs.push({ start: g!.dig, end: g!.digEnd, clip: 'event', route: [stands[i]!] });
         trip.t = g!.digEnd;
-        trip.go(lying!);
+        // One takes the feet and one the head, in line with the way they carry it, so the
+        // body hangs between them rather than beside or through them.
+        const [bx, bz] = [prop.x - lying!.x, prop.z - lying!.z];
+        const bl = Math.sqrt(bx * bx + bz * bz) || 1;
+        const sign = i === 0 ? -1 : 1;
+        const end = (c: Pt): Pt => ({
+          x: c.x + (sign * BEARER_HALF_M * bx) / bl,
+          z: c.z + (sign * BEARER_HALF_M * bz) / bl,
+        });
+        trip.go(end(lying!));
         if (trip.t > g!.carry - CORPSE_LIFT_MS) continue;
-        trip.stay(g!.carry, 'idle', { x: 0, z: 0 });
-        trip.go(stands[i]!, 'carry');
+        trip.stay(g!.carry, 'idle', prop);
+        trip.go(end(prop), 'carry');
         if (trip.t > g!.body - LAY_MS) continue;
         trip.stay(g!.body, 'idle', prop);
-        trip.legs.push({ start: g!.body, end: session.stop, clip: 'event', route: [stands[i]!] });
+        trip.go(stands[i]!);
+        trip.legs.push({ start: trip.t, end: session.stop, clip: 'event', route: [stands[i]!] });
         trip.t = session.stop;
       } else {
         trip.stay(session.begin, 'idle', prop);

@@ -813,6 +813,16 @@ describe('scenes at anchors (section 8.2)', () => {
     );
     expect(carried?.clip).toBe('lie');
     expect(carried?.lift).toBeGreaterThan(0.2);
+    // The bearers hold its feet and its head: well clear of the body, one each side of it.
+    const bearers = treeScene(whole, lostAt - 1_800, settings.startDay).figures.filter(
+      (f) => f.clip === 'carry',
+    );
+    expect(bearers.length).toBe(2);
+    for (const f of bearers)
+      expect(Math.hypot(f.x - carried!.x, f.z - carried!.z)).toBeGreaterThan(2);
+    expect(
+      Math.hypot(bearers[0]!.x - bearers[1]!.x, bearers[0]!.z - bearers[1]!.z),
+    ).toBeGreaterThan(5);
     expect(propAt(whole, q.begin - 1)).toBeUndefined();
     const mid = Math.round((q.begin + q.stop) / 2);
     const scene = treeScene(whole, mid, settings.startDay);
