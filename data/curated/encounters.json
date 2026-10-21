@@ -1,35 +1,4 @@
 {
-  "description": "Encounters (spec sites.md, section 4.3): parties of several bands that travel to one place, stay a while together and go home. The gathering at Göbekli Tepe (Yang, 2026-10-21, issue 132).",
-  "encounters": [
-    {
-      "id": "gobekli-gathering",
-      "kind": "gathering",
-      "bce": 9500,
-      "stay": 400,
-      "lat": 37.223,
-      "lon": 38.922,
-      "host": "gobekli-tepe",
-      "roles": [
-        {
-          "id": "aleppo",
-          "lat": 36.3,
-          "lon": 37.3,
-          "km": 1500,
-          "people": 2
-        },
-        {
-          "id": "harran",
-          "lat": 37.1,
-          "lon": 40.2,
-          "km": 1500,
-          "people": 2
-        }
-      ],
-      "en": "Two neighbouring bands come to Göbekli Tepe to raise the stone ring and celebrate it, and again 900 years later to fill it with earth",
-      "de": "Zwei benachbarte Gruppen kommen nach Göbekli Tepe, um den Steinkreis zu errichten und zu feiern, und 900 Jahre später, um ihn mit Erde zu füllen",
-      "source": "Schmidt 2010, Göbekli Tepe – the Stone Age sanctuaries, Documenta Praehistorica 37",
-      "every": 900,
-      "until": 8600
-    }
-  ]
+  "description": "Encounters (spec sites.md, section 4.3): parties of several bands that travel to one place, stay a while together and go home. None are set now: the gathering at Göbekli Tepe is the camps round the monument walking there themselves (humankind.md section 8.2).",
+  "encounters": []
 }

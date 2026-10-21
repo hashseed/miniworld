@@ -131,7 +131,7 @@ export interface SiteInputs {
     lon: number;
     km?: number;
     sea?: number;
-    /** Its own flood levels for a camp, where the drawn rivers must not spoil a site (an anchor's `dryland`). */
+    /** Its own flood levels for a camp, where the drawn rivers must not spoil a site. */
     flood?(lat: number, lon: number): number;
   }[];
   /** The height of the ground at a point, in metres, for a site's relief; flat without it. */

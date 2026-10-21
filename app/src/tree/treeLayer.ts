@@ -658,7 +658,7 @@ export class TreeLayer {
       .addScaledVector(east, q.x * LAYOUT_KM_PER_M)
       .addScaledVector(north, q.z * LAYOUT_KM_PER_M)
       .normalize();
-    const plateau = Math.min(1, (q.built ?? 0) * 5, (q.rise ?? 0) * 5);
+    const plateau = Math.min(1, (q.rise ?? 0) * 5);
     if (plateau <= 0) return;
     this.hills.push({
       centre: [centre.x, centre.y, centre.z],

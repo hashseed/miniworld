@@ -284,6 +284,11 @@ const GRAZE_FIRST_MS = Math.round(1500 / TEMPO);
 const ROAM_MS = Math.round(30_000 / TEMPO);
 /** A hunted animal keeps this far from another camp's hearth, where its people are (layout m). */
 const OTHER_CAMP_M = 25;
+/** A monument's visitors come from camps within this many layout metres: up to two camps, two people each. */
+export const VISIT_M = 60;
+const VISIT_SLACK_MS = 8000;
+const VISIT_CAMPS = 2;
+const VISIT_PEOPLE = 2;
 /**
  * The survivors scatter to their own spots aside, stand there looking back for this long and
  * more by hash, and fade one by one (Yang, 2026-10-19: they should not fade right away).
@@ -624,20 +629,18 @@ export const STAGE_BEYOND_M = [12, 10, 8];
 /** A cave's hill stands further out, so its watchers are clear of the lodging in front of it. */
 export const CAVE_BEYOND_M = [12, 10, 8];
 /** A monument stands further out still: its ring is 11 metres across and its dancers round it. */
-export const MONUMENT_BEYOND_M = [10, 9, 8];
-/**
- * A monument is raised in this many sessions, danced round in as many, and, at the end of its
- * five hundred years of sinking, filled with earth in the last few (humankind.md section 8.2).
- */
+export const MONUMENT_BEYOND_M = [15, 14, 13];
+/** A monument is raised in this many sessions and danced round in as many (humankind.md section 8.2). */
 export const MONUMENT_BUILD_SESSIONS = 6;
 export const MONUMENT_DANCE_SESSIONS = 6;
-export const MONUMENT_FILL_SESSIONS = 4;
 /** Its first session falls this many windows after the anchor's day, the guests having walked there. */
-export const MONUMENT_LEAD_WINDOWS = 6;
-/** The ring sinks into the ground over its last 500 years, linearly with the date, and is filled in at the start of it. */
+export const MONUMENT_LEAD_WINDOWS = 4;
+/** The ring sinks into the ground by itself over its last 500 years, linearly with the date. */
 export const MONUMENT_SINK_DAYS = Math.round(500 * 365.2425);
 /** The monument's model is drawn at this share of the scene's size: a small enclosure. */
 export const MONUMENT_SCALE = 0.48;
+/** Layout metres in one of the ring's own metres: a figure's metre is three layout metres. */
+const MONUMENT_M = MONUMENT_SCALE * 3;
 /** The model's own metres: the rings the walkers go round by, outside the wall and inside it. */
 const MONUMENT_OUT_R = 7.6;
 const MONUMENT_IN_R = 2.6;
@@ -683,24 +686,39 @@ export function stageSpots(camp: number, slot: number, beyond: number) {
 
 /** A monument's session needs at least this many people (humankind.md section 8.2). */
 export const MONUMENT_MIN = 3;
+/** At most this many people at a session, and the pause between one setting out and the next. */
+export const MONUMENT_MAX = 6;
+/** The host camp takes at most this many places at a monument session; its visitors take the rest. */
+const MONUMENT_HOST = 3;
+const MONUMENT_LAG_MS = 500;
+/** People at a monument stand at least this far apart, in the model's metres (1.4 layout metres). */
+const MONUMENT_APART = 3;
 
 /**
  * The way from the camp's side of a monument to a place at it, in the model's metres: round
  * the outside of the wall at a safe distance, or, for a place inside, in by the gate on the
  * camp's side, then round the inside, never through the wall; a step each 30 degrees.
  */
-function monumentPath(to: Pt, prop: Pt, at: (back: number, side: number) => Pt, k: number): Pt[] {
-  const [dx, dz] = [(to.x - prop.x) / (k * MONUMENT_SCALE), (to.z - prop.z) / (k * MONUMENT_SCALE)];
+function monumentPath(
+  to: Pt,
+  prop: Pt,
+  at: (back: number, side: number) => Pt,
+  k: number,
+  who: number,
+): Pt[] {
+  const [dx, dz] = [(to.x - prop.x) / (k * MONUMENT_M), (to.z - prop.z) / (k * MONUMENT_M)];
   const [back, side] = [at(1, 0), at(0, 1)];
   const [bx, bz] = [(back.x - prop.x) / k, (back.z - prop.z) / k];
   const [sx, sz] = [(side.x - prop.x) / k, (side.z - prop.z) / k];
   // The angle from the camp's side, and the point on a ring of a radius at an angle.
   const a = detAtan2(dx * sx + dz * sz, dx * bx + dz * bz);
   const onRing = (ang: number, rad: number) =>
-    at(rad * MONUMENT_SCALE * detCos(ang), rad * MONUMENT_SCALE * detSin(ang));
+    at(rad * MONUMENT_M * detCos(ang), rad * MONUMENT_M * detSin(ang));
   const inside = Math.sqrt(dx * dx + dz * dz) < 5;
-  const rad = inside ? MONUMENT_IN_R : MONUMENT_OUT_R;
-  const path = inside ? [onRing(0, MONUMENT_OUT_R), onRing(0, MONUMENT_IN_R)] : [];
+  // Each goes round at its own distance from the wall, so they do not walk in a clump.
+  const off = ((who * 7) % 5) - 2;
+  const rad = inside ? MONUMENT_IN_R + 0.3 * off : MONUMENT_OUT_R + 0.45 * off;
+  const path = inside ? [onRing(0, MONUMENT_OUT_R), onRing(0, MONUMENT_IN_R + 0.3 * off)] : [];
   const n = Math.max(1, Math.ceil(Math.abs(a) / (Math.PI / 6)));
   for (let j = 1; j <= n; j++) path.push(onRing((a * j) / n, rad));
   return path;
@@ -717,7 +735,6 @@ function monumentStands(at: (back: number, side: number) => Pt, session: number)
   const ell = (a: number, f: number): [number, number] => [detSin(a) * 5.5 * f, detCos(a) * 5 * f];
   const pillar = (i: number) => ((i + 0.5) / 8) * Math.PI * 2;
   const spots: [number, number][] = [];
-  const BUILD = MONUMENT_BUILD_SESSIONS;
   if (session === 0) {
     // The floor: laid across.
     for (let i = 0; i < 5; i++) spots.push(ell(1 + (i * 2 * Math.PI) / 5, i % 2 ? 0.25 : 0.62));
@@ -736,7 +753,7 @@ function monumentStands(at: (back: number, side: number) => Pt, session: number)
     // Their arms and the reliefs on the ring pillars, among the pillars.
     for (const i of [0, 2, 4, 6]) spots.push(ell(pillar(i), 0.72));
     spots.push([1.4, -1.8]);
-  } else if (session < BUILD + MONUMENT_DANCE_SESSIONS) {
+  } else {
     // Dancers in two rings, inside and outside, handed out alternately so a small party
     // still makes two rings.
     const ring = (n: number, r: number) =>
@@ -744,15 +761,36 @@ function monumentStands(at: (back: number, side: number) => Pt, session: number)
         const a = ((k + 0.5) / n) * 2 * Math.PI;
         return [detSin(a) * r, detCos(a) * r];
       });
-    const inner = ring(3, 2.1);
-    const outer = ring(4, 3.5);
+    const inner = ring(3, 3.0);
+    const outer = ring(4, 3.9);
     outer.forEach((q, k) => spots.push(q, ...(k < inner.length ? [inner[k]!] : [])));
-  } else {
-    // The earth carried in over the wall, from all round it, the carriers moving on each time.
-    const turn = (session - BUILD - MONUMENT_DANCE_SESSIONS) * 0.55;
-    for (let i = 0; i < 6; i++) spots.push(ell(turn + 0.7 + (i * (2 * Math.PI - 1.4)) / 5, 1.3));
   }
-  return spots.map(([x, z]) => at(z * MONUMENT_SCALE, x * MONUMENT_SCALE));
+  // Pushed apart until nobody stands against another, each keeping to the floor inside the
+  // wall or to the ground round the outside of it; the model's +X lies on the other side of
+  // the camp's axis from the layout's sides.
+  const placed = spots.slice(0, MONUMENT_MAX);
+  const within = placed.map((q) => Math.sqrt(q[0] * q[0] + q[1] * q[1]) < 5);
+  for (let round = 0; round < 40; round++) {
+    for (const [i, a] of placed.entries())
+      for (const b of placed.slice(i + 1)) {
+        const [dx, dz] = [b[0] - a[0], b[1] - a[1]];
+        const d = Math.sqrt(dx * dx + dz * dz);
+        if (d >= MONUMENT_APART) continue;
+        const [ux, uz] = d < 1e-6 ? [detSin(i + 1), detCos(i + 1)] : [dx / d, dz / d];
+        const push = (MONUMENT_APART - d) / 2;
+        a[0] -= ux * push;
+        a[1] -= uz * push;
+        b[0] += ux * push;
+        b[1] += uz * push;
+      }
+    for (const [i, q] of placed.entries()) {
+      const r = Math.sqrt(q[0] * q[0] + q[1] * q[1]) || 1e-6;
+      const into = Math.min(Math.max(r, within[i]! ? 0.6 : 6.4), within[i]! ? 4.3 : 9.5);
+      q[0] *= into / r;
+      q[1] *= into / r;
+    }
+  }
+  return placed.map(([x, z]) => at(z * MONUMENT_M, -x * MONUMENT_M));
 }
 
 /** Where the people of a scene stand: the painter and two watchers, or two diggers and the mourners. */
@@ -793,7 +831,7 @@ export function stagePoints(
     for (const r of [MONUMENT_IN_R, 5, MONUMENT_OUT_R, MONUMENT_OUT_R + 1.5])
       for (let k = 0; k < 16; k++) {
         const a = (k / 16) * 2 * Math.PI;
-        out.push(at(r * MONUMENT_SCALE * detCos(a), r * MONUMENT_SCALE * detSin(a)));
+        out.push(at(r * MONUMENT_M * detCos(a), r * MONUMENT_M * detSin(a)));
       }
     out.push(gap);
     return out;
@@ -840,8 +878,8 @@ const CARRIED_M = 0.9;
 const BEARER_HALF_M = 3;
 const STAGE_MS = Math.round(27_000 / TEMPO);
 /** A monument's inner ring is further to walk to, so its people come later and work a little shorter. */
-const MONUMENT_LEAD_MS = Math.round(21_000 / TEMPO);
-const MONUMENT_STAGE_MS = Math.round(15_000 / TEMPO);
+const MONUMENT_LEAD_MS = Math.round(26_000 / TEMPO);
+const MONUMENT_STAGE_MS = Math.round(12_000 / TEMPO);
 /**
  * A cave fades in over CAVE_FADE_MS of watching from CAVE_LEAD_MS before its first session,
  * and out over CAVE_FADE_MS from CAVE_LINGER_MS after its last; a closed grave fades into the
@@ -903,19 +941,10 @@ export function stageSessions(
     stage.kind === 'cave-painting'
       ? Array.from({ length: PAINT_SESSIONS }, (_, k) => w0 + 2 * k)
       : stage.kind === 'monument'
-        ? [
-            ...Array.from(
-              { length: MONUMENT_BUILD_SESSIONS + MONUMENT_DANCE_SESSIONS },
-              (_, k) => w0 + MONUMENT_LEAD_WINDOWS + k,
-            ),
-            ...Array.from(
-              { length: MONUMENT_FILL_SESSIONS },
-              (_, k) =>
-                Math.ceil((msAtDay(stage.until - MONUMENT_SINK_DAYS, startDay) + shift) / TURN_MS) +
-                MONUMENT_LEAD_WINDOWS +
-                k,
-            ),
-          ]
+        ? Array.from(
+            { length: MONUMENT_BUILD_SESSIONS + MONUMENT_DANCE_SESSIONS },
+            (_, k) => w0 + MONUMENT_LEAD_WINDOWS + k,
+          )
         : [w0 + 1];
   return ws
     .map((w) => {
@@ -1307,6 +1336,8 @@ interface Memo {
   hunts: Map<string, Hunt | undefined>;
   events: Map<string, CampEvent | undefined>;
   crossings: Map<string, unknown>;
+  sessions: Map<TreeStage, ReturnType<typeof stageSessions>>;
+  visits: Map<string, CampEvent[]>;
   /** The stay at its site each lodging belongs to (setPlaces). */
   stayOf: Map<number, string>;
 }
@@ -1337,6 +1368,8 @@ function memoOf(chunk: TreeChunk, startDay: Day): Memo {
       hunts: new Map(),
       events: new Map(),
       crossings: new Map(),
+      sessions: new Map(),
+      visits: new Map(),
       stayOf: new Map(),
     };
     memos.set(chunk, m);
@@ -1490,7 +1523,7 @@ export function treeScene(
     const spot = lodgingSpot(l);
     const down = takeDown(l);
     // A drying rack stands behind some lodgings while they are up (section 8.1).
-    if (ms >= shown + BUILD_MS && ms < down && hasRack(l.camp, l.slot)) {
+    if (ms >= shown + BUILD_MS && ms < down && rackOnLand(l)) {
       const rack = rackSpot(l);
       scene.props.push({
         id: `rack:${l.id}`,
@@ -1577,17 +1610,12 @@ export function treeScene(
     } else if (stage.kind === 'monument') {
       if (!sessions.length) continue;
       // Raised session by session, it stands for a thousand years; in the last five hundred
-      // it is filled with earth, session by session, while it sinks into the ground,
-      // linearly with the date (section 8.2).
+      // it sinks into the ground by itself, linearly with the date (section 8.2).
       const part = (q: { begin: number; stop: number }) =>
         Math.min(1, Math.max(0, (ms - q.begin) / (q.stop - q.begin)));
-      const worked = [
-        ...sessions.slice(0, MONUMENT_BUILD_SESSIONS),
-        ...sessions.slice(MONUMENT_BUILD_SESSIONS + MONUMENT_DANCE_SESSIONS),
-      ];
       built =
-        worked.reduce((n, q) => n + part(q), 0) /
-        (MONUMENT_BUILD_SESSIONS + MONUMENT_FILL_SESSIONS);
+        sessions.slice(0, MONUMENT_BUILD_SESSIONS).reduce((n, q) => n + part(q), 0) /
+        MONUMENT_BUILD_SESSIONS;
       const sinks = stage.until - MONUMENT_SINK_DAYS;
       rise = Math.min(1, Math.max(0, (stage.until - dayAtMs(ms, startDay)) / MONUMENT_SINK_DAYS));
       if (dayAtMs(ms, startDay) <= sinks) rise = 1;
@@ -1895,9 +1923,19 @@ export function treeScene(
     const grown = members.filter((m) => lookOf(m.f.id) !== 'child');
     const others = members.filter((m) => lookOf(m.f.id) === 'child');
     // Grown-ups first: the painter, or the two who dig.
-    const cast = [...grown, ...others];
     const paint = stage.kind === 'cave-painting';
     const monument = stage.kind === 'monument';
+    let cast = [...grown, ...others];
+    if (monument) {
+      // One person from each lodging in turn, so the parties of the neighbouring bands take
+      // part beside the host's people, whoever's lodging has the most.
+      const byLodging = new Map<number, Stay[]>();
+      for (const m of cast) byLodging.set(m.home.id, [...(byLodging.get(m.home.id) ?? []), m]);
+      const turns = [...byLodging.values()];
+      cast = [];
+      for (let r = 0; cast.length < members.length; r++)
+        for (const q of turns) if (r < q.length) cast.push(q[r]!);
+    }
     const sessions = stageSessions(stage, startDay);
     const session = sessions.find((q) => q.w === w)!;
     // A monument is raised in its first sessions, danced round in the next and filled in at the end.
@@ -1907,16 +1945,16 @@ export function treeScene(
       nth >= MONUMENT_BUILD_SESSIONS &&
       nth < MONUMENT_BUILD_SESSIONS + MONUMENT_DANCE_SESSIONS;
     // A grown-up paints or digs where there is one, else a child: children made hand stencils too.
-    if (cast.length < (paint ? 1 : monument ? MONUMENT_MIN : 2)) return undefined;
+    if (cast.length < (paint ? 1 : monument ? 1 : 2)) return undefined;
     const stands = stageStands(stage.camp, stage.slot, stage.beyond, stage.kind, nth);
     const { prop, gap, door, at } = stageSpots(stage.camp, stage.slot, stage.beyond);
     const k = stageScale(stage.camp);
     // Into a cave by its mouth, never through the rock; to a monument round its wall and,
     // for the inner ring, in by the gate on the camp's side.
-    const mono = (to: Pt) => monumentPath(to, prop, at, k);
-    const way = (trip: Itinerary, to: Pt) => {
+    const mono = (to: Pt, who: number) => monumentPath(to, prop, at, k, who);
+    const way = (trip: Itinerary, to: Pt, who: number) => {
       trip.go(gap);
-      if (monument) for (const q of mono(to)) trip.go(q);
+      if (monument) for (const q of mono(to, who)) trip.go(q);
       return paint ? trip.go(door) : trip;
     };
     // The two who dig first carry the dead from where it lies by the fire (section 8.2).
@@ -1931,8 +1969,14 @@ export function treeScene(
     let end = start;
     for (const m of cast) {
       const i = chosen.length;
-      if (i === stands.length) break;
-      const trip = way(new Itinerary(start, m.spot, m.home.camp), stands[i]!).go(stands[i]!);
+      if (i === (monument ? MONUMENT_HOST : stands.length)) break;
+      // At a monument each sets out a moment after the one before, so they do not bunch.
+      const lag = monument ? i * MONUMENT_LAG_MS : 0;
+      const trip = way(
+        new Itinerary(start, m.spot, m.home.camp).stay(start + lag, 'rest'),
+        stands[i]!,
+        i,
+      ).go(stands[i]!);
       if (trip.t > session.begin) continue;
       if (burial && i < 2) {
         // The two who dig: dig the grave, fetch the dead and carry it in, then add the
@@ -1970,14 +2014,17 @@ export function treeScene(
       }
       trip.at = stands[i]!;
       if (paint) trip.go(door);
-      if (monument) for (const q of mono(stands[i]!).reverse()) trip.go(q);
+      if (monument) {
+        trip.stay(session.stop, 'idle', prop);
+        for (const q of mono(stands[i]!, i).reverse()) trip.go(q);
+      }
       trip.go(gap).go(m.spot);
       if (trip.t > until || trip.t > m.busy) continue;
       chosen.push(m);
       legs.set(m.f.id, trip.legs);
       end = Math.max(end, trip.t);
     }
-    if (chosen.length < (paint ? 1 : monument ? MONUMENT_MIN : 2)) return undefined;
+    if (chosen.length < (paint ? 1 : monument ? 1 : 2)) return undefined;
     return {
       id: `${stage.id}:${w}`,
       kind: paint ? 'paint' : monument ? (dance ? 'celebrate' : 'raise') : 'burial',
@@ -1993,6 +2040,164 @@ export function treeScene(
       stands: stands.slice(0, chosen.length),
       face: prop,
     } satisfies CampEvent;
+  }
+
+  /** A place's offset from another's in layout metres, east and north. */
+  function offsetM(from: { lat: number; lon: number }, to: { lat: number; lon: number }): Pt {
+    const mid = (deg(from.lat) + deg(to.lat)) / 2;
+    return {
+      x: ((deg(to.lon) - deg(from.lon)) * 111.2 * detCos(mid * RAD)) / LAYOUT_KM_PER_M,
+      z: ((deg(to.lat) - deg(from.lat)) * 111.2) / LAYOUT_KM_PER_M,
+    };
+  }
+
+  /** A monument's sessions, kept: they are asked for again and again. */
+  function sessionsOf(stage: TreeStage) {
+    let list = memo.sessions.get(stage);
+    if (!list) memo.sessions.set(stage, (list = stageSessions(stage, startDay)));
+    return list;
+  }
+
+  /**
+   * The people of the camps round a monument who come to a session (humankind.md section
+   * 8.2): from the nearest camps standing then, a few each, they set out from their own
+   * hearths, walk there by the gate side of the ring and, when it is over, home again. They
+   * take the places the host's people leave. Worked out in each visiting camp's own frame.
+   */
+  function visitorEvents(
+    stage: TreeStage,
+    session: { w: number; start: number; begin: number; stop: number },
+  ): CampEvent[] {
+    const key = `${stage.id}:${session.w}`;
+    const known = memo.visits.get(key);
+    if (known) return known;
+    memo.visits.set(key, []);
+    const [start, until] = [session.start, session.start + TURN_MS + VISIT_SLACK_MS];
+    const sessions = sessionsOf(stage);
+    const nth = sessions.findIndex((q) => q.w === session.w);
+    const hostKey = `${stage.camp}:${stage.lat}:${stage.lon}:${session.w}`;
+    if (!events.has(hostKey)) events.set(hostKey, stageEvent(stage, session.w, start, until));
+    const taken = events.get(hostKey)?.members.length ?? 0;
+    const stands = stageStands(stage.camp, stage.slot, stage.beyond, stage.kind, nth);
+    const { prop, gap, at } = stageSpots(stage.camp, stage.slot, stage.beyond);
+    const k = stageScale(stage.camp);
+    // The camps standing through the session within reach, the nearest first.
+    const camps = new Map<string, { off: Pt; d: number; lat: number; lon: number; camp: number }>();
+    for (const l of lodgings.values()) {
+      if (l.camp === stage.camp && l.lat === stage.lat && l.lon === stage.lon) continue;
+      if (
+        msAtDay(l.built, startDay) > start ||
+        (l.gone !== NEVER && msAtDay(l.gone, startDay) <= until)
+      )
+        continue;
+      const off = offsetM(stage, l);
+      const d = Math.sqrt(off.x * off.x + off.z * off.z);
+      if (d > VISIT_M || d < 1) continue;
+      camps.set(`${l.camp}:${l.lat}:${l.lon}`, { off, d, lat: l.lat, lon: l.lon, camp: l.camp });
+    }
+    const pools = [...camps.values()]
+      .sort((a, b) => a.d - b.d)
+      .slice(0, VISIT_CAMPS)
+      .map((c) => ({
+        c,
+        people: mates(c.camp)
+          .map((g) => stayAt(g, start))
+          .filter(
+            (g): g is Stay =>
+              !!g &&
+              g.home.camp === c.camp &&
+              g.home.lat === c.lat &&
+              g.home.lon === c.lon &&
+              g.free <= start &&
+              g.busy >= until &&
+              huntsOf(g, start, until).length === 0 &&
+              [session.w - 1, session.w, session.w + 1].every((x) => {
+                const ev = eventOf(g, x);
+                return !ev || !ev.members.includes(g.f.id) || ev.end <= start || ev.start >= until;
+              }),
+          )
+          .sort((a, b) => Number(lookOf(a.f.id) === 'child') - Number(lookOf(b.f.id) === 'child'))
+          .slice(0, VISIT_PEOPLE),
+      }));
+    const dance = nth >= MONUMENT_BUILD_SESSIONS;
+    const made = new Map<string, CampEvent>();
+    let n = taken;
+    for (let r = 0; r < VISIT_PEOPLE; r++)
+      for (const { c, people } of pools) {
+        const m = people[r];
+        if (!m || n >= stands.length) continue;
+        const i = n;
+        const to = { x: stands[i]!.x, z: stands[i]!.z };
+        const lag = i * MONUMENT_LAG_MS;
+        const home = { x: m.spot.x + c.off.x, z: m.spot.z + c.off.z };
+        const trip = new Itinerary(start, home, stage.camp).stay(start + lag, 'rest');
+        trip.go(gap);
+        for (const q of monumentPath(to, prop, at, k, i)) trip.go(q);
+        trip.go(to);
+        if (trip.t > session.begin) continue;
+        trip.stay(session.begin, 'idle', prop);
+        trip.legs.push({ start: session.begin, end: session.stop, clip: 'event', route: [to] });
+        trip.t = session.stop;
+        trip.at = to;
+        trip.stay(session.stop + lag, 'idle', prop);
+        for (const q of monumentPath(to, prop, at, k, i).reverse()) trip.go(q);
+        trip.go(gap).go(home);
+        if (trip.t > until) continue;
+        n++;
+        const key2 = `${c.camp}:${c.lat}:${c.lon}`;
+        let ev = made.get(key2);
+        if (!ev) {
+          ev = {
+            id: `${stage.id}:${session.w}:${key2}`,
+            kind: dance ? 'celebrate' : 'raise',
+            camp: c.camp,
+            members: [],
+            a0: 0,
+            r: 0,
+            start,
+            begin: session.begin,
+            stop: session.stop,
+            end: start,
+            legs: new Map(),
+            stands: [],
+            face: { x: prop.x - c.off.x, z: prop.z - c.off.z },
+          };
+          made.set(key2, ev);
+        }
+        const back = (p: Pt): Pt => ({ x: p.x - c.off.x, z: p.z - c.off.z });
+        ev.members.push(m.f.id);
+        ev.stands!.push(back(to));
+        ev.legs.set(
+          m.f.id,
+          trip.legs.map((l) => ({
+            ...l,
+            route: l.route.map(back),
+            ...(l.face ? { face: back(l.face) } : {}),
+          })),
+        );
+        ev.end = Math.max(ev.end, trip.t);
+      }
+    const out = [...made.values()];
+    memo.visits.set(key, out);
+    return out;
+  }
+
+  /** The visits to a monument that a figure of another camp makes in a span. */
+  function visitsOf(st: Stay, from: number, to: number): CampEvent[] {
+    const out: CampEvent[] = [];
+    for (const stage of chunk.stages ?? []) {
+      if (stage.kind !== 'monument') continue;
+      if (st.home.camp === stage.camp && st.home.lat === stage.lat && st.home.lon === stage.lon)
+        continue;
+      const off = offsetM(stage, st.home);
+      if (off.x * off.x + off.z * off.z > VISIT_M * VISIT_M) continue;
+      for (const q of sessionsOf(stage)) {
+        if (q.start >= to || q.start + 2 * TURN_MS <= from) continue;
+        for (const ev of visitorEvents(stage, q))
+          if (ev.members.includes(st.f.id) && ev.start < to && ev.end > from) out.push(ev);
+      }
+    }
+    return out;
   }
 
   /** Everyone walks to their place on the ring, plays or dances, and walks back. */
@@ -2051,6 +2256,7 @@ export function treeScene(
       const ev = eventOf(st, w);
       if (ev && ev.members.includes(st.f.id) && ev.start < to && ev.end > from) out.push(ev);
     }
+    out.push(...visitsOf(st, from, to));
     return out;
   }
 
@@ -2232,8 +2438,7 @@ export function treeScene(
     let go: Outing = sure === 'stroll' && room < 13 ? 'rest' : sure;
     if (go === 'firewood' && room < FIREWOOD_M + 1) go = 'rest';
     // A compact camp has no drying racks.
-    if ((go === 'scrape' || go === 'rack' || go === 'flay') && !hasRack(st.home.camp, st.home.slot))
-      go = 'rest';
+    if ((go === 'scrape' || go === 'rack' || go === 'flay') && !rackOnLand(st.home)) go = 'rest';
     const camp = st.home.camp;
     const trip = new Itinerary(turnStart, st.spot, st.home.camp);
     const out = (p: Pt): Pt => ({ x: p.x * 2, z: p.z * 2 });
@@ -3203,6 +3408,15 @@ function doorOf(l: TreeLodging): Pt {
  */
 export function hasRack(camp: number, slot: number): boolean {
   return !isCompact(camp) && hash32(camp, slot, 151) % 3 === 0;
+}
+
+/** Whether a lodging's rack and the scraper behind it stand on land: both gaps beside its place reach that far. */
+function rackOnLand(l: TreeLodging): boolean {
+  const near = Math.min(
+    l.reach[l.slot] ?? 0,
+    l.reach[(l.slot + LODGING_SLOTS - 1) % LODGING_SLOTS] ?? 0,
+  );
+  return hasRack(l.camp, l.slot) && near >= RACK_R + SCRAPE_BACK_M + SCRAPE_SIDE_M + 1;
 }
 
 function rackAt(camp: number, slot: number): Pt {

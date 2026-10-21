@@ -3,9 +3,8 @@
   "anchors": [
     {
       "id": "gobekli-tepe",
-      "bce": 9500,
+      "bce": 9700,
       "until": 8000,
-      "dryland": true,
       "lat": 37.223,
       "lon": 38.922,
       "camp": {

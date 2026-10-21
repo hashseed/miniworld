@@ -16,8 +16,14 @@
       ]
     },
     {
-      "id": "euphrates-and-tigris",
-      "names": ["Euphrates", "Firat", "Al Furat", "Tigris", "Dicle", "Shatt al Arab"]
+      "id": "euphrates",
+      "names": ["Euphrates", "Firat", "Al Furat", "Shatt al Arab"],
+      "source": [39.01, 35.95]
+    },
+    {
+      "id": "tigris",
+      "names": ["Tigris", "Dicle"],
+      "source": [43.13, 36.34]
     },
     {
       "id": "indus",

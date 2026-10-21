@@ -122,8 +122,6 @@ export interface DatedPlace {
   until: Day;
   lat: number;
   lon: number;
-  /** Its camp ignores the drawn rivers, which are too coarse at its place (anchors.json `dryland`). */
-  dryland?: boolean;
 }
 
 /** A row of the place table: a dated place and its site. */
@@ -170,14 +168,13 @@ export function datedPlaces(
         lat: e.lat,
         lon: e.lon,
       })),
-  ].map(({ kind, id, day, until, lat, lon, ...more }) => ({
+  ].map(({ kind, id, day, until, lat, lon }) => ({
     kind,
     id,
     day,
     until,
     lat,
     lon,
-    ...('dryland' in more && more.dryland ? { dryland: true } : {}),
   }));
 }
 /** A site is on a place's own land when it walks to the site nearest the place in this many links. */
@@ -283,8 +280,6 @@ export interface Anchor {
   scene?: { kind: TreeStage['kind']; prop: string };
   /** Where its camp should stand, near the place, for a scene that faces the place from there. */
   camp?: { lat: number; lon: number };
-  /** Its camp ignores the drawn rivers, which are too coarse at its place. */
-  dryland?: boolean;
 }
 
 /** An encounter (sites.md section 4.3): parties of several bands meeting at a place. */
@@ -1467,6 +1462,9 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     p.how = how;
     // Plans on one site share its band, held to the later end.
     camp.holdUntil = Math.max(camp.holdUntil ?? -Infinity, p.until);
+    // The band of an encounter's host stays small, so its guests have lodgings to come to.
+    if (p.kind === 'anchor' && (s.encounters ?? []).some((e) => e.host === p.id))
+      camp.target = Math.min(camp.target, LODGING_CAPACITY);
     takeRange(camp, day);
   };
   /** A camp leaves a plan's footprint: to the nearest free site it fits, else as from the sea. */
@@ -1536,6 +1534,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     m.started = true;
     const e = m.encounter;
     const name = `encounter ${e.id} (${yearOf(m.day)})`;
+    const sending = new Set<Camp>();
     for (const [k, r] of e.roles.entries()) {
       const near = (x: Site) => distanceKm(x.lat, x.lon, r.lat, r.lon) <= r.km;
       // The party comes from the bands nearest the site along open links within the role's
@@ -1549,6 +1548,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
           !isHeld(c, day) &&
           !c.gathering &&
           !joined.has(c) &&
+          !sending.has(c) &&
           spare(c).length > 0
         );
       });
@@ -1561,6 +1561,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         for (let i = 0; i < pool.length && from.size < r.people;) {
           const f = pool.splice(hash32(band.id, day, 141 + 16 * k, from.size) % pool.length, 1)[0]!;
           from.set(f, band);
+          sending.add(band);
           ways.set(f, [...src.path].reverse());
         }
       }
@@ -1750,7 +1751,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     const p = planByKey.get(placeKey('anchor', a.id))!;
     const site = p.site;
     const sea = seaMax(p.day, p.until);
-    const flood = (a.dryland ? s.walkFlood : s.campFlood) ?? s.walkFlood ?? (() => Infinity);
+    const flood = s.campFlood ?? s.walkFlood ?? (() => Infinity);
     const dryAt = (q: { x: number; z: number }) => {
       const g = onGlobe(
         site.lat,
@@ -1822,6 +1823,29 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       throw new Error(
         `tree of humankind: the scene of anchor ${a.id} has no dry land behind a lodging place of its camp`,
       );
+    if (a.scene.kind === 'monument') {
+      // No other band's camp may overlap the ring: its sites are kept free for the anchor.
+      const { prop } = stageSpots(site.key, slot, beyond);
+      const at = onGlobe(
+        site.lat,
+        site.lon,
+        (prop.x * LAYOUT_KM_PER_M) / site.width,
+        (prop.z * LAYOUT_KM_PER_M) / site.width,
+      );
+      const ring = (11 * stageScale(site.key)) / site.width;
+      for (const x of sites) {
+        if (x.pass || p.footprint.has(x.id)) continue;
+        if (
+          distanceKm(x.lat, x.lon, at.lat, at.lon) <
+          (ring + footprintM(x.key) / x.width) * LAYOUT_KM_PER_M
+        ) {
+          p.footprint.add(x.id);
+          const list = claimsAt.get(x.id);
+          if (list) list.push(p);
+          else claimsAt.set(x.id, [p]);
+        }
+      }
+    }
     stages.push({
       id: a.id,
       kind: a.scene.kind,
