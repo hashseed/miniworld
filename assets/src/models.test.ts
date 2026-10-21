@@ -232,7 +232,7 @@ describe('clips', () => {
     };
   }
 
-  it.each(['walk', 'carry', 'haul'] as const)(
+  it.each(['walk', 'carry', 'haul', 'bearBehind', 'bearAhead'] as const)(
     'moving at the gait speed, the standing foot of %s stays put on the ground',
     (clip) => {
       const m = buildPerson({ profile: 'african-stone-age', kind: 'woman', founder: true });

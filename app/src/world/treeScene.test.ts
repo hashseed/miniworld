@@ -4,6 +4,7 @@ import { msAtDay } from '../time/rate.ts';
 import { NEVER } from './tree.ts';
 import {
   BLEND_MS,
+  burialTimes,
   POLE_ON_SHOULDERS_M,
   TAKE_DOWN_MS,
   lodgingSpot,
@@ -403,6 +404,45 @@ describe('the tree scene', () => {
     expect(back.felling).toBe(false);
     expect(back.amount).toBeGreaterThan(0);
     expect(back.amount).toBeLessThan(1);
+  });
+
+  it('keeps the dead of a burial by the fire before it falls ill, never in its lodging (issue 134)', () => {
+    const figure = (id: number) => ({
+      id,
+      parent: id === 0 ? NEVER : 0,
+      born: d0,
+      branch: 0,
+      depth: id === 0 ? 0 : 1,
+      homes: [[d0, 0, id]] as [number, number, number][],
+      lost: NEVER,
+    });
+    const stage = {
+      id: 'sungir',
+      kind: 'burial' as const,
+      prop: 'prop-burial',
+      camp: 2,
+      lat: 0,
+      lon: 36_000_000,
+      slot: 2,
+      beyond: 8,
+      dead: 3,
+      shown: d0 + years(250),
+      from: d0 + years(402),
+      until: d0 + years(1500),
+      keep: d0 + years(1600),
+    };
+    const burial: TreeChunk = {
+      ...chunk,
+      figures: [0, 1, 2, 3, 4].map(figure),
+      lodgings: [{ ...chunk.lodgings[0]!, camp: 2 }],
+      stages: [stage],
+    };
+    const g = burialTimes(stage, d0)!;
+    const at = (t: number) => treeScene(burial, t, d0).figures.find((f) => f.id === 3)!;
+    const before = at(g.start - 1);
+    const after = at(g.start);
+    expect(Math.sqrt((after.x - before.x) ** 2 + (after.z - before.z) ** 2)).toBeLessThan(1);
+    expect(at(g.start).clip).toBe('ill');
   });
 
   it('is the same at the same clock time', () => {

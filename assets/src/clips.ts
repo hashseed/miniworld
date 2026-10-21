@@ -34,6 +34,9 @@ export type Clip =
   | 'paint'
   | 'ill'
   | 'lie'
+  // Carrying the dead to its grave by the limbs, at the waist: the one behind holds its head, the one ahead its feet (humankind.md section 8.2).
+  | 'bearBehind'
+  | 'bearAhead'
   // Sitting by the fire (humankind.md section 8.1).
   | 'sit'
   // Crossing the sea in a canoe (peopling.md section 6).
@@ -66,6 +69,8 @@ export const GAITS = {
   run: { period: 0.6, swing: 0.6, stance: 0.4, knee: 1.7 },
   carry: { period: 1.15, swing: 0.36, stance: 0.62, knee: 0.7 },
   pole: { period: 1.15, swing: 0.36, stance: 0.62, knee: 0.7 },
+  bearBehind: { period: 1.15, swing: 0.3, stance: 0.62, knee: 0.7 },
+  bearAhead: { period: 1.15, swing: 0.3, stance: 0.62, knee: 0.7 },
   crouch: { period: 1.2, swing: 0.3, stance: 0.62, knee: 1.1 },
   haul: { period: 1.6, swing: 0.27, stance: 0.65, knee: 0.5 },
 } satisfies Record<string, Gait>;
@@ -125,6 +130,8 @@ export const PERSON_LOOPS: Partial<Record<Clip, { loop: number } | { once: numbe
   run: { loop: GAITS.run.period },
   carry: { loop: GAITS.carry.period },
   pole: { loop: GAITS.pole.period },
+  bearBehind: { loop: GAITS.bearBehind.period },
+  bearAhead: { loop: GAITS.bearAhead.period },
   crouch: { loop: GAITS.crouch.period },
   haul: { loop: GAITS.haul.period },
   strike: { loop: 0.45 },
@@ -154,6 +161,8 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
   bone('tool').visible =
     clip !== 'carry' &&
     clip !== 'pole' &&
+    clip !== 'bearBehind' &&
+    clip !== 'bearAhead' &&
     clip !== 'strike' &&
     clip !== 'crouch' &&
     clip !== 'dance' &&
@@ -276,6 +285,31 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
       rot('armLowerR', -1.7);
       rot('armUpperL', -0.35 * s, 0, 0.12);
       rot('armLowerL', -0.3 - 0.1 * lagOf(p));
+      break;
+    }
+    case 'bearBehind': {
+      // Walking behind the dead, holding its head and shoulders at the waist with both hands, the arms
+      // reaching down and forward, the back straight (humankind.md section 8.2).
+      const p = t / GAITS.bearBehind.period;
+      const s = legs(p, GAITS.bearBehind);
+      rot('torso', 0.06, 0.02 * s);
+      rot('head', 0.1);
+      rot('armUpperL', -0.85, 0, 0.08);
+      rot('armUpperR', -0.85, 0, -0.08);
+      rot('armLowerL', -0.55);
+      rot('armLowerR', -0.55);
+      break;
+    }
+    case 'bearAhead': {
+      // Walking ahead of the dead with it behind, holding its feet at the waist with
+      // both hands, the arms reaching down and back and the head turned to see the way.
+      const p = t / GAITS.bearAhead.period;
+      const s = legs(p, GAITS.bearAhead);
+      rot('torso', 0.0, 0.02 * s);
+      rot('armUpperL', 0.55, 0, 0.1);
+      rot('armUpperR', 0.55, 0, -0.1);
+      rot('armLowerL', -0.35);
+      rot('armLowerR', -0.35);
       break;
     }
     case 'strike': {

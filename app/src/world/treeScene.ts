@@ -42,11 +42,16 @@ export const LAYOUT_KM_PER_M = FIGURE_KM_PER_M / 3;
 /** Drawn kilometres a figure covers per millisecond of watching. */
 const WALK_KM_PER_MS = (TEMPO * WALK_M_PER_S * FIGURE_KM_PER_M) / 1000;
 /** Layout metres covered per millisecond of watching, by clip. */
-const PACE: Record<'walk' | 'run' | 'carry' | 'pole' | 'crouch', number> = {
+const PACE: Record<
+  'walk' | 'run' | 'carry' | 'pole' | 'crouch' | 'bearBehind' | 'bearAhead',
+  number
+> = {
   walk: (WALK_M_PER_S * 3 * TEMPO) / 1000,
   run: (RUN_M_PER_S * 3 * TEMPO) / 1000,
   carry: (CARRY_M_PER_S * 3 * TEMPO) / 1000,
   pole: (CARRY_M_PER_S * 3 * TEMPO) / 1000,
+  bearBehind: (CARRY_M_PER_S * 3 * TEMPO) / 1000,
+  bearAhead: (CARRY_M_PER_S * 3 * TEMPO) / 1000,
   crouch: (WALK_M_PER_S * 0.55 * 3 * TEMPO) / 1000,
 };
 /**
@@ -355,6 +360,8 @@ export type TreeClip =
   | 'carry'
   | 'throw'
   | 'pole'
+  | 'bearBehind'
+  | 'bearAhead'
   | 'strike'
   | 'crouch'
   | 'dance'
@@ -1011,7 +1018,10 @@ class Itinerary {
     this.at = at;
     this.camp = camp;
   }
-  go(to: Pt, clip: 'walk' | 'run' | 'carry' | 'pole' | 'crouch' = 'walk'): this {
+  go(
+    to: Pt,
+    clip: 'walk' | 'run' | 'carry' | 'pole' | 'crouch' | 'bearBehind' | 'bearAhead' = 'walk',
+  ): this {
     // A carrying pole keeps to its lane, so its two carriers walk in step.
     const way = route(this.at, to, clip === 'pole' ? undefined : this.camp);
     const m = routeLength(way);
@@ -1772,7 +1782,7 @@ export function treeScene(
         trip.go(end(lying!));
         if (trip.t > g!.carry - CORPSE_LIFT_MS) continue;
         trip.stay(g!.carry, 'idle', prop);
-        trip.go(end(prop), 'carry');
+        trip.go(end(prop), i === 0 ? 'bearBehind' : 'bearAhead');
         if (trip.t > g!.body - LAY_MS) continue;
         trip.stay(g!.body, 'idle', prop);
         trip.go(stands[i]!);
@@ -2765,6 +2775,16 @@ export function treeScene(
     scene.poles.push({ id: h.id, lat: h.lat, lon: h.lon, ...at, ...inward, height });
   }
 
+  /**
+   * Whether a clock time falls in the turn in which a burial's dead falls ill (section 8.2): it
+   * stays at its place by the fire then, so it never goes into its lodging and reappears.
+   */
+  function fallsIllIn(id: number, ms: number): boolean {
+    const stage = (chunk.stages ?? []).find((x) => x.dead === id);
+    const g = stage && burialTimes(stage, startDay);
+    return !!g && turnOf(id, ms) === turnOf(id, g.start);
+  }
+
   function poseAt(f: TreeFigure, i: number, ms: number): FigurePose | undefined {
     const home = lodgings.get(f.homes[i]![1]);
     if (!home) return undefined;
@@ -2839,7 +2859,7 @@ export function treeScene(
     let event: CampEvent | undefined;
     if (ms >= st.busy && st.takes) {
       plan.stay(Math.max(st.free, st.busy), 'rest').go(st.takeSpot).stay(st.leave, 'work', st.hut);
-    } else if (ms >= st.free) {
+    } else if (ms >= st.free && !fallsIllIn(f.id, ms)) {
       // Turns of the day: the hunts it takes part in, else its own outing, or a rest.
       const k = turnOf(f.id, ms);
       const turnStart = turnStartOf(f.id, k);
