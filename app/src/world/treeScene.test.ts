@@ -1,11 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { DAYS_PER_YEAR, TIMELINE_START } from '../time/calendar.ts';
+import {
+  DAYS_PER_YEAR,
+  TIMELINE_START,
+  astronomicalYear,
+  dayOfYearStart,
+} from '../time/calendar.ts';
 import { msAtDay } from '../time/rate.ts';
 import { NEVER } from './tree.ts';
 import {
   BLEND_MS,
   burialTimes,
   MONUMENT_BUILD_SESSIONS,
+  MONUMENT_DANCE_SESSIONS,
+  MONUMENT_FILL_SESSIONS,
   MONUMENT_SINK_DAYS,
   stageSessions,
   POLE_ON_SHOULDERS_M,
@@ -17,6 +24,7 @@ import {
 } from './treeScene.ts';
 
 const d0 = TIMELINE_START;
+const bce = (y: number) => dayOfYearStart(astronomicalYear(y, 'BCE'));
 const years = (y: number) => Math.round(y * DAYS_PER_YEAR);
 // At the history rate of the deep past (about 560 years a minute), these spans give
 // the camp minutes of watching between its moments.
@@ -456,7 +464,7 @@ describe('the tree scene', () => {
     expect(at(g.start).clip).toBe('ill');
   });
 
-  it('raises a monument session by session, dances round it, then sinks it', () => {
+  it('raises a monument session by session, dances round it, then fills it with earth as it sinks', () => {
     const figure = (id: number) => ({
       id,
       parent: id === 0 ? NEVER : 0,
@@ -475,10 +483,10 @@ describe('the tree scene', () => {
       lon: 36_000_000,
       slot: 2,
       beyond: 10,
-      shown: d0 + years(250),
-      from: d0 + years(402),
-      until: d0 + years(9000),
-      keep: d0 + years(9100),
+      shown: bce(9600),
+      from: bce(9500),
+      until: bce(8000),
+      keep: bce(7900),
     };
     const monument: TreeChunk = {
       ...chunk,
@@ -487,7 +495,9 @@ describe('the tree scene', () => {
       stages: [stage],
     };
     const sessions = stageSessions(stage, d0);
-    expect(sessions.length).toBe(MONUMENT_BUILD_SESSIONS * 2);
+    expect(sessions.length).toBe(
+      MONUMENT_BUILD_SESSIONS + MONUMENT_DANCE_SESSIONS + MONUMENT_FILL_SESSIONS,
+    );
     const mid = (k: number) => Math.round((sessions[k]!.begin + sessions[k]!.stop) / 2);
     const ring = (t: number) =>
       treeScene(monument, t, d0).props.find((q) => q.kind === 'prop-gobekli-ring');
@@ -498,8 +508,17 @@ describe('the tree scene', () => {
     expect(ring(last)!.built).toBeGreaterThan(ring(mid(0))!.built!);
     const dancing = treeScene(monument, mid(MONUMENT_BUILD_SESSIONS + 1), d0);
     expect(dancing.figures.filter((f) => f.clip === 'dance').length).toBeGreaterThan(3);
-    expect(ring(mid(MONUMENT_BUILD_SESSIONS + 1))!.built).toBe(1);
+    // Dancing adds nothing to the ring; the filling then builds the rest.
+    const raised = MONUMENT_BUILD_SESSIONS / (MONUMENT_BUILD_SESSIONS + MONUMENT_FILL_SESSIONS);
+    expect(ring(mid(MONUMENT_BUILD_SESSIONS + 1))!.built).toBeCloseTo(raised);
     expect(ring(mid(0))!.rise).toBe(1);
+    const filling = mid(MONUMENT_BUILD_SESSIONS + MONUMENT_DANCE_SESSIONS + 1);
+    expect(
+      treeScene(monument, filling, d0).figures.filter((f) => f.clip === 'work').length,
+    ).toBeGreaterThan(2);
+    expect(ring(filling)!.built).toBeGreaterThan(raised);
+    expect(ring(filling)!.rise).toBeLessThan(1);
+    expect(ring(mid(sessions.length - 1) + 60_000)!.built).toBe(1);
     // It stands for a thousand years, then sinks over the last five hundred.
     const sinking = msAtDay(stage.until - Math.round(MONUMENT_SINK_DAYS / 2), d0);
     expect(ring(sinking)!.rise).toBeGreaterThan(0.4);

@@ -42,6 +42,7 @@ import {
   burialTimes,
   stageSessions,
   MONUMENT_BUILD_SESSIONS,
+  MONUMENT_DANCE_SESSIONS,
   MONUMENT_MIN,
   treeScene,
 } from '../../../app/src/world/treeScene.ts';
@@ -643,7 +644,9 @@ export function buildHumankind(
       const clips =
         stage.kind === 'cave-painting'
           ? ['paint']
-          : monument && k >= MONUMENT_BUILD_SESSIONS
+          : monument &&
+              k >= MONUMENT_BUILD_SESSIONS &&
+              k < MONUMENT_BUILD_SESSIONS + MONUMENT_DANCE_SESSIONS
             ? ['dance']
             : ['work'];
       // A burial's diggers are at work while the grave is dug, before they carry the dead.
@@ -660,7 +663,7 @@ export function buildHumankind(
         : 0;
       if (busy < need)
         fail(
-          `tree of humankind: session ${k + 1} of the scene of ${stage.id} has too few people to ${stage.kind === 'cave-painting' ? 'paint' : monument ? (k >= MONUMENT_BUILD_SESSIONS ? 'dance' : 'raise the ring') : 'dig the grave'}`,
+          `tree of humankind: session ${k + 1} of the scene of ${stage.id} has too few people to ${stage.kind === 'cave-painting' ? 'paint' : monument ? (k < MONUMENT_BUILD_SESSIONS ? 'raise the ring' : k < MONUMENT_BUILD_SESSIONS + MONUMENT_DANCE_SESSIONS ? 'dance' : 'fill the ring') : 'dig the grave'}`,
         );
     }
     if (sessions[0])

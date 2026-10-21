@@ -5,29 +5,31 @@
       "id": "gobekli-gathering",
       "kind": "gathering",
       "bce": 9500,
-      "stay": 1050,
+      "stay": 400,
       "lat": 37.223,
       "lon": 38.922,
       "host": "gobekli-tepe",
       "roles": [
         {
-          "id": "levant",
-          "lat": 32.5,
-          "lon": 35.8,
+          "id": "aleppo",
+          "lat": 36.3,
+          "lon": 37.3,
           "km": 1500,
           "people": 2
         },
         {
-          "id": "zagros",
-          "lat": 34.5,
-          "lon": 46.5,
+          "id": "harran",
+          "lat": 37.1,
+          "lon": 40.2,
           "km": 1500,
           "people": 2
         }
       ],
-      "en": "Two bands come to Göbekli Tepe to raise the stone ring and celebrate it",
-      "de": "Zwei Gruppen kommen nach Göbekli Tepe, um den Steinkreis zu errichten und zu feiern",
-      "source": "Schmidt 2010, Göbekli Tepe – the Stone Age sanctuaries, Documenta Praehistorica 37"
+      "en": "Two neighbouring bands come to Göbekli Tepe to raise the stone ring and celebrate it, and again 900 years later to fill it with earth",
+      "de": "Zwei benachbarte Gruppen kommen nach Göbekli Tepe, um den Steinkreis zu errichten und zu feiern, und 900 Jahre später, um ihn mit Erde zu füllen",
+      "source": "Schmidt 2010, Göbekli Tepe – the Stone Age sanctuaries, Documenta Praehistorica 37",
+      "every": 900,
+      "until": 8600
     }
   ]
 }
