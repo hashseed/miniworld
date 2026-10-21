@@ -807,11 +807,17 @@ describe('scenes at anchors (section 8.2)', () => {
     expect(lying.figures.find((f) => f.id === dead[0]!.id)?.clip).toBe('lie');
     // Their soul rises from them, see-through.
     expect(lying.figures.some((f) => f.id === -1 - dead[0]!.id && !!f.soul)).toBe(true);
+    // Carried to the grave by two of the diggers, not vanishing before it is laid in.
+    const carried = treeScene(whole, lostAt - 1_800, settings.startDay).figures.find(
+      (f) => f.id === dead[0]!.id,
+    );
+    expect(carried?.clip).toBe('lie');
+    expect(carried?.lift).toBeGreaterThan(0.2);
     expect(propAt(whole, q.begin - 1)).toBeUndefined();
     const mid = Math.round((q.begin + q.stop) / 2);
     const scene = treeScene(whole, mid, settings.startDay);
     expect(scene.figures.filter((f) => f.clip === 'work').length).toBeGreaterThanOrEqual(2);
-    expect(propAt(whole, q.stop)!.built).toBeCloseTo(0.75);
+    expect(propAt(whole, q.stop)!.built).toBeCloseTo(0.8);
     // Grass grows over it, and it sinks back flat over the next 50 years.
     expect(propAt(whole, q.stop + 25_000)!.built).toBe(1);
     // Here 50 years pass in a moment, so it sinks over a minute of watching.

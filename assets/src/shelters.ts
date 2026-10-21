@@ -504,9 +504,9 @@ export function buildShelter(id: ShelterId): Model {
       // A grave dug into a heap of earth (humankind.md section 8.2; Yang, 2026-10-21: "they
       // should first dig into the ground to change the ground elevation to fit the burial"):
       // the heap rises out of the ground first (the scene raises it), so the drawn ground,
-      // not flat across a prop drawn some 200 km long, never cuts through it. Then, in four
-      // steps: the trench, dark and deep; the body laid in it, wrapped and covered with
-      // mammoth-ivory beads, ivory spears beside it; the trench closed with the earth and red
+      // not flat across a prop drawn some 200 km long, never cuts through it. Then, in five
+      // steps: the trench, dark and deep; the body laid in it, wrapped; the belongings added,
+      // mammoth-ivory beads over it and ivory spears beside it; the trench closed with the earth and red
       // ochre; and grass grown over the heap (Yang: "the ground should just grow over it").
       const EARTH = '#7a5a3c';
       mb.add(blob([0, 0.06, 0], [1.3, 0.2, 0.75], 9), EARTH);
@@ -521,6 +521,7 @@ export function buildShelter(id: ShelterId): Model {
         mb.add(blob([x * 1.1, 0.26, 0], [0.22, 0.12, 0.3], 5), shade(EARTH, 0.06), b);
       b = step(1);
       mb.add(blob([0, 0.25, 0], [0.75, 0.06, 0.2], 8), '#a88f68', b);
+      b = step(2);
       for (let i = 0; i < 16; i++)
         mb.add(
           blob([-0.6 + 0.08 * i, 0.31, 0.06 * Math.sin(i * 1.7)], [0.025, 0.025, 0.025], 4),
@@ -529,10 +530,10 @@ export function buildShelter(id: ShelterId): Model {
         );
       for (const z of [-0.25, 0.25])
         mb.add(rod([-0.85, 0.24, z], [0.85, 0.24, z], 0.02, 3), '#e9dfc6', b);
-      b = step(2);
+      b = step(3);
       mb.add(blob([0, 0.26, 0], [1.0, 0.1, 0.4], 8), EARTH, b);
       mb.add(blob([0, 0.34, 0], [0.7, 0.025, 0.28], 7), '#a3412a', b);
-      b = step(3);
+      b = step(4);
       mb.add(blob([0, 0.1, 0], [1.38, 0.28, 0.8], 9), '#7f9a55', b);
       for (const [x, z] of [
         [-0.7, 0.2],

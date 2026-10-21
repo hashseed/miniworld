@@ -55,8 +55,8 @@ import type { Obstacle } from '../wildlife/wildlifeLayer.ts';
  */
 const CAVE_CUT_M = 13;
 const CAVE_CUT_DEEP_M = 1.8;
-/** Below this share of its depth a cut has no wall, and its gentle slope shows as ground. */
-const CAVE_WALL_FROM = 0.3;
+/** Below this share of its depth a cut has no wall; low, so the wall sinks into the ground rather than popping off. */
+const CAVE_WALL_FROM = 0.04;
 /** The cut, and its wall, run this many layout metres behind the painting. */
 const CAVE_FACE_BEHIND_M = 0;
 const NEAR_MARGIN = 0.3;
@@ -313,6 +313,7 @@ export class TreeLayer {
       if (batch) {
         const at = this.scratch;
         if (!this.place(at, f, false) || f.hidden) continue;
+        if (f.lift) at.position.addScaledVector(this.dir, f.lift * FIGURE_KM_PER_M);
         this.block(at, FIGURE_HALF_M);
         at.scale.setScalar(FIGURE_KM_PER_M);
         at.updateMatrix();
@@ -339,6 +340,7 @@ export class TreeLayer {
         this.group.add(actor.root);
       }
       if (!this.place(actor.root, f)) continue;
+      if (f.lift) actor.root.position.addScaledVector(this.dir, f.lift * FIGURE_KM_PER_M);
       if (f.soul) {
         actor.root.position.addScaledVector(this.dir, f.soul.height * FIGURE_KM_PER_M);
         actor.setFade?.(f.soul.fade);
