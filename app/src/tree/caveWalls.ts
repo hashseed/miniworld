@@ -146,7 +146,6 @@ export class CaveWalls {
     const uv = mesh.geometry.getAttribute('face') as THREE.BufferAttribute;
     const low = mesh.geometry.getAttribute('low') as THREE.BufferAttribute;
     const h = m.depthKm;
-    const d = new THREE.Vector3();
     for (let k = 0; k <= COLUMNS; k++) {
       const s = ((k / COLUMNS) * 2 - 1) * SIDE;
       const across = Math.max(0, 1 - s * s);
