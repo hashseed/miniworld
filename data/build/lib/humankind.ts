@@ -26,6 +26,7 @@ import {
   HEARTH_SPOTS,
   LODGING_SLOTS,
   REGROW_MS,
+  THIN_MS,
   hasRack,
   lookOf,
   slotPoint,
@@ -2154,7 +2155,9 @@ export function treeChunks(tree: Tree, windows: Day[], endDay: Day): (TreeChunk 
       const l = tree.lodgings[id]!;
       if (!lodgings.has(id)) lodgings.set(id, { ...l, gone: until(l.gone) });
     };
-    for (const l of tree.lodgings) if (l.built < to && until(l.gone) > earliest) add(l.id);
+    // And the lodgings built in the THIN_MS after it, whose trees wither in it (sites.md section 6).
+    const ahead = dayAtWatch(watchAtDay(to) + THIN_MS);
+    for (const l of tree.lodgings) if (l.built < ahead && until(l.gone) > earliest) add(l.id);
     const figures: TreeFigure[] = [];
     for (const f of tree.figures) {
       if (f.born >= to || until(f.lost) <= earliest) continue;

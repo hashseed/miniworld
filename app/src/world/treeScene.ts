@@ -100,8 +100,6 @@ const BIND_POINT_MS = Math.round(7200 / TEMPO);
 const BUTCHER_MEAT_MS = Math.round(7200 / TEMPO);
 const ROAST_MS = Math.round(14_400 / TEMPO);
 const INSIDE_MS = Math.round(14_400 / TEMPO);
-/** Felling is done at least this far out, in layout metres, past the people's spots. */
-const FELL_MIN_M = 10;
 /**
  * The layout offset of a figure on its way between camps, on leg `n` at `u` of it and `t` of
  * the whole way: from the old camp's edge to the new camp's when there is one leg, else
@@ -313,18 +311,12 @@ export const TAKE_DOWN_MS = Math.round(5000 / TEMPO);
 /** Builders stand this far from the middle of the lodging they build, in layout metres. */
 export const BUILD_RING_M = 5;
 /**
- * Trees at a camp are felled over this long when the band arrives (half a year), and grow
- * back over this long after it leaves (about five years).
+ * The trees of a place wither over THIN_MS before its band arrives, planned from the tree
+ * (sites.md section 6), and grow back over REGROW_MS (about five years) after it leaves.
  */
-const FELL_MS = 1200;
+export const THIN_MS = 10_000;
 export const REGROW_MS = 12_000;
-/**
- * A new camp (section 8.1): where its place has at least this much tree cover the band
- * fells the trees for FELL_WOOD_MS first, round the ring of lodgings; then the first
- * builder lights the fire with flint stones for FLINT_MS before building.
- */
-const WOOD_MIN = 0.15;
-const FELL_WOOD_MS = Math.round(14_400 / TEMPO);
+/** A new camp (section 8.1): the first builder lights the fire with flint stones for FLINT_MS before building. */
 const FLINT_MS = Math.round(9000 / TEMPO);
 /** The lighter kneels this far from the middle of the hearth, just outside the paths' clearance. */
 const LIGHT_M = 3.1;
@@ -1288,7 +1280,7 @@ export function treeScene(
     }
     for (const p of places.values()) {
       if (p.from <= 0) continue;
-      p.fellEnd = p.from + (p.wood >= WOOD_MIN ? FELL_WOOD_MS : 0);
+      p.fellEnd = p.from;
       p.litStart = p.fellEnd;
       p.litEnd = p.litStart + FLINT_MS;
     }
@@ -1349,17 +1341,18 @@ export function treeScene(
       scene.hearths.push({ camp: p.camp, lat: p.lat, lon: p.lon, lit });
       if (ms >= p.litStart && ms < p.litEnd) sparksAt(p, ms);
     }
-    // The trees tip over while the band fells them, or quickly where there were few.
-    const felled = Math.max(p.fellEnd - p.from, FELL_MS);
+    // The trees wither over THIN_MS before the band arrives and grow back after it leaves
+    // (sites.md section 6); nobody fells them.
     const amount =
-      ms < p.from
-        ? 0
-        : ms < p.to
-          ? p.from <= 0
-            ? 1
-            : Math.min(1, (ms - p.from) / felled)
+      p.from <= 0 || (ms >= p.from && ms < p.to)
+        ? ms < p.to
+          ? 1
+          : 1 - (ms - p.to) / REGROW_MS
+        : ms < p.from
+          ? (ms - (p.from - THIN_MS)) / THIN_MS
           : 1 - (ms - p.to) / REGROW_MS;
-    if (amount > 0) scene.clearings.push({ lat: p.lat, lon: p.lon, amount, felling: ms < p.to });
+    if (amount > 0)
+      scene.clearings.push({ lat: p.lat, lon: p.lon, amount: Math.min(1, amount), felling: false });
   }
   // Red flags at the Neolithic thresholds, behind a lodging of their settled camps.
   for (const flag of chunk.flags ?? []) {
@@ -1842,23 +1835,8 @@ export function treeScene(
             ? // Out of its lodging: crouched through the door, then on its feet.
               new Itinerary(born, hut, home.camp).go(doorOf(home), 'crouch')
             : new Itinerary(-Infinity, spot, home.camp);
-      // At a new camp: fell the trees round the ring of lodgings, facing out, and the first
-      // builder lights the fire with flint stones (section 8.1).
+      // At a new camp the first builder lights the fire with flint stones (section 8.1).
       const place = places.get(placeKey(home))!;
-      if (builds && plan.t < place.fellEnd && place.fellEnd > place.from) {
-        // Out in a gap between the lodgings, as far as its land goes, facing out: its own gap,
-        // or the one with the most land when its own has too little.
-        const own = hash32(f.id, place.camp, 107) % LODGING_SLOTS;
-        const most = home.reach.indexOf(Math.max(...home.reach));
-        const gap = (home.reach[own] ?? 0) >= FELL_MIN_M + 1 ? own : most;
-        const reach = home.reach[gap] ?? 0;
-        if (reach >= FELL_MIN_M + 1) {
-          const d = gapDirection(home.camp, gap);
-          const r = Math.min(ringOf(home.camp) + 4, reach - 1);
-          const at = { x: d.x * r, z: d.z * r };
-          plan.go(at).stay(place.fellEnd, 'work', { x: at.x * 2, z: at.z * 2 });
-        }
-      }
       if (builds && home === place.first && f.id === home.builder && place.from > 0)
         plan
           .go(lightSpot(f.id))
