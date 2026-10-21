@@ -423,9 +423,79 @@
         [115.85, -8.15],
         [115.88, -8.45],
         [115.82, -8.75],
-        [115.75, -9.1]
+        [115.75, -9.1],
+        [115.72, -9.4],
+        [115.7, -9.8]
       ],
       "source": "Encyclopaedia Britannica, Lombok Strait: https://www.britannica.com/place/Lombok-Strait (about 250 m deep at its sill; the Wallace Line runs through it, and it stayed open at the lowest ice-age sea levels)"
+    },
+    {
+      "id": "makassar-north",
+      "name": "Makassar Strait (north)",
+      "sill": -1500,
+      "coreKm": 35,
+      "line": [
+        [120.0, 3.6],
+        [119.7, 2.0],
+        [119.4, 0.8],
+        [118.9, -0.4],
+        [118.5, -1.6],
+        [118.2, -3.0],
+        [117.9, -4.2]
+      ],
+      "source": "Encyclopaedia Britannica, Makassar Strait: https://www.britannica.com/place/Makassar-Strait (deep water, over 2,000 m, between Borneo and Sulawesi; the Wallace Line runs through it, and it stayed open at the lowest ice-age sea levels)"
+    },
+    {
+      "id": "makassar-south",
+      "name": "Makassar Strait (south, over the Dewakang sill)",
+      "sill": -650,
+      "coreKm": 25,
+      "line": [
+        [117.9, -4.2],
+        [117.6, -5.2],
+        [117.4, -6.2],
+        [117.0, -7.0],
+        [116.4, -7.6],
+        [115.95, -7.85]
+      ],
+      "source": "Encyclopaedia Britannica, Makassar Strait: https://www.britannica.com/place/Makassar-Strait (the Dewakang sill in the south is about 650 m deep; the strait joins the Flores Sea and the Bali Sea by the Lombok Strait)"
+    },
+    {
+      "id": "sibutu-passage",
+      "name": "Sibutu and Sulu passages (Borneo to the Sulu islands)",
+      "sill": -400,
+      "line": [
+        [119.4, 4.0],
+        [119.5, 5.2],
+        [119.3, 6.5],
+        [118.9, 7.6]
+      ],
+      "source": "Encyclopaedia Britannica, Sulu Archipelago: https://www.britannica.com/place/Sulu-Archipelago (the Sulu Sea is over 4,000 m deep; the passages between Borneo and the Sulu islands are deep, so the islands were never joined to Borneo)"
+    },
+    {
+      "id": "basilan-sulu",
+      "name": "Sulu islands to Basilan and Mindanao",
+      "sill": -400,
+      "line": [
+        [121.5, 4.8],
+        [121.5, 6.0],
+        [121.5, 7.0]
+      ],
+      "source": "Encyclopaedia Britannica, Sulu Archipelago: https://www.britannica.com/place/Sulu-Archipelago (the Sulu islands are a separate chain from Mindanao; the Wallacean islands were never joined to Sundaland)"
+    },
+    {
+      "id": "palawan-passage",
+      "name": "Mindoro Strait and the Cuyo passage (Palawan to the Visayas)",
+      "sill": -400,
+      "line": [
+        [119.8, 13.1],
+        [120.3, 12.6],
+        [120.5, 12.0],
+        [120.5, 11.0],
+        [120.5, 9.0],
+        [120.2, 8.4]
+      ],
+      "source": "Encyclopaedia Britannica, Palawan: https://www.britannica.com/place/Palawan-island (Palawan lies on the Sunda side of the Wallace Line, but the Mindoro Strait and the Sulu Sea basin to its east are deep, so it never joined the Visayas)"
     }
   ]
 }
