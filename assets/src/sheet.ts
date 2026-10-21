@@ -392,6 +392,7 @@ function viewsSheet(): void {
   const probe = buildAsset(id);
   const box = new THREE.Box3().setFromObject(probe.object);
   const size = box.getSize(new THREE.Vector3());
+  const centre = box.getCenter(new THREE.Vector3());
   const span = Math.max(size.x, size.y, size.z, 1.8);
   const half = Math.max(size.y * 0.6, Math.max(size.z, size.x) * 0.68, 1.4);
   ground(0, 0, half * 1.15, '#b2b874');
@@ -399,8 +400,9 @@ function viewsSheet(): void {
   poseAsset(m, id);
   const ref = buildPerson({ profile: 'ice-age-hunter', kind: 'man' });
   posePerson(ref, 'stand');
-  place(ref, size.x / 2 + 0.9, -size.z / 2 - 0.4, 0);
-  const mid = new THREE.Vector3(0, Math.max(size.y, 1.8) * 0.5, 0);
+  place(ref, box.max.x + 0.9, box.min.z - 0.4, 0);
+  // Centred on the model's box, not its origin, so long tusks or a tail are not cut off.
+  const mid = new THREE.Vector3(centre.x, Math.max(size.y, 1.8) * 0.5, centre.z);
   const tiles: { name: string; cam: THREE.Camera }[] = [];
   const ortho = (name: string, at: THREE.Vector3, up: THREE.Vector3) => {
     const aspect = innerWidth / innerHeight;
