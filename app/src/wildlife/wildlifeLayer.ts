@@ -73,12 +73,49 @@ interface Species {
 
 /** How far the ground around an animal may lift it, in body heights (section 5). */
 const MAX_LIFT = 0.1;
+/** The most the ground may lift an animal to keep its feet out of a slope steeper than it leans. */
+const MAX_SLOPE_LIFT = 0.3;
 /** Smallest radius around an animal that a tap hits, in CSS pixels (section 8). */
 const HIT_MIN_PX = 24;
 /** Rounds of pushing overlapping animals apart each frame (section 5). */
 const SEPARATE_PASSES = 3;
 /** The steepest an animal leans with the ground, as a slope (about 15 degrees). */
 const MAX_TILT = 0.27;
+
+/**
+ * Where an animal stands given the ground under its middle and a distance halfKm in front, behind,
+ * right and left of it (spec wildlife.md, section 5): raised by at most a tenth of its height where
+ * the points around it lie higher (a valley), leaning with the slope by at most MAX_TILT. Where the
+ * ground is steeper than the lean (clamped), it is raised until none of the four points lies above its feet,
+ * by at most MAX_SLOPE_LIFT body heights, so no animal sinks into a hillside (issue 129).
+ */
+export function standOnGround(
+  middle: number,
+  front: number,
+  back: number,
+  right: number,
+  left: number,
+  halfKm: number,
+  heightKm: number,
+): { ground: number; along: number; across: number } {
+  const mean = (front + back + right + left) / 4;
+  let ground = middle + Math.min(Math.max(mean - middle, 0), heightKm * MAX_LIFT);
+  let along = (front - back) / (2 * halfKm);
+  let across = (right - left) / (2 * halfKm);
+  const steep = Math.sqrt(along * along + across * across);
+  if (steep > MAX_TILT) {
+    along *= MAX_TILT / steep;
+    across *= MAX_TILT / steep;
+    const buried = Math.max(
+      front - (ground + along * halfKm),
+      back - (ground - along * halfKm),
+      right - (ground + across * halfKm),
+      left - (ground - across * halfKm),
+    );
+    if (buried > 0) ground += Math.min(buried, heightKm * MAX_SLOPE_LIFT);
+  }
+  return { ground, along, across };
+}
 
 export class WildlifeLayer {
   readonly group = new THREE.Group();
@@ -205,16 +242,7 @@ export class WildlifeLayer {
     const back = this.groundAt(up, f, r, -halfKm, 0);
     const right = this.groundAt(up, f, r, 0, halfKm);
     const left = this.groundAt(up, f, r, 0, -halfKm);
-    const mean = (front + back + right + left) / 4;
-    const ground = middle + Math.min(Math.max(mean - middle, 0), heightKm * MAX_LIFT);
-    let along = (front - back) / (2 * halfKm);
-    let across = (right - left) / (2 * halfKm);
-    const steep = Math.hypot(along, across);
-    if (steep > MAX_TILT) {
-      along *= MAX_TILT / steep;
-      across *= MAX_TILT / steep;
-    }
-    return { ground, along, across };
+    return standOnGround(middle, front, back, right, left, halfKm, heightKm);
   }
 
   /**
