@@ -625,20 +625,22 @@ export const STAGE_BEYOND_M = [12, 10, 8];
 export const CAVE_BEYOND_M = [12, 10, 8];
 /** A monument stands further out still: its ring is 11 metres across and its dancers round it. */
 export const MONUMENT_BEYOND_M = [10, 9, 8];
-/** A monument is raised in this many sessions, then danced round in as many (humankind.md section 8.2). */
+/**
+ * A monument is raised in this many sessions, danced round in as many, and, at the end of its
+ * five hundred years of sinking, filled with earth in the last few (humankind.md section 8.2).
+ */
 export const MONUMENT_BUILD_SESSIONS = 6;
 export const MONUMENT_DANCE_SESSIONS = 6;
+export const MONUMENT_FILL_SESSIONS = 4;
 /** Its first session falls this many windows after the anchor's day, the guests having walked there. */
 export const MONUMENT_LEAD_WINDOWS = 6;
-/** The ring sinks over its last 500 years, linearly with the date. */
+/** The ring sinks into the ground over its last 500 years, linearly with the date, and is filled in at the start of it. */
 export const MONUMENT_SINK_DAYS = Math.round(500 * 365.2425);
-/** Dancers' and workers' rings round the monument's middle, in layout metres at full size. */
-const MONUMENT_INNER_R = 2;
-const MONUMENT_OUTER_R = 5.2;
-const MONUMENT_INNER = 4;
-const MONUMENT_OUTER = 6;
 /** The monument's model is drawn at this share of the scene's size: a small enclosure. */
-export const MONUMENT_SCALE = 0.6;
+export const MONUMENT_SCALE = 0.48;
+/** The model's own metres: the rings the walkers go round by, outside the wall and inside it. */
+const MONUMENT_OUT_R = 7.6;
+const MONUMENT_IN_R = 2.6;
 /** A cave's cut and this many layout metres round it keep clear of water where they can. */
 export const CAVE_WATER_CLEAR_M = 16;
 export const stageBeyond = (kind: TreeStage['kind']) =>
@@ -680,27 +682,77 @@ export function stageSpots(camp: number, slot: number, beyond: number) {
 }
 
 /** A monument's session needs at least this many people (humankind.md section 8.2). */
-export const MONUMENT_MIN = 4;
+export const MONUMENT_MIN = 3;
 
 /**
- * The way from the camp's side of a monument to a place at it: along the outer ring, or for
- * the inner ring in by the gate on the camp's side, then along the inner ring, never through
- * the wall; a step each 30 degrees round the shorter way.
+ * The way from the camp's side of a monument to a place at it, in the model's metres: round
+ * the outside of the wall at a safe distance, or, for a place inside, in by the gate on the
+ * camp's side, then round the inside, never through the wall; a step each 30 degrees.
  */
 function monumentPath(to: Pt, prop: Pt, at: (back: number, side: number) => Pt, k: number): Pt[] {
-  const [dx, dz] = [(to.x - prop.x) / k, (to.z - prop.z) / k];
+  const [dx, dz] = [(to.x - prop.x) / (k * MONUMENT_SCALE), (to.z - prop.z) / (k * MONUMENT_SCALE)];
   const [back, side] = [at(1, 0), at(0, 1)];
   const [bx, bz] = [(back.x - prop.x) / k, (back.z - prop.z) / k];
   const [sx, sz] = [(side.x - prop.x) / k, (side.z - prop.z) / k];
   // The angle from the camp's side, and the point on a ring of a radius at an angle.
   const a = detAtan2(dx * sx + dz * sz, dx * bx + dz * bz);
-  const onRing = (ang: number, rad: number) => at(rad * detCos(ang), rad * detSin(ang));
-  const inside = Math.sqrt(dx * dx + dz * dz) < MONUMENT_OUTER_R - 0.6;
-  const rad = inside ? MONUMENT_INNER_R : MONUMENT_OUTER_R;
-  const path = inside ? [onRing(0, MONUMENT_OUTER_R), onRing(0, MONUMENT_INNER_R)] : [];
+  const onRing = (ang: number, rad: number) =>
+    at(rad * MONUMENT_SCALE * detCos(ang), rad * MONUMENT_SCALE * detSin(ang));
+  const inside = Math.sqrt(dx * dx + dz * dz) < 5;
+  const rad = inside ? MONUMENT_IN_R : MONUMENT_OUT_R;
+  const path = inside ? [onRing(0, MONUMENT_OUT_R), onRing(0, MONUMENT_IN_R)] : [];
   const n = Math.max(1, Math.ceil(Math.abs(a) / (Math.PI / 6)));
   for (let j = 1; j <= n; j++) path.push(onRing((a * j) / n, rad));
   return path;
+}
+
+/**
+ * Where a monument's people stand for a session, in the model's metres, handed out one by
+ * one: wherever the session's stones are set (the floor, the wall, the near and then the far
+ * pillars, the figures, the arms and reliefs), or the dancers in two rings, or the carriers
+ * of earth round the wall (humankind.md section 8.2).
+ */
+function monumentStands(at: (back: number, side: number) => Pt, session: number): Pt[] {
+  // A place by its angle from the gate and its share of the ellipse of the ring pillars.
+  const ell = (a: number, f: number): [number, number] => [detSin(a) * 5.5 * f, detCos(a) * 5 * f];
+  const pillar = (i: number) => ((i + 0.5) / 8) * Math.PI * 2;
+  const spots: [number, number][] = [];
+  const BUILD = MONUMENT_BUILD_SESSIONS;
+  if (session === 0) {
+    // The floor: laid across.
+    for (let i = 0; i < 5; i++) spots.push(ell(1 + (i * 2 * Math.PI) / 5, i % 2 ? 0.25 : 0.62));
+  } else if (session === 1) {
+    // The wall: round the outside of it.
+    for (let i = 0; i < 6; i++) spots.push(ell(0.7 + (i * (2 * Math.PI - 1.4)) / 5, 1.3));
+  } else if (session === 2 || session === 3) {
+    // The ring pillars, the near four, then the far four: a stone is set up at each.
+    const first = session === 2 ? [0, 1, 6, 7] : [2, 3, 4, 5];
+    for (const i of first) spots.push(ell(pillar(i), 0.72));
+    spots.push(ell(pillar(first[0]!) + (session === 2 ? -0.5 : 0.5), 0.45));
+  } else if (session === 4) {
+    // The two tall figure-pillars in the middle.
+    spots.push([2, -1.3], [-2, 1.3], [0.4, -2.3], [-0.4, 2.3], [1.6, 1.1]);
+  } else if (session === 5) {
+    // Their arms and the reliefs on the ring pillars, among the pillars.
+    for (const i of [0, 2, 4, 6]) spots.push(ell(pillar(i), 0.72));
+    spots.push([1.4, -1.8]);
+  } else if (session < BUILD + MONUMENT_DANCE_SESSIONS) {
+    // Dancers in two rings, inside and outside, handed out alternately so a small party
+    // still makes two rings.
+    const ring = (n: number, r: number) =>
+      Array.from({ length: n }, (_, k): [number, number] => {
+        const a = ((k + 0.5) / n) * 2 * Math.PI;
+        return [detSin(a) * r, detCos(a) * r];
+      });
+    const inner = ring(3, 2.1);
+    const outer = ring(4, 3.5);
+    outer.forEach((q, k) => spots.push(q, ...(k < inner.length ? [inner[k]!] : [])));
+  } else {
+    // The earth carried in over the wall, from all round it, the carriers moving on each time.
+    const turn = (session - BUILD - MONUMENT_DANCE_SESSIONS) * 0.55;
+    for (let i = 0; i < 6; i++) spots.push(ell(turn + 0.7 + (i * (2 * Math.PI - 1.4)) / 5, 1.3));
+  }
+  return spots.map(([x, z]) => at(z * MONUMENT_SCALE, x * MONUMENT_SCALE));
 }
 
 /** Where the people of a scene stand: the painter and two watchers, or two diggers and the mourners. */
@@ -709,22 +761,10 @@ function stageStands(
   slot: number,
   beyond: number,
   kind: TreeStage['kind'],
-  dance = false,
+  session = 0,
 ): Pt[] {
   const { at } = stageSpots(camp, slot, beyond);
-  if (kind === 'monument') {
-    // Workers all round the ring; dancers in two rings, inside it and outside, handed out
-    // alternately so a small party still makes two rings (angles from the camp's side).
-    const ring = (n: number, r: number, turn: number) =>
-      Array.from({ length: n }, (_, k) => {
-        const a = ((k + turn) / n) * 2 * Math.PI;
-        return at(r * detCos(a), r * detSin(a));
-      });
-    if (!dance) return ring(MONUMENT_INNER + MONUMENT_OUTER, MONUMENT_OUTER_R, 0.5);
-    const inner = ring(MONUMENT_INNER, MONUMENT_INNER_R, 0.5);
-    const outer = ring(MONUMENT_OUTER, MONUMENT_OUTER_R, 0.5);
-    return outer.flatMap((q, k) => (k < inner.length ? [q, inner[k]!] : [q]));
-  }
+  if (kind === 'monument') return monumentStands(at, session);
   // The painter at the rock face, the watchers behind; diggers at the grave's heap of earth.
   if (kind === 'cave-painting') return [at(1.8, 0), at(5, -2.2), at(5, 2.2)];
   const out = [at(2.4, -1.5), at(2.4, 1.5)];
@@ -749,13 +789,13 @@ export function stagePoints(
   const cave = kind === 'cave-painting';
   const [wide, deep, mid] = cave ? [6, 4, -2] : [4.2, 2.6, 0];
   if (kind === 'monument') {
-    // The ring and the ground round it where its dancers stand and walk.
-    for (const r of [MONUMENT_INNER_R, 6.5, MONUMENT_OUTER_R + 1.2])
+    // The ring and the ground round it where its people stand and walk, and the way there.
+    for (const r of [MONUMENT_IN_R, 5, MONUMENT_OUT_R, MONUMENT_OUT_R + 1.5])
       for (let k = 0; k < 16; k++) {
         const a = (k / 16) * 2 * Math.PI;
-        out.push(at(r * detCos(a), r * detSin(a)));
+        out.push(at(r * MONUMENT_SCALE * detCos(a), r * MONUMENT_SCALE * detSin(a)));
       }
-    out.push(at(MONUMENT_OUTER_R + 0.5, 0), gap);
+    out.push(gap);
     return out;
   }
   for (let k = 0; k < 12; k++) {
@@ -863,10 +903,19 @@ export function stageSessions(
     stage.kind === 'cave-painting'
       ? Array.from({ length: PAINT_SESSIONS }, (_, k) => w0 + 2 * k)
       : stage.kind === 'monument'
-        ? Array.from(
-            { length: MONUMENT_BUILD_SESSIONS + MONUMENT_DANCE_SESSIONS },
-            (_, k) => w0 + MONUMENT_LEAD_WINDOWS + k,
-          )
+        ? [
+            ...Array.from(
+              { length: MONUMENT_BUILD_SESSIONS + MONUMENT_DANCE_SESSIONS },
+              (_, k) => w0 + MONUMENT_LEAD_WINDOWS + k,
+            ),
+            ...Array.from(
+              { length: MONUMENT_FILL_SESSIONS },
+              (_, k) =>
+                Math.ceil((msAtDay(stage.until - MONUMENT_SINK_DAYS, startDay) + shift) / TURN_MS) +
+                MONUMENT_LEAD_WINDOWS +
+                k,
+            ),
+          ]
         : [w0 + 1];
   return ws
     .map((w) => {
@@ -1527,14 +1576,18 @@ export function treeScene(
       built = sessions.reduce((n, q) => n + done(q), 0) / PAINT_SESSIONS;
     } else if (stage.kind === 'monument') {
       if (!sessions.length) continue;
-      // Raised session by session, it stands for a thousand years, then sinks into the ground
-      // over the last five hundred, linearly with the date (section 8.2).
-      const raise = sessions.slice(0, MONUMENT_BUILD_SESSIONS);
+      // Raised session by session, it stands for a thousand years; in the last five hundred
+      // it is filled with earth, session by session, while it sinks into the ground,
+      // linearly with the date (section 8.2).
+      const part = (q: { begin: number; stop: number }) =>
+        Math.min(1, Math.max(0, (ms - q.begin) / (q.stop - q.begin)));
+      const worked = [
+        ...sessions.slice(0, MONUMENT_BUILD_SESSIONS),
+        ...sessions.slice(MONUMENT_BUILD_SESSIONS + MONUMENT_DANCE_SESSIONS),
+      ];
       built =
-        raise.reduce(
-          (n, q) => n + Math.min(1, Math.max(0, (ms - q.begin) / (q.stop - q.begin))),
-          0,
-        ) / MONUMENT_BUILD_SESSIONS;
+        worked.reduce((n, q) => n + part(q), 0) /
+        (MONUMENT_BUILD_SESSIONS + MONUMENT_FILL_SESSIONS);
       const sinks = stage.until - MONUMENT_SINK_DAYS;
       rise = Math.min(1, Math.max(0, (stage.until - dayAtMs(ms, startDay)) / MONUMENT_SINK_DAYS));
       if (dayAtMs(ms, startDay) <= sinks) rise = 1;
@@ -1847,11 +1900,15 @@ export function treeScene(
     const monument = stage.kind === 'monument';
     const sessions = stageSessions(stage, startDay);
     const session = sessions.find((q) => q.w === w)!;
-    // A monument is raised in its first sessions and danced round in the rest.
-    const dance = monument && sessions.indexOf(session) >= MONUMENT_BUILD_SESSIONS;
+    // A monument is raised in its first sessions, danced round in the next and filled in at the end.
+    const nth = sessions.indexOf(session);
+    const dance =
+      monument &&
+      nth >= MONUMENT_BUILD_SESSIONS &&
+      nth < MONUMENT_BUILD_SESSIONS + MONUMENT_DANCE_SESSIONS;
     // A grown-up paints or digs where there is one, else a child: children made hand stencils too.
     if (cast.length < (paint ? 1 : monument ? MONUMENT_MIN : 2)) return undefined;
-    const stands = stageStands(stage.camp, stage.slot, stage.beyond, stage.kind, dance);
+    const stands = stageStands(stage.camp, stage.slot, stage.beyond, stage.kind, nth);
     const { prop, gap, door, at } = stageSpots(stage.camp, stage.slot, stage.beyond);
     const k = stageScale(stage.camp);
     // Into a cave by its mouth, never through the rock; to a monument round its wall and,

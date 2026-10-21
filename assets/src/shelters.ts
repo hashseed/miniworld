@@ -16,7 +16,7 @@ import {
   shade,
 } from './kit.ts';
 import type { Profile } from './people.ts';
-import { addGobekliRing } from './gobekli.ts';
+import { addGobekliFill, addGobekliRing } from './gobekli.ts';
 
 export const SHELTERS = [
   'shelter-hide-tent',
@@ -546,8 +546,9 @@ export function buildShelter(id: ShelterId): Model {
       break;
     }
     case 'prop-gobekli-ring': {
-      // Göbekli Tepe's Enclosure D, raised in six steps (humankind.md section 8.2, gobekli-tepe.md).
+      // Göbekli Tepe's Enclosure D, raised in six steps, then filled with earth in four (humankind.md section 8.2, gobekli-tepe.md).
       addGobekliRing(mb);
+      addGobekliFill(mb);
       break;
     }
     case 'prop-carry-pole': {
