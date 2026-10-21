@@ -121,7 +121,7 @@ const WILD_MASK_MARGIN_KM = 450;
 /** Pieces of ground cut off by camps smaller than this many cells are ignored. */
 const PIECE_SLIVER_CELLS = 3;
 /** A chain of held rounds restarts at every round that is a multiple of this. */
-const HOLD_ROOT_ROUNDS = 512;
+const HOLD_ROOT_ROUNDS = 24;
 /** Tries to find a spot on open ground before an animal stays at home. */
 const SPOT_TRIES = 16;
 /** How far a group closes up on narrow land: shares of its places in the group (section 4). */
