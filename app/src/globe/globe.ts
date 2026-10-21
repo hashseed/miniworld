@@ -77,13 +77,14 @@ export function moundDepthAt(m: Mound, v: [number, number, number]): number {
   const sy = cz * fx - cx * fz;
   const sz = cx * fy - cy * fx;
   const s = (d[0]! * sx + d[1]! * sy + d[2]! * sz) / r;
-  // As the terrain shader's moundAt: a dome along the cut, sinking in front, rising behind.
-  if (e > 0) {
-    const across = Math.max(0, 1 - s * s);
-    const u = Math.min(1, Math.max(0, (e - 0.3) / 0.7));
-    return m.depthKm * across * across * (1 - u * u * (3 - 2 * u));
-  }
-  return -0.8 * m.depthKm * Math.max(0, 1 - e * e - s * s) ** 1.5;
+  // As the terrain shader's moundAt.
+  const across = Math.max(0, 1 - s * s);
+  const u = Math.min(1, Math.max(0, (Math.max(e, 0) - 0.3) / 0.7));
+  const front = m.depthKm * across * across * (1 - u * u * (3 - 2 * u));
+  if (e >= 0) return front;
+  const back = -0.8 * m.depthKm * Math.max(0, 1 - Math.max(e * e, 0.04) - s * s) ** 1.5;
+  const w = Math.min(1, -e / 0.2);
+  return front + (back - front) * w * w * (3 - 2 * w);
 }
 
 export class Globe {

@@ -12,6 +12,7 @@ import { dayAtMs } from '../time/rate.ts';
 import type { Clearing } from '../globe/foliage.ts';
 import { moundDepthAt, type Mound } from '../globe/globe.ts';
 import { CavePaintings } from './cavePaintings.ts';
+import { CaveWalls } from './caveWalls.ts';
 import {
   CAMP_CLEARING_KM,
   FIGURE_KM_PER_M,
@@ -54,8 +55,8 @@ import type { Obstacle } from '../wildlife/wildlifeLayer.ts';
  */
 const CAVE_CUT_M = 13;
 const CAVE_CUT_DEEP_M = 1.8;
-/** The cut runs this many layout metres behind the painting. */
-const CAVE_FACE_BEHIND_M = 0.6;
+/** The cut, and its wall, run this many layout metres behind the painting. */
+const CAVE_FACE_BEHIND_M = 0;
 const NEAR_MARGIN = 0.3;
 /** The oldest camp scene from the worker drawn while the clock runs: a few frames' worth of watching. */
 const MAX_SCENE_LAG_MS = 100;
@@ -134,7 +135,9 @@ export class TreeLayer {
   constructor(loader: ContentLoader, surface: SurfaceSource) {
     this.loader = loader;
     this.surface = surface;
+    this.walls = new CaveWalls((d) => surface.surfaceKm(d));
     this.group.add(
+      this.walls.group,
       this.batches.group,
       this.paintings.group,
       this.clips.group,
@@ -178,6 +181,8 @@ export class TreeLayer {
   private batches = new PosedBatches();
   /** The caves' paintings, pictures on their rock faces (cavePaintings.ts). */
   private paintings = new CavePaintings();
+  /** The caves' rock faces, smooth walls along their cuts (caveWalls.ts). */
+  private walls: CaveWalls;
   /** The people of the camps with approved models, playing baked clips on the GPU (clipBatches.ts). */
   private clips = new ClipBatches();
   /** The hunted animals of the camps, likewise (clipBatches.ts). */
@@ -279,6 +284,7 @@ export class TreeLayer {
     this.hills = [];
     for (const q of scene.props)
       if (q.kind.startsWith('prop-cave-wall-') && q.rise !== undefined) this.hill(q);
+    this.walls.update(this.hills);
     const seen = new Set<number>();
     // Clips play TEMPO times faster, matching the faster pace on the ground.
     const sec = (clipMs: number) => (clipMs * TEMPO) / 1000;
@@ -667,6 +673,8 @@ export class TreeLayer {
     this.prune(this.prey, new Set());
     for (const bead of this.sparks) bead.visible = false;
     this.cleared = [];
+    this.hills = [];
+    this.walls.update([]);
   }
 
   private prune<K, T extends StandIn | undefined>(objects: Map<K, T>, keep: Set<K>): void {
