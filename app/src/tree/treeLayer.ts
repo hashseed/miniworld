@@ -10,7 +10,7 @@ import { latLonToDir } from '../geo/cube.ts';
 import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 import { dayAtMs } from '../time/rate.ts';
 import type { Clearing } from '../globe/foliage.ts';
-import { moundDepthAt, type Mound } from '../globe/globe.ts';
+import { moundDepthAt, plateauWeightAt, type Mound } from '../globe/globe.ts';
 import { CavePaintings } from './cavePaintings.ts';
 import { CaveWalls } from './caveWalls.ts';
 import {
@@ -57,6 +57,10 @@ const CAVE_CUT_M = 13;
 const CAVE_CUT_DEEP_M = 1.8;
 /** A grave's heap lies this deep (life-size metres) beneath the ground when it has sunk away. */
 const GRAVE_DEPTH_M = 0.75;
+/** The monument sinks its own height, 5.5 metres, linearly with the date (humankind.md section 8.2). */
+const MONUMENT_DEPTH_M = 5.5;
+/** The ground is levelled this far round a monument's middle, in layout metres at its drawn size. */
+const MONUMENT_PLATEAU_M = 30;
 /** Below this share of its depth a cut has no wall; low, so the wall sinks into the ground rather than popping off. */
 const CAVE_WALL_FROM = 0.04;
 /** The cut, and its wall, run this many layout metres behind the painting. */
@@ -315,6 +319,7 @@ export class TreeLayer {
     this.hills = [];
     for (const q of scene.props)
       if (q.kind.startsWith('prop-cave-wall-') && q.rise !== undefined) this.hill(q);
+      else if (q.kind === 'prop-gobekli-ring' && q.rise !== undefined) this.plateau(q);
     this.walls.update(this.hills);
     const seen = new Set<number>();
     // Clips play TEMPO times faster, matching the faster pace on the ground.
@@ -422,12 +427,16 @@ export class TreeLayer {
       const cave = q.kind.startsWith('prop-cave-wall-');
       if (q.rise !== undefined && !cave) {
         // A grave's heap of earth rises out of the ground and sinks back (humankind.md section 8.2).
-        const r = q.rise * q.rise * (3 - 2 * q.rise);
+        const monument = q.kind === 'prop-gobekli-ring';
+        const r = monument ? q.rise : q.rise * q.rise * (3 - 2 * q.rise);
         // Whole and in shape, it comes up out of the ground and goes back down through it,
         // never squashed flat (Yang, 2026-10-21: "I would rather have the burial mound sink
         // through the ground").
         at.scale.setScalar(km);
-        at.position.addScaledVector(this.dir, -(1 - r) * GRAVE_DEPTH_M * km);
+        at.position.addScaledVector(
+          this.dir,
+          -(1 - r) * (monument ? MONUMENT_DEPTH_M : GRAVE_DEPTH_M) * km,
+        );
       } else at.scale.setScalar(km);
       if (q.height) at.position.addScaledVector(this.dir, q.height * FIGURE_KM_PER_M);
       // A scene's wall or grave grows in step by step as it is painted or filled (humankind.md section 8.2).
@@ -632,12 +641,44 @@ export class TreeLayer {
     });
   }
 
+  /**
+   * The ground levelled round a monument (humankind.md section 8.2), to the height at its middle,
+   * so the ring stands on a plateau and never floats over a slope: it levels as the ring is
+   * raised and eases back as the ring has sunk.
+   */
+  private plateau(q: CampPropPose): void {
+    const k = q.scale ?? 1;
+    const up = new THREE.Vector3(...this.surface.toDrawn(latLonToDir(q.lat, q.lon))).normalize();
+    const north = new THREE.Vector3();
+    const east = new THREE.Vector3();
+    northEast(up, north, east);
+    const centre = up
+      .clone()
+      .multiplyScalar(EARTH_RADIUS_KM)
+      .addScaledVector(east, q.x * LAYOUT_KM_PER_M)
+      .addScaledVector(north, q.z * LAYOUT_KM_PER_M)
+      .normalize();
+    const plateau = Math.min(1, (q.built ?? 0) * 5, (q.rise ?? 0) * 5);
+    if (plateau <= 0) return;
+    this.hills.push({
+      centre: [centre.x, centre.y, centre.z],
+      radiusKm: MONUMENT_PLATEAU_M * k * LAYOUT_KM_PER_M,
+      toward: [0, 0, 0],
+      depthKm: 0,
+      plateauKm: this.surface.surfaceKm([centre.x, centre.y, centre.z]),
+      plateau,
+    });
+  }
+
   /** How far the caves' cuts lower the ground at a drawn direction, never below the sea. */
   private cutAt(dir: THREE.Vector3, surface: number): number {
     if (!this.hills.length) return 0;
     const v: [number, number, number] = [dir.x, dir.y, dir.z];
     let depth = 0;
-    for (const m of this.hills) depth += moundDepthAt(m, v);
+    for (const m of this.hills) {
+      if (m.plateauKm === undefined) depth += moundDepthAt(m, v);
+      else depth += (surface - m.plateauKm) * plateauWeightAt(m, v);
+    }
     if (depth <= 0) return depth;
     const sea = this.surface.seaKm?.() ?? -Infinity;
     return Math.min(depth, Math.max(0, surface - sea - 1));

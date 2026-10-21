@@ -16,6 +16,7 @@ import {
   shade,
 } from './kit.ts';
 import type { Profile } from './people.ts';
+import { addGobekliRing } from './gobekli.ts';
 
 export const SHELTERS = [
   'shelter-hide-tent',
@@ -35,6 +36,7 @@ export const SHELTERS = [
   'prop-cave-wall-sulawesi',
   'prop-cave-wall-chauvet',
   'prop-burial',
+  'prop-gobekli-ring',
 ] as const;
 export type ShelterId = (typeof SHELTERS)[number];
 
@@ -543,6 +545,11 @@ export function buildShelter(id: ShelterId): Model {
         mb.add(cone([x, 0.34, z], [x, 0.5, z], 0.08, 4), '#6f8a48', b);
       break;
     }
+    case 'prop-gobekli-ring': {
+      // Göbekli Tepe's Enclosure D, raised in six steps (humankind.md section 8.2, gobekli-tepe.md).
+      addGobekliRing(mb);
+      break;
+    }
     case 'prop-carry-pole': {
       // A carrying pole along +Z, the way models face, lying on the ground with its
       // middle over the origin, and two lashings of hide cord where an animal's legs
@@ -552,7 +559,10 @@ export function buildShelter(id: ShelterId): Model {
       break;
     }
   }
-  return mb.build(id);
+  const model = mb.build(id);
+  // The ring's stones rise straight up from where they stand.
+  if (id === 'prop-gobekli-ring') for (const bone of buildSteps(model)) bone.userData.rigid = true;
+  return model;
 }
 
 /** The building steps of a shelter in order, or none when it is shown only whole. */
@@ -569,7 +579,9 @@ export function setBuilt(steps: THREE.Object3D[], built: number): void {
     const t = Math.min(1, Math.max(0, built * steps.length - k));
     bone.visible = t > 0;
     const e = t * t * (3 - 2 * t);
-    bone.scale.set(0.9 + 0.1 * e, Math.max(0.02, e), 0.9 + 0.1 * e);
+    // Stone grows up from its base and never slides sideways (the ring's steps are `rigid`).
+    const xz = bone.userData.rigid ? 1 : 0.9 + 0.1 * e;
+    bone.scale.set(xz, Math.max(0.02, e), xz);
   });
 }
 

@@ -20,6 +20,8 @@ import { LENS_COLS, LENS_ROWS, LENS_STEP } from './lens.ts';
 
 /** At most this many cut hills of scenes are drawn at once (humankind.md section 8.2). */
 export const MOUNDS = 4;
+/** A plateau is level out to this share of its radius, easing back to the land beyond (moundAt). */
+export const PLATEAU_FLAT = 0.55;
 import { CAP_KM_PER_M, snowGlsl } from './snowCap.ts';
 
 /** A number as a GLSL float literal. */
@@ -127,6 +129,7 @@ bool moundHole(vec3 v) {
     if (i >= moundCount) break;
     // A negative radius: the cut is still shallow and has no wall, so the ground is whole.
     if (moundB[i].w <= 0.0 || moundA[i].w <= 0.0) continue;
+    if (dot(moundB[i].xyz, moundB[i].xyz) < 0.5) continue;
     vec3 c = moundA[i].xyz;
     float r = abs(moundA[i].w);
     vec3 d = v - c * dot(v, c);
@@ -281,6 +284,17 @@ void main() {
     float room = max(0.0, (surface - seaLevel - 15.0) * exaggeration * 0.001 * lens.w);
     for (int i = 0; i < MOUNDS; i++) {
       if (i >= moundCount) break;
+      // A plateau (no direction): the ground is brought to its level within its flat, easing
+      // back to the land at its rim (plateauWeightAt in globe.ts).
+      if (dot(moundB[i].xyz, moundB[i].xyz) < 0.5) {
+        vec3 pc = moundA[i].xyz;
+        float pd = length(drawnUp - pc * dot(drawnUp, pc)) / abs(moundA[i].w);
+        float pt = clamp((pd - ${PLATEAU_FLAT}) / ${1 - PLATEAU_FLAT}, 0.0, 1.0);
+        float pw = (1.0 - pt * pt * (3.0 - 2.0 * pt)) * moundB[i].x * 2.0;
+        moundKm += (lift * lens.w - moundB[i].w) * pw;
+        grad *= 1.0 - pw;
+        continue;
+      }
       float m = moundAt(drawnUp, i);
       float dl = abs(moundA[i].w) * 0.02;
       float mx = moundAt(normalize(drawnUp + mEast * dl), i) - moundAt(normalize(drawnUp - mEast * dl), i);

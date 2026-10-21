@@ -1,4 +1,33 @@
 {
-  "description": "Encounters (spec sites.md, section 4.3): parties of several bands that travel to one place, stay a while together and go home. Empty until the first is chosen; the gatherings at Göbekli Tepe are planned (Yang, 2026-10-20: \"dont do tepe yet\").",
-  "encounters": []
+  "description": "Encounters (spec sites.md, section 4.3): parties of several bands that travel to one place, stay a while together and go home. The gathering at Göbekli Tepe (Yang, 2026-10-21, issue 132).",
+  "encounters": [
+    {
+      "id": "gobekli-gathering",
+      "kind": "gathering",
+      "bce": 9500,
+      "stay": 1050,
+      "lat": 37.223,
+      "lon": 38.922,
+      "host": "gobekli-tepe",
+      "roles": [
+        {
+          "id": "levant",
+          "lat": 32.5,
+          "lon": 35.8,
+          "km": 1500,
+          "people": 2
+        },
+        {
+          "id": "zagros",
+          "lat": 34.5,
+          "lon": 46.5,
+          "km": 1500,
+          "people": 2
+        }
+      ],
+      "en": "Two bands come to Göbekli Tepe to raise the stone ring and celebrate it",
+      "de": "Zwei Gruppen kommen nach Göbekli Tepe, um den Steinkreis zu errichten und zu feiern",
+      "source": "Schmidt 2010, Göbekli Tepe – the Stone Age sanctuaries, Documenta Praehistorica 37"
+    }
+  ]
 }

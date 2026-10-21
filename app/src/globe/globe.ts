@@ -21,7 +21,7 @@ import { LENS_COLS, LENS_ROWS, Lens } from './lens.ts';
 import { PlanetQuery } from '../planet/query.ts';
 import type { PlanetState } from '../planet/state.ts';
 import { LAND_LIFT_M } from '../planet/surface.ts';
-import { MOUNDS, terrainFragment, terrainVertex } from './shaders.ts';
+import { MOUNDS, PLATEAU_FLAT, terrainFragment, terrainVertex } from './shaders.ts';
 import { startTerrainWorkers, type TerrainWorkers } from './terrainWorkers.ts';
 import { indexFor, tileGeometry } from './tileMesh.ts';
 import { EARTH_RADIUS_KM } from '../geo/earth.ts';
@@ -68,6 +68,21 @@ export interface Mound {
   walled?: boolean;
   /** The rock of its face: 0 Chauvet's pale limestone, 1 Leang Karampuang's (caveWalls.ts). */
   rock?: number;
+  /** Set for a levelled plateau instead of a cut: the drawn height (km) the ground is brought to. */
+  plateauKm?: number;
+  /** How far the plateau levels the ground, 0 to 1. */
+  plateau?: number;
+}
+
+/** How far a plateau brings the ground to its level at a drawn direction: 1 on its flat, 0 beyond its rim. */
+export function plateauWeightAt(m: Mound, v: [number, number, number]): number {
+  const [cx, cy, cz] = m.centre;
+  const dot = v[0] * cx + v[1] * cy + v[2] * cz;
+  const d = [v[0] - cx * dot, v[1] - cy * dot, v[2] - cz * dot];
+  const dist =
+    Math.sqrt(d[0]! * d[0]! + d[1]! * d[1]! + d[2]! * d[2]!) / (m.radiusKm / EARTH_RADIUS_KM);
+  const t = Math.min(1, Math.max(0, (dist - PLATEAU_FLAT) / (1 - PLATEAU_FLAT)));
+  return (1 - t * t * (3 - 2 * t)) * (m.plateau ?? 1);
 }
 
 /** How far a cut sinks the ground at a drawn direction, in drawn km, as the terrain shader does. */
@@ -202,7 +217,10 @@ export class Globe {
         ...m.centre,
         ((m.walled === false ? -1 : 1) * m.radiusKm) / EARTH_RADIUS_KM,
       );
-      (u.moundB!.value as THREE.Vector4[])[i]!.set(...m.toward, m.depthKm);
+      // A plateau has no direction: its level goes where the depth does (moundAt in shaders.ts).
+      const dir: [number, number, number] =
+        m.plateauKm !== undefined ? [0.5 * (m.plateau ?? 1), 0, 0] : m.toward;
+      (u.moundB!.value as THREE.Vector4[])[i]!.set(...dir, m.plateauKm ?? m.depthKm);
     });
     u.moundCount!.value = list.length;
   }

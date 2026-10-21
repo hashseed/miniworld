@@ -446,6 +446,14 @@
       "note": "A grave dug into a heap of earth in four steps: trench, wrapped body with ivory beads and spears, closed with earth and ochre, grass grown over (humankind.md section 8.2); waiting for Yang's review"
     },
     {
+      "id": "prop-gobekli-ring",
+      "file": "assets/src/shelters.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "Göbekli Tepe's single enclosure (Enclosure D) raised in six steps, 740 triangles, for the monument scene (humankind.md section 8.2, gobekli-tepe.md); waiting for Yang's review"
+    },
+    {
       "id": "shelter-small-hut",
       "file": "assets/src/shelters.ts",
       "kind": "shelter",

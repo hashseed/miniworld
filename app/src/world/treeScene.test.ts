@@ -5,6 +5,9 @@ import { NEVER } from './tree.ts';
 import {
   BLEND_MS,
   burialTimes,
+  MONUMENT_BUILD_SESSIONS,
+  MONUMENT_SINK_DAYS,
+  stageSessions,
   POLE_ON_SHOULDERS_M,
   TAKE_DOWN_MS,
   lodgingSpot,
@@ -451,6 +454,58 @@ describe('the tree scene', () => {
     const after = at(g.start);
     expect(Math.sqrt((after.x - before.x) ** 2 + (after.z - before.z) ** 2)).toBeLessThan(1);
     expect(at(g.start).clip).toBe('ill');
+  });
+
+  it('raises a monument session by session, dances round it, then sinks it', () => {
+    const figure = (id: number) => ({
+      id,
+      parent: id === 0 ? NEVER : 0,
+      born: d0,
+      branch: 0,
+      depth: id === 0 ? 0 : 1,
+      homes: [[d0, 0, id]] as [number, number, number][],
+      lost: NEVER,
+    });
+    const stage = {
+      id: 'gobekli-tepe',
+      kind: 'monument' as const,
+      prop: 'prop-gobekli-ring',
+      camp: 2,
+      lat: 0,
+      lon: 36_000_000,
+      slot: 2,
+      beyond: 10,
+      shown: d0 + years(250),
+      from: d0 + years(402),
+      until: d0 + years(9000),
+      keep: d0 + years(9100),
+    };
+    const monument: TreeChunk = {
+      ...chunk,
+      figures: Array.from({ length: 14 }, (_, i) => figure(i)),
+      lodgings: [{ ...chunk.lodgings[0]!, camp: 2 }],
+      stages: [stage],
+    };
+    const sessions = stageSessions(stage, d0);
+    expect(sessions.length).toBe(MONUMENT_BUILD_SESSIONS * 2);
+    const mid = (k: number) => Math.round((sessions[k]!.begin + sessions[k]!.stop) / 2);
+    const ring = (t: number) =>
+      treeScene(monument, t, d0).props.find((q) => q.kind === 'prop-gobekli-ring');
+    const last = mid(MONUMENT_BUILD_SESSIONS - 1);
+    const building = treeScene(monument, mid(0), d0);
+    expect(building.figures.filter((f) => f.clip === 'work').length).toBeGreaterThan(3);
+    expect(ring(mid(0))!.built).toBeGreaterThan(0);
+    expect(ring(last)!.built).toBeGreaterThan(ring(mid(0))!.built!);
+    const dancing = treeScene(monument, mid(MONUMENT_BUILD_SESSIONS + 1), d0);
+    expect(dancing.figures.filter((f) => f.clip === 'dance').length).toBeGreaterThan(3);
+    expect(ring(mid(MONUMENT_BUILD_SESSIONS + 1))!.built).toBe(1);
+    expect(ring(mid(0))!.rise).toBe(1);
+    // It stands for a thousand years, then sinks over the last five hundred.
+    const sinking = msAtDay(stage.until - Math.round(MONUMENT_SINK_DAYS / 2), d0);
+    expect(ring(sinking)!.rise).toBeGreaterThan(0.4);
+    expect(ring(sinking)!.rise).toBeLessThan(0.6);
+    expect(ring(msAtDay(stage.until + 10, d0))).toBeUndefined();
+    expect(ring(msAtDay(stage.shown, d0))).toBeUndefined();
   });
 
   it('is the same at the same clock time', () => {

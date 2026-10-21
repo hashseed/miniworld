@@ -5,7 +5,7 @@
 // function of the tree chunk and the clock time.
 
 import { hash01, hash32 } from '../core/hash.ts';
-import { detCos, detSin, RAD } from '../core/detmath.ts';
+import { detAtan2, detCos, detSin, RAD } from '../core/detmath.ts';
 import { dayAtMs, msAtDay } from '../time/rate.ts';
 import { astronomicalYear, dayOfYearStart, type Day } from '../time/calendar.ts';
 import { NEVER, type TreeFigure, type TreeFlag, type TreeLodging, type TreeStage } from './tree.ts';
@@ -623,10 +623,30 @@ export function slotPoint(camp: number, slot: number): Pt {
 export const STAGE_BEYOND_M = [12, 10, 8];
 /** A cave's hill stands further out, so its watchers are clear of the lodging in front of it. */
 export const CAVE_BEYOND_M = [12, 10, 8];
+/** A monument stands further out still: its ring is 11 metres across and its dancers round it. */
+export const MONUMENT_BEYOND_M = [10, 9, 8];
+/** A monument is raised in this many sessions, then danced round in as many (humankind.md section 8.2). */
+export const MONUMENT_BUILD_SESSIONS = 6;
+export const MONUMENT_DANCE_SESSIONS = 6;
+/** Its first session falls this many windows after the anchor's day, the guests having walked there. */
+export const MONUMENT_LEAD_WINDOWS = 6;
+/** The ring sinks over its last 500 years, linearly with the date. */
+export const MONUMENT_SINK_DAYS = Math.round(500 * 365.2425);
+/** Dancers' and workers' rings round the monument's middle, in layout metres at full size. */
+const MONUMENT_INNER_R = 2;
+const MONUMENT_OUTER_R = 5.2;
+const MONUMENT_INNER = 4;
+const MONUMENT_OUTER = 6;
+/** The monument's model is drawn at this share of the scene's size: a small enclosure. */
+export const MONUMENT_SCALE = 0.6;
 /** A cave's cut and this many layout metres round it keep clear of water where they can. */
 export const CAVE_WATER_CLEAR_M = 16;
 export const stageBeyond = (kind: TreeStage['kind']) =>
-  kind === 'cave-painting' ? CAVE_BEYOND_M : STAGE_BEYOND_M;
+  kind === 'cave-painting'
+    ? CAVE_BEYOND_M
+    : kind === 'monument'
+      ? MONUMENT_BEYOND_M
+      : STAGE_BEYOND_M;
 /** A scene's prop and places at a full, a compact and a minimal camp, as a share of full size. */
 export const stageScale = (camp: number) =>
   camp >= MINIMAL_SITE ? 0.5 : camp >= COMPACT_SITE ? 0.75 : 1;
@@ -659,9 +679,52 @@ export function stageSpots(camp: number, slot: number, beyond: number) {
   return { prop, u, at, gap, door };
 }
 
+/** A monument's session needs at least this many people (humankind.md section 8.2). */
+export const MONUMENT_MIN = 4;
+
+/**
+ * The way from the camp's side of a monument to a place at it: along the outer ring, or for
+ * the inner ring in by the gate on the camp's side, then along the inner ring, never through
+ * the wall; a step each 30 degrees round the shorter way.
+ */
+function monumentPath(to: Pt, prop: Pt, at: (back: number, side: number) => Pt, k: number): Pt[] {
+  const [dx, dz] = [(to.x - prop.x) / k, (to.z - prop.z) / k];
+  const [back, side] = [at(1, 0), at(0, 1)];
+  const [bx, bz] = [(back.x - prop.x) / k, (back.z - prop.z) / k];
+  const [sx, sz] = [(side.x - prop.x) / k, (side.z - prop.z) / k];
+  // The angle from the camp's side, and the point on a ring of a radius at an angle.
+  const a = detAtan2(dx * sx + dz * sz, dx * bx + dz * bz);
+  const onRing = (ang: number, rad: number) => at(rad * detCos(ang), rad * detSin(ang));
+  const inside = Math.sqrt(dx * dx + dz * dz) < MONUMENT_OUTER_R - 0.6;
+  const rad = inside ? MONUMENT_INNER_R : MONUMENT_OUTER_R;
+  const path = inside ? [onRing(0, MONUMENT_OUTER_R), onRing(0, MONUMENT_INNER_R)] : [];
+  const n = Math.max(1, Math.ceil(Math.abs(a) / (Math.PI / 6)));
+  for (let j = 1; j <= n; j++) path.push(onRing((a * j) / n, rad));
+  return path;
+}
+
 /** Where the people of a scene stand: the painter and two watchers, or two diggers and the mourners. */
-function stageStands(camp: number, slot: number, beyond: number, kind: TreeStage['kind']): Pt[] {
+function stageStands(
+  camp: number,
+  slot: number,
+  beyond: number,
+  kind: TreeStage['kind'],
+  dance = false,
+): Pt[] {
   const { at } = stageSpots(camp, slot, beyond);
+  if (kind === 'monument') {
+    // Workers all round the ring; dancers in two rings, inside it and outside, handed out
+    // alternately so a small party still makes two rings (angles from the camp's side).
+    const ring = (n: number, r: number, turn: number) =>
+      Array.from({ length: n }, (_, k) => {
+        const a = ((k + turn) / n) * 2 * Math.PI;
+        return at(r * detCos(a), r * detSin(a));
+      });
+    if (!dance) return ring(MONUMENT_INNER + MONUMENT_OUTER, MONUMENT_OUTER_R, 0.5);
+    const inner = ring(MONUMENT_INNER, MONUMENT_INNER_R, 0.5);
+    const outer = ring(MONUMENT_OUTER, MONUMENT_OUTER_R, 0.5);
+    return outer.flatMap((q, k) => (k < inner.length ? [q, inner[k]!] : [q]));
+  }
   // The painter at the rock face, the watchers behind; diggers at the grave's heap of earth.
   if (kind === 'cave-painting') return [at(1.8, 0), at(5, -2.2), at(5, 2.2)];
   const out = [at(2.4, -1.5), at(2.4, 1.5)];
@@ -685,6 +748,16 @@ export function stagePoints(
   // it (its hill is the ground, which does not rise over water); the grave's heap 4.2 by 2.6.
   const cave = kind === 'cave-painting';
   const [wide, deep, mid] = cave ? [6, 4, -2] : [4.2, 2.6, 0];
+  if (kind === 'monument') {
+    // The ring and the ground round it where its dancers stand and walk.
+    for (const r of [MONUMENT_INNER_R, 6.5, MONUMENT_OUTER_R + 1.2])
+      for (let k = 0; k < 16; k++) {
+        const a = (k / 16) * 2 * Math.PI;
+        out.push(at(r * detCos(a), r * detSin(a)));
+      }
+    out.push(at(MONUMENT_OUTER_R + 0.5, 0), gap);
+    return out;
+  }
   for (let k = 0; k < 12; k++) {
     const a = (k / 12) * 2 * Math.PI;
     out.push(at(mid + deep * detCos(a), wide * detSin(a)));
@@ -726,6 +799,9 @@ const CARRIED_M = 0.9;
 /** The two who carry the dead stand this far (layout metres) before and behind its middle, at its head and feet. */
 const BEARER_HALF_M = 3;
 const STAGE_MS = Math.round(27_000 / TEMPO);
+/** A monument's inner ring is further to walk to, so its people come later and work a little shorter. */
+const MONUMENT_LEAD_MS = Math.round(21_000 / TEMPO);
+const MONUMENT_STAGE_MS = Math.round(15_000 / TEMPO);
 /**
  * A cave fades in over CAVE_FADE_MS of watching from CAVE_LEAD_MS before its first session,
  * and out over CAVE_FADE_MS from CAVE_LINGER_MS after its last; a closed grave fades into the
@@ -786,13 +862,25 @@ export function stageSessions(
   const ws =
     stage.kind === 'cave-painting'
       ? Array.from({ length: PAINT_SESSIONS }, (_, k) => w0 + 2 * k)
-      : [w0 + 1];
+      : stage.kind === 'monument'
+        ? Array.from(
+            { length: MONUMENT_BUILD_SESSIONS + MONUMENT_DANCE_SESSIONS },
+            (_, k) => w0 + MONUMENT_LEAD_WINDOWS + k,
+          )
+        : [w0 + 1];
   return ws
     .map((w) => {
       const start = w * TURN_MS - shift;
-      const lead = stage.kind === 'burial' ? BURIAL_LEAD_MS : STAGE_LEAD_MS;
+      const monument = stage.kind === 'monument';
+      const lead =
+        stage.kind === 'burial' ? BURIAL_LEAD_MS : monument ? MONUMENT_LEAD_MS : STAGE_LEAD_MS;
       const long = stage.kind === 'burial' ? HEAP_MS + BODY_AFTER_MS + FILL_GRAVE_MS - STAGE_MS : 0;
-      return { w, start, begin: start + lead, stop: start + lead + STAGE_MS + long };
+      return {
+        w,
+        start,
+        begin: start + lead,
+        stop: start + lead + (monument ? MONUMENT_STAGE_MS : STAGE_MS) + long,
+      };
     })
     .filter((x) => x.start + TURN_MS <= end);
 }
@@ -1437,6 +1525,20 @@ export function treeScene(
       const done = (q: { begin: number; stop: number }) =>
         Math.min(1, Math.max(0, (ms - q.begin) / (q.stop - q.begin)));
       built = sessions.reduce((n, q) => n + done(q), 0) / PAINT_SESSIONS;
+    } else if (stage.kind === 'monument') {
+      if (!sessions.length) continue;
+      // Raised session by session, it stands for a thousand years, then sinks into the ground
+      // over the last five hundred, linearly with the date (section 8.2).
+      const raise = sessions.slice(0, MONUMENT_BUILD_SESSIONS);
+      built =
+        raise.reduce(
+          (n, q) => n + Math.min(1, Math.max(0, (ms - q.begin) / (q.stop - q.begin))),
+          0,
+        ) / MONUMENT_BUILD_SESSIONS;
+      const sinks = stage.until - MONUMENT_SINK_DAYS;
+      rise = Math.min(1, Math.max(0, (stage.until - dayAtMs(ms, startDay)) / MONUMENT_SINK_DAYS));
+      if (dayAtMs(ms, startDay) <= sinks) rise = 1;
+      if (built <= 0) continue;
     } else {
       const g = burialTimes(stage, startDay);
       if (!g) continue;
@@ -1472,7 +1574,7 @@ export function treeScene(
       dirX: -u.x,
       dirZ: -u.z,
       built,
-      scale: stageScale(stage.camp),
+      scale: stageScale(stage.camp) * (stage.kind === 'monument' ? MONUMENT_SCALE : 1),
       rise,
       ...(paint !== undefined ? { paint } : {}),
       // A cave's torch burns while a session is painted.
@@ -1742,13 +1844,24 @@ export function treeScene(
     // Grown-ups first: the painter, or the two who dig.
     const cast = [...grown, ...others];
     const paint = stage.kind === 'cave-painting';
+    const monument = stage.kind === 'monument';
+    const sessions = stageSessions(stage, startDay);
+    const session = sessions.find((q) => q.w === w)!;
+    // A monument is raised in its first sessions and danced round in the rest.
+    const dance = monument && sessions.indexOf(session) >= MONUMENT_BUILD_SESSIONS;
     // A grown-up paints or digs where there is one, else a child: children made hand stencils too.
-    if (cast.length < (paint ? 1 : 2)) return undefined;
-    const stands = stageStands(stage.camp, stage.slot, stage.beyond, stage.kind);
-    const session = stageSessions(stage, startDay).find((q) => q.w === w)!;
-    const { prop, gap, door } = stageSpots(stage.camp, stage.slot, stage.beyond);
-    // Into a cave by its mouth, never through the rock.
-    const way = (trip: Itinerary) => (paint ? trip.go(gap).go(door) : trip.go(gap));
+    if (cast.length < (paint ? 1 : monument ? MONUMENT_MIN : 2)) return undefined;
+    const stands = stageStands(stage.camp, stage.slot, stage.beyond, stage.kind, dance);
+    const { prop, gap, door, at } = stageSpots(stage.camp, stage.slot, stage.beyond);
+    const k = stageScale(stage.camp);
+    // Into a cave by its mouth, never through the rock; to a monument round its wall and,
+    // for the inner ring, in by the gate on the camp's side.
+    const mono = (to: Pt) => monumentPath(to, prop, at, k);
+    const way = (trip: Itinerary, to: Pt) => {
+      trip.go(gap);
+      if (monument) for (const q of mono(to)) trip.go(q);
+      return paint ? trip.go(door) : trip;
+    };
     // The two who dig first carry the dead from where it lies by the fire (section 8.2).
     const dead = paint ? undefined : mates(stage.camp).find((g) => g.id === stage.dead);
     const lying = dead && stayAt(dead, start)?.spot;
@@ -1762,7 +1875,7 @@ export function treeScene(
     for (const m of cast) {
       const i = chosen.length;
       if (i === stands.length) break;
-      const trip = way(new Itinerary(start, m.spot, m.home.camp)).go(stands[i]!);
+      const trip = way(new Itinerary(start, m.spot, m.home.camp), stands[i]!).go(stands[i]!);
       if (trip.t > session.begin) continue;
       if (burial && i < 2) {
         // The two who dig: dig the grave, fetch the dead and carry it in, then add the
@@ -1800,16 +1913,17 @@ export function treeScene(
       }
       trip.at = stands[i]!;
       if (paint) trip.go(door);
+      if (monument) for (const q of mono(stands[i]!).reverse()) trip.go(q);
       trip.go(gap).go(m.spot);
       if (trip.t > until || trip.t > m.busy) continue;
       chosen.push(m);
       legs.set(m.f.id, trip.legs);
       end = Math.max(end, trip.t);
     }
-    if (chosen.length < (paint ? 1 : 2)) return undefined;
+    if (chosen.length < (paint ? 1 : monument ? MONUMENT_MIN : 2)) return undefined;
     return {
       id: `${stage.id}:${w}`,
-      kind: paint ? 'paint' : 'burial',
+      kind: paint ? 'paint' : monument ? (dance ? 'celebrate' : 'raise') : 'burial',
       camp: stage.camp,
       members: chosen.map((m) => m.f.id),
       a0: 0,
@@ -1894,6 +2008,10 @@ export function treeScene(
     const p = eventPoint(ev, i, ms);
     const tau = ms - ev.begin;
     // At a scene: the painter paints and the others watch; two dig and the others mourn.
+    if (ev.kind === 'raise' || ev.kind === 'celebrate') {
+      const clip = ev.kind === 'raise' ? 'work' : 'dance';
+      return { ...base, ...p, ...towards(p.x, p.z, ev.face!.x, ev.face!.z), clip, clipMs: tau };
+    }
     if (ev.kind === 'paint' || ev.kind === 'burial') {
       const working = ev.kind === 'paint' ? i === 0 : i < 2;
       const clip = !working ? 'idle' : ev.kind === 'paint' ? 'paint' : 'work';
@@ -2953,7 +3071,7 @@ export function treeScene(
 interface CampEvent {
   id: string;
   /** Catch and dancing, or a scene's session (section 8.2). */
-  kind: 'catch' | 'dance' | 'paint' | 'burial';
+  kind: 'catch' | 'dance' | 'paint' | 'burial' | 'raise' | 'celebrate';
   camp: number;
   /** Figure ids, in their order round the ring. */
   members: number[];

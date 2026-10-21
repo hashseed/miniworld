@@ -41,6 +41,8 @@ import {
   slotPoint,
   burialTimes,
   stageSessions,
+  MONUMENT_BUILD_SESSIONS,
+  MONUMENT_MIN,
   treeScene,
 } from '../../../app/src/world/treeScene.ts';
 import {
@@ -52,7 +54,7 @@ import {
 } from '../lib/arrivals.ts';
 import { CAMP_SHELTER } from '../../../assets/src/shelters.ts';
 import type { Profile } from '../../../app/src/world/cultures.ts';
-import type { Tree } from '../../../app/src/world/tree.ts';
+import type { Tree, TreeStage } from '../../../app/src/world/tree.ts';
 import { climateHabitat } from '../lib/habitat.ts';
 import {
   buildTree,
@@ -260,6 +262,7 @@ export function buildHumankind(
       lon: number;
       scene?: { kind: string; prop: string };
       camp?: { lat: number; lon: number };
+      dryland?: boolean;
       en: string;
       de: string;
       source: string;
@@ -272,11 +275,12 @@ export function buildHumankind(
   const SCENE_PROPS: Record<string, string[]> = {
     'cave-painting': ['prop-cave-wall-sulawesi', 'prop-cave-wall-chauvet'],
     burial: ['prop-burial'],
+    monument: ['prop-gobekli-ring'],
   };
   for (const a of anchors)
     if (a.scene && !SCENE_PROPS[a.scene.kind]?.includes(a.scene.prop))
       fail(
-        `anchors.json: ${a.id}: a scene is a cave-painting (${SCENE_PROPS['cave-painting']!.join(', ')}) or a burial (prop-burial)`,
+        `anchors.json: ${a.id}: a scene is a cave-painting (${SCENE_PROPS['cave-painting']!.join(', ')}), a burial (prop-burial) or a monument (prop-gobekli-ring)`,
       );
   // The records that need a band at a place and time, each laid a site of its own that stays
   // dry for its span (sites.md section 2.1); an anchor's close by (section 4.1).
@@ -286,10 +290,9 @@ export function buildHumankind(
     until: a.until === undefined ? TREE_END : dayOfBce(a.until),
     lat: a.lat,
     lon: a.lon,
-    ...(a.scene
-      ? { scene: { kind: a.scene.kind as 'cave-painting' | 'burial', prop: a.scene.prop } }
-      : {}),
+    ...(a.scene ? { scene: { kind: a.scene.kind as TreeStage['kind'], prop: a.scene.prop } } : {}),
     ...(a.camp ? { camp: { lat: a.camp.lat, lon: a.camp.lon } } : {}),
+    ...(a.dryland ? { dryland: true } : {}),
   }));
   const thresholdRecords = thresholds.map((t) => ({
     id: t.id,
@@ -369,6 +372,7 @@ export function buildHumankind(
         lon: p.lon,
         sea: seaOver(p.day, p.until),
         ...(p.kind === 'anchor' ? { km: ANCHOR_SITE_KM } : {}),
+        ...(p.dryland ? { flood: walkFlood } : {}),
       })),
     ],
     stepAt: (lat: number, lon: number) => siteStepAt(cultureAreas, lat, lon),
@@ -633,9 +637,15 @@ export function buildHumankind(
   for (const stage of tree.stages ?? []) {
     const a = anchors.find((x) => x.id === stage.id)!;
     const sessions = stageSessions(stage, TIMELINE_START);
-    const need = stage.kind === 'cave-painting' ? 1 : 2;
-    const clips = stage.kind === 'cave-painting' ? ['paint'] : ['work'];
+    const monument = stage.kind === 'monument';
+    const need = stage.kind === 'cave-painting' ? 1 : monument ? MONUMENT_MIN : 2;
     for (const [k, q] of sessions.entries()) {
+      const clips =
+        stage.kind === 'cave-painting'
+          ? ['paint']
+          : monument && k >= MONUMENT_BUILD_SESSIONS
+            ? ['dance']
+            : ['work'];
       // A burial's diggers are at work while the grave is dug, before they carry the dead.
       const g = stage.kind === 'burial' ? burialTimes(stage, TIMELINE_START) : undefined;
       const ms = g ? Math.round((g.dig + g.digEnd) / 2) : Math.round((q.begin + q.stop) / 2);
@@ -650,7 +660,7 @@ export function buildHumankind(
         : 0;
       if (busy < need)
         fail(
-          `tree of humankind: session ${k + 1} of the scene of ${stage.id} has nobody to ${stage.kind === 'cave-painting' ? 'paint' : 'dig the grave'}`,
+          `tree of humankind: session ${k + 1} of the scene of ${stage.id} has too few people to ${stage.kind === 'cave-painting' ? 'paint' : monument ? (k >= MONUMENT_BUILD_SESSIONS ? 'dance' : 'raise the ring') : 'dig the grave'}`,
         );
     }
     if (sessions[0])
