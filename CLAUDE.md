@@ -21,3 +21,7 @@ The spec in `docs/spec/` is the source of truth. Before implementing any change 
 - Presentation: nothing bloody, nothing softened. Hard history (war, slavery, colonial violence, the Holocaust) is named and explained correctly at an 11 to 12-year-old reading level.
 - Assets are generated and must be approved by Yang before use; only assets with status `approved` in the asset manifest may ship.
 - Content is streamed in chunks by place, time window and language (spec section 10); never add content that the app must download in full at startup beyond the light index.
+
+## Animation review
+
+To iterate on a clip, use `npm run anim -- <subject> <round> [seq] [n]` and follow spec milestone 2 section 13.5.
