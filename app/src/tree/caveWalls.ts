@@ -106,7 +106,8 @@ export class CaveWalls {
   }
 
   /** Builds this frame's walls, one per cut, from the cuts the globe draws. */
-  update(mounds: readonly Mound[]): void {
+  update(all: readonly Mound[]): void {
+    const mounds = all.filter((m) => m.plateauKm === undefined);
     mounds.forEach((m, i) => this.wall(m, i));
     for (let i = mounds.length; i < this.meshes.length; i++) this.meshes[i]!.visible = false;
   }

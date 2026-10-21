@@ -122,6 +122,8 @@ export interface DatedPlace {
   until: Day;
   lat: number;
   lon: number;
+  /** Its camp ignores the drawn rivers, which are too coarse at its place (anchors.json `dryland`). */
+  dryland?: boolean;
 }
 
 /** A row of the place table: a dated place and its site. */
@@ -168,7 +170,15 @@ export function datedPlaces(
         lat: e.lat,
         lon: e.lon,
       })),
-  ].map(({ kind, id, day, until, lat, lon }) => ({ kind, id, day, until, lat, lon }));
+  ].map(({ kind, id, day, until, lat, lon, ...more }) => ({
+    kind,
+    id,
+    day,
+    until,
+    lat,
+    lon,
+    ...('dryland' in more && more.dryland ? { dryland: true } : {}),
+  }));
 }
 /** A site is on a place's own land when it walks to the site nearest the place in this many links. */
 const OWN_LAND_HOPS = 24;
@@ -273,6 +283,8 @@ export interface Anchor {
   scene?: { kind: TreeStage['kind']; prop: string };
   /** Where its camp should stand, near the place, for a scene that faces the place from there. */
   camp?: { lat: number; lon: number };
+  /** Its camp ignores the drawn rivers, which are too coarse at its place. */
+  dryland?: boolean;
 }
 
 /** An encounter (sites.md section 4.3): parties of several bands meeting at a place. */
@@ -1579,7 +1591,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         headcount(camp) + people.length > layoutOf(camp.site.key).people
       )
         throw new Error(
-          `tree of humankind: ${name}, role ${r.id}: the camp at its site has no room for its party`,
+          `tree of humankind: ${name}, role ${r.id}: the camp at its site has no room for its party (site ${camp.site.key}, free ${freePlaces(camp, day)}, need ${need}, lodgings ${camp.lodgings.length}, heads ${headcount(camp)}+${people.length})`,
         );
       const lodgings: number[] = [];
       for (let i = 0; i < people.length; i += LODGING_CAPACITY) {
@@ -1738,7 +1750,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     const p = planByKey.get(placeKey('anchor', a.id))!;
     const site = p.site;
     const sea = seaMax(p.day, p.until);
-    const flood = s.campFlood ?? s.walkFlood ?? (() => Infinity);
+    const flood = (a.dryland ? s.walkFlood : s.campFlood) ?? s.walkFlood ?? (() => Infinity);
     const dryAt = (q: { x: number; z: number }) => {
       const g = onGlobe(
         site.lat,
@@ -2078,6 +2090,11 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   for (const x of stages) {
     const q = stageSessions(x, s.startDay);
     if (!q.length) continue;
+    // A monument shows from its first session, to the anchor's end.
+    if (x.kind === 'monument') {
+      x.shown = Math.floor(dayAtMs(q[0]!.start, s.startDay));
+      continue;
+    }
     const cave = x.kind === 'cave-painting';
     // A burial's window starts with its dead falling ill.
     x.shown = Math.floor(dayAtMs(cave ? q[0]!.begin - CAVE_LEAD_MS : q[0]!.start, s.startDay));

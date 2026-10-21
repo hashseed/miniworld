@@ -5,8 +5,17 @@
       "id": "gobekli-tepe",
       "bce": 9500,
       "until": 8000,
+      "dryland": true,
       "lat": 37.223,
       "lon": 38.922,
+      "camp": {
+        "lat": 37.223,
+        "lon": 39.06
+      },
+      "scene": {
+        "kind": "monument",
+        "prop": "prop-gobekli-ring"
+      },
       "en": "Göbekli Tepe: hunter-gatherers raise the stone enclosures",
       "de": "Göbekli Tepe: Jäger und Sammler errichten die Steinkreise",
       "source": "Schmidt 2010, Göbekli Tepe – the Stone Age sanctuaries, Documenta Praehistorica 37"

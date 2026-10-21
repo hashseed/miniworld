@@ -63,8 +63,9 @@ Later milestones need a band at an exact place and time: the camp that becomes t
 | `bce` | The year from which a band must stand there (or `ce`) |
 | `lat`, `lon` | The place: the anchor's site is the camp site nearest it, within 300 km, that a camp can use on that day (dry and habitable for the culture there) |
 | `until` | Optional: the year to which the band stays; without it, to the end of the tree |
-| `scene` | Optional: a scene its band plays at its camp, a cave painting or a burial ([humankind.md](humankind.md#82-scenes-at-anchors) section 8.2) |
+| `scene` | Optional: a scene its band plays at its camp, a cave painting, a burial or a monument ([humankind.md](humankind.md#82-scenes-at-anchors) section 8.2) |
 | `camp` | Optional: a `lat` and `lon` where its camp should stand, near the place, for a scene that faces the place from there (humankind.md section 8.2); its site is laid and chosen there |
+| `dryland` | Optional: `true` where the drawn rivers are too coarse to tell dry land at its place (Göbekli Tepe's ridge lies among valleys drawn as river banks); its camp is then chosen ignoring the drawn rivers, still dry of lakes and the sea, so a full camp fits |
 | `en`, `de`, `source` | What it is, in both languages, and the source of its date and place |
 
 The build makes it so:
@@ -90,7 +91,7 @@ Yang, 2026-10-20: "let's build the planning pass so that we have a very robust w
 
 ### 4.3 Encounters
 
-Yang, 2026-10-20: "In the future we will need interaction between multiple bands at the same or overlapping sites. E.g. wars between two nations, or trade routes, or visits, etc." and, on the design: "Let's spec and implement the infrastructure but dont do tepe yet". A band still lives at one site, alone (section 4). Everything bands do together is an **encounter**: parties from several bands travel to one place, stay there a while together and go home. Visits, feasts and gatherings, trade journeys and, later, the armies of a war are encounters; what follows from one (goods, a changed border, a morph) is for the milestones that need it. `data/curated/encounters.json` lists them; it is empty until the first is chosen (the gatherings at Göbekli Tepe are planned but not yet in, Yang 2026-10-20).
+Yang, 2026-10-20: "In the future we will need interaction between multiple bands at the same or overlapping sites. E.g. wars between two nations, or trade routes, or visits, etc." and, on the design: "Let's spec and implement the infrastructure but dont do tepe yet". A band still lives at one site, alone (section 4). Everything bands do together is an **encounter**: parties from several bands travel to one place, stay there a while together and go home. Visits, feasts and gatherings, trade journeys and, later, the armies of a war are encounters; what follows from one (goods, a changed border, a morph) is for the milestones that need it. `data/curated/encounters.json` lists them; it holds the gathering at Göbekli Tepe (Yang, 2026-10-21, issue 132: "Two bands come together to build Gobekli Tepe"; until then it was empty: "dont do tepe yet", 2026-10-20), whose parties come from the Levant and from the Zagros for the building and the dancing of the monument of humankind.md section 8.2, and stay for the whole of it (`stay` 900 seconds of watching, **Proposed**: the building takes 6 windows to begin and 12 to run; two people from each party).
 
 | Field | Meaning |
 | --- | --- |

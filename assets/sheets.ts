@@ -24,6 +24,7 @@ const sheets: [string, string][] = [
   ['gobekli-rings-1-4', 'sheet=landmark&rings=4&view=over'],
   ['shelters', 'sheet=shelters'],
   ['build-grass-hut', 'sheet=build&id=shelter-grass-hut'],
+  ['build-gobekli-ring', 'sheet=build&id=prop-gobekli-ring'],
   ['animals-large', 'sheet=animals&set=large'],
   ['animals-small', 'sheet=animals&set=small'],
   ...['animal-mammoth', 'animal-horse', 'animal-reindeer', 'shelter-mammoth-bone-hut'].map(

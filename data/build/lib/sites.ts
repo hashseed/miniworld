@@ -125,7 +125,15 @@ export interface SiteInputs {
    * Places that need a site near them; `km` asks for one nearer than KEY_PLACE_KM (an anchor's),
    * `sea` for one dry only up to that sea level, not the highest (a dated place, section 2.1).
    */
-  keyPlaces?: { id: string; lat: number; lon: number; km?: number; sea?: number }[];
+  keyPlaces?: {
+    id: string;
+    lat: number;
+    lon: number;
+    km?: number;
+    sea?: number;
+    /** Its own flood levels for a camp, where the drawn rivers must not spoil a site (an anchor's `dryland`). */
+    flood?(lat: number, lon: number): number;
+  }[];
   /** The height of the ground at a point, in metres, for a site's relief; flat without it. */
   elevation?(lat: number, lon: number): number;
   /** Rows of latitude to lay sites on, south to north. */
@@ -519,29 +527,28 @@ export function buildSites(input: SiteInputs): SiteMap {
   // Every key place gets a site near it, of whatever layout fits there (section 2).
   const unplaced: string[] = [];
   for (const place of input.keyPlaces ?? []) {
+    const here = place.flood ? { ...input, campFlood: place.flood } : input;
     // A site near it that stays dry at the highest sea, so it can be used in every age.
     const radius = place.km ?? KEY_PLACE_KM;
     const sea = place.sea ?? input.highestSea;
-    const near = sites.some(
-      (x) => fitOf(x) > sea && distanceKm(x.lat, x.lon, place.lat, place.lon) <= radius,
-    );
+    const near =
+      !place.flood &&
+      sites.some((x) => fitOf(x) > sea && distanceKm(x.lat, x.lon, place.lat, place.lon) <= radius);
     if (near) continue;
     // Within its radius, or farther where nothing fits nearer.
     const uneven = () => {
       evenPlaces = false;
       try {
-        return keySite(sites.length, place, input, radius, sea);
+        return keySite(sites.length, place, here, radius, sea);
       } finally {
         evenPlaces = true;
       }
     };
     const site =
-      keySite(sites.length, place, input, radius, sea) ??
+      keySite(sites.length, place, here, radius, sea) ??
       uneven() ??
-      (radius < KEY_PLACE_KM
-        ? keySite(sites.length, place, input, KEY_PLACE_KM, sea)
-        : undefined) ??
-      keySite(sites.length, place, input, KEY_PLACE_FAR_KM, sea);
+      (radius < KEY_PLACE_KM ? keySite(sites.length, place, here, KEY_PLACE_KM, sea) : undefined) ??
+      keySite(sites.length, place, here, KEY_PLACE_FAR_KM, sea);
     if (site) sites.push(site);
     else unplaced.push(place.id);
   }
