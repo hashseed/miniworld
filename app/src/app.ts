@@ -307,7 +307,7 @@ function layoutTimeline(): void {
 /** Shifts the projection so the globe is centred in the space above the bottom controls. */
 function centreGlobe(): void {
   const bottom = (document.querySelector('.bottom') as HTMLElement | null)?.offsetHeight ?? 0;
-  const shift = Math.min(bottom, innerHeight * 0.5) * 0.8;
+  const shift = Math.min(bottom, innerHeight * 0.5) * 0.8 * introEase;
   camera.setViewOffset(innerWidth, innerHeight + shift, 0, shift, innerWidth, innerHeight);
 }
 
@@ -675,6 +675,8 @@ async function start(): Promise<void> {
 // --- Loading screen (milestone-1 section 8.6) ----------------------------------------
 
 /** The latitude the small globe is seen from while loading, its spin westward, and its radius on screen. */
+/** Time the globe takes to move up above the bottom controls while the camera flies in. */
+const INTRO_EASE_MS = 1500;
 const INTRO_LAT = 15;
 const INTRO_SPIN_DEG_PER_S = 20;
 /** The longitude the small globe first shows, as in the still picture (scripts/loading-shot.ts). */
@@ -689,6 +691,12 @@ const ARRIVE_MS = 1600;
 const introRadiusPx = () => Math.min(90, innerWidth * 0.22);
 /** The view the camera flies in to once the world has loaded. */
 let introTarget: CameraState | undefined;
+/**
+ * How much of the shift that centres the globe above the bottom controls is applied: none while
+ * the small globe stands in the middle of the window (so the still picture, the caption and the
+ * drawn globe never move as the controls lay out), then it eases in as the camera flies in.
+ */
+let introEase = 1;
 
 /**
  * Moves the camera far out, where the globe is small, and keeps the remembered view for
@@ -700,6 +708,8 @@ function startIntro(): void {
     return;
   }
   introTarget = { ...controller.state };
+  introEase = 0;
+  centreGlobe();
   document.getElementById('ui')!.classList.add('intro');
   // The globe faces as in the still picture that stands in until it is drawn (loading-globe.jpg).
   controller.state = { ...controller.state, lat: INTRO_LAT, lon: INTRO_LON };
@@ -729,6 +739,10 @@ function placeIntro(): void {
  * vignettes, which would be specks at that distance.
  */
 function introFrame(dtMs: number): void {
+  if (introEase < 1 && ui.value.intro !== 'loading') {
+    introEase = controller.reducedMotion ? 1 : Math.min(1, introEase + dtMs / INTRO_EASE_MS);
+    centreGlobe();
+  }
   const loading = ui.value.intro === 'loading' && !STRESS;
   clouds.mesh.visible = !loading || globe.drawnTiles > 0;
   for (const layer of [landmarks.group, vignettes.group, wildlife.group, tree.group])
