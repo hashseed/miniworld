@@ -499,7 +499,8 @@ export function buildShelter(id: ShelterId): Model {
       // painted one after another, and a torch while it is painted.
       const sulawesi = id === 'prop-cave-wall-sulawesi';
       /** A point on the cut face at (x, y), just in front of it. */
-      const face = (x: number, y: number, out = 0.06): Vec3 => [x, y + 0.15, 0.06 + out];
+      // Low on the face, where the drawn hill is high enough at its alcove's back.
+      const face = (x: number, y: number, out = 0.06): Vec3 => [x * 0.8, 0.1 + y * 0.6, 0.06 + out];
       // The torch beside the face, lit while a session is painted (the scene shows it then).
       mb.bone({ name: 'torch', pivot: [0.85, 0, 0.5] });
       mb.add(rod([0.9, 0, 0.65], [0.8, 1.3, 0.35], 0.03, 4), POLE, 'torch');

@@ -34,6 +34,8 @@ export type Clip =
   | 'paint'
   | 'ill'
   | 'lie'
+  // Sitting by the fire (humankind.md section 8.1).
+  | 'sit'
   // Crossing the sea in a canoe (peopling.md section 6).
   | 'paddle';
 
@@ -134,6 +136,7 @@ export const PERSON_LOOPS: Partial<Record<Clip, { loop: number } | { once: numbe
   knap: { loop: 5.6 },
   paint: { loop: 2.4 },
   ill: { loop: 3.2 },
+  sit: { loop: 6.4 },
   lie: { loop: 4 },
   point: { loop: 1.6 },
   cheer: { loop: 0.7 },
@@ -162,6 +165,7 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
     clip !== 'knap' &&
     clip !== 'paint' &&
     clip !== 'ill' &&
+    clip !== 'sit' &&
     clip !== 'lie' &&
     !(clip === 'throw' && t >= THROW_RELEASE);
   bone('load').visible = clip === 'carry';
@@ -457,6 +461,23 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
       rot('armUpperR', -0.75, 0, -0.35);
       rot('armLowerL', -1.2);
       rot('armLowerR', -1.2);
+      break;
+    }
+    case 'sit': {
+      // Sitting on the ground by the fire, legs crossed in front, leaning back a little on
+      // one hand, now and then turning the head to look about.
+      const look = Math.sin((t / 6.4) * TAU);
+      lift(-0.62 * hipRest);
+      rot('legUpperL', -1.4, 0, 0.45);
+      rot('legUpperR', -1.4, 0, -0.45);
+      rot('legLowerL', 1.9, 0, 0);
+      rot('legLowerR', 1.9, 0, 0);
+      rot('torso', -0.08);
+      rot('head', 0.05, 0.35 * look);
+      rot('armUpperL', 0.5, 0, 0.35);
+      rot('armLowerL', -0.15);
+      rot('armUpperR', -0.6, 0, -0.2);
+      rot('armLowerR', -0.9);
       break;
     }
     case 'lie': {
