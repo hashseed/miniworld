@@ -93,7 +93,9 @@ export class CavePaintings {
       });
       const geometry = new THREE.PlaneGeometry(p.width, p.height);
       // In front of the face, its foot above the lowered ground.
-      geometry.translate(0, p.foot + p.height / 2, 0.05);
+      geometry.translate(0, p.foot + p.height / 2, 0.23);
+      // Leaning back with the cave's face, about 24 degrees (caveWalls.ts).
+      geometry.rotateX(-0.42);
       // Turned as the tree's props are (figures.ts, turned): model +Z along the placement's facing.
       geometry.rotateY(Math.PI / 2);
       mesh = new THREE.Mesh(geometry, material);

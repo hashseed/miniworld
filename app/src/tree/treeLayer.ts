@@ -135,7 +135,10 @@ export class TreeLayer {
   constructor(loader: ContentLoader, surface: SurfaceSource) {
     this.loader = loader;
     this.surface = surface;
-    this.walls = new CaveWalls((d) => surface.surfaceKm(d));
+    this.walls = new CaveWalls(
+      (d) => surface.surfaceKm(d),
+      () => surface.seaKm?.() ?? -Infinity,
+    );
     this.group.add(
       this.walls.group,
       this.batches.group,

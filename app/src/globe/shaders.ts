@@ -95,8 +95,8 @@ uniform int moundCount;
  * How far the ground sinks at a drawn direction, in drawn km: the half towards the hearth
  * sinks, deepest at the cut and rising back to its rim; the half behind rises into a round
  * hill (negative), 0.8 times as much. Along the cut both taper as a dome. Between them the
- * ground slopes over a band behind the cut, in front of which the cave's wall stands
- * (caveWalls.ts), so the coarse terrain mesh never draws the face's edges.
+ * ground climbs over a band behind the cut, over which the cave's wall leans from the floor
+ * to the hill's brow (caveWalls.ts), so the coarse terrain mesh never draws the face's edges.
  */
 float moundAt(vec3 v, int i) {
   vec3 c = moundA[i].xyz;
@@ -108,9 +108,32 @@ float moundAt(vec3 v, int i) {
   float h = moundB[i].w;
   float across = max(0.0, 1.0 - s * s);
   float front = h * across * across * (1.0 - smoothstep(0.3, 1.0, max(e, 0.0)));
-  if (e >= 0.0) return front;
-  float back = -0.8 * h * pow(max(0.0, 1.0 - max(e * e, 0.04) - s * s), 1.5);
-  return mix(front, back, smoothstep(0.0, 1.0, -e / 0.2));
+  if (e >= 0.0) return front * (1.0 - smoothstep(0.3, 0.5, s * s));
+  float back = -0.8 * h * pow(max(0.0, 1.0 - max(e * e, 0.09) - s * s), 1.5);
+  // Under the leaning wall the ground climbs as a convex curve, so between the terrain's
+  // vertices it always stays below the wall and never shows through it.
+  float t = min(1.0, -e / 0.3);
+  // Faded out before the ends of the wall, so no step is left where it ends.
+  return mix(front, back, t * t * t * t) * (1.0 - smoothstep(0.3, 0.5, s * s));
+}
+
+/**
+ * Whether a drawn direction lies under a cave's leaning wall (caveWalls.ts: from 0.04 of the
+ * radius in front of the cut back to its brow, 0.3 behind): the terrain leaves it to the wall,
+ * as its coarse triangles would otherwise cut through it.
+ */
+bool moundHole(vec3 v) {
+  for (int i = 0; i < MOUNDS; i++) {
+    if (i >= moundCount) break;
+    if (moundB[i].w <= 0.0) continue;
+    vec3 c = moundA[i].xyz;
+    float r = moundA[i].w;
+    vec3 d = v - c * dot(v, c);
+    float e = dot(d, moundB[i].xyz) / r;
+    float s = dot(d, cross(c, moundB[i].xyz)) / r;
+    if (e < 0.04 && e > -0.3 && s * s < 0.52) return true;
+  }
+  return false;
 }
 `;
 
@@ -507,6 +530,10 @@ void main() {
   #include <logdepthbuf_fragment>
   vec3 up = normalize(vUp);
   vec3 viewDir = normalize(cameraWorld - vWorld);
+#ifndef SEA_SURFACE
+  // Under a cave's wall the wall alone is drawn (humankind.md section 8.2).
+  if (moundHole(up)) discard;
+#endif
 
   // The vertex shader carries the exact normal of the visible surface,
   // coast edges and ice domes included.
