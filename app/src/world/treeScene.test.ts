@@ -388,11 +388,16 @@ describe('the tree scene', () => {
     expect(pairs.some((id) => last.get(id) !== last.get(id.replace(/:0$/, ':1')))).toBe(true);
   });
 
-  it('fells the trees where the band arrives and lets them grow back where it left', () => {
+  it('thins the trees before the band arrives and lets them grow back where it left', () => {
     const left = ms(moveDay);
+    // Withering ahead of the band, planned from the tree (sites.md section 6), never felled.
+    const before = treeScene(chunk, left - 5000, d0).clearings.find((c) => c.lon === 39)!;
+    expect(before.felling).toBe(false);
+    expect(before.amount).toBeGreaterThan(0);
+    expect(before.amount).toBeLessThan(1);
     const later = treeScene(chunk, left + 9000, d0).clearings;
     const there = later.find((c) => c.lon === 39)!;
-    expect(there.felling).toBe(true);
+    expect(there.felling).toBe(false);
     expect(there.amount).toBe(1);
     const back = later.find((c) => c.lon === 36)!;
     expect(back.felling).toBe(false);
