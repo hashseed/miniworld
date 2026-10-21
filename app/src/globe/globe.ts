@@ -237,6 +237,8 @@ export class Globe {
     viewportHeight: number,
     planet: PlanetState,
     day: number,
+    /** Other cameras whose tiles are to be loaded too, though they are not drawn. */
+    ahead: readonly THREE.PerspectiveCamera[] = [],
   ): void {
     this.frame++;
     this.buildsThisFrame = 0;
@@ -265,6 +267,23 @@ export class Globe {
       );
     u.lensBlend!.value = this.lens.blend;
 
+    for (const other of ahead) this.select(other, viewportHeight, planet);
+    this.select(camera, viewportHeight, planet);
+
+    for (const e of this.tiles.values()) e.mesh.visible = false;
+    for (const e of this.selected) e.mesh.visible = true;
+    this.drawnTiles = this.selected.length;
+    this.store.endFrame();
+    this.workers.endFrame();
+    this.evict();
+  }
+
+  /** Fills `selected` with the tiles to draw for a camera, asking for the ones still to load (section 4.2). */
+  private select(
+    camera: THREE.PerspectiveCamera,
+    viewportHeight: number,
+    planet: PlanetState,
+  ): void {
     const camPos = camera.position;
     const camDist = camPos.length();
     _frustum.setFromProjectionMatrix(
@@ -281,13 +300,6 @@ export class Globe {
     const selected = this.selected;
     selected.length = 0;
     for (const root of this.roots) this.visit(root, view);
-
-    for (const e of this.tiles.values()) e.mesh.visible = false;
-    for (const e of selected) e.mesh.visible = true;
-    this.drawnTiles = selected.length;
-    this.store.endFrame();
-    this.workers.endFrame();
-    this.evict();
   }
 
   /** Culls a tile, then draws it or walks on into its children (section 4.2). */
