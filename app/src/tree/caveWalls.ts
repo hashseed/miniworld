@@ -50,14 +50,19 @@ float noise(vec2 p) {
 }
 void main() {
   #include <logdepthbuf_fragment>
-  // Rock: layered strata along the face, mottling and a few cracks, in the face's own metres.
-  vec2 p = vFace;
-  float strata = sin(p.y * 7.0 + (noise(p * vec2(1.5, 3.0)) - 0.5) * 3.0);
-  float mottle = noise(p * 4.0) * 0.6 + noise(p * 11.0) * 0.4;
-  float crack = 1.0 - smoothstep(0.0, 0.04, abs(noise(p * vec2(2.2, 0.9) + 7.0) - 0.5));
-  vec3 rock = mix(vec3(0.52, 0.49, 0.46), vec3(0.7, 0.67, 0.62), 0.5 + 0.3 * strata);
-  rock *= 0.84 + 0.3 * mottle;
-  rock = mix(rock, vec3(0.3, 0.28, 0.27), crack * 0.7);
+  // Limestone as in the Chauvet cave (Yang, 2026-10-21: the strata looked like a brick wall):
+  // pale cream, smooth, with broad soft mottling, calcite runs flowing down the face, a few
+  // warm ochre stains and some darker hollows; no layers and no cracks.
+  // The face's coordinates run about four times finer up than across: evened out.
+  vec2 p = vFace * vec2(2.0, 0.5);
+  float mottle = noise(p * 1.6) * 0.55 + noise(p * 4.5) * 0.3 + noise(p * 12.0) * 0.15;
+  float runs = noise(vec2(p.x * 6.0 + noise(p * 2.0) * 1.5, p.y * 0.12));
+  float stain = smoothstep(0.7, 0.9, noise(p * 0.6 + 3.0));
+  float hollow = smoothstep(0.7, 0.9, noise(p * 2.4 + 11.0));
+  vec3 rock = mix(vec3(0.82, 0.76, 0.66), vec3(0.93, 0.89, 0.8), mottle);
+  rock = mix(rock, vec3(0.96, 0.94, 0.88), smoothstep(0.6, 0.85, runs) * 0.3);
+  rock = mix(rock, vec3(0.8, 0.6, 0.44), stain * 0.35);
+  rock = mix(rock, vec3(0.6, 0.55, 0.48), hollow * 0.4);
   // Where the face runs out at its ends it is the ground's grass, as the hill round it.
   rock = mix(rock, vec3(0.38, 0.6, 0.33) * (0.94 + 0.12 * mottle), vLow);
   vec3 n = normalize(vNormal);
