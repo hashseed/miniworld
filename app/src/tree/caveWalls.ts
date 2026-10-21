@@ -11,6 +11,9 @@ import type { Mound } from '../globe/globe.ts';
 /** Columns along the cut and rows up the face. */
 const COLUMNS = 64;
 const ROWS = 6;
+/** Rows of the wall's top, a lip of rock reaching back over the slope behind it to the hill. */
+const LIP = 4;
+const ALL = ROWS + LIP;
 /** The face stands this far behind the cut, as a share of the cut's radius, before the slope behind it. */
 const FACE_AT = 0;
 /** The top meets the hill behind at the end of its slope (moundAt in shaders.ts). */
@@ -20,10 +23,13 @@ const vertex = /* glsl */ `
 #include <common>
 #include <logdepthbuf_pars_vertex>
 attribute vec2 face;
+attribute float grass;
 varying vec2 vFace;
+varying float vGrass;
 varying vec3 vNormal;
 void main() {
   vFace = face;
+  vGrass = grass;
   vNormal = normalize(mat3(modelMatrix) * normal);
   gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
   #include <logdepthbuf_vertex>
@@ -34,6 +40,7 @@ const fragment = /* glsl */ `
 #include <logdepthbuf_pars_fragment>
 uniform vec3 lightDir;
 varying vec2 vFace;
+varying float vGrass;
 varying vec3 vNormal;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise(vec2 p) {
@@ -52,6 +59,11 @@ void main() {
   vec3 rock = mix(vec3(0.52, 0.49, 0.46), vec3(0.7, 0.67, 0.62), 0.5 + 0.3 * strata);
   rock *= 0.84 + 0.3 * mottle;
   rock = mix(rock, vec3(0.3, 0.28, 0.27), crack * 0.7);
+  // The lip back from the edge is the hill's grass, as the ground round it.
+  // Toned and speckled as the terrain's grass (shaders.ts), so the top reads as the ground.
+  float speck = step(0.86, noise(p * 26.0));
+  vec3 grassC = vec3(0.38, 0.6, 0.33) * (0.94 + 0.12 * mottle) * (1.0 + 0.12 * speck);
+  rock = mix(rock, grassC, vGrass);
   vec3 n = normalize(vNormal);
   if (!gl_FrontFacing) n = -n;
   float wrap = clamp((dot(n, lightDir) + 0.45) / 1.45, 0.0, 1.0);
@@ -88,15 +100,20 @@ export class CaveWalls {
     let mesh = this.meshes[i];
     if (!mesh) {
       const g = new THREE.BufferGeometry();
-      const n = (COLUMNS + 1) * (ROWS + 1);
+      const n = (COLUMNS + 1) * (ALL + 1);
       g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
       g.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
       g.setAttribute('face', new THREE.BufferAttribute(new Float32Array(n * 2), 2));
+      // Rock on the face, the ground's grass on its top (Yang, 2026-10-21).
+      const grass = new Float32Array(n);
+      for (let k = 0; k <= COLUMNS; k++)
+        for (let l = 1; l <= LIP; l++) grass[k * (ALL + 1) + ROWS + l] = 1;
+      g.setAttribute('grass', new THREE.BufferAttribute(grass, 1));
       const index: number[] = [];
       for (let c = 0; c < COLUMNS; c++)
-        for (let r = 0; r < ROWS; r++) {
-          const a = c * (ROWS + 1) + r;
-          const b = a + ROWS + 1;
+        for (let r = 0; r < ALL; r++) {
+          const a = c * (ALL + 1) + r;
+          const b = a + ALL + 1;
           index.push(a, b, a + 1, b, b + 1, a + 1);
         }
       g.setIndex(index);
@@ -114,17 +131,22 @@ export class CaveWalls {
     let ground = this.grounds.get(key);
     if (!ground) {
       if (this.grounds.size > 64) this.grounds.clear();
-      ground = new Float32Array(COLUMNS + 1);
-      for (let k = 0; k <= COLUMNS; k++) {
-        const s = (k / COLUMNS) * 2 - 1;
-        const d = c
-          .clone()
-          .multiplyScalar(EARTH_RADIUS_KM)
-          .addScaledVector(f, FACE_AT * r)
-          .addScaledVector(side, s * r)
-          .normalize();
-        ground[k] = this.surfaceKm([d.x, d.y, d.z]);
-      }
+      // At the face, and at the back of its lip, where the hill stands at full height.
+      ground = new Float32Array(2 * (COLUMNS + 1));
+      for (let k = 0; k <= COLUMNS; k++)
+        for (const [n, e] of [
+          [0, FACE_AT],
+          [1, -TOP_E],
+        ] as const) {
+          const s = (k / COLUMNS) * 2 - 1;
+          const d = c
+            .clone()
+            .multiplyScalar(EARTH_RADIUS_KM)
+            .addScaledVector(f, e * r)
+            .addScaledVector(side, s * r)
+            .normalize();
+          ground[n * (COLUMNS + 1) + k] = this.surfaceKm([d.x, d.y, d.z]);
+        }
       this.grounds.set(key, ground);
     }
     const pos = mesh.geometry.getAttribute('position') as THREE.BufferAttribute;
@@ -143,11 +165,12 @@ export class CaveWalls {
         .addScaledVector(f, FACE_AT * r)
         .addScaledVector(side, s * r)
         .normalize();
+      const g0 = ground[k]!;
       for (let row = 0; row <= ROWS; row++) {
         const t = row / ROWS;
         // A little below the lowered ground, so no gap shows at the foot.
-        const height = ground[k]! + (foot - h * 0.03) + (top - foot + h * 0.03) * t;
-        const j = k * (ROWS + 1) + row;
+        const height = g0 + (foot - h * 0.03) + (top - foot + h * 0.03) * t;
+        const j = k * (ALL + 1) + row;
         pos.setXYZ(
           j,
           ...d
@@ -157,7 +180,30 @@ export class CaveWalls {
         );
         nor.setXYZ(j, f.x, f.y, f.z);
         // The face's own coordinates in drawn km across 20, for the rock's pattern.
-        uv.setXY(j, (s * r) / 20, ((height - ground[k]!) / 20) * 6);
+        uv.setXY(j, (s * r) / 20, ((height - g0) / 20) * 6);
+      }
+      // The lip: flat at the face's top, back over the slope to where the hill stands at the
+      // same height, a little above the ground so the slope under it never shows.
+      const g1 = ground[COLUMNS + 1 + k]!;
+      for (let l = 1; l <= LIP; l++) {
+        const u = l / LIP;
+        const back = c
+          .clone()
+          .multiplyScalar(EARTH_RADIUS_KM)
+          .addScaledVector(f, (FACE_AT - TOP_E * u) * r)
+          .addScaledVector(side, s * r)
+          .normalize();
+        const height = g0 + (g1 - g0) * u + top + h * 0.02 * (1 - u);
+        const j = k * (ALL + 1) + ROWS + l;
+        pos.setXYZ(
+          j,
+          ...back
+            .clone()
+            .multiplyScalar(EARTH_RADIUS_KM + height)
+            .toArray(),
+        );
+        nor.setXYZ(j, back.x, back.y, back.z);
+        uv.setXY(j, (s * r) / 20, ((top + TOP_E * r * u) / 20) * 6);
       }
     }
     pos.needsUpdate = true;
