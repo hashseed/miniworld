@@ -42,6 +42,8 @@ const labels: { text: string; at: THREE.Vector3 }[] = [];
 let triangles = 0;
 /** Set by sheets that move: poses the scene at a time in seconds (`window.setFrame`). */
 let update: ((seconds: number) => void) | undefined;
+/** Set by sheets that draw their own tiles instead of the one default camera. */
+let customRender: (() => void) | undefined;
 
 function place(m: Model, x: number, z: number, turn = 0): Model {
   m.object.position.set(x, 0, z);
@@ -316,6 +318,144 @@ function clipsAnimalSheet(): void {
   camera.lookAt(0, 0, 0.5);
 }
 
+/**
+ * Animation review (spec milestone 2, section 13.5): one clip, or a sequence
+ * of clips, as a grid with one row per view (side, front, top, three-quarter)
+ * and one column per frame, every tile framed the same so motion reads
+ * across a row. `subject` is `person:<profile>:<kind>` or an animal id; `seq`
+ * is `clip:from-to,clip:from-to` (seconds); `n` is the number of frames.
+ */
+function animSheet(): void {
+  const subject = params.get('subject') ?? 'person:ice-age-hunter:man';
+  const seq = (params.get('seq') ?? 'walk:0-1').split(',').map((part) => {
+    const [clip, range = '0-1'] = part.split(':');
+    const [a, b] = range.split('-').map(Number);
+    return { clip: clip as Clip, from: a!, to: b ?? a! };
+  });
+  const n = Number(params.get('n') ?? 8);
+  const views = (params.get('views') ?? 'side,front,top,three-quarter').split(',');
+  const build = (): { m: Model; animal: boolean } => {
+    const [kind, profile, who] = subject.split(':');
+    if (kind === 'person') {
+      return {
+        m: buildPerson({ profile: profile as never, kind: (who ?? 'man') as Kind }),
+        animal: false,
+      };
+    }
+    return { m: buildAnimal(subject as AnimalId), animal: true };
+  };
+  const { m, animal } = build();
+  const total = seq.reduce((s, q) => s + (q.to - q.from), 0);
+  const times = Array.from({ length: n }, (_, i) => (i / (n - 1)) * total);
+  const pose = (t: number): string => {
+    let left = t;
+    for (const q of seq) {
+      const len = q.to - q.from;
+      if (left <= len + 1e-9 || q === seq[seq.length - 1]) {
+        (animal ? animateAnimal : animatePerson)(m, q.clip, q.from + Math.min(left, len));
+        return q.clip;
+      }
+      left -= len;
+    }
+    return '';
+  };
+  scene.add(m.object);
+  triangles += m.triangles;
+  const box = new THREE.Box3();
+  for (const t of times) {
+    pose(t);
+    m.object.updateMatrixWorld(true);
+    box.union(new THREE.Box3().setFromObject(m.object));
+  }
+  const c = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+  const R = (Math.hypot(size.x, size.y, size.z) / 2) * 0.85;
+  const dirs: Record<string, [THREE.Vector3, THREE.Vector3]> = {
+    side: [new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0)],
+    front: [new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 1, 0)],
+    top: [new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, -1)],
+    'three-quarter': [new THREE.Vector3(1, 0.55, 1).normalize(), new THREE.Vector3(0, 1, 0)],
+  };
+  const tileW = Math.floor(innerWidth / n);
+  const tileH = Math.floor((innerHeight - 24) / views.length);
+  renderer.setScissorTest(true);
+  const render = (): void => {
+    renderer.setClearColor(0xfbe3d4);
+    renderer.setScissor(0, 0, innerWidth, innerHeight);
+    renderer.setViewport(0, 0, innerWidth, innerHeight);
+    renderer.clear();
+    const pr = renderer.getPixelRatio();
+    views.forEach((view, row) => {
+      const [dir, up] = dirs[view]!;
+      const wide =
+        view === 'side' ? size.z : view === 'front' ? size.x : view === 'top' ? size.x : 0;
+      const high = view === 'side' || view === 'front' ? size.y : view === 'top' ? size.z : 0;
+      const half =
+        view === 'three-quarter' ? R : (Math.max(high, wide / (tileW / tileH)) / 2) * 1.08;
+      const aspect = tileW / tileH;
+      const cam = new THREE.OrthographicCamera(
+        -half * aspect,
+        half * aspect,
+        half,
+        -half,
+        0.1,
+        100,
+      );
+      cam.up.copy(up);
+      cam.position.copy(c).addScaledVector(dir, 20);
+      cam.lookAt(c);
+      cam.updateMatrixWorld();
+      cameraLight(cam, lightUniforms.lightDir.value);
+      const e2 = cam.matrixWorld.elements;
+      lightUniforms.screenUp.value.set(e2[4]!, e2[5]!, e2[6]!);
+      times.forEach((t, col) => {
+        pose(t);
+        const x = col * tileW;
+        const y = innerHeight - (row + 1) * tileH;
+        renderer.setViewport(x, y, tileW, tileH);
+        renderer.setScissor(x, y, tileW, tileH);
+        lightUniforms.viewport.value.set(tileW * pr, tileH * pr);
+        lightUniforms.inkPixels.value = 1.6 * pr;
+        renderer.render(scene, cam);
+      });
+    });
+  };
+  customRender = render;
+  render();
+  const name = animal ? subject : subject.split(':').slice(1).join(' ');
+  labels.length = 0;
+  const caption = seq.map((q) => `${q.clip} ${q.from}-${q.to}s`).join(' then ');
+  views.forEach((view, row) => {
+    const d = document.createElement('div');
+    d.textContent = view;
+    Object.assign(d.style, {
+      position: 'absolute',
+      left: '6px',
+      top: `${24 + row * tileH + 4}px`,
+      font: '600 12px system-ui',
+      color: '#3a261c',
+    });
+    document.body.appendChild(d);
+  });
+  times.forEach((t, col) => {
+    const d = document.createElement('div');
+    d.textContent = `${pose(t)} ${t.toFixed(2)}s`;
+    Object.assign(d.style, {
+      position: 'absolute',
+      left: `${col * tileW + tileW / 2}px`,
+      top: `${24 + views.length * tileH}px`,
+      transform: 'translate(-50%, -18px)',
+      font: '600 11px system-ui',
+      color: '#3a261c',
+      background: '#fff6ee',
+      padding: '0 5px',
+      borderRadius: '6px',
+    });
+    document.body.appendChild(d);
+  });
+  document.title = `${name}: ${caption} (${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)} m)`;
+}
+
 /** The first person (spec humankind.md section 2.1): a turnaround beside an ordinary woman. */
 function founderSheet(): void {
   ground(0, 0, 3.6, GROUND['african-stone-age']);
@@ -399,6 +539,7 @@ function founderMotionSheet(): void {
 }
 
 const sheets: Record<string, () => void> = {
+  anim: animSheet,
   'founder-motion': founderMotionSheet,
   founder: founderSheet,
   'founder-camp': founderCampSheet,
@@ -423,7 +564,7 @@ lightUniforms.viewport.value.set(
   innerHeight * renderer.getPixelRatio(),
 );
 lightUniforms.inkPixels.value = 1.6 * renderer.getPixelRatio();
-renderer.render(scene, camera);
+if (!customRender) renderer.render(scene, camera);
 if (update) {
   const step = update;
   (window as unknown as { setFrame: (t: number) => void }).setFrame = (t) => {
@@ -450,7 +591,7 @@ for (const l of labels) {
   document.body.appendChild(div);
 }
 const info = document.createElement('div');
-info.textContent = `${sheetName}: ${Math.round(triangles).toLocaleString('en')} triangles`;
+info.textContent = `${customRender ? document.title : sheetName}: ${Math.round(triangles).toLocaleString('en')} triangles`;
 Object.assign(info.style, {
   position: 'absolute',
   left: '12px',

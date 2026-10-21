@@ -28,6 +28,7 @@
     "notices": "node data/build/notices.ts",
     "perf": "playwright test --project=perf",
     "asset-sheets": "node assets/sheets.ts",
+    "anim": "node assets/anim.ts",
     "approve-assets": "node assets/approve.ts",
     "loading-shot": "node scripts/loading-shot.ts"
   },

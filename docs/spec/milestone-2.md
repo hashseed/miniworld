@@ -441,6 +441,18 @@ The first models are the people, shelters and animals of the seven culture profi
 
 **Review sheets.** `npm run asset-sheets` serves `app/asset-sheet.html` with the dev server and saves one image per sheet with Playwright: each profile's man, woman and child beside its shelter and hearth; a turnaround of one figure; all shelters; all animals with a figure for scale. The sheets go to Yang for review (section 13.2) and every model is listed in `data/assets/manifest.json` with status `generated` until approved.
 
+### 13.5 Animation review loop
+
+Yang describes a motion; Claude changes the clip in `assets/src/clips.ts`, renders a round and opens the PNG with the Read tool, which shows it in the conversation (`SendUserFile` is not used); Yang answers with numbered notes; repeat until Yang approves. A round takes a few seconds because it renders one image from one page and runs no tests.
+
+1. **Round.** `npm run anim -- <subject> <round> [seq] [n]`, for example `npm run anim -- animal-mammoth 2 walk:0-1.4,run:0-1 10`. `subject` is an animal id or `person:<profile>:<kind>`; `seq` is a comma-separated list of `clip:from-to` in seconds (default `walk:0-1`); `n` is the frame count (default 8). The runner starts the dev server if none answers on port 8800 and writes `assets/review/<subject>/a<round>.png`.
+2. **The image** has one row per view (side, front, top, three-quarter) and one column per frame, every frame drawn in the app's cel-shaded look with the same framing, so a limb's path reads along a row and a foot that slides or a body that bobs shows in the side row. The header gives the size and triangle count; each column is labelled with its clip and time.
+3. **Self-check first.** Claude looks at the image first and says what it sees: feet on the ground and not sliding, no limb through the body, the loop closes (first and last frame of a cycle match), the motion matches the note.
+4. **Feedback** is numbered and names a view and a time ("3: side, 0.6 s, the back foot lifts too early"); Claude changes only what was named and bumps the round.
+5. **Checks.** The clip tests in `assets/src/models.test.ts` run once at approval, with `npm run check`; clips stay pure functions of the clip and the seconds, so a round is reproducible.
+
+Chromium needs `CHROMIUM=/usr/bin/chromium` and, in the devenv sandbox, has to run outside it.
+
 ## 14. Performance
 
 The budget of spec section 9 holds with this milestone's content. Two new scenes join the stress scene of milestone 1 in `npm run perf`:
