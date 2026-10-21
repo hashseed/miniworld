@@ -20,6 +20,8 @@ const ORBIT_MS = 30 * 60 * 1000;
 
 export interface Puff {
   cloud: number;
+  /** Which ball of the cloud, 0 to PUFFS - 1. */
+  ball: number;
   /** Offset from the cloud centre in km: east, north, up. */
   offset: [number, number, number];
   radiusKm: number;
@@ -36,6 +38,7 @@ export function cloudPuffs(): Puff[] {
       const r = (300 - Math.abs(t) * 140 + hash01(c, p, 12) * 80) * size;
       puffs.push({
         cloud: c,
+        ball: p,
         offset: [t * 480 * size, (hash01(c, p, 13) - 0.5) * 260 * size, r * 0.3],
         radiusKm: r,
       });
@@ -44,10 +47,35 @@ export function cloudPuffs(): Puff[] {
   return puffs;
 }
 
-/** Latitude, starting longitude and drift speed factor of a cloud. */
-export function cloudPlace(c: number): { lat: number; lon: number; speed: number } {
-  const lat = -55 + hash01(c, 21) * 125;
-  return { lat, lon: hash01(c, 22) * 360 - 180, speed: 0.7 + hash01(c, 23) * 0.6 };
+/** Latitude, starting longitude and drift speed factor of a cloud in its life number `life`. */
+export function cloudPlace(c: number, life = 0): { lat: number; lon: number; speed: number } {
+  const lat = -55 + hash01(c, 21, life) * 125;
+  return { lat, lon: hash01(c, 22, life) * 360 - 180, speed: 0.7 + hash01(c, 23) * 0.6 };
+}
+
+/** A cloud's life on the clock: which life it is in, and how far through it (0 to 1). */
+export function cloudLife(c: number, clockMs: number): { life: number; u: number } {
+  const length = (6 + hash01(c, 31) * 4) * 60 * 1000;
+  const t = clockMs / length + hash01(c, 32);
+  const life = Math.floor(t);
+  return { life, u: t - life };
+}
+
+const smooth = (a: number, b: number, x: number) => {
+  const t = Math.min(Math.max((x - a) / (b - a), 0), 1);
+  return t * t * (3 - 2 * t);
+};
+
+/**
+ * How big a ball stands, as a share of its full size (0 to 1), at a point u through its cloud's
+ * life: balls swell in from the middle outwards, then shrink away from the outside in.
+ */
+export function puffGrowth(cloud: number, ball: number, u: number): number {
+  const t = Math.abs((ball / (PUFFS - 1)) * 2 - 1);
+  const jitter = hash01(cloud, ball, 33) * 0.08;
+  const born = t * 0.3 + jitter;
+  const dies = 0.95 - t * 0.3 - jitter;
+  return smooth(born, born + 0.15, u) * (1 - smooth(dies - 0.15, dies, u));
 }
 
 export class Clouds {
@@ -93,10 +121,13 @@ export class Clouds {
 
     const { centre, east, north, up, pos, scale, q, basis } = SCRATCH;
     let current = -1;
+    let lifeU = 0;
     this.puffs.forEach((puff, i) => {
       if (puff.cloud !== current) {
         current = puff.cloud;
-        const { lat, lon, speed } = cloudPlace(puff.cloud);
+        const { life, u } = cloudLife(puff.cloud, clockMs);
+        lifeU = u;
+        const { lat, lon, speed } = cloudPlace(puff.cloud, life);
         const drift = ((clockMs * speed) / ORBIT_MS) * 360;
         const phi = THREE.MathUtils.degToRad(lat);
         const lambda = THREE.MathUtils.degToRad(lon + drift);
@@ -111,7 +142,8 @@ export class Clouds {
         .addScaledVector(east, puff.offset[0])
         .addScaledVector(north, puff.offset[1])
         .addScaledVector(up, puff.offset[2]);
-      scale.set(puff.radiusKm, puff.radiusKm, puff.radiusKm * 0.8);
+      const g = puffGrowth(puff.cloud, puff.ball, lifeU);
+      scale.set(puff.radiusKm * g, puff.radiusKm * g, puff.radiusKm * g * 0.8);
       this.matrix.compose(pos, q, scale);
       this.mesh.setMatrixAt(i, this.matrix);
     });
