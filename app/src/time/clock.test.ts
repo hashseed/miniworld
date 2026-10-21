@@ -94,6 +94,15 @@ describe('clock', () => {
     expect(c.playState).toBe('paused');
   });
 
+  it('jumps further at a faster speed mode (issue 126)', () => {
+    const c = make(MID);
+    c.setSpeedMode('fast');
+    const from = c.ms;
+    c.jumpWatch(10_000);
+    c.tick(JUMP_MS);
+    expect(c.ms).toBe(from + 100_000);
+  });
+
   it('plays a jump back in reverse, and keeps playing after it', () => {
     const c = make(MID);
     const from = c.ms;

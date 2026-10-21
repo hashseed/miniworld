@@ -88,10 +88,11 @@ export class Clock {
 
   /**
    * Jumps the clock by some watching time, back if negative, by playing very fast
-   * for JUMP_MS; queued behind a jump under way (section 3.3).
+   * for JUMP_MS; queued behind a jump under way (section 3.3). Watching time runs at the
+   * speed mode's factor, so the same press covers more history at a faster speed.
    */
   jumpWatch(ms: number): void {
-    this.queued.push(Math.round(ms));
+    this.queued.push(Math.round(ms * SPEED_FACTOR[this.speedMode]));
     if (!this.jump) this.nextJump();
     this.emit();
   }
