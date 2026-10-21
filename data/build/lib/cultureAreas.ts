@@ -58,8 +58,8 @@ export const FOUNDER_LODGING = 'shelter-grass-hut';
 /** The prologue front reaches all of Africa south of the Sahara by 62,000 BCE (section 4.2). */
 export const PROLOGUE_END: Day = dayOfYearStart(astronomicalYear(62_000, 'BCE'));
 export const FRONT_KM_PER_YEAR = 0.8;
-/** The tree runs to the last Neolithic threshold of the peopling plan, c. 6500 BCE (peopling.md section 3.5). */
-export const TREE_END: Day = dayOfYearStart(astronomicalYear(6500, 'BCE'));
+/** The tree runs to the end of the timeline, 1991 CE: bands that have not changed stay hunter-gatherers (Yang, 2026-10-21). */
+export const TREE_END: Day = dayOfYearStart(1991);
 
 export function validateCultureAreas(c: CultureAreas): string[] {
   const errors: string[] = [];

@@ -73,7 +73,7 @@ The build makes it so:
 - **Getting there.** The planning pass (section 4.2) plans it before the tree grows: it keeps the site free for the anchor from 500 years before the day (**Proposed**: long enough to walk there from a neighbouring region) and brings a band there, by stronger means the nearer the day comes.
 - **Staying.** From its arrival until `until`, the band at the anchor's site is settled: it does not roam or bud, and its home range is the site alone. It still flees the sea; an anchor whose site the sea would flood within its span fails the build.
 - **Checked.** The planning pass fails the build before the tree grows when an anchor cannot be met (section 4.2). If, all the same, no band stands at its site on its day, the build fails naming the anchor and the nearest band, so a wrong date or place shows at once. The checks of section 7 confirm that the band stays until `until`.
-- **For now** the tree ends about 6500 BCE (peopling.md section 3.5), so anchors of later dates wait for the tree to run on. The first anchor is Göbekli Tepe, where hunter-gatherers raised the stone enclosures from about 9500 BCE (Schmidt 2010, *Göbekli Tepe: the Stone Age sanctuaries*, Documenta Praehistorica 37), so the vignette of its building (milestone-2 section 8) always has people there.
+- The tree runs to 1991 CE (peopling.md section 3.5), so an anchor may have any date. The first anchor is Göbekli Tepe, where hunter-gatherers raised the stone enclosures from about 9500 BCE (Schmidt 2010, *Göbekli Tepe: the Stone Age sanctuaries*, Documenta Praehistorica 37), so the vignette of its building (milestone-2 section 8) always has people there.
 
 ### 4.2 The planning pass
 
