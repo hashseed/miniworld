@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
-import { plantRotation } from './foliage.ts';
+import { plantRotation, treeLine } from './foliage.ts';
+import { CAP_CLEARANCE_M } from './foliagePlace.ts';
+import { snowCap } from './snowCap.ts';
 
 describe('plantRotation', () => {
   it('stands every plant straight up from the globe, at any turn', () => {
@@ -24,5 +26,21 @@ describe('plantRotation', () => {
     expect(
       new THREE.Vector3(0, 0, 1).applyQuaternion(q).distanceTo(new THREE.Vector3(0, 1, 0)),
     ).toBeLessThan(1e-6);
+  });
+});
+
+describe('tree limits on mountains (issue 130)', () => {
+  it('stops the forest at about 3,000 m in the tropics and lower towards the poles', () => {
+    expect(treeLine(0)).toBe(3000);
+    expect(treeLine(3)).toBeLessThan(3200);
+    expect(treeLine(50)).toBeLessThan(treeLine(30));
+  });
+
+  it('keeps trees 600 m below the snow line, so Kilimanjaro has none on its upper flank', () => {
+    // Kilimanjaro as drawn: 70% of 5,895 m, over a bed near 1,000 m.
+    const flank = (h: number) => snowCap(h, 1000, 3.07, 0) > -CAP_CLEARANCE_M;
+    expect(flank(3500)).toBe(true);
+    expect(flank(3100)).toBe(true);
+    expect(flank(2800)).toBe(false);
   });
 });

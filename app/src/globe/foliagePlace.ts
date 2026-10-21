@@ -19,7 +19,7 @@ import { BUSH, isDry, PALM, pickKind, recipeOf } from './foliageKinds.ts';
 import { bilinear as bilinearGrid, bilinearBordered } from '../planet/sample.ts';
 import { groundM } from '../planet/surface.ts';
 import { EXAGGERATION } from './exaggeration.ts';
-import { CAP_KM_PER_M, snowCap } from './snowCap.ts';
+import { snowCap } from './snowCap.ts';
 import type { TileSamples } from './terrainStore.ts';
 
 /**
@@ -67,10 +67,13 @@ export interface Plant {
   tint: number;
 }
 
-/** Tree line in metres: high in the tropics, lower towards the poles. */
+/** Tree line in metres: high in the tropics (the forest on Kilimanjaro ends near 3,000 m), lower towards the poles. */
 export function treeLine(lat: number): number {
-  return 3800 - Math.max(0, Math.abs(lat) - 25) * 75;
+  return 3000 - Math.max(0, Math.abs(lat) - 25) * 75;
 }
+
+/** Metres below a snow cap's edge where the trees stop, so no tree stands at the foot of the white. */
+export const CAP_CLEARANCE_M = 600;
 
 /** The foliage cell of a point, looked up with a wobble so forest edges are soft, or -1. */
 function cellOf(lat: number, lon: number): number {
@@ -123,7 +126,7 @@ export function placePlants(
     if (height > treeLine(lat)) return;
     // Clear of the mountain snow caps as of the ice (section 5.2).
     const cap = snowCap(height, bilinear(s.bed, fi, fj), Math.abs(lat), glacialIndex);
-    if (cap * CAP_KM_PER_M > -ICE_CLEARANCE_KM) return;
+    if (cap > -CAP_CLEARANCE_M) return;
     // Between two slices each slot switches at its own hashed moment.
     const slice = h(4) < t ? sb : sa;
     const i = cellOf(lat, lon);
