@@ -388,6 +388,8 @@ export interface FigurePose extends Placed {
   profile?: string;
   /** A dead's soul (section 8.2): how far it shows, 0 to 1, and how high it floats, in life-size metres. */
   soul?: { fade: number; height: number };
+  /** Held up off the ground by its bearers, in life-size metres (a dead carried to its grave). */
+  lift?: number;
 }
 
 export type PreyClip = 'idle' | 'walk' | 'run' | 'fall' | 'bound' | 'hung' | 'struggle';
@@ -701,6 +703,21 @@ export function stagePoints(
  * STAGE_MS, leaving time to walk back before the window ends.
  */
 const STAGE_LEAD_MS = Math.round(15_000 / TEMPO);
+/** A burial's people are in place when the dead dies; the grave is dug, the dead carried in, then covered. */
+const BURIAL_LEAD_MS = Math.round(10_000 / TEMPO);
+/** From the heap's rise: the grave is dug this long, and the dead is laid in at BODY_AFTER_MS. */
+const DIG_MS = 1_500;
+const BODY_AFTER_MS = 10_300;
+/** The two diggers fetch the dead, and lift it, this long after the digging, then carry it in. */
+const FETCH_MS = 3_000;
+/** The belongings are added, then the grave covered, in this long after the dead is laid in. */
+const FILL_GRAVE_MS = 1_200;
+const CORPSE_LIFT_MS = 500;
+/** The dead is set down into the grave over this long before it is laid in. */
+const LAY_MS = 1_200;
+const CARRIED_M = 0.9;
+/** The two who carry the dead stand this far (layout metres) before and behind its middle, at its head and feet. */
+const BEARER_HALF_M = 3;
 const STAGE_MS = Math.round(27_000 / TEMPO);
 /**
  * A cave fades in over CAVE_FADE_MS of watching from CAVE_LEAD_MS before its first session,
@@ -731,10 +748,13 @@ export function burialTimes(stage: TreeStage, startDay: Day) {
   if (!q) return undefined;
   const dig = q.begin + HEAP_MS;
   return {
+    w: q.w,
     start: q.start,
     death: q.start + ILL_MS,
-    // The body goes in with the second of the grave's four steps, a third of the way through the digging.
-    body: dig + (q.stop - dig) / 3,
+    digEnd: dig + DIG_MS,
+    carry: dig + DIG_MS + FETCH_MS,
+    // The body is laid in after the two diggers fetched and carried it (section 8.2).
+    body: dig + BODY_AFTER_MS,
     begin: q.begin,
     dig,
     stop: q.stop,
@@ -763,7 +783,9 @@ export function stageSessions(
   return ws
     .map((w) => {
       const start = w * TURN_MS - shift;
-      return { w, start, begin: start + STAGE_LEAD_MS, stop: start + STAGE_LEAD_MS + STAGE_MS };
+      const lead = stage.kind === 'burial' ? BURIAL_LEAD_MS : STAGE_LEAD_MS;
+      const long = stage.kind === 'burial' ? HEAP_MS + BODY_AFTER_MS + FILL_GRAVE_MS - STAGE_MS : 0;
+      return { w, start, begin: start + lead, stop: start + lead + STAGE_MS + long };
     })
     .filter((x) => x.start + TURN_MS <= end);
 }
@@ -1419,10 +1441,14 @@ export function treeScene(
         (ms - g.begin) / HEAP_MS,
         ms <= g.grown ? 1 : 1 - (ms - g.grown) / Math.max(1, end - g.grown),
       );
+      // Five steps: the trench dug, the body laid in, the belongings added, the grave covered,
+      // then grass over it (the prop's steps, humankind.md section 8.2).
+      const part = (a: number, b: number) => Math.min(1, Math.max(0, (ms - a) / (b - a)));
       built =
-        ms < g.stop
-          ? (0.75 * Math.max(0, ms - g.dig)) / (g.stop - g.dig)
-          : 0.75 + 0.25 * Math.min(1, Math.max(0, (ms - g.stop - GRASS_AFTER_MS) / GRASS_MS));
+        0.2 * part(g.dig, g.digEnd) +
+        0.2 * part(g.body - LAY_MS, g.body) +
+        0.4 * part(g.body, g.stop) +
+        0.2 * part(g.stop + GRASS_AFTER_MS, g.stop + GRASS_AFTER_MS + GRASS_MS);
     }
     if (rise <= 0) continue;
     const { prop, u } = stageSpots(stage.camp, stage.slot, stage.beyond);
@@ -1479,13 +1505,19 @@ export function treeScene(
           clipMs: ms - (ms < g!.death ? g!.start : g!.death),
         }
       : poseAt(f, i, ms);
+    const lying = pose && { ...pose };
+    // From its death, two of the diggers carry it to the grave and lay it in (section 8.2).
+    if (sick && ms >= g!.death) {
+      const ev = eventOf(sick, g!.w);
+      if (ev) Object.assign(pose!, corpseAt(ev, g!, ms));
+    }
     // The dead's soul: a see-through copy of them lifting out of the body as it lies, righting
     // itself as it floats up, and fading away (section 8.2).
     if (sick && ms >= g!.death && ms < g!.death + SOUL_MS) {
       const u = (ms - g!.death) / SOUL_MS;
       const stand = smoothstep(Math.min(1, u * 1.6));
       scene.figures.push({
-        ...pose!,
+        ...lying!,
         id: -1 - f.id,
         clip: 'idle',
         clipMs: ms - g!.death,
@@ -1601,7 +1633,13 @@ export function treeScene(
         stageSessions(x, startDay).some((q) => q.w === w),
     );
     if (stage) {
-      const ev = stageEvent(stage, w, start, start + TURN_MS);
+      // A burial's bearers may be a little longer walking home than the window.
+      const ev = stageEvent(
+        stage,
+        w,
+        start,
+        start + TURN_MS + (stage.kind === 'burial' ? 2_000 : 0),
+      );
       events.set(key, ev);
       return ev;
     }
@@ -1636,6 +1674,40 @@ export function treeScene(
     return ev;
   }
 
+  /** Where a leg plan has a figure at a time, in layout metres. */
+  function legPoint(legs: Leg[], ms: number): Pt {
+    const leg = legs.find((l) => ms < l.end) ?? legs.at(-1)!;
+    const u =
+      leg.end === leg.start
+        ? 1
+        : Math.min(1, Math.max(0, (ms - leg.start) / (leg.end - leg.start)));
+    return along(leg.route, u);
+  }
+
+  /**
+   * The dead between its death and the grave (section 8.2): lifted by the two who dug the
+   * grave once it is dug, carried between them, and lowered into it just before it is laid there.
+   */
+  function corpseAt(
+    ev: CampEvent,
+    g: NonNullable<ReturnType<typeof burialTimes>>,
+    ms: number,
+  ): Partial<FigurePose> {
+    const [a, b] = [ev.legs.get(ev.members[0]!), ev.legs.get(ev.members[1]!)];
+    if (!a || !b || ms < g.carry - CORPSE_LIFT_MS) return {};
+    const [pa, pb] = [legPoint(a, ms), legPoint(b, ms)];
+    const grave = ev.face!;
+    let at = { x: (pa.x + pb.x) / 2, z: (pa.z + pb.z) / 2 };
+    let lift =
+      CARRIED_M * smoothstep(Math.min(1, (ms - (g.carry - CORPSE_LIFT_MS)) / CORPSE_LIFT_MS));
+    const k = smoothstep(Math.min(1, Math.max(0, (ms - (g.body - LAY_MS)) / LAY_MS)));
+    if (k > 0) {
+      at = { x: at.x + (grave.x - at.x) * k, z: at.z + (grave.z - at.z) * k };
+      lift = CARRIED_M * (1 - k) * 0.6 + 0.1 * (1 - k);
+    }
+    return { x: at.x, z: at.z, ...towards(at.x, at.z, grave.x, grave.z), lift };
+  }
+
   /**
    * A scene's session (section 8.2): the camp's people free for the whole window walk out
    * beside a lodging to the wall or the grave; one grown-up paints and two watch, or two dig
@@ -1667,6 +1739,11 @@ export function treeScene(
     const { prop, gap, door } = stageSpots(stage.camp, stage.slot, stage.beyond);
     // Into a cave by its mouth, never through the rock.
     const way = (trip: Itinerary) => (paint ? trip.go(gap).go(door) : trip.go(gap));
+    // The two who dig first carry the dead from where it lies by the fire (section 8.2).
+    const dead = paint ? undefined : mates(stage.camp).find((g) => g.id === stage.dead);
+    const lying = dead && stayAt(dead, start)?.spot;
+    const g = dead ? burialTimes(stage, startDay) : undefined;
+    const burial = !!lying && !!g;
     // Each place goes to the next of the cast who can be there when the session begins and
     // back by the end of the window; whoever cannot stays at the camp.
     const chosen: Stay[] = [];
@@ -1677,14 +1754,40 @@ export function treeScene(
       if (i === stands.length) break;
       const trip = way(new Itinerary(start, m.spot, m.home.camp)).go(stands[i]!);
       if (trip.t > session.begin) continue;
-      trip.stay(session.begin, 'idle', prop);
-      trip.legs.push({
-        start: session.begin,
-        end: session.stop,
-        clip: 'event',
-        route: [stands[i]!],
-      });
-      trip.t = session.stop;
+      if (burial && i < 2) {
+        // The two who dig: dig the grave, fetch the dead and carry it in, then add the
+        // belongings and cover the grave (section 8.2).
+        trip.stay(g!.dig, 'idle', prop);
+        trip.legs.push({ start: g!.dig, end: g!.digEnd, clip: 'event', route: [stands[i]!] });
+        trip.t = g!.digEnd;
+        // One takes the feet and one the head, in line with the way they carry it, so the
+        // body hangs between them rather than beside or through them.
+        const [bx, bz] = [prop.x - lying!.x, prop.z - lying!.z];
+        const bl = Math.sqrt(bx * bx + bz * bz) || 1;
+        const sign = i === 0 ? -1 : 1;
+        const end = (c: Pt): Pt => ({
+          x: c.x + (sign * BEARER_HALF_M * bx) / bl,
+          z: c.z + (sign * BEARER_HALF_M * bz) / bl,
+        });
+        trip.go(end(lying!));
+        if (trip.t > g!.carry - CORPSE_LIFT_MS) continue;
+        trip.stay(g!.carry, 'idle', prop);
+        trip.go(end(prop), 'carry');
+        if (trip.t > g!.body - LAY_MS) continue;
+        trip.stay(g!.body, 'idle', prop);
+        trip.go(stands[i]!);
+        trip.legs.push({ start: trip.t, end: session.stop, clip: 'event', route: [stands[i]!] });
+        trip.t = session.stop;
+      } else {
+        trip.stay(session.begin, 'idle', prop);
+        trip.legs.push({
+          start: session.begin,
+          end: session.stop,
+          clip: 'event',
+          route: [stands[i]!],
+        });
+        trip.t = session.stop;
+      }
       trip.at = stands[i]!;
       if (paint) trip.go(door);
       trip.go(gap).go(m.spot);

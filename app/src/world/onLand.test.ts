@@ -29,7 +29,7 @@ import { dayAtMs, msAtDay } from '../time/rate.ts';
 import { LAYOUT_KM_PER_M, treeScene, type TreeChunk } from './treeScene.ts';
 import { WILD_GROUPS, decodeWildMask, flies, swims, wildlifeAt } from './wildlife.ts';
 import { buildAnimal, type AnimalId } from '../../../assets/src/animals.ts';
-import { DRAWN_SIZE_M, KM_PER_M } from '../wildlife/wildlifeLayer.ts';
+import { drawnSizeM, KM_PER_M } from '../wildlife/wildlifeLayer.ts';
 import { decodeLensGrids, LENS_STRENGTH, sampleScalar, widthFactors } from '../globe/lens.ts';
 
 const DATA = join(import.meta.dirname, '../../public/data');
@@ -189,7 +189,7 @@ describe.skipIf(!built)('paths on land', async () => {
       m.object.updateMatrixWorld(true);
       const box = new THREE.Box3().setFromObject(m.object);
       const size = Math.max(box.max.y - box.min.y, (box.max.z - box.min.z) / 2);
-      const drawn = DRAWN_SIZE_M[model] ?? Math.min(4, Math.max(1.8, size));
+      const drawn = drawnSizeM(model, size);
       lengths.set(model, ((box.max.z - box.min.z) * KM_PER_M * drawn) / size);
     }
     return lengths.get(model)!;

@@ -41,6 +41,14 @@ export const DRAWN_SIZE_M: Record<string, number> = {
   'animal-haast-eagle': 2.2,
   'animal-capybara': 1.2,
 };
+/** Species drawn smaller than the rule above gives, as a share of it (section 5). */
+const SHRINK: Record<string, number> = { 'animal-wolf': 0.75, 'animal-cave-lion': 0.85 };
+/** An animal's drawn size in metres, by its model and its life-size size (the larger of height and half length). */
+export function drawnSizeM(model: string, sizeM: number): number {
+  return (
+    DRAWN_SIZE_M[model] ?? Math.min(MAX_SIZE_M, Math.max(MIN_SIZE_M, sizeM)) * (SHRINK[model] ?? 1)
+  );
+}
 /** Something on the drawn globe animals keep clear of (section 4): its direction and half size in km. */
 export interface Obstacle {
   dir: THREE.Vector3;
@@ -500,7 +508,7 @@ export class WildlifeLayer {
       template.object.updateMatrixWorld(true);
       const box = new THREE.Box3().setFromObject(template.object);
       const sizeM = Math.max(box.max.y - box.min.y, (box.max.z - box.min.z) / 2);
-      const drawnM = DRAWN_SIZE_M[model] ?? Math.min(MAX_SIZE_M, Math.max(MIN_SIZE_M, sizeM));
+      const drawnM = drawnSizeM(model, sizeM);
       s = {
         template,
         scale: (KM_PER_M * drawnM) / sizeM,
