@@ -16,14 +16,14 @@ const PAINTINGS: Record<
     colour: '#1b1715',
     width: 2.5,
     height: 2.0,
-    foot: 0.75,
+    foot: 0.35,
   },
   'prop-cave-wall-sulawesi': {
     texture: 'cave-leang-karampuang',
     colour: '#a3361f',
     width: 3.9,
     height: 1.6,
-    foot: 0.75,
+    foot: 0.45,
   },
 };
 /** A painting is painted in this many sessions (PAINT_SESSIONS in treeScene.ts). */

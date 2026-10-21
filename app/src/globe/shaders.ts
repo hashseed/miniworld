@@ -100,7 +100,7 @@ uniform int moundCount;
  */
 float moundAt(vec3 v, int i) {
   vec3 c = moundA[i].xyz;
-  float r = moundA[i].w;
+  float r = abs(moundA[i].w);
   vec3 f = moundB[i].xyz;
   vec3 d = v - c * dot(v, c);
   float e = dot(d, f) / r;
@@ -125,9 +125,10 @@ float moundAt(vec3 v, int i) {
 bool moundHole(vec3 v) {
   for (int i = 0; i < MOUNDS; i++) {
     if (i >= moundCount) break;
-    if (moundB[i].w <= 0.0) continue;
+    // A negative radius: the cut is still shallow and has no wall, so the ground is whole.
+    if (moundB[i].w <= 0.0 || moundA[i].w <= 0.0) continue;
     vec3 c = moundA[i].xyz;
-    float r = moundA[i].w;
+    float r = abs(moundA[i].w);
     vec3 d = v - c * dot(v, c);
     float e = dot(d, moundB[i].xyz) / r;
     float s = dot(d, cross(c, moundB[i].xyz)) / r;
@@ -281,7 +282,7 @@ void main() {
     for (int i = 0; i < MOUNDS; i++) {
       if (i >= moundCount) break;
       float m = moundAt(drawnUp, i);
-      float dl = moundA[i].w * 0.02;
+      float dl = abs(moundA[i].w) * 0.02;
       float mx = moundAt(normalize(drawnUp + mEast * dl), i) - moundAt(normalize(drawnUp - mEast * dl), i);
       float my = moundAt(normalize(drawnUp + mNorth * dl), i) - moundAt(normalize(drawnUp - mNorth * dl), i);
       if (m == 0.0 && mx == 0.0 && my == 0.0) continue;

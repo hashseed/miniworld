@@ -200,7 +200,10 @@ export class CaveWalls {
         );
         // Grass where the face is less than a third of its full height.
         const tall = h > 0 ? ((top - foot) * ends) / (1.8 * h) : 0;
-        const grassy = 1 - Math.min(1, Math.max(0, (tall - 0.15) / 0.2));
+        // And all of it while the cut is still shallow, so no stripe of rock lies on the
+        // ground before the face rises or after it sinks (Yang, 2026-10-21).
+        const shallow = 1 - Math.min(1, Math.max(0, ((m.sink ?? 1) - 0.25) / 0.35));
+        const grassy = Math.max(shallow, 1 - Math.min(1, Math.max(0, (tall - 0.15) / 0.2)));
         low.setX(j, grassy);
         // Facing the hearth and a little up, as it leans back; lit as the ground where grassy.
         const up = at.clone().multiplyScalar(0.45).add(f).normalize().lerp(at, grassy).normalize();
@@ -213,6 +216,6 @@ export class CaveWalls {
     nor.needsUpdate = true;
     uv.needsUpdate = true;
     low.needsUpdate = true;
-    mesh.visible = h > 0;
+    mesh.visible = h > 0 && m.walled !== false;
   }
 }
