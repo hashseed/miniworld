@@ -779,12 +779,12 @@ describe('scenes at anchors (section 8.2)', () => {
     expect(last).toBeCloseTo(1);
     // Bare before the first session; fading in from a minute before it, out after the last.
     expect(propAt(whole, sessions[0]!.begin)!.built).toBe(0);
-    expect(propAt(whole, sessions[0]!.begin)!.fade).toBe(1);
-    expect(propAt(whole, sessions[0]!.begin - 55_000)!.fade).toBeCloseTo(0.5, 1);
+    expect(propAt(whole, sessions[0]!.begin)!.rise).toBe(1);
+    expect(propAt(whole, sessions[0]!.begin - 55_000)!.rise).toBeCloseTo(0.5, 1);
     expect(propAt(whole, sessions[0]!.begin - 61_000)).toBeUndefined();
     const end = sessions.at(-1)!.stop;
-    expect(propAt(whole, end + 50_000)!.fade).toBe(1);
-    expect(propAt(whole, end + 65_000)!.fade).toBeCloseTo(0.5, 1);
+    expect(propAt(whole, end + 50_000)!.rise).toBe(1);
+    expect(propAt(whole, end + 65_000)!.rise).toBeCloseTo(0.5, 1);
     expect(propAt(whole, end + 71_000)).toBeUndefined();
     void stage;
   }, 30_000);
@@ -796,18 +796,27 @@ describe('scenes at anchors (section 8.2)', () => {
     const dead = t.figures.filter((f) => f.lost !== NEVER);
     expect(dead.length).toBe(1);
     const lostAt = msAtDay(dead[0]!.lost, settings.startDay);
-    expect(lostAt).toBeLessThanOrEqual(q.begin);
-    expect(lostAt).toBeGreaterThan(q.start - 2 * 60_000);
+    // Ill and dying from the start of the window, lost when laid in the grave.
+    expect(lostAt).toBeGreaterThan(q.begin);
+    expect(lostAt).toBeLessThan(q.stop);
+    const ill = treeScene(whole, q.start + 1_000, settings.startDay).figures.find(
+      (f) => f.id === dead[0]!.id,
+    );
+    expect(ill?.clip).toBe('ill');
+    const lying = treeScene(whole, q.start + 4_000, settings.startDay);
+    expect(lying.figures.find((f) => f.id === dead[0]!.id)?.clip).toBe('lie');
+    expect(lying.props.some((p) => p.kind === 'prop-death-skull')).toBe(true);
     expect(propAt(whole, q.begin - 1)).toBeUndefined();
     const mid = Math.round((q.begin + q.stop) / 2);
     const scene = treeScene(whole, mid, settings.startDay);
     expect(scene.figures.filter((f) => f.clip === 'work').length).toBeGreaterThanOrEqual(2);
-    expect(propAt(whole, q.stop)!.built).toBe(1);
-    // Closed with soil, it fades into the ground over the next 50 years.
-    const stopDay = dayAtMs(q.stop, settings.startDay);
-    const half = msAtDay(stopDay + years(25), settings.startDay);
-    expect(propAt(whole, half)!.fade).toBeCloseTo(0.5, 1);
-    expect(propAt(whole, msAtDay(stopDay + years(51), settings.startDay))).toBeUndefined();
+    expect(propAt(whole, q.stop)!.built).toBeCloseTo(0.75);
+    // Grass grows over it, and it sinks back flat over the next 50 years.
+    expect(propAt(whole, q.stop + 25_000)!.built).toBe(1);
+    // Here 50 years pass in a moment, so it sinks over a minute of watching.
+    const grown = q.stop + 20_000;
+    expect(propAt(whole, grown + 30_000)!.rise).toBeCloseTo(0.5, 1);
+    expect(propAt(whole, grown + 61_000)).toBeUndefined();
     void stage;
   }, 30_000);
 

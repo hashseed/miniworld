@@ -33,7 +33,9 @@ import {
   CAVE_LEAD_MS,
   CAVE_LINGER_MS,
   GRAVE_FADE_DAYS,
-  STAGE_BEYOND_M,
+  GRAVE_SINK_MS,
+  stageBeyond,
+  burialTimes,
   stageSessions,
   stagePoints,
   type TreeChunk,
@@ -596,8 +598,10 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   };
 
   /** The lowest spot at a camp's hearth that none of its people takes, the mover aside. */
+  /** The places of the dying, kept until they are lost (humankind.md section 8.2). */
+  const dyingSpots = new Map<Camp, { spot: number; until: Day }[]>();
   const freeSpot = (camp: Camp, mover = NEVER): number => {
-    const taken = new Set<number>();
+    const taken = new Set<number>(dyingSpots.get(camp)?.map((d) => d.spot));
     for (const l of camp.lodgings)
       for (const f of residents.get(l) ?? [])
         if (f !== mover) taken.add(tree.figures[f]!.homes.at(-1)![2]);
@@ -1749,8 +1753,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       return q.x * toward.x + q.z * toward.z;
     };
     let slot: number | undefined;
-    let beyond = STAGE_BEYOND_M[0]!;
-    for (const b of STAGE_BEYOND_M) {
+    let beyond = stageBeyond(a.scene.kind)[0]!;
+    for (const b of stageBeyond(a.scene.kind)) {
       slot = Array.from({ length: LODGING_SLOTS }, (_, k) => k)
         .filter(
           (k) => !hasRack(site.key, k) && stagePoints(site.key, k, b, a.scene!.kind).every(dryAt),
@@ -1784,10 +1788,9 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   const deaths = stages
     .filter((x) => x.kind === 'burial')
     .flatMap((x) => {
-      const first = stageSessions(x, s.startDay)[0];
-      return first
-        ? [{ stage: x, day: Math.floor(dayAtMs(first.start, s.startDay)), done: false }]
-        : [];
+      // Lost when the body is laid in the grave; ill and dying from the start of its window.
+      const g = burialTimes(x, s.startDay);
+      return g ? [{ stage: x, day: Math.floor(dayAtMs(g.body, s.startDay)), done: false }] : [];
     });
 
   // The first person, alone by Lake Turkana (section 4.2), at the site nearest her place.
@@ -1817,6 +1820,11 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     for (const t of thresholds) if (!t.flagged && day >= t.day) t.flagged = settle(t, day);
     // Someone dies before a burial (humankind.md section 8.2): the oldest grown-up of the
     // anchor's band, never the first person, where two others remain to bury them.
+    for (const [c, list] of dyingSpots) {
+      const kept = list.filter((x) => x.until >= day);
+      if (kept.length) dyingSpots.set(c, kept);
+      else dyingSpots.delete(c);
+    }
     for (const d of deaths) {
       if (d.done || after(day, STEP_MS) <= d.day) continue;
       d.done = true;
@@ -1829,6 +1837,12 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         (x, y) => tree.figures[x]!.born - tree.figures[y]!.born || x - y,
       )[0];
       if (dead === undefined) continue;
+      d.stage.dead = dead;
+      const lostDay = Math.max(d.day, tree.figures[dead]!.homes.at(-1)![0] + 1);
+      dyingSpots.set(band, [
+        ...(dyingSpots.get(band) ?? []),
+        { spot: tree.figures[dead]!.homes.at(-1)![2], until: lostDay },
+      ]);
       const home = homeOf(dead);
       const list = residents.get(home)!;
       list.splice(list.indexOf(dead), 1);
@@ -2022,10 +2036,14 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     const q = stageSessions(x, s.startDay);
     if (!q.length) continue;
     const cave = x.kind === 'cave-painting';
-    x.shown = Math.floor(dayAtMs(q[0]!.begin - (cave ? CAVE_LEAD_MS : 0), s.startDay));
+    // A burial's window starts with its dead falling ill.
+    x.shown = Math.floor(dayAtMs(cave ? q[0]!.begin - CAVE_LEAD_MS : q[0]!.start, s.startDay));
     x.keep = cave
       ? Math.ceil(dayAtMs(q.at(-1)!.stop + CAVE_LINGER_MS + CAVE_FADE_MS, s.startDay)) + 1
-      : Math.ceil(dayAtMs(q[0]!.stop, s.startDay)) + GRAVE_FADE_DAYS + 1;
+      : Math.max(
+          Math.ceil(dayAtMs(q[0]!.stop, s.startDay)) + GRAVE_FADE_DAYS,
+          Math.ceil(dayAtMs(burialTimes(x, s.startDay)!.grown + GRAVE_SINK_MS, s.startDay)),
+        ) + 1;
   }
   // The plans beside their rows of the place table (sites.md section 4.2).
   for (const p of plans) {

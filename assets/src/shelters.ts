@@ -35,6 +35,7 @@ export const SHELTERS = [
   'prop-cave-wall-sulawesi',
   'prop-cave-wall-chauvet',
   'prop-burial',
+  'prop-death-skull',
 ] as const;
 export type ShelterId = (typeof SHELTERS)[number];
 
@@ -491,44 +492,55 @@ export function buildShelter(id: ShelterId): Model {
     }
     case 'prop-cave-wall-sulawesi':
     case 'prop-cave-wall-chauvet': {
-      // A cave as one pictures it (humankind.md section 8.2; Yang, 2026-10-20: "Make the caves
-      // look more like a cave ... with a torch to illuminate in the cave for drawing"): a
-      // rounded dome of brown rock with a wide arched mouth towards the hearth (+Z), boulders
-      // either side and tufts of grass; inside the mouth the pale back wall the painting grows
-      // on, in parts painted one after another, and a torch lit while it is painted. The rock
+      // A hill with a rock face (humankind.md section 8.2; Yang, 2026-10-21: "the ground
+      // elevates slowly to form a hill. one side of the hill is a rock face ... a bit like a
+      // hobbit burrow except that it's not a door but a rock face"): a grassy hill, towards the
+      // hearth (+Z) a rock face framed by an arch of stacked stones, and low walls of stones
+      // running down either side into the ground. The painting grows on the rock face in parts
+      // painted one after another, and a torch stands beside it while it is painted. The hill
       // is no step, so it stands bare before the first session.
       const sulawesi = id === 'prop-cave-wall-sulawesi';
-      const ROCK = sulawesi ? '#8f7563' : '#9c826c';
-      const WALL = sulawesi ? '#e8c890' : '#efd6a2';
-      // The dome behind, two lobes either side of the mouth, and the arch over it.
-      mb.add(blob([0, 1.25, -1.45], [2.2, 1.6, 1.25], 9), ROCK);
-      for (const x of [-1, 1]) {
-        mb.add(blob([x * 1.5, 0.85, -0.3], [0.85, 1.2, 1.1], 7), shade(ROCK, 0.04 * x));
-        mb.add(blob([x * 1.15, 0.2, 1.05], [0.32, 0.22, 0.3], 5), '#6f6c68');
-        mb.add(blob([x * 1.6, 0.16, 1.2], [0.24, 0.17, 0.22], 5), shade('#6f6c68', 0.08));
-        mb.add(blob([x * 0.8, 0.12, 1.3], [0.18, 0.12, 0.16], 5), shade('#6f6c68', -0.05));
-      }
-      mb.add(blob([0, 2.05, -0.1], [1.4, 0.48, 0.85], 8), shade(ROCK, -0.05));
+      const GRASS = sulawesi ? '#6f9448' : '#7f9a55';
+      const FACE = sulawesi ? '#a48b74' : '#b8a68c';
+      const STONES = ['#8d8478', '#a39a8c', '#7b7368', '#b0a594'];
+      mb.add(blob([0, 1.0, -1.0], [2.6, 1.4, 1.8], 10), GRASS);
       for (const [x, y, z] of [
-        [-1.3, 1.95, 0.0],
-        [0.9, 2.45, -0.2],
-        [1.7, 1.6, 0.2],
+        [-1.2, 2.05, -0.4],
+        [0.9, 2.15, -0.9],
+        [1.6, 1.4, 0.0],
+        [-1.9, 1.0, 0.2],
       ] as const)
-        mb.add(cone([x, y, z], [x, y + 0.24, z], 0.14, 4), '#6f9448');
-      // The back wall inside the mouth, pale and warm as if lit, and the floor before it.
-      const [wz, wx, wy, wd, wc] = [-0.25, 0.95, 1.0, 0.1, 0.85];
-      mb.add(blob([0, wc, wz], [wx, wy, wd], 8), WALL, 'root', undefined, 0);
-      mb.add(blob([0, 0.03, 0.25], [0.85, 0.04, 0.6], 7), '#cdb38a');
-      /** A point on the back wall at (x, y), standing clear of it. */
+        mb.add(cone([x, y, z], [x, y + 0.24, z], 0.14, 4), shade(GRASS, -0.1));
+      // The rock face, its front a little proud of the hill.
+      const [fz, fx, fy, fd, fc] = [1.0, 1.0, 1.0, 0.18, 1.05];
+      mb.add(blob([0, fc, fz], [fx, fy, fd], 9), FACE);
+      // The arch of stones round it, and the low walls either side.
+      for (let i = 0; i <= 10; i++) {
+        const a = Math.PI * (i / 10);
+        const [x, y] = [Math.cos(a) * 1.18, fc + Math.sin(a) * 1.15];
+        mb.add(blob([x, Math.max(0.12, y), fz + 0.08], [0.25, 0.18, 0.2], 4), STONES[i % 4]!);
+      }
+      for (const side of [-1, 1])
+        for (let i = 0; i < 4; i++) {
+          const u = i / 3;
+          const [x, y] = [side * (1.35 + 1.1 * u), 0.85 - 0.72 * u];
+          for (let row = 0; row * 0.26 < y + 0.05; row++)
+            mb.add(
+              blob([x, 0.1 + row * 0.26, fz - 0.15 - 0.35 * u], [0.3, 0.14, 0.2], 4),
+              STONES[(i + row) % 4]!,
+            );
+        }
+      /** A point on the rock face at (x, y), standing clear of it. */
       const face = (x: number, y: number, out = 0.05): Vec3 => {
-        const q = 1 - (x / wx) ** 2 - ((y - wc) / wy) ** 2;
-        return [x, y, wz + wd * Math.sqrt(Math.max(0.05, q)) + out];
+        const yy = y + 0.2;
+        const q = 1 - (x / fx) ** 2 - ((yy - fc) / fy) ** 2;
+        return [x, yy, fz + fd * Math.sqrt(Math.max(0.05, q)) + out];
       };
-      // The torch, lit while a session is painted (the scene shows it then).
-      mb.bone({ name: 'torch', pivot: [0.62, 0, 0.2] });
-      mb.add(rod([0.62, 0, 0.25], [0.55, 1.15, 0.08], 0.03, 4), POLE, 'torch');
-      mb.add(blob([0.545, 1.26, 0.07], [0.09, 0.15, 0.09], 5), '#f08a2c', 'torch', undefined, 0);
-      mb.add(blob([0.545, 1.23, 0.1], [0.05, 0.09, 0.05], 4), '#ffd166', 'torch', undefined, 0);
+      // The torch beside the face, lit while a session is painted (the scene shows it then).
+      mb.bone({ name: 'torch', pivot: [0.85, 0, 1.6] });
+      mb.add(rod([0.9, 0, 1.75], [0.8, 1.3, 1.45], 0.03, 4), POLE, 'torch');
+      mb.add(blob([0.795, 1.42, 1.44], [0.1, 0.17, 0.1], 5), '#f08a2c', 'torch', undefined, 0);
+      mb.add(blob([0.795, 1.39, 1.47], [0.055, 0.1, 0.055], 4), '#ffd166', 'torch', undefined, 0);
       const step = (k: number) => {
         const name = `${BUILD_BONE}${k}`;
         mb.bone({ name, pivot: face(0, 0.9, 0) });
@@ -916,35 +928,59 @@ export function buildShelter(id: ShelterId): Model {
       break;
     }
     case 'prop-burial': {
-      // A grave beside the camp, along X (humankind.md section 8.2; Yang, 2026-10-20: "should
-      // the burial not be a furrow in the ground?"): a trench between two banks of dug earth,
-      // filled in three steps: the trench, dark and deep; the body laid in it, wrapped and
-      // covered with mammoth-ivory beads, ivory spears beside it; the trench closed with the
-      // earth and strewn with red ochre. Its parts stand a little above the ground, as the
-      // drawn ground is not flat across a prop drawn some 200 km long.
+      // A grave dug into a heap of earth (humankind.md section 8.2; Yang, 2026-10-21: "they
+      // should first dig into the ground to change the ground elevation to fit the burial"):
+      // the heap rises out of the ground first (the scene raises it), so the drawn ground,
+      // not flat across a prop drawn some 200 km long, never cuts through it. Then, in four
+      // steps: the trench, dark and deep; the body laid in it, wrapped and covered with
+      // mammoth-ivory beads, ivory spears beside it; the trench closed with the earth and red
+      // ochre; and grass grown over the heap (Yang: "the ground should just grow over it").
       const EARTH = '#7a5a3c';
+      mb.add(blob([0, 0.06, 0], [1.3, 0.2, 0.75], 9), EARTH);
       const step = (k: number) => {
         const name = `${BUILD_BONE}${k}`;
-        mb.bone({ name, pivot: [0, 0, 0] });
+        mb.bone({ name, pivot: [0, 0.2, 0] });
         return name;
       };
       let b = step(0);
-      for (const z of [-1, 1])
-        mb.add(blob([0, 0.14, z * 0.52], [1.05, 0.17, 0.22], 8), shade(EARTH, 0.04 * z), b);
-      mb.add(blob([0, 0.08, 0], [0.95, 0.04, 0.32], 8), '#2b211a', b);
+      mb.add(blob([0, 0.215, 0], [0.95, 0.05, 0.32], 8), '#2b211a', b);
+      for (const x of [-1, 1])
+        mb.add(blob([x * 1.1, 0.26, 0], [0.22, 0.12, 0.3], 5), shade(EARTH, 0.06), b);
       b = step(1);
-      mb.add(blob([0, 0.15, 0], [0.75, 0.09, 0.2], 8), '#a88f68', b);
+      mb.add(blob([0, 0.25, 0], [0.75, 0.06, 0.2], 8), '#a88f68', b);
       for (let i = 0; i < 16; i++)
         mb.add(
-          blob([-0.6 + 0.08 * i, 0.24, 0.06 * Math.sin(i * 1.7)], [0.025, 0.025, 0.025], 4),
+          blob([-0.6 + 0.08 * i, 0.31, 0.06 * Math.sin(i * 1.7)], [0.025, 0.025, 0.025], 4),
           '#efe6d2',
           b,
         );
       for (const z of [-0.25, 0.25])
-        mb.add(rod([-0.85, 0.12, z], [0.85, 0.12, z], 0.02, 3), '#e9dfc6', b);
+        mb.add(rod([-0.85, 0.24, z], [0.85, 0.24, z], 0.02, 3), '#e9dfc6', b);
       b = step(2);
-      mb.add(blob([0, 0.17, 0], [1.0, 0.13, 0.42], 8), EARTH, b);
-      mb.add(blob([0, 0.29, 0], [0.7, 0.03, 0.28], 7), '#a3412a', b);
+      mb.add(blob([0, 0.26, 0], [1.0, 0.1, 0.4], 8), EARTH, b);
+      mb.add(blob([0, 0.34, 0], [0.7, 0.025, 0.28], 7), '#a3412a', b);
+      b = step(3);
+      mb.add(blob([0, 0.1, 0], [1.38, 0.28, 0.8], 9), '#7f9a55', b);
+      for (const [x, z] of [
+        [-0.7, 0.2],
+        [0.3, -0.3],
+        [0.8, 0.25],
+      ] as const)
+        mb.add(cone([x, 0.34, z], [x, 0.5, z], 0.08, 4), '#6f8a48', b);
+      break;
+    }
+    case 'prop-death-skull': {
+      // A small skull that rises from someone who has just died and fades away
+      // (humankind.md section 8.2; Yang, 2026-10-21): a sign, not a body part, drawn as a
+      // cartoon: a round white head, two dark eyes, a dark nose and a row of teeth.
+      const BONE_WHITE = '#f1ece0';
+      mb.add(blob([0, 0.22, 0], [0.16, 0.15, 0.15], 8), BONE_WHITE);
+      mb.add(blob([0, 0.1, 0.03], [0.1, 0.06, 0.1], 6), BONE_WHITE);
+      for (const x of [-1, 1])
+        mb.add(blob([x * 0.06, 0.22, 0.13], [0.045, 0.05, 0.03], 5), '#231d1a');
+      mb.add(blob([0, 0.16, 0.145], [0.02, 0.025, 0.02], 4), '#231d1a');
+      for (const x of [-0.04, 0, 0.04])
+        mb.add(blob([x, 0.085, 0.12], [0.012, 0.022, 0.012], 4), '#231d1a');
       break;
     }
     case 'prop-carry-pole': {

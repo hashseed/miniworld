@@ -343,8 +343,10 @@ export type FigureLook = 'founder' | 'woman' | 'man' | 'child';
 export type TreeClip =
   | 'idle'
   | 'work'
-  // At a cave painting (section 8.2).
+  // At a cave painting; falling ill and dying before a burial (section 8.2).
   | 'paint'
+  | 'ill'
+  | 'lie'
   | 'knap'
   | 'walk'
   | 'run'
@@ -433,8 +435,12 @@ export interface CampPropPose extends Placed {
   scale?: number;
   /** Whether a cave's torch is lit. */
   lit?: boolean;
-  /** 0 to 1: how far a scene's cave or grave has faded in, or not yet faded out. */
+  /** 0 to 1: how far a scene's hill or heap of earth has risen out of the ground. */
+  rise?: number;
+  /** 0 to 1: how far a prop has faded, 1 drawn in full: the dead's skull. */
   fade?: number;
+  /** Height above the ground in life-size metres: the dead's skull rising. */
+  height?: number;
 }
 
 /** Where the trees make way for a camp: 1 cleared, 0 grown back. */
@@ -600,6 +606,10 @@ export function slotPoint(camp: number, slot: number): Pt {
  * or, where the land is too narrow, nearer: the first of these that is dry.
  */
 export const STAGE_BEYOND_M = [12, 10, 8];
+/** A cave's hill stands further out, so its watchers are clear of the lodging in front of it. */
+export const CAVE_BEYOND_M = [16, 14, 12, 10, 8];
+export const stageBeyond = (kind: TreeStage['kind']) =>
+  kind === 'cave-painting' ? CAVE_BEYOND_M : STAGE_BEYOND_M;
 /** A scene's prop and places at a full, a compact and a minimal camp, as a share of full size. */
 export const stageScale = (camp: number) =>
   camp >= MINIMAL_SITE ? 0.5 : camp >= COMPACT_SITE ? 0.75 : 1;
@@ -627,16 +637,16 @@ export function stageSpots(camp: number, slot: number, beyond: number) {
   });
   const g = gapDirection(camp, slot);
   const gap = { x: g.x * (ring + 4), z: g.z * (ring + 4) };
-  // In front of a cave's mouth, past its boulders: the way in (section 8.2).
-  const door = at(6, 0);
+  // In front of a cave's rock face, clear of its walls of stones: the way to it (section 8.2).
+  const door = at(10, 0);
   return { prop, u, at, gap, door };
 }
 
 /** Where the people of a scene stand: the painter and two watchers, or two diggers and the mourners. */
 function stageStands(camp: number, slot: number, beyond: number, kind: TreeStage['kind']): Pt[] {
   const { at } = stageSpots(camp, slot, beyond);
-  // The painter in the cave's mouth at its back wall, the watchers at the mouth; the grave 3 by 1.7.
-  if (kind === 'cave-painting') return [at(0.6, 0), at(3.6, -1.4), at(3.6, 1.4)];
+  // The painter at the rock face, the watchers behind; diggers at the grave's heap of earth.
+  if (kind === 'cave-painting') return [at(4.65, 0), at(8.1, -1.8), at(8.1, 1.8)];
   const out = [at(2.4, -1.5), at(2.4, 1.5)];
   for (let k = 0; k < MOURNERS; k++) {
     const a = ((k + 0.5) / MOURNERS - 0.5) * (2 * Math.PI) * 0.45;
@@ -654,10 +664,10 @@ export function stagePoints(
 ): Pt[] {
   const { prop, gap, at, door } = stageSpots(camp, slot, beyond);
   const out: Pt[] = [prop];
-  // Round the prop as it lies, in layout metres: the cave about 7 to each side, 8 behind its
-  // middle and 4.5 in front; the grave 3.4 by 2.
+  // Round the prop as it lies, in layout metres: the hill about 8 to each side, 8.4 behind
+  // its middle and 5.4 in front; the grave's heap 4.2 by 2.6.
   const cave = kind === 'cave-painting';
-  const [wide, deep, mid] = cave ? [7.2, 6.4, -1.8] : [3.4, 2, 0];
+  const [wide, deep, mid] = cave ? [8.1, 6.9, -1.5] : [4.2, 2.6, 0];
   for (let k = 0; k < 12; k++) {
     const a = (k / 12) * 2 * Math.PI;
     out.push(at(mid + deep * detCos(a), wide * detSin(a)));
@@ -693,6 +703,35 @@ export const CAVE_LEAD_MS = 60_000;
 export const CAVE_LINGER_MS = 60_000;
 export const CAVE_FADE_MS = 10_000;
 export const GRAVE_FADE_DAYS = Math.round(50 * 365.2425);
+/** A grave's heap rises this long, grass grows over it this long after it is closed, taking GRASS_MS. */
+const HEAP_MS = 1_500;
+/** A grave sinks back flat over GRAVE_FADE_DAYS, or this much watching where that passes quicker. */
+export const GRAVE_SINK_MS = 60_000;
+const GRASS_AFTER_MS = 10_000;
+const GRASS_MS = 10_000;
+/** The dead sits ill this long from the start of the burial's window, then lies dead; the skull rises for SKULL_MS. */
+const ILL_MS = 3_000;
+const SKULL_MS = 3_000;
+
+/**
+ * The moments of a burial (section 8.2): its window's start, when its dead dies and when the
+ * body is laid in the grave, its session, and when grass has grown over the grave.
+ */
+export function burialTimes(stage: TreeStage, startDay: Day) {
+  const q = stageSessions(stage, startDay)[0];
+  if (!q) return undefined;
+  const dig = q.begin + HEAP_MS;
+  return {
+    start: q.start,
+    death: q.start + ILL_MS,
+    // The body goes in with the second of the grave's four steps, a third of the way through the digging.
+    body: dig + (q.stop - dig) / 3,
+    begin: q.begin,
+    dig,
+    stop: q.stop,
+    grown: q.stop + GRASS_AFTER_MS + GRASS_MS,
+  };
+}
 /** A cave painting grows in this many sessions, one window in two (humankind.md section 8.2). */
 export const PAINT_SESSIONS = 6;
 
@@ -1328,33 +1367,63 @@ export function treeScene(
       dirZ: -p.z / ringOf(flag.camp),
     });
   }
-  // Scenes at anchors (section 8.2): the painted wall grows in over its sessions and stays;
-  // the grave fills in its session and stays until the anchor's end.
+  // Scenes at anchors (section 8.2). A cave's hill rises out of the ground over CAVE_FADE_MS
+  // from CAVE_LEAD_MS before its first session, its painting grows over its sessions, and it
+  // sinks back over CAVE_FADE_MS from CAVE_LINGER_MS after its last. A grave's heap rises as
+  // its burial begins, is dug, filled and closed, grows grass and sinks back flat over
+  // GRAVE_FADE_DAYS. The dead's skull rises and fades away.
   for (const stage of chunk.stages ?? []) {
     if (ms < at(stage.shown) || ms >= at(stage.keep)) continue;
     const sessions = stageSessions(stage, startDay);
-    const done = (q: { begin: number; stop: number }) =>
-      Math.min(1, Math.max(0, (ms - q.begin) / (q.stop - q.begin)));
-    if (stage.kind === 'burial' && (!sessions[0] || ms < sessions[0].begin)) continue;
-    // A cave fades in over CAVE_FADE_MS from CAVE_LEAD_MS before its first session and out
-    // over CAVE_FADE_MS from CAVE_LINGER_MS after its last; a grave fades into the ground
-    // over GRAVE_FADE_DAYS from its burial.
-    let fade: number;
+    let rise: number;
+    let built: number;
     if (stage.kind === 'cave-painting') {
       if (!sessions.length) continue;
       const from = sessions[0]!.begin - CAVE_LEAD_MS;
       const to = sessions.at(-1)!.stop + CAVE_LINGER_MS;
-      fade = Math.min(1, (ms - from) / CAVE_FADE_MS, (to + CAVE_FADE_MS - ms) / CAVE_FADE_MS);
+      rise = Math.min(1, (ms - from) / CAVE_FADE_MS, (to + CAVE_FADE_MS - ms) / CAVE_FADE_MS);
+      const done = (q: { begin: number; stop: number }) =>
+        Math.min(1, Math.max(0, (ms - q.begin) / (q.stop - q.begin)));
+      built = sessions.reduce((n, q) => n + done(q), 0) / PAINT_SESSIONS;
     } else {
-      const stop = sessions[0]!.stop;
-      const end = msAtDay(dayAtMs(stop, startDay) + GRAVE_FADE_DAYS, startDay);
-      fade = ms <= stop ? 1 : 1 - (ms - stop) / Math.max(1, end - stop);
+      const g = burialTimes(stage, startDay);
+      if (!g) continue;
+      if (stage.dead !== undefined && ms >= g.death && ms < g.death + SKULL_MS) {
+        const dead = chunk.figures.find((f) => f.id === stage.dead);
+        const st = dead && stayAt(dead, g.start);
+        if (st) {
+          const u = (ms - g.death) / SKULL_MS;
+          scene.props.push({
+            id: `skull:${stage.id}`,
+            kind: 'prop-death-skull',
+            lat: deg(st.home.lat),
+            lon: deg(st.home.lon),
+            x: st.spot.x,
+            z: st.spot.z,
+            dirX: -st.spot.x || 1,
+            dirZ: -st.spot.z,
+            height: 0.6 + 2.2 * u,
+            fade: Math.min(1, (1 - u) * 3),
+          });
+        }
+      }
+      if (ms < g.begin) continue;
+      // It sinks over 50 years, or a minute of watching where 50 years pass quicker.
+      const end = Math.max(
+        msAtDay(dayAtMs(g.stop, startDay) + GRAVE_FADE_DAYS, startDay),
+        g.grown + GRAVE_SINK_MS,
+      );
+      rise = Math.min(
+        1,
+        (ms - g.begin) / HEAP_MS,
+        ms <= g.grown ? 1 : 1 - (ms - g.grown) / Math.max(1, end - g.grown),
+      );
+      built =
+        ms < g.stop
+          ? (0.75 * Math.max(0, ms - g.dig)) / (g.stop - g.dig)
+          : 0.75 + 0.25 * Math.min(1, Math.max(0, (ms - g.stop - GRASS_AFTER_MS) / GRASS_MS));
     }
-    if (fade <= 0) continue;
-    const built =
-      stage.kind === 'burial'
-        ? done(sessions[0]!)
-        : sessions.reduce((n, q) => n + done(q), 0) / PAINT_SESSIONS;
+    if (rise <= 0) continue;
     const { prop, u } = stageSpots(stage.camp, stage.slot, stage.beyond);
     scene.props.push({
       id: `stage:${stage.id}`,
@@ -1367,7 +1436,7 @@ export function treeScene(
       dirZ: -u.z,
       built,
       scale: stageScale(stage.camp),
-      fade,
+      rise,
       // A cave's torch burns while a session is painted.
       ...(stage.kind === 'cave-painting'
         ? { lit: sessions.some((q) => ms >= q.begin - 1500 && ms < q.stop) }
@@ -1391,7 +1460,23 @@ export function treeScene(
         if (!c || ms >= c.end) continue;
       }
     }
-    const pose = poseAt(f, i, ms);
+    // A burial's dead sits ill by the fire, then lies dead until laid in the grave (section 8.2).
+    const dying = (chunk.stages ?? []).find((x) => x.dead === f.id);
+    const g = dying && burialTimes(dying, startDay);
+    const sick = g && ms >= g.start ? stayAt(f, g.start) : undefined;
+    const pose: FigurePose | undefined = sick
+      ? {
+          id: f.id,
+          look: lookOf(f.id),
+          lat: deg(sick.home.lat),
+          lon: deg(sick.home.lon),
+          x: sick.spot.x,
+          z: sick.spot.z,
+          ...towards(sick.spot.x, sick.spot.z, 0, 0),
+          clip: ms < g!.death ? 'ill' : 'lie',
+          clipMs: ms - (ms < g!.death ? g!.start : g!.death),
+        }
+      : poseAt(f, i, ms);
     if (!pose) continue;
     // Its clothes: the old camp's until it changes in its new hut (peopling.md section 5.3).
     const c = crossing(f, i);
@@ -1542,6 +1627,7 @@ export function treeScene(
    */
   function stageEvent(stage: TreeStage, w: number, start: number, until: number) {
     const members = mates(stage.camp)
+      .filter((g) => g.id !== stage.dead)
       .map((g) => stayAt(g, start))
       .filter(
         (g): g is Stay =>

@@ -53,8 +53,10 @@ export type Clip =
   | 'dance'
   | 'scrape'
   | 'crack'
-  // Painting a cave wall (humankind.md section 8.2).
+  // Painting a cave wall; falling ill and dying before a burial (humankind.md section 8.2).
   | 'paint'
+  | 'ill'
+  | 'lie'
   // Crossing the sea in a canoe (peopling.md section 6).
   | 'paddle';
 
