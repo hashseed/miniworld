@@ -569,6 +569,7 @@ export class TreeLayer {
     const v: [number, number, number] = [dir.x, dir.y, dir.z];
     let depth = 0;
     for (const m of this.hills) depth += moundDepthAt(m, v);
+    if (depth <= 0) return depth;
     const sea = this.surface.seaKm?.() ?? -Infinity;
     return Math.min(depth, Math.max(0, surface - sea - 1));
   }

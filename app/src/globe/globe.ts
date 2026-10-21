@@ -72,7 +72,6 @@ export function moundDepthAt(m: Mound, v: [number, number, number]): number {
   const d = [v[0] - cx * dot, v[1] - cy * dot, v[2] - cz * dot];
   const r = m.radiusKm / EARTH_RADIUS_KM;
   const e = (d[0]! * fx + d[1]! * fy + d[2]! * fz) / r;
-  if (e <= 0) return 0;
   // The side direction, c × f.
   const sx = cy * fz - cz * fy;
   const sy = cz * fx - cx * fz;
@@ -80,7 +79,9 @@ export function moundDepthAt(m: Mound, v: [number, number, number]): number {
   const s = (d[0]! * sx + d[1]! * sy + d[2]! * sz) / r;
   const r2 = e * e + s * s;
   const t = Math.min(1, Math.max(0, (r2 - 0.3) / 0.7));
-  return m.depthKm * (1 - t * t * (3 - 2 * t));
+  const depth = m.depthKm * (1 - t * t * (3 - 2 * t));
+  // The half behind the cut rises into a hill, 0.8 times as much.
+  return e > 0 ? depth : -0.8 * depth;
 }
 
 export class Globe {
