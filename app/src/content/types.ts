@@ -95,6 +95,8 @@ export interface StartupIndex {
   wildlifeCamps?: [number, number, number, number][];
   /** Card of each wildlife species: title in the index's language and its text file (wildlife.md section 8). */
   animals: AnimalEntry[];
+  /** Card of each anchor: the real place a scene or landmark shows (humankind.md section 8.3). */
+  siteCards: AnimalEntry[];
 }
 
 /** An event of the events dialog (milestone-1 section 8.3): where and when it happens. */

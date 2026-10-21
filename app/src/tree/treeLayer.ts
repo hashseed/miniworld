@@ -166,6 +166,30 @@ export class TreeLayer {
   /** Screen pixels per life-size metre at each camp this frame, by place. */
   private pixels = new Map<string, number>();
   private probe = new THREE.Vector3();
+  /** Where each scene prop was drawn last frame, by anchor id, for taps (humankind.md section 8.3). */
+  private stagePoints: { id: string; at: THREE.Vector3; m: number }[] = [];
+  /** The anchor whose scene wall or grave is under a screen point, if any (humankind.md section 8.3). */
+  hitScene(clientX: number, clientY: number): string | undefined {
+    const camera = this.camera;
+    if (!camera) return undefined;
+    const pxAtKm = (camera.projectionMatrix.elements[5]! * innerHeight) / 2;
+    const p = new THREE.Vector3();
+    let best: string | undefined;
+    let bestD = Infinity;
+    for (const s of this.stagePoints) {
+      p.copy(s.at);
+      const distance = p.distanceTo(camera.position);
+      p.project(camera);
+      if (p.z >= 1) continue;
+      const x = ((p.x + 1) / 2) * innerWidth;
+      const y = ((1 - p.y) / 2) * innerHeight;
+      const radius = Math.max(28, (3 * s.m * pxAtKm) / distance);
+      const dist = Math.hypot(clientX - x, clientY - y);
+      if (dist < radius && dist < bestD) [best, bestD] = [s.id, dist];
+    }
+    return best;
+  }
+
   /** Whether a figure-sized thing at a camp would be drawn smaller than `px` pixels tall. */
   private tiny(p: { lat: number; lon: number }, px: number): boolean {
     const key = `${p.lat}:${p.lon}`;
@@ -384,10 +408,17 @@ export class TreeLayer {
 
     // Drying racks beside the lodgings, the spit over a fire while meat roasts, canoes on
     // the water and red flags at the Neolithic thresholds.
+    this.stagePoints = [];
     for (const q of scene.props) {
       const batch = treePropBatch(q.kind);
       if (!batch || !this.place(at, q, false)) continue;
       const km = FIGURE_KM_PER_M * (q.scale ?? 1);
+      if (q.id.startsWith('stage:'))
+        this.stagePoints.push({
+          id: q.id.slice(6),
+          at: at.position.clone().addScaledVector(this.dir, 1.2 * km),
+          m: km,
+        });
       const cave = q.kind.startsWith('prop-cave-wall-');
       if (q.rise !== undefined && !cave) {
         // A grave's heap of earth rises out of the ground and sinks back (humankind.md section 8.2).

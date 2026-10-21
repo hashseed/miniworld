@@ -18,6 +18,7 @@ import {
   type CuratedEras,
 } from '../lib/eras.ts';
 import { buildAnimals } from '../lib/animals.ts';
+import { buildSiteCards } from '../lib/siteCards.ts';
 import { buildLandmarks } from '../lib/landmarks.ts';
 import { WILD_GROUPS } from '../../../app/src/world/wildlife.ts';
 import { regionGrid } from '../lib/regions.ts';
@@ -32,6 +33,7 @@ export interface Content {
   landmarks: ReturnType<typeof buildLandmarks>['landmarks'];
   vignettes: ReturnType<typeof buildVignettes>['vignettes'];
   animals: ReturnType<typeof buildAnimals>['animals'];
+  siteCards: ReturnType<typeof buildSiteCards>['cards'];
 }
 
 /** Reads and validates the curated content; fails the build on any error. */
@@ -101,6 +103,12 @@ export function validateContent(ctx: BuildContext): Content {
     species: new Set(WILD_GROUPS.map((g) => g.species)),
   });
   if (animalBuild.errors.length) fail(animalBuild.errors.join('\n'));
+  const anchorList = JSON.parse(read('anchors.json')) as { anchors: { id: string }[] };
+  const siteBuild = buildSiteCards({
+    curated: join(ROOT, 'data/curated'),
+    anchors: new Set(anchorList.anchors.map((a) => a.id)),
+  });
+  if (siteBuild.errors.length) fail(siteBuild.errors.join('\n'));
   const vignetteBuild = buildVignettes({
     curated: join(ROOT, 'data/curated'),
     lanes: new Set(regions),
@@ -122,6 +130,7 @@ export function validateContent(ctx: BuildContext): Content {
     landmarks: landmarkBuild.landmarks,
     vignettes: vignetteBuild.vignettes,
     animals: animalBuild.animals,
+    siteCards: siteBuild.cards,
   };
 }
 
@@ -180,6 +189,13 @@ export function buildContent(
     ) as Record<Language, string>,
   }));
   log(`${animalFiles.length} animal cards`);
+  const siteFiles = content.siteCards.map((c) => ({
+    c,
+    text: Object.fromEntries(
+      LANGUAGES.map((lang) => [lang, output.writeJson(`sites/${c.id}-${lang}`, c.text[lang])]),
+    ) as Record<Language, string>,
+  }));
+  log(`${siteFiles.length} site cards`);
 
   const grid = regionGrid(content.regions);
   const index = {} as Record<Language, string>;
@@ -222,6 +238,11 @@ export function buildContent(
       animals: animalFiles.map(({ a, text }) => ({
         id: a.id,
         title: a.text[language].title,
+        text: text[language],
+      })),
+      siteCards: siteFiles.map(({ c, text }) => ({
+        id: c.id,
+        title: c.text[language].title,
         text: text[language],
       })),
     };

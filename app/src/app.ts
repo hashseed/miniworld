@@ -188,6 +188,8 @@ vignettes.onOpen = (entry) => void openVignette(entry);
 vignettes.onMiss = (x, y) => {
   const entry = landmarks.hit(x, y);
   if (entry) return void openVignette(entry);
+  const site = tree.hitScene(x, y);
+  if (site !== undefined) return void openSiteCard(site);
   const group = wildlife.hit(x, y);
   if (group !== undefined) void openAnimal(group);
 };
@@ -451,9 +453,39 @@ async function switchLanguage(lang: Settings['language']): Promise<void> {
     ui.value.vignette &&
     [...next.vignettes, ...next.landmarks].find((v) => v.id === ui.value.vignette!.id);
   if (open && ui.value.panel === 'vignette') void openVignette(open);
+  if (ui.value.panel === 'vignette' && ui.value.vignette?.site && openSiteId !== undefined)
+    void openSiteCard(openSiteId);
   if (ui.value.panel === 'vignette' && ui.value.vignette?.animal && openAnimalGroup !== undefined)
     void openAnimal(openAnimalGroup);
   ui.update({ sources: next.sources, events: next.events });
+}
+
+/** The anchor whose site card is open, so a language change can reopen it. */
+let openSiteId: string | undefined;
+
+/** Opens a tapped scene's site card: its title at once, then the text (humankind.md section 8.3). */
+async function openSiteCard(id: string): Promise<void> {
+  const entry = index?.siteCards.find((c) => c.id === id);
+  if (!entry) return;
+  openSiteId = id;
+  const card: VignetteCard = {
+    id: `site:${id}`,
+    title: entry.title,
+    fromDay: 0,
+    toDay: 0,
+    fromApproximate: false,
+    toApproximate: false,
+    site: true,
+  };
+  ui.update({ panel: 'vignette', vignette: card });
+  const done = (patch: Partial<VignetteCard>) => {
+    if (ui.value.vignette === card) ui.update({ vignette: { ...card, ...patch } });
+  };
+  try {
+    done({ text: await loader.json<NonNullable<VignetteCard['text']>>(entry.text) });
+  } catch {
+    done({ failed: true });
+  }
 }
 
 /** The group whose animal card is open, so a language change can reopen it. */

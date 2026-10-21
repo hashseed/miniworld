@@ -23,6 +23,8 @@ export interface VignetteCard {
    * the date line shows, none for a group shown at every date.
    */
   animal?: { from: boolean; to: boolean };
+  /** A site card (humankind.md section 8.3): the text carries its own dates, so no date line. */
+  site?: boolean;
 }
 
 /**

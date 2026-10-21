@@ -37,6 +37,7 @@ describe.skipIf(!built)('built data pipeline', () => {
       const index = json<StartupIndex>(f);
       for (const e of [...index.vignettes, ...index.landmarks]) files.add(e.structure).add(e.text);
       for (const a of index.animals) files.add(a.text);
+      for (const a of index.siteCards) files.add(a.text);
     }
     for (const f of manifest.climate.files) files.add(f);
     for (const f of manifest.foliage.files) files.add(f);

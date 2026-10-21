@@ -23,6 +23,7 @@ data/curated/
   landmarks/    gobekli-tepe.md, great-pyramid.md ...
   vignettes/    viking-raids-britain.md ...    small looping stories
   animals/      lion.md, thylacine.md ...      wildlife species cards
+  site-cards/   chauvet.md, sungir.md ...        cards of the anchors (humankind.md section 8.3)
   templates/    coastal-raid.yaml ...          vignette stages and scripts (no text)
   geo/          areas and paths as GeoJSON, referenced by id
   sources.yaml  bibliography of content sources (books, papers, databases)
@@ -84,7 +85,7 @@ Der Vesuv bricht aus und begräbt die Stadt Pompeji unter Asche. ...
 | Field | Required | Meaning |
 | --- | --- | --- |
 | `id` | yes | Stable lowercase slug, unique within its kind, equal to the file name. Never reused; a renamed record keeps its old id in `aliases`, so bookmarks, links and later guided tours never break. |
-| `kind` | yes | `event`, `person`, `era`, `place`, `polity`, `route`, `culture`, `landmark`, `vignette` or `animal`; must match the folder. |
+| `kind` | yes | `event`, `person`, `era`, `place`, `polity`, `route`, `culture`, `landmark`, `vignette`, `animal` or `site-card`; must match the folder. |
 | `when` | yes, except culture and animal | Time span (section 3). |
 | `where` | yes for events, people, places, routes, landmarks and vignettes | Place (section 4). |
 | `region` | yes, except culture, animal and era (an era's `lane` places it) | One or more region ids from `vocab/regions.yaml` (the timeline's regional lanes); used for the timeline, the phone lane filter and the coverage report. |

@@ -240,6 +240,15 @@ The anchors with scenes (`data/curated/anchors.json`):
 | `chauvet` | 35,000 BCE | 33,000 BCE | Ardèche, France | Cave painting, `prop-cave-wall-chauvet` |
 | `sungir` | 32,000 BCE | 31,000 BCE | Vladimir, Russia | Burial, `prop-burial` |
 
+### 8.3 Site cards
+
+Yang asked on 2026-10-21: "Landmarks should have cards. Create them for the caves and the burial. Also prepare one for Göbekli Tepe. Clicking on the landmark brings up the card." Every anchor (sites.md section 4.1) has a **site card**, a card like an animal's (wildlife.md section 8) about the real place.
+
+- **Records.** `data/curated/site-cards/<anchor id>.md`, its id equal to the anchor's. The front matter holds `id`, `kind: site-card` and `sources` (references into `sources.yaml`, at least one); the body has `## en` and `## de` sections. The data build fails when an anchor has no card, a card has no anchor, or a record breaks the envelope rules of content-format.md section 2.
+- **Structure.** Each language section starts with `# Name`, then in this order: two lines `**Made:**` and `**Discovered:**` (`**Entstanden:**`, `**Entdeckt:**`) saying when it was made and when and how it was found, then the sub-headings `### What was found`, `### How it looked` and `### What it was for` (`### Was man fand`, `### So sah es aus`, `### Wozu es diente`), in that order and no other. "How it looked" says how it probably looked when it was new, and what is uncertain; "What it was for" says what is known and names what is debated. Dates before 1500 are marked approximate. Written for a reader of about 11 to 12, nothing bloody, English and German saying the same.
+- **Opening.** Tapping a scene's wall or grave (section 8.2) opens its anchor's card, in the panel at the top left, never pausing time. The tap is tested after the vignettes and landmarks and before the animals: the nearest drawn scene prop whose middle lies within its drawn size on screen (at least 28 CSS pixels). Göbekli Tepe's card is written but has no drawn model to tap until its landmark model is approved and drawn (gobekli-tepe.md); it then opens the same way.
+- **Loading.** The startup index carries each card's id and title (`siteCards`); the text is one small file per card and language, loaded when the card opens.
+
 ## 9. Open questions for Yang
 
 None at the moment.

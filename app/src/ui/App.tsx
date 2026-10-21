@@ -750,17 +750,19 @@ function VignettePanel({
   const text = card.text;
   // An animal's card shows only the ends of its group's span (wildlife.md section 8).
   const a = card.animal;
-  const dateLine = !a
-    ? t('vignette.span', { from, to })
-    : a.from && a.to
-      ? t('animal.span', { from, to })
-      : a.from
-        ? t('animal.from', { from })
-        : a.to
-          ? t('animal.until', { to })
-          : undefined;
+  const dateLine = card.site
+    ? undefined
+    : !a
+      ? t('vignette.span', { from, to })
+      : a.from && a.to
+        ? t('animal.span', { from, to })
+        : a.from
+          ? t('animal.from', { from })
+          : a.to
+            ? t('animal.until', { to })
+            : undefined;
   return (
-    <PanelFrame title={text?.title ?? card.title} t={t} actions={actions} left={!!a}>
+    <PanelFrame title={text?.title ?? card.title} t={t} actions={actions} left={!!a || !!card.site}>
       {dateLine && <p class="card-date">{dateLine}</p>}
       {text ? (
         <>
@@ -783,7 +785,18 @@ function paragraphs(text: string) {
   return text
     .split(/\n\s*\n/)
     .filter((p) => p.trim())
-    .map((p, i) => <p key={i}>{p.trim()}</p>);
+    .map((p, i) => {
+      const q = p.trim();
+      if (q.startsWith('### ')) return <h3 key={i}>{q.slice(4)}</h3>;
+      const m = /^\*\*([^*]+)\*\*\s*(.*)$/s.exec(q);
+      return m ? (
+        <p key={i}>
+          <strong>{m[1]}</strong> {m[2]}
+        </p>
+      ) : (
+        <p key={i}>{q}</p>
+      );
+    });
 }
 
 function Stats({
