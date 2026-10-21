@@ -91,7 +91,10 @@ uniform vec4 moundA[MOUNDS];
 uniform vec4 moundB[MOUNDS];
 uniform int moundCount;
 
-/** How far the ground sinks at a drawn direction, in drawn km. */
+/**
+ * How far the ground sinks at a drawn direction, in drawn km: the half towards the hearth
+ * sinks, the half behind the cut rises into a hill (negative), 0.8 times as much.
+ */
 float moundAt(vec3 v, int i) {
   vec3 c = moundA[i].xyz;
   float r = moundA[i].w;
@@ -99,9 +102,9 @@ float moundAt(vec3 v, int i) {
   vec3 d = v - c * dot(v, c);
   float e = dot(d, f) / r;
   float s = dot(d, cross(c, f)) / r;
-  if (e <= 0.0) return 0.0;
   float r2 = e * e + s * s;
-  return moundB[i].w * (1.0 - smoothstep(0.3, 1.0, r2));
+  float m = moundB[i].w * (1.0 - smoothstep(0.3, 1.0, r2));
+  return e > 0.0 ? m : -0.8 * m;
 }
 
 /** How much of a drawn direction lies on a cut's rock face (the steep strip along the cut). */
@@ -269,8 +272,9 @@ void main() {
       float dl = moundA[i].w * 0.02;
       float mx = moundAt(normalize(drawnUp + mEast * dl), i) - moundAt(normalize(drawnUp - mEast * dl), i);
       float my = moundAt(normalize(drawnUp + mNorth * dl), i) - moundAt(normalize(drawnUp - mNorth * dl), i);
-      if (m <= 0.0 && mx == 0.0 && my == 0.0) continue;
-      float k = moundB[i].w > 0.0 ? min(1.0, room / moundB[i].w) : 0.0;
+      if (m == 0.0 && mx == 0.0 && my == 0.0) continue;
+      // Only the sinking half is held above the sea.
+      float k = m < 0.0 ? 1.0 : moundB[i].w > 0.0 ? min(1.0, room / moundB[i].w) : 0.0;
       moundKm += m * k;
       grad -= (mEast * mx + mNorth * my) * k / (2.0 * dl * earthRadius) / kLift;
     }
