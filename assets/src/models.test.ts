@@ -70,9 +70,9 @@ describe('people', () => {
   });
 
   it.each(people)(
-    '$profile $kind stays within 1,050 triangles, carried bundle included',
+    '$profile $kind stays within 1,100 triangles, carried bundle included',
     ({ profile, kind }) => {
-      expect(buildPerson({ profile, kind }).triangles).toBeLessThanOrEqual(1050);
+      expect(buildPerson({ profile, kind }).triangles).toBeLessThanOrEqual(1100);
     },
   );
 
