@@ -6,6 +6,7 @@
 // trigonometry only, so the same inputs give the same tree on every machine.
 
 import { hash32, hash01 } from '../../../app/src/core/hash.ts';
+import { detCos, detSin } from '../../../app/src/core/detmath.ts';
 import { DAYS_PER_YEAR, type Day } from '../../../app/src/time/calendar.ts';
 import { dayAtMs, dayAtWatch, watchAtDay } from '../../../app/src/time/rate.ts';
 import {
@@ -39,6 +40,8 @@ import {
   burialTimes,
   stageSessions,
   stagePoints,
+  stageScale,
+  CAVE_WATER_CLEAR_M,
   stageSpots,
   type TreeChunk,
 } from '../../../app/src/world/treeScene.ts';
@@ -1773,17 +1776,36 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       const { prop } = stageSpots(site.key, k, b);
       return towards + 2 * Math.min(1, Math.max(0, (groundAt(prop) - hearth) / 300));
     };
-    let slot: number | undefined;
-    let beyond = stageBeyond(a.scene.kind)[0]!;
-    for (const b of stageBeyond(a.scene.kind)) {
-      slot = Array.from({ length: LODGING_SLOTS }, (_, k) => k)
-        .filter(
-          (k) => !hasRack(site.key, k) && stagePoints(site.key, k, b, a.scene!.kind).every(dryAt),
-        )
-        .sort((x, y) => facing(y, b) - facing(x, b) || x - y)[0];
-      beyond = b;
-      if (slot !== undefined) break;
-    }
+    // A cave keeps its cut and a margin round it clear of rivers, lakes and the sea where its
+    // camp allows, so it never looks as if the water would flood it (Yang, 2026-10-21).
+    const clearOfWater = (k: number, b: number) => {
+      if (a.scene!.kind !== 'cave-painting') return true;
+      const { prop } = stageSpots(site.key, k, b);
+      const r = CAVE_WATER_CLEAR_M * stageScale(site.key);
+      for (const f of [0.5, 1])
+        for (let j = 0; j < 24; j++) {
+          const t = (j / 24) * 2 * Math.PI;
+          if (!dryAt({ x: prop.x + r * f * detCos(t), z: prop.z + r * f * detSin(t) }))
+            return false;
+        }
+      return true;
+    };
+    const options: { k: number; b: number; clear: boolean }[] = [];
+    for (const b of stageBeyond(a.scene.kind))
+      for (let k = 0; k < LODGING_SLOTS; k++)
+        if (!hasRack(site.key, k) && stagePoints(site.key, k, b, a.scene.kind).every(dryAt))
+          options.push({ k, b, clear: clearOfWater(k, b) });
+    // Clear of water first, then the farthest out, then facing the real place.
+    const order = stageBeyond(a.scene.kind);
+    options.sort(
+      (x, y) =>
+        Number(y.clear) - Number(x.clear) ||
+        order.indexOf(x.b) - order.indexOf(y.b) ||
+        facing(y.k, y.b) - facing(x.k, x.b) ||
+        x.k - y.k,
+    );
+    const slot = options[0]?.k;
+    const beyond = options[0]?.b ?? order[0]!;
     if (slot === undefined)
       throw new Error(
         `tree of humankind: the scene of anchor ${a.id} has no dry land behind a lodging place of its camp`,

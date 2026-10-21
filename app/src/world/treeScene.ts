@@ -129,6 +129,8 @@ function edgeOffset(
 const GROUP_SIDE_M = 2.2;
 const GROUP_BACK_M = 3;
 const GROUP_FADE = 0.1;
+/** Walkers keep within this of the way's line in layout metres on the open way, inside the 15 km a link is checked. */
+const GROUP_WAY_SIDE_M = 0.45;
 function groupOffset(
   p: Pt,
   way: { dirX: number; dirZ: number },
@@ -141,9 +143,14 @@ function groupOffset(
   // Never further behind than a twentieth of the walk: less than the way covered while the
   // rows form, so nobody walks backwards on a short walk.
   const back = Math.min(Math.floor(spot / 3) * GROUP_BACK_M, (0.05 * km) / LAYOUT_KM_PER_M) * fade;
+  // On the open way walkers close in to within GROUP_WAY_SIDE_M of the line, the strip a
+  // link is checked for water (sites.md section 3); they spread out again near the camps.
+  const across = p.x * -way.dirZ + p.z * way.dirX + side;
+  const capped = Math.max(-GROUP_WAY_SIDE_M, Math.min(GROUP_WAY_SIDE_M, across));
+  const shift = across + (capped - across) * fade - (across - side);
   return {
-    x: p.x - way.dirX * back - way.dirZ * side,
-    z: p.z - way.dirZ * back + way.dirX * side,
+    x: p.x - way.dirX * back - way.dirZ * shift,
+    z: p.z - way.dirZ * back + way.dirX * shift,
   };
 }
 
@@ -605,6 +612,8 @@ export function slotPoint(camp: number, slot: number): Pt {
 export const STAGE_BEYOND_M = [12, 10, 8];
 /** A cave's hill stands further out, so its watchers are clear of the lodging in front of it. */
 export const CAVE_BEYOND_M = [12, 10, 8];
+/** A cave's cut and this many layout metres round it keep clear of water where they can. */
+export const CAVE_WATER_CLEAR_M = 16;
 export const stageBeyond = (kind: TreeStage['kind']) =>
   kind === 'cave-painting' ? CAVE_BEYOND_M : STAGE_BEYOND_M;
 /** A scene's prop and places at a full, a compact and a minimal camp, as a share of full size. */
