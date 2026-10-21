@@ -54,18 +54,33 @@ const NO_GROUND = new THREE.DataTexture(new Uint8Array([0, 0, 0, 0]), 1, 1, THRE
 NO_GROUND.needsUpdate = true;
 
 /**
- * A hill of a scene (humankind.md section 8.2) in drawn space: its centre, radius, the
- * direction towards its hearth (where it is cut vertically), its height in drawn km and
- * its shape (1 round, 2 a long ridge, 3 with an alcove, 4 flat-topped), cut and width.
+ * A cut hill of a scene (humankind.md section 8.2) in drawn space: its centre on the cut,
+ * radius, the direction towards its hearth (the half that sinks) and its depth in drawn km.
  */
 export interface Mound {
   centre: [number, number, number];
   radiusKm: number;
   toward: [number, number, number];
-  heightKm: number;
-  shape: number;
-  cut: number;
-  wide: number;
+  depthKm: number;
+}
+
+/** How far a cut sinks the ground at a drawn direction, in drawn km, as the terrain shader does. */
+export function moundDepthAt(m: Mound, v: [number, number, number]): number {
+  const [cx, cy, cz] = m.centre;
+  const [fx, fy, fz] = m.toward;
+  const dot = v[0] * cx + v[1] * cy + v[2] * cz;
+  const d = [v[0] - cx * dot, v[1] - cy * dot, v[2] - cz * dot];
+  const r = m.radiusKm / EARTH_RADIUS_KM;
+  const e = (d[0]! * fx + d[1]! * fy + d[2]! * fz) / r;
+  if (e <= 0) return 0;
+  // The side direction, c × f.
+  const sx = cy * fz - cz * fy;
+  const sy = cz * fx - cx * fz;
+  const sz = cx * fy - cy * fx;
+  const s = (d[0]! * sx + d[1]! * sy + d[2]! * sz) / r;
+  const r2 = e * e + s * s;
+  const t = Math.min(1, Math.max(0, (r2 - 0.3) / 0.7));
+  return m.depthKm * (1 - t * t * (3 - 2 * t));
 }
 
 export class Globe {
@@ -145,7 +160,6 @@ export class Globe {
         // The hills of scenes (humankind.md section 8.2), set each frame by the tree layer.
         moundA: { value: Array.from({ length: MOUNDS }, () => new THREE.Vector4()) },
         moundB: { value: Array.from({ length: MOUNDS }, () => new THREE.Vector4()) },
-        moundC: { value: Array.from({ length: MOUNDS }, () => new THREE.Vector4()) },
         moundCount: { value: 0 },
       },
     });
@@ -172,8 +186,7 @@ export class Globe {
     const list = mounds.slice(0, MOUNDS);
     list.forEach((m, i) => {
       (u.moundA!.value as THREE.Vector4[])[i]!.set(...m.centre, m.radiusKm / EARTH_RADIUS_KM);
-      (u.moundB!.value as THREE.Vector4[])[i]!.set(...m.toward, m.heightKm);
-      (u.moundC!.value as THREE.Vector4[])[i]!.set(m.shape, m.cut, m.wide, 0);
+      (u.moundB!.value as THREE.Vector4[])[i]!.set(...m.toward, m.depthKm);
     });
     u.moundCount!.value = list.length;
   }

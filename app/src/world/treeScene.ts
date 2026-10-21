@@ -379,6 +379,8 @@ export interface FigurePose extends Placed {
   hidden?: boolean;
   /** The culture whose clothes it wears (peopling.md section 5.3); the founder's when not given. */
   profile?: string;
+  /** A dead's soul (section 8.2): how far it shows, 0 to 1, and how high it floats, in life-size metres. */
+  soul?: { fade: number; height: number };
 }
 
 export type PreyClip = 'idle' | 'walk' | 'run' | 'fall' | 'bound' | 'hung' | 'struggle';
@@ -704,9 +706,9 @@ const HEAP_MS = 1_500;
 export const GRAVE_SINK_MS = 60_000;
 const GRASS_AFTER_MS = 10_000;
 const GRASS_MS = 10_000;
-/** The dead sits ill this long from the start of the burial's window, then lies dead; the skull rises for SKULL_MS. */
+/** The dead sits ill this long from the start of the burial's window, then lies dead; the soul rises for SOUL_MS. */
 const ILL_MS = 3_000;
-const SKULL_MS = 3_000;
+const SOUL_MS = 4_000;
 
 /**
  * The moments of a burial (section 8.2): its window's start, when its dead dies and when the
@@ -1391,25 +1393,6 @@ export function treeScene(
     } else {
       const g = burialTimes(stage, startDay);
       if (!g) continue;
-      if (stage.dead !== undefined && ms >= g.death && ms < g.death + SKULL_MS) {
-        const dead = chunk.figures.find((f) => f.id === stage.dead);
-        const st = dead && stayAt(dead, g.start);
-        if (st) {
-          const u = (ms - g.death) / SKULL_MS;
-          scene.props.push({
-            id: `skull:${stage.id}`,
-            kind: 'prop-death-skull',
-            lat: deg(st.home.lat),
-            lon: deg(st.home.lon),
-            x: st.spot.x,
-            z: st.spot.z,
-            dirX: -st.spot.x || 1,
-            dirZ: -st.spot.z,
-            height: 0.6 + 2.2 * u,
-            fade: Math.min(1, (1 - u) * 3),
-          });
-        }
-      }
       if (ms < g.begin) continue;
       // It sinks over 50 years, or a minute of watching where 50 years pass quicker.
       const end = Math.max(
@@ -1480,6 +1463,20 @@ export function treeScene(
           clipMs: ms - (ms < g!.death ? g!.start : g!.death),
         }
       : poseAt(f, i, ms);
+    // The dead's soul: a see-through copy of them lifting out of the body as it lies, righting
+    // itself as it floats up, and fading away (section 8.2).
+    if (sick && ms >= g!.death && ms < g!.death + SOUL_MS) {
+      const u = (ms - g!.death) / SOUL_MS;
+      const stand = smoothstep(Math.min(1, u * 1.6));
+      scene.figures.push({
+        ...pose!,
+        id: -1 - f.id,
+        clip: 'idle',
+        clipMs: ms - g!.death,
+        from: { clip: 'lie', clipMs: ms - g!.death, weight: Math.max(1e-3, stand) },
+        soul: { fade: 0.55 * (1 - u), height: 0.15 + 2.6 * u * u },
+      });
+    }
     if (!pose) continue;
     // Its clothes: the old camp's until it changes in its new hut (peopling.md section 5.3).
     const c = crossing(f, i);

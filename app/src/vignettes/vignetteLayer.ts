@@ -66,6 +66,8 @@ export interface SurfaceSource {
   toDrawn(dir: Vec3): Vec3;
   /** Drawn km per true km at a true direction; 1 where absent. */
   widthAt?(dir: Vec3): number;
+  /** The drawn height of the sea of the day, in km; the caves' cuts never go below it. */
+  seaKm?(): number;
 }
 
 interface Stage {

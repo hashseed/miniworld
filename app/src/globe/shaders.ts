@@ -18,7 +18,7 @@ import {
 } from '../planet/surface.ts';
 import { LENS_COLS, LENS_ROWS, LENS_STEP } from './lens.ts';
 
-/** At most this many hills of scenes rise at once (humankind.md section 8.2). */
+/** At most this many cut hills of scenes are drawn at once (humankind.md section 8.2). */
 export const MOUNDS = 4;
 import { CAP_KM_PER_M, snowGlsl } from './snowCap.ts';
 
@@ -83,39 +83,28 @@ vec2 climateAt(vec3 up) {
 
 /** The hills of scenes (humankind.md section 8.2), shared by the terrain's vertex and fragment shaders. */
 const moundGlsl = /* glsl */ `
-// Hills of scenes at anchors (humankind.md section 8.2): the ground rises into a hill cut
-// vertically on its hearth's side, in drawn space. A: centre and radius (radians); B: the
-// direction towards the hearth and the height (drawn km); C: shape, cut, width.
+// Cut hills of scenes at anchors (humankind.md section 8.2): within a disk round the scene,
+// the half towards the hearth sinks, leaving a rock face along the cut through its centre.
+// A: centre and radius (radians); B: the direction towards the hearth and the depth (drawn km).
 const int MOUNDS = ${MOUNDS};
 uniform vec4 moundA[MOUNDS];
 uniform vec4 moundB[MOUNDS];
-uniform vec4 moundC[MOUNDS];
 uniform int moundCount;
 
-/** The height of a scene's hill at a drawn direction, in drawn km. */
+/** How far the ground sinks at a drawn direction, in drawn km. */
 float moundAt(vec3 v, int i) {
   vec3 c = moundA[i].xyz;
   float r = moundA[i].w;
   vec3 f = moundB[i].xyz;
-  float h = moundB[i].w;
   vec3 d = v - c * dot(v, c);
   float e = dot(d, f) / r;
   float s = dot(d, cross(c, f)) / r;
-  float shape = moundC[i].x;
-  float cut = moundC[i].y;
-  float wide = moundC[i].z;
-  // 1 a round hill, 2 a long ridge, 3 a hill with an alcove cut into it, 4 a flat-topped hill.
-  float ew = shape == 2.0 ? 0.8 : 1.0;
-  float r2 = (e / ew) * (e / ew) + (s / wide) * (s / wide);
-  if (r2 >= 1.0) return 0.0;
-  float edge = shape == 3.0 ? cut - 0.3 * max(0.0, 1.0 - (s / 0.55) * (s / 0.55)) : cut;
-  if (e > edge) return 0.0;
-  float k = 1.0 - r2;
-  return shape == 4.0 ? h * smoothstep(0.0, 0.45, k) : h * k * k;
+  if (e <= 0.0) return 0.0;
+  float r2 = e * e + s * s;
+  return moundB[i].w * (1.0 - smoothstep(0.3, 1.0, r2));
 }
 
-
-/** How much of a drawn direction lies on a hill's cut face (the steep strip along its cut). */
+/** How much of a drawn direction lies on a cut's rock face (the steep strip along the cut). */
 float moundFace(vec3 v) {
   float face = 0.0;
   for (int i = 0; i < MOUNDS; i++) {
@@ -125,14 +114,11 @@ float moundFace(vec3 v) {
     vec3 d = v - c * dot(v, c);
     float e = dot(d, moundB[i].xyz) / r;
     float s = dot(d, cross(c, moundB[i].xyz)) / r;
-    float wide = moundC[i].z;
-    float edge = moundC[i].x == 3.0 ? moundC[i].y - 0.3 * max(0.0, 1.0 - (s / 0.55) * (s / 0.55)) : moundC[i].y;
-    float r2 = e * e + (s / wide) * (s / wide);
-    // The strip from just inside the cut to a mesh step beyond it, where the ground falls.
-    float strip = step(edge - 0.04, e) * (1.0 - step(edge + 0.16, e));
-    face = max(face, strip * (1.0 - step(1.0 - edge * edge * 0.9, (s / wide) * (s / wide))) * step(r2, 1.2));
+    // From just behind the cut to a mesh step in front of it, where the ground falls.
+    float strip = step(-0.04, e) * (1.0 - step(0.12, e)) * (1.0 - step(0.6, abs(s)));
+    face = max(face, strip);
   }
-  return face * float(moundCount > 0);
+  return face;
 }
 `;
 
@@ -269,27 +255,28 @@ void main() {
   vec4 lens = lensAt(up);
   vec3 drawnUp = lens.xyz;
   float lift = surface * exaggeration * 0.001;
-  // The hills of scenes rise from the land (humankind.md section 8.2), with their slopes.
+  // The cut hills of scenes sink into the land (humankind.md section 8.2), with their slopes,
+  // never on water nor below the sea of the day.
   float moundKm = 0.0;
 #ifndef SEA_SURFACE
-  // Never on water: rivers and lakes and their banks stay flat (Yang, 2026-10-21).
   if (!sea && !isLake && extra.y < 0.25 && lake < LAKE_FIELD * 0.8) {
     vec3 mEast = normalize(cross(vec3(0.0, 1.0, 0.0), drawnUp) + vec3(1e-6, 0.0, 0.0));
     vec3 mNorth = cross(drawnUp, mEast);
+    float room = max(0.0, (surface - seaLevel - 15.0) * exaggeration * 0.001 * lens.w);
     for (int i = 0; i < MOUNDS; i++) {
       if (i >= moundCount) break;
       float m = moundAt(drawnUp, i);
-      if (m <= 0.0 && moundAt(drawnUp + mEast * moundA[i].w * 0.04, i) <= 0.0 &&
-          moundAt(drawnUp + mNorth * moundA[i].w * 0.04, i) <= 0.0) continue;
-      moundKm += m;
       float dl = moundA[i].w * 0.02;
-      vec3 g = mEast * (moundAt(normalize(drawnUp + mEast * dl), i) - moundAt(normalize(drawnUp - mEast * dl), i)) +
-               mNorth * (moundAt(normalize(drawnUp + mNorth * dl), i) - moundAt(normalize(drawnUp - mNorth * dl), i));
-      grad += g / (2.0 * dl * earthRadius) / kLift;
+      float mx = moundAt(normalize(drawnUp + mEast * dl), i) - moundAt(normalize(drawnUp - mEast * dl), i);
+      float my = moundAt(normalize(drawnUp + mNorth * dl), i) - moundAt(normalize(drawnUp - mNorth * dl), i);
+      if (m <= 0.0 && mx == 0.0 && my == 0.0) continue;
+      float k = moundB[i].w > 0.0 ? min(1.0, room / moundB[i].w) : 0.0;
+      moundKm += m * k;
+      grad -= (mEast * mx + mNorth * my) * k / (2.0 * dl * earthRadius) / kLift;
     }
   }
 #endif
-  vec3 offset = (drawnUp - up) * earthRadius + drawnUp * (lift * lens.w + moundKm);
+  vec3 offset = (drawnUp - up) * earthRadius + drawnUp * (lift * lens.w - moundKm);
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
   mv.xyz += mat3(viewMatrix) * offset;
   gl_Position = projectionMatrix * mv;

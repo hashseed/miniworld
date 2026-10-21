@@ -35,7 +35,6 @@ export const SHELTERS = [
   'prop-cave-wall-sulawesi',
   'prop-cave-wall-chauvet',
   'prop-burial',
-  'prop-death-skull',
 ] as const;
 export type ShelterId = (typeof SHELTERS)[number];
 
@@ -932,20 +931,6 @@ export function buildShelter(id: ShelterId): Model {
         [0.8, 0.25],
       ] as const)
         mb.add(cone([x, 0.34, z], [x, 0.5, z], 0.08, 4), '#6f8a48', b);
-      break;
-    }
-    case 'prop-death-skull': {
-      // A small skull that rises from someone who has just died and fades away
-      // (humankind.md section 8.2; Yang, 2026-10-21): a sign, not a body part, drawn as a
-      // cartoon: a round white head, two dark eyes, a dark nose and a row of teeth.
-      const BONE_WHITE = '#f1ece0';
-      mb.add(blob([0, 0.22, 0], [0.16, 0.15, 0.15], 8), BONE_WHITE);
-      mb.add(blob([0, 0.1, 0.03], [0.1, 0.06, 0.1], 6), BONE_WHITE);
-      for (const x of [-1, 1])
-        mb.add(blob([x * 0.06, 0.22, 0.13], [0.045, 0.05, 0.03], 5), '#231d1a');
-      mb.add(blob([0, 0.16, 0.145], [0.02, 0.025, 0.02], 4), '#231d1a');
-      for (const x of [-0.04, 0, 0.04])
-        mb.add(blob([x, 0.085, 0.12], [0.012, 0.022, 0.012], 4), '#231d1a');
       break;
     }
     case 'prop-carry-pole': {
