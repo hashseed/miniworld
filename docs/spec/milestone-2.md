@@ -250,7 +250,25 @@ The first models are the people, shelters and animals of the seven culture profi
 
 **Clips.** Until the asset build bakes animation textures (section 5.3), each clip is a pure function of the clip and the seconds since it started, in `assets/src/clips.ts`, which the tree's figures call every frame and the bake will sample. The first set: idle, walk, run, carry (a hide-wrapped bundle of meat across the shoulders), work (crouched, cutting), knap (kneeling, striking a hand axe held on the knee with a hammerstone; models whose culture knaps carry both stones on bones `knap` and `hammer`, shown only during this clip, while the held tool is hidden), point, throw (the spear leaves the hand 0.55 s into a 3 s gesture), shoot (a bow drawn and an arrow loosed 1.1 s into a 2.4 s gesture, with the held tool hidden) and cheer for people (the Neolithic farm-work clips till, sow, reap, thresh, grind, milk, shape and spin are in [neolithic/person-clips.md](neolithic/person-clips.md)); idle, walk, run and fall for animals, where the animal rolls onto its side and sinks a little over 3 s and then lies still, with nothing more shown.
 
-**Review sheets.** `npm run asset-sheets` serves `app/asset-sheet.html` with the dev server and saves one image per sheet with Playwright: each profile's man, woman and child beside its shelter and hearth; a turnaround of one figure; all shelters; all animals with a figure for scale. The sheets go to Yang for review (section 13.2) and every model is listed in `data/assets/manifest.json` with status `generated` until approved.
+**Review sheets.** `npm run asset-sheets` serves `app/asset-sheet.html` with the dev server and saves one image per sheet with Playwright: each profile's man, woman and child beside its shelter and hearth; a turnaround of one figure; all shelters; all animals with a figure for scale. The sheets go to Yang for review (section 13.2); one model at a time follows the loop of section 13.4 and every model is listed in `data/assets/manifest.json` with status `generated` until approved.
+
+### 13.4 The model design and review loop
+
+How a new model, or a change to one, goes from Yang's description to approval. The loop is one conversation; the cost of a round is one render and one message.
+
+1. **Brief.** Yang describes the addition in a sentence or two. Claude restates it as a model card in the thread: asset id, real size in metres (w x h x l), role (animal, shelter, prop, landmark), how people interact with it, culture and time, source for the look, and the triangle budget of section 13.3. Yang corrects the card before any geometry is made.
+2. **Build.** Claude adds the model script under `assets/src/`, its entry in `approval.ts` and in the manifest with status `generated`, and any clip it needs. Nothing else is touched; no data build, no spec change beyond the model card.
+3. **Render.** `npm run model -- <id> <round>` draws the model on the data-free review page (`app/asset-sheet.html`, which hot-reloads and needs no world data) and saves `assets/review/<id>/r<round>-<sheet>.png`, 1600x900 each:
+   - `views`: front, side and top in orthographic projection and a three-quarter view, each with a man of the ice-age hunter profile for scale, and the size and triangle count in the corner;
+   - `with-people`: the model with people in the poses they take in the game (hunters throwing, pointing and standing by an animal; a family and a worker by a shelter and its hearth);
+   - for a moving model, `--clip=<clip> --t=<seconds>` poses it, and the existing `clips-animal` sheet shows the motion strip.
+   `--only=<sheet,...>` renders just the sheets a round changed. `assets/review/` is git-ignored.
+4. **Self-check.** Before sending, Claude looks at the images and fixes what is plainly wrong: wrong scale against the man, feet not on the ground, front not facing +Z, over budget, a silhouette that does not read at game distance, people clipping the model or looking the wrong way. A round never reaches Yang with a known defect.
+5. **Send in the thread.** Claude sends the images of the round into the conversation (the SendUserFile tool, display `render`) with one caption naming the round and what changed, so Yang reviews without opening files or a server. If the session cannot place files in the thread, Claude says so and serves the page `http://localhost:8800/asset-sheet.html?sheet=views&id=<id>` instead.
+6. **Feedback.** Yang answers with numbered remarks, in any words. Claude changes only what was asked, renders only the affected sheets with the next round number and sends them. Earlier rounds stay on disk for comparison.
+7. **Approve.** When Yang says the model works, Claude runs `npm run approve-assets -- <id>` (status `approved` with the geometry hash), `npm run check`, and opens the pull request; Yang merges.
+
+Speed rules. A round runs only the model's own build, `models.test.ts` filtered to the model (`npx vitest run assets -t <id>`) and the render; the full `npm run check` runs once, at approval. The geometry hash only has to match for approved models, so rounds on a `generated` model never fail it. The renders use SwiftShader, so rounds do not need a GPU.
 
 ### 13.5 Animation review loop
 

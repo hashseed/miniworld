@@ -31,6 +31,7 @@
     "asset-sheets": "node assets/sheets.ts",
     "anim": "node assets/anim.ts",
     "approve-assets": "node assets/approve.ts",
+    "model": "node assets/model.ts",
     "loading-shot": "node scripts/loading-shot.ts"
   },
   "dependencies": {
