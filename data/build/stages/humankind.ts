@@ -479,6 +479,7 @@ export function buildHumankind(
   treeSettings.anchors = anchorRecords;
   treeSettings.encounters = encounterRecords;
   treeSettings.campFlood = campFlood;
+  treeSettings.elevation = (lat, lon) => elevation.bilinear(lat, lon);
   if (!habitat.habitable(treeSettings.founder.lat, treeSettings.founder.lon, TIMELINE_START))
     fail('tree of humankind: the first person stands on uninhabitable land');
   let tree: Tree;

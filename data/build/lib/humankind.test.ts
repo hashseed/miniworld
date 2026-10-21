@@ -805,7 +805,8 @@ describe('scenes at anchors (section 8.2)', () => {
     expect(ill?.clip).toBe('ill');
     const lying = treeScene(whole, q.start + 4_000, settings.startDay);
     expect(lying.figures.find((f) => f.id === dead[0]!.id)?.clip).toBe('lie');
-    expect(lying.props.some((p) => p.kind === 'prop-death-skull')).toBe(true);
+    // Their soul rises from them, see-through.
+    expect(lying.figures.some((f) => f.id === -1 - dead[0]!.id && !!f.soul)).toBe(true);
     expect(propAt(whole, q.begin - 1)).toBeUndefined();
     const mid = Math.round((q.begin + q.stop) / 2);
     const scene = treeScene(whole, mid, settings.startDay);

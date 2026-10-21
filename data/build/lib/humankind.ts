@@ -39,6 +39,7 @@ import {
   burialTimes,
   stageSessions,
   stagePoints,
+  stageSpots,
   type TreeChunk,
 } from '../../../app/src/world/treeScene.ts';
 import { distanceKm, onGlobe } from './geo.ts';
@@ -217,6 +218,8 @@ export interface TreeSettings {
   seaLevel(day: Day): number;
   /** The sea level above which a point is sea for walkers, for stranded bands paddling away (sites.md section 3). */
   walkFlood?(lat: number, lon: number): number;
+  /** The height of the ground in metres, for a cave's hill (humankind.md section 8.2). */
+  elevation?(lat: number, lon: number): number;
   /** The same for a camp: lakes and rivers are never dry; for the places of scenes (humankind.md section 8.2). */
   campFlood?(lat: number, lon: number): number;
   /** The density of the culture area at a place and day, or undefined outside every area. */
@@ -1749,9 +1752,26 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         Math.sign(((a.lon - site.lon + 540) % 360) - 180),
       z: distanceKm(site.lat, site.lon, a.lat, site.lon) * Math.sign(a.lat - site.lat),
     };
-    const facing = (k: number) => {
+    // Towards the real place, and, for a cave, on the hill there is: the ground at the
+    // scene above the hearth's, up to 300 m counting as much as facing the right way.
+    const tl = Math.max(1e-9, Math.sqrt(toward.x * toward.x + toward.z * toward.z));
+    const groundAt = (q: { x: number; z: number }) => {
+      const g = onGlobe(
+        site.lat,
+        site.lon,
+        (q.x * LAYOUT_KM_PER_M) / site.width,
+        (q.z * LAYOUT_KM_PER_M) / site.width,
+      );
+      return s.elevation?.(g.lat, g.lon) ?? 0;
+    };
+    const hearth = s.elevation?.(site.lat, site.lon) ?? 0;
+    const facing = (k: number, b = stageBeyond(a.scene!.kind)[0]!) => {
       const q = slotPoint(site.key, k);
-      return q.x * toward.x + q.z * toward.z;
+      const ql = Math.max(1e-9, Math.sqrt(q.x * q.x + q.z * q.z));
+      const towards = (q.x * toward.x + q.z * toward.z) / (ql * tl);
+      if (a.scene!.kind !== 'cave-painting') return towards;
+      const { prop } = stageSpots(site.key, k, b);
+      return towards + 2 * Math.min(1, Math.max(0, (groundAt(prop) - hearth) / 300));
     };
     let slot: number | undefined;
     let beyond = stageBeyond(a.scene.kind)[0]!;
@@ -1760,7 +1780,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         .filter(
           (k) => !hasRack(site.key, k) && stagePoints(site.key, k, b, a.scene!.kind).every(dryAt),
         )
-        .sort((x, y) => facing(y) - facing(x) || x - y)[0];
+        .sort((x, y) => facing(y, b) - facing(x, b) || x - y)[0];
       beyond = b;
       if (slot !== undefined) break;
     }

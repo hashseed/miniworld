@@ -2,6 +2,7 @@
 // and implements the interface's actions (spec milestone 1). The frame loop
 // is in loop.ts, the keyboard in input.ts and the stress scene in dev/stress.ts.
 
+import { EXAGGERATION } from './globe/exaggeration.ts';
 import * as THREE from 'three';
 import { h, render } from 'preact';
 import { ContentLoader } from './content/loader.ts';
@@ -176,6 +177,8 @@ const wildlife = new WildlifeLayer({
 const tree = new TreeLayer(loader, {
   surfaceKm: surface.surfaceKm,
   toDrawn: (d) => globe.lens.toDrawn(d),
+  // The sea of the day, drawn; a little lens width is allowed for (humankind.md section 8.2).
+  seaKm: (): number => (loop.planet.seaLevel as number) * EXAGGERATION * 0.001 * 1.4,
 });
 scene.add(landmarks.group, vignettes.group, wildlife.group, tree.group);
 /** The camp sites for development, with `?sites` (sites.md section 7). */

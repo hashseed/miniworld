@@ -10,7 +10,7 @@ import { latLonToDir } from '../geo/cube.ts';
 import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 import { dayAtMs } from '../time/rate.ts';
 import type { Clearing } from '../globe/foliage.ts';
-import type { Mound } from '../globe/globe.ts';
+import { moundDepthAt, type Mound } from '../globe/globe.ts';
 import {
   CAMP_CLEARING_KM,
   FIGURE_KM_PER_M,
@@ -48,13 +48,13 @@ import type { Obstacle } from '../wildlife/wildlifeLayer.ts';
 /** Camps this far beyond the horizon, in radians, are still worked out, for the history lens. */
 
 /**
- * A cave's hill: a round hill with an alcove cut into its hearth's side, the painting at the
- * alcove's back (Yang, 2026-10-21, of four shapes: "this one looks the best").
+ * A cave's cut hill (humankind.md section 8.2): within this many layout metres of the painting
+ * the half towards the hearth sinks, by up to this many life-size metres as drawn for figures.
  */
-const CAVE_HILL = { shape: 3, cut: 0.45, wide: 1.0 };
-/** A cave's hill is this many layout metres in radius, and this many life-size metres high. */
-const CAVE_HILL_M = 13;
-const CAVE_HILL_HIGH_M = 2.3;
+const CAVE_CUT_M = 13;
+const CAVE_CUT_DEEP_M = 1.8;
+/** The cut runs this many layout metres behind the painting. */
+const CAVE_FACE_BEHIND_M = 0.6;
 const NEAR_MARGIN = 0.3;
 /** The oldest camp scene from the worker drawn while the clock runs: a few frames' worth of watching. */
 const MAX_SCENE_LAG_MS = 100;
@@ -267,6 +267,10 @@ export class TreeLayer {
     scene.lodgings = big(scene.lodgings, LODGING_PX);
     scene.hearths = big(scene.hearths, LODGING_PX);
 
+    // The caves' cut hills first, so everything standing on them stands on the lowered ground.
+    this.hills = [];
+    for (const q of scene.props)
+      if (q.kind.startsWith('prop-cave-wall-') && q.rise !== undefined) this.hill(q);
     const seen = new Set<number>();
     // Clips play TEMPO times faster, matching the faster pace on the ground.
     const sec = (clipMs: number) => (clipMs * TEMPO) / 1000;
@@ -284,7 +288,8 @@ export class TreeLayer {
       // A figure with an approved model is a copy in its model's batch, playing baked clips
       // (clipBatches.ts).
       const profile0 = (f.profile ?? 'african-stone-age') as Profile;
-      const batch = treeFigureBatch(f.look, f.id, profile0);
+      // A soul is drawn on its own, see-through, never in a batch (humankind.md section 8.2).
+      const batch = f.soul ? undefined : treeFigureBatch(f.look, f.id, profile0);
       if (batch) {
         const at = this.scratch;
         if (!this.place(at, f, false) || f.hidden) continue;
@@ -308,12 +313,16 @@ export class TreeLayer {
         actor = undefined;
       }
       if (!actor) {
-        actor = buildTreeFigure(f.look, f.id, profile);
+        actor = buildTreeFigure(f.look, f.id < 0 ? -1 - f.id : f.id, profile);
         this.figures.set(f.id, actor);
         this.profiles.set(f.id, profile);
         this.group.add(actor.root);
       }
       if (!this.place(actor.root, f)) continue;
+      if (f.soul) {
+        actor.root.position.addScaledVector(this.dir, f.soul.height * FIGURE_KM_PER_M);
+        actor.setFade?.(f.soul.fade);
+      }
       // Inside its hut, out of sight (humankind.md section 8.1).
       if (f.hidden) {
         actor.root.visible = false;
@@ -351,12 +360,9 @@ export class TreeLayer {
 
     // Drying racks beside the lodgings, the spit over a fire while meat roasts, canoes on
     // the water and red flags at the Neolithic thresholds.
-    this.hills = [];
     for (const q of scene.props) {
       const batch = treePropBatch(q.kind);
       if (!batch || !this.place(at, q, false)) continue;
-      // A cave's hill: the ground rises behind its painting, cut vertically along it.
-      if (q.kind.startsWith('prop-cave-wall-') && q.rise !== undefined) this.hill(q);
       const km = FIGURE_KM_PER_M * (q.scale ?? 1);
       if (q.rise !== undefined) {
         // A scene's hill or heap of earth rises out of the ground and sinks back (humankind.md section 8.2).
@@ -526,35 +532,45 @@ export class TreeLayer {
     return this.hills;
   }
 
-  /** A cave's hill behind its painting, from the spot just placed (place sets dir, east, north). */
+  /** A cave's cut hill at its painting, the half towards the hearth sinking (humankind.md section 8.2). */
   private hill(q: CampPropPose): void {
-    const v = CAVE_HILL;
     const k = q.scale ?? 1;
     const r = q.rise!;
-    const rise = r * r * (3 - 2 * r);
-    const radiusKm = CAVE_HILL_M * k * LAYOUT_KM_PER_M;
-    // Towards the hearth, along the ground.
-    const toward = this.v1
-      .copy(this.east)
-      .multiplyScalar(q.dirX)
-      .addScaledVector(this.north, q.dirZ)
-      .normalize();
-    // The cut face (in an alcove, its back) stands where the painting does.
-    const face = v.shape === 3 ? v.cut - 0.3 : v.cut;
-    const centre = this.pos
-      .copy(this.dir)
+    const sink = r * r * (3 - 2 * r);
+    const up = new THREE.Vector3(...this.surface.toDrawn(latLonToDir(q.lat, q.lon))).normalize();
+    const north = new THREE.Vector3();
+    const east = new THREE.Vector3();
+    northEast(up, north, east);
+    const centre = up
+      .clone()
       .multiplyScalar(EARTH_RADIUS_KM)
-      .addScaledVector(toward, -face * radiusKm)
+      .addScaledVector(east, q.x * LAYOUT_KM_PER_M)
+      .addScaledVector(north, q.z * LAYOUT_KM_PER_M)
+      .normalize();
+    // Towards the hearth, along the ground there; the cut runs just behind the painting, so it
+    // stands on the lowered ground against the face.
+    const toward = east.multiplyScalar(q.dirX).addScaledVector(north, q.dirZ);
+    toward.addScaledVector(centre, -toward.dot(centre)).normalize();
+    centre
+      .multiplyScalar(EARTH_RADIUS_KM)
+      .addScaledVector(toward, -CAVE_FACE_BEHIND_M * k * LAYOUT_KM_PER_M)
       .normalize();
     this.hills.push({
       centre: [centre.x, centre.y, centre.z],
-      radiusKm,
+      radiusKm: CAVE_CUT_M * k * LAYOUT_KM_PER_M,
       toward: [toward.x, toward.y, toward.z],
-      heightKm: CAVE_HILL_HIGH_M * k * FIGURE_KM_PER_M * rise,
-      shape: v.shape,
-      cut: v.cut,
-      wide: v.wide,
+      depthKm: CAVE_CUT_DEEP_M * k * FIGURE_KM_PER_M * sink,
     });
+  }
+
+  /** How far the caves' cuts lower the ground at a drawn direction, never below the sea. */
+  private cutAt(dir: THREE.Vector3, surface: number): number {
+    if (!this.hills.length) return 0;
+    const v: [number, number, number] = [dir.x, dir.y, dir.z];
+    let depth = 0;
+    for (const m of this.hills) depth += moundDepthAt(m, v);
+    const sea = this.surface.seaKm?.() ?? -Infinity;
+    return Math.min(depth, Math.max(0, surface - sea - 1));
   }
 
   private offsetDir(lat: number, lon: number, x: number, z: number): [number, number, number] {
@@ -690,7 +706,7 @@ export class TreeLayer {
       surface = this.surface.surfaceKm([dir.x, dir.y, dir.z]);
       this.grounds.set(spotKey, surface);
     }
-    root.position.copy(dir).multiplyScalar(EARTH_RADIUS_KM + surface);
+    root.position.copy(dir).multiplyScalar(EARTH_RADIUS_KM + surface - this.cutAt(dir, surface));
     const toCam = this.v1.copy(this.camera!.position).sub(root.position);
     root.visible = toCam.dot(dir) > 0;
     if (!root.visible) return false;
