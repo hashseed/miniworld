@@ -15,6 +15,7 @@ import {
   setBuilt,
 } from './shelters.ts';
 import { ANIMALS, PREHISTORIC_ANIMALS, buildAnimal, type AnimalId } from './animals.ts';
+import { buildGobekliTepe } from './gobekli.ts';
 import { WILD_ANIMALS } from './wildAnimals.ts';
 import { EXTINCT_ANIMALS } from './extinctAnimals.ts';
 import {
@@ -245,6 +246,32 @@ function singleSheet(): void {
   labels.push({ text: id, at: new THREE.Vector3(0, size.y * 1.15, -span * 0.4) });
   camera.position.set(0, span * 1.1, span * 3.6);
   camera.lookAt(0, size.y * 0.4, 0);
+}
+
+/** A landmark from above and close: `rings` enclosures, `view` = over | close | side. */
+function landmarkSheet(): void {
+  const rings = Number(params.get('rings') ?? 1);
+  const view = params.get('view') ?? 'over';
+  const m = place(buildGobekliTepe(rings), 0, 0, 0);
+  const ref = buildPerson({ profile: 'natufian', kind: 'man' });
+  posePerson(ref, 'stand');
+  place(ref, view === 'close' ? 3.4 : 6.5, view === 'close' ? 3.2 : 5, -0.6);
+  const size = new THREE.Box3().setFromObject(m.object).getSize(new THREE.Vector3());
+  const span = Math.max(size.x, size.z);
+  if (view === 'close') {
+    camera.position.set(6.5, 3.2, 10);
+    camera.lookAt(0, 2.2, 0);
+  } else if (view === 'side') {
+    camera.position.set(0, 2.2, span * 1.4);
+    camera.lookAt(0, 2, 0);
+  } else {
+    camera.position.set(span * 0.55, span * 0.62, span * 0.75);
+    camera.lookAt(-3, 0, -3);
+  }
+  labels.push({
+    text: `gobekli-tepe: ${rings} ring${rings > 1 ? 's' : ''}, ${view}`,
+    at: new THREE.Vector3(0, -0.2, size.z / 2),
+  });
 }
 
 /** A shelter going up, step by step, from the frame to the finished shelter. */
@@ -546,6 +573,7 @@ const sheets: Record<string, () => void> = {
   clips: clipsSheet,
   'clips-animal': clipsAnimalSheet,
   single: singleSheet,
+  landmark: landmarkSheet,
   build: buildSheet,
   people: peopleSheet,
   turnaround: turnaroundSheet,

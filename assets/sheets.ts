@@ -1,5 +1,5 @@
 // Saves the review sheets (spec milestone 2, section 13.3) as PNG files.
-// Run with the dev server up: `npm run asset-sheets [-- out-dir]`.
+// Run with the dev server up: `npm run asset-sheets [-- out-dir [name-filter]]`.
 
 import { chromium } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
@@ -17,6 +17,11 @@ const sheets: [string, string][] = [
     (c): [string, string] => [`clip-${c}`, `sheet=clips&clip=${c}`],
   ),
   ['clips-mammoth', 'sheet=clips-animal&id=animal-mammoth'],
+  ...['over', 'close', 'side'].map((v): [string, string] => [
+    `gobekli-ring-1-${v}`,
+    `sheet=landmark&rings=1&view=${v}`,
+  ]),
+  ['gobekli-rings-1-4', 'sheet=landmark&rings=4&view=over'],
   ['shelters', 'sheet=shelters'],
   ['build-grass-hut', 'sheet=build&id=shelter-grass-hut'],
   ['animals-large', 'sheet=animals&set=large'],
@@ -31,6 +36,7 @@ const sheets: [string, string][] = [
 
 mkdirSync(out, { recursive: true });
 const browser = await chromium.launch({
+  executablePath: process.env.CHROMIUM,
   args: [
     '--use-gl=angle',
     '--use-angle=swiftshader',
@@ -43,7 +49,9 @@ const page = await browser.newPage({
   deviceScaleFactor: 1,
 });
 page.on('pageerror', (e) => console.error(e));
+const only = process.argv[3];
 for (const [name, query] of sheets) {
+  if (only && !name.includes(only)) continue;
   await page.goto(`${base}?${query}`);
   await page.waitForSelector('body[data-ready="1"]', { timeout: 60_000 });
   await page.screenshot({ path: join(out, `${name}.png`) });

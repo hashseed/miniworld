@@ -16,6 +16,7 @@ This folder is the source of truth for what Miniworld does. Every change to beha
 | [wildlife.md](wildlife.md) | Small groups of typical wild animals on every continent, and how their ranges change with history (proposed) |
 | [dioramas.md](dioramas.md) | Recurring dioramas (repeated vignettes) for every region and era, with their templates and scripts |
 | [giza.md](giza.md) | The pyramids of Giza: the landmark, its building dioramas and the dioramas around it across the ages (proposed; first slice shelved, models approved) |
+| [gobekli-tepe.md](gobekli-tepe.md) | The landmark model of Göbekli Tepe when newly built: enclosures, T-pillars and their reliefs (proposed) |
 | [content-format.md](content-format.md) | How content records are written, validated, indexed and fed into the app |
 | [eras.md](eras.md) | Era and empire ranges shown as coloured bands on the timeline |
 | [events.md](events.md) | The first list of world events and how each appears on the globe, and natural disasters, epidemics and famines |
