@@ -62,6 +62,8 @@ export interface Mound {
   radiusKm: number;
   toward: [number, number, number];
   depthKm: number;
+  /** The rock of its face: 0 Chauvet's pale limestone, 1 Leang Karampuang's (caveWalls.ts). */
+  rock?: number;
 }
 
 /** How far a cut sinks the ground at a drawn direction, in drawn km, as the terrain shader does. */

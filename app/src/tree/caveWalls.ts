@@ -38,6 +38,7 @@ const fragment = /* glsl */ `
 #include <common>
 #include <logdepthbuf_pars_fragment>
 uniform vec3 lightDir;
+uniform float style;
 varying vec2 vFace;
 varying float vLow;
 varying vec3 vNormal;
@@ -50,19 +51,30 @@ float noise(vec2 p) {
 }
 void main() {
   #include <logdepthbuf_fragment>
-  // Limestone as in the Chauvet cave (Yang, 2026-10-21: the strata looked like a brick wall):
-  // pale cream, smooth, with broad soft mottling, calcite runs flowing down the face, a few
-  // warm ochre stains and some darker hollows; no layers and no cracks.
   // The face's coordinates run about four times finer up than across: evened out.
   vec2 p = vFace * vec2(2.0, 0.5);
   float mottle = noise(p * 1.6) * 0.55 + noise(p * 4.5) * 0.3 + noise(p * 12.0) * 0.15;
-  float runs = noise(vec2(p.x * 6.0 + noise(p * 2.0) * 1.5, p.y * 0.12));
-  float stain = smoothstep(0.7, 0.9, noise(p * 0.6 + 3.0));
-  float hollow = smoothstep(0.7, 0.9, noise(p * 2.4 + 11.0));
-  vec3 rock = mix(vec3(0.82, 0.76, 0.66), vec3(0.93, 0.89, 0.8), mottle);
-  rock = mix(rock, vec3(0.96, 0.94, 0.88), smoothstep(0.6, 0.85, runs) * 0.3);
-  rock = mix(rock, vec3(0.8, 0.6, 0.44), stain * 0.35);
-  rock = mix(rock, vec3(0.6, 0.55, 0.48), hollow * 0.4);
+  vec3 rock;
+  if (style < 0.5) {
+    // Chauvet (Yang, 2026-10-21: strata "looks like a brick wall"): pale limestone, broad
+    // mottling, faint calcite runs, warm ochre patches and darker hollows.
+    float runs = noise(vec2(p.x * 6.0 + noise(p * 2.0) * 1.5, p.y * 0.12));
+    float stain = smoothstep(0.62, 0.85, noise(p * 0.9 + 3.0));
+    float hollow = smoothstep(0.7, 0.9, noise(p * 2.4 + 11.0));
+    rock = mix(vec3(0.74, 0.68, 0.58), vec3(0.86, 0.81, 0.72), mottle);
+    rock = mix(rock, vec3(0.9, 0.87, 0.8), smoothstep(0.6, 0.85, runs) * 0.3);
+    rock = mix(rock, vec3(0.7, 0.48, 0.33), stain * 0.45);
+    rock = mix(rock, vec3(0.52, 0.47, 0.41), hollow * 0.4);
+  } else {
+    // Leang Karampuang, Maros karst: warm tan to orange-brown limestone with grey weathered
+    // patches and pale knobbly coralloid crusts ("cave popcorn") grown over it (Oktaviana et
+    // al. 2024, Figure 2).
+    float grey = smoothstep(0.55, 0.8, noise(p * 1.2 + 5.0));
+    float knobs = smoothstep(0.78, 0.9, noise(p * 22.0)) * smoothstep(0.45, 0.7, noise(p * 2.0 + 9.0));
+    rock = mix(vec3(0.66, 0.48, 0.32), vec3(0.8, 0.62, 0.43), mottle);
+    rock = mix(rock, vec3(0.52, 0.5, 0.48), grey * 0.6);
+    rock = mix(rock, vec3(0.9, 0.86, 0.78), knobs * 0.8);
+  }
   // Where the face runs out at its ends it is the ground's grass, as the hill round it.
   rock = mix(rock, vec3(0.38, 0.6, 0.33) * (0.94 + 0.12 * mottle), vLow);
   vec3 n = normalize(vNormal);
@@ -80,7 +92,7 @@ export class CaveWalls {
   private material = new THREE.ShaderMaterial({
     vertexShader: vertex,
     fragmentShader: fragment,
-    uniforms: { lightDir: lightUniforms.lightDir },
+    uniforms: { lightDir: lightUniforms.lightDir, style: { value: 0 } },
     side: THREE.DoubleSide,
   });
   /** The ground height along each cut before it was cut, by the cut's place, looked up once. */
@@ -116,11 +128,14 @@ export class CaveWalls {
           index.push(a, b, a + 1, b, b + 1, a + 1);
         }
       g.setIndex(index);
-      mesh = new THREE.Mesh(g, this.material);
+      // Each wall its own material, for its cave's rock.
+      mesh = new THREE.Mesh(g, this.material.clone());
+      mesh.material.uniforms.lightDir = lightUniforms.lightDir;
       mesh.frustumCulled = false;
       this.meshes[i] = mesh;
       this.group.add(mesh);
     }
+    mesh.material.uniforms.style!.value = m.rock ?? 0;
     const c = new THREE.Vector3(...m.centre);
     const f = new THREE.Vector3(...m.toward);
     const side = new THREE.Vector3().crossVectors(c, f);

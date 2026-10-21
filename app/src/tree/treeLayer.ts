@@ -585,6 +585,7 @@ export class TreeLayer {
       radiusKm: CAVE_CUT_M * k * LAYOUT_KM_PER_M,
       toward: [toward.x, toward.y, toward.z],
       depthKm: CAVE_CUT_DEEP_M * k * FIGURE_KM_PER_M * sink,
+      rock: q.kind === 'prop-cave-wall-sulawesi' ? 1 : 0,
     });
   }
 
