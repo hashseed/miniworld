@@ -110,7 +110,7 @@ describe('shelters and animals', () => {
     const m = buildShelter(id);
     expect(positions(m)).toEqual(positions(buildShelter(id)));
     // A painted cave wall, of which there are a few in the world, has room for its drawing.
-    expect(m.triangles).toBeLessThanOrEqual(id.startsWith('prop-cave-wall-') ? 2000 : 1000);
+    expect(m.triangles).toBeLessThanOrEqual(id.startsWith('prop-cave-wall-') ? 2400 : 1000);
     // Rocks and floors may sit partly in the ground, but not deep.
     expect(bounds(m).min.y).toBeGreaterThan(-0.5);
   });
@@ -407,7 +407,7 @@ describe('asset manifest', () => {
     const waiting = Object.keys(MODELS).filter((id) => entries.get(id)?.status !== 'approved');
     expect(
       waiting.every((id) =>
-        /^(stone-sledge|figure-african-stone-age-man|figure-(west-asia-hunter|east-asia-hunter|first-americans)-(man|woman|child)|prop-(carry-pole|spit|canoe|red-flag|cave-wall-sulawesi|cave-wall-chauvet|burial)|shelter-small-hut)$/.test(
+        /^(stone-sledge|figure-african-stone-age-man|figure-(west-asia-hunter|east-asia-hunter|first-americans)-(man|woman|child)|prop-(carry-pole|spit|canoe|red-flag|cave-wall-sulawesi|cave-wall-chauvet|burial|death-skull)|shelter-small-hut)$/.test(
           id,
         ),
       ),

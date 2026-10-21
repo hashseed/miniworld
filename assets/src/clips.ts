@@ -30,8 +30,10 @@ export type Clip =
   | 'dance'
   | 'scrape'
   | 'crack'
-  // Painting a cave wall (humankind.md section 8.2).
+  // Painting a cave wall; falling ill and dying before a burial (humankind.md section 8.2).
   | 'paint'
+  | 'ill'
+  | 'lie'
   // Crossing the sea in a canoe (peopling.md section 6).
   | 'paddle';
 
@@ -131,6 +133,8 @@ export const PERSON_LOOPS: Partial<Record<Clip, { loop: number } | { once: numbe
   work: { loop: 0.9 },
   knap: { loop: 5.6 },
   paint: { loop: 2.4 },
+  ill: { loop: 3.2 },
+  lie: { loop: 4 },
   point: { loop: 1.6 },
   cheer: { loop: 0.7 },
   throw: { once: 3 },
@@ -157,6 +161,8 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
     clip !== 'work' &&
     clip !== 'knap' &&
     clip !== 'paint' &&
+    clip !== 'ill' &&
+    clip !== 'lie' &&
     !(clip === 'throw' && t >= THROW_RELEASE);
   bone('load').visible = clip === 'carry';
   // Knapping stones, on the models of cultures that knap.
@@ -435,6 +441,31 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
       rot('armLowerL', -1.1);
       rot('legUpperL', -0.12);
       rot('legUpperR', 0.08);
+      break;
+    }
+    case 'ill': {
+      // Sitting on the ground, knees up, hunched over with the arms round them, rocking slowly.
+      const s = Math.sin((t / 3.2) * TAU);
+      lift(-0.62 * hipRest);
+      rot('legUpperL', -1.45, 0, 0.12);
+      rot('legUpperR', -1.45, 0, -0.12);
+      rot('legLowerL', 1.55);
+      rot('legLowerR', 1.55);
+      rot('torso', 0.5 + 0.08 * s, 0, 0.04 * s);
+      rot('head', 0.35);
+      rot('armUpperL', -0.75, 0, 0.35);
+      rot('armUpperR', -0.75, 0, -0.35);
+      rot('armLowerL', -1.2);
+      rot('armLowerR', -1.2);
+      break;
+    }
+    case 'lie': {
+      // Lying still on the back on the ground, the head turned a little aside.
+      rot('hips', -Math.PI / 2);
+      lift(-0.86 * hipRest);
+      rot('head', 0, 0.3);
+      rot('armUpperL', 0, 0, 0.12);
+      rot('armUpperR', 0, 0, -0.12);
       break;
     }
     case 'point': {

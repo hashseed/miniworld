@@ -343,7 +343,13 @@ export class TreeLayer {
     for (const q of scene.props) {
       const batch = treePropBatch(q.kind);
       if (!batch || !this.place(at, q, false)) continue;
-      at.scale.setScalar(FIGURE_KM_PER_M * (q.scale ?? 1));
+      const km = FIGURE_KM_PER_M * (q.scale ?? 1);
+      if (q.rise !== undefined) {
+        // A scene's hill or heap of earth rises out of the ground and sinks back (humankind.md section 8.2).
+        const r = q.rise * q.rise * (3 - 2 * q.rise);
+        at.scale.set(km * (0.6 + 0.4 * r), km * Math.max(0.02, r), km * (0.6 + 0.4 * r));
+      } else at.scale.setScalar(km);
+      if (q.height) at.position.addScaledVector(this.dir, q.height * FIGURE_KM_PER_M);
       // A scene's wall or grave grows in step by step as it is painted or filled (humankind.md section 8.2).
       if (q.built !== undefined && this.stepped(batch))
         copy(batch, (m) => {
@@ -352,7 +358,7 @@ export class TreeLayer {
           if (torch) torch.visible = !!q.lit;
         });
       else copy(batch);
-      // A scene's cave or grave fades in and out (humankind.md section 8.2).
+      // The dead's skull fades away as it rises (humankind.md section 8.2).
       if (q.fade !== undefined) this.batches.fade(batch.key, q.fade);
     }
 

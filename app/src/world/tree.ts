@@ -141,7 +141,9 @@ export interface TreeStage {
   /** The lodging place it stands behind, and how far beyond the ring of lodgings, in layout metres. */
   slot: number;
   beyond: number;
-  /** Its prop shows from this day: a cave from the start of the timeline, a grave from its burial. */
+  /** A burial's dead: the figure that falls ill and dies, and is buried (humankind.md section 8.2). */
+  dead?: number;
+  /** Its prop shows from this day, around its sessions. */
   shown: Day;
   /** Its sessions come from this day, to the anchor's end. */
   from: Day;

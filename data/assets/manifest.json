@@ -411,7 +411,7 @@
       "kind": "prop",
       "generated": "Modelling script",
       "status": "generated",
-      "note": "Rock face with a cave mouth and the Leang Karampuang painting in six parts painted one after another (humankind.md section 8.2): a red ochre warty pig, three small figures with spears, stencilled hands; waiting for Yang's review"
+      "note": "A grassy hill with a rock face framed by stacked stones, the Leang Karampuang painting on it in six parts (red-brown pigs and figures with fans) and a torch (humankind.md section 8.2); waiting for Yang's review"
     },
     {
       "id": "prop-cave-wall-chauvet",
@@ -419,7 +419,7 @@
       "kind": "prop",
       "generated": "Modelling script",
       "status": "generated",
-      "note": "Rock face with a cave mouth and Chauvet's paintings in six parts (humankind.md section 8.2): horses' heads, lions and a rhinoceros in charcoal, red dots; waiting for Yang's review"
+      "note": "A grassy hill with a rock face framed by stacked stones, Chauvet's charcoal horses, lions, rhinoceros, bison and red dots on it in six parts, and a torch (humankind.md section 8.2); waiting for Yang's review"
     },
     {
       "id": "prop-burial",
@@ -427,7 +427,15 @@
       "kind": "prop",
       "generated": "Modelling script",
       "status": "generated",
-      "note": "Grave filled in three steps (humankind.md section 8.2): the pit and dug earth, the wrapped body covered with ivory beads and ivory spears, the closed grave with red ochre; waiting for Yang's review"
+      "note": "A grave dug into a heap of earth in four steps: trench, wrapped body with ivory beads and spears, closed with earth and ochre, grass grown over (humankind.md section 8.2); waiting for Yang's review"
+    },
+    {
+      "id": "prop-death-skull",
+      "file": "assets/src/shelters.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "Small cartoon skull rising from someone who has just died before a burial and fading away (humankind.md section 8.2); waiting for Yang's review"
     },
     {
       "id": "shelter-small-hut",
