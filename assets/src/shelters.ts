@@ -492,55 +492,19 @@ export function buildShelter(id: ShelterId): Model {
     }
     case 'prop-cave-wall-sulawesi':
     case 'prop-cave-wall-chauvet': {
-      // A hill with a rock face (humankind.md section 8.2; Yang, 2026-10-21: "the ground
-      // elevates slowly to form a hill. one side of the hill is a rock face ... a bit like a
-      // hobbit burrow except that it's not a door but a rock face"): a grassy hill, towards the
-      // hearth (+Z) a rock face framed by an arch of stacked stones, and low walls of stones
-      // running down either side into the ground. The painting grows on the rock face in parts
-      // painted one after another, and a torch stands beside it while it is painted. The hill
-      // is no step, so it stands bare before the first session.
+      // The painting on a cave's rock face (humankind.md section 8.2; Yang, 2026-10-21: "the
+      // ground elevates to form the hill ... just the hill cut vertically on one side"): the
+      // hill is the ground itself, raised by the globe, and its cut is drawn as rock; this
+      // model is only what stands on the cut, facing the hearth (+Z): the painting, in parts
+      // painted one after another, and a torch while it is painted.
       const sulawesi = id === 'prop-cave-wall-sulawesi';
-      const GRASS = sulawesi ? '#6f9448' : '#7f9a55';
-      const FACE = sulawesi ? '#a48b74' : '#b8a68c';
-      const STONES = ['#8d8478', '#a39a8c', '#7b7368', '#b0a594'];
-      mb.add(blob([0, 1.0, -1.0], [2.6, 1.4, 1.8], 10), GRASS);
-      for (const [x, y, z] of [
-        [-1.2, 2.05, -0.4],
-        [0.9, 2.15, -0.9],
-        [1.6, 1.4, 0.0],
-        [-1.9, 1.0, 0.2],
-      ] as const)
-        mb.add(cone([x, y, z], [x, y + 0.24, z], 0.14, 4), shade(GRASS, -0.1));
-      // The rock face, its front a little proud of the hill.
-      const [fz, fx, fy, fd, fc] = [1.0, 1.0, 1.0, 0.18, 1.05];
-      mb.add(blob([0, fc, fz], [fx, fy, fd], 9), FACE);
-      // The arch of stones round it, and the low walls either side.
-      for (let i = 0; i <= 10; i++) {
-        const a = Math.PI * (i / 10);
-        const [x, y] = [Math.cos(a) * 1.18, fc + Math.sin(a) * 1.15];
-        mb.add(blob([x, Math.max(0.12, y), fz + 0.08], [0.25, 0.18, 0.2], 4), STONES[i % 4]!);
-      }
-      for (const side of [-1, 1])
-        for (let i = 0; i < 4; i++) {
-          const u = i / 3;
-          const [x, y] = [side * (1.35 + 1.1 * u), 0.85 - 0.72 * u];
-          for (let row = 0; row * 0.26 < y + 0.05; row++)
-            mb.add(
-              blob([x, 0.1 + row * 0.26, fz - 0.15 - 0.35 * u], [0.3, 0.14, 0.2], 4),
-              STONES[(i + row) % 4]!,
-            );
-        }
-      /** A point on the rock face at (x, y), standing clear of it. */
-      const face = (x: number, y: number, out = 0.05): Vec3 => {
-        const yy = y + 0.2;
-        const q = 1 - (x / fx) ** 2 - ((yy - fc) / fy) ** 2;
-        return [x, yy, fz + fd * Math.sqrt(Math.max(0.05, q)) + out];
-      };
+      /** A point on the cut face at (x, y), just in front of it. */
+      const face = (x: number, y: number, out = 0.06): Vec3 => [x, y + 0.15, 0.06 + out];
       // The torch beside the face, lit while a session is painted (the scene shows it then).
-      mb.bone({ name: 'torch', pivot: [0.85, 0, 1.6] });
-      mb.add(rod([0.9, 0, 1.75], [0.8, 1.3, 1.45], 0.03, 4), POLE, 'torch');
-      mb.add(blob([0.795, 1.42, 1.44], [0.1, 0.17, 0.1], 5), '#f08a2c', 'torch', undefined, 0);
-      mb.add(blob([0.795, 1.39, 1.47], [0.055, 0.1, 0.055], 4), '#ffd166', 'torch', undefined, 0);
+      mb.bone({ name: 'torch', pivot: [0.85, 0, 0.5] });
+      mb.add(rod([0.9, 0, 0.65], [0.8, 1.3, 0.35], 0.03, 4), POLE, 'torch');
+      mb.add(blob([0.795, 1.42, 0.34], [0.1, 0.17, 0.1], 5), '#f08a2c', 'torch', undefined, 0);
+      mb.add(blob([0.795, 1.39, 0.37], [0.055, 0.1, 0.055], 4), '#ffd166', 'torch', undefined, 0);
       const step = (k: number) => {
         const name = `${BUILD_BONE}${k}`;
         mb.bone({ name, pivot: face(0, 0.9, 0) });
@@ -553,7 +517,7 @@ export function buildShelter(id: ShelterId): Model {
         h: number,
         colour: string,
         bone: string,
-        out = 0.05,
+        out = 0.06,
       ) => mb.add(blob(face(x, y, out), [w, h, 0.02], 5), colour, bone, undefined, 0);
       const stroke = (
         pts: [number, number][],

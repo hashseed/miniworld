@@ -21,7 +21,7 @@ import { LENS_COLS, LENS_ROWS, Lens } from './lens.ts';
 import { PlanetQuery } from '../planet/query.ts';
 import type { PlanetState } from '../planet/state.ts';
 import { LAND_LIFT_M } from '../planet/surface.ts';
-import { terrainFragment, terrainVertex } from './shaders.ts';
+import { MOUNDS, terrainFragment, terrainVertex } from './shaders.ts';
 import { startTerrainWorkers, type TerrainWorkers } from './terrainWorkers.ts';
 import { indexFor, tileGeometry } from './tileMesh.ts';
 import { EARTH_RADIUS_KM } from '../geo/earth.ts';
@@ -52,6 +52,21 @@ export interface GlobeQuality {
 /** Ground tint before the foliage slices load: none. */
 const NO_GROUND = new THREE.DataTexture(new Uint8Array([0, 0, 0, 0]), 1, 1, THREE.RGBAFormat);
 NO_GROUND.needsUpdate = true;
+
+/**
+ * A hill of a scene (humankind.md section 8.2) in drawn space: its centre, radius, the
+ * direction towards its hearth (where it is cut vertically), its height in drawn km and
+ * its shape (1 round, 2 a long ridge, 3 with an alcove, 4 flat-topped), cut and width.
+ */
+export interface Mound {
+  centre: [number, number, number];
+  radiusKm: number;
+  toward: [number, number, number];
+  heightKm: number;
+  shape: number;
+  cut: number;
+  wide: number;
+}
 
 export class Globe {
   readonly group = new THREE.Group();
@@ -127,6 +142,11 @@ export class Globe {
         lensGrid: { value: null },
         lensBlend: { value: 0 },
         earthRadius: { value: EARTH_RADIUS_KM },
+        // The hills of scenes (humankind.md section 8.2), set each frame by the tree layer.
+        moundA: { value: Array.from({ length: MOUNDS }, () => new THREE.Vector4()) },
+        moundB: { value: Array.from({ length: MOUNDS }, () => new THREE.Vector4()) },
+        moundC: { value: Array.from({ length: MOUNDS }, () => new THREE.Vector4()) },
+        moundCount: { value: 0 },
       },
     });
     this.lensTexture = this.makeLensTexture();
@@ -144,6 +164,18 @@ export class Globe {
       uniforms: this.material.uniforms,
       defines: { SEA_SURFACE: 1, SEA_ICE: 1 },
     });
+  }
+
+  /** The hills of scenes rising from the ground this frame (humankind.md section 8.2). */
+  setMounds(mounds: readonly Mound[]): void {
+    const u = this.material.uniforms;
+    const list = mounds.slice(0, MOUNDS);
+    list.forEach((m, i) => {
+      (u.moundA!.value as THREE.Vector4[])[i]!.set(...m.centre, m.radiusKm / EARTH_RADIUS_KM);
+      (u.moundB!.value as THREE.Vector4[])[i]!.set(...m.toward, m.heightKm);
+      (u.moundC!.value as THREE.Vector4[])[i]!.set(m.shape, m.cut, m.wide, 0);
+    });
+    u.moundCount!.value = list.length;
   }
 
   /** Uses a loaded warp, keeping the current strength. */

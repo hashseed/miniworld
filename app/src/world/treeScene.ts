@@ -607,7 +607,7 @@ export function slotPoint(camp: number, slot: number): Pt {
  */
 export const STAGE_BEYOND_M = [12, 10, 8];
 /** A cave's hill stands further out, so its watchers are clear of the lodging in front of it. */
-export const CAVE_BEYOND_M = [16, 14, 12, 10, 8];
+export const CAVE_BEYOND_M = [12, 10, 8];
 export const stageBeyond = (kind: TreeStage['kind']) =>
   kind === 'cave-painting' ? CAVE_BEYOND_M : STAGE_BEYOND_M;
 /** A scene's prop and places at a full, a compact and a minimal camp, as a share of full size. */
@@ -637,8 +637,8 @@ export function stageSpots(camp: number, slot: number, beyond: number) {
   });
   const g = gapDirection(camp, slot);
   const gap = { x: g.x * (ring + 4), z: g.z * (ring + 4) };
-  // In front of a cave's rock face, clear of its walls of stones: the way to it (section 8.2).
-  const door = at(10, 0);
+  // In front of a cave's rock face, clear of the lodging before it: the way to it (section 8.2).
+  const door = at(6, 0);
   return { prop, u, at, gap, door };
 }
 
@@ -646,7 +646,7 @@ export function stageSpots(camp: number, slot: number, beyond: number) {
 function stageStands(camp: number, slot: number, beyond: number, kind: TreeStage['kind']): Pt[] {
   const { at } = stageSpots(camp, slot, beyond);
   // The painter at the rock face, the watchers behind; diggers at the grave's heap of earth.
-  if (kind === 'cave-painting') return [at(4.65, 0), at(8.1, -1.8), at(8.1, 1.8)];
+  if (kind === 'cave-painting') return [at(1.8, 0), at(5, -2.2), at(5, 2.2)];
   const out = [at(2.4, -1.5), at(2.4, 1.5)];
   for (let k = 0; k < MOURNERS; k++) {
     const a = ((k + 0.5) / MOURNERS - 0.5) * (2 * Math.PI) * 0.45;
@@ -664,10 +664,10 @@ export function stagePoints(
 ): Pt[] {
   const { prop, gap, at, door } = stageSpots(camp, slot, beyond);
   const out: Pt[] = [prop];
-  // Round the prop as it lies, in layout metres: the hill about 8 to each side, 8.4 behind
-  // its middle and 5.4 in front; the grave's heap 4.2 by 2.6.
+  // Round the prop as it lies, in layout metres: the cave's rock face and the ground before
+  // it (its hill is the ground, which does not rise over water); the grave's heap 4.2 by 2.6.
   const cave = kind === 'cave-painting';
-  const [wide, deep, mid] = cave ? [8.1, 6.9, -1.5] : [4.2, 2.6, 0];
+  const [wide, deep, mid] = cave ? [6, 4, -2] : [4.2, 2.6, 0];
   for (let k = 0; k < 12; k++) {
     const a = (k / 12) * 2 * Math.PI;
     out.push(at(mid + deep * detCos(a), wide * detSin(a)));
