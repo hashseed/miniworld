@@ -61,7 +61,7 @@
       "groundM": -43.1
     },
     "Java Sea": {
-      "sea": false,
+      "sea": true,
       "ice": false,
       "iceKm": -128,
       "groundM": -43.1

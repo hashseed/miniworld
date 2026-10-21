@@ -97,6 +97,14 @@ describe('the tree scene', () => {
     expect(later.x ** 2 + later.z ** 2).toBeLessThan(out.x ** 2 + out.z ** 2);
   });
 
+  it('leaves out figures whose camps are out of view, and keeps the ones in view', () => {
+    const t = ms(d0 + years(300)) + 60_000;
+    const all = treeScene(chunk, t, d0).figures.map((f) => f.id);
+    expect(all).toContain(1);
+    expect(treeScene(chunk, t, d0, () => true).figures.map((f) => f.id)).toEqual(all);
+    expect(treeScene(chunk, t, d0, () => false).figures).toHaveLength(0);
+  });
+
   // The scene every 50 ms over the first 20 seconds after the band sets off.
   const trip = () => {
     const left = ms(moveDay);
