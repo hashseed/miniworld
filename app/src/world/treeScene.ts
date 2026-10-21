@@ -441,6 +441,8 @@ export interface CampPropPose extends Placed {
   lit?: boolean;
   /** 0 to 1: how far a scene's hill or heap of earth has risen out of the ground. */
   rise?: number;
+  /** 0 to 1: how far a cave's painting shows, fading before the cave sinks back. */
+  paint?: number;
   /** 0 to 1: how far a prop has faded, 1 drawn in full: the dead's skull. */
   fade?: number;
   /** Height above the ground in life-size metres: the dead's skull rising. */
@@ -708,6 +710,7 @@ const STAGE_MS = Math.round(27_000 / TEMPO);
 export const CAVE_LEAD_MS = 60_000;
 export const CAVE_LINGER_MS = 60_000;
 export const CAVE_FADE_MS = 10_000;
+export const PAINT_FADE_MS = 5_000;
 export const GRAVE_FADE_DAYS = Math.round(50 * 365.2425);
 /** A grave's heap rises this long, grass grows over it this long after it is closed, taking GRASS_MS. */
 const HEAP_MS = 1_500;
@@ -1391,10 +1394,13 @@ export function treeScene(
     const sessions = stageSessions(stage, startDay);
     let rise: number;
     let built: number;
+    let paint: number | undefined;
     if (stage.kind === 'cave-painting') {
       if (!sessions.length) continue;
       const from = sessions[0]!.begin - CAVE_LEAD_MS;
       const to = sessions.at(-1)!.stop + CAVE_LINGER_MS;
+      // The painting fades away over the PAINT_FADE_MS before the cave starts to sink back.
+      paint = Math.min(1, Math.max(0, (to - ms) / PAINT_FADE_MS));
       rise = Math.min(1, (ms - from) / CAVE_FADE_MS, (to + CAVE_FADE_MS - ms) / CAVE_FADE_MS);
       const done = (q: { begin: number; stop: number }) =>
         Math.min(1, Math.max(0, (ms - q.begin) / (q.stop - q.begin)));
@@ -1432,6 +1438,7 @@ export function treeScene(
       built,
       scale: stageScale(stage.camp),
       rise,
+      ...(paint !== undefined ? { paint } : {}),
       // A cave's torch burns while a session is painted.
       ...(stage.kind === 'cave-painting'
         ? { lit: sessions.some((q) => ms >= q.begin - 1500 && ms < q.stop) }

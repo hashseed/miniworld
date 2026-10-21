@@ -55,6 +55,8 @@ import type { Obstacle } from '../wildlife/wildlifeLayer.ts';
  */
 const CAVE_CUT_M = 13;
 const CAVE_CUT_DEEP_M = 1.8;
+/** Below this share of its depth a cut has no wall, and its gentle slope shows as ground. */
+const CAVE_WALL_FROM = 0.3;
 /** The cut, and its wall, run this many layout metres behind the painting. */
 const CAVE_FACE_BEHIND_M = 0;
 const NEAR_MARGIN = 0.3;
@@ -393,7 +395,7 @@ export class TreeLayer {
       // A cave's painting, a picture on the face, painted session by session.
       if (cave) {
         at.updateMatrix();
-        this.paintings.add(q.kind, at.matrix, q.built ?? 0, q.rise ?? 1);
+        this.paintings.add(q.kind, at.matrix, q.built ?? 0, Math.min(q.rise ?? 1, q.paint ?? 1));
       }
       if (q.built !== undefined)
         copy(batch, (m) => {
@@ -585,6 +587,8 @@ export class TreeLayer {
       radiusKm: CAVE_CUT_M * k * LAYOUT_KM_PER_M,
       toward: [toward.x, toward.y, toward.z],
       depthKm: CAVE_CUT_DEEP_M * k * FIGURE_KM_PER_M * sink,
+      sink,
+      walled: sink >= CAVE_WALL_FROM,
       rock: q.kind === 'prop-cave-wall-sulawesi' ? 1 : 0,
     });
   }

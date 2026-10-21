@@ -62,6 +62,10 @@ export interface Mound {
   radiusKm: number;
   toward: [number, number, number];
   depthKm: number;
+  /** How far it has sunk, 0 to 1: while it is low its face is grass, not a stripe of rock. */
+  sink?: number;
+  /** False while it is too shallow for a wall: the ground is drawn whole there. */
+  walled?: boolean;
   /** The rock of its face: 0 Chauvet's pale limestone, 1 Leang Karampuang's (caveWalls.ts). */
   rock?: number;
 }
@@ -193,7 +197,11 @@ export class Globe {
     const u = this.material.uniforms;
     const list = mounds.slice(0, MOUNDS);
     list.forEach((m, i) => {
-      (u.moundA!.value as THREE.Vector4[])[i]!.set(...m.centre, m.radiusKm / EARTH_RADIUS_KM);
+      // A negative radius tells the terrain the cut has no wall yet (moundHole in shaders.ts).
+      (u.moundA!.value as THREE.Vector4[])[i]!.set(
+        ...m.centre,
+        ((m.walled === false ? -1 : 1) * m.radiusKm) / EARTH_RADIUS_KM,
+      );
       (u.moundB!.value as THREE.Vector4[])[i]!.set(...m.toward, m.depthKm);
     });
     u.moundCount!.value = list.length;
