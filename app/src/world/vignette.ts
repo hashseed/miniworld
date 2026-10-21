@@ -57,6 +57,7 @@ export type Clip =
   | 'paint'
   | 'ill'
   | 'lie'
+  | 'sit'
   // Crossing the sea in a canoe (peopling.md section 6).
   | 'paddle';
 

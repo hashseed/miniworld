@@ -347,6 +347,9 @@ export type TreeClip =
   | 'paint'
   | 'ill'
   | 'lie'
+  | 'sit'
+  // Telling a story by the fire (section 8.1).
+  | 'point'
   | 'knap'
   | 'walk'
   | 'run'
@@ -820,9 +823,16 @@ function activity(
   const period = ACTIVITY_MIN_MS + (hash32(id, 53) % ACTIVITY_SPREAD_MS);
   const shifted = ms + (hash32(id, 59) % period);
   const k = Math.floor(shifted / period);
+  // Standing a quarter of the time, sitting a quarter, tending the fire a fifth, cracking
+  // nuts a tenth, telling a story a twelfth and knapping an eighth (humankind.md section 8.1).
   const clipOf = (n: number): TreeClip => {
-    const h = hash32(id, n, 61) % 6;
-    return h < 2 ? 'work' : h < 4 && knaps ? 'knap' : 'idle';
+    const h = hash32(id, n, 61) % 120;
+    if (h < 30) return 'idle';
+    if (h < 60) return 'sit';
+    if (h < 84) return 'work';
+    if (h < 96) return 'crack';
+    if (h < 106) return 'point';
+    return knaps ? 'knap' : 'sit';
   };
   const clip = clipOf(k);
   const clipMs = shifted - k * period;
