@@ -17,6 +17,9 @@ import {
   LAKE_FIELD,
 } from '../planet/surface.ts';
 import { LENS_COLS, LENS_ROWS, LENS_STEP } from './lens.ts';
+
+/** At most this many hills of scenes rise at once (humankind.md section 8.2). */
+export const MOUNDS = 4;
 import { CAP_KM_PER_M, snowGlsl } from './snowCap.ts';
 
 /** A number as a GLSL float literal. */
@@ -78,6 +81,61 @@ vec2 climateAt(vec3 up) {
 }
 `;
 
+/** The hills of scenes (humankind.md section 8.2), shared by the terrain's vertex and fragment shaders. */
+const moundGlsl = /* glsl */ `
+// Hills of scenes at anchors (humankind.md section 8.2): the ground rises into a hill cut
+// vertically on its hearth's side, in drawn space. A: centre and radius (radians); B: the
+// direction towards the hearth and the height (drawn km); C: shape, cut, width.
+const int MOUNDS = ${MOUNDS};
+uniform vec4 moundA[MOUNDS];
+uniform vec4 moundB[MOUNDS];
+uniform vec4 moundC[MOUNDS];
+uniform int moundCount;
+
+/** The height of a scene's hill at a drawn direction, in drawn km. */
+float moundAt(vec3 v, int i) {
+  vec3 c = moundA[i].xyz;
+  float r = moundA[i].w;
+  vec3 f = moundB[i].xyz;
+  float h = moundB[i].w;
+  vec3 d = v - c * dot(v, c);
+  float e = dot(d, f) / r;
+  float s = dot(d, cross(c, f)) / r;
+  float shape = moundC[i].x;
+  float cut = moundC[i].y;
+  float wide = moundC[i].z;
+  // 1 a round hill, 2 a long ridge, 3 a hill with an alcove cut into it, 4 a flat-topped hill.
+  float ew = shape == 2.0 ? 0.8 : 1.0;
+  float r2 = (e / ew) * (e / ew) + (s / wide) * (s / wide);
+  if (r2 >= 1.0) return 0.0;
+  float edge = shape == 3.0 ? cut - 0.3 * max(0.0, 1.0 - (s / 0.55) * (s / 0.55)) : cut;
+  if (e > edge) return 0.0;
+  float k = 1.0 - r2;
+  return shape == 4.0 ? h * smoothstep(0.0, 0.45, k) : h * k * k;
+}
+
+
+/** How much of a drawn direction lies on a hill's cut face (the steep strip along its cut). */
+float moundFace(vec3 v) {
+  float face = 0.0;
+  for (int i = 0; i < MOUNDS; i++) {
+    if (i >= moundCount) break;
+    vec3 c = moundA[i].xyz;
+    float r = moundA[i].w;
+    vec3 d = v - c * dot(v, c);
+    float e = dot(d, moundB[i].xyz) / r;
+    float s = dot(d, cross(c, moundB[i].xyz)) / r;
+    float wide = moundC[i].z;
+    float edge = moundC[i].x == 3.0 ? moundC[i].y - 0.3 * max(0.0, 1.0 - (s / 0.55) * (s / 0.55)) : moundC[i].y;
+    float r2 = e * e + (s / wide) * (s / wide);
+    // The strip from just inside the cut to a mesh step beyond it, where the ground falls.
+    float strip = step(edge - 0.04, e) * (1.0 - step(edge + 0.16, e));
+    face = max(face, strip * (1.0 - step(1.0 - edge * edge * 0.9, (s / wide) * (s / wide))) * step(r2, 1.2));
+  }
+  return face * float(moundCount > 0);
+}
+`;
+
 export const terrainVertex = /* glsl */ `
 #include <common>
 #include <logdepthbuf_pars_vertex>
@@ -96,7 +154,7 @@ uniform float landLift; // metres every land vertex stands above its height
 uniform float glacial;
 ${lensChunk}
 ${snowGlsl}
-
+${moundGlsl}
 // How far below the sea level the flat sea surface lies (section 4.4).
 const float SEA_DROP = 3.0;
 // Ice domes (section 5.2) and the rounded coast (section 4.2), with the same
@@ -211,7 +269,27 @@ void main() {
   vec4 lens = lensAt(up);
   vec3 drawnUp = lens.xyz;
   float lift = surface * exaggeration * 0.001;
-  vec3 offset = (drawnUp - up) * earthRadius + drawnUp * (lift * lens.w);
+  // The hills of scenes rise from the land (humankind.md section 8.2), with their slopes.
+  float moundKm = 0.0;
+#ifndef SEA_SURFACE
+  // Never on water: rivers and lakes and their banks stay flat (Yang, 2026-10-21).
+  if (!sea && !isLake && extra.y < 0.25 && lake < LAKE_FIELD * 0.8) {
+    vec3 mEast = normalize(cross(vec3(0.0, 1.0, 0.0), drawnUp) + vec3(1e-6, 0.0, 0.0));
+    vec3 mNorth = cross(drawnUp, mEast);
+    for (int i = 0; i < MOUNDS; i++) {
+      if (i >= moundCount) break;
+      float m = moundAt(drawnUp, i);
+      if (m <= 0.0 && moundAt(drawnUp + mEast * moundA[i].w * 0.04, i) <= 0.0 &&
+          moundAt(drawnUp + mNorth * moundA[i].w * 0.04, i) <= 0.0) continue;
+      moundKm += m;
+      float dl = moundA[i].w * 0.02;
+      vec3 g = mEast * (moundAt(normalize(drawnUp + mEast * dl), i) - moundAt(normalize(drawnUp - mEast * dl), i)) +
+               mNorth * (moundAt(normalize(drawnUp + mNorth * dl), i) - moundAt(normalize(drawnUp - mNorth * dl), i));
+      grad += g / (2.0 * dl * earthRadius) / kLift;
+    }
+  }
+#endif
+  vec3 offset = (drawnUp - up) * earthRadius + drawnUp * (lift * lens.w + moundKm);
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
   mv.xyz += mat3(viewMatrix) * offset;
   gl_Position = projectionMatrix * mv;
@@ -269,6 +347,7 @@ varying float vSkirt;
 varying float vCap;
 varying vec2 vFlow;
 varying vec2 vFieldUv;
+${moundGlsl}
 
 // Metres of snow cap counted as one km of ice distance, so caps and ice
 // sheets share one field and one ink outline where they meet (section 5.2).
@@ -357,6 +436,9 @@ vec3 landColour(vec3 n, vec3 up, float arid, float riverF) {
   float line = snowLine(alat, glacial);
   float alpine = smoothstep(line - 1000.0, line - 300.0, vHeight + v * 200.0);
   c = mix(c, rock, clamp(smoothstep(0.35, 0.6, slope) + alpine * 0.85, 0.0, 1.0));
+  // A cave hill's cut face is grey rock (humankind.md section 8.2), per pixel, so the coarse
+  // mesh under it never shows.
+  c = mix(c, vec3(0.48, 0.48, 0.5) * (0.94 + 0.12 * noise3(vPattern * 0.2)), moundFace(normalize(vUp)));
   return c * (0.93 + 0.14 * v);
 }
 

@@ -166,6 +166,8 @@ export class FrameLoop {
     p.vignettes.update(p.camera, p.clock.ms, p.clock.startDay, u.lightDir!.value);
     // The camps first: the animals keep clear of their people (wildlife.md section 4).
     p.tree.update(p.camera, p.clock.ms, p.clock.startDay);
+    // The hills of the caves in view rise from the ground (humankind.md section 8.2).
+    p.globe.setMounds(p.tree.mounds());
     p.wildlife.update(p.camera, day, p.clock.ms, p.clock.startDay, p.tree.obstacles());
 
     this.updateStats.push(performance.now() - updateStart);

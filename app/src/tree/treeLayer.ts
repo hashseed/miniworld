@@ -10,6 +10,7 @@ import { latLonToDir } from '../geo/cube.ts';
 import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 import { dayAtMs } from '../time/rate.ts';
 import type { Clearing } from '../globe/foliage.ts';
+import type { Mound } from '../globe/globe.ts';
 import {
   CAMP_CLEARING_KM,
   FIGURE_KM_PER_M,
@@ -18,6 +19,7 @@ import {
   POLE_ON_GROUND_M,
   TEMPO,
   treeScene,
+  type CampPropPose,
   type Placed,
   type TreeChunk,
   type TreeScene,
@@ -44,6 +46,15 @@ import type { SurfaceSource } from '../vignettes/vignetteLayer.ts';
 import type { Obstacle } from '../wildlife/wildlifeLayer.ts';
 
 /** Camps this far beyond the horizon, in radians, are still worked out, for the history lens. */
+
+/**
+ * A cave's hill: a round hill with an alcove cut into its hearth's side, the painting at the
+ * alcove's back (Yang, 2026-10-21, of four shapes: "this one looks the best").
+ */
+const CAVE_HILL = { shape: 3, cut: 0.45, wide: 1.0 };
+/** A cave's hill is this many layout metres in radius, and this many life-size metres high. */
+const CAVE_HILL_M = 13;
+const CAVE_HILL_HIGH_M = 2.3;
 const NEAR_MARGIN = 0.3;
 /** The oldest camp scene from the worker drawn while the clock runs: a few frames' worth of watching. */
 const MAX_SCENE_LAG_MS = 100;
@@ -340,9 +351,12 @@ export class TreeLayer {
 
     // Drying racks beside the lodgings, the spit over a fire while meat roasts, canoes on
     // the water and red flags at the Neolithic thresholds.
+    this.hills = [];
     for (const q of scene.props) {
       const batch = treePropBatch(q.kind);
       if (!batch || !this.place(at, q, false)) continue;
+      // A cave's hill: the ground rises behind its painting, cut vertically along it.
+      if (q.kind.startsWith('prop-cave-wall-') && q.rise !== undefined) this.hill(q);
       const km = FIGURE_KM_PER_M * (q.scale ?? 1);
       if (q.rise !== undefined) {
         // A scene's hill or heap of earth rises out of the ground and sinks back (humankind.md section 8.2).
@@ -506,6 +520,43 @@ export class TreeLayer {
   }
 
   /** The true direction of a point of the scene: layout metres east and north of a place. */
+  /** The hills of the caves in view this frame (humankind.md section 8.2), for the globe. */
+  private hills: Mound[] = [];
+  mounds(): readonly Mound[] {
+    return this.hills;
+  }
+
+  /** A cave's hill behind its painting, from the spot just placed (place sets dir, east, north). */
+  private hill(q: CampPropPose): void {
+    const v = CAVE_HILL;
+    const k = q.scale ?? 1;
+    const r = q.rise!;
+    const rise = r * r * (3 - 2 * r);
+    const radiusKm = CAVE_HILL_M * k * LAYOUT_KM_PER_M;
+    // Towards the hearth, along the ground.
+    const toward = this.v1
+      .copy(this.east)
+      .multiplyScalar(q.dirX)
+      .addScaledVector(this.north, q.dirZ)
+      .normalize();
+    // The cut face (in an alcove, its back) stands where the painting does.
+    const face = v.shape === 3 ? v.cut - 0.3 : v.cut;
+    const centre = this.pos
+      .copy(this.dir)
+      .multiplyScalar(EARTH_RADIUS_KM)
+      .addScaledVector(toward, -face * radiusKm)
+      .normalize();
+    this.hills.push({
+      centre: [centre.x, centre.y, centre.z],
+      radiusKm,
+      toward: [toward.x, toward.y, toward.z],
+      heightKm: CAVE_HILL_HIGH_M * k * FIGURE_KM_PER_M * rise,
+      shape: v.shape,
+      cut: v.cut,
+      wide: v.wide,
+    });
+  }
+
   private offsetDir(lat: number, lon: number, x: number, z: number): [number, number, number] {
     const up = this.v1.set(...latLonToDir(lat, lon));
     northEast(up, this.n2, this.e2);
