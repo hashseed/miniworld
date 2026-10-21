@@ -1631,7 +1631,13 @@ export function treeScene(
         stageSessions(x, startDay).some((q) => q.w === w),
     );
     if (stage) {
-      const ev = stageEvent(stage, w, start, start + TURN_MS);
+      // A burial's bearers may be a little longer walking home than the window.
+      const ev = stageEvent(
+        stage,
+        w,
+        start,
+        start + TURN_MS + (stage.kind === 'burial' ? 2_000 : 0),
+      );
       events.set(key, ev);
       return ev;
     }

@@ -39,6 +39,7 @@ import {
   BUILD_MS,
   shownAtMs,
   slotPoint,
+  burialTimes,
   stageSessions,
   treeScene,
 } from '../../../app/src/world/treeScene.ts';
@@ -635,7 +636,9 @@ export function buildHumankind(
     const need = stage.kind === 'cave-painting' ? 1 : 2;
     const clips = stage.kind === 'cave-painting' ? ['paint'] : ['work'];
     for (const [k, q] of sessions.entries()) {
-      const ms = Math.round((q.begin + q.stop) / 2);
+      // A burial's diggers are at work while the grave is dug, before they carry the dead.
+      const g = stage.kind === 'burial' ? burialTimes(stage, TIMELINE_START) : undefined;
+      const ms = g ? Math.round((g.dig + g.digEnd) / 2) : Math.round((q.begin + q.stop) / 2);
       const chunk = chunkAt(ms);
       const busy = chunk
         ? treeScene(chunk, ms, TIMELINE_START).figures.filter(
