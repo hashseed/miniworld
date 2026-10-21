@@ -281,6 +281,31 @@ describe('wildlifeAt (wildlife.md section 4)', () => {
       }
   }, 60_000);
 
+  it('stays put rather than leaping when a camp seals the only land bridge (section 4)', () => {
+    const gi = WILD_GROUPS.findIndex((g) => g.species === 'plains-zebra');
+    const n = WILD_MASK_N;
+    // Two halves of open ground divided by a wall of sea, joined by a gap in the middle.
+    const mask = Uint8Array.from({ length: n * n }, (_, c) => {
+      const i = c % n;
+      const j = Math.floor(c / n);
+      return Math.abs(i - n / 2 + 0.5) < 1 && Math.abs(j - n / 2) > 1.5 ? 0 : 1;
+    });
+    const masks = WILD_GROUPS.map((_, i) => (i === gi ? mask : undefined));
+    const camps: KeepOut[] = [{ x: 0, y: 0, r: 500, from: 100, to: 3000 }];
+    const keepOuts = WILD_GROUPS.map((_, i) => (i === gi ? camps : []));
+    const last = new Map<string, [number, number]>();
+    for (let t = 200; t < 1200; t += 0.25)
+      for (const a of wildlifeAt(day(1500), t, WILD_GROUPS, masks, () => 0, keepOuts)) {
+        if (!a.key.startsWith(`${gi}:`)) continue;
+        const before = last.get(a.key);
+        if (before)
+          expect(
+            Math.sqrt((a.eastKm - before[0]) ** 2 + (a.northKm - before[1]) ** 2),
+          ).toBeLessThan(150);
+        last.set(a.key, [a.eastKm, a.northKm]);
+      }
+  }, 60_000);
+
   it("lays a camp on the plane at a group's home", () => {
     const g = WILD_GROUPS.find((w) => w.species === 'giraffe')!;
     const [k] = keepOutsOf(

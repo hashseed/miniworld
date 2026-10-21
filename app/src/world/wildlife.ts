@@ -118,6 +118,10 @@ const CAMP_GROW_S = 15;
 export const WILD_MASK_N = 48;
 /** The mask reaches this far beyond the roaming radius, for the animals' places in the group. */
 const WILD_MASK_MARGIN_KM = 450;
+/** Pieces of ground cut off by camps smaller than this many cells are ignored. */
+const PIECE_SLIVER_CELLS = 3;
+/** A chain of held rounds restarts at every round that is a multiple of this. */
+const HOLD_ROOT_ROUNDS = 512;
 /** Tries to find a spot on open ground before an animal stays at home. */
 const SPOT_TRIES = 16;
 /** How far a group closes up on narrow land: shares of its places in the group (section 4). */
@@ -189,10 +193,10 @@ export function keepOutsOf(
 
 type P3 = [number, number, number];
 
-/** How far a keep-out circle has grown in at a clock time: 0 before it stands, 1 once grown. */
+/** How far a keep-out circle has grown at a clock time: 0 before it stands, 1 once grown, shrinking away over 15 s after it ends. */
 function keepOutGrowth(k: KeepOut, seconds: number): number {
-  if (seconds >= k.to) return 0;
-  return Math.min(1, Math.max(0, (seconds - (k.from - CAMP_LEAD_S)) / CAMP_GROW_S));
+  const grown = Math.min(1, Math.max(0, (seconds - (k.from - CAMP_LEAD_S)) / CAMP_GROW_S));
+  return Math.min(grown, Math.max(0, 1 - (seconds - k.to) / CAMP_GROW_S));
 }
 
 /** The keep-outs standing at any time from a to b, in clock seconds. */
@@ -526,6 +530,70 @@ function spot(
   }
   const at = fallbackSpot(mask, roam, places, [mx, my], false)!;
   return [at[0], at[1], PLACE_FITS[PLACE_FITS.length - 1]!];
+}
+
+const pieces = new WeakMap<Uint8Array, Map<string, Uint8Array>>();
+
+/**
+ * The part of a mask a group can keep to while circles stand: its open cells cut by the circles
+ * fall into pieces joined without crossing one, and only the largest piece is kept, so no spot
+ * lies where no walk can reach (section 4). The mask itself if the circles cut nothing off.
+ */
+function pieceOf(mask: WildMask, roam: number, circles: readonly Circle[]): WildMask {
+  if (!mask || circles.length === 0) return mask;
+  const key = circles
+    .map((c) => `${Math.round(c.x)},${Math.round(c.y)},${Math.round(c.r)}`)
+    .join(';');
+  let cache = pieces.get(mask);
+  if (!cache) pieces.set(mask, (cache = new Map()));
+  const hit = cache.get(key);
+  if (hit) return hit === mask ? mask : hit;
+  const n = WILD_MASK_N;
+  const half = roam + WILD_MASK_MARGIN_KM;
+  const cell = (2 * half) / n;
+  const label = new Int16Array(n * n);
+  const sizes: number[] = [0];
+  for (let c = 0; c < n * n; c++) {
+    if (mask[c] !== 1 || label[c] !== 0) continue;
+    const [cx, cy] = [-half + ((c % n) + 0.5) * cell, -half + (Math.floor(c / n) + 0.5) * cell];
+    if (circles.some((k) => len2d(cx - k.x, cy - k.y) < k.r)) continue;
+    const id = sizes.length;
+    sizes.push(0);
+    const stack = [c];
+    label[c] = id;
+    while (stack.length > 0) {
+      const at = stack.pop()!;
+      sizes[id]!++;
+      const i = at % n;
+      const j = Math.floor(at / n);
+      for (const [di, dj] of [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ] as const) {
+        const a = i + di;
+        const b = j + dj;
+        if (a < 0 || b < 0 || a >= n || b >= n) continue;
+        const to = b * n + a;
+        if (mask[to] !== 1 || label[to] !== 0) continue;
+        const [x, y] = [-half + (a + 0.5) * cell, -half + (b + 0.5) * cell];
+        if (circles.some((k) => len2d(x - k.x, y - k.y) < k.r)) continue;
+        label[to] = id;
+        stack.push(to);
+      }
+    }
+  }
+  let best = 0;
+  for (let id = 1; id < sizes.length; id++) if (sizes[id]! > sizes[best]!) best = id;
+  const cut = sizes.reduce((sum, v, id) => (id === 0 || id === best ? sum : sum + v), 0);
+  let out: Uint8Array = mask;
+  if (cut >= PIECE_SLIVER_CELLS) {
+    out = Uint8Array.from(mask);
+    for (let c = 0; c < n * n; c++) if (label[c] !== 0 && label[c] !== best) out[c] = 0;
+  }
+  cache.set(key, out);
+  return out;
 }
 
 /** Whether a point stands outside every keep-out circle, for an animal of half length `half`. */
@@ -911,19 +979,67 @@ export function wildlifeAt(
       const inRound = t - k * period;
       // The group closes up on narrow land; fits[j] is how far, at the group's spot j.
       const fits = new Map<number, number>();
+      // The camps standing from the walk into the group's spot j until the end of the round.
+      const walkCircles = (j: number) =>
+        camps.length === 0
+          ? camps
+          : standing(camps, (j - 1) * period - shift, j * period - shift + 2);
+      // Whether the animal can walk from a to its candidate spot b of round j round the circles.
+      const reachable = (j: number, a: P2, b: P2, fit: number): boolean => {
+        const near = walkCircles(j);
+        const piece = pieceOf(
+          mask,
+          roam,
+          near.map((c) => ({ x: c.x, y: c.y, r: c.r + half })),
+        );
+        const [qx, qy] = places[i]!;
+        const circles = near.map((c) => ({ x: c.x - qx * fit, y: c.y - qy * fit, r: c.r + half }));
+        if (circles.some((c) => len2d(a[0] - c.x, a[1] - c.y) < c.r * 0.98)) return false;
+        const fitsAt = (q: P2, r: P2) =>
+          clear(
+            piece,
+            roam,
+            [q[0] + qx * fit, q[1] + qy * fit],
+            [r[0] + qx * fit, r[1] + qy * fit],
+          );
+        return aroundCircles(a, b, circles, fitsAt) !== undefined;
+      };
+      // Round j's spot: the animal stays at its last spot where camps leave no way to the new
+      // one (section 4), so it never plans a walk it cannot make. Chains of held rounds start
+      // from a round with no camps in the way, or from every 512th round.
       const own = (j: number): P2 => {
-        const key = `${gi}:${i}:${j}`;
-        const hit = memo.spots.get(key);
-        if (hit) {
-          fits.set(j, hit[2]);
-          return [hit[0], hit[1]];
+        let r = j;
+        while (
+          r % HOLD_ROOT_ROUNDS !== 0 &&
+          !memo.spots.has(`${gi}:${i}:${r}`) &&
+          walkCircles(r).length > 0
+        )
+          r--;
+        let rec: [number, number, number] | undefined;
+        for (let m = r; m <= j; m++) {
+          const key = `${gi}:${i}:${m}`;
+          let hit = memo.spots.get(key);
+          if (!hit) {
+            const c = ownSpot(m);
+            const cf = fits.get(m)!;
+            hit =
+              !rec || walkCircles(m).length === 0 || reachable(m, [rec[0], rec[1]], c, cf)
+                ? [c[0], c[1], cf]
+                : rec;
+            memo.spots.set(key, hit);
+          }
+          rec = hit;
         }
-        const p = ownSpot(j);
-        memo.spots.set(key, [p[0], p[1], fits.get(j)!]);
-        return p;
+        fits.set(j, rec![2]);
+        return [rec![0], rec![1]];
       };
       const ownSpot = (j: number): P2 => {
         const avoid = avoidAt(j);
+        const mask = pieceOf(
+          masks[gi],
+          roam,
+          avoid.map((c) => ({ x: c.x, y: c.y, r: c.r + half })),
+        );
         const [sx, sy, fit] = spot(seed, j, roam, mask, places, avoid, half);
         fits.set(j, fit);
         const [c, sn] = cosSinTurn(hash01(seed, j, 60 + i));
@@ -947,23 +1063,27 @@ export function wildlifeAt(
       const walkKey = `${gi}:${i}:${k}`;
       let path = memo.paths.get(walkKey);
       if (path === undefined) {
+        const ownHalf = reachKm(model(i), g) / 2;
+        const standingNow = standing(camps, k * period - shift, (k + 1) * period - shift + 2);
+        const wmask = pieceOf(
+          mask,
+          roam,
+          standingNow.map((c) => ({ x: c.x, y: c.y, r: c.r + half })),
+        );
         const curveOpen =
-          !mask ||
-          (clear(mask, roam, p1, p2) &&
+          !wmask ||
+          (clear(wmask, roam, p1, p2) &&
             [0.25, 0.5, 0.75].every((v) => {
               const [cx, cy] = catmullRom(p0, p1, p2, p3, v);
-              return open(mask, roam, cx, cy);
+              return open(wmask, roam, cx, cy);
             }));
-        path = curveOpen ? null : route(mask!, roam, p1, p2);
+        path = curveOpen ? null : route(wmask!, roam, p1, p2);
         // Round the camps standing during the walk, planned before it is walked (section 4).
         const [qx, qy] = places[i]!;
         const f0 = ((fits.get(k) ?? 1) + (fits.get(k + 1) ?? 1)) / 2;
         const sx = qx * f0;
         const sy = qy * f0;
-        const ownHalf = reachKm(model(i), g) / 2;
-        const circles = standing(camps, k * period - shift, (k + 1) * period - shift + 2).map(
-          (c) => ({ x: c.x - sx, y: c.y - sy, r: c.r + ownHalf }),
-        );
+        const circles = standingNow.map((c) => ({ x: c.x - sx, y: c.y - sy, r: c.r + ownHalf }));
         if (circles.length > 0) {
           const inside = (q: P2) => circles.some((c) => len2d(q[0] - c.x, q[1] - c.y) < c.r * 0.98);
           // The route's corners inside a circle are dropped: the detour finds its own way past.
@@ -978,7 +1098,7 @@ export function wildlifeAt(
           const base0 = path;
           if (samples.some((q, m) => m > 0 && circles.some((c) => cuts(samples[m - 1]!, q, c)))) {
             const fitsAt = (q: P2, r: P2) =>
-              clear(mask, roam, [q[0] + sx, q[1] + sy], [r[0] + sx, r[1] + sy]);
+              clear(wmask, roam, [q[0] + sx, q[1] + sy], [r[0] + sx, r[1] + sy]);
             // Round the full circles if open ground allows; where it does not (a narrow
             // land between camps), closer in, the push-out below sliding it the rest of
             // the way along the edge.
@@ -1010,10 +1130,10 @@ export function wildlifeAt(
       const chord = path
         ? alongPath(path, 1).length
         : Math.sqrt((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2);
-      const walkS = Math.min(
-        period * (crocodile ? 0.4 : 0.9),
-        Math.max(3, chord / (WALK_KM_S * pace)),
-      );
+      const walkS =
+        chord < 1
+          ? 0
+          : Math.min(period * (crocodile ? 0.4 : 0.9), Math.max(3, chord / (WALK_KM_S * pace)));
       const walking = inRound > period - walkS;
       const f = walking ? (inRound - (period - walkS)) / walkS : 0;
       const u = f * f * (3 - 2 * f);
