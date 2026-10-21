@@ -11,6 +11,7 @@ import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 import { dayAtMs } from '../time/rate.ts';
 import type { Clearing } from '../globe/foliage.ts';
 import { moundDepthAt, type Mound } from '../globe/globe.ts';
+import { CavePaintings } from './cavePaintings.ts';
 import {
   CAMP_CLEARING_KM,
   FIGURE_KM_PER_M,
@@ -133,7 +134,12 @@ export class TreeLayer {
   constructor(loader: ContentLoader, surface: SurfaceSource) {
     this.loader = loader;
     this.surface = surface;
-    this.group.add(this.batches.group, this.clips.group, this.preyClips.group);
+    this.group.add(
+      this.batches.group,
+      this.paintings.group,
+      this.clips.group,
+      this.preyClips.group,
+    );
   }
 
   /** The tree chunk files of the manifest, one per time window starting on `windows[i]`. */
@@ -170,6 +176,8 @@ export class TreeLayer {
   private fits = new Map<string, number>();
   /** Everything of the camps with approved models, drawn as copies of a few models (posedBatches.ts). */
   private batches = new PosedBatches();
+  /** The caves' paintings, pictures on their rock faces (cavePaintings.ts). */
+  private paintings = new CavePaintings();
   /** The people of the camps with approved models, playing baked clips on the GPU (clipBatches.ts). */
   private clips = new ClipBatches();
   /** The hunted animals of the camps, likewise (clipBatches.ts). */
@@ -275,6 +283,7 @@ export class TreeLayer {
     // Clips play TEMPO times faster, matching the faster pace on the ground.
     const sec = (clipMs: number) => (clipMs * TEMPO) / 1000;
     this.batches.begin();
+    this.paintings.begin();
     this.clips.begin();
     this.preyClips.begin();
     for (const f of scene.figures) {
@@ -364,14 +373,20 @@ export class TreeLayer {
       const batch = treePropBatch(q.kind);
       if (!batch || !this.place(at, q, false)) continue;
       const km = FIGURE_KM_PER_M * (q.scale ?? 1);
-      if (q.rise !== undefined) {
-        // A scene's hill or heap of earth rises out of the ground and sinks back (humankind.md section 8.2).
+      const cave = q.kind.startsWith('prop-cave-wall-');
+      if (q.rise !== undefined && !cave) {
+        // A grave's heap of earth rises out of the ground and sinks back (humankind.md section 8.2).
         const r = q.rise * q.rise * (3 - 2 * q.rise);
         at.scale.set(km * (0.6 + 0.4 * r), km * Math.max(0.02, r), km * (0.6 + 0.4 * r));
       } else at.scale.setScalar(km);
       if (q.height) at.position.addScaledVector(this.dir, q.height * FIGURE_KM_PER_M);
       // A scene's wall or grave grows in step by step as it is painted or filled (humankind.md section 8.2).
-      if (q.built !== undefined && this.stepped(batch))
+      // A cave's painting, a picture on the face, painted session by session.
+      if (cave) {
+        at.updateMatrix();
+        this.paintings.add(q.kind, at.matrix, q.built ?? 0, q.rise ?? 1);
+      }
+      if (q.built !== undefined)
         copy(batch, (m) => {
           setBuilt(this.stepsOf(m), q.built!);
           const torch = m.bones.get('torch');
@@ -487,6 +502,7 @@ export class TreeLayer {
       });
     }
     this.batches.end();
+    this.paintings.end();
     this.clips.end();
     this.preyClips.end();
     this.park();
