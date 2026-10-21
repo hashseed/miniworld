@@ -411,7 +411,7 @@
       "kind": "prop",
       "generated": "Modelling script",
       "status": "generated",
-      "note": "The painting on a cave's rock face, in six parts, and a torch; the hill is the raised ground (humankind.md section 8.2); Leang Karampuang's red-brown pigs and figures with fans; waiting for Yang's review"
+      "note": "The torch on a cave's rock face, lit while its painting is painted (humankind.md section 8.2); the painting is a texture; waiting for Yang's review"
     },
     {
       "id": "prop-cave-wall-chauvet",
@@ -419,7 +419,23 @@
       "kind": "prop",
       "generated": "Modelling script",
       "status": "generated",
-      "note": "The painting on a cave's rock face, in six parts, and a torch; the hill is the raised ground (humankind.md section 8.2); Chauvet's charcoal horses, lions, rhinoceros, bison and red dots; waiting for Yang's review"
+      "note": "The torch on a cave's rock face, lit while its painting is painted (humankind.md section 8.2); the painting is a texture; waiting for Yang's review"
+    },
+    {
+      "id": "texture-cave-chauvet",
+      "file": "app/public/textures/cave-chauvet.png",
+      "kind": "texture",
+      "generated": "tools/cave-art.mjs from the public-domain photograph of the Chauvet replica (data/sources/chauvet-replica-photo)",
+      "status": "generated",
+      "note": "Fresh reconstruction of the Chauvet panels in charcoal, in six painting stages (humankind.md section 8.2); waiting for Yang's review"
+    },
+    {
+      "id": "texture-cave-leang-karampuang",
+      "file": "app/public/textures/cave-leang-karampuang.png",
+      "kind": "texture",
+      "generated": "tools/cave-art.mjs from the CC BY 4.0 tracing of Oktaviana et al. 2024, Figure 3c (data/sources/leang-karampuang-tracing)",
+      "status": "generated",
+      "note": "Fresh reconstruction of the Leang Karampuang pig and human figures in red ochre, in six painting stages (humankind.md section 8.2); waiting for Yang's review"
     },
     {
       "id": "prop-burial",
