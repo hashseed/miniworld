@@ -673,6 +673,91 @@ function route(mask: Uint8Array, roam: number, a: P2, b: P2): P2[] {
   return path;
 }
 
+/** A keep-out circle as an animal's walk sees it: where the group's path must stay out of, and how far. */
+interface Circle {
+  x: number;
+  y: number;
+  r: number;
+}
+
+function len2d(x: number, y: number): number {
+  return Math.sqrt(x * x + y * y);
+}
+
+/** Whether the segment from a to b cuts into a circle. */
+function cuts(a: P2, b: P2, c: Circle): boolean {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const len2 = dx * dx + dy * dy;
+  const t =
+    len2 < 1e-9 ? 0 : Math.min(1, Math.max(0, ((c.x - a[0]) * dx + (c.y - a[1]) * dy) / len2));
+  return len2d(a[0] + dx * t - c.x, a[1] + dy * t - c.y) < c.r * 0.98;
+}
+
+/**
+ * The shortest walk from a to b round the circles in its way (section 4): a straight line where
+ * none cuts it, else the shortest path over corners just outside the circles, each edge of
+ * it clear of every circle and passing `fits`. Undefined when no such way exists.
+ */
+function aroundCircles(
+  a: P2,
+  b: P2,
+  circles: readonly Circle[],
+  fits: (p: P2, q: P2) => boolean,
+): P2[] | undefined {
+  if (!circles.some((c) => cuts(a, b, c))) return [b];
+  const nodes: P2[] = [a, b];
+  for (const c of circles)
+    for (let m = 0; m < 16; m++) {
+      const [cs, sn] = cosSinTurn(m / 16);
+      const q: P2 = [c.x + cs * c.r * 1.04, c.y + sn * c.r * 1.04];
+      if (!circles.some((x) => len2d(q[0] - x.x, q[1] - x.y) < x.r * 0.98)) nodes.push(q);
+    }
+  const dist = new Float64Array(nodes.length).fill(Infinity);
+  const prev = new Int32Array(nodes.length).fill(-1);
+  const done = new Uint8Array(nodes.length);
+  dist[0] = 0;
+  for (;;) {
+    let u = -1;
+    for (let m = 0; m < nodes.length; m++)
+      if (!done[m] && dist[m]! < Infinity && (u < 0 || dist[m]! < dist[u]!)) u = m;
+    if (u < 0) return undefined;
+    if (u === 1) break;
+    done[u] = 1;
+    for (let v = 0; v < nodes.length; v++) {
+      if (done[v]) continue;
+      const d = dist[u]! + len2d(nodes[v]![0] - nodes[u]![0], nodes[v]![1] - nodes[u]![1]);
+      if (d >= dist[v]!) continue;
+      if (circles.some((c) => cuts(nodes[u]!, nodes[v]!, c)) || !fits(nodes[u]!, nodes[v]!))
+        continue;
+      dist[v] = d;
+      prev[v] = u;
+    }
+  }
+  const out: P2[] = [];
+  for (let m = 1; m >= 0 && m !== 0; m = prev[m]!) out.push(nodes[m]!);
+  return out.reverse();
+}
+
+/** The corners of a polyline cut off twice (Chaikin), its ends kept. */
+function rounded(pts: readonly P2[]): P2[] {
+  let out = [...pts];
+  for (let pass = 0; pass < 2; pass++) {
+    const next: P2[] = [out[0]!];
+    for (let k = 0; k < out.length - 1; k++) {
+      const p = out[k]!;
+      const q = out[k + 1]!;
+      next.push(
+        [0.75 * p[0] + 0.25 * q[0], 0.75 * p[1] + 0.25 * q[1]],
+        [0.25 * p[0] + 0.75 * q[0], 0.25 * p[1] + 0.75 * q[1]],
+      );
+    }
+    next.push(out[out.length - 1]!);
+    out = next;
+  }
+  return out;
+}
+
 /** The point and direction at a share u of the way along a polyline, and its length. */
 function alongPath(path: readonly P2[], u: number): { at: P2; dir: P2; length: number } {
   let length = 0;
@@ -870,13 +955,63 @@ export function wildlifeAt(
               return open(mask, roam, cx, cy);
             }));
         path = curveOpen ? null : route(mask!, roam, p1, p2);
+        // Round the camps standing during the walk, planned before it is walked (section 4).
+        const [qx, qy] = places[i]!;
+        const f0 = ((fits.get(k) ?? 1) + (fits.get(k + 1) ?? 1)) / 2;
+        const sx = qx * f0;
+        const sy = qy * f0;
+        const ownHalf = reachKm(model(i), g) / 2;
+        const circles = standing(camps, k * period - shift, (k + 1) * period - shift + 2).map(
+          (c) => ({ x: c.x - sx, y: c.y - sy, r: c.r + ownHalf }),
+        );
+        if (circles.length > 0) {
+          const inside = (q: P2) => circles.some((c) => len2d(q[0] - c.x, q[1] - c.y) < c.r * 0.98);
+          // The route's corners inside a circle are dropped: the detour finds its own way past.
+          const base: P2[] = (path ?? [p1, p2]).filter(
+            (q, m, all) => m === 0 || m === all.length - 1 || !inside(q),
+          );
+          const samples: P2[] = path
+            ? path
+            : [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1].map((v) =>
+                catmullRom(p0, p1, p2, p3, v),
+              );
+          const base0 = path;
+          if (samples.some((q, m) => m > 0 && circles.some((c) => cuts(samples[m - 1]!, q, c)))) {
+            const fitsAt = (q: P2, r: P2) =>
+              clear(mask, roam, [q[0] + sx, q[1] + sy], [r[0] + sx, r[1] + sy]);
+            // Round the full circles if open ground allows; where it does not (a narrow
+            // land between camps), closer in, the push-out below sliding it the rest of
+            // the way along the edge.
+            for (const scale of [1, 0.75, 0.5, 0.25]) {
+              if (path !== base0) break;
+              const near = circles.map((c) => ({ ...c, r: c.r * scale }));
+              let way: P2[] = [base[0]!];
+              let found = true;
+              for (let m = 1; m < base.length && found; m++) {
+                const part = aroundCircles(base[m - 1]!, base[m]!, near, fitsAt);
+                if (part) way.push(...part);
+                else found = false;
+              }
+              if (!found) continue;
+              const smooth = rounded(way);
+              const tidy = (pts: readonly P2[]) =>
+                pts.every(
+                  (q, m) =>
+                    m === 0 ||
+                    (fitsAt(pts[m - 1]!, q) && !near.some((c) => cuts(pts[m - 1]!, q, c))),
+                );
+              way = tidy(smooth) ? smooth : way;
+              if (tidy(way)) path = way;
+            }
+          }
+        }
         memo.paths.set(walkKey, path);
       }
       const chord = path
         ? alongPath(path, 1).length
         : Math.sqrt((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2);
       const walkS = Math.min(
-        period * (crocodile ? 0.4 : 0.75),
+        period * (crocodile ? 0.4 : 0.9),
         Math.max(3, chord / (WALK_KM_S * pace)),
       );
       const walking = inRound > period - walkS;
