@@ -14,16 +14,16 @@ const PAINTINGS: Record<
   'prop-cave-wall-chauvet': {
     texture: 'cave-chauvet',
     colour: '#1b1715',
-    width: 1.9,
-    height: 1.5,
-    foot: 0.15,
+    width: 2.5,
+    height: 2.0,
+    foot: 0.75,
   },
   'prop-cave-wall-sulawesi': {
     texture: 'cave-leang-karampuang',
     colour: '#a3361f',
-    width: 3.3,
-    height: 1.35,
-    foot: 0.3,
+    width: 3.9,
+    height: 1.6,
+    foot: 0.75,
   },
 };
 /** A painting is painted in this many sessions (PAINT_SESSIONS in treeScene.ts). */
@@ -93,7 +93,9 @@ export class CavePaintings {
       });
       const geometry = new THREE.PlaneGeometry(p.width, p.height);
       // In front of the face, its foot above the lowered ground.
-      geometry.translate(0, p.foot + p.height / 2, 0.05);
+      geometry.translate(0, p.foot + p.height / 2, 0.23);
+      // Leaning back with the cave's face, about 24 degrees (caveWalls.ts).
+      geometry.rotateX(-0.42);
       // Turned as the tree's props are (figures.ts, turned): model +Z along the placement's facing.
       geometry.rotateY(Math.PI / 2);
       mesh = new THREE.Mesh(geometry, material);

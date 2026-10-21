@@ -62,6 +62,8 @@ export interface Mound {
   radiusKm: number;
   toward: [number, number, number];
   depthKm: number;
+  /** The rock of its face: 0 Chauvet's pale limestone, 1 Leang Karampuang's (caveWalls.ts). */
+  rock?: number;
 }
 
 /** How far a cut sinks the ground at a drawn direction, in drawn km, as the terrain shader does. */
@@ -81,10 +83,12 @@ export function moundDepthAt(m: Mound, v: [number, number, number]): number {
   const across = Math.max(0, 1 - s * s);
   const u = Math.min(1, Math.max(0, (Math.max(e, 0) - 0.3) / 0.7));
   const front = m.depthKm * across * across * (1 - u * u * (3 - 2 * u));
-  if (e >= 0) return front;
-  const back = -0.8 * m.depthKm * Math.max(0, 1 - Math.max(e * e, 0.04) - s * s) ** 1.5;
-  const w = Math.min(1, -e / 0.2);
-  return front + (back - front) * w * w * (3 - 2 * w);
+  const q = Math.min(1, Math.max(0, (s * s - 0.3) / 0.2));
+  const ends = 1 - q * q * (3 - 2 * q);
+  if (e >= 0) return front * ends;
+  const back = -0.8 * m.depthKm * Math.max(0, 1 - Math.max(e * e, 0.09) - s * s) ** 1.5;
+  const w = Math.min(1, -e / 0.3);
+  return (front + (back - front) * w ** 4) * ends;
 }
 
 export class Globe {

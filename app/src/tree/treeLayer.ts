@@ -135,7 +135,10 @@ export class TreeLayer {
   constructor(loader: ContentLoader, surface: SurfaceSource) {
     this.loader = loader;
     this.surface = surface;
-    this.walls = new CaveWalls((d) => surface.surfaceKm(d));
+    this.walls = new CaveWalls(
+      (d) => surface.surfaceKm(d),
+      () => surface.seaKm?.() ?? -Infinity,
+    );
     this.group.add(
       this.walls.group,
       this.batches.group,
@@ -582,6 +585,7 @@ export class TreeLayer {
       radiusKm: CAVE_CUT_M * k * LAYOUT_KM_PER_M,
       toward: [toward.x, toward.y, toward.z],
       depthKm: CAVE_CUT_DEEP_M * k * FIGURE_KM_PER_M * sink,
+      rock: q.kind === 'prop-cave-wall-sulawesi' ? 1 : 0,
     });
   }
 
