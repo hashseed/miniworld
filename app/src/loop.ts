@@ -123,6 +123,9 @@ export class FrameLoop {
     this.stopped = undefined;
   }
 
+  /** Cameras whose tiles are loaded ahead of need (the loading screen's flight in). */
+  warm: () => THREE.PerspectiveCamera[] = () => [];
+
   private frame = (now: number): void => {
     const p = this.parts;
     const input = this.inputs();
@@ -146,7 +149,8 @@ export class FrameLoop {
     u.screenUp!.value.set(e[4]!, e[5]!, e[6]!);
     // Wrapped to an hour so the shader's float keeps millisecond precision.
     u.time!.value = (p.clock.ms % 3_600_000) / 1000;
-    p.globe.update(p.camera, innerHeight, this.planet, day);
+    // The views the camera will fly to have their tiles loaded too.
+    p.globe.update(p.camera, innerHeight, this.planet, day, this.warm());
     p.foliage.clearings = [
       ...p.vignettes.clearings().map((dir) => ({ dir, km: CLEARING_KM, amount: 1 })),
       ...p.tree.clearings(),

@@ -283,6 +283,12 @@ export class CameraController {
     return THREE.MathUtils.clamp(autoTilt(this.state.altitudeKm) + this.state.tilt, 0, MAX_TILT);
   }
 
+  /** Puts `camera` where `state` would put the camera, without moving this one (to load what a later view needs). */
+  previewCamera(camera: THREE.PerspectiveCamera, state: CameraState): void {
+    const up = _up.fromArray(this.lens.toDrawn(latLonToDir(state.lat, state.lon)));
+    this.pose(camera, state, this.surface.surfaceKm(toVec3(up)));
+  }
+
   private place(dt: number): void {
     const s = this.state;
     const up = _up.fromArray(this.lens.toDrawn(latLonToDir(s.lat, s.lon)));
@@ -291,7 +297,11 @@ export class CameraController {
       this.targetSurfKm === undefined
         ? ground
         : this.targetSurfKm + (ground - this.targetSurfKm) * (1 - Math.exp(-dt * 2));
-    const surf = this.targetSurfKm;
+    this.pose(this.camera, this.state, this.targetSurfKm);
+  }
+
+  private pose(camera: THREE.PerspectiveCamera, s: CameraState, surf: number): void {
+    const up = _up.fromArray(this.lens.toDrawn(latLonToDir(s.lat, s.lon)));
     const target = _target.copy(up).multiplyScalar(EARTH_RADIUS_KM + surf);
     const north = _north;
     const east = _east;
@@ -301,7 +311,9 @@ export class CameraController {
       .copy(north)
       .multiplyScalar(Math.cos(h))
       .addScaledVector(east, Math.sin(h));
-    const tilt = THREE.MathUtils.degToRad(this.totalTilt);
+    const tilt = THREE.MathUtils.degToRad(
+      THREE.MathUtils.clamp(autoTilt(s.altitudeKm) + s.tilt, 0, MAX_TILT),
+    );
     const back = _back
       .copy(up)
       .multiplyScalar(Math.cos(tilt))
@@ -311,17 +323,17 @@ export class CameraController {
     const camUp = _camUp.copy(pos).normalize();
     const clear = EARTH_RADIUS_KM + this.surface.surfaceKm(toVec3(camUp)) + MIN_CLEARANCE_KM;
     if (pos.length() < clear) pos.setLength(clear);
-    this.camera.position.copy(pos);
-    this.camera.up
+    camera.position.copy(pos);
+    camera.up
       .copy(forward)
       .lerp(up, Math.cos(tilt) < 0.5 ? 1 - Math.cos(tilt) : 0.5)
       .normalize();
-    this.camera.lookAt(target);
+    camera.lookAt(target);
     const dist = pos.length() - EARTH_RADIUS_KM;
-    this.camera.near = Math.max(0.01, dist * 0.02);
-    this.camera.far = EARTH_RADIUS_KM * 4 + dist * 2;
-    this.camera.updateProjectionMatrix();
-    this.camera.updateMatrixWorld();
+    camera.near = Math.max(0.01, dist * 0.02);
+    camera.far = EARTH_RADIUS_KM * 4 + dist * 2;
+    camera.updateProjectionMatrix();
+    camera.updateMatrixWorld();
   }
 
   private dirOf(v: THREE.Vector3): Vec3 {

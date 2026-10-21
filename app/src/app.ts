@@ -657,7 +657,11 @@ async function start(): Promise<void> {
     resize();
     placeIntro();
     loop.start();
-    await firstView();
+    await settle(0.35, 0.7, 8000);
+    // Load the tiles of the view the camera is about to fly to while the small globe still
+    // spins, so the zoom does not run ahead of the data (issue 138).
+    warming = !controller.reducedMotion;
+    if (warming) await settle(0.7, 1, 20000);
     // For the still picture of the loading screen (scripts/loading-shot.ts): the small globe
     // stays, unturned.
     if (INTRO_HOLD) return;
@@ -760,6 +764,7 @@ function introFrame(dtMs: number): void {
 /** Once the world has loaded: the caption fades, the controls appear and the camera flies in. */
 async function handOver(): Promise<void> {
   if (!introTarget) return;
+  warming = false;
   const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
   ui.update({ intro: 'flying', loaded: 1 });
   const root = document.getElementById('ui')!;
@@ -780,8 +785,52 @@ function showLoaded(share: number): void {
   if (share >= ui.value.loaded + 0.01) ui.update({ loaded: Math.min(1, share) });
 }
 
-/** Resolves when the globe has stopped refining for a moment, or after a timeout. */
-function firstView(): Promise<void> {
+/** Whether the loading screen is loading the tiles of the view the camera will fly to. */
+let warming = false;
+/** Stages of the flight in whose tiles are loaded ahead, and how far (degrees) the globe turns on before the flight begins, for each. */
+const WARM_STAGES = 6;
+const WARM_LEADS = [0];
+const warmCameras = Array.from({ length: WARM_STAGES * WARM_LEADS.length }).map(() =>
+  camera.clone(),
+);
+
+/** Views along the flight in (as `spinTo` will fly it), for where the spinning globe will be when it begins. */
+loop.warm = () => {
+  if (!warming || !introTarget) return [];
+  const from = controller.state;
+  const to = introTarget;
+  const out: THREE.PerspectiveCamera[] = [];
+  for (const lead of WARM_LEADS) {
+    let degrees = (((from.lon - lead - to.lon) % 360) + 360) % 360;
+    if (degrees < INTRO_AHEAD_DEG) degrees += 360;
+    const duration = 3500 + (degrees > 360 ? 1500 : 0);
+    const start = Math.min(3, (INTRO_SPIN_DEG_PER_S * duration) / 1000 / degrees);
+    for (let i = 1; i <= WARM_STAGES; i++) {
+      const t = i / WARM_STAGES;
+      const e = t * t * (3 - 2 * t);
+      const k = start * (t * t * t - 2 * t * t + t) + (3 * t * t - 2 * t * t * t);
+      const cam = warmCameras[out.length]!;
+      cam.fov = camera.fov;
+      cam.aspect = camera.aspect;
+      cam.view = camera.view ? { ...camera.view } : null;
+      controller.previewCamera(cam, {
+        lat: from.lat + (to.lat - from.lat) * e,
+        lon: from.lon - lead - degrees * k,
+        altitudeKm: Math.exp(Math.log(from.altitudeKm) * (1 - e) + Math.log(to.altitudeKm) * e),
+        heading: to.heading * e,
+        tilt: to.tilt * e,
+      });
+      out.push(cam);
+    }
+  }
+  return out;
+};
+
+/**
+ * Resolves when the globe has stopped refining for a moment, or after a timeout, showing the
+ * share of the requests since the call that have finished between `lo` and `hi`.
+ */
+function settle(lo: number, hi: number, maxMs: number): Promise<void> {
   return new Promise((resolve) => {
     const begin = performance.now();
     const before = loader.finished;
@@ -791,13 +840,13 @@ function firstView(): Promise<void> {
       // The first view's share: the requests made since the index arrived that have finished.
       const done = loader.finished - before;
       const left = loader.pending + globe.pendingBuilds;
-      if (done + left > 0) showLoaded(0.35 + (0.65 * done) / (done + left));
+      if (done + left > 0) showLoaded(lo + ((hi - lo) * done) / (done + left));
       const tiles = globe.drawnTiles;
       if (tiles > 0 && tiles === last && loader.pending === 0 && globe.pendingBuilds === 0)
         stable++;
       else stable = 0;
       last = tiles;
-      if (stable > 10 || performance.now() - begin > 8000) resolve();
+      if (stable > 10 || performance.now() - begin > maxMs) resolve();
       else requestAnimationFrame(check);
     };
     requestAnimationFrame(check);
