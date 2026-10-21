@@ -20,7 +20,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
-    "golden": "vitest run app/src/planet/golden.test.ts data/build/pipeline.test.ts app/src/world/onLand.test.ts",
+    "golden": "vitest run app/src/planet/golden.test.ts data/build/pipeline.test.ts app/src/world/onLand",
     "check": "npm run lint && npm run typecheck && npm run test",
     "test:browser": "playwright test",
     "staging": "node scripts/staging.ts",

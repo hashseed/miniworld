@@ -2123,23 +2123,33 @@ export function checkTree(tree: Tree, s: TreeSettings, habitat: Habitat): string
     for (const h of f.homes) if (h[0] <= day) at = h;
     return at;
   };
+  // Indexed by camp and slot: a scan of every lodging per lodging is quadratic in the tree.
+  const bySlot = new Map<string, TreeLodging[]>();
   for (const l of tree.lodgings) {
     if (l.slot >= LODGING_SLOTS) problems.push(`lodging ${l.id} has no place round the hearth`);
-    const clash = tree.lodgings.find(
-      (o) =>
-        o.id < l.id &&
-        o.camp === l.camp &&
-        o.slot === l.slot &&
-        o.built <= l.built &&
-        (o.gone === NEVER || o.gone > l.built),
-    );
+    const key = `${l.camp}:${l.slot}`;
+    const group = bySlot.get(key);
+    if (group) group.push(l);
+    else bySlot.set(key, [l]);
+  }
+  for (const l of tree.lodgings) {
+    const clash = bySlot
+      .get(`${l.camp}:${l.slot}`)!
+      .find((o) => o.id < l.id && o.built <= l.built && (o.gone === NEVER || o.gone > l.built));
     if (clash) problems.push(`lodgings ${clash.id} and ${l.id} stand in the same place`);
   }
+  const byCamp = new Map<number, TreeFigure[]>();
+  for (const f of tree.figures)
+    for (const camp of new Set(f.homes.map((h) => tree.lodgings[h[1]]!.camp))) {
+      const group = byCamp.get(camp);
+      if (group) group.push(f);
+      else byCamp.set(camp, [f]);
+    }
   for (const f of tree.figures)
     for (const [day, lodging, spot] of f.homes) {
       if (spot >= HEARTH_SPOTS) problems.push(`figure ${f.id} has no spot at the hearth`);
       const camp = tree.lodgings[lodging]!.camp;
-      for (const o of tree.figures) {
+      for (const o of byCamp.get(camp)!) {
         if (o.id === f.id || !aliveOn(o, day) || o.born > day) continue;
         const at = spotOn(o, day);
         if (at && at[2] === spot && tree.lodgings[at[1]]!.camp === camp)
