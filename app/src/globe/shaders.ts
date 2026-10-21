@@ -93,9 +93,10 @@ uniform int moundCount;
 
 /**
  * How far the ground sinks at a drawn direction, in drawn km: the half towards the hearth
- * sinks, deepest at the cut and rising back to its rim, and the half behind the cut rises
- * into a round hill (negative), 0.8 times as much; along the cut both taper as a dome, so the
- * rock face between them follows the hill's contour.
+ * sinks, deepest at the cut and rising back to its rim; the half behind rises into a round
+ * hill (negative), 0.8 times as much. Along the cut both taper as a dome. Between them the
+ * ground slopes over a band behind the cut, in front of which the cave's wall stands
+ * (caveWalls.ts), so the coarse terrain mesh never draws the face's edges.
  */
 float moundAt(vec3 v, int i) {
   vec3 c = moundA[i].xyz;
@@ -105,35 +106,12 @@ float moundAt(vec3 v, int i) {
   float e = dot(d, f) / r;
   float s = dot(d, cross(c, f)) / r;
   float h = moundB[i].w;
-  if (e > 0.0) {
-    float across = max(0.0, 1.0 - s * s);
-    return h * across * across * (1.0 - smoothstep(0.3, 1.0, e));
-  }
-  return -0.8 * h * pow(max(0.0, 1.0 - e * e - s * s), 1.5);
+  float across = max(0.0, 1.0 - s * s);
+  float front = h * across * across * (1.0 - smoothstep(0.3, 1.0, max(e, 0.0)));
+  if (e >= 0.0) return front;
+  float back = -0.8 * h * pow(max(0.0, 1.0 - max(e * e, 0.04) - s * s), 1.5);
+  return mix(front, back, smoothstep(0.0, 1.0, -e / 0.2));
 }
-
-/**
- * Whether a drawn direction lies on a cut's rock face (the steep strip along the cut, where
- * the face stands high enough), and the face's outward direction: towards the hearth.
- */
-vec4 moundFace(vec3 v) {
-  vec4 face = vec4(0.0);
-  for (int i = 0; i < MOUNDS; i++) {
-    if (i >= moundCount) break;
-    vec3 c = moundA[i].xyz;
-    float r = moundA[i].w;
-    vec3 d = v - c * dot(v, c);
-    float e = dot(d, moundB[i].xyz) / r;
-    float s = dot(d, cross(c, moundB[i].xyz)) / r;
-    float across = max(0.0, 1.0 - s * s);
-    // From just behind the cut to a mesh step in front of it, where the ground falls, as far
-    // along it as the face is more than a sliver high.
-    float strip = step(-0.04, e) * (1.0 - step(0.12, e)) * smoothstep(0.05, 0.25, across);
-    if (strip > face.w) face = vec4(moundB[i].xyz, strip);
-  }
-  return face;
-}
-
 `;
 
 export const terrainVertex = /* glsl */ `
@@ -392,15 +370,6 @@ vec3 grassTufts(vec3 c, float amount) {
   return c * (1.0 + clamp(t, -1.0, 1.0) * 0.2 * amount);
 }
 
-/** The rock of a cut's face: layered strata, mottling and cracks, from the drawn position. */
-vec3 rockFace(vec3 p, float alt) {
-  float strata = sin(alt * 0.35 + (noise3(p * 0.05) - 0.5) * 5.0);
-  float mottle = noise3(p * 0.12) * 0.6 + noise3(p * 0.4) * 0.4;
-  float crack = 1.0 - smoothstep(0.0, 0.035, abs(noise3(p * 0.03 + 7.0) - 0.5));
-  vec3 rock = mix(vec3(0.5, 0.48, 0.45), vec3(0.68, 0.65, 0.6), 0.5 + 0.3 * strata);
-  rock *= 0.82 + 0.32 * mottle;
-  return mix(rock, vec3(0.28, 0.26, 0.25), crack * 0.75);
-}
 
 vec3 landColour(vec3 n, vec3 up, float arid, float riverF) {
   // Climate follows the true latitude, not the drawn one.
@@ -448,9 +417,6 @@ vec3 landColour(vec3 n, vec3 up, float arid, float riverF) {
   float line = snowLine(alat, glacial);
   float alpine = smoothstep(line - 1000.0, line - 300.0, vHeight + v * 200.0);
   c = mix(c, rock, clamp(smoothstep(0.35, 0.6, slope) + alpine * 0.85, 0.0, 1.0));
-  // A cave hill's cut face is rock (humankind.md section 8.2), per pixel, so the coarse mesh
-  // under it never shows.
-  c = mix(c, rockFace(vPattern, length(vWorld)), moundFace(normalize(vUp)).w);
   return c * (0.93 + 0.14 * v);
 }
 
@@ -622,9 +588,6 @@ void main() {
     float edge = 1.0 - smoothstep(0.0, 60.0, iceKm);
     albedo = mix(vec3(0.97, 0.99, 1.0), vec3(0.78, 0.9, 0.98), edge);
   } else {
-    // A cut's rock face is lit as one smooth face, not the coarse mesh's steep facets.
-    vec4 face = moundFace(up);
-    if (face.w > 0.0) n = normalize(mix(n, normalize(face.xyz + up * 0.15), face.w));
     albedo = landColour(n, up, clim.y, riverF);
   }
 
