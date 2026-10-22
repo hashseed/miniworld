@@ -84,6 +84,7 @@ export class Clouds {
   private puffs = cloudPuffs();
   private matrix = new THREE.Matrix4();
   private lastClockMs = -1;
+  private lastFade = -1;
 
   constructor() {
     this.material = new THREE.ShaderMaterial({
@@ -93,7 +94,6 @@ export class Clouds {
         lightDir: { value: new THREE.Vector3(0, 0, 1) },
         screenUp: { value: new THREE.Vector3(0, 1, 0) },
         cameraWorld: { value: new THREE.Vector3() },
-        fade: { value: 1 },
       },
     });
     this.mesh = new THREE.InstancedMesh(
@@ -112,12 +112,13 @@ export class Clouds {
     u.screenUp!.value.set(e[4]!, e[5]!, e[6]!);
     u.cameraWorld!.value.copy(camera.position);
     const altitude = camera.position.length() - EARTH_RADIUS_KM;
-    // Fade out as the camera comes closer, gone about when Europe fills the
+    // Shrink away as the camera comes closer, gone about when Europe fills the
     // screen, so close views stay clear (section 4.5).
-    u.fade!.value = THREE.MathUtils.smoothstep(altitude, CLOUD_GONE_KM, CLOUD_FULL_KM);
-    this.mesh.visible = u.fade!.value > 0.01;
-    if (!this.mesh.visible || clockMs === this.lastClockMs) return;
+    const fade = THREE.MathUtils.smoothstep(altitude, CLOUD_GONE_KM, CLOUD_FULL_KM);
+    this.mesh.visible = fade > 0.01;
+    if (!this.mesh.visible || (clockMs === this.lastClockMs && fade === this.lastFade)) return;
     this.lastClockMs = clockMs;
+    this.lastFade = fade;
 
     const { centre, east, north, up, pos, scale, q, basis } = SCRATCH;
     let current = -1;
@@ -142,7 +143,7 @@ export class Clouds {
         .addScaledVector(east, puff.offset[0])
         .addScaledVector(north, puff.offset[1])
         .addScaledVector(up, puff.offset[2]);
-      const g = puffGrowth(puff.cloud, puff.ball, lifeU);
+      const g = puffGrowth(puff.cloud, puff.ball, lifeU) * fade;
       scale.set(puff.radiusKm * g, puff.radiusKm * g, puff.radiusKm * g * 0.8);
       this.matrix.compose(pos, q, scale);
       this.mesh.setMatrixAt(i, this.matrix);
