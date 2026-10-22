@@ -10,8 +10,9 @@ import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 
 export const CLOUD_COUNT = 30;
 const PUFFS = 7;
-/** Height of the cloud centres above sea level, in km on the exaggerated globe. */
-export const CLOUD_ALTITUDE_KM = 650;
+/** Height of the cloud centres above sea level, in km on the exaggerated globe: well above the
+ * highest peak (about 880 km at 100x) with room for the clouds' own thickness. */
+export const CLOUD_ALTITUDE_KM = 1400;
 /** Camera altitudes (km) below which the clouds are gone, and above which they are fully drawn. */
 const CLOUD_GONE_KM = 3000;
 const CLOUD_FULL_KM = 5000;
