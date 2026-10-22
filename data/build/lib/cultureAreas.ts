@@ -48,6 +48,7 @@ export interface PeoplingInputs {
   sites: SiteMap;
   seaLevel(day: Day): number;
   walkFlood(lat: number, lon: number): number;
+  waterFlood?(lat: number, lon: number): number;
 }
 
 /** Koobi Fora, on the eastern shore of Lake Turkana (section 3.5). */
@@ -153,6 +154,7 @@ export function humankindSettings(c: CultureAreas, world: PeoplingInputs): TreeS
     sites: world.sites,
     seaLevel: world.seaLevel,
     walkFlood: world.walkFlood,
+    waterFlood: world.waterFlood,
     culture: (lat, lon, day) => areaAt(lat, lon, day)?.culture,
     livable: (lat, lon, day) => {
       const a = areaAt(lat, lon, day);

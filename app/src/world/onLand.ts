@@ -159,8 +159,6 @@ export function pathsOnLand(shard: number, shards: number): void {
             for (let ms = from; ms < to; ms += 1999) {
               const day = dayAtMs(ms, start);
               for (const f of treeScene(chunk, ms, start).figures) {
-                // Bands crossing the sea paddle canoes (peopling.md section 6).
-                if (f.clip === 'paddle') continue;
                 // Drawn km at the camp are fewer true km where the lens draws the land bigger.
                 const lens = lensWidth(f.lat, f.lon);
                 const dir = offsetDir(
@@ -169,6 +167,17 @@ export function pathsOnLand(shard: number, shards: number): void {
                   (f.x * LAYOUT_KM_PER_M) / lens,
                   (f.z * LAYOUT_KM_PER_M) / lens,
                 );
+                // Bands crossing the sea paddle canoes, and a canoe stays on the water
+                // (peopling.md section 6; Yang, 2026-10-20: "they must not be on boats on land").
+                if (f.clip === 'paddle') {
+                  if (!(await water(dir, day)))
+                    wet.add(
+                      `paddler ${f.id}`,
+                      'land',
+                      `window ${w}, ${ms} ms: figure ${f.id} paddles over land at ${where(dir)}`,
+                    );
+                  continue;
+                }
                 checked++;
                 const what = await water(dir, day);
                 if (what)
