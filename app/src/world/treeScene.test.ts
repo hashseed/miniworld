@@ -387,6 +387,104 @@ describe('the tree scene', () => {
     expect([...kinds(campAt(late), late).keys()]).toEqual(['animal-reindeer']);
   }, 30_000);
 
+  describe('bow hunts (issue 142)', () => {
+    // A camp of four grown-ups of one culture, standing from `from` for 4,000 years.
+    const campOf = (from: number, culture: string): TreeChunk => {
+      const ids = Array.from({ length: 60 }, (_, k) => k + 1)
+        .filter((id) => lookOf(id) !== 'child')
+        .slice(0, 4);
+      return {
+        fromDay: from,
+        toDay: from + years(4000),
+        figures: ids.map((id, k) => ({
+          id,
+          parent: NEVER,
+          born: from + 1,
+          branch: 0,
+          depth: 1,
+          homes: [[from + 1, k < 2 ? 0 : 1, k]],
+          lost: NEVER,
+        })),
+        lodgings: [0, 1].map((id) => ({
+          id,
+          camp: 7,
+          lat: 60_000_000,
+          lon: 100_000_000,
+          built: from,
+          gone: NEVER,
+          builder: ids[id * 2]!,
+          slot: id,
+          reach: [80, 80, 80, 80, 80],
+          kind: 'hut',
+          culture,
+        })),
+      };
+    };
+    const watch = (from: number, culture: string) => {
+      const camp = campOf(from, culture);
+      const clips = new Set<string>();
+      const kinds = new Set<string | undefined>();
+      const arrowsOf = new Map<string, Set<string>>();
+      const preyOf = new Map<string, string>();
+      const walked = new Set<string>();
+      let nocked = 0;
+      let heldTool = 0;
+      for (let t = ms(from) + 60_000; t < ms(from + years(4000)) - 10_000; t += 61) {
+        const scene = treeScene(camp, t, d0);
+        for (const f of scene.figures) clips.add(f.clip);
+        for (const p of scene.prey) {
+          if (p.id.split(':').length === 2) {
+            preyOf.set(p.id, p.kind);
+            if (p.clip === 'walk' && scene.spears.some((q) => q.id.startsWith(p.id + ':')))
+              walked.add(p.id);
+          }
+        }
+        for (const sp of scene.spears) {
+          kinds.add(sp.kind);
+          const [a, b, n, extra] = sp.id.split(':');
+          const hunt = `${a}:${b}`;
+          if (extra === 'nock') nocked++;
+          if (sp.kind === 'arrow' && !extra) {
+            const set = arrowsOf.get(hunt) ?? new Set();
+            set.add(n!);
+            arrowsOf.set(hunt, set);
+          }
+        }
+        heldTool += scene.figures.filter((f) => f.clip === 'shoot' && f.unarmed).length;
+      }
+      return { clips, kinds, arrowsOf, preyOf, walked, nocked, heldTool };
+    };
+
+    it('has hunters shoot arrows from a bow after 45,000 BCE, two at the larger game', () => {
+      const from = d0 + years(30_000); // about 40,000 BCE
+      const seen = watch(from, 'steppe-beringia-hunter');
+      expect(seen.clips.has('shoot')).toBe(true);
+      expect(seen.clips.has('throw')).toBe(false);
+      expect(seen.kinds).toEqual(new Set(['bow', 'arrow']));
+      expect(seen.nocked).toBeGreaterThan(0);
+      expect(seen.heldTool).toBe(0);
+      // A reindeer or a mammoth party: more than one arrow; the larger game wounded first.
+      const twoArrows = [...seen.arrowsOf].filter(
+        ([hunt, set]) => set.size >= 2 && seen.preyOf.get(hunt) === 'animal-reindeer',
+      );
+      expect(twoArrows.length).toBeGreaterThan(0);
+      // The wounded animal walks on with the first arrow in it.
+      expect(seen.walked.size).toBeGreaterThan(0);
+    }, 60_000);
+
+    it('keeps spears before 45,000 BCE, and for the Neanderthals after it', () => {
+      for (const [from, culture] of [
+        [d0 + years(1000), 'steppe-beringia-hunter'],
+        [d0 + years(30_000), 'neanderthal'],
+      ] as const) {
+        const seen = watch(from, culture);
+        expect(seen.clips.has('shoot')).toBe(false);
+        expect(seen.clips.has('throw')).toBe(true);
+        expect(seen.kinds).toEqual(new Set([undefined]));
+      }
+    }, 60_000);
+  });
+
   it('lets the herd scatter and stand a while, each fading on its own (section 8.1)', () => {
     // Per herd mate: the frames it stood idle after running off, and when it was last seen.
     const stood = new Map<string, number>();

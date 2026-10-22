@@ -1094,3 +1094,23 @@ export function buildSpear(): Model {
   addTool(mb, 'spear', [0, 0.6, 0], 1);
   return mb.build('spear');
 }
+
+/**
+ * A hunter's bow on its own, drawn in his left hand during the shoot clip (humankind.md
+ * section 8.1): the limbs along +Y, centred at the origin, the middle bowed towards +Z, the
+ * way the arrow flies, and the string straight behind.
+ */
+export function buildBow(): Model {
+  const mb = new ModelBuilder([{ name: 'tool', pivot: [0, 0, 0] }]);
+  addTool(mb, 'bow', [0, 0, 0], 1);
+  return mb.build('bow');
+}
+
+/** An arrow on its own: the shaft along +Y with its middle at the origin, flint head up, 0.7 m long. */
+export function buildArrow(): Model {
+  const mb = new ModelBuilder([{ name: 'tool', pivot: [0, 0, 0] }]);
+  mb.add(rod([0, -0.35, 0], [0, 0.32, 0], 0.008, 4), WOOD, 'tool');
+  mb.add(cone([0, 0.3, 0], [0, 0.4, 0], 0.02, 4), FLINT, 'tool');
+  mb.add(rod([0, -0.35, 0], [0, -0.25, 0], 0.016, 4), '#e6dccb', 'tool');
+  return mb.build('arrow');
+}

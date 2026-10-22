@@ -10,6 +10,8 @@ import { lightUniforms, type Model } from '../../../assets/src/kit.ts';
 import { buildProp as buildCastProp, PROPS, type PropId } from '../../../assets/src/landmarks.ts';
 import {
   buildPerson,
+  buildArrow,
+  buildBow,
   buildSpear,
   PROFILES,
   type Kind,
@@ -269,6 +271,12 @@ export const TREE_SPEAR_BATCH: TreeBatch = {
     return spear;
   },
 };
+
+/** The batch of arrows: the shaft along +Y, its middle at the origin, at life size. */
+export const TREE_ARROW_BATCH: TreeBatch = { key: 'arrow', build: buildArrow };
+
+/** The batch of a bow in the archer's hand: its limbs along +Y, its middle bowed towards +Z, the way the arrow flies. */
+export const TREE_BOW_BATCH: TreeBatch = { key: 'bow', build: buildBow };
 
 /** A hunted animal of the tree by its model id, facing +X like the stage, or undefined without an approved model. */
 export function buildTreePrey(id: AnimalId): StandIn | undefined {

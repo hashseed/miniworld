@@ -324,6 +324,30 @@ const MAMMOTH = {
   butcher: Math.round(7000 / TEMPO),
   remains: Math.round(20_000 / TEMPO),
 };
+/** Hunters of every culture but the Neanderthals' shoot with bows from about 45,000 BCE (section 8.1). */
+const BOW_FROM: Day = dayOfYearStart(astronomicalYear(45_000, 'BCE'));
+/** The shoot clip runs this long; the arrow leaves the string at SHOOT_RELEASE_MS. */
+const SHOOT_MS = Math.ceil(2400 / TEMPO);
+const SHOOT_RELEASE_MS = Math.round(1100 / TEMPO);
+/** A wounded animal walks on for this long, slowly, and a bow hunter lets it settle before the next arrow. */
+const WOUND_MS = Math.ceil(4000 / TEMPO);
+const SETTLE_MS = 300;
+/** The larger game takes two arrows. */
+const LARGE_GAME: ReadonlySet<PreyKind> = new Set([
+  'animal-zebra',
+  'animal-eland',
+  'animal-reindeer',
+  'animal-aurochs',
+]);
+/** Each arrow strikes an animal this much further out along the lane than the one before. */
+const BOW_STEP_M = 3;
+/** The bow is held this far ahead of the archer and this far to his left, the arrow leaves the string at this height (life-size metres). */
+const BOW_AHEAD_M = 0.6;
+const BOW_ASIDE_M = 0.2;
+const BOW_H = 1.38;
+/** The arrow's middle at the draw, ahead of the archer in life-size metres: at rest on the bow, then drawn back. */
+const NOCK_REST_M = 0.9;
+const NOCK_DRAWN_M = 0.4;
 const MAMMOTH_UNTIL: Day = dayOfYearStart(astronomicalYear(10_000, 'BCE'));
 
 /** Clip changes ease over this long (milestone 2, section 5.3). */
@@ -371,6 +395,7 @@ export type TreeClip =
   | 'run'
   | 'carry'
   | 'throw'
+  | 'shoot'
   | 'pole'
   | 'bearBehind'
   | 'bearAhead'
@@ -486,6 +511,8 @@ export interface ClearingPose {
 /** A hunter's spear away from his hand: its middle, height above the ground in life-size metres, and pitch. */
 export interface SpearPose extends Placed {
   id: string;
+  /** An arrow in a bow hunt, or the bow itself in the archer's hand (humankind.md section 8.1); a spear without it. */
+  kind?: 'arrow' | 'bow';
   height: number;
   /** Rise per unit along (dirX, dirZ), tip first; negative points down. */
   slope: number;
@@ -2761,6 +2788,7 @@ export function treeScene(
     const start = turnStartOf(st.f.id, k);
     const kind = preyKindOf(st, k, small);
     const big = kind === 'animal-mammoth';
+    const bow = st.home.culture !== 'neanderthal' && start >= at(BOW_FROM);
     const helper = big ? undefined : party[0];
     const grazeM = big ? MAMMOTH.graze : PREY_GRAZE_M;
     const fallM = big ? MAMMOTH.fall : PREY_FALL_M;
@@ -2773,7 +2801,20 @@ export function treeScene(
     });
     const graze = lane(grazeM);
     const miss = hash01(st.f.id, k, 87) < MISS_SHARE;
-    const kill = miss ? lane(fallM) : graze;
+    // With a bow, a miss and then the larger game's first arrow each leave it a step further on.
+    const shots: ('miss' | 'wound' | 'kill')[] =
+      bow && !big
+        ? [
+            ...(miss ? ['miss' as const] : []),
+            ...(LARGE_GAME.has(kind) ? ['wound' as const] : []),
+            'kill',
+          ]
+        : [];
+    const kill = shots.length
+      ? lane(grazeM + BOW_STEP_M * (shots.length - 1))
+      : miss
+        ? lane(fallM)
+        : graze;
     // The herd comes out of the trees at the far end of the lane, where its land ends.
     const entry = lane(Math.min(outingRoom(st.s, st.home), MAX_OUTING_M) - 1);
     const appear = start - ROAM_MS;
@@ -2811,13 +2852,14 @@ export function treeScene(
         from: stand(i),
         // Into its flank, a little apart, so every spear shows.
         to: offset(graze, (i - (n - 1) / 2) * 1.2, 0),
-        release: ready + i * MAMMOTH.throwEvery + RELEASE_MS,
+        release: ready + i * MAMMOTH.throwEvery + (bow ? SHOOT_RELEASE_MS : RELEASE_MS),
         hit: true,
         pulled: Infinity,
       }));
       trips.forEach((trip, i) => {
         const at = ready + i * MAMMOTH.throwEvery;
-        trip.stay(at, 'idle', graze).stay(at + THROW_MS, 'throw', graze);
+        if (bow) trip.stay(at, 'idle', graze).stay(at + SHOOT_MS, 'shoot', graze);
+        else trip.stay(at, 'idle', graze).stay(at + THROW_MS, 'throw', graze);
       });
       const killed = flights.at(-1)!.release + FLIGHT_MS;
       const round: [number, number][] = [
@@ -2863,6 +2905,8 @@ export function treeScene(
         kill: graze,
         drop: lane(DROP_M),
         alert: Infinity,
+        bow,
+        steps: [],
         killed,
         bind,
         lift: Infinity,
@@ -2877,29 +2921,62 @@ export function treeScene(
     const hunter = new Itinerary(start, st.spot, camp).go(lane(grazeM - gapM));
     const aide = helper && new Itinerary(start, helper.spot, camp).go(lane(grazeM - gapM - 3));
     const ready = Math.max(hunter.t, aide?.t ?? 0, arrive + GRAZE_FIRST_MS);
-    hunter.stay(ready, 'idle', graze).stay(ready + THROW_MS, 'throw', graze);
     const flights: Flight[] = [];
-    const first = {
-      from: lane(grazeM - gapM),
-      to: miss ? offset(graze, MISS_BEYOND_M, MISS_SIDE_M) : graze,
-      release: ready + RELEASE_MS,
-      hit: !miss,
-      pulled: Infinity,
-    };
-    flights.push(first);
-    let killed = first.release + FLIGHT_MS;
+    let killed: number;
     let alert = Infinity;
-    if (miss) {
-      // Walk to the spear, pull it out of the ground, walk closer and throw again.
-      hunter.go(offset(first.to, -1.2, 0)).stay(hunter.t + PICK_MS, 'work', first.to);
-      first.pulled = hunter.t - PICK_MS / 2;
-      alert = first.release + FLIGHT_MS;
-      const from = lane(fallM - gapM);
-      hunter.go(from);
-      const t2 = hunter.t;
-      hunter.stay(t2 + THROW_MS, 'throw', kill);
-      flights.push({ from, to: kill, release: t2 + RELEASE_MS, hit: true, pulled: Infinity });
-      killed = t2 + RELEASE_MS + FLIGHT_MS;
+    const steps: Hunt['steps'] = [];
+    if (shots.length) {
+      // Bow: the hunter stays at his place and shoots again each time the animal has settled.
+      const from = lane(grazeM - gapM);
+      let go = ready;
+      shots.forEach((shot, j) => {
+        const aim = lane(grazeM + BOW_STEP_M * j);
+        hunter.stay(go, 'idle', aim).stay(go + SHOOT_MS, 'shoot', aim);
+        const release = go + SHOOT_RELEASE_MS;
+        const fl: Flight = {
+          from,
+          to: shot === 'miss' ? offset(aim, MISS_BEYOND_M, MISS_SIDE_M) : aim,
+          release,
+          hit: shot !== 'miss',
+          pulled: Infinity,
+        };
+        flights.push(fl);
+        if (shot === 'kill') return;
+        const dur = shot === 'miss' ? BOLT_MS : WOUND_MS;
+        steps.push({
+          at: release + FLIGHT_MS,
+          dur,
+          from: aim,
+          to: lane(grazeM + BOW_STEP_M * (j + 1)),
+          run: shot === 'miss',
+        });
+        if (shot === 'miss') alert = release + FLIGHT_MS;
+        go = Math.max(hunter.t, release + FLIGHT_MS + dur + SETTLE_MS - SHOOT_RELEASE_MS);
+      });
+      killed = flights.at(-1)!.release + FLIGHT_MS;
+    } else {
+      hunter.stay(ready, 'idle', graze).stay(ready + THROW_MS, 'throw', graze);
+      const first = {
+        from: lane(grazeM - gapM),
+        to: miss ? offset(graze, MISS_BEYOND_M, MISS_SIDE_M) : graze,
+        release: ready + RELEASE_MS,
+        hit: !miss,
+        pulled: Infinity,
+      };
+      flights.push(first);
+      killed = first.release + FLIGHT_MS;
+      if (miss) {
+        // Walk to the spear, pull it out of the ground, walk closer and throw again.
+        hunter.go(offset(first.to, -1.2, 0)).stay(hunter.t + PICK_MS, 'work', first.to);
+        first.pulled = hunter.t - PICK_MS / 2;
+        alert = first.release + FLIGHT_MS;
+        const from = lane(fallM - gapM);
+        hunter.go(from);
+        const t2 = hunter.t;
+        hunter.stay(t2 + THROW_MS, 'throw', kill);
+        flights.push({ from, to: kill, release: t2 + RELEASE_MS, hit: true, pulled: Infinity });
+        killed = t2 + RELEASE_MS + FLIGHT_MS;
+      }
     }
     const thrown = hunter.t;
     const hit = flights.at(-1)!;
@@ -2941,6 +3018,8 @@ export function treeScene(
       hit.pulled = bind;
       hunter.go(st.spot, 'carry');
     }
+    // Arrows that stayed in the ground or in a wounded animal go with the kill (pulled out as it is cut up).
+    for (const f of flights) if (f.pulled === Infinity) f.pulled = hit.pulled;
     const end = Math.max(hunter.t, aide?.t ?? 0);
     const pole = !!aide && !big;
     const landed = flights[0]!.release + FLIGHT_MS;
@@ -2978,6 +3057,8 @@ export function treeScene(
       kill,
       drop,
       alert,
+      bow,
+      steps,
       killed,
       bind,
       lift,
@@ -3018,9 +3099,30 @@ export function treeScene(
         clipMs: ms - h.appear,
         visibility,
       };
-    else if (
-      h.flights.length > 1 &&
-      h.alert === Infinity &&
+    else if (h.steps.length && ms >= h.steps[0]!.at && ms < h.killed) {
+      // A bow hunt's animal after an arrow that did not kill it: it runs from a miss, walks on
+      // slowly from a hit, and stands looking back.
+      const step = h.steps.findLast((x) => x.at <= ms)!;
+      prey =
+        ms < step.at + step.dur
+          ? {
+              ...base,
+              ...lerp(step.from, step.to, t(step.at, step.at + step.dur)),
+              ...towards(step.from.x, step.from.z, step.to.x, step.to.z),
+              clip: step.run ? 'run' : 'walk',
+              clipMs: ms - step.at,
+              visibility,
+            }
+          : {
+              ...base,
+              ...step.to,
+              ...inward,
+              clip: 'idle',
+              clipMs: ms - step.at - step.dur,
+              visibility,
+            };
+    } else if (
+      h.kind === 'animal-mammoth' &&
       ms >= h.flights[0]!.release + FLIGHT_MS &&
       ms < h.killed
     )
@@ -3125,23 +3227,73 @@ export function treeScene(
     // The spears: in the air, stuck in the animal or the ground, or back in the hand.
     h.flights.forEach((fl, n) => {
       const land = fl.release + FLIGHT_MS;
-      if (ms < fl.release || ms >= fl.pulled) return;
-      const dist = Math.sqrt((fl.to.x - fl.from.x) ** 2 + (fl.to.z - fl.from.z) ** 2);
       const way = towards(fl.from.x, fl.from.z, fl.to.x, fl.to.z);
+      if (h.bow) {
+        // The archer's bow for the whole gesture, with the arrow on the string until it is loosed.
+        const begin = fl.release - SHOOT_RELEASE_MS;
+        if (ms >= begin && ms < begin + SHOOT_MS) {
+          const aside = { x: -way.dirZ, z: way.dirX };
+          const draw = smoothstep(t(begin + 0.35 * SHOOT_RELEASE_MS, fl.release));
+          const grip = {
+            x: fl.from.x + (way.dirX * BOW_AHEAD_M + aside.x * BOW_ASIDE_M) * 3,
+            z: fl.from.z + (way.dirZ * BOW_AHEAD_M + aside.z * BOW_ASIDE_M) * 3,
+          };
+          scene.spears.push({
+            id: `${h.id}:${n}:bow`,
+            kind: 'bow',
+            lat: h.lat,
+            lon: h.lon,
+            ...grip,
+            ...way,
+            height: BOW_H,
+            slope: 0,
+          });
+          if (ms < fl.release) {
+            const ahead = NOCK_DRAWN_M + (NOCK_REST_M - NOCK_DRAWN_M) * (1 - draw);
+            scene.spears.push({
+              id: `${h.id}:${n}:nock`,
+              kind: 'arrow',
+              lat: h.lat,
+              lon: h.lon,
+              x: fl.from.x + (way.dirX * ahead + aside.x * BOW_ASIDE_M) * 3,
+              z: fl.from.z + (way.dirZ * ahead + aside.z * BOW_ASIDE_M) * 3,
+              ...way,
+              height: BOW_H,
+              slope: 0,
+            });
+          }
+        }
+      }
+      if (ms < fl.release || ms >= fl.pulled) return;
+      const kind = h.bow ? ('arrow' as const) : undefined;
+      // An arrow starts from the string, a bit ahead of the archer and at the bow's height.
+      const aside = { x: -way.dirZ, z: way.dirX };
+      const origin = h.bow
+        ? {
+            x: fl.from.x + (way.dirX * NOCK_DRAWN_M + aside.x * BOW_ASIDE_M) * 3,
+            z: fl.from.z + (way.dirZ * NOCK_DRAWN_M + aside.z * BOW_ASIDE_M) * 3,
+          }
+        : fl.from;
+      const startH = h.bow ? BOW_H : HAND_H;
+      const dist = Math.sqrt((fl.to.x - origin.x) ** 2 + (fl.to.z - origin.z) ** 2);
       const id = `${h.id}:${n}`;
+      // An arrow in an animal that walked on goes with it.
+      const step = h.steps.find((x) => x.from === fl.to);
+      const to = fl.hit && step ? lerp(step.from, step.to, t(step.at, step.at + step.dur)) : fl.to;
       if (ms < land) {
         // At the figures' scale: three layout metres to a life-size one.
         const life = dist / 3;
         const f = (ms - fl.release) / FLIGHT_MS;
         const end = fl.hit ? HIT_H : 0;
         const arc = SPEAR_ARC * life;
-        const height = HAND_H + (end - HAND_H) * f + 4 * f * (1 - f) * arc;
-        const climb = end - HAND_H + 4 * arc * (1 - 2 * f);
+        const height = startH + (end - startH) * f + 4 * f * (1 - f) * arc;
+        const climb = end - startH + 4 * arc * (1 - 2 * f);
         scene.spears.push({
           id,
+          ...(kind ? { kind } : {}),
           lat: h.lat,
           lon: h.lon,
-          ...lerp(fl.from, fl.to, f),
+          ...lerp(origin, fl.to, f),
           ...way,
           height,
           slope: climb / life,
@@ -3153,10 +3305,11 @@ export function treeScene(
         const back = 0.5;
         scene.spears.push({
           id,
+          ...(kind ? { kind } : {}),
           lat: h.lat,
           lon: h.lon,
-          x: fl.to.x - way.dirX * back,
-          z: fl.to.z - way.dirZ * back,
+          x: to.x - way.dirX * back,
+          z: to.z - way.dirZ * back,
           ...way,
           height: fl.hit ? HIT_H - 0.45 * sink : 0.55,
           slope: fl.hit ? -0.5 - 0.3 * sink : -1.3,
@@ -3290,7 +3443,7 @@ export function treeScene(
         plan.legs.push(...hunt.legs.get(f.id)!);
         plan.t = hunt.end;
         if (hunt.hunter === f.id)
-          unarmed = hunt.flights.some((fl) => ms >= fl.release && ms < fl.pulled);
+          unarmed = !hunt.bow && hunt.flights.some((fl) => ms >= fl.release && ms < fl.pulled);
       } else if (game) {
         plan.stay(game.start, 'rest');
         plan.legs.push(...game.legs.get(f.id)!);
@@ -3525,6 +3678,10 @@ interface Hunt {
   drop: Pt;
   /** When a missed spear lands and the animal bolts (Infinity without a miss). */
   alert: number;
+  /** The hunter shoots with a bow (from BOW_FROM), the party too. */
+  bow: boolean;
+  /** A bow hunt's animal moves on after an arrow that does not kill it: when, how long, from where to where, running or walking. */
+  steps: { at: number; dur: number; from: Pt; to: Pt; run: boolean }[];
   killed: number;
   bind: number;
   lift: number;

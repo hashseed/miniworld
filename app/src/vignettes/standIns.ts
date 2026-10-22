@@ -136,7 +136,8 @@ export function buildHuman(key: string, rules: CastRules = {}): StandIn {
     let drop = 0;
     let bob = 0;
     bundle.visible = clip === 'carry';
-    if (spear) spear.visible = !(clip === 'throw' && s > 0.55) && clip !== 'carry';
+    if (spear)
+      spear.visible = !(clip === 'throw' && s > 0.55) && clip !== 'carry' && clip !== 'shoot';
     const w = (hz: number) => Math.sin(s * TWO_PI * hz);
     switch (clip) {
       case 'walk':
@@ -172,6 +173,11 @@ export function buildHuman(key: string, rules: CastRules = {}): StandIn {
         armSwingR = s < 0.4 ? -2.4 * (s / 0.4) : s < 0.6 ? -2.4 + 4.0 * ((s - 0.4) / 0.2) : 1.6;
         armSwingL = 0.8;
         lean = s < 0.4 ? 0.15 : -0.25;
+        break;
+      case 'shoot':
+        armSwingR = -1.5;
+        armSwingL = -1.5;
+        lean = 0.1;
         break;
       case 'cheer':
         armSwingL = Math.PI - 0.4 + 0.3 * w(2);

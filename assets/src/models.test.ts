@@ -12,6 +12,7 @@ import {
   GAITS,
   PERSON_LOOPS,
   THROW_RELEASE,
+  SHOOT_RELEASE,
   animalLoop,
   animateAnimal,
   animatePerson,
@@ -31,7 +32,7 @@ import {
   pyramidSurface,
   type LandmarkAssetId,
 } from './landmarks.ts';
-import { PROFILES, buildPerson, type Kind } from './people.ts';
+import { PROFILES, buildArrow, buildBow, buildPerson, type Kind } from './people.ts';
 import { SHELTERS, buildHearth, buildShelter } from './shelters.ts';
 
 const KINDS: Kind[] = ['man', 'woman', 'child'];
@@ -142,7 +143,17 @@ describe('shelters and animals', () => {
 });
 
 describe('clips', () => {
-  const clips: Clip[] = ['idle', 'walk', 'run', 'carry', 'work', 'point', 'throw', 'cheer'];
+  const clips: Clip[] = [
+    'idle',
+    'walk',
+    'run',
+    'carry',
+    'work',
+    'point',
+    'throw',
+    'shoot',
+    'cheer',
+  ];
 
   function pose(m: Model): number[] {
     return [...m.bones.values()].flatMap(
@@ -277,6 +288,21 @@ describe('clips', () => {
           prev = cur;
         }
       }
+  });
+
+  it('the held tool is hidden for the whole bow gesture, and the arrow leaves the string after the bow is up', () => {
+    const m = buildPerson({ profile: 'ice-age-hunter', kind: 'man' });
+    const tool = m.bones.get('tool')!;
+    animatePerson(m, 'shoot', 0);
+    expect(tool.visible).toBe(false);
+    animatePerson(m, 'shoot', SHOOT_RELEASE - 0.01);
+    const drawn = m.bones.get('armLowerR')!.rotation.x;
+    animatePerson(m, 'shoot', SHOOT_RELEASE + 0.3);
+    expect(m.bones.get('armLowerR')!.rotation.x).toBeGreaterThan(drawn);
+    expect(buildBow().object.children.length).toBeGreaterThan(0);
+    expect(buildArrow().object.children.length).toBeGreaterThan(0);
+    animatePerson(m, 'idle', 0);
+    expect(tool.visible).toBe(true);
   });
 
   it('the spear leaves the hand at the release time and comes back for other clips', () => {

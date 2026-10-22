@@ -398,7 +398,7 @@ The first models are the people, shelters and animals of the seven culture profi
 
 | Profile | Clothing | Tools in hand |
 | --- | --- | --- |
-| `african-stone-age` | Short hide wrap or apron, ostrich-eggshell bead strings | Spear, digging stick (the men carry spears, not bows; Yang, 2026-10-19) |
+| `african-stone-age` | Short hide wrap or apron, ostrich-eggshell bead strings | Spear, digging stick (the men carry spears; from about 45,000 BCE they hunt with a bow, drawn as its own prop during the `shoot` clip, humankind.md section 8.1; Yang, 2026-10-19 and 2026-10-22) |
 | `neanderthal` | Draped untailored hide over the shoulders, fur wraps on the legs | Heavy thrusting spear, stone scraper |
 | `coastal-asia-hunter` | Plant-fibre skirt or hide wrap | Fishing spear, shell basket |
 | `first-australians` | Possum-skin cloak (in the south), ochre lines on the skin | Spear, digging stick, wooden dish |
@@ -437,7 +437,7 @@ The first models are the people, shelters and animals of the seven culture profi
 | `animal-gazelle` | Mountain gazelle | The Levant |
 | `animal-kangaroo` | Grey kangaroo | Sahul |
 
-**Clips.** Until the asset build bakes animation textures (section 5.3), each clip is a pure function of the clip and the seconds since it started, in `assets/src/clips.ts`, which vignettes may call every frame and the bake will sample. The first set is what the mammoth hunt needs: idle, walk, run, carry (a hide-wrapped bundle of meat across the shoulders), work (crouched, cutting), knap (kneeling, striking a hand axe held on the knee with a hammerstone; models whose culture knaps carry both stones on bones `knap` and `hammer`, shown only during this clip, while the held tool is hidden), point, throw (the spear leaves the hand 0.55 s into a 3 s gesture) and cheer for people; idle, walk, run and fall for animals, where the animal rolls onto its side and sinks a little over 3 s and then lies still, with nothing more shown.
+**Clips.** Until the asset build bakes animation textures (section 5.3), each clip is a pure function of the clip and the seconds since it started, in `assets/src/clips.ts`, which vignettes may call every frame and the bake will sample. The first set is what the mammoth hunt needs: idle, walk, run, carry (a hide-wrapped bundle of meat across the shoulders), work (crouched, cutting), knap (kneeling, striking a hand axe held on the knee with a hammerstone; models whose culture knaps carry both stones on bones `knap` and `hammer`, shown only during this clip, while the held tool is hidden), point, throw (the spear leaves the hand 0.55 s into a 3 s gesture), shoot (a bow drawn and an arrow loosed 1.1 s into a 2.4 s gesture, with the held tool hidden) and cheer for people; idle, walk, run and fall for animals, where the animal rolls onto its side and sinks a little over 3 s and then lies still, with nothing more shown.
 
 **Review sheets.** `npm run asset-sheets` serves `app/asset-sheet.html` with the dev server and saves one image per sheet with Playwright: each profile's man, woman and child beside its shelter and hearth; a turnaround of one figure; all shelters; all animals with a figure for scale. The sheets go to Yang for review (section 13.2) and every model is listed in `data/assets/manifest.json` with status `generated` until approved.
 
