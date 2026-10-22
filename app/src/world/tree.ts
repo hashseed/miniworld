@@ -55,6 +55,8 @@ export interface TreeLodging {
   room?: number;
   /** On a steep mountainside: no game of catch on the slope round it (humankind.md section 8.1). */
   steep?: boolean;
+  /** Drawn km per true km at its place, from the history lens; left out where it is 1 (humankind.md section 8.2). */
+  width?: number;
   /** Asset id of its model, from the architecture set of its culture. */
   kind: string;
   /** Tree cover at its camp's place, 0 to 1, when it was built (section 8.1); the band fells it first. */

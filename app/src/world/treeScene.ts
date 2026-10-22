@@ -1399,6 +1399,7 @@ export function treeScene(
   // What does not change with the clock is worked out once per chunk and kept (memoOf).
   const memo = memoOf(chunk, startDay);
   const lodgings = memo.lodgings;
+  let widths: Map<string, number> | undefined;
   const at = (day: Day) => msAtDay(day, startDay);
 
   // When each lodging's people start taking it down, so it is gone by the day they leave.
@@ -2049,12 +2050,29 @@ export function treeScene(
     } satisfies CampEvent;
   }
 
-  /** A place's offset from another's in layout metres, east and north. */
-  function offsetM(from: { lat: number; lon: number }, to: { lat: number; lon: number }): Pt {
+  /** The history lens's drawn km per true km at a camp's place, from its lodgings. */
+  function widthOf(p: { camp: number; lat: number; lon: number }): number {
+    if (!widths) {
+      widths = new Map();
+      for (const l of lodgings.values()) widths.set(`${l.camp}:${l.lat}:${l.lon}`, l.width ?? 1);
+    }
+    return widths.get(`${p.camp}:${p.lat}:${p.lon}`) ?? 1;
+  }
+
+  /**
+   * A place's offset from another's in layout metres, east and north. Layout metres are
+   * drawn, so a true distance counts for as much more as the history lens draws the land
+   * bigger there, on average between the two places (humankind.md section 8.2).
+   */
+  function offsetM(
+    from: { camp: number; lat: number; lon: number },
+    to: { camp: number; lat: number; lon: number },
+  ): Pt {
     const mid = (deg(from.lat) + deg(to.lat)) / 2;
+    const w = (widthOf(from) + widthOf(to)) / 2;
     return {
-      x: ((deg(to.lon) - deg(from.lon)) * 111.2 * detCos(mid * RAD)) / LAYOUT_KM_PER_M,
-      z: ((deg(to.lat) - deg(from.lat)) * 111.2) / LAYOUT_KM_PER_M,
+      x: (w * (deg(to.lon) - deg(from.lon)) * 111.2 * detCos(mid * RAD)) / LAYOUT_KM_PER_M,
+      z: (w * (deg(to.lat) - deg(from.lat)) * 111.2) / LAYOUT_KM_PER_M,
     };
   }
 
