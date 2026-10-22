@@ -548,8 +548,8 @@ describe('the tree scene', () => {
         ...[6, 7, 8, 9].map((i) => figure(i, 1)),
       ],
       lodgings: [
-        { ...chunk.lodgings[0]!, camp: 2 },
-        { ...chunk.lodgings[0]!, id: 1, camp: 3, lon: 39_000_000 },
+        { ...chunk.lodgings[0]!, camp: 2, gone: NEVER },
+        { ...chunk.lodgings[0]!, id: 1, camp: 3, lon: 39_000_000, gone: NEVER },
       ],
       stages: [stage],
     };
