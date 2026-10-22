@@ -644,7 +644,7 @@ export class TreeLayer {
       depthKm: CAVE_CUT_DEEP_M * k * FIGURE_KM_PER_M * sink,
       sink,
       walled: sink >= CAVE_WALL_FROM,
-      rock: q.kind === 'prop-cave-wall-sulawesi' ? 1 : 0,
+      rock: q.kind === 'prop-cave-wall-sulawesi' ? 1 : q.kind === 'prop-cave-wall-lascaux' ? 2 : 0,
     });
   }
 

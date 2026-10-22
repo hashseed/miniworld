@@ -752,7 +752,7 @@ describe('scenes at anchors (section 8.2)', () => {
   const place = { lat: 0, lon: 19 };
   const day = TIMELINE_START + years(7_000);
   const until = TIMELINE_START + years(9_000);
-  const sceneOf = (kind: 'cave-painting' | 'burial', prop: string) => {
+  const sceneOf = (kind: 'cave-painting' | 'burial' | 'bone-hut', prop: string) => {
     const t = buildTree(
       { ...settings, anchors: [{ id: 'scene', day, until, ...place, scene: { kind, prop } }] },
       habitat,
@@ -788,6 +788,20 @@ describe('scenes at anchors (section 8.2)', () => {
     expect(propAt(whole, end + 71_000)).toBeUndefined();
     void stage;
   }, 30_000);
+
+  it('raises the bone hut a third per haul session, the pile in between', () => {
+    const { whole, sessions } = sceneOf('bone-hut', 'prop-bone-hut');
+    expect(sessions.length).toBe(6);
+    const pile = (ms: number) =>
+      treeScene(whole, ms, settings.startDay).props.find((q) => q.id === 'stage:scene:pile');
+    for (let r = 0; r < 3; r++) {
+      const extract = sessions[2 * r]!;
+      const haul = sessions[2 * r + 1]!;
+      expect(pile(extract.stop)?.built ?? 0).toBeGreaterThan(0);
+      expect(propAt(whole, haul.stop)!.built!).toBeCloseTo((r + 1) / 3, 1);
+    }
+    expect(pile(sessions[5]!.stop)).toBeUndefined();
+  }, 60_000);
 
   it("fills a grave in its session and keeps it to the anchor's end", () => {
     const { t, stage, whole, sessions } = sceneOf('burial', 'prop-burial');

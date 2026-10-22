@@ -39,6 +39,7 @@ import {
   GRAVE_SINK_MS,
   stageBeyond,
   burialTimes,
+  stageHunts,
   stageSessions,
   stagePoints,
   stageScale,
@@ -2133,6 +2134,11 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       x.shown = Math.floor(dayAtMs(q[0]!.start, s.startDay));
       continue;
     }
+    // A bone hut shows from its first hunt: the herd comes, and the carcass lies there.
+    if (x.kind === 'bone-hut') {
+      x.shown = Math.floor(dayAtMs(stageHunts(x, s.startDay)[0]?.start ?? q[0]!.start, s.startDay));
+      continue;
+    }
     const cave = x.kind === 'cave-painting';
     // A burial's window starts with its dead falling ill.
     x.shown = Math.floor(dayAtMs(cave ? q[0]!.begin - CAVE_LEAD_MS : q[0]!.start, s.startDay));
@@ -2233,7 +2239,9 @@ export function checkTree(tree: Tree, s: TreeSettings, habitat: Habitat): string
     const lat = l.lat / 1e6;
     const lon = l.lon / 1e6;
     if (!habitat.habitable(lat, lon, l.built))
-      problems.push(`lodging ${l.id} stands on uninhabitable land`);
+      problems.push(
+        `lodging ${l.id} stands on uninhabitable land (${lat}, ${lon}, built day ${l.built})`,
+      );
     if (s.density(lat, lon, l.built) === undefined)
       problems.push(`lodging ${l.id} stands outside every culture area`);
   }

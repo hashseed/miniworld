@@ -16,9 +16,10 @@ const browser = await chromium.launch({
 });
 const page = await browser.newPage();
 
-for (const kind of ['leang-karampuang', 'chauvet']) {
+for (const kind of ['leang-karampuang', 'chauvet', 'lascaux']) {
   const png = await page.evaluate((kind) => {
-    const [W, H] = kind === 'chauvet' ? [1024, 820] : [1024, 420];
+    const [W, H] =
+      kind === 'chauvet' ? [1024, 820] : kind === 'lascaux' ? [1024, 560] : [1024, 420];
     const canvas = Object.assign(document.createElement('canvas'), { width: W, height: H });
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     const stageOf = new Uint8Array(W * H).fill(255);
@@ -158,7 +159,7 @@ for (const kind of ['leang-karampuang', 'chauvet']) {
           c.restore();
         }
       });
-    } else {
+    } else if (kind === 'chauvet') {
       // Charcoal, in comic outlines with a little smudged shading, as on the Panel of the Horses.
       const line = (c, w = 9) => {
         c.lineWidth = w;
@@ -273,6 +274,140 @@ for (const kind of ['leang-karampuang', 'chauvet']) {
           c.stroke();
         }
         circle(c, 140, 470, 6);
+      });
+    } else {
+      // Lascaux's Hall of the Bulls in black and a little red-brown (shown dark): great aurochs
+      // bulls with lyre horns, a cow, small horses, a stag and rows of dots (Aujoulat 2004).
+      /** A bull facing left: a huge hump-backed body, a small head with forward-curving horns. */
+      const bull = (c, x, y, s) => {
+        c.save();
+        c.translate(x, y);
+        c.scale(s, s);
+        c.fill(
+          new Path2D(
+            'M -150 -20 C -140 -80, -70 -110, 20 -96 C 110 -84, 190 -60, 250 -40 C 290 -28, 300 0, 270 8 C 250 14, 240 6, 230 14 C 200 30, 150 28, 110 34 C 70 40, 20 36, -30 34 C -60 32, -100 32, -130 20 C -146 12, -152 -4, -150 -20 Z',
+          ),
+        );
+        c.fill(
+          new Path2D(
+            'M -140 -30 C -176 -34, -214 -16, -236 6 C -244 20, -230 28, -214 24 C -190 20, -160 14, -134 6 Z',
+          ),
+        );
+        c.lineWidth = 8;
+        c.stroke(
+          new Path2D(
+            'M -196 -26 C -204 -62, -176 -98, -140 -92 M -184 -28 C -164 -76, -132 -90, -112 -70',
+          ),
+        );
+        for (const lx of [-110, -70, 150, 200]) {
+          c.lineWidth = 16;
+          c.beginPath();
+          c.moveTo(lx, 24);
+          c.lineTo(lx + (lx < 0 ? -6 : 8), 100);
+          c.stroke();
+        }
+        c.lineWidth = 8;
+        c.beginPath();
+        c.moveTo(262, 4);
+        c.lineTo(274, 78);
+        c.stroke();
+        cut(c, -196, -4, 5);
+        c.restore();
+      };
+      stage(0, (c) => bull(c, 360, 190, 1.2));
+      stage(1, (c) => bull(c, 760, 320, 0.75));
+      // A cow, lighter, under the first bull.
+      stage(2, (c) => {
+        c.globalAlpha = 0.8;
+        c.save();
+        c.translate(200, 420);
+        c.scale(0.55, 0.55);
+        c.fill(
+          new Path2D(
+            'M -150 -20 C -140 -70, -60 -90, 30 -78 C 110 -68, 190 -48, 238 -30 C 270 -20, 276 4, 250 10 C 220 20, 150 24, 100 30 C 40 36, -30 34, -80 30 C -130 28, -156 10, -150 -20 Z',
+          ),
+        );
+        c.fill(
+          new Path2D(
+            'M -140 -26 C -176 -26, -208 -8, -226 10 C -228 24, -212 26, -196 22 C -176 18, -154 12, -134 4 Z',
+          ),
+        );
+        c.lineWidth = 8;
+        c.stroke(new Path2D('M -190 -22 C -196 -52, -176 -80, -146 -72'));
+        c.lineWidth = 14;
+        for (const lx of [-100, -60, 140, 190]) {
+          c.beginPath();
+          c.moveTo(lx, 24);
+          c.lineTo(lx, 92);
+          c.stroke();
+        }
+        c.restore();
+      });
+      // Little horses with fat bellies and bristly manes, trotting under the bulls.
+      stage(3, (c) => {
+        for (const [x, y, s] of [
+          [470, 480, 0.6],
+          [690, 500, 0.55],
+        ]) {
+          c.save();
+          c.translate(x, y);
+          c.scale(s, s);
+          c.fill(
+            new Path2D(
+              'M -110 -20 C -90 -52, -20 -56, 40 -48 C 90 -42, 120 -30, 150 -34 C 162 -26, 156 -10, 140 -4 C 110 4, 80 20, 30 22 C -20 26, -70 24, -100 10 C -112 2, -116 -10, -110 -20 Z',
+            ),
+          );
+          c.fill(
+            new Path2D(
+              'M -104 -24 C -130 -52, -170 -62, -196 -44 C -208 -34, -200 -22, -184 -20 C -160 -16, -136 -6, -112 4 Z',
+            ),
+          );
+          c.lineWidth = 10;
+          c.stroke(
+            new Path2D(
+              'M -110 -40 L -122 -70 M -90 -50 L -96 -80 M -66 -52 L -68 -82 M -42 -52 L -40 -80',
+            ),
+          );
+          for (const lx of [-70, -30, 80, 120]) {
+            c.beginPath();
+            c.moveTo(lx, 14);
+            c.lineTo(lx + 4, 80);
+            c.stroke();
+          }
+          c.restore();
+        }
+      });
+      // A stag with a big branching antler, head back, and a red bull's horns behind it.
+      stage(4, (c) => {
+        c.save();
+        c.translate(900, 160);
+        c.fill(
+          new Path2D(
+            'M -90 30 C -70 -2, -10 -8, 40 6 C 70 14, 90 8, 104 -4 C 112 8, 104 26, 86 34 C 50 50, -10 54, -60 56 C -86 56, -98 44, -90 30 Z',
+          ),
+        );
+        c.lineWidth = 9;
+        c.stroke(
+          new Path2D(
+            'M 92 2 C 100 -40, 96 -80, 80 -110 M 96 -34 C 120 -50, 140 -60, 150 -90 M 88 -64 C 66 -80, 50 -84, 32 -100 M 98 -70 C 120 -90, 120 -110, 106 -130',
+          ),
+        );
+        c.lineWidth = 12;
+        for (const lx of [-70, -40, 40, 66]) {
+          c.beginPath();
+          c.moveTo(lx, 44);
+          c.lineTo(lx, 108);
+          c.stroke();
+        }
+        c.restore();
+      });
+      // Rows of dots and a rectangle sign, as on the walls of the Hall.
+      stage(5, (c) => {
+        for (let k = 0; k < 9; k++) circle(c, 60 + k * 26, 520 - (k % 2) * 8, 6);
+        for (let k = 0; k < 6; k++) circle(c, 760 + k * 26, 90, 6);
+        c.lineWidth = 7;
+        c.strokeRect(880, 440, 60, 36);
+        c.strokeRect(886, 446, 48, 24);
       });
     }
     const o = ctx.createImageData(W, H);

@@ -65,6 +65,14 @@ void main() {
     rock = mix(rock, vec3(0.9, 0.87, 0.8), smoothstep(0.6, 0.85, runs) * 0.3);
     rock = mix(rock, vec3(0.7, 0.48, 0.33), stain * 0.45);
     rock = mix(rock, vec3(0.52, 0.47, 0.41), hollow * 0.4);
+  } else if (style > 1.5) {
+    // Lascaux: bright white-cream calcite with soft grey shadows and faint warm veins, smooth
+    // and fine-grained, the wall the Hall of the Bulls is painted on.
+    float vein = smoothstep(0.66, 0.86, noise(vec2(p.x * 3.0 + noise(p * 3.0), p.y * 0.2 + 7.0)));
+    float shade = smoothstep(0.62, 0.9, noise(p * 1.4 + 17.0));
+    rock = mix(vec3(0.86, 0.83, 0.76), vec3(0.95, 0.93, 0.87), mottle);
+    rock = mix(rock, vec3(0.8, 0.66, 0.5), vein * 0.3);
+    rock = mix(rock, vec3(0.62, 0.6, 0.57), shade * 0.35);
   } else {
     // Leang Karampuang, Maros karst: warm tan to orange-brown limestone with grey weathered
     // patches and pale knobbly coralloid crusts ("cave popcorn") grown over it (Oktaviana et

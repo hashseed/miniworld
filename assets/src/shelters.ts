@@ -34,8 +34,11 @@ export const SHELTERS = [
   // Scenes at anchors (humankind.md section 8.2).
   'prop-cave-wall-sulawesi',
   'prop-cave-wall-chauvet',
+  'prop-cave-wall-lascaux',
   'prop-burial',
   'prop-gobekli-ring',
+  'prop-bone-hut',
+  'prop-bone-pile',
 ] as const;
 export type ShelterId = (typeof SHELTERS)[number];
 
@@ -477,7 +480,8 @@ export function buildShelter(id: ShelterId): Model {
       break;
     }
     case 'prop-cave-wall-sulawesi':
-    case 'prop-cave-wall-chauvet': {
+    case 'prop-cave-wall-chauvet':
+    case 'prop-cave-wall-lascaux': {
       // What stands on a cave's rock face besides its painting (humankind.md section 8.2):
       // the hill is the ground, cut by the globe, and the painting a picture on the face drawn
       // by the tree layer (cavePaintings.ts); here only the torch, lit while it is painted.
@@ -533,6 +537,122 @@ export function buildShelter(id: ShelterId): Model {
     case 'prop-gobekli-ring': {
       // Göbekli Tepe's Enclosure D, raised in six steps (humankind.md section 8.2, gobekli-tepe.md).
       addGobekliRing(mb);
+      break;
+    }
+    case 'prop-bone-hut': {
+      // Mezhyrich's mammoth-bone hut raised in six steps (humankind.md section 8.2): a ring of
+      // skulls, jaws and long bones standing between them, shoulder blades and pelvises laid on
+      // top, a tusk arch over the door, rafters of long bones and tusks, then the hides.
+      const step = (k: number) => {
+        const name = `${BUILD_BONE}${k}`;
+        mb.bone({ name, pivot: [0, 0, 0] });
+        return name;
+      };
+      const R = 2.3;
+      let b = step(0);
+      ring(10, R, 0.3, (p, _a, i) => {
+        if (i === 0) return;
+        mb.add(blob(p, [0.46, 0.3, 0.38], 5), i % 2 ? BONE : shade(BONE, -0.1), b);
+      });
+      b = step(1);
+      ring(10, R, 0, (_p, a, i) => {
+        if (i === 0) return;
+        const a1 = a + Math.PI / 10;
+        const [s, c] = [Math.sin(a1), Math.cos(a1)];
+        mb.add(
+          rod([s * (R - 0.1), 0.1, c * (R - 0.1)], [s * (R - 0.1), 0.95, c * (R - 0.1)], 0.09, 4),
+          shade(BONE, -0.05),
+          b,
+        );
+      });
+      b = step(2);
+      ring(9, R - 0.15, 0.88, (p, _a, i) => {
+        if (i === 0) return;
+        mb.add(blob(p, [0.5, 0.2, 0.36], 5), i % 2 ? shade(BONE, -0.1) : BONE, b);
+      });
+      b = step(3);
+      for (const x of [-1, 1]) {
+        mb.add(
+          horn(
+            [x * 0.8, 0, R + 0.05],
+            [x * 0.95, 1.95, R + 0.4],
+            [x * 0.05, 2.0, R + 0.15],
+            0.13,
+            0.06,
+            8,
+            6,
+          ),
+          BONE,
+          b,
+        );
+      }
+      mb.add(blob([0, 0.7, R + 0.1], [0.5, 0.7, 0.1], 6), DOOR, b);
+      b = step(4);
+      ring(8, 0, 0, (_p, a) => {
+        const [s, c] = [Math.sin(a), Math.cos(a)];
+        mb.add(
+          rod([s * (R - 0.2), 1.05, c * (R - 0.2)], [s * 0.3, 2.45, c * 0.3], 0.07, 4),
+          shade(BONE, -0.12),
+          b,
+        );
+      });
+      b = step(5);
+      mb.add(
+        lathe(
+          [
+            [R + 0.05, 0.95],
+            [R - 0.3, 1.5],
+            [1.3, 2.25],
+            [0.5, 2.6],
+            [0, 2.65],
+          ],
+          [0, 0, 0],
+          12,
+        ),
+        shade(HIDE, -0.05),
+        b,
+      );
+      break;
+    }
+    case 'prop-bone-pile': {
+      // The bones taken from the kills, heaped near the hut in four steps (one per hunt, one
+      // more as they are laid out): skulls and jaws, long bones, tusks, a shoulder blade on top.
+      const step = (k: number) => {
+        const name = `${BUILD_BONE}${k}`;
+        mb.bone({ name, pivot: [0, 0, 0] });
+        return name;
+      };
+      let b = step(0);
+      for (const [x, z, r] of [
+        [-0.5, 0.1, 0.4],
+        [0.35, -0.2, 0.36],
+        [0.1, 0.5, 0.33],
+      ] as const)
+        mb.add(blob([x, 0.25, z], [r, r * 0.7, r * 0.9], 6), shade(BONE, -0.08), b);
+      b = step(1);
+      for (let i = 0; i < 6; i++) {
+        const a = i * 1.1;
+        mb.add(
+          rod(
+            [Math.sin(a) * 0.9, 0.1, Math.cos(a) * 0.9],
+            [-Math.sin(a) * 0.5, 0.5, -Math.cos(a) * 0.5],
+            0.08,
+            4,
+          ),
+          BONE,
+          b,
+        );
+      }
+      b = step(2);
+      for (const x of [-0.3, 0.3])
+        mb.add(
+          horn([x, 0.35, -0.8], [x * 2, 0.8, 0.1], [x * 0.6, 0.5, 0.9], 0.11, 0.05, 8, 6),
+          BONE,
+          b,
+        );
+      b = step(3);
+      mb.add(blob([0, 0.62, 0], [0.55, 0.14, 0.4], 6), shade(BONE, -0.12), b);
+      mb.add(blob([-0.1, 0.78, 0.1], [0.28, 0.2, 0.24], 5), BONE, b);
       break;
     }
     case 'prop-carry-pole': {

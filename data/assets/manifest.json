@@ -414,6 +414,22 @@
       "note": "The torch on a cave's rock face, lit while its painting is painted (humankind.md section 8.2); the painting is a texture; waiting for Yang's review"
     },
     {
+      "id": "prop-cave-wall-lascaux",
+      "file": "assets/src/shelters.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "The torch on Lascaux's white calcite wall, lit while its painting is painted (humankind.md section 8.2); the painting is a texture; waiting for Yang's review"
+    },
+    {
+      "id": "texture-cave-lascaux",
+      "file": "app/public/textures/cave-lascaux.png",
+      "kind": "texture",
+      "generated": "tools/cave-art.mjs after the Hall of the Bulls (Aujoulat 2004)",
+      "status": "generated",
+      "note": "Fresh reconstruction of Lascaux's bulls, cow, horses, stag and dots in black and red-brown, in six painting stages (humankind.md section 8.2); waiting for Yang's review"
+    },
+    {
       "id": "texture-cave-chauvet",
       "file": "app/public/textures/cave-chauvet.png",
       "kind": "texture",
@@ -428,6 +444,22 @@
       "generated": "tools/cave-art.mjs from the CC BY 4.0 tracing of Oktaviana et al. 2024, Figure 3c (data/sources/leang-karampuang-tracing)",
       "status": "generated",
       "note": "Fresh reconstruction of the Leang Karampuang pig and human figures in red ochre, in six painting stages (humankind.md section 8.2); waiting for Yang's review"
+    },
+    {
+      "id": "prop-bone-hut",
+      "file": "assets/src/shelters.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "Mezhyrich's mammoth-bone hut raised in six steps: skull ring, jaws and long bones, shoulder blades, tusk arch, rafters, hides (humankind.md section 8.2); waiting for Yang's review"
+    },
+    {
+      "id": "prop-bone-pile",
+      "file": "assets/src/shelters.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "The bones of the hunted mammoths heaped beside the hut site in four steps, shrinking as they are carried off (humankind.md section 8.2); waiting for Yang's review"
     },
     {
       "id": "prop-burial",
