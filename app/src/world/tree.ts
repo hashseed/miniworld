@@ -71,21 +71,6 @@ export interface TreeLodging {
   voyage?: { id: string; way: [number, number][]; water: boolean[] };
 }
 
-/** A red flag at a Neolithic threshold (peopling.md section 3.6). */
-export interface TreeFlag {
-  /** The threshold's id. */
-  id: string;
-  camp: number;
-  /** The day it goes up, and the day its camp moves away from rising water, or NEVER. */
-  day: Day;
-  until: Day;
-  /** The camp's place in whole microdegrees; settled camps move only away from water. */
-  lat: number;
-  lon: number;
-  /** The lodging slot it stands behind. */
-  slot: number;
-}
-
 export interface TreeBranch {
   id: number;
   /** The branch it split from; NEVER for a root's branch. */
@@ -123,8 +108,6 @@ export interface Tree {
   lodgings: TreeLodging[];
   branches: TreeBranch[];
   moments: TreeMoment[];
-  /** Red flags at the Neolithic thresholds (peopling.md section 3.6). */
-  flags?: TreeFlag[];
   /** Scenes at anchors: cave paintings and burials (humankind.md section 8.2). */
   stages?: TreeStage[];
 }

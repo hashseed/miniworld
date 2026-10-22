@@ -77,7 +77,7 @@ When the ice sheets melt after about 15,000 BCE, people follow the edge of the i
 
 This plan ends at the Neolithic thresholds of section 3.6, where farming begins (Yang, 2026-10-19; until then it ended at 9000 BCE everywhere, decided by Yang on 2026-10-18). Away from the thresholds, foragers keep living as before, and **the tree runs on to the end of the timeline, 1991 CE** (Yang, 2026-10-21: "expand the bands to the last date. they should not just disappear. we will add ways for them to move up the civilization chain but for now, paleolithic lasts until now"). Until the farming and later plans let bands change their way of life, every band stays a hunter-gatherer band to the end, with the culture, lodgings and rules it has; the camps near a Neolithic threshold stay put as section 3.6 says, and the farming plan picks up from them. Farming reaches Greece about 6500 BCE and the rest of Europe, Egypt and India later, which belongs to the farming plan. The lands reached later, all of them by sea or across the Arctic (the Caribbean, the Arctic of Canada and Greenland, the islands of the Pacific, Madagascar, Iceland and New Zealand), get their own plan with the milestones of their dates ([milestones.md](milestones.md)). Antarctica stays without camps for the whole timeline.
 
-### 3.6 Neolithic thresholds and red flags
+### 3.6 Neolithic thresholds
 
 A **Neolithic threshold** is a place and date where a local population of foragers is about to start farming or herding on its own: the centres of domestication of mainstream archaeology (Larson et al. 2014, *PNAS* 111) that fall before the tree's end. The farming plan (milestone 3) continues from them; this plan only marks them. The records go to `data/curated/neolithic.json` (**Proposed**), each with its source.
 
@@ -94,9 +94,9 @@ A **Neolithic threshold** is a place and date where a local population of forage
 
 Later centres (eastern North America, the Sahel and West Africa, Ethiopia) come after the tree's end and belong to the farming plan.
 
-- **The flag.** Each threshold is a dated place of the place table (sites.md section 2.1). From its date a band stands at its site: it is brought and held there as an anchor's band is, from 500 years before the date to the tree's end (sites.md section 4.1; Yang, 2026-10-20, a constraint like any other). On the date it puts up a **huge red flag** beside its hearth (a new model `prop-red-flag`: a tall pole with a red cloth, drawn at four times a lodging's height so it is seen from far out; **Proposed**). It is a marker for development, not history: it shows Yang where the farming plan picks up (Yang, 2026-10-19), has no card and goes when the farming plan replaces it.
-- **The camps stay.** From the threshold's date, the camps of the tree within 800 km of its place (**Proposed**) stop moving and stop sending out groups: these foragers are settling down, as the Natufians already had in the Levant, and the farming plan starts from them. The flag stays at its camp until the tree ends.
-- **Key moment.** Each flag is a key moment of the tree (`neolithic-threshold`, humankind.md section 6.2). The build fails, as for an anchor, when no band stands at a threshold's site on its date, and reports how late each flag went up.
+- **The band.** Each threshold is a dated place of the place table (sites.md section 2.1). From its date a band stands at its site: it is brought and held there as an anchor's band is, from 500 years before the date to the tree's end (sites.md section 4.1; Yang, 2026-10-20, a constraint like any other). Yang first asked for a huge red flag there as a marker for development (2026-10-19); it was removed on 2026-10-22 (issue 151: "remove the red flags"), so nothing is drawn at a threshold.
+- **The camps stay.** From the threshold's date, the camps of the tree within 800 km of its place (**Proposed**) stop moving and stop sending out groups: these foragers are settling down, as the Natufians already had in the Levant, and the farming plan starts from them.
+- **Key moment.** Each threshold is a key moment of the tree (`neolithic-threshold`, humankind.md section 6.2). The build fails, as for an anchor, when no band stands at a threshold's site on its date, and reports how late each threshold's camps settled.
 
 ## 4. The arrival map
 

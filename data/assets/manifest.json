@@ -398,14 +398,6 @@
       "reviewed": "2026-10-20"
     },
     {
-      "id": "prop-red-flag",
-      "file": "assets/src/shelters.ts",
-      "kind": "prop",
-      "generated": "Modelling script",
-      "status": "generated",
-      "note": "Huge red flag marking a Neolithic threshold, a development marker (peopling.md section 3.6), waiting for Yang's review"
-    },
-    {
       "id": "prop-cave-wall-sulawesi",
       "file": "assets/src/shelters.ts",
       "kind": "prop",

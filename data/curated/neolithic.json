@@ -1,5 +1,5 @@
 {
-  "description": "Neolithic thresholds (spec peopling.md, section 3.6): where and when a local population of foragers is about to start farming or herding on its own. The tree's camps there settle and the nearest raises a red flag; the farming plan continues from them.",
+  "description": "Neolithic thresholds (spec peopling.md, section 3.6): where and when a local population of foragers is about to start farming or herding on its own. The tree's camps there settle; the farming plan continues from them.",
   "thresholds": [
     {
       "id": "fertile-crescent",

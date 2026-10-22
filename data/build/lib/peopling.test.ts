@@ -1,6 +1,6 @@
 // Peopling the world (spec peopling.md): the arrival map, a band following a route over
 // the sea by canoe, the limits of a way of life, the change of clothes in the hut, and
-// the red flags at the Neolithic thresholds, on a world of two round continents.
+// the Neolithic thresholds, on a world of two round continents.
 
 import { describe, expect, it } from 'vitest';
 import { DAYS_PER_YEAR, TIMELINE_START } from '../../../app/src/time/calendar.ts';
@@ -181,25 +181,15 @@ describe('ways of life (peopling.md section 5)', () => {
 });
 
 describe('Neolithic thresholds (peopling.md section 3.6)', () => {
-  it('raises a red flag at the nearest camp and settles the camps near it', () => {
-    const flag = tree.flags?.find((x) => x.id === 'farming');
-    expect(flag).toBeDefined();
-    expect(flag!.day).toBeGreaterThanOrEqual(bce(61_000));
-    // Its camp stays where it is from then on.
-    const after = tree.lodgings.filter((l) => l.camp === flag!.camp && l.built > flag!.day);
-    for (const l of after) expect([l.lat, l.lon]).toEqual([flag!.lat, flag!.lon]);
-    const whole = {
-      fromDay: settings.startDay,
-      toDay: settings.endDay,
-      figures: tree.figures,
-      lodgings: tree.lodgings,
-      flags: tree.flags,
-    };
-    const s = treeScene(whole, msAtDay(flag!.day + 30, settings.startDay), settings.startDay);
-    expect(s.props.some((p) => p.kind === 'prop-red-flag')).toBe(true);
-    expect(tree.moments.some((m) => m.kind === 'neolithic-threshold')).toBe(true);
-    expect(
-      tree.lodgings.some((l) => l.camp === flag!.camp && (l.gone === NEVER || l.gone > flag!.day)),
-    ).toBe(true);
+  it('settles the camps near a threshold, the nearest at its key moment', () => {
+    const moment = tree.moments.find((m) => m.kind === 'neolithic-threshold');
+    expect(moment).toBeDefined();
+    expect(moment!.day).toBeGreaterThanOrEqual(bce(61_000));
+    // A camp stands at its place from then on.
+    const here = tree.lodgings.filter((l) => l.lat === moment!.lat && l.lon === moment!.lon);
+    expect(here.some((l) => l.gone === NEVER || l.gone > moment!.day)).toBe(true);
+    const staying = here.filter((l) => l.built > moment!.day).map((l) => l.camp);
+    for (const l of tree.lodgings.filter((q) => staying.includes(q.camp) && q.built > moment!.day))
+      expect([l.lat, l.lon]).toEqual([moment!.lat, moment!.lon]);
   });
 });

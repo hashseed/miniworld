@@ -97,8 +97,6 @@ const LODGING_HALF_M = 1.4;
 const FIGURE_M = 1.7;
 const FIGURE_PX = 5;
 const LODGING_PX = 3;
-/** A red flag stands this tall, in life-size metres. */
-const FLAG_M = 12.8;
 /** Lodgings are drawn at most this wide, in life-size metres, so every culture's fits the camp's layout. */
 const LODGING_MAX_M = 2.7;
 const HEARTH_HALF_M = 1;
@@ -307,12 +305,7 @@ export class TreeLayer {
     scene.prey = big(scene.prey, FIGURE_PX);
     scene.spears = big(scene.spears, FIGURE_PX);
     scene.poles = big(scene.poles, FIGURE_PX);
-    // The red flags are huge, to be seen from far out (peopling.md section 3.6).
-    scene.props = scene.props.filter((q) =>
-      q.kind === 'prop-red-flag'
-        ? !this.tiny(q, (LODGING_PX * FIGURE_M) / FLAG_M)
-        : !this.tiny(q, FIGURE_PX),
-    );
+    scene.props = scene.props.filter((q) => !this.tiny(q, FIGURE_PX));
     scene.sparks = big(scene.sparks, FIGURE_PX);
     scene.lodgings = big(scene.lodgings, LODGING_PX);
     scene.hearths = big(scene.hearths, LODGING_PX);
@@ -425,8 +418,8 @@ export class TreeLayer {
       );
     }
 
-    // Drying racks beside the lodgings, the spit over a fire while meat roasts, canoes on
-    // the water and red flags at the Neolithic thresholds.
+    // Drying racks beside the lodgings, the spit over a fire while meat roasts and canoes on
+    // the water.
     this.stagePoints = [];
     for (const q of scene.props) {
       const batch = treePropBatch(q.kind);
