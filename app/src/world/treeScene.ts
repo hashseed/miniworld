@@ -2872,7 +2872,8 @@ export function treeScene(
         gs.home.lat !== stage.lat ||
         gs.home.lon !== stage.lon ||
         gs.free > begin ||
-        gs.busy < begin + TURN_MS
+        gs.busy < begin + TURN_MS ||
+        outingRoom(gs.s, gs.home) < MAMMOTH.reach
       )
         continue;
       found = {
