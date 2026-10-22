@@ -796,8 +796,8 @@ function monumentStands(at: (back: number, side: number) => Pt, session: number)
         const a = ((k + 0.5) / n) * 2 * Math.PI;
         return [detSin(a) * r, detCos(a) * r];
       });
-    const inner = ring(3, 1.9);
-    const outer = ring(4, 3.4);
+    const inner = ring(3, 2.7);
+    const outer = ring(4, 3.5);
     outer.forEach((q, k) => spots.push(q, ...(k < inner.length ? [inner[k]!] : [])));
   }
   // Pushed apart until nobody stands against another, each keeping to the floor inside the
@@ -820,7 +820,10 @@ function monumentStands(at: (back: number, side: number) => Pt, session: number)
       }
     for (const [i, q] of placed.entries()) {
       const r = Math.sqrt(q[0] * q[0] + q[1] * q[1]) || 1e-6;
-      const into = Math.min(Math.max(r, within[i]! ? 0.6 : 6.4), within[i]! ? 3.5 : 9.5);
+      const into = Math.min(
+        Math.max(r, within[i]! ? (session > 5 ? 2.6 : 0.6) : 6.4),
+        within[i]! ? 3.5 : 9.5,
+      );
       q[0] *= into / r;
       q[1] *= into / r;
     }
