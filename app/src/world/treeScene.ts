@@ -413,6 +413,13 @@ export interface Placed {
   /** Facing, east and north. */
   dirX: number;
   dirZ: number;
+  /**
+   * The same spot in another place's frame, and how far to trust it, 0 to 1: a visitor on its
+   * way to a monument is drawn between where its own camp's frame puts it and where the host's
+   * frame puts it, so its place at the monument is the host's own and never an estimate of the
+   * distance between two camps (humankind.md section 8.2).
+   */
+  anchor?: { lat: number; lon: number; x: number; z: number; mix: number };
 }
 
 export interface FigurePose extends Placed {
@@ -2183,7 +2190,9 @@ export function treeScene(
         const lag = i * MONUMENT_LAG_MS;
         const home = { x: m.spot.x + c.off.x, z: m.spot.z + c.off.z };
         const trip = new Itinerary(start, home, stage.camp).stay(start + lag, 'rest');
+        const leaves = trip.t;
         trip.go(gap);
+        const atGate = trip.t;
         for (const q of monumentPath(to, prop, at, k, i)) trip.go(q);
         trip.go(to);
         if (trip.t > session.begin) continue;
@@ -2193,7 +2202,9 @@ export function treeScene(
         trip.at = to;
         trip.stay(session.stop + lag, 'idle', prop);
         for (const q of monumentPath(to, prop, at, k, i).reverse()) trip.go(q);
-        trip.go(gap).go(home);
+        trip.go(gap);
+        const gateBack = trip.t;
+        trip.go(home);
         if (trip.t > until) continue;
         n++;
         const key2 = `${c.camp}:${c.lat}:${c.lon}`;
@@ -2213,11 +2224,13 @@ export function treeScene(
             legs: new Map(),
             stands: [],
             face: { x: prop.x - c.off.x, z: prop.z - c.off.z },
+            host: { lat: deg(stage.lat), lon: deg(stage.lon), off: c.off, ramps: new Map() },
           };
           made.set(key2, ev);
         }
         const back = (p: Pt): Pt => ({ x: p.x - c.off.x, z: p.z - c.off.z });
         ev.members.push(m.f.id);
+        ev.host!.ramps.set(m.f.id, [leaves, atGate, gateBack, trip.t]);
         ev.stands!.push(back(to));
         ev.legs.set(
           m.f.id,
@@ -2310,6 +2323,25 @@ export function treeScene(
     }
     out.push(...visitsOf(st, from, to));
     return out;
+  }
+
+  /** A visitor's pose, drawn towards the host's frame as it nears the monument (see Placed.anchor). */
+  function withHost(pose: FigurePose, ev: CampEvent, id: number, ms: number): FigurePose {
+    const ramp = ev.host?.ramps.get(id);
+    if (!ev.host || !ramp) return pose;
+    const [leaves, atGate, gateBack, home] = ramp;
+    const mix =
+      ms <= leaves || ms >= home
+        ? 0
+        : ms < atGate
+          ? (ms - leaves) / Math.max(1, atGate - leaves)
+          : ms <= gateBack
+            ? 1
+            : (home - ms) / Math.max(1, home - gateBack);
+    if (mix <= 0) return pose;
+    const { lat, lon, off } = ev.host;
+    pose.anchor = { lat, lon, x: pose.x + off.x, z: pose.z + off.z, mix };
+    return pose;
   }
 
   /** A member's pose in a camp event while it plays or dances. */
@@ -3486,7 +3518,8 @@ export function treeScene(
         z: 0,
         ...towards(0, 0, p.x, p.z),
       });
-    if (leg.clip === 'event' && event) return eventPose(event, f.id, ms, base);
+    if (leg.clip === 'event' && event)
+      return withHost(eventPose(event, f.id, ms, base), event, f.id, ms);
     const motion =
       leg.clip === 'rest'
         ? activity(f.id, ms, look !== 'child')
@@ -3496,6 +3529,7 @@ export function treeScene(
     const pose: FigurePose = { ...base, x: p.x, z: p.z, ...face, ...motion };
     if (leg.clip === 'inside') pose.hidden = true;
     if (unarmed) pose.unarmed = true;
+    if (event) withHost(pose, event, f.id, ms);
     if (
       before &&
       ms - leg.start < BLEND_MS &&
@@ -3543,6 +3577,16 @@ interface CampEvent {
   /** At a scene: where each member stands, and what they face. */
   stands?: Pt[];
   face?: Pt;
+  /**
+   * A visit: the host camp's place, the visiting camp's offset from it, and for each visitor
+   * when it leaves home, reaches the host's gate, leaves the gate again and is home.
+   */
+  host?: {
+    lat: number;
+    lon: number;
+    off: Pt;
+    ramps: Map<number, [number, number, number, number]>;
+  };
 }
 
 /** Catch is played at this share of a full run. */

@@ -809,6 +809,29 @@ export class TreeLayer {
       .addScaledVector(east, p.x * LAYOUT_KM_PER_M)
       .addScaledVector(north, p.z * LAYOUT_KM_PER_M)
       .normalize();
+    // Drawn towards the same spot in another place's frame (see Placed.anchor).
+    const { anchor } = p;
+    if (anchor) {
+      const anchorKey = `${anchor.lat},${anchor.lon}`;
+      let anchorUp = this.drawnUps.get(anchorKey);
+      if (!anchorUp) {
+        anchorUp = new THREE.Vector3(
+          ...this.surface.toDrawn(latLonToDir(anchor.lat, anchor.lon)),
+        ).normalize();
+        this.drawnUps.set(anchorKey, anchorUp);
+      }
+      northEast(anchorUp, this.n2, this.e2);
+      this.pos
+        .copy(anchorUp)
+        .multiplyScalar(EARTH_RADIUS_KM)
+        .addScaledVector(this.e2, anchor.x * LAYOUT_KM_PER_M)
+        .addScaledVector(this.n2, anchor.z * LAYOUT_KM_PER_M)
+        .normalize();
+      dir
+        .multiplyScalar(1 - anchor.mix)
+        .addScaledVector(this.pos, anchor.mix)
+        .normalize();
+    }
     // On the far side of the globe: hidden, before the ground is looked up.
     if (
       this.v1
@@ -819,7 +842,7 @@ export class TreeLayer {
       root.visible = false;
       return false;
     }
-    const spotKey = `${placeKey},${p.x},${p.z}`;
+    const spotKey = `${placeKey},${p.x},${p.z},${anchor?.x},${anchor?.z},${anchor?.mix}`;
     let surface = this.grounds.get(spotKey);
     if (surface === undefined) {
       if (this.grounds.size > 20_000) this.grounds.clear();
