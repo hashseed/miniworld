@@ -681,15 +681,10 @@ export const cloudFragment = /* glsl */ `
 uniform vec3 lightDir;
 uniform vec3 screenUp;
 uniform vec3 cameraWorld;
-uniform float fade; // 1 fully drawn, 0 gone
 varying vec3 vNormalW;
 varying vec3 vWorld;
 void main() {
   #include <logdepthbuf_fragment>
-  // Screen-door fade keeps the clouds opaque and in one batch.
-  vec2 p = floor(gl_FragCoord.xy);
-  float d = fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
-  if (d > fade) discard;
   vec3 n = normalize(vNormalW);
   vec3 viewDir = normalize(cameraWorld - vWorld);
   float wrap = clamp((dot(n, lightDir) + 0.6) / 1.6, 0.0, 1.0);
