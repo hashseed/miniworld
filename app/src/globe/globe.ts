@@ -66,7 +66,7 @@ export interface Mound {
   sink?: number;
   /** False while it is too shallow for a wall: the ground is drawn whole there. */
   walled?: boolean;
-  /** The rock of its face: 0 Chauvet's pale limestone, 1 Leang Karampuang's (caveWalls.ts). */
+  /** The rock of its face: 0 Chauvet's pale limestone, 1 Leang Karampuang's, 2 Lascaux's white calcite (caveWalls.ts). */
   rock?: number;
   /** Set for a levelled plateau instead of a cut: the drawn height (km) the ground is brought to. */
   plateauKm?: number;

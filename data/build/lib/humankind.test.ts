@@ -752,9 +752,13 @@ describe('scenes at anchors (section 8.2)', () => {
   const place = { lat: 0, lon: 19 };
   const day = TIMELINE_START + years(7_000);
   const until = TIMELINE_START + years(9_000);
-  const sceneOf = (kind: 'cave-painting' | 'burial', prop: string) => {
+  const sceneOf = (
+    kind: 'cave-painting' | 'burial' | 'bone-hut',
+    prop: string,
+    at: { lat: number; lon: number } = place,
+  ) => {
     const t = buildTree(
-      { ...settings, anchors: [{ id: 'scene', day, until, ...place, scene: { kind, prop } }] },
+      { ...settings, anchors: [{ id: 'scene', day, until, ...at, scene: { kind, prop } }] },
       habitat,
     );
     const stage = t.stages![0]!;
@@ -788,6 +792,31 @@ describe('scenes at anchors (section 8.2)', () => {
     expect(propAt(whole, end + 71_000)).toBeUndefined();
     void stage;
   }, 30_000);
+
+  it('raises the bone hut a third per haul session, the pile in between', () => {
+    // Far from the other camps, so a mammoth may come out without standing on their people.
+    const { whole, sessions } = sceneOf('bone-hut', 'prop-bone-hut', { lat: 0, lon: -21 });
+    expect(sessions.length).toBe(6);
+    const pile = (ms: number) =>
+      treeScene(whole, ms, settings.startDay).props.find((q) => q.id === 'stage:scene:pile');
+    for (let r = 0; r < 3; r++) {
+      const extract = sessions[2 * r]!;
+      const haul = sessions[2 * r + 1]!;
+      expect(pile(extract.stop)?.built ?? 0).toBeGreaterThan(0);
+      expect(propAt(whole, haul.stop)!.built!).toBeCloseTo((r + 1) / 3, 1);
+    }
+    expect(pile(sessions[5]!.stop)).toBeUndefined();
+    // In some extract session they butcher a mammoth where it fell, well away from the hut.
+    const hut = propAt(whole, sessions[5]!.stop)!;
+    const away = [0, 2, 4].some((n) => {
+      const mid = Math.round((sessions[n]!.begin + sessions[n]!.stop) / 2);
+      const scene = treeScene(whole, mid, settings.startDay);
+      return scene.figures.some(
+        (f) => f.clip === 'work' && Math.hypot(f.x - hut.x, f.z - hut.z) > 30,
+      );
+    });
+    expect(away).toBe(true);
+  }, 60_000);
 
   it("fills a grave in its session and keeps it to the anchor's end", () => {
     const { t, stage, whole, sessions } = sceneOf('burial', 'prop-burial');

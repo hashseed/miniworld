@@ -18,6 +18,13 @@ const PAINTINGS: Record<
     height: 2.0,
     foot: 0.35,
   },
+  'prop-cave-wall-lascaux': {
+    texture: 'cave-lascaux',
+    colour: '#241a15',
+    width: 3.2,
+    height: 2.0,
+    foot: 0.4,
+  },
   'prop-cave-wall-sulawesi': {
     texture: 'cave-leang-karampuang',
     colour: '#a3361f',

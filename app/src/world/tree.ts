@@ -116,7 +116,7 @@ export interface Tree {
 export interface TreeStage {
   /** The anchor's id. */
   id: string;
-  kind: 'cave-painting' | 'burial' | 'monument';
+  kind: 'cave-painting' | 'burial' | 'monument' | 'bone-hut';
   /** Asset id of its prop: the painted wall or the grave. */
   prop: string;
   /** The camp's site key and place in whole microdegrees. */

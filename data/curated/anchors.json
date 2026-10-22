@@ -64,6 +64,57 @@
       "en": "The burials of Sungir",
       "de": "Die Gräber von Sungir",
       "source": "Sikora, M. et al. 2017, Ancient genomes show social and reproductive behavior of early Upper Paleolithic foragers, Science 358, 659-662"
+    },
+    {
+      "id": "lake-mungo",
+      "bce": 38000,
+      "until": 37000,
+      "lat": -33.72,
+      "lon": 143.07,
+      "camp": {
+        "lat": -35.4,
+        "lon": 143.3
+      },
+      "scene": {
+        "kind": "burial",
+        "prop": "prop-burial"
+      },
+      "en": "The burials of Lake Mungo",
+      "de": "Die Bestattungen am Lake Mungo",
+      "source": "Bowler, J. M. et al. 2003, New ages for human occupation and climatic change at Lake Mungo, Australia, Nature 421, 837-840"
+    },
+    {
+      "id": "lascaux",
+      "bce": 15000,
+      "until": 14000,
+      "lat": 45.0538,
+      "lon": 1.1695,
+      "camp": { "lat": 45.25, "lon": 1.5 },
+      "scene": {
+        "kind": "cave-painting",
+        "prop": "prop-cave-wall-lascaux"
+      },
+      "en": "The paintings of the Lascaux Cave",
+      "de": "Die Bilder der Höhle von Lascaux",
+      "source": "Aujoulat, N. 2004, Lascaux: le geste, l'espace et le temps, Seuil"
+    },
+    {
+      "id": "mezhyrich",
+      "bce": 16000,
+      "until": 15000,
+      "lat": 49.625,
+      "lon": 31.432,
+      "scene": {
+        "kind": "bone-hut",
+        "prop": "prop-bone-hut"
+      },
+      "camp": {
+        "lat": 49.45,
+        "lon": 31.0
+      },
+      "en": "The mammoth-bone huts of Mezhyrich",
+      "de": "Die Mammutknochenhütten von Meschyritsch",
+      "source": "Chu, W., Shydlovskyi, P. and Maier, A. 2025, A revised radiocarbon chronology for the mammoth bone structures and associated features at Mezhyrich, Ukraine, Open Research Europe 5, 198"
     }
   ]
 }
