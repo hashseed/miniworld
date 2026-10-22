@@ -29,6 +29,8 @@ import {
 import {
   buildTreeFigure,
   buildTreePrey,
+  TREE_ARROW_BATCH,
+  TREE_BOW_BATCH,
   TREE_SPEAR_BATCH,
   treeFigureBatch,
   treePreyBatch,
@@ -404,11 +406,23 @@ export class TreeLayer {
       const up = this.v1.copy(this.dir);
       northEast(up, this.n2, this.e2);
       const ahead = this.e2.multiplyScalar(sp.dirX).addScaledVector(this.n2, sp.dirZ);
-      const along = ahead.addScaledVector(up, sp.slope).normalize();
-      at.quaternion.setFromUnitVectors(this.yAxis, along);
+      if (sp.kind === 'bow') {
+        // Upright, bowed ahead of the archer.
+        const x = this.v2.copy(up).cross(ahead).normalize();
+        at.quaternion.setFromRotationMatrix(this.basis.makeBasis(x, up, ahead.normalize()));
+      } else {
+        const along = ahead.addScaledVector(up, sp.slope).normalize();
+        at.quaternion.setFromUnitVectors(this.yAxis, along);
+      }
       at.position.addScaledVector(up, sp.height * FIGURE_KM_PER_M);
       at.scale.setScalar(FIGURE_KM_PER_M);
-      copy(TREE_SPEAR_BATCH);
+      copy(
+        sp.kind === 'bow'
+          ? TREE_BOW_BATCH
+          : sp.kind === 'arrow'
+            ? TREE_ARROW_BATCH
+            : TREE_SPEAR_BATCH,
+      );
     }
 
     // Drying racks beside the lodgings, the spit over a fire while meat roasts, canoes on

@@ -40,6 +40,7 @@ export type Clip =
   | 'knap'
   | 'point'
   | 'throw'
+  | 'shoot'
   | 'cheer'
   | 'struggle'
   | 'fall'

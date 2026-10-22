@@ -16,6 +16,7 @@ export type Clip =
   | 'knap'
   | 'point'
   | 'throw'
+  | 'shoot'
   | 'cheer'
   | 'struggle'
   | 'fall'
@@ -52,6 +53,9 @@ export const BIND_SECONDS = 2.4;
 
 /** Seconds into the throw gesture when the spear leaves the hand. */
 export const THROW_RELEASE = 0.55;
+/** Seconds into the shoot gesture when the arrow leaves the string, and how long the gesture lasts. */
+export const SHOOT_RELEASE = 1.1;
+export const SHOOT_SECONDS = 2.4;
 
 const TAU = Math.PI * 2;
 
@@ -148,6 +152,7 @@ export const PERSON_LOOPS: Partial<Record<Clip, { loop: number } | { once: numbe
   point: { loop: 1.6 },
   cheer: { loop: 0.7 },
   throw: { once: 3 },
+  shoot: { once: SHOOT_SECONDS },
   fall: { once: 0 },
 };
 
@@ -176,6 +181,7 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
     clip !== 'ill' &&
     clip !== 'sit' &&
     clip !== 'lie' &&
+    clip !== 'shoot' &&
     !(clip === 'throw' && t >= THROW_RELEASE);
   bone('load').visible = clip === 'carry';
   // Knapping stones, on the models of cultures that knap.
@@ -554,6 +560,24 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
       rot('legUpperR', 0.35 * step);
       rot('legLowerR', 0.3 * step);
       rot('head', -0.1 * settle);
+      break;
+    }
+    case 'shoot': {
+      // Side on: the bow arm comes up and straight, the other hand draws the string to the
+      // cheek, the arrow leaves at SHOOT_RELEASE, the bow arm stays up while it flies.
+      const raise = smooth(t / 0.4);
+      const draw = smooth((t - 0.35) / (SHOOT_RELEASE - 0.35));
+      const loose = smooth((t - SHOOT_RELEASE) / 0.15);
+      const settle = smooth((t - 1.9) / 0.5);
+      const hold = raise * (1 - settle);
+      rot('armUpperL', -1.5 * hold, 0, 0.1 * hold);
+      rot('armLowerL', -0.05 * hold);
+      rot('armUpperR', -1.45 * hold, 0, -0.3 * hold);
+      rot('armLowerR', -(0.15 + 2.1 * draw * (1 - loose) + 0.5 * loose * (1 - settle)) * hold);
+      rot('torso', 0, mix(0, 0.45, raise) * (1 - settle));
+      rot('head', 0, mix(0, -0.45, raise) * (1 - settle));
+      rot('legUpperL', -0.2 * hold);
+      rot('legUpperR', 0.2 * hold);
       break;
     }
     case 'cheer': {
