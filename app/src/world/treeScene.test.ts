@@ -666,6 +666,51 @@ describe('the tree scene', () => {
     }
   });
 
+  it('has a camp 20 layout metres from a monument send its people to every session on time', () => {
+    const figure = (id: number, lodging: number) => ({
+      id,
+      parent: id === 0 ? NEVER : 0,
+      born: d0,
+      branch: 0,
+      depth: id === 0 ? 0 : 1,
+      homes: [[d0, lodging, id]] as [number, number, number][],
+      lost: NEVER,
+    });
+    const stage = {
+      id: 'gobekli-tepe',
+      kind: 'monument' as const,
+      prop: 'prop-gobekli-ring',
+      camp: 2,
+      lat: 0,
+      lon: 36_000_000,
+      slot: 2,
+      beyond: 15,
+      shown: bce(9800),
+      from: bce(9700),
+      until: bce(8000),
+      keep: bce(7900),
+    };
+    const world: TreeChunk = {
+      ...chunk,
+      figures: [
+        ...Array.from({ length: 6 }, (_, i) => figure(i, 0)),
+        ...[6, 7, 8, 9].map((i) => figure(i, 1)),
+      ],
+      lodgings: [
+        { ...chunk.lodgings[0]!, camp: 2, gone: NEVER },
+        { ...chunk.lodgings[0]!, id: 1, camp: 3, lon: 40_800_000, gone: NEVER },
+      ],
+      stages: [stage],
+    };
+    for (const session of stageSessions(stage, d0)) {
+      const mid = Math.round((session.begin + session.stop) / 2);
+      const guests = treeScene(world, mid, d0).figures.filter(
+        (f) => f.id >= 6 && (f.clip === 'work' || f.clip === 'dance'),
+      );
+      expect(guests.length).toBeGreaterThan(0);
+    }
+  });
+
   it('is the same at the same clock time', () => {
     expect(treeScene(chunk, 123_456, d0)).toEqual(treeScene(chunk, 123_456, d0));
   });
