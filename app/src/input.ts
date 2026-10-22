@@ -23,7 +23,6 @@ export function attachKeys(t: KeyTargets): void {
     const target = e.target as HTMLElement | null;
     if (isTyping(target) || t.modal?.()) return;
     if (e.key === ' ' || e.code === 'Space') {
-      if (target?.tagName === 'BUTTON') return;
       e.preventDefault();
       t.clock.togglePlay();
     } else if (e.key === '[' || e.key === ']') {
@@ -34,7 +33,13 @@ export function attachKeys(t: KeyTargets): void {
       t.clock.setDay(e.key === 'Home' ? t.clock.startDay : t.clock.endDay);
     } else if (t.controller.keyDown(e)) e.preventDefault();
   });
-  window.addEventListener('keyup', (e) => t.controller.keyUp(e));
+  window.addEventListener('keyup', (e) => {
+    // A focused button must not take Space as a click: Space is always play and pause.
+    const target = e.target as HTMLElement | null;
+    if ((e.key === ' ' || e.code === 'Space') && !isTyping(target) && !t.modal?.())
+      e.preventDefault();
+    t.controller.keyUp(e);
+  });
   window.addEventListener('blur', () => t.controller.releaseKeys());
 }
 
