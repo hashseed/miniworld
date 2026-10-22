@@ -294,6 +294,8 @@ const OTHER_CAMP_M = 25;
 /** A monument's visitors come from camps within this many layout metres: up to two camps, two people each. */
 export const VISIT_M = 60;
 const VISIT_SLACK_MS = 8000;
+/** Visitors set out this long before the session's start, to be at their places when it begins. */
+const VISIT_EARLY_MS = 4000;
 const VISIT_CAMPS = 2;
 const VISIT_PEOPLE = 2;
 /**
@@ -1871,9 +1873,22 @@ export function treeScene(
       events.set(key, ev);
       return ev;
     }
+    // A camp within reach of a monument keeps its evenings free while a session runs there:
+    // its people may be on their way to it (humankind.md section 8.2).
+    const busyWithMonument = (chunk.stages ?? []).some((x) => {
+      if (x.kind !== 'monument') return false;
+      if (x.camp === camp && x.lat === ref.home.lat && x.lon === ref.home.lon) return false;
+      const off = offsetM(x, ref.home);
+      if (off.x * off.x + off.z * off.z > VISIT_M * VISIT_M) return false;
+      return stageSessions(x, startDay).some(
+        (q) =>
+          q.start - VISIT_EARLY_MS < start + TURN_MS && q.start + TURN_MS + VISIT_SLACK_MS > start,
+      );
+    });
     const roll = hash01(camp, w, 97);
-    const kind =
-      roll < CATCH_SHARE
+    const kind = busyWithMonument
+      ? undefined
+      : roll < CATCH_SHARE
         ? // Not at a compact camp, nor on a steep mountainside (Yang, 2026-10-20).
           isCompact(camp) || ref.home.steep
           ? undefined
@@ -2124,11 +2139,12 @@ export function treeScene(
     const known = memo.visits.get(key);
     if (known) return known;
     memo.visits.set(key, []);
-    const [start, until] = [session.start, session.start + TURN_MS + VISIT_SLACK_MS];
+    const [hostStart, until] = [session.start, session.start + TURN_MS + VISIT_SLACK_MS];
+    const start = hostStart - VISIT_EARLY_MS;
     const sessions = sessionsOf(stage);
     const nth = sessions.findIndex((q) => q.w === session.w);
     const hostKey = `${stage.camp}:${stage.lat}:${stage.lon}:${session.w}`;
-    if (!events.has(hostKey)) events.set(hostKey, stageEvent(stage, session.w, start, until));
+    if (!events.has(hostKey)) events.set(hostKey, stageEvent(stage, session.w, hostStart, until));
     const taken = events.get(hostKey)?.members.length ?? 0;
     const stands = stageStands(stage.camp, stage.slot, stage.beyond, stage.kind, nth);
     const { prop, gap, at } = stageSpots(stage.camp, stage.slot, stage.beyond);
@@ -2165,7 +2181,12 @@ export function treeScene(
               huntsOf(g, start, until).length === 0 &&
               [session.w - 1, session.w, session.w + 1].every((x) => {
                 const ev = eventOf(g, x);
-                return !ev || !ev.members.includes(g.f.id) || ev.end <= start || ev.start >= until;
+                return (
+                  !ev ||
+                  !ev.members.includes(g.f.id) ||
+                  ev.end <= start ||
+                  ev.start >= session.stop + VISIT_SLACK_MS
+                );
               }),
           )
           .sort((a, b) => Number(lookOf(a.f.id) === 'child') - Number(lookOf(b.f.id) === 'child'))
@@ -2244,7 +2265,7 @@ export function treeScene(
       const off = offsetM(stage, st.home);
       if (off.x * off.x + off.z * off.z > VISIT_M * VISIT_M) continue;
       for (const q of sessionsOf(stage)) {
-        if (q.start >= to || q.start + 2 * TURN_MS <= from) continue;
+        if (q.start - VISIT_EARLY_MS >= to || q.start + 2 * TURN_MS <= from) continue;
         for (const ev of visitorEvents(stage, q))
           if (ev.members.includes(st.f.id) && ev.start < to && ev.end > from) out.push(ev);
       }
