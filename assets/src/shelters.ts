@@ -30,7 +30,6 @@ export const SHELTERS = [
   'prop-carry-pole',
   'prop-spit',
   'prop-canoe',
-  'prop-red-flag',
   'shelter-small-hut',
   // Scenes at anchors (humankind.md section 8.2).
   'prop-cave-wall-sulawesi',
@@ -475,20 +474,6 @@ export function buildShelter(id: ShelterId): Model {
       }
       mb.add(rod([0.3, 0.42, -0.5], [0.3, 0.42, 0.35], 0.03, 4), POLE);
       mb.add(blob([0.3, 0.42, 0.48], [0.08, 0.025, 0.15], 5), POLE);
-      break;
-    }
-    case 'prop-red-flag': {
-      // A marker for development, not history (peopling.md section 3.6): a tall pole with a
-      // huge red cloth, about four times as high as a hut, so it is seen from far out.
-      mb.add(rod([0, 0, 0], [0, 12.4, 0], 0.13, 6), '#e9e2d0');
-      mb.add(blob([0, 12.55, 0], [0.22, 0.22, 0.22], 6), '#d9b13a');
-      const rows: Vec3[][] = [0, 1, 2, 3].map((r) =>
-        [0, 1, 2, 3, 4].map((c): Vec3 => {
-          const x = 0.1 + c * 1.3;
-          return [x, 12 - r * 1.2 - 0.12 * c, 0.35 * Math.sin(c * 1.4 + r * 0.3)];
-        }),
-      );
-      mb.add(sheet(rows), '#d42323');
       break;
     }
     case 'prop-cave-wall-sulawesi':

@@ -97,7 +97,7 @@ const HIGHEST_CAMP_M = 4800;
 
 /**
  * What the build tells about the peopling (peopling.md section 4): per arrival point, how long
- * after its date a band first stood at its site; per threshold, when its flag went up.
+ * after its date a band first stood at its site; per threshold, when its camps settled.
  */
 function peoplingReport(
   tree: Tree,
@@ -118,11 +118,11 @@ function peoplingReport(
       lines.push(`${p.id}: reached ${years(reached.day - day)} years after its date`);
   }
   for (const t of thresholds) {
-    const flag = tree.flags?.find((f) => f.id === t.id);
+    const settled = treeStats.thresholds.find((x) => x.id === t.id);
     lines.push(
-      flag
-        ? `${t.id}: flag raised ${years(flag.day - dayOfBce(t.bce))} years after its date`
-        : `${t.id}: no camp near it, no flag`,
+      settled
+        ? `${t.id}: settled ${years(settled.day - dayOfBce(t.bce))} years after its date`
+        : `${t.id}: no camp near it`,
     );
   }
   return lines;

@@ -8,7 +8,7 @@ import { hash01, hash32 } from '../core/hash.ts';
 import { detAtan2, detCos, detSin, RAD } from '../core/detmath.ts';
 import { dayAtMs, msAtDay } from '../time/rate.ts';
 import { astronomicalYear, dayOfYearStart, type Day } from '../time/calendar.ts';
-import { NEVER, type TreeFigure, type TreeFlag, type TreeLodging, type TreeStage } from './tree.ts';
+import { NEVER, type TreeFigure, type TreeLodging, type TreeStage } from './tree.ts';
 
 /** One time window's share of the tree (section 8). */
 export interface TreeChunk {
@@ -16,8 +16,6 @@ export interface TreeChunk {
   toDay: Day;
   figures: TreeFigure[];
   lodgings: TreeLodging[];
-  /** Red flags standing in the chunk's time (peopling.md section 3.6). */
-  flags?: TreeFlag[];
   /** Scenes at anchors standing in the chunk's time (humankind.md section 8.2). */
   stages?: TreeStage[];
 }
@@ -166,8 +164,6 @@ function groupOffset(
   };
 }
 
-/** A red flag stands this far from the hearth, behind a lodging and its rack (peopling.md section 3.6). */
-const FLAG_R = 24;
 /** Walks reach a lodging's door this far in front of its middle, before crouching in. */
 export const HUT_DOOR_M = 4.8;
 /**
@@ -479,7 +475,7 @@ export interface SparkPose {
 /** A prop of camp life at a layout point: a drying rack beside a lodging, a spit over the fire. */
 export interface CampPropPose extends Placed {
   id: string;
-  /** A drying rack, the spit, a canoe, a red flag, or a scene's wall or grave (section 8.2). */
+  /** A drying rack, the spit, a canoe, or a scene's wall or grave (section 8.2). */
   kind: string;
   /** 0 to 1: how far a scene's prop has grown in, painted or filled. */
   built?: number;
@@ -583,14 +579,13 @@ export const COMPACT_SITE = 1_000_000;
 export const MINIMAL_SITE = 2_000_000;
 export const isCompact = (camp: number): boolean => camp >= COMPACT_SITE;
 
-/** A camp's layout, in layout metres: hut ring, people's ring, door, core, gate, flag, dancers, builders, and people at most. */
+/** A camp's layout, in layout metres: hut ring, people's ring, door, core, gate, dancers, builders, and people at most. */
 export interface Layout {
   ring: number;
   inner: number;
   door: number;
   core: number;
   gate: number;
-  flag: number;
   dance: number;
   build: number;
   people: number;
@@ -605,7 +600,6 @@ const FULL: Layout = {
   door: HUT_DOOR_M,
   core: OUTER_M + 1,
   gate: GATE_M,
-  flag: FLAG_R,
   dance: DANCE_R,
   build: BUILD_RING_M,
   people: INNER_SPOTS + OUTER_SPOTS,
@@ -618,7 +612,6 @@ const COMPACT: Layout = {
   door: 4.6,
   core: 5,
   gate: 4.5,
-  flag: 14.5,
   dance: 3.4,
   build: BUILD_RING_M,
   people: INNER_SPOTS,
@@ -632,7 +625,6 @@ const MINIMAL: Layout = {
   door: 3.1,
   core: 3.6,
   gate: 3.4,
-  flag: 9.5,
   dance: 3.1,
   build: 3.2,
   people: 4,
@@ -1606,22 +1598,6 @@ export function treeScene(
           : 1 - (ms - p.to) / REGROW_MS;
     if (amount > 0)
       scene.clearings.push({ lat: p.lat, lon: p.lon, amount: Math.min(1, amount), felling: false });
-  }
-  // Red flags at the Neolithic thresholds, behind a lodging of their settled camps.
-  for (const flag of chunk.flags ?? []) {
-    if (ms < at(flag.day) || (flag.until !== NEVER && ms >= at(flag.until))) continue;
-    const p = slotPoint(flag.camp, flag.slot);
-    const r = layoutOf(flag.camp).flag / ringOf(flag.camp);
-    scene.props.push({
-      id: `flag:${flag.id}`,
-      kind: 'prop-red-flag',
-      lat: deg(flag.lat),
-      lon: deg(flag.lon),
-      x: p.x * r,
-      z: p.z * r,
-      dirX: -p.x / ringOf(flag.camp),
-      dirZ: -p.z / ringOf(flag.camp),
-    });
   }
   // Scenes at anchors (section 8.2). A cave's hill rises out of the ground over CAVE_FADE_MS
   // from CAVE_LEAD_MS before its first session, its painting grows over its sessions, and it

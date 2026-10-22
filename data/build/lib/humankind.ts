@@ -113,6 +113,8 @@ export const treeStats = {
    * crossing. Positions in degrees.
    */
   reached: [] as { leg: string; day: Day; lat: number; lon: number }[],
+  /** The day each Neolithic threshold's camps settled (peopling.md section 3.6). */
+  thresholds: [] as { id: string; day: Day }[],
   /** Each occurrence of an encounter (sites.md section 4.3): its day, site and how many came. */
   encounters: [] as { id: string; day: Day; site: number; parties: number; people: number }[],
   crossed: [] as { crossing: string; day: Day; lat: number; lon: number }[],
@@ -252,7 +254,7 @@ export interface TreeSettings {
   lodgingOf?(culture: string): string;
   /** The arrival points of the routes, from their days (peopling.md section 3). */
   voyages?: Voyage[];
-  /** Neolithic thresholds, where camps settle and raise a red flag (peopling.md section 3.6). */
+  /** Neolithic thresholds, where camps settle (peopling.md section 3.6). */
   thresholds?: Threshold[];
   /** Places that must have a band from a day to a day (sites.md section 4.1). */
   anchors?: Anchor[];
@@ -391,6 +393,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   treeStats.stuck = 0;
   treeStats.places = [];
   treeStats.reached = [];
+  treeStats.thresholds = [];
   treeStats.encounters = [];
   treeStats.crossed = [];
   const { sites, linksOf } = s.sites;
@@ -858,22 +861,6 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       const fresh = newLodging(camp, group[0]![0], day, way);
       for (const [f, id] of group) moveIn(f, id, fresh.id, day);
     }
-    // A red flag goes with its settled camp, behind one of its new lodgings (peopling.md section 3.6).
-    for (const f of tree.flags ?? [])
-      if (f.camp === from.key && f.until === NEVER && camp.settled) {
-        f.until = day;
-        const slot = Math.min(...camp.lodgings.map((l) => tree.lodgings[l]!.slot));
-        tree.flags!.push({
-          ...f,
-          camp: to.key,
-          day,
-          until: NEVER,
-          lat: micro(to.lat),
-          lon: micro(to.lon),
-          slot,
-        });
-        break;
-      }
   };
 
   /** Two or three people of a band, never the first person, leaving at least one behind. */
@@ -1750,31 +1737,21 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       ? `the nearest band is ${near.hops} links away`
       : `no band stands within ${ROUTE_HOPS} links open on its day`;
   };
-  const thresholds = (s.thresholds ?? []).map((t) => ({ ...t, flagged: false }));
+  const thresholds = (s.thresholds ?? []).map((t) => ({ ...t, settled: false }));
   /**
    * A Neolithic threshold is reached (peopling.md section 3.6): the camps near it settle, and
-   * the band at its site, brought there if none is, raises a red flag. False while none is.
+   * the band at its site, brought there if none is, is its key moment. False while none is.
    */
   const settle = (t: Threshold, day: Day): boolean => {
     for (const c of camps)
       if (c.lodgings.length > 0 && distanceKm(c.site.lat, c.site.lon, t.lat, t.lon) <= SETTLE_KM)
         c.settled = true;
-    // The band held at the threshold's site raises the flag.
+    // The band held at the threshold's site.
     const band = planByKey.get(placeKey('threshold', t.id))!.band;
     if (!band || band.lodgings.length === 0) return false;
     band.settled = true;
     const people = band.lodgings.flatMap((l) => residents.get(l)!);
-    // The flag stands behind the lodging of the camp's lowest standing place, out of every lane.
-    const slot = Math.min(...band.lodgings.map((l) => tree.lodgings[l]!.slot));
-    (tree.flags ??= []).push({
-      id: t.id,
-      camp: band.site.key,
-      day,
-      until: NEVER,
-      lat: micro(band.site.lat),
-      lon: micro(band.site.lon),
-      slot,
-    });
+    treeStats.thresholds.push({ id: t.id, day });
     moment('neolithic-threshold', day, people[0]!, band);
     return true;
   };
@@ -1933,7 +1910,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     held.clear();
     // Bands following a route set off first, at the step's start, before anyone is born in it.
     for (const v of voyages) if (!v.done && day >= v.day) v.done = voyage(v, day);
-    for (const t of thresholds) if (!t.flagged && day >= t.day) t.flagged = settle(t, day);
+    for (const t of thresholds) if (!t.settled && day >= t.day) t.settled = settle(t, day);
     // Someone dies before a burial (humankind.md section 8.2): the oldest grown-up of the
     // anchor's band, never the first person, where two others remain to bury them.
     for (const [c, list] of dyingSpots) {
@@ -2306,14 +2283,12 @@ export function treeChunks(tree: Tree, windows: Day[], endDay: Day): (TreeChunk 
       const walks = all?.filter((w) => homes.some((h) => h[0] === w[0] && h[1] === w[1]));
       figures.push({ ...rest, homes, lost: until(f.lost), ...(walks?.length ? { walks } : {}) });
     }
-    const flags = (tree.flags ?? []).filter((f) => f.day < to);
     const stages = (tree.stages ?? []).filter((x) => x.shown < to && until(x.keep) > earliest);
     return {
       fromDay: from,
       toDay: to,
       figures,
       lodgings: [...lodgings.values()],
-      ...(flags.length ? { flags } : {}),
       ...(stages.length ? { stages } : {}),
     };
   });
