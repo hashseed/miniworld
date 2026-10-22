@@ -610,16 +610,12 @@ void main() {
     // Cartoon waves on the sea and the large lakes (section 4.4), in world space, at a scale that follows the distance.
     if (!isRiver) {
       float t = time;
-      // Six fixed octaves, four times apart, each shown while its features are a readable size on
-      // the screen, so zooming never rescales the pattern, it only reveals or hides octaves.
+      // One fixed wavelength (64 km), so waves never overlap at a second size; it only fades out when
+      // its features would be smaller than a few pixels or larger than the screen.
       float kmPerPx = max(length(fwidth(vWorld)), 1e-3);
-      float mark = 0.0;
-      for (int k = 0; k < 6; k++) {
-        float sc = 2.0 * pow(4.0, float(k));
-        float px = sc / kmPerPx;
-        float vis = smoothstep(3.0, 9.0, px) * (1.0 - smoothstep(120.0, 300.0, px));
-        if (vis > 0.0) mark = max(mark, waveLayer(vWorld, sc, t) * vis);
-      }
+      float px = 64.0 / kmPerPx;
+      float vis = smoothstep(3.0, 9.0, px) * (1.0 - smoothstep(600.0, 1500.0, px));
+      float mark = vis > 0.0 ? waveLayer(vWorld, 64.0, t) * vis : 0.0;
       albedo = mix(albedo, vec3(0.86, 0.95, 1.0), mark * 0.75);
     }
     // Pulses flowing down the river towards its mouth (section 4.3).
