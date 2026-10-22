@@ -10,7 +10,6 @@ const STONE_NEW = '#dccdab';
 const WALL = '#c4b28d';
 const PLASTER = '#cdb59f';
 const BEDROCK = '#b8a888';
-const EARTH = '#8c6f4a';
 const BELT = '#a89472';
 const PELT = '#b98f62';
 
@@ -408,45 +407,4 @@ function disc(r0: number, r1: number, top: number, n: number): Vec3[][] {
     );
   }
   return tris;
-}
-
-/** A dome of earth of a foot radius and a height, as a lathe of three rings. */
-function dome(r: number, h: number, n: number): Vec3[][] {
-  const rings: [number, number][] = [
-    [1, 0],
-    [0.82, 0.5],
-    [0.5, 0.88],
-  ];
-  const pt = (k: number, j: number): Vec3 => {
-    const a = (k / n) * Math.PI * 2;
-    const [f, y] = rings[j]!;
-    // A lumpy edge, so the heap is not a perfect cone.
-    const wob = 1 + 0.05 * Math.sin(k * 2.3 + j);
-    return [Math.sin(a) * r * f * wob, y * h, Math.cos(a) * r * f * wob * (5 / 5.5)];
-  };
-  const tris: Vec3[][] = [];
-  for (let k = 0; k < n; k++) {
-    tris.push([[0, h, 0], pt(k + 1, 2), pt(k, 2)]);
-    for (let j = 0; j < 2; j++)
-      tris.push(
-        [pt(k, j), pt(k, j + 1), pt(k + 1, j + 1)],
-        [pt(k, j), pt(k + 1, j + 1), pt(k + 1, j)],
-      );
-  }
-  return tris;
-}
-
-/** 6 to 9: the earth carried in, layer on layer, until the walls and pillars are buried. */
-export function addGobekliFill(mb: ModelBuilder): void {
-  const layers: [number, number][] = [
-    [6.1, 1.4],
-    [5.5, 2.7],
-    [4.7, 3.9],
-    [3.6, 5.2],
-  ];
-  layers.forEach(([r, h], k) => {
-    const name = `build-${6 + k}`;
-    mb.bone({ name, pivot: [0, 0, 0] });
-    mb.add(mesh(dome(r, h, 14)), shade(EARTH, k * 0.015), name, undefined, 0);
-  });
 }

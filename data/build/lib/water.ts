@@ -102,6 +102,8 @@ export interface CuratedRiver {
   id: string;
   names: string[];
   box?: [number, number, number, number];
+  /** [lon, lat] where the river starts: the part of its lines north of this latitude is dropped. */
+  source?: [number, number];
 }
 
 /** Checks the curated rivers. */
@@ -121,7 +123,13 @@ export function validateRivers(rivers: CuratedRiver[]): string[] {
 
 /** The line picks of the rivers, in their order. */
 export function riverPicks(rivers: CuratedRiver[]): RiverPick[] {
-  return rivers.flatMap((r) => r.names.map((name) => (r.box ? { name, box: r.box } : { name })));
+  return rivers.flatMap((r) =>
+    r.names.map((name) => ({
+      name,
+      ...(r.box ? { box: r.box } : {}),
+      ...(r.source ? { source: r.source } : {}),
+    })),
+  );
 }
 
 export interface RiverPick {
@@ -129,6 +137,15 @@ export interface RiverPick {
   name: string;
   /** Only lines starting inside [west, south, east, north], for names used twice. */
   box?: [number, number, number, number];
+  /** Where the river starts: the part of its lines north of this point's latitude is dropped. */
+  source?: [number, number];
+}
+
+/** A line from its source point on: the part north of the source's latitude is dropped. */
+function fromSource(line: number[][], source: [number, number] | undefined): number[][] {
+  if (!source) return line;
+  const kept = line.filter((p) => p[1]! <= source[1]);
+  return kept.length > 1 ? kept : [];
 }
 
 export interface RiverContext {
@@ -259,15 +276,18 @@ export function rasterizeRivers(
 
   const picked = riverFeatures.map((f) => {
     const name = String(f.properties['name'] ?? '');
-    return featureLines(f).filter((line) =>
-      picks.some((p) => {
-        if (p.name !== name) return false;
-        if (!p.box) return true;
-        const [lon, lat] = line[0]!;
-        const [west, south, east, north] = p.box;
-        return lon! >= west && lon! <= east && lat! >= south && lat! <= north;
-      }),
-    );
+    return featureLines(f)
+      .map((line) => {
+        const pick = picks.find((p) => {
+          if (p.name !== name) return false;
+          if (!p.box) return true;
+          const [lon, lat] = line[0]!;
+          const [west, south, east, north] = p.box;
+          return lon! >= west && lon! <= east && lat! >= south && lat! <= north;
+        });
+        return pick ? fromSource(line, pick.source) : [];
+      })
+      .filter((line) => line.length > 1);
   });
   // Only a river's free ends, its mouths and sources, are led on to the water: an end within
   // JOINT_KM of another line is a joint, such as Cairo, where the Nile's delta branches part.

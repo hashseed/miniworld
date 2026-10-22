@@ -44,6 +44,7 @@ import {
   MONUMENT_BUILD_SESSIONS,
   MONUMENT_DANCE_SESSIONS,
   MONUMENT_MIN,
+  VISIT_M,
   treeScene,
 } from '../../../app/src/world/treeScene.ts';
 import {
@@ -263,7 +264,6 @@ export function buildHumankind(
       lon: number;
       scene?: { kind: string; prop: string };
       camp?: { lat: number; lon: number };
-      dryland?: boolean;
       en: string;
       de: string;
       source: string;
@@ -293,7 +293,6 @@ export function buildHumankind(
     lon: a.lon,
     ...(a.scene ? { scene: { kind: a.scene.kind as TreeStage['kind'], prop: a.scene.prop } } : {}),
     ...(a.camp ? { camp: { lat: a.camp.lat, lon: a.camp.lon } } : {}),
-    ...(a.dryland ? { dryland: true } : {}),
   }));
   const thresholdRecords = thresholds.map((t) => ({
     id: t.id,
@@ -373,7 +372,6 @@ export function buildHumankind(
         lon: p.lon,
         sea: seaOver(p.day, p.until),
         ...(p.kind === 'anchor' ? { km: ANCHOR_SITE_KM } : {}),
-        ...(p.dryland ? { flood: walkFlood } : {}),
       })),
     ],
     stepAt: (lat: number, lon: number) => siteStepAt(cultureAreas, lat, lon),
@@ -656,14 +654,16 @@ export function buildHumankind(
       const busy = chunk
         ? treeScene(chunk, ms, TIMELINE_START).figures.filter(
             (f) =>
-              Math.round(f.lat * 1e6) === stage.lat &&
-              Math.round(f.lon * 1e6) === stage.lon &&
+              (monument
+                ? distanceKm(f.lat, f.lon, stage.lat / 1e6, stage.lon / 1e6) <=
+                  VISIT_M * LAYOUT_KM_PER_M
+                : Math.round(f.lat * 1e6) === stage.lat && Math.round(f.lon * 1e6) === stage.lon) &&
               clips.includes(f.clip),
           ).length
         : 0;
       if (busy < need)
         fail(
-          `tree of humankind: session ${k + 1} of the scene of ${stage.id} has too few people to ${stage.kind === 'cave-painting' ? 'paint' : monument ? (k < MONUMENT_BUILD_SESSIONS ? 'raise the ring' : k < MONUMENT_BUILD_SESSIONS + MONUMENT_DANCE_SESSIONS ? 'dance' : 'fill the ring') : 'dig the grave'}`,
+          `tree of humankind: session ${k + 1} of the scene of ${stage.id} has too few people to ${stage.kind === 'cave-painting' ? 'paint' : monument ? (k < MONUMENT_BUILD_SESSIONS ? 'raise the ring' : 'dance') : 'dig the grave'}`,
         );
     }
     if (sessions[0])

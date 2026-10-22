@@ -12,7 +12,6 @@ import {
   burialTimes,
   MONUMENT_BUILD_SESSIONS,
   MONUMENT_DANCE_SESSIONS,
-  MONUMENT_FILL_SESSIONS,
   MONUMENT_SINK_DAYS,
   stageSessions,
   POLE_ON_SHOULDERS_M,
@@ -464,7 +463,7 @@ describe('the tree scene', () => {
     expect(at(g.start).clip).toBe('ill');
   });
 
-  it('raises a monument session by session, dances round it, then fills it with earth as it sinks', () => {
+  it('raises a monument session by session, dances round it, then lets it sink by itself', () => {
     const figure = (id: number) => ({
       id,
       parent: id === 0 ? NEVER : 0,
@@ -495,29 +494,20 @@ describe('the tree scene', () => {
       stages: [stage],
     };
     const sessions = stageSessions(stage, d0);
-    expect(sessions.length).toBe(
-      MONUMENT_BUILD_SESSIONS + MONUMENT_DANCE_SESSIONS + MONUMENT_FILL_SESSIONS,
-    );
+    expect(sessions.length).toBe(MONUMENT_BUILD_SESSIONS + MONUMENT_DANCE_SESSIONS);
     const mid = (k: number) => Math.round((sessions[k]!.begin + sessions[k]!.stop) / 2);
     const ring = (t: number) =>
       treeScene(monument, t, d0).props.find((q) => q.kind === 'prop-gobekli-ring');
     const last = mid(MONUMENT_BUILD_SESSIONS - 1);
     const building = treeScene(monument, mid(0), d0);
-    expect(building.figures.filter((f) => f.clip === 'work').length).toBeGreaterThan(3);
+    expect(building.figures.filter((f) => f.clip === 'work').length).toBeGreaterThanOrEqual(3);
     expect(ring(mid(0))!.built).toBeGreaterThan(0);
     expect(ring(last)!.built).toBeGreaterThan(ring(mid(0))!.built!);
     const dancing = treeScene(monument, mid(MONUMENT_BUILD_SESSIONS + 1), d0);
-    expect(dancing.figures.filter((f) => f.clip === 'dance').length).toBeGreaterThan(3);
-    // Dancing adds nothing to the ring; the filling then builds the rest.
-    const raised = MONUMENT_BUILD_SESSIONS / (MONUMENT_BUILD_SESSIONS + MONUMENT_FILL_SESSIONS);
-    expect(ring(mid(MONUMENT_BUILD_SESSIONS + 1))!.built).toBeCloseTo(raised);
+    expect(dancing.figures.filter((f) => f.clip === 'dance').length).toBeGreaterThanOrEqual(3);
+    // Dancing adds nothing to the ring: it is whole once raised, and nobody fills it.
+    expect(ring(mid(MONUMENT_BUILD_SESSIONS + 1))!.built).toBe(1);
     expect(ring(mid(0))!.rise).toBe(1);
-    const filling = mid(MONUMENT_BUILD_SESSIONS + MONUMENT_DANCE_SESSIONS + 1);
-    expect(
-      treeScene(monument, filling, d0).figures.filter((f) => f.clip === 'work').length,
-    ).toBeGreaterThan(2);
-    expect(ring(filling)!.built).toBeGreaterThan(raised);
-    expect(ring(filling)!.rise).toBeLessThan(1);
     expect(ring(mid(sessions.length - 1) + 60_000)!.built).toBe(1);
     // It stands for a thousand years, then sinks over the last five hundred.
     const sinking = msAtDay(stage.until - Math.round(MONUMENT_SINK_DAYS / 2), d0);
@@ -525,6 +515,57 @@ describe('the tree scene', () => {
     expect(ring(sinking)!.rise).toBeLessThan(0.6);
     expect(ring(msAtDay(stage.until + 10, d0))).toBeUndefined();
     expect(ring(msAtDay(stage.shown, d0))).toBeUndefined();
+  });
+
+  it('has people of a nearby camp walk to a monument session and home, never jumping', () => {
+    const figure = (id: number, lodging: number) => ({
+      id,
+      parent: id === 0 ? NEVER : 0,
+      born: d0,
+      branch: 0,
+      depth: id === 0 ? 0 : 1,
+      homes: [[d0, lodging, id]] as [number, number, number][],
+      lost: NEVER,
+    });
+    const stage = {
+      id: 'gobekli-tepe',
+      kind: 'monument' as const,
+      prop: 'prop-gobekli-ring',
+      camp: 2,
+      lat: 0,
+      lon: 36_000_000,
+      slot: 2,
+      beyond: 15,
+      shown: bce(9800),
+      from: bce(9700),
+      until: bce(8000),
+      keep: bce(7900),
+    };
+    const world: TreeChunk = {
+      ...chunk,
+      figures: [
+        ...Array.from({ length: 6 }, (_, i) => figure(i, 0)),
+        ...[6, 7, 8, 9].map((i) => figure(i, 1)),
+      ],
+      lodgings: [
+        { ...chunk.lodgings[0]!, camp: 2, gone: NEVER },
+        { ...chunk.lodgings[0]!, id: 1, camp: 3, lon: 39_000_000, gone: NEVER },
+      ],
+      stages: [stage],
+    };
+    const session = stageSessions(stage, d0)[0]!;
+    const guests = (t: number) =>
+      treeScene(world, t, d0).figures.filter((f) => f.id >= 6 && f.clip === 'work');
+    const mid = Math.round((session.begin + session.stop) / 2);
+    expect(guests(mid).length).toBeGreaterThan(0);
+    const who = guests(mid)[0]!.id;
+    let last: { x: number; z: number; lat: number; lon: number } | undefined;
+    for (let t = session.start - 2000; t < session.start + 24_000; t += 250) {
+      const f = treeScene(world, t, d0).figures.find((x) => x.id === who)!;
+      if (last && f.lat === last.lat && f.lon === last.lon)
+        expect(Math.sqrt((f.x - last.x) ** 2 + (f.z - last.z) ** 2)).toBeLessThan(5);
+      last = f;
+    }
   });
 
   it('is the same at the same clock time', () => {
