@@ -134,6 +134,8 @@ function edgeOffset(
 const GROUP_SIDE_M = 2.2;
 const GROUP_BACK_M = 3;
 const GROUP_FADE = 0.1;
+/** Canoes on a crossing string out along the way by up to this many layout metres, none beyond its ends. */
+const CANOE_GAP_M = 0.5;
 /** Walkers keep within this of the way's line in layout metres on the open way, inside the 15 km a link is checked. */
 const GROUP_WAY_SIDE_M = 0.45;
 function groupOffset(
@@ -143,15 +145,20 @@ function groupOffset(
   t: number,
   km: number,
   side = 0,
+  water = false,
 ): Pt {
-  const fade = Math.max(0, Math.min(1, t / GROUP_FADE, (1 - t) / GROUP_FADE));
+  // A canoe keeps to the line of its way, where the water was checked, one behind the other.
+  const fade = water ? 1 : Math.max(0, Math.min(1, t / GROUP_FADE, (1 - t) / GROUP_FADE));
+  const lim = water ? 0 : GROUP_WAY_SIDE_M;
   // Never further behind than a twentieth of the walk: less than the way covered while the
   // rows form, so nobody walks backwards on a short walk.
-  const back = Math.min(Math.floor(spot / 3) * GROUP_BACK_M, (0.05 * km) / LAYOUT_KM_PER_M) * fade;
+  const rows = water ? spot : Math.floor(spot / 3);
+  const back =
+    Math.min(rows * (water ? CANOE_GAP_M : GROUP_BACK_M), (0.05 * km) / LAYOUT_KM_PER_M) * fade;
   // On the open way walkers close in to within GROUP_WAY_SIDE_M of the line, the strip a
   // link is checked for water (sites.md section 3); they spread out again near the camps.
   const across = p.x * -way.dirZ + p.z * way.dirX + side;
-  const capped = Math.max(-GROUP_WAY_SIDE_M, Math.min(GROUP_WAY_SIDE_M, across));
+  const capped = Math.max(-lim, Math.min(lim, across));
   const shift = across + (capped - across) * fade - (across - side);
   return {
     x: p.x - way.dirX * back - way.dirZ * shift,
@@ -3194,10 +3201,22 @@ export function treeScene(
       while (n + 1 < c.legs.length && km > c.legs[n]!.km) km -= c.legs[n++]!.km;
       const leg = c.legs[n]!;
       const u = leg.km > 0 ? Math.min(1, km / leg.km) : 1;
+      // Canoes spread out along the way, never past either shore.
+      const strung = leg.water
+        ? Math.max(
+            0,
+            Math.min(
+              1,
+              u +
+                (((f.homes[i]![2] % 3) - 1) * CANOE_GAP_M * LAYOUT_KM_PER_M * (4 * u * (1 - u))) /
+                  Math.max(leg.km, 1),
+            ),
+          )
+        : u;
       const pose: FigurePose = {
         ...base,
-        lat: leg.from.lat + (leg.to.lat - leg.from.lat) * u,
-        lon: wrapLon(leg.from.lon + eastOf(leg.from.lon, leg.to.lon) * u),
+        lat: leg.from.lat + (leg.to.lat - leg.from.lat) * strung,
+        lon: wrapLon(leg.from.lon + eastOf(leg.from.lon, leg.to.lon) * strung),
         // From the edge of the old camp on its first leg, to the edge of the new one on its
         // last: a straight walk has both, a route keeps to its way in between; each walker
         // keeps its own place in the group, beside and behind the others.
@@ -3213,6 +3232,7 @@ export function treeScene(
             : ((f.homes[i]![2] % 3) - 1) *
                 GROUP_SIDE_M *
                 (n === 0 ? u : n === c.legs.length - 1 ? 1 - u : 1),
+          leg.water,
         ),
         ...leg.way,
         clip: leg.water ? 'paddle' : 'walk',

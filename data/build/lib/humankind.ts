@@ -8,6 +8,7 @@
 import { hash32, hash01 } from '../../../app/src/core/hash.ts';
 import { detCos, detSin } from '../../../app/src/core/detmath.ts';
 import { DAYS_PER_YEAR, type Day } from '../../../app/src/time/calendar.ts';
+import { FIGURE_KM_PER_M, TEMPO, WALK_M_PER_S } from '../../../app/src/world/treeScene.ts';
 import { dayAtMs, dayAtWatch, watchAtDay } from '../../../app/src/time/rate.ts';
 import {
   NEVER,
@@ -77,7 +78,10 @@ export const MAX_LODGINGS = 5;
 // The tree's rhythms are set in watching time, so camps look the same in every era
 // (section 4.3; Yang, 2026-10-19), and converted to days by the curve of spec section 2.1.
 /** One step of the build, in milliseconds of watching (section 4.3). */
+const WALK_KM_PER_MS = (TEMPO * WALK_M_PER_S * FIGURE_KM_PER_M) / 1000;
 const STEP_MS = 10_000;
+/** A band's walk starts this long after it moves in and may run this much longer than the pace says. */
+const VOYAGE_SLACK_MS = 10_000;
 /** At most one figure comes out of a lodging in this time (section 4.3). */
 const EMERGE_MS = 60_000;
 /** A band moves its camp after one to two of these (section 4.4). */
@@ -228,6 +232,8 @@ export interface TreeSettings {
   seaLevel(day: Day): number;
   /** The sea level above which a point is sea for walkers, for stranded bands paddling away (sites.md section 3). */
   walkFlood?(lat: number, lon: number): number;
+  /** Like walkFlood, but flooded only where every source agrees: where a canoe may go. */
+  waterFlood?(lat: number, lon: number): number;
   /** The height of the ground in metres, for a cave's hill (humankind.md section 8.2). */
   elevation?(lat: number, lon: number): number;
   /** The same for a camp: lakes and rivers are never dry; for the places of scenes (humankind.md section 8.2). */
@@ -420,6 +426,15 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     return m;
   };
 
+  /** The lowest sea between two days, sampled like seaMax. */
+  const seaMin = (from: Day, to: Day): number => {
+    let m = Math.min(s.seaLevel(from), s.seaLevel(to));
+    const n = Math.max(8, Math.ceil((to - from) / (100 * DAYS_PER_YEAR)));
+    for (let k = 1; k < n; k++)
+      m = Math.min(m, s.seaLevel(from + Math.floor(((to - from) * k) / n)));
+    return m;
+  };
+
   const frontOk = (site: Site, day: Day) =>
     day >= s.prologueEndDay ||
     distanceKm(s.founder.lat, s.founder.lon, site.lat, site.lon) <=
@@ -574,12 +589,20 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     // goes: the band walks to the water's edge, boards there, paddles only over water and
     // lands at the far shore (peopling.md section 6; Yang, 2026-10-20: "they must not be on
     // boats on land").
-    const sea = seaMax(day, after(day, STEP_MS));
+    // The sea changes while the band is under way, which takes many seconds of watching on a
+    // long route: each stretch is checked against the sea over the time it is walked.
     const way: [number, number][] = [];
     const water: boolean[] = [];
+    let walked = 0;
     for (let i = 1; i < points.length; i++) {
       const [a, b] = [points[i - 1]!, points[i]!];
-      const part = s.walkFlood ? shores(a, b, sea) : { way: [], water: [false] };
+      const km = distanceKm(a.lat, a.lon, b.lat, b.lon);
+      const from = after(day, Math.floor(walked / WALK_KM_PER_MS));
+      const to = after(day, Math.ceil((walked + km) / WALK_KM_PER_MS) + VOYAGE_SLACK_MS);
+      walked += km;
+      const part = s.walkFlood
+        ? shores(a, b, seaMax(from, to), seaMin(from, to))
+        : { way: [], water: [false] };
       water.push(...part.water);
       way.push(...part.way);
       if (i < points.length - 1) way.push([micro(b.lat), micro(b.lon)]);
@@ -1026,6 +1049,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     a: { lat: number; lon: number },
     b: { lat: number; lon: number },
     sea: number,
+    low = sea,
   ) => {
     const km = distanceKm(a.lat, a.lon, b.lat, b.lon);
     const n = Math.max(1, Math.ceil(km / 10));
@@ -1038,19 +1062,31 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       else if (lon < -180) lon += 360;
       return { lat: a.lat + ((b.lat - a.lat) * k) / n, lon };
     };
-    const wet = Array.from({ length: n + 1 }, (_, k) => {
+    const flood = s.waterFlood ?? s.walkFlood!;
+    const isWet = (k: number) => {
       const p = at(k);
-      return s.walkFlood!(p.lat, p.lon) <= sea;
-    });
+      return flood(p.lat, p.lon) < low - 3;
+    };
+    const wet = Array.from({ length: n + 1 }, (_, k) => isWet(k));
     const way: [number, number][] = [];
     const water: boolean[] = [];
     let state = wet[0]!;
     for (let k = 1; k <= n; k++)
       if (wet[k] !== state) {
-        // The stretch up to here is water when either end of it is.
-        const p = at(wet[k] ? k - 1 : k);
-        water.push(state || !!wet[k]);
-        way.push([micro(p.lat), micro(p.lon)]);
+        // Narrow the shore down between the two samples: the water stretch ends at a place
+        // that is water, the land stretch at one that is land, a few tens of metres apart.
+        let [lo, hi] = [k - 1, k];
+        for (let i = 0; i < 8; i++) {
+          const mid = (lo + hi) / 2;
+          if (isWet(mid) === state) lo = mid;
+          else hi = mid;
+        }
+        const [first, second] = [at(lo), at(hi)];
+        water.push(state);
+        way.push([micro(first.lat), micro(first.lon)]);
+        // The few metres between the two belong to the stretch that ends.
+        water.push(state);
+        way.push([micro(second.lat), micro(second.lon)]);
         state = wet[k]!;
       }
     water.push(state);

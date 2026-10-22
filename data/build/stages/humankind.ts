@@ -245,6 +245,13 @@ export function buildHumankind(
     const grid = v === OCEAN_NEVER ? Infinity : OCEAN_MIN_LEVEL + v;
     return Math.min(grid, drawn.groundAt(lat, lon).oceanLevel);
   };
+  // Water for a canoe: only where the grids and the drawn tiles both flood.
+  const waterFlood = (lat: number, lon: number) => {
+    if (drawn.lake(lat, lon)) return -Infinity;
+    const v = connection.nearest(lat, lon);
+    const grid = v === OCEAN_NEVER ? Infinity : OCEAN_MIN_LEVEL + v;
+    return Math.max(grid, drawn.groundAt(lat, lon).oceanLevel);
+  };
   const walkFlood = (lat: number, lon: number) =>
     lakeAt(lat, lon) ? -Infinity : oceanFlood(lat, lon);
   const campFlood = (lat: number, lon: number) =>
@@ -473,6 +480,7 @@ export function buildHumankind(
     sites,
     seaLevel: climate.seaLevelAt,
     walkFlood,
+    waterFlood,
     elevation: (lat, lon) => elevation.bilinear(lat, lon),
     temperature: climate.temperatureAt,
     arrival: arrived.dayAt,
