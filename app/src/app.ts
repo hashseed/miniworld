@@ -6,7 +6,7 @@ import { EXAGGERATION } from './globe/exaggeration.ts';
 import * as THREE from 'three';
 import { h, render } from 'preact';
 import { ContentLoader } from './content/loader.ts';
-import type { StartupIndex, VignetteEntry } from './content/types.ts';
+import type { StartupIndex } from './content/types.ts';
 import { Store } from './core/store.ts';
 import { CameraController } from './globe/cameraController.ts';
 import { EARTH_RADIUS_KM } from './geo/earth.ts';
@@ -25,8 +25,6 @@ import { QUALITY, targetFrameMs } from './perf/quality.ts';
 import { STRESS_DAY, StressRun, stressCamera } from './dev/stress.ts';
 import { attachKeys } from './input.ts';
 import { FrameLoop } from './loop.ts';
-import { LandmarkLayer } from './landmarks/landmarkLayer.ts';
-import { VignetteLayer } from './vignettes/vignetteLayer.ts';
 import { WildlifeLayer } from './wildlife/wildlifeLayer.ts';
 import { OPENING_DAY, TIMELINE_START } from './time/calendar.ts';
 import { TreeLayer } from './tree/treeLayer.ts';
@@ -159,16 +157,6 @@ const controller = new CameraController(
   surface,
   savedView?.camera ?? (STRESS ? stressCamera(0) : DEFAULT_CAMERA),
 );
-const vignettes = new VignetteLayer(
-  loader,
-  { surfaceKm: surface.surfaceKm, toDrawn: (d) => globe.lens.toDrawn(d) },
-  canvas,
-);
-const landmarks = new LandmarkLayer(loader, {
-  surfaceKm: surface.surfaceKm,
-  toDrawn: (d) => globe.lens.toDrawn(d),
-});
-vignettes.landmarks = landmarks;
 const wildlife = new WildlifeLayer({
   surfaceKm: surface.surfaceKm,
   toDrawn: (d) => globe.lens.toDrawn(d),
@@ -180,21 +168,26 @@ const tree = new TreeLayer(loader, {
   // The sea of the day, drawn; a little lens width is allowed for (humankind.md section 8.2).
   seaKm: (): number => (loop.planet.seaLevel as number) * EXAGGERATION * 0.001 * 1.4,
 });
-scene.add(landmarks.group, vignettes.group, wildlife.group, tree.group);
+scene.add(wildlife.group, tree.group);
 /** The camp sites for development, with `?sites` (sites.md section 7). */
 let sitesView: SitesLayer | undefined;
-vignettes.onOpen = (entry) => void openVignette(entry);
-// A tap that misses every cast may land on a landmark, then on an animal, which open their cards the same way.
-vignettes.onMiss = (x, y) => {
-  const entry = landmarks.hit(x, y);
-  if (entry) return void openVignette(entry);
-  const site = tree.hitScene(x, y);
-  if (site !== undefined) return void openSiteCard(site);
-  const group = wildlife.hit(x, y);
-  if (group !== undefined) void openAnimal(group);
-};
-vignettes.onFly = (lat, lon, altitudeKm) =>
-  controller.flyTo({ ...controller.state, lat, lon, altitudeKm });
+// A tap on a scene opens its site card, a tap on an animal its animal card.
+{
+  let down: { x: number; y: number; t: number } | undefined;
+  canvas.addEventListener('pointerdown', (e) => {
+    down = { x: e.clientX, y: e.clientY, t: performance.now() };
+  });
+  canvas.addEventListener('pointerup', (e) => {
+    const d = down;
+    down = undefined;
+    if (!d || Math.sqrt((e.clientX - d.x) ** 2 + (e.clientY - d.y) ** 2) > 6) return;
+    if (performance.now() - d.t > 500) return;
+    const site = tree.hitScene(e.clientX, e.clientY);
+    if (site !== undefined) return void openSiteCard(site);
+    const group = wildlife.hit(e.clientX, e.clientY);
+    if (group !== undefined) void openAnimal(group);
+  });
+}
 controller.reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 foliage.still = controller.reducedMotion;
 // The camera sees the lens through the globe, which swaps in the loaded warp.
@@ -219,8 +212,6 @@ const loop = new FrameLoop(
     foliage,
     sky,
     clouds,
-    vignettes,
-    landmarks,
     wildlife,
     tree,
     hot,
@@ -447,12 +438,6 @@ async function switchLanguage(lang: Settings['language']): Promise<void> {
   document.title = tabTitle();
   index = next;
   timeline?.setIndex(next);
-  vignettes.setIndex(next.vignettes);
-  landmarks.setIndex(next.landmarks);
-  const open =
-    ui.value.vignette &&
-    [...next.vignettes, ...next.landmarks].find((v) => v.id === ui.value.vignette!.id);
-  if (open && ui.value.panel === 'vignette') void openVignette(open);
   if (ui.value.panel === 'vignette' && ui.value.vignette?.site && openSiteId !== undefined)
     void openSiteCard(openSiteId);
   if (ui.value.panel === 'vignette' && ui.value.vignette?.animal && openAnimalGroup !== undefined)
@@ -510,27 +495,6 @@ async function openAnimal(group: number): Promise<void> {
     fromApproximate: (span?.from?.year ?? 1500) < 1500,
     toApproximate: (span?.to?.year ?? 1500) < 1500,
     animal: { from: span?.from !== undefined, to: span?.to !== undefined },
-  };
-  ui.update({ panel: 'vignette', vignette: card });
-  const done = (patch: Partial<VignetteCard>) => {
-    if (ui.value.vignette === card) ui.update({ vignette: { ...card, ...patch } });
-  };
-  try {
-    done({ text: await loader.json<NonNullable<VignetteCard['text']>>(entry.text) });
-  } catch {
-    done({ failed: true });
-  }
-}
-
-/** Opens a vignette's card at once with its title, then fills in the text (milestone 2 section 11). */
-async function openVignette(entry: VignetteEntry): Promise<void> {
-  const card: VignetteCard = {
-    id: entry.id,
-    title: entry.title,
-    fromDay: entry.fromDay,
-    toDay: entry.toDay,
-    fromApproximate: entry.fromApproximate,
-    toApproximate: entry.toApproximate,
   };
   ui.update({ panel: 'vignette', vignette: card });
   const done = (patch: Partial<VignetteCard>) => {
@@ -621,8 +585,6 @@ async function start(): Promise<void> {
     const grids = decodeLensGrids(lensBytes);
     globe.setLens(new Lens(grids.forward, grids.inverse));
     minSeaLevel = lowestSeaLevel(index.seaLevel);
-    vignettes.setIndex(index.vignettes);
-    landmarks.setIndex(index.landmarks);
     wildlife.setMasks(index.wildlife);
     wildlife.setCamps(index.wildlifeCamps ?? []);
     globe.lowestSeaLevel = minSeaLevel;
@@ -739,8 +701,8 @@ function placeIntro(): void {
 
 /**
  * Each frame of the loading screen: spins the small globe, as many degrees as `dtMs` takes,
- * and keeps it plain: no clouds before the land has arrived, and no camps, animals or
- * vignettes, which would be specks at that distance.
+ * and keeps it plain: no clouds before the land has arrived, and no camps or
+ * animals, which would be specks at that distance.
  */
 function introFrame(dtMs: number): void {
   if (introEase < 1 && ui.value.intro !== 'loading') {
@@ -749,8 +711,7 @@ function introFrame(dtMs: number): void {
   }
   const loading = ui.value.intro === 'loading' && !STRESS;
   clouds.mesh.visible = !loading || globe.drawnTiles > 0;
-  for (const layer of [landmarks.group, vignettes.group, wildlife.group, tree.group])
-    layer.visible = !loading;
+  for (const layer of [wildlife.group, tree.group]) layer.visible = !loading;
   // The still picture stands in until the globe's tiles are drawn; it spins from then on.
   if (loading && !ui.value.introGlobe && globe.drawnTiles > 0) {
     introDrawnFrames++;
@@ -868,8 +829,6 @@ if (import.meta.env.DEV)
     __miniworld: {
       globe,
       foliage,
-      vignettes,
-      landmarks,
       wildlife,
       tree,
       controller,

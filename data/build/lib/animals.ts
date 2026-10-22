@@ -12,15 +12,15 @@ import {
   parseText,
   str,
   unknownFields,
-  type VignetteText,
+  type CardText,
   type Yaml,
-} from './vignettes.ts';
+} from './records.ts';
 
 const RECORD_FIELDS = ['id', 'kind', 'sources'];
 
 export interface BuiltAnimal {
   id: string;
-  text: Record<Language, VignetteText>;
+  text: Record<Language, CardText>;
 }
 
 export interface AnimalInputs {

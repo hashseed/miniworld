@@ -15,7 +15,6 @@ import { chunkKey } from '../../../app/src/content/types.ts';
 import { ancestorAt, tilePath, TILE_N, type TileKey } from '../../../app/src/geo/cube.ts';
 import { fixtureElevation } from '../lib/fixture.ts';
 import { Grid, GridPyramid } from '../lib/grid.ts';
-import { placeOffWater } from '../lib/landmarks.ts';
 import { openShare, wildMasks } from '../lib/wildlife.ts';
 import { WILD_GROUPS } from '../../../app/src/world/wildlife.ts';
 import {
@@ -63,7 +62,6 @@ import {
   type CuratedRiver,
 } from '../lib/water.ts';
 import { validateHumidPeriods, type HumidPeriod } from '../lib/climate.ts';
-import type { Content } from './content.ts';
 import type { BuildContext, WriteContext } from './context.ts';
 import type { DrawnGround, DrawnTiles } from '../lib/drawnGround.ts';
 
@@ -262,21 +260,6 @@ function mapOf(g: CachedMap, straits: Strait[], humidPeriods: HumidPeriod[]): Wo
     flowSin: fromPlain(g.flowSin),
     coast: fromPlain(g.coast),
   };
-}
-
-/**
- * Moves landmarks onto dry land beside the drawn rivers (giza.md section 2).
- * The sea is where the ocean reaches at today's level, so dry depressions such
- * as Qattara count as land. Changes the landmarks in place.
- */
-export function placeLandmarks(ctx: BuildContext, map: WorldMap, landmarks: Content['landmarks']) {
-  const { connection, lakes, rivers } = map;
-  const wet = (lat: number, lon: number) =>
-    rivers.bilinear(lat, lon) > 127 ||
-    lakes.bilinear(lat, lon) > 127 ||
-    connection.nearest(lat, lon) <= -OCEAN_MIN_LEVEL;
-  for (const l of landmarks)
-    ctx.log(`landmark ${l.structure.id} moved ${placeOffWater(l, wet)} km west off the water`);
 }
 
 /**

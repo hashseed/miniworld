@@ -227,7 +227,7 @@ export class ContentLoader implements ChunkSource {
     }
   }
 
-  /** Fetches a whole JSON file by name, such as a vignette's structure or text. */
+  /** Fetches a whole JSON file by name, such as a card's text. */
   json<T>(file: string): Promise<T> {
     return this.fetchJson<T>(file);
   }

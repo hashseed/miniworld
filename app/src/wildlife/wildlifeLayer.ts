@@ -28,7 +28,7 @@ import {
   type WildAnimal,
   type WildMask,
 } from '../world/wildlife.ts';
-import type { SurfaceSource } from '../vignettes/vignetteLayer.ts';
+import type { SurfaceSource } from '../tree/surface.ts';
 
 /** Drawn kilometres per life-size metre: half as large again as the figures (section 1). */
 export const KM_PER_M = 63.75;

@@ -67,7 +67,7 @@ Everything on screen is a function of the clock alone, so nothing depends on how
 
 ### 2.3 One clock
 
-Earlier versions ran everyday activity on a second, separate clock. There is one clock, watching time: figures, vignettes and animations run on it, and the date follows from it by the curve of section 2.1. Which task a figure picks next (every 10 to 30 seconds of watching), where it walks and which animation plays are a function of the clock, so scrubbing back to a moment replays it exactly.
+Earlier versions ran everyday activity on a second, separate clock. There is one clock, watching time: figures and animations run on it, and the date follows from it by the curve of section 2.1. Which task a figure picks next (every 10 to 30 seconds of watching), where it walks and which animation plays are a function of the clock, so scrubbing back to a moment replays it exactly.
 
 ### 2.4 People morph instead of dying of age
 
@@ -112,7 +112,6 @@ History enters the app as a curated database of dated, located records; everythi
 | Polities | Borders at snapshot dates, localised name, colour, capital | historical-basemaps (open GeoJSON of world borders; GPL-3.0, so it needs Yang's decision under section 13), Wikidata (CC0) |
 | Routes | Trade routes, migrations and voyages with date ranges | Curated |
 | Landmarks | Unique buildings and sites with construction stages, later changes and ruins by date | Curated, with an approved model each |
-| Vignettes | Small staged stories at a place and time, built from reusable templates | Curated; see [milestone-2.md](milestone-2.md#6-vignettes) |
 | Events | Start and end date, optional peak, place with a point to fly to ([content-format.md](content-format.md#4-place) section 4), type, localised title and text, how it is shown over its span; wars also name their sides, battles their war, and both the famous people who took part | Curated; see [events.md](events.md) and [wars.md](wars.md) |
 | Famous people | Life dates, places over their life, stable id, role, category, look, localised text | Wikidata plus curation; see [people.md](people.md) |
 
@@ -152,7 +151,7 @@ Every event has a type, and each type has one reusable way of showing itself on 
 
 **Events take time.** Every event has a start date and an end date, which are the same for an event of a single day, and may have a peak: the day, years or phase when it is strongest. The span covers everything the globe shows, not just the headline moment: the warning signs before an eruption, the years of cold after it, the later waves of a plague, the centuries a desert takes to spread. Between start and peak the effect builds up, and between peak and end it fades, at the pace the record gives; a slow climate shift changes the land gradually over centuries, while an earthquake starts at full strength. Changes that outlast the event stay in the world after its end, such as a crater lake, a drowned coastline, ruins or a toppled statue. An event that came back in waves, such as plague or cholera, lists its waves as phases, each with its own dates and places.
 
-**Vignettes.** Many events are shown as a **vignette**: a small staged story with a cast, props and a script that plays on the clock (section 2.1), such as Vikings raiding a village, hunters stalking a mammoth or workers hauling a pillar. Because the clock fixes everything, a vignette is fully scripted: at a given point of the timeline it is always at the same beat in the same place. While history runs it plays during its span; when history is paused it stops mid-beat. A vignette never pops in or out: its cast walks onto the stage at the start and leaves at the end (decided by Yang on 2026-10-18). A vignette is repeated (one record places many instances over a span and area, such as Viking raids), singular and long (one instance whose progress follows the date, such as building the pyramids), or short but stretched: an event of a few days, such as a one-day battle, plays its whole script, which may cover several years of the timeline, while the card gives its true date (decided by Yang on 2026-10-17 and 2026-10-18). Things too small to see from above, such as cave paintings, open as a cutaway, like a dollhouse, when the camera comes close. The format and rules are in [milestone-2.md](milestone-2.md#6-vignettes). The recurring dioramas planned for every region and era, each with its script, are in [dioramas.md](dioramas.md).
+**Vignettes** (removed, Yang 2026-10-22, issue 147). An engine for small staged stories with a cast, props and a script on the clock was built for the pyramids of Giza and removed unused; the scenes of the tree of humankind ([humankind.md](humankind.md)) are staged by the camps themselves. The recurring dioramas once planned are an idea list in [dioramas.md](dioramas.md).
 
 **Finding events.** Events in progress near the camera show a small floating marker with an icon and the title. Events far away appear on the timeline and in a list "Happening now". Double-clicking any event flies the camera there and, if needed, moves time to its start.
 
@@ -226,7 +225,7 @@ Every asset has two or three lower levels of detail, and at globe zoom figures b
 
 ## 9. Architecture
 
-The world on screen is a pure function of one clock (section 2.1): the date it gives decides the state of the world, and the clock itself decides what each figure and each vignette is doing at this moment. Given the same data and clock time, the app always computes the same world, without simulating forward from the beginning. That one decision delivers determinism, instant scrubbing to any year and tiny saves at the same time.
+The world on screen is a pure function of one clock (section 2.1): the date it gives decides the state of the world, and the clock itself decides what each figure is doing at this moment. Given the same data and clock time, the app always computes the same world, without simulating forward from the beginning. That one decision delivers determinism, instant scrubbing to any year and tiny saves at the same time.
 
 ```mermaid
 flowchart LR

@@ -1,6 +1,6 @@
 # Content format
 
-How historical content (events, famous people, eras, places, polities, routes, culture profiles, landmarks and vignettes) is written, validated, indexed and fed into the app. The lists of what is in the app are in [events.md](events.md), [people.md](people.md) and [eras.md](eras.md); this file defines the format every item on those lists is stored in.
+How historical content (events, famous people, eras, places, polities, routes, culture profiles and cards) is written, validated, indexed and fed into the app. The lists of what is in the app are in [events.md](events.md), [people.md](people.md) and [eras.md](eras.md); this file defines the format every item on those lists is stored in.
 
 Goals: adding an item is only data; adding a new kind of event is one presenter; adding a new kind of content is one schema and one build step; every record is reviewable in both languages; nothing about a record has to be maintained in two places.
 
@@ -11,8 +11,7 @@ Every piece of content is a **record**: one Markdown file under `data/curated/<k
 ```
 data/curated/
   vocab/        event-types.yaml, effect-types.yaml, people-categories.yaml,
-                lanes.yaml, regions.yaml, tags.yaml, actions.yaml, roles.yaml,
-                animals.yaml, icons.yaml
+                lanes.yaml, regions.yaml, tags.yaml
   eras/         roman-republic.md ...
   events/       vesuvius-79.md, black-death.md ...
   people/       julius-caesar.md ...
@@ -20,11 +19,8 @@ data/curated/
   polities/     roman-empire.md ...            states and empires
   routes/       silk-road.md ...
   cultures/     roman-imperial.md ...          culture profiles
-  landmarks/    gobekli-tepe.md, great-pyramid.md ...
-  vignettes/    viking-raids-britain.md ...    small looping stories
   animals/      lion.md, thylacine.md ...      wildlife species cards
   site-cards/   chauvet.md, sungir.md ...        cards of the anchors (humankind.md section 8.3)
-  templates/    coastal-raid.yaml ...          vignette stages and scripts (no text)
   geo/          areas and paths as GeoJSON, referenced by id
   sources.yaml  bibliography of content sources (books, papers, databases)
   CHRONOLOGY.md, <kind>/INDEX.md               generated (section 8)
@@ -33,11 +29,7 @@ data/schema/    one schema per kind, shared by the data build and the app
 
 - One file per record keeps pull requests small: a change touches only the records it is about, and a reviewer reads one item at a time.
 - The front matter is parsed strictly as YAML 1.2 with no implicit type guessing, so `no` stays a string and `1.10` is not a number. Plain Markdown tables are not used for records, because they cannot hold nested data such as paths, phases or effects.
-- **Vocabularies are data.** Event types, effect types, people categories, timeline lanes, regions, tags, vignette actions, roles, animals and scene-marker icons each live in one YAML file under `vocab/`, every entry keyed by its id (`lanes.yaml`, whose order matters, is a list), with `en` and `de` labels where the viewer reads them. Code and records refer to vocabulary ids only, never to labels. Each vocabulary file has a schema in `data/schema/` (section 7), and the data build fails on an entry that does not match it.
-  - `actions.yaml`: per action, whether it is for cast groups or props (`for: cast` or `for: prop`) and what its object names (`object: none`, `mark`, `group` or `optional-group`). The movement rule and the clips are the action's code in the vignette player, which implements exactly the actions in this file.
-  - `roles.yaml`: per role, an `en` label and German labels in the feminine and masculine form (`de: { female, male }`), and the rules the cast follows: `man: true` when the role is always played by a man of the profile, and `tool` for the tool the role holds instead of the profile's own.
-  - `animals.yaml`: per animal, its `en` and `de` names. The animal's model has the id `animal-<id>` (milestone 2, section 13).
-  - `icons.yaml`: the scene-marker icons the app can draw (milestone 2, section 7.2), with their labels.
+- **Vocabularies are data.** Event types, effect types, people categories, timeline lanes, regions, tags each live in one YAML file under `vocab/`, every entry keyed by its id (`lanes.yaml`, whose order matters, is a list), with `en` and `de` labels where the viewer reads them. Code and records refer to vocabulary ids only, never to labels. Each vocabulary file has a schema in `data/schema/` (section 7), and the data build fails on an entry that does not match it.
   - **Regions and lanes.** `vocab/regions.yaml` maps each world region's id to its labels, in the order of [spec.md section 7.1](spec.md#71-timeline): `europe`, `mena`, `africa`, `central-asia`, `south-asia`, `east-asia`, `southeast-asia`, `americas`, `oceania`. `vocab/lanes.yaml` lists the timeline lanes from top to bottom: the World lane as `{ id: world, en: World, de: Welt }`, then one entry `{ region: <id> }` per region, which takes the region's id and labels, so a region's name is written once. The data build fails when a region has no lane, has two, or a lane names an unknown region.
 
 ## 2. The record envelope
@@ -85,9 +77,9 @@ Der Vesuv bricht aus und begräbt die Stadt Pompeji unter Asche. ...
 | Field | Required | Meaning |
 | --- | --- | --- |
 | `id` | yes | Stable lowercase slug, unique within its kind, equal to the file name. Never reused; a renamed record keeps its old id in `aliases`, so bookmarks, links and later guided tours never break. |
-| `kind` | yes | `event`, `person`, `era`, `place`, `polity`, `route`, `culture`, `landmark`, `vignette`, `animal` or `site-card`; must match the folder. |
+| `kind` | yes | `event`, `person`, `era`, `place`, `polity`, `route`, `culture`, `animal` or `site-card`; must match the folder. |
 | `when` | yes, except culture and animal | Time span (section 3). |
-| `where` | yes for events, people, places, routes, landmarks and vignettes | Place (section 4). |
+| `where` | yes for events, people, places and routes | Place (section 4). |
 | `region` | yes, except culture, animal and era (an era's `lane` places it) | One or more region ids from `vocab/regions.yaml` (the timeline's regional lanes); used for the timeline, the phone lane filter and the coverage report. |
 | `sources` | yes | One or more references into `sources.yaml`, each with an optional note such as a page or letter number. |
 | `debated` | no | What historians dispute: `date`, `place`, `cause`, `numbers` or `method` (how something was done, such as whether people killed mammoths or collected the bones of dead ones). The data build fails on any other value. The card says so in plain words. |
@@ -161,18 +153,16 @@ Each kind adds only what it needs on top of the envelope.
 
 | Kind | Extra fields |
 | --- | --- |
-| `event` | `type` from `vocab/event-types.yaml` (the types of [spec.md section 5](spec.md#5-how-events-appear-in-the-world)), `effects` (section 6); a construction event links to the landmark it builds |
+| `event` | `type` from `vocab/event-types.yaml` (the types of [spec.md section 5](spec.md#5-how-events-appear-in-the-world)), `effects` (section 6); a construction event names the place it builds |
 | `person` | `category` and optional `also` from `vocab/people-categories.yaml` (see [people.md](people.md)), `active` span, `look` (culture profile and unique asset id), `roles` per span |
 | `era` | `lane` from `vocab/lanes.yaml`, and either `colour` (written `'#rrggbb'`) or `polity` (the polity record whose overlay colour it uses; until polity records exist every era has a `colour`). The other envelope fields an era may have are `debated` and `aliases`; `where`, `region`, `tags` and `links` are unknown fields for an era. |
-| `place` | `names` per language and per period, `population` over time; its landmarks are linked, not described |
+| `place` | `names` per language and per period, `population` over time |
 | `polity` | `names` per language and per period, `colour`, `capital` per period, `borders` (GeoJSON per snapshot date) |
 | `route` | `path`, `mode` (caravan, ship, march), `active` span |
-| `culture` | `area` and `density` per period, architecture set, clothing, tools, vehicles, crops, animals, roles (from `vocab/roles.yaml`) and activity mix, all as asset or vocabulary ids; the body adds a `### Activities` (`### Tätigkeiten`) section with one line per activity id, the sentence a figure card shows, written without pronouns |
-| `landmark` | `stages` (model asset per date: construction, later changes, ruins), `build` (construction span and its vignette), optional `beacon` ([milestone-2.md](milestone-2.md#8-landmarks) section 8) |
+| `culture` | `area` and `density` per period, architecture set, clothing, tools, vehicles, crops, animals, roles and activity mix, all as asset or vocabulary ids; the body adds a `### Activities` (`### Tätigkeiten`) section with one line per activity id, the sentence a figure card shows, written without pronouns |
 | `animal` | none: a species' card ([wildlife.md](wildlife.md#8-animal-cards) section 8); its id is the `species` of its groups in `wildlife.json`, and it has no `when`, `where` or `region`, since the groups give them |
-| `vignette` | `template`, `with` (the template's parameters), and `repeat`, `progress`, `stretch` or `cutaway` as needed ([milestone-2.md](milestone-2.md#6-vignettes) section 6) |
 
-**Templates** are the one kind of curated data that is not a record: a vignette template holds a stage, cast, props and a script but no viewer text, so it is a plain YAML file in `templates/` with an id equal to its file name, validated by its own schema ([milestone-2.md](milestone-2.md#62-templates-and-records) section 6.2). `vocab/roles.yaml` gives every role an `en` label and German labels in the feminine and masculine form, so figure cards match the figure, and the role's cast rules (section 1).
+Vignette templates, records and landmarks were removed (issue 147); the tree of humankind needs none of them.
 
 ## 6. Effects
 
@@ -227,9 +217,6 @@ The lists in [events.md](events.md), [people.md](people.md) and [eras.md](eras.m
 | Change | What it takes |
 | --- | --- |
 | A new event of an existing type | A row in the spec list and one record file |
-| A new vignette | One record file using an existing template |
-| A new vignette template | One YAML file in `templates/`, using only actions from `vocab/actions.yaml` |
-| A new vignette action | A vocabulary entry, its movement rule and its animation clips |
 | A new event type | A row in [spec.md section 5](spec.md#5-how-events-appear-in-the-world), a vocabulary entry and one presenter |
 | A new effect type | A section in this file, a vocabulary entry and one shared system |
 | A new field | This file, then the schema, then the records that use it |

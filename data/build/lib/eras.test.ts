@@ -10,7 +10,7 @@ import {
   validateEras,
   type CuratedEra,
 } from './eras.ts';
-import type { Yaml } from './vignettes.ts';
+import type { Yaml } from './records.ts';
 
 const START = dayOfYearStart(-9999);
 const CUTOFF = dayOfYearStart(2025);

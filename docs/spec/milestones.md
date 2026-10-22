@@ -44,7 +44,7 @@ Detailed spec: [milestone-1.md](milestone-1.md).
 
 ## 2. First people
 
-**Goal:** the first living humans, and the small stories they live out. Proves the world query, the clock driving figures, determinism, and the vignette, landmark, migration and cutaway systems every later milestone reuses.
+**Goal:** the first living humans, and the small stories they live out. Proves the world query, the clock driving figures, determinism, and the migration system every later milestone reuses.
 
 Detailed spec: [milestone-2.md](milestone-2.md).
 
@@ -55,19 +55,17 @@ Detailed spec: [milestone-2.md](milestone-2.md).
 - Culture profiles for the hunter-gatherers of Africa, Asia, Sahul, Europe (including Neanderthals), Siberia and the Americas, and the Natufians: camps, hunting, gathering, tool-making, fire.
 - Where people live from culture areas and migrations, with a hand-set density per area; no population data.
 - The tree of humankind ([humankind.md](humankind.md)): one first person at Lake Turkana at 70,000 BCE, new people stepping out of lodgings, camps budding across the world, kept as one tree with a report, a check against population estimates, a development overlay and a family tree view for jumping to its key moments.
-- Vignettes: small staged stories that play on the clock, fully scripted, built from templates, in three forms: repeated, singular and long, and short but stretched so they can be watched.
-- Landmarks with construction stages, visible from orbit, starting with Göbekli Tepe.
 - Foliage ([foliage.md](foliage.md)): a few big trees and bushes from the climate data, readable from orbit; built ahead of the rest of the milestone (2026-10-18).
 - Cutaways and scene markers for small scenes, starting with the painters of Lascaux.
 - The Out of Africa migration and the settlement of Sahul, Europe, Asia and the Americas as migration events.
 - The part of the event system these need: event records, timeline icons and double-click fly-to.
-- Info cards for figures, camps, vignettes, landmarks and events.
+- Info cards for figures, camps, scenes, animals and events.
 
 **Exit criteria**
 
 - Opening at 70,000 BCE shows the first person at Lake Turkana; by 50,000 BCE bands of people are at work in Africa and spreading along the coasts of Asia.
 - Scrubbing from 70,000 to 9000 BCE shows people reaching Sahul, Europe, Siberia and finally the Americas.
-- Pausing history stops people and vignettes mid-step, and playing goes on from there.
+- Pausing history stops people mid-step, and playing goes on from there.
 - Lascaux opens as a cutaway, and Göbekli Tepe rises over its real span and can be found from orbit.
 - Golden snapshots match on two different machines.
 
@@ -100,7 +98,6 @@ Detailed spec: [milestone-2.md](milestone-2.md).
 **Scope**
 
 - Culture profiles for Egypt, Mesopotamia, the Indus Valley and Shang China.
-- Cities with landmarks built over their real construction years, starting with the pyramids of Giza.
 - Border overlay with polity data, crossfading between snapshot dates.
 - Place names overlay with historical and modern names.
 - Famous people: unique figures, life paths, cards and the "Famous people" list, starting with the people of this period in [people.md](people.md).

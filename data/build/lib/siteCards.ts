@@ -6,7 +6,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse } from 'yaml';
 import { LANGUAGES, type Language } from '../../../app/src/i18n/messages.ts';
-import { Errors, isMap, str, unknownFields, type VignetteText, type Yaml } from './vignettes.ts';
+import { Errors, isMap, str, unknownFields, type CardText, type Yaml } from './records.ts';
 
 const RECORD_FIELDS = ['id', 'kind', 'sources'];
 
@@ -24,7 +24,7 @@ const LABELS: Record<Language, { facts: string[]; sections: string[] }> = {
 
 export interface BuiltSiteCard {
   id: string;
-  text: Record<Language, VignetteText>;
+  text: Record<Language, CardText>;
 }
 
 export interface SiteCardInputs {
@@ -36,8 +36,8 @@ export interface SiteCardInputs {
 }
 
 /** Parses the language sections of a card, checking its structure. */
-function parseCardText(e: Errors, body: string): Record<Language, VignetteText> | undefined {
-  const out = {} as Record<Language, VignetteText>;
+function parseCardText(e: Errors, body: string): Record<Language, CardText> | undefined {
+  const out = {} as Record<Language, CardText>;
   const parts = body.split(/^## (\w+)\s*$/m);
   const seen = new Set<string>();
   for (let i = 1; i < parts.length; i += 2) {

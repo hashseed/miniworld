@@ -7,7 +7,7 @@
 import { parse } from 'yaml';
 import type { EraRecord } from '../../../app/src/content/types.ts';
 import { LANGUAGES, type Language } from '../../../app/src/i18n/messages.ts';
-import { Errors, isMap, parseDate, str, unknownFields, type Yaml } from './vignettes.ts';
+import { Errors, isMap, parseDate, str, unknownFields, type Yaml } from './records.ts';
 
 export interface Lane {
   id: string;

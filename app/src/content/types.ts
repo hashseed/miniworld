@@ -81,10 +81,6 @@ export interface StartupIndex {
   /** The events of the events dialog, in chronological order (milestone-1 section 8.3). */
   events: EventEntry[];
   people: unknown[];
-  /** Vignette records (spec milestone 2, section 18.4). */
-  vignettes: VignetteEntry[];
-  /** Landmark records (giza.md section 11), in the same form. */
-  landmarks: VignetteEntry[];
   /** Ground mask of each wildlife group, in the order of data/curated/wildlife.json (wildlife.md section 4). */
   wildlife: string[];
   /**
@@ -95,7 +91,7 @@ export interface StartupIndex {
   wildlifeCamps?: [number, number, number, number][];
   /** Card of each wildlife species: title in the index's language and its text file (wildlife.md section 8). */
   animals: AnimalEntry[];
-  /** Card of each anchor: the real place a scene or landmark shows (humankind.md section 8.3). */
+  /** Card of each anchor: the real place a scene shows (humankind.md section 8.3). */
   siteCards: AnimalEntry[];
 }
 
@@ -116,22 +112,6 @@ export interface AnimalEntry {
   /** The species, as in data/curated/wildlife.json. */
   id: string;
   title: string;
-  /** Text file in the index's language. */
-  text: string;
-}
-
-export interface VignetteEntry {
-  id: string;
-  fromDay: number;
-  /** Day after the last day of the span. */
-  toDay: number;
-  fromApproximate: boolean;
-  toApproximate: boolean;
-  icon: string;
-  /** Title in the index's language, for the marker's label. */
-  title: string;
-  /** Structure file, the same for every language. */
-  structure: string;
   /** Text file in the index's language. */
   text: string;
 }

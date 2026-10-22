@@ -1,5 +1,5 @@
-// Approved clay models for vignette casts (spec milestone 2, sections 13.3 and
-// 18.1). A cast member gets the model of its culture profile or animal when
+// Approved clay models for the tree's figures (spec milestone 2, section 13.3).
+// A figure gets the model of its culture profile or animal when
 // that model is approved in the asset manifest, and a stand-in otherwise.
 
 import * as THREE from 'three';
@@ -7,7 +7,6 @@ import { drawable } from '../content/assets.ts';
 import { ANIMALS, buildAnimal, type AnimalId } from '../../../assets/src/animals.ts';
 import { animateAnimal, animatePerson, blendPerson } from '../../../assets/src/clips.ts';
 import { lightUniforms, type Model } from '../../../assets/src/kit.ts';
-import { buildProp as buildCastProp, PROPS, type PropId } from '../../../assets/src/landmarks.ts';
 import {
   buildPerson,
   buildArrow,
@@ -28,7 +27,7 @@ import {
   type ShelterId,
 } from '../../../assets/src/shelters.ts';
 import { hashString } from '../core/hash.ts';
-import type { CastRules, Clip } from '../world/vignette.ts';
+import type { CastRules, Clip } from './standIns.ts';
 import { buildStandIn, type StandIn } from './standIns.ts';
 
 /** The family at a camp: a woman, a child and a man, then repeating. */
@@ -93,12 +92,7 @@ export function buildActor(
   index: number,
   rules: CastRules = {},
 ): StandIn {
-  if (kind === 'prop') {
-    if ((PROPS as readonly string[]).includes(look) && drawable.has(look)) {
-      const model = buildCastProp(look as PropId);
-      return wrap(model, () => {});
-    }
-  } else if (kind === 'animal') {
+  if (kind === 'animal') {
     const id = animalModel(look);
     if (id && drawable.has(id)) {
       const model = buildAnimal(id);

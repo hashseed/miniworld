@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { ContentLoader } from '../content/loader.ts';
 import { msAtDay } from '../time/rate.ts';
 import { TIMELINE_START } from '../time/calendar.ts';
-import type { SurfaceSource } from '../vignettes/vignetteLayer.ts';
+import type { SurfaceSource } from './surface.ts';
 import { TreeLayer } from './treeLayer.ts';
 
 describe('the tree layer', () => {

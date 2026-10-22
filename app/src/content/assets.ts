@@ -1,5 +1,4 @@
-// Which generated models may be drawn (spec section 13 and giza.md section
-// 11.1): only those Yang has approved in the asset manifest. A preview build
+// Which generated models may be drawn (spec section 13): only those Yang has approved in the asset manifest. A preview build
 // on devenv may also draw the models still waiting for review, so Yang can
 // review them in place; such a build is never shipped.
 

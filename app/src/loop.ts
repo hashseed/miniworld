@@ -9,7 +9,7 @@ import type { Store } from './core/store.ts';
 import type { StressRun } from './dev/stress.ts';
 import type { CameraController } from './globe/cameraController.ts';
 import type { Clouds } from './globe/clouds.ts';
-import { CLEARING_KM, type Foliage } from './globe/foliage.ts';
+import type { Foliage } from './globe/foliage.ts';
 import type { Globe } from './globe/globe.ts';
 import { MORPH_OMEGA, MORPH_OMEGA_REDUCED } from './globe/lens.ts';
 import { cameraLight, type Sky } from './globe/sky.ts';
@@ -18,9 +18,7 @@ import { DynamicResolution, FrameStats, targetFrameMs } from './perf/quality.ts'
 import { planetAt, type PlanetState } from './planet/state.ts';
 import type { Clock } from './time/clock.ts';
 import type { HotState } from './ui/state.ts';
-import type { LandmarkLayer } from './landmarks/landmarkLayer.ts';
 import type { TreeLayer } from './tree/treeLayer.ts';
-import type { VignetteLayer } from './vignettes/vignetteLayer.ts';
 import type { WildlifeLayer } from './wildlife/wildlifeLayer.ts';
 
 /** Everything the loop draws and advances. */
@@ -35,8 +33,6 @@ export interface LoopParts {
   foliage: Foliage;
   sky: Sky;
   clouds: Clouds;
-  vignettes: VignetteLayer;
-  landmarks: LandmarkLayer;
   wildlife: WildlifeLayer;
   tree: TreeLayer;
   hot: Store<HotState>;
@@ -152,7 +148,6 @@ export class FrameLoop {
     // The views the camera will fly to have their tiles loaded too.
     p.globe.update(p.camera, innerHeight, this.planet, day, this.warm());
     p.foliage.clearings = [
-      ...p.vignettes.clearings().map((dir) => ({ dir, km: CLEARING_KM, amount: 1 })),
       ...p.tree.clearings(),
       ...p.wildlife.clearings(day, p.clock.ms, p.clock.startDay),
     ];
@@ -166,8 +161,6 @@ export class FrameLoop {
     p.sky.update(p.camera);
     p.clouds.update(p.camera, p.clock.ms, u.lightDir!.value);
     p.stress?.update(now, p.globe, this.planet, p.camera, p.clock.ms);
-    p.landmarks.update(p.camera, day);
-    p.vignettes.update(p.camera, p.clock.ms, p.clock.startDay, u.lightDir!.value);
     // The camps first: the animals keep clear of their people (wildlife.md section 4).
     p.tree.update(p.camera, p.clock.ms, p.clock.startDay);
     // The hills of the caves in view rise from the ground (humankind.md section 8.2).
