@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { aliveOn, homeOn, lineage, NEVER, type Tree, type TreeFigure } from './tree.ts';
+import { stagePoints } from './treeScene.ts';
 
 const figure = (id: number, parent: number, over: Partial<TreeFigure> = {}): TreeFigure => ({
   id,
@@ -44,5 +45,15 @@ describe('tree figures', () => {
     } as Tree;
     expect(lineage(tree, 2)).toEqual([2, 1, 0]);
     expect(lineage(tree, 0)).toEqual([0]);
+  });
+});
+
+describe('stage points', () => {
+  it('rings a monument and ends with its gap, and reaches further than a grave', () => {
+    const monument = stagePoints(1, 0, 4, 'monument');
+    const grave = stagePoints(1, 0, 4, 'burial');
+    expect(monument.length).toBe(1 + 4 * 16 + 1);
+    expect(grave.length).toBeGreaterThan(1);
+    expect(monument.every((p) => Number.isFinite(p.x) && Number.isFinite(p.z))).toBe(true);
   });
 });
