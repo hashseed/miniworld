@@ -2163,6 +2163,8 @@ export function treeScene(
       if (d > VISIT_M || d < 1) continue;
       camps.set(`${l.camp}:${l.lat}:${l.lon}`, { off, d, lat: l.lat, lon: l.lon, camp: l.camp });
     }
+    // Whoever is still on the way home from the session before is not free to set out again.
+    const before = nth > 0 ? visitorEvents(stage, sessions[nth - 1]!) : [];
     const pools = [...camps.values()]
       .sort((a, b) => a.d - b.d)
       .slice(0, VISIT_CAMPS)
@@ -2179,6 +2181,7 @@ export function treeScene(
               g.free <= start &&
               g.busy >= until &&
               huntsOf(g, start, until).length === 0 &&
+              !before.some((ev) => ev.members.includes(g.f.id) && ev.end > start) &&
               [session.w - 1, session.w, session.w + 1].every((x) => {
                 const ev = eventOf(g, x);
                 return (
@@ -3457,7 +3460,10 @@ export function treeScene(
       const turnStart = turnStartOf(f.id, k);
       const joined = huntsOf(st, turnStart, turnStart + TURN_MS).sort((a, b) => a.start - b.start);
       const hunt = joined.find((h) => ms < h.end) ?? joined.at(-1);
-      const games = hunt ? [] : eventsOf(st, turnStart, turnStart + TURN_MS);
+      // An event after the hunt is done follows it; one that would overlap it is not joined.
+      const games = eventsOf(st, turnStart, turnStart + TURN_MS).filter(
+        (e) => !hunt || e.start >= hunt.end,
+      );
       const game = games.find((e) => ms < e.end) ?? games.at(-1);
       if (hunt) {
         plan.stay(hunt.start, 'rest');
@@ -3465,12 +3471,13 @@ export function treeScene(
         plan.t = hunt.end;
         if (hunt.hunter === f.id)
           unarmed = !hunt.bow && hunt.flights.some((fl) => ms >= fl.release && ms < fl.pulled);
-      } else if (game) {
+      }
+      if (game) {
         plan.stay(game.start, 'rest');
         plan.legs.push(...game.legs.get(f.id)!);
         plan.t = game.end;
         event = game;
-      } else {
+      } else if (!hunt) {
         const own = soloTurn(st, k);
         if (own.trip && turnStart >= st.free) {
           plan.stay(turnStart, 'rest');

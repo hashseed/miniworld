@@ -709,6 +709,16 @@ describe('the tree scene', () => {
       );
       expect(guests.length).toBeGreaterThan(0);
     }
+    // Across back-to-back sessions, no guest moves more than a few metres between samples.
+    const sessions = stageSessions(stage, d0);
+    const last = new Map<number, { x: number; z: number; lat: number; lon: number }>();
+    for (let t = sessions[0]!.start - 6000; t < sessions[3]!.start + 26_000; t += 100)
+      for (const f of treeScene(world, t, d0).figures.filter((q) => q.id >= 6)) {
+        const was = last.get(f.id);
+        if (was && was.lat === f.lat && was.lon === f.lon)
+          expect(Math.sqrt((f.x - was.x) ** 2 + (f.z - was.z) ** 2)).toBeLessThan(8);
+        last.set(f.id, f);
+      }
   });
 
   it('is the same at the same clock time', () => {
