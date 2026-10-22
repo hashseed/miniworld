@@ -596,7 +596,13 @@ void main() {
   // The sea is the flat sea surface's (section 4.4); the terrain leaves it out.
   if (isWater && seaW > 0.0) discard;
 #endif
+#ifdef SEA_SURFACE
+  // Rivers are the terrain's; the flat sea never draws river channels or banks, whatever the
+  // river field holds at a river mouth.
+  bool isRiver = false;
+#else
   bool isRiver = !isWater && !hasIce && riverF > riverThreshold;
+#endif
   bool isPack = isWater && seaW > 0.0 && lat > packEdge;
   if (isPack) {
     albedo = mix(vec3(0.93, 0.97, 1.0), vec3(0.78, 0.9, 0.98), smoothstep(1.5, 0.0, lat - packEdge));
@@ -649,7 +655,9 @@ void main() {
   float iceInk = seaW > 0.0 ? max(iceKm, packKm) : iceKm;
   ink = max(ink, inkLine(clamp(iceInk, -30.0, 30.0), 0.0, 1.6));
   if (isWater && seaW > 0.0) ink = max(ink, inkLine(clamp(lat - packEdge, -1.0, 1.0), 0.0, 1.6));
+#ifndef SEA_SURFACE
   if (!isWater && !hasIce) ink = max(ink, inkLine(riverF, riverThreshold, 1.4));
+#endif
   if (vSkirt > 0.5) ink = 0.0;
   colour = mix(colour, INK, ink * 0.85);
   gl_FragColor = vec4(colour, 1.0);
