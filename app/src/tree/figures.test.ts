@@ -4,7 +4,7 @@ import { buildActor } from './figures.ts';
 /** The hunter role's cast rules from vocab/roles.yaml. */
 const HUNTER = { man: true as const, tool: 'spear' };
 
-describe('vignette figures', () => {
+describe('tree figures', () => {
   it('uses the approved models for the mammoth hunt cast', () => {
     const hunter = buildActor('human', 'ice-age-hunter', 'a:hunters-left:0', 0, HUNTER);
     const child = buildActor('human', 'ice-age-hunter', 'a:family:1', 1, {});

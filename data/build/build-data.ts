@@ -15,7 +15,7 @@ import { createContext, ROOT, type WriteContext } from './stages/context.ts';
 import { buildHumankind } from './stages/humankind.ts';
 import { buildLensStage } from './stages/lens.ts';
 import { writeManifest } from './stages/manifest.ts';
-import { buildMap, buildTerrain, buildWildlifeMasks, placeLandmarks } from './stages/terrain.ts';
+import { buildMap, buildTerrain, buildWildlifeMasks } from './stages/terrain.ts';
 
 const OUT = join(ROOT, 'app/public/data');
 
@@ -30,7 +30,6 @@ async function main(args: string[]): Promise<void> {
   const { output, log } = ctx;
 
   const map = buildMap(ctx);
-  placeLandmarks(ctx, map, content.landmarks);
   // The finest tiles as the globe draws them, for the masks and the tree to judge water by.
   const drawnTiles = new DrawnTiles(ctx.maxLevel);
   const terrain = buildTerrain(ctx, map, drawnTiles);

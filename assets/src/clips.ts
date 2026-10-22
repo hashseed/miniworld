@@ -1,7 +1,7 @@
 // Clips for the models (spec milestone 2, sections 5.3 and 13.3) as pure
 // functions of the clip and the seconds since it started, so the same call
 // always gives the same pose. The asset build can bake them into animation
-// textures; vignettes can also call them directly every frame.
+// textures; the tree calls them directly every frame.
 
 import * as THREE from 'three';
 import type { Model } from './kit.ts';

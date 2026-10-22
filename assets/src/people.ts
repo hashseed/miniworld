@@ -64,7 +64,7 @@ interface ProfileLook {
   knaps?: boolean;
   neanderthal?: boolean;
   /**
-   * Egyptian wigs and dress (giza.md section 11.5): a blunt black wig, long
+   * Egyptian wigs and dress: a blunt black wig, long
    * with lappets for women, the sidelock of youth for children, a broad
    * collar of two colours, a pleated kilt front and no beards.
    */
@@ -183,7 +183,7 @@ export const LOOKS: Record<Profile, ProfileLook> = {
     beads: '#e9dcc2',
     tools: { man: 'spear', woman: 'basket', child: 'none' },
   },
-  // Pyramid builders of the Old Kingdom (giza.md section 11): white linen kilts
+  // Pyramid builders of the Old Kingdom: white linen kilts
   // for the men, linen dresses for the women, short black hair.
   'old-kingdom-egyptian': {
     skin: ['#7a4e33', '#8d5a3b', '#94603f', '#a8714c'],
@@ -780,7 +780,7 @@ export function buildPerson(o: PersonOptions): Model {
 }
 
 /**
- * An Egyptian wig (giza.md section 11.5): a blunt black bob for men, a long
+ * An Egyptian wig: a blunt black bob for men, a long
  * wig with two lappets over the shoulders and a coloured band for women, and
  * the shaved head with the sidelock of youth for children. The face stays open.
  */

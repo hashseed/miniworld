@@ -7,16 +7,15 @@ This folder is the source of truth for what Miniworld does. Every change to beha
 | [spec.md](spec.md) | Vision, time model, globe, history data, events, people, interface, localisation, visual style, architecture, content delivery, development environment, licences |
 | [milestones.md](milestones.md) | Build order, scope and exit criteria for each milestone, and the definition of done |
 | [milestone-1.md](milestone-1.md) | Detailed spec for milestone 1, Globe and time |
-| [milestone-2.md](milestone-2.md) | Detailed spec for milestone 2, First people: figures, vignettes, landmarks, migrations and cutaways |
+| [milestone-2.md](milestone-2.md) | Detailed spec for milestone 2, First people: figures, migrations and the info cards |
 | [history-lens.md](history-lens.md) | Design of the default lens that draws regions with many events larger |
 | [humankind.md](humankind.md) | The tree of humankind: one first person at Lake Turkana, people stepping out of lodgings, the tree the data build computes and how to inspect it (proposed) |
 | [peopling.md](peopling.md) | How humankind leaves Africa and spreads over the world up to the Neolithic thresholds: dated arrival points, the arrival map, canoe crossings, adapting to each region through culture profiles and their limits and the thresholds where farming begins |
 | [sites.md](sites.md) | The camp sites of the tree of humankind: a fixed lattice of sites with room for all activities, the links between them over land or by canoe, and the rules bound to region and time (cultures, arrivals, thresholds, morphs) that decide which bands live where |
 | [foliage.md](foliage.md) | Trees and bushes over the land, from the climate data, readable from orbit (proposed) |
 | [wildlife.md](wildlife.md) | Small groups of typical wild animals on every continent, and how their ranges change with history (proposed) |
-| [dioramas.md](dioramas.md) | Recurring dioramas (repeated vignettes) for every region and era, with their templates and scripts |
-| [giza.md](giza.md) | The pyramids of Giza: the landmark, its building dioramas and the dioramas around it across the ages (proposed; first slice shelved, models approved) |
-| [gobekli-tepe.md](gobekli-tepe.md) | The landmark model of Göbekli Tepe when newly built: enclosures, T-pillars and their reliefs (proposed) |
+| [dioramas.md](dioramas.md) | Idea list of recurring dioramas for every region and era (the vignette engine was removed; not built) |
+| [gobekli-tepe.md](gobekli-tepe.md) | The model of Göbekli Tepe when newly built: enclosures, T-pillars and their reliefs (proposed) |
 | [content-format.md](content-format.md) | How content records are written, validated, indexed and fed into the app |
 | [eras.md](eras.md) | Era and empire ranges shown as coloured bands on the timeline |
 | [events.md](events.md) | The first list of world events and how each appears on the globe, and natural disasters, epidemics and famines |

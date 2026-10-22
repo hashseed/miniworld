@@ -21,17 +21,6 @@ import {
   type Clip,
 } from './clips.ts';
 import type { Model } from './kit.ts';
-import {
-  LANDMARK_ASSETS,
-  PROPS,
-  PYRAMIDS,
-  buildLandmarkAsset,
-  buildProp,
-  buildPyramid,
-  pyramidShape,
-  pyramidSurface,
-  type LandmarkAssetId,
-} from './landmarks.ts';
 import { PROFILES, buildArrow, buildBow, buildPerson, type Kind } from './people.ts';
 import { SHELTERS, buildHearth, buildShelter } from './shelters.ts';
 
@@ -349,56 +338,6 @@ describe('clips', () => {
   });
 });
 
-describe('landmarks', () => {
-  const assets = Object.keys(LANDMARK_ASSETS) as LandmarkAssetId[];
-
-  it.each(assets)('%s is deterministic and within the 20,000-triangle landmark budget', (id) => {
-    const m = buildLandmarkAsset(id);
-    expect(positions(m)).toEqual(positions(buildLandmarkAsset(id)));
-    expect(m.triangles).toBeLessThanOrEqual(20000);
-    // Sand mounds may reach into the ground, like the shelters' rocks.
-    expect(bounds(m).min.y).toBeGreaterThan(-12);
-  });
-
-  it.each(Object.keys(PYRAMIDS) as (keyof typeof PYRAMIDS)[])(
-    'the %s pyramid rises in whole tiers from nothing to its full height',
-    (id) => {
-      const H = PYRAMIDS[id].height;
-      expect(pyramidShape(id, 0).core).toBe(0);
-      const heights = [0.1, 0.3, 0.5, 0.7, 0.84].map((f) => pyramidShape(id, f).core);
-      for (let i = 1; i < heights.length; i++) expect(heights[i]).toBeGreaterThan(heights[i - 1]!);
-      for (const h of heights)
-        expect(Math.abs(h / (H / 24) - Math.round(h / (H / 24)))).toBeLessThan(1e-9);
-      expect(pyramidShape(id, 0.85).core).toBeCloseTo(H);
-      const done = pyramidShape(id, 1);
-      expect(done.casingFrom).toBe(0);
-      // The drawn model's height matches the shape.
-      expect(bounds(buildPyramid(id, pyramidShape(id, 0.5))).max.y).toBeCloseTo(
-        pyramidShape(id, 0.5).core,
-        0,
-      );
-    },
-  );
-
-  it('the surface follows the rising and the finished pyramid, with ground around it', () => {
-    const shape = pyramidShape('khufu', 0.5);
-    const { base, height } = PYRAMIDS.khufu;
-    expect(pyramidSurface('khufu', shape, 0, 0)).toBeCloseTo(shape.core);
-    // Outside the base, where the crew works, there is only ground.
-    expect(pyramidSurface('khufu', shape, 0, -base / 2 - 1)).toBe(0);
-    expect(pyramidSurface('khufu', shape, base, 0)).toBe(0);
-    // The finished pyramid has a pointed top.
-    const done = pyramidShape('khufu', 'complete');
-    expect(pyramidSurface('khufu', done, 0, 0)).toBeCloseTo(height);
-  });
-
-  it.each([...PROPS])('%s is deterministic and small', (id) => {
-    const m = buildProp(id);
-    expect(positions(m)).toEqual(positions(buildProp(id)));
-    expect(m.triangles).toBeLessThanOrEqual(400);
-  });
-});
-
 describe('asset manifest', () => {
   const entries = new Map(
     manifest.assets.map((a) => [a.id, a as { status: string; geometry?: string }]),
@@ -409,7 +348,6 @@ describe('asset manifest', () => {
     (id) => {
       const entry = entries.get(id);
       expect(['generated', 'approved', 'rejected']).toContain(entry?.status);
-      // The one model left unreviewed (giza.md section 12) is never drawn.
       if (entry?.status !== 'approved') return;
       // A changed model needs Yang's approval again; then `npm run approve-assets -- <id>`.
       expect(geometryHash(MODELS[id]!()), `${id} changed since it was approved`).toBe(
@@ -433,7 +371,7 @@ describe('asset manifest', () => {
     const waiting = Object.keys(MODELS).filter((id) => entries.get(id)?.status !== 'approved');
     expect(
       waiting.every((id) =>
-        /^(stone-sledge|figure-african-stone-age-man|figure-(west-asia-hunter|east-asia-hunter|first-americans)-(man|woman|child)|prop-(carry-pole|spit|canoe|cave-wall-sulawesi|cave-wall-chauvet|burial|gobekli-ring)|shelter-small-hut)$/.test(
+        /^(figure-african-stone-age-man|figure-(west-asia-hunter|east-asia-hunter|first-americans)-(man|woman|child)|prop-(carry-pole|spit|canoe|cave-wall-sulawesi|cave-wall-chauvet|burial|gobekli-ring)|shelter-small-hut)$/.test(
           id,
         ),
       ),

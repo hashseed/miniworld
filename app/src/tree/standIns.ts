@@ -1,11 +1,52 @@
-// Stand-in figures and animals for vignettes (spec milestone 2, section 18.1):
+// Stand-in figures and animals for the tree of humankind (spec milestone 2, section 18.1):
 // flat-coloured, cel-shaded shapes at life size in metres, posed on the main
 // thread from the player's clip and clip time. They are not assets; approved
 // models replace them without any change to the data.
 
 import * as THREE from 'three';
 import { hash01, hashString } from '../core/hash.ts';
-import type { CastRules, Clip } from '../world/vignette.ts';
+
+export type Clip =
+  | 'idle'
+  | 'walk'
+  | 'run'
+  | 'carry'
+  | 'haul'
+  | 'work'
+  | 'knap'
+  | 'point'
+  | 'throw'
+  | 'shoot'
+  | 'cheer'
+  | 'struggle'
+  | 'fall'
+  // The tree's hunts (humankind.md section 8.1): the pole carry, a kill bound and hung.
+  | 'pole'
+  | 'bound'
+  | 'hung'
+  // Camp life (humankind.md section 8.1).
+  | 'strike'
+  | 'crouch'
+  | 'dance'
+  | 'scrape'
+  | 'crack'
+  // Painting a cave wall; falling ill and dying before a burial (humankind.md section 8.2).
+  | 'paint'
+  | 'ill'
+  | 'lie'
+  | 'bearBehind'
+  | 'bearAhead'
+  | 'sit'
+  // Crossing the sea in a canoe (peopling.md section 6).
+  | 'paddle';
+
+/** A role's cast rules (vocab/roles.yaml), copied into each group by the build. */
+export interface CastRules {
+  /** Always played by a man of the profile. */
+  man?: true;
+  /** The tool the role holds instead of the profile's own. */
+  tool?: string;
+}
 
 const TWO_PI = Math.PI * 2;
 

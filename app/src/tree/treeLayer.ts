@@ -37,8 +37,8 @@ import {
   treePropBatch,
   type TreeActor,
   type TreeBatch,
-} from '../vignettes/figures.ts';
-import type { StandIn } from '../vignettes/standIns.ts';
+} from './figures.ts';
+import type { StandIn } from './standIns.ts';
 import type { Profile } from '../world/cultures.ts';
 import { animalLoop, animateAnimal } from '../../../assets/src/clips.ts';
 import type { Model } from '../../../assets/src/kit.ts';
@@ -46,7 +46,7 @@ import { buildSteps, flickerHearth, lightHearth, setBuilt } from '../../../asset
 import { ClipBatches } from './clipBatches.ts';
 import type { SceneMessage } from './sceneWorker.ts';
 import { PosedBatches } from './posedBatches.ts';
-import type { SurfaceSource } from '../vignettes/vignetteLayer.ts';
+import type { SurfaceSource } from './surface.ts';
 import type { Obstacle } from '../wildlife/wildlifeLayer.ts';
 
 /** Camps this far beyond the horizon, in radians, are still worked out, for the history lens. */

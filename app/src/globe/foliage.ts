@@ -37,8 +37,6 @@ import {
 import type { FoliageMessage } from './foliageWorker.ts';
 import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 
-/** Drawn radius of the clearing around a vignette stage, so trees never hide a diorama (section 4). */
-export const CLEARING_KM = 800;
 /** Range of the slot hash over which a plant grows in as the lens raises its share. */
 const GROW_ROLL = 0.02;
 /** Most plants of one kind in view; at most about 1,500 plants are on the visible side. */
@@ -145,7 +143,7 @@ export class Foliage {
   count = 0;
   /** Set once the first view is ready; until then nothing is loaded or drawn. */
   active = false;
-  /** Places plants make way for now: vignette stages, camps and wildlife; they shrink away by `amount`. */
+  /** Places plants make way for now: camps and wildlife; they shrink away by `amount`. */
   clearings: Clearing[] = [];
 
   constructor(globe: Globe, loader: ChunkSource) {

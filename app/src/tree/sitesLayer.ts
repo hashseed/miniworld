@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import type { ContentLoader } from '../content/loader.ts';
 import { latLonToDir } from '../geo/cube.ts';
 import { EARTH_RADIUS_KM } from '../geo/earth.ts';
-import type { SurfaceSource } from '../vignettes/vignetteLayer.ts';
+import type { SurfaceSource } from './surface.ts';
 
 /** The file the data build writes: sites as [lat, lon, kind, core, place level] (×1e4 degrees, metres), links as [a, b, level]. */
 export interface SitesFile {

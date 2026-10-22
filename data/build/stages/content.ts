@@ -1,4 +1,4 @@
-// Content stage of the data build: the eras, landmarks and vignettes are
+// Content stage of the data build: the eras and cards are
 // validated before anything is built, and written with the startup index per
 // language at the end (spec milestone 1, section 10; milestone 2, section 18).
 
@@ -19,19 +19,14 @@ import {
 } from '../lib/eras.ts';
 import { buildAnimals } from '../lib/animals.ts';
 import { buildSiteCards } from '../lib/siteCards.ts';
-import { buildLandmarks } from '../lib/landmarks.ts';
 import { WILD_GROUPS } from '../../../app/src/world/wildlife.ts';
 import { regionGrid } from '../lib/regions.ts';
-import { buildVignettes } from '../lib/vignettes.ts';
-import { readVocab, type Vocab } from '../lib/vocab.ts';
 import { ROOT, type BuildContext, type WriteContext } from './context.ts';
 
 export interface Content {
   eras: CuratedEras;
   /** Region ids of vocab/regions.yaml, in order. */
   regions: string[];
-  landmarks: ReturnType<typeof buildLandmarks>['landmarks'];
-  vignettes: ReturnType<typeof buildVignettes>['vignettes'];
   animals: ReturnType<typeof buildAnimals>['animals'];
   siteCards: ReturnType<typeof buildSiteCards>['cards'];
 }
@@ -83,21 +78,6 @@ export function validateContent(ctx: BuildContext): Content {
   const eras: CuratedEras = { lanes: laneVocab.lanes, eras: eraList };
   const regions = laneVocab.regions.map((r) => r.id);
 
-  const vocab = ((): Vocab => {
-    try {
-      return readVocab(join(ROOT, 'data/curated/vocab'));
-    } catch (err) {
-      return fail((err as Error).message);
-    }
-  })();
-  const landmarkBuild = buildLandmarks({
-    curated: join(ROOT, 'data/curated'),
-    lanes: new Set(regions),
-    vocab,
-    startDay: TIMELINE_START,
-    cutoffDay,
-  });
-  if (landmarkBuild.errors.length) fail(landmarkBuild.errors.join('\n'));
   const animalBuild = buildAnimals({
     curated: join(ROOT, 'data/curated'),
     species: new Set(WILD_GROUPS.map((g) => g.species)),
@@ -109,32 +89,15 @@ export function validateContent(ctx: BuildContext): Content {
     anchors: new Set(anchorList.anchors.map((a) => a.id)),
   });
   if (siteBuild.errors.length) fail(siteBuild.errors.join('\n'));
-  const vignetteBuild = buildVignettes({
-    curated: join(ROOT, 'data/curated'),
-    lanes: new Set(regions),
-    vocab,
-    startDay: TIMELINE_START,
-    cutoffDay,
-    landmarkParts: new Map(landmarkBuild.landmarks.map((l) => [l.structure.id, l.parts])),
-  });
-  if (vignetteBuild.errors.length) fail(vignetteBuild.errors.join('\n'));
-  for (const l of landmarkBuild.landmarks)
-    for (const p of l.structure.parts)
-      if (p.build && !vignetteBuild.vignettes.some((v) => v.structure.id === p.build!.vignette))
-        fail(
-          `landmarks/${l.structure.id}.md: build of ${p.name} names unknown vignette "${p.build.vignette}"`,
-        );
   return {
     eras,
     regions,
-    landmarks: landmarkBuild.landmarks,
-    vignettes: vignetteBuild.vignettes,
     animals: animalBuild.animals,
     siteCards: siteBuild.cards,
   };
 }
 
-/** Writes the vignettes, landmarks and the startup index per language; returns the index files. */
+/** Writes the cards and the startup index per language; returns the index files. */
 export function buildContent(
   ctx: WriteContext,
   content: Content,
@@ -162,25 +125,6 @@ export function buildContent(
       url: s.url,
     }));
 
-  const vignetteFiles = content.vignettes.map((v) => ({
-    v,
-    structure: output.writeJson(`vignettes/${v.structure.id}`, v.structure),
-    text: Object.fromEntries(
-      LANGUAGES.map((l) => [l, output.writeJson(`vignettes/${v.structure.id}-${l}`, v.text[l])]),
-    ) as Record<Language, string>,
-  }));
-  log(`${vignetteFiles.length} vignettes`);
-  const landmarkFiles = content.landmarks.map((l) => ({
-    l,
-    structure: output.writeJson(`landmarks/${l.structure.id}`, l.structure),
-    text: Object.fromEntries(
-      LANGUAGES.map((lang) => [
-        lang,
-        output.writeJson(`landmarks/${l.structure.id}-${lang}`, l.text[lang]),
-      ]),
-    ) as Record<Language, string>,
-  }));
-  log(`${landmarkFiles.length} landmarks`);
   log(`${content.eras.eras.length} eras in ${content.eras.lanes.length} lanes`);
   const animalFiles = content.animals.map((a) => ({
     a,
@@ -211,28 +155,6 @@ export function buildContent(
         .sort((a, b) => a.day - b.day || a.id.localeCompare(b.id))
         .map((e) => ({ ...e, title: e.title[language] })),
       people: [],
-      vignettes: vignetteFiles.map(({ v, structure, text }) => ({
-        id: v.structure.id,
-        fromDay: v.structure.fromDay,
-        toDay: v.structure.toDay,
-        fromApproximate: v.fromApproximate,
-        toApproximate: v.toApproximate,
-        icon: v.structure.icon,
-        title: v.text[language].title,
-        structure,
-        text: text[language],
-      })),
-      landmarks: landmarkFiles.map(({ l, structure, text }) => ({
-        id: l.structure.id,
-        fromDay: l.structure.fromDay,
-        toDay: l.structure.toDay,
-        fromApproximate: l.fromApproximate,
-        toApproximate: false,
-        icon: l.structure.icon,
-        title: l.text[language].title,
-        structure,
-        text: text[language],
-      })),
       wildlife,
       wildlifeCamps,
       animals: animalFiles.map(({ a, text }) => ({

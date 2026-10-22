@@ -1050,7 +1050,7 @@
       "generated": "Modelling script, buildPerson",
       "status": "approved",
       "geometry": "51b6fd5c87588d99",
-      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself is shelved (giza.md section 12); face redone on 2026-10-20 (eyes, nose and mouth on a smoother head) and approved by Yang (\"the faces are ok\")",
+      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself was shelved and later removed (issue 147); face redone on 2026-10-20 (eyes, nose and mouth on a smoother head) and approved by Yang (\"the faces are ok\")",
       "reviewed": "2026-10-21"
     },
     {
@@ -1060,7 +1060,7 @@
       "generated": "Modelling script, buildPerson",
       "status": "approved",
       "geometry": "97c8f8e426478f75",
-      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself is shelved (giza.md section 12); face redone on 2026-10-20 (eyes, nose and mouth on a smoother head) and approved by Yang (\"the faces are ok\")",
+      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself was shelved and later removed (issue 147); face redone on 2026-10-20 (eyes, nose and mouth on a smoother head) and approved by Yang (\"the faces are ok\")",
       "reviewed": "2026-10-21"
     },
     {
@@ -1070,136 +1070,8 @@
       "generated": "Modelling script, buildPerson",
       "status": "approved",
       "geometry": "5a32960a9ce4f79e",
-      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself is shelved (giza.md section 12); face redone on 2026-10-20 (eyes, nose and mouth on a smoother head) and approved by Yang (\"the faces are ok\")",
+      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself was shelved and later removed (issue 147); face redone on 2026-10-20 (eyes, nose and mouth on a smoother head) and approved by Yang (\"the faces are ok\")",
       "reviewed": "2026-10-21"
-    },
-    {
-      "id": "giza-khufu",
-      "file": "assets/src/landmarks.ts",
-      "kind": "landmark",
-      "generated": "Modelling script, buildLandmarkAsset",
-      "status": "approved",
-      "geometry": "f0b43ff84a587e22",
-      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself is shelved (giza.md section 12)",
-      "reviewed": "2026-10-18"
-    },
-    {
-      "id": "giza-khufu-stripping",
-      "file": "assets/src/landmarks.ts",
-      "kind": "landmark",
-      "generated": "Modelling script, buildLandmarkAsset",
-      "status": "approved",
-      "geometry": "5ffd3f784b6eeb27",
-      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself is shelved (giza.md section 12)",
-      "reviewed": "2026-10-18"
-    },
-    {
-      "id": "giza-khufu-stepped",
-      "file": "assets/src/landmarks.ts",
-      "kind": "landmark",
-      "generated": "Modelling script, buildLandmarkAsset",
-      "status": "approved",
-      "geometry": "a861db1a185824a3",
-      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself is shelved (giza.md section 12)",
-      "reviewed": "2026-10-18"
-    },
-    {
-      "id": "giza-khafre",
-      "file": "assets/src/landmarks.ts",
-      "kind": "landmark",
-      "generated": "Modelling script, buildLandmarkAsset",
-      "status": "approved",
-      "geometry": "0875e2b8ce3e45b0",
-      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself is shelved (giza.md section 12)",
-      "reviewed": "2026-10-18"
-    },
-    {
-      "id": "giza-khafre-stepped",
-      "file": "assets/src/landmarks.ts",
-      "kind": "landmark",
-      "generated": "Modelling script, buildLandmarkAsset",
-      "status": "approved",
-      "geometry": "592d411a7e1ecf5e",
-      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself is shelved (giza.md section 12)",
-      "reviewed": "2026-10-18"
-    },
-    {
-      "id": "giza-menkaure",
-      "file": "assets/src/landmarks.ts",
-      "kind": "landmark",
-      "generated": "Modelling script, buildLandmarkAsset",
-      "status": "approved",
-      "geometry": "9001058db83faedf",
-      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself is shelved (giza.md section 12)",
-      "reviewed": "2026-10-18"
-    },
-    {
-      "id": "giza-menkaure-gash",
-      "file": "assets/src/landmarks.ts",
-      "kind": "landmark",
-      "generated": "Modelling script, buildLandmarkAsset",
-      "status": "approved",
-      "geometry": "83fc68959a652709",
-      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself is shelved (giza.md section 12)",
-      "reviewed": "2026-10-18"
-    },
-    {
-      "id": "giza-sphinx-new",
-      "file": "assets/src/landmarks.ts",
-      "kind": "landmark",
-      "generated": "Modelling script, buildLandmarkAsset",
-      "status": "approved",
-      "geometry": "6b92066c098babc2",
-      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself is shelved (giza.md section 12)",
-      "reviewed": "2026-10-18"
-    },
-    {
-      "id": "giza-sphinx-sand",
-      "file": "assets/src/landmarks.ts",
-      "kind": "landmark",
-      "generated": "Modelling script, buildLandmarkAsset",
-      "status": "approved",
-      "geometry": "586c3f9f107bfa42",
-      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself is shelved (giza.md section 12)",
-      "reviewed": "2026-10-18"
-    },
-    {
-      "id": "giza-sphinx-cleared",
-      "file": "assets/src/landmarks.ts",
-      "kind": "landmark",
-      "generated": "Modelling script, buildLandmarkAsset",
-      "status": "approved",
-      "geometry": "dd9c8dcceab2a880",
-      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself is shelved (giza.md section 12)",
-      "reviewed": "2026-10-18"
-    },
-    {
-      "id": "giza-sphinx-sand-noseless",
-      "file": "assets/src/landmarks.ts",
-      "kind": "landmark",
-      "generated": "Modelling script, buildLandmarkAsset",
-      "status": "approved",
-      "geometry": "e79fd4ce1e28bf6a",
-      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself is shelved (giza.md section 12)",
-      "reviewed": "2026-10-18"
-    },
-    {
-      "id": "giza-sphinx-today",
-      "file": "assets/src/landmarks.ts",
-      "kind": "landmark",
-      "generated": "Modelling script, buildLandmarkAsset",
-      "status": "approved",
-      "geometry": "e3f42a0ae80a9dc8",
-      "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself is shelved (giza.md section 12)",
-      "reviewed": "2026-10-18"
-    },
-    {
-      "id": "stone-sledge",
-      "file": "assets/src/landmarks.ts",
-      "kind": "prop",
-      "generated": "Modelling script, buildProp",
-      "status": "generated",
-      "note": "Unused since the ramp was dropped; never drawn (giza.md section 12)"
     }
   ]
 }

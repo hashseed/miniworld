@@ -11,7 +11,7 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DAYS_PER_YEAR, TIMELINE_END, TIMELINE_START } from '../app/src/time/calendar.ts';
-import { parseDate } from '../data/build/lib/vignettes.ts';
+import { parseDate } from '../data/build/lib/records.ts';
 
 const ROOT = join(import.meta.dirname, '..');
 const TOTAL_MS = 24 * 60 * 60 * 1000;
