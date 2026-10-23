@@ -13,6 +13,7 @@ import { dayAtMs } from '../time/rate.ts';
 import type { Clearing } from '../globe/foliage.ts';
 import { moundDepthAt, plateauWeightAt, type Mound } from '../globe/globe.ts';
 import { CavePaintings } from './cavePaintings.ts';
+import { CampGround } from './campGround.ts';
 import { CaveWalls } from './caveWalls.ts';
 import {
   CAMP_CLEARING_KM,
@@ -152,6 +153,7 @@ export class TreeLayer {
   constructor(loader: ContentLoader, surface: SurfaceSource) {
     this.loader = loader;
     this.surface = surface;
+    this.ground = new CampGround(surface, CAMP_CLEARING_KM * 0.6);
     this.walls = new CaveWalls(
       (d) => surface.surfaceKm(d),
       () => surface.seaKm?.() ?? -Infinity,
@@ -162,6 +164,7 @@ export class TreeLayer {
       this.paintings.group,
       this.clips.group,
       this.preyClips.group,
+      this.ground.mesh,
     );
   }
 
@@ -229,6 +232,8 @@ export class TreeLayer {
   private fits = new Map<string, number>();
   /** Everything of the camps with approved models, drawn as copies of a few models (posedBatches.ts). */
   private batches = new PosedBatches();
+  /** The lighter ground under the camps seen from orbit (humankind.md section 8.1). */
+  private ground: CampGround;
   /** The caves' paintings, pictures on their rock faces (cavePaintings.ts). */
   private paintings = new CavePaintings();
   /** The caves' rock faces, smooth walls along their cuts (caveWalls.ts). */
@@ -579,9 +584,11 @@ export class TreeLayer {
       felling: c.felling,
     }));
     const hearth = treePropBatch('prop-hearth');
+    this.ground.begin();
     for (const h of hearth ? scene.hearths : []) {
       if (!this.place(at, { lat: h.lat, lon: h.lon, x: 0, z: 0, dirX: 1, dirZ: 0 }, false))
         continue;
+      this.ground.add(at.position);
       this.block(at, HEARTH_HALF_M);
       at.scale.setScalar(FIGURE_KM_PER_M);
       // The fire flickers with the clock, so a paused world holds still, and grows from
@@ -595,6 +602,7 @@ export class TreeLayer {
     this.paintings.end();
     this.clips.end();
     this.preyClips.end();
+    this.ground.end(camera.position.length(), this.groundVersion);
     this.park();
   }
 
