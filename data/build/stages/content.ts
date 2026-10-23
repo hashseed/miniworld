@@ -87,6 +87,11 @@ export function validateContent(ctx: BuildContext): Content {
   const siteBuild = buildSiteCards({
     curated: join(ROOT, 'data/curated'),
     anchors: new Set(anchorList.anchors.map((a) => a.id)),
+    arrivals: new Set(
+      (JSON.parse(read('arrivals.json')) as { points: { id: string; continent?: string }[] }).points
+        .filter((p) => p.continent)
+        .map((p) => p.id),
+    ),
   });
   if (siteBuild.errors.length) fail(siteBuild.errors.join('\n'));
   return {
@@ -112,6 +117,7 @@ export function buildContent(
     day: number;
     lat: number;
     lon: number;
+    card: string;
   }[] = [],
 ): Record<Language, string> {
   const { output, log } = ctx;

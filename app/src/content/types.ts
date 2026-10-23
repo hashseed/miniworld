@@ -106,6 +106,8 @@ export interface EventEntry {
   /** Place in degrees. */
   lat: number;
   lon: number;
+  /** The id of its card among the index's `siteCards` (humankind.md section 8.4). */
+  card: string;
 }
 
 export interface AnimalEntry {

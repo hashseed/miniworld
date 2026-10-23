@@ -462,6 +462,14 @@
       "note": "The bones of the hunted mammoths heaped beside the hut site in four steps, shrinking as they are carried off (humankind.md section 8.2); waiting for Yang's review"
     },
     {
+      "id": "prop-sign-wood",
+      "file": "assets/src/shelters.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "The wooden sign put up before an event of the events dialog, a crooked plank on a post (humankind.md section 8.4; Yang, issue 148); waiting for Yang's review"
+    },
+    {
       "id": "prop-burial",
       "file": "assets/src/shelters.ts",
       "kind": "prop",

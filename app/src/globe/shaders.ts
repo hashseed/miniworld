@@ -10,6 +10,10 @@ import { ICE_DISTANCE_STEP_KM, ICE_DISTANCE_ZERO, TERRAIN_SAMPLES } from '../con
 import {
   COAST_BEACH_KM,
   COAST_CURVE,
+  COAST_DIP_M,
+  COAST_TAPER,
+  COAST_TAPER_FREE_M,
+  COAST_TAPER_KM,
   COAST_SLOPE,
   ICE_DOME_KM,
   ICE_DOME_M,
@@ -168,6 +172,10 @@ const float ICE_DOME_M = ${f(ICE_DOME_M)};
 const float ICE_DOME_KM = ${f(ICE_DOME_KM)};
 const float ICE_HIDE_KM = ${f(ICE_HIDE_KM)};
 const float COAST_BEACH_KM = ${f(COAST_BEACH_KM)};
+const float COAST_TAPER = ${f(COAST_TAPER)};
+const float COAST_TAPER_FREE_M = ${f(COAST_TAPER_FREE_M)};
+const float COAST_TAPER_KM = ${f(COAST_TAPER_KM)};
+const float COAST_DIP_M = ${f(COAST_DIP_M)};
 const float COAST_SLOPE = ${f(COAST_SLOPE)}; // m per km at the coast
 const float COAST_CURVE = ${f(COAST_CURVE)}; // extra m per km²
 // Spacing (km) of the climate samples that give the ice surface its slope.
@@ -214,7 +222,9 @@ void main() {
   if (sea) {
     // The terrain's sea is left out; the flat sea surface lies just below
     // (section 4.4), so coast triangles never dip under it on the land side.
-    surface = seaLevel;
+    // It dips below the sea in step with the ocean field, so the terrain's edge crosses the sea
+    // exactly where the field does and the coast line stays smooth.
+    surface = seaLevel - min(COAST_TAPER * seaWater, COAST_DIP_M);
     grad = vec3(0.0);
   } else if (!isLake) {
     // The smoothed coast can leave sea floor on the land side.
@@ -233,6 +243,7 @@ void main() {
     float q4 = q * q * q * q;
     float k = inversesqrt(sqrt(1.0 + q4)); // (1 + q^4)^(-1/4)
     surface = seaLevel + rise * k;
+    if (!isLake) surface = min(surface, seaLevel + COAST_TAPER * (oceanLevel - seaLevel) + COAST_TAPER_FREE_M * max(extra.w * 255.0 - COAST_TAPER_KM, 0.0));
     float k5 = k * k * k * k * k; // (1 + q^4)^(-5/4)
     float capSlope = d > 0.0 ? COAST_SLOPE + 2.0 * COAST_CURVE * d : 0.0;
     grad = grad * k5 + coastGrad * (q4 * q * k5 * capSlope);
@@ -332,6 +343,8 @@ void main() {
 `;
 
 export const terrainFragment = /* glsl */ `
+// How far a river runs on over the sea past the coast line, in metres of ocean level.
+const float RIVER_OUT = 6.0;
 #include <common>
 #include <logdepthbuf_pars_fragment>
 
@@ -594,14 +607,21 @@ void main() {
   bool isWater = water > 0.0 && !hasIce;
 #ifndef SEA_SURFACE
   // The sea is the flat sea surface's (section 4.4); the terrain leaves it out.
-  if (isWater && seaW > 0.0) discard;
+  // A river runs on a little way out over the water, past the coast line, so no line parts it
+  // from the sea (Yang, 2026-10-23).
+  float riverOut = riverF > riverThreshold * 0.5 ? 1.0 : 0.0;
+  bool inMouth = riverOut > 0.0 && seaW > 0.0 && seaW < RIVER_OUT && !hasIce;
+  if (isWater && seaW > 0.0 && !inMouth) discard;
 #endif
 #ifdef SEA_SURFACE
+  // The flat sea draws only where the ocean is: just inside the coast the terrain is the land, and
+  // the sea would otherwise paint dashes of land colour along it.
+  if (seaW <= 0.0 && !hasIce) discard;
   // Rivers are the terrain's; the flat sea never draws river channels or banks, whatever the
   // river field holds at a river mouth.
   bool isRiver = false;
 #else
-  bool isRiver = !isWater && !hasIce && riverF > riverThreshold;
+  bool isRiver = (!isWater || inMouth) && !hasIce && (riverF > riverThreshold || inMouth);
 #endif
   bool isPack = isWater && seaW > 0.0 && lat > packEdge;
   if (isPack) {

@@ -269,6 +269,13 @@ const DROP_M = 14;
 /** It lies there this long before it fades away. */
 const DROP_LINGER_MS = Math.round(40_000 / TEMPO);
 /** Trees make way this far round points of a hunt's lane, in drawn kilometres. */
+/** How far the trees keep from a scene's middle, in layout metres at a full camp. */
+const STAGE_CLEARING_M: Record<TreeStage['kind'], number> = {
+  'cave-painting': 14,
+  burial: 8,
+  monument: 20,
+  'bone-hut': 16,
+};
 const HUNT_CLEARING_KM = 8 * LAYOUT_KM_PER_M;
 /**
  * The hunted animal and one or two of its herd walk in from the treeline at the far end of
@@ -1438,6 +1445,8 @@ interface Memo {
   builders: Map<number, number[]>;
   takers: Map<number, number[]>;
   appears: Map<number, number>;
+  /** When and where the group that founded a lodging's camp starts its crossing (departureOf). */
+  departs: Map<number, { ms: number; lat: number; lon: number }>;
   campmates: Map<number, TreeFigure[]>;
   places: Map<string, Place>;
   stays: Map<string, Stay | undefined>;
@@ -1461,6 +1470,19 @@ export function shownAtMs(chunk: TreeChunk, startDay: Day, id: number): number |
   if (!memoOf(chunk, startDay).ready) treeScene(chunk, 0, startDay);
   return memoOf(chunk, startDay).appears.get(id);
 }
+/**
+ * When and where the group that founded the camp of a lodging starts its crossing, in watching
+ * ms: the first stretch by water, or for a route on land its setting out from the old camp
+ * (milestone-1 section 8.3). Undefined where its builder made no walk.
+ */
+export function departureOf(
+  chunk: TreeChunk,
+  startDay: Day,
+  id: number,
+): { ms: number; lat: number; lon: number } | undefined {
+  if (!memoOf(chunk, startDay).ready) treeScene(chunk, 0, startDay);
+  return memoOf(chunk, startDay).departs.get(id);
+}
 function memoOf(chunk: TreeChunk, startDay: Day): Memo {
   let m = memos.get(chunk);
   if (!m || m.startDay !== startDay) {
@@ -1471,6 +1493,7 @@ function memoOf(chunk: TreeChunk, startDay: Day): Memo {
       builders: new Map(),
       takers: new Map(),
       appears: new Map(),
+      departs: new Map(),
       campmates: new Map(),
       places: new Map(),
       stays: new Map(),
@@ -1513,7 +1536,8 @@ export function treeScene(
 
   // The builders of each lodging (moving in on the day it is built) and the figures that
   // take it down (leaving on the day it is gone), by id.
-  const { builders, takers, appears, stays, hunts, forced, events, campmates, places } = memo;
+  const { builders, takers, appears, departs, stays, hunts, forced, events, campmates, places } =
+    memo;
   if (!memo.ready)
     for (const f of chunk.figures)
       f.homes.forEach(([day, id], i) => {
@@ -1536,6 +1560,14 @@ export function treeScene(
         const crew = builders.get(id)!;
         const work = buildSpot(crew.indexOf(f.id), crew.length, to);
         appears.set(id, c.end + Math.ceil(routeLength(route(c.entry, work, to.camp)) / PACE.walk));
+        const water = c.legs.findIndex((l) => l.water);
+        const before = c.legs.slice(0, Math.max(0, water)).reduce((a, l) => a + l.km, 0);
+        const from = c.legs[Math.max(0, water)]!.from;
+        departs.set(id, {
+          ms: c.across + Math.ceil(before / WALK_KM_PER_MS),
+          lat: from.lat,
+          lon: from.lon,
+        });
       }
 
   const scene: TreeScene = {
@@ -1789,6 +1821,16 @@ export function treeScene(
       ...(stage.kind === 'cave-painting'
         ? { lit: sessions.some((q) => ms >= q.begin - 1500 && ms < q.stop) }
         : {}),
+    });
+    // The trees make way for the scene, so none stands in a wall, hut or grave (issues 171, 173).
+    scene.clearings.push({
+      lat: deg(stage.lat),
+      lon: deg(stage.lon),
+      x: prop.x,
+      z: prop.z,
+      km: STAGE_CLEARING_M[stage.kind] * stageScale(stage.camp) * LAYOUT_KM_PER_M,
+      amount: Math.min(1, rise * 2),
+      felling: false,
     });
   }
   // In place order, so a time window's chunk gives the same scene as the whole tree.
@@ -2708,7 +2750,11 @@ export function treeScene(
     // After a hunt that brought its kill home, the hunter roasts it on the spit, unless an
     // earlier kill holds the fire (Yang, 2026-10-20). Whether a turn hunts never depends on
     // this (`plain`), so working it out does not reach back through every earlier turn.
-    const planned = forcedHunt(st, k) ? 'hunt' : outingOf(st.f.id, st.look, k);
+    const planned = forcedHunt(st, k)
+      ? 'hunt'
+      : huntHeld(st, turnStart)
+        ? 'rest'
+        : outingOf(st.f.id, st.look, k);
     const own = !plain && planned !== 'hunt' ? huntOf(st, k - 1) : undefined;
     const roast = !!own && own.pole && killAt(st, turnStart) === own;
     const outing = roast ? 'cook' : planned;
@@ -2886,6 +2932,28 @@ export function treeScene(
       if (f && f.hunter.f.id === st.f.id && f.turn === k) return f;
     }
     return undefined;
+  }
+
+  /** Whether a bone hut's mammoth hunt is held at the camp around a turn start, which keeps the others home so they are free to help (issue 173). */
+  function huntHeld(st: Stay, turnStart: number): boolean {
+    for (const stage of chunk.stages ?? []) {
+      if (
+        stage.kind !== 'bone-hut' ||
+        stage.camp !== st.home.camp ||
+        stage.lat !== st.home.lat ||
+        stage.lon !== st.home.lon
+      )
+        continue;
+      const hunts = stageHunts(stage, startDay);
+      for (let r = 0; r < hunts.length; r++)
+        if (
+          turnStart >= hunts[r]!.start - TURN_MS &&
+          turnStart < hunts[r]!.start + TURN_MS &&
+          forcedRound(stage, r)
+        )
+          return true;
+    }
+    return false;
   }
 
   /** The hunt of a bone hut's round: led by the first grown-up of its camp free for the whole turn that starts in the hunt's window. */

@@ -22,6 +22,13 @@ export const ICE_HIDE_KM = 120;
 export const COAST_BEACH_KM = 2;
 export const COAST_SLOPE = 6; // m per km at the coast
 export const COAST_CURVE = 0.08; // extra m per km²
+/** Land stands at most this many metres above the sea per metre its smooth ocean level is above it. */
+export const COAST_TAPER = 8;
+/** The limit lifts by this many metres per km beyond COAST_TAPER_KM from the coast, so inland relief is left alone. */
+export const COAST_TAPER_FREE_M = 1000;
+export const COAST_TAPER_KM = 15;
+/** The sea-side terrain dips at most this many metres below the sea level. */
+export const COAST_DIP_M = 1000;
 
 /** Highest rise in metres the cap allows at d km from the coast. */
 export function coastCap(dKm: number): number {
@@ -60,6 +67,7 @@ export function isSea(g: Ground, seaLevel: number): boolean {
 /** Drawn surface in metres without ice: the sea, or land and lake beds on their lift with rounded coasts. */
 export function groundM(g: Ground, seaLevel: number): number {
   if (isSea(g, seaLevel)) return seaLevel;
+  const field = g.oceanLevel - seaLevel;
   // The smoothed coast can leave sea floor on the land side.
   let surface = g.lake > LAKE_FIELD ? g.height : Math.max(g.height, seaLevel);
   surface += LAND_LIFT_M;
@@ -67,7 +75,16 @@ export function groundM(g: Ground, seaLevel: number): number {
   const cap = d * (COAST_SLOPE + COAST_CURVE * d) + 1e-3;
   const rise = Math.max(surface - seaLevel, 0);
   const q = rise / cap;
-  return seaLevel + rise / Math.sqrt(Math.sqrt(1 + q * q * q * q));
+  const capped = rise / Math.sqrt(Math.sqrt(1 + q * q * q * q));
+  return (
+    seaLevel +
+    (g.lake > LAKE_FIELD
+      ? capped
+      : Math.min(
+          capped,
+          COAST_TAPER * field + COAST_TAPER_FREE_M * Math.max(g.coastKm - COAST_TAPER_KM, 0),
+        ))
+  );
 }
 
 /** Drawn surface in metres including the ice sheets, iceKm being the signed distance inside the ice border. */

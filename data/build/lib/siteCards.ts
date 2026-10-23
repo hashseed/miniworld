@@ -10,15 +10,30 @@ import { Errors, isMap, str, unknownFields, type CardText, type Yaml } from './r
 
 const RECORD_FIELDS = ['id', 'kind', 'sources'];
 
-/** The labels and sub-headings of a card, in order (humankind.md section 8.3). */
-const LABELS: Record<Language, { facts: string[]; sections: string[] }> = {
-  en: {
-    facts: ['Made', 'Discovered'],
-    sections: ['What was found', 'How it looked', 'What it was for'],
+/** The labels and sub-headings of a card of a place (humankind.md section 8.3) and of an arrival (section 8.4), in order. */
+const LABELS: Record<
+  'site-card' | 'event-card',
+  Record<Language, { facts: string[]; sections: string[] }>
+> = {
+  'site-card': {
+    en: {
+      facts: ['Made', 'Discovered'],
+      sections: ['What was found', 'How it looked', 'What it was for'],
+    },
+    de: {
+      facts: ['Entstanden', 'Entdeckt'],
+      sections: ['Was man fand', 'So sah es aus', 'Wozu es diente'],
+    },
   },
-  de: {
-    facts: ['Entstanden', 'Entdeckt'],
-    sections: ['Was man fand', 'So sah es aus', 'Wozu es diente'],
+  'event-card': {
+    en: {
+      facts: ['When', 'Where'],
+      sections: ['What we know', 'How it may have looked', 'What is debated'],
+    },
+    de: {
+      facts: ['Wann', 'Wo'],
+      sections: ['Was man weiß', 'Wie es ausgesehen haben könnte', 'Was umstritten ist'],
+    },
   },
 };
 
@@ -33,10 +48,16 @@ export interface SiteCardInputs {
   records?: string;
   /** The ids of the anchors. */
   anchors: Set<string>;
+  /** The ids of the arrival points that are events (milestone-1 section 8.3). */
+  arrivals?: Set<string>;
 }
 
 /** Parses the language sections of a card, checking its structure. */
-function parseCardText(e: Errors, body: string): Record<Language, CardText> | undefined {
+function parseCardText(
+  e: Errors,
+  body: string,
+  kind: 'site-card' | 'event-card',
+): Record<Language, CardText> | undefined {
   const out = {} as Record<Language, CardText>;
   const parts = body.split(/^## (\w+)\s*$/m);
   const seen = new Set<string>();
@@ -47,7 +68,7 @@ function parseCardText(e: Errors, body: string): Record<Language, CardText> | un
       continue;
     }
     seen.add(lang);
-    const labels = LABELS[lang as Language];
+    const labels = LABELS[kind][lang as Language];
     const m = /^# (.+)\n([\s\S]*)$/.exec(parts[i + 1]!.trim());
     if (!m) {
       e.add(`${lang}: the section must start with "# Title"`);
@@ -79,6 +100,8 @@ function parseCardText(e: Errors, body: string): Record<Language, CardText> | un
   for (const lang of LANGUAGES) if (!seen.has(lang)) e.add(`missing language section "## ${lang}"`);
   return e.list.length ? undefined : out;
 }
+
+const arrivals = (inp: SiteCardInputs) => inp.arrivals ?? new Set<string>();
 
 export function buildSiteCards(inp: SiteCardInputs): { cards: BuiltSiteCard[]; errors: string[] } {
   const errors: string[] = [];
@@ -114,8 +137,13 @@ export function buildSiteCards(inp: SiteCardInputs): { cards: BuiltSiteCard[]; e
     unknownFields(e, 'record', y, RECORD_FIELDS);
     const id = str(y.id);
     if (!id || `${id}.md` !== f) e.add('id must equal the file name');
-    if (str(y.kind) !== 'site-card') e.add('kind must be "site-card"');
-    if (id && !inp.anchors.has(id)) e.add(`no anchor has the id "${id}"`);
+    const kind = str(y.kind);
+    if (kind !== 'site-card' && kind !== 'event-card')
+      e.add('kind must be "site-card" or "event-card"');
+    const arrivals = inp.arrivals ?? new Set<string>();
+    if (id && kind === 'event-card' && !arrivals.has(id))
+      e.add(`no arrival event has the id "${id}"`);
+    if (id && kind === 'site-card' && !inp.anchors.has(id)) e.add(`no anchor has the id "${id}"`);
     const refs = Array.isArray(y.sources) ? y.sources : [];
     if (!refs.length) e.add('names no source');
     for (const r of refs) {
@@ -124,12 +152,15 @@ export function buildSiteCards(inp: SiteCardInputs): { cards: BuiltSiteCard[]; e
       if (!ref || !isMap(sources) || !isMap(sources[ref] as Yaml | undefined))
         e.add(`unknown source "${ref}"`);
     }
-    const text = parseCardText(e, fm[2]!);
+    const text = parseCardText(e, fm[2]!, kind === 'event-card' ? 'event-card' : 'site-card');
     errors.push(...e.list);
     if (id && text && !e.list.length) cards.push({ id, text });
   }
   for (const a of [...inp.anchors].sort())
     if (!files.includes(`${a}.md`))
       errors.push(`site-cards/${a}.md: missing card for anchor "${a}"`);
+  for (const a of [...arrivals(inp)].sort())
+    if (!files.includes(`${a}.md`))
+      errors.push(`site-cards/${a}.md: missing event card for arrival "${a}"`);
   return { cards, errors };
 }

@@ -99,8 +99,10 @@ export class CavePaintings {
         side: THREE.DoubleSide,
       });
       const geometry = new THREE.PlaneGeometry(p.width, p.height);
-      // In front of the face, its foot above the lowered ground.
-      geometry.translate(0, p.foot + p.height / 2, 0.23);
+      // Its foot above the lowered ground, and 0.12 m behind the cut's middle, where the leaning
+      // plane then lies about 0.03 m in front of the face (caveWalls.ts: the face stands 0.04 of
+      // the cut's radius behind the cut and leans back 0.34 of it; issue 171, it floated 0.4 m off).
+      geometry.translate(0, p.foot + p.height / 2, -0.12);
       // Leaning back with the cave's face, about 24 degrees (caveWalls.ts).
       geometry.rotateX(-0.42);
       // Turned as the tree's props are (figures.ts, turned): model +Z along the placement's facing.

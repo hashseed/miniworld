@@ -8,6 +8,7 @@ import {
   ModelBuilder,
   STONE,
   blob,
+  box,
   cone,
   horn,
   lathe,
@@ -39,6 +40,8 @@ export const SHELTERS = [
   'prop-gobekli-ring',
   'prop-bone-hut',
   'prop-bone-pile',
+  // The sign of an event, put up before it (humankind.md section 8.4).
+  'prop-sign-wood',
 ] as const;
 export type ShelterId = (typeof SHELTERS)[number];
 
@@ -500,6 +503,9 @@ export function buildShelter(id: ShelterId): Model {
       // mammoth-ivory beads over it and ivory spears beside it; the trench closed with the earth and red
       // ochre; and grass grown over the heap (Yang: "the ground should just grow over it").
       const EARTH = '#7a5a3c';
+      // Dry grass, not green: the graves lie on steppe and dry savannah, where the surrounding
+      // ground is yellow too (issue 174: Lake Mungo).
+      const STRAW = '#b9a766';
       mb.add(blob([0, 0.06, 0], [1.3, 0.2, 0.75], 9), EARTH);
       const step = (k: number) => {
         const name = `${BUILD_BONE}${k}`;
@@ -525,13 +531,13 @@ export function buildShelter(id: ShelterId): Model {
       mb.add(blob([0, 0.26, 0], [1.0, 0.1, 0.4], 8), EARTH, b);
       mb.add(blob([0, 0.34, 0], [0.7, 0.025, 0.28], 7), '#a3412a', b);
       b = step(4);
-      mb.add(blob([0, 0.1, 0], [1.38, 0.28, 0.8], 9), '#7f9a55', b);
+      mb.add(blob([0, 0.1, 0], [1.38, 0.28, 0.8], 9), STRAW, b);
       for (const [x, z] of [
         [-0.7, 0.2],
         [0.3, -0.3],
         [0.8, 0.25],
       ] as const)
-        mb.add(cone([x, 0.34, z], [x, 0.5, z], 0.08, 4), '#6f8a48', b);
+        mb.add(cone([x, 0.34, z], [x, 0.5, z], 0.08, 4), shade(STRAW, -0.08), b);
       break;
     }
     case 'prop-gobekli-ring': {
@@ -653,6 +659,21 @@ export function buildShelter(id: ShelterId): Model {
       b = step(3);
       mb.add(blob([0, 0.62, 0], [0.55, 0.14, 0.4], 6), shade(BONE, -0.12), b);
       mb.add(blob([-0.1, 0.78, 0.1], [0.28, 0.2, 0.24], 5), BONE, b);
+      break;
+    }
+    case 'prop-sign-wood': {
+      // A plank on a crooked post, facing +Z, lashed with hide cord (humankind.md section 8.4).
+      const WOOD = '#8a6238';
+      mb.add(rod([0, 0, 0], [0.05, 1.7, 0], 0.055, 5), POLE);
+      const plank = box([-0.5, -0.24, 0.06], [0.5, 0.24, 0.12]);
+      plank.rotateZ(0.11);
+      plank.translate(0.04, 1.32, 0);
+      mb.add(plank, WOOD);
+      const low = box([-0.38, -0.05, 0.06], [0.38, 0.05, 0.11]);
+      low.rotateZ(-0.07);
+      low.translate(0.04, 0.96, 0);
+      mb.add(low, shade(WOOD, 0.1));
+      for (const y of [1.2, 1.46]) mb.add(blob([0.045, y, 0.1], [0.07, 0.04, 0.05], 5), '#c9a675');
       break;
     }
     case 'prop-carry-pole': {
