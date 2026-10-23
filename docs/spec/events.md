@@ -9,7 +9,7 @@ The first list of world events, in chronological order, with the title the app s
 | c. 15,000 BCE | Lascaux cave paintings | Dordogne, France | 45.05, 1.17 | Invention or idea | Figures paint animals by torchlight in a cave |
 | c. 14,000 BCE | People reach the Americas | Beringia | 65.00, -168.00 (centre of the beringia land bridge) | Migration | Groups cross the land bridge and move south (date debated, possibly earlier) |
 | c. 9500 BCE | Building of Göbekli Tepe | Southeast Anatolia | 37.22, 38.92 | Construction | Hunter-gatherers raise carved stone pillars in rings |
-| c. 9000 BCE | Farming begins | Fertile Crescent | 36.50, 39.50 (centre of the fertile crescent arc) | Invention or idea | First fields of wheat and barley; farming spreads outward over millennia |
+| c. 9000 BCE | Farming begins | Fertile Crescent | 36.50, 39.50 (centre of the fertile crescent arc) | Invention or idea | First fields of wheat and barley; farming spreads outward over millennia. Superseded by the eight first-farming events of [farming-spread.md](neolithic/farming-spread.md) section 9.5 |
 | c. 7400 BCE | Çatalhöyük is settled | Central Anatolia | 37.67, 32.83 | Founding | A dense town of mudbrick houses entered through the roofs |
 | c. 3300 BCE | Invention of writing | Uruk, Mesopotamia | 31.32, 45.64 | Invention or idea | Scribes press marks into clay tablets |
 | c. 3100 BCE | Unification of Egypt | Nile valley | 29.85, 31.25 (early capital memphis) | Political change | First pharaoh; the Egyptian border appears on the overlay |

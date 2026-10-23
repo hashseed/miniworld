@@ -142,7 +142,9 @@ const SITES_CODE = [
       (f) =>
         f.endsWith('.ts') &&
         !f.endsWith('.test.ts') &&
-        !['humankind.ts', 'cultureAreas.ts', 'arrivals.ts', 'treeReport.ts'].includes(f),
+        !['humankind.ts', 'cultureAreas.ts', 'arrivals.ts', 'treeReport.ts', 'farming.ts'].includes(
+          f,
+        ),
     )
     .sort()
     .map((f) => `data/build/lib/${f}`),

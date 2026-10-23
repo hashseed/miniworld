@@ -453,10 +453,14 @@ function animSheet(): void {
   const n = Number(params.get('n') ?? 8);
   const views = (params.get('views') ?? 'side,front,top,three-quarter').split(',');
   const build = (): { m: Model; animal: boolean } => {
-    const [kind, profile, who] = subject.split(':');
+    const [kind, profile, who, tool] = subject.split(':');
     if (kind === 'person') {
       return {
-        m: buildPerson({ profile: profile as never, kind: (who ?? 'man') as Kind }),
+        m: buildPerson({
+          profile: profile as never,
+          kind: (who ?? 'man') as Kind,
+          ...(tool ? { tool: tool as never } : {}),
+        }),
         animal: false,
       };
     }

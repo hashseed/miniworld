@@ -19,6 +19,7 @@ import {
 } from '../lib/eras.ts';
 import { buildAnimals } from '../lib/animals.ts';
 import { buildSiteCards } from '../lib/siteCards.ts';
+import { farmingEventIds } from './farming.ts';
 import { WILD_GROUPS } from '../../../app/src/world/wildlife.ts';
 import { regionGrid } from '../lib/regions.ts';
 import { ROOT, type BuildContext, type WriteContext } from './context.ts';
@@ -92,6 +93,7 @@ export function validateContent(ctx: BuildContext): Content {
         .filter((p) => p.continent)
         .map((p) => p.id),
     ),
+    farming: new Set(farmingEventIds(read('neolithic.json'))),
   });
   if (siteBuild.errors.length) fail(siteBuild.errors.join('\n'));
   return {

@@ -30,6 +30,8 @@ export interface Manifest {
   /** Tree of humankind chunks (spec humankind.md, section 8): one file per time window, null where empty; absent on the fixture map. */
   /** Tree chunk files, null where empty, each from its day in `days` (humankind.md section 8). */
   tree?: { files: (string | null)[]; days: number[]; sites?: string };
+  /** The farming onset raster (spec neolithic/farming-spread.md section 9); absent on the fixture map. */
+  farming?: string;
 }
 
 export interface LayerManifest {
@@ -98,8 +100,8 @@ export interface StartupIndex {
 /** An event of the events dialog (milestone-1 section 8.3): where and when it happens. */
 export interface EventEntry {
   id: string;
-  /** A migration of the tree of humankind, a sea crossing's first canoe, or an event with its own scene. */
-  kind: 'migration' | 'crossing' | 'scene';
+  /** A migration of the tree of humankind, a sea crossing's first canoe, an event with its own scene, or the first farming of a centre. */
+  kind: 'migration' | 'crossing' | 'scene' | 'farming';
   /** Name in the index's language. */
   title: string;
   day: number;

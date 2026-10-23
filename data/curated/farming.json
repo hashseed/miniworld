@@ -20,11 +20,11 @@
       },
       {
         "id": "mediterranean-coast",
-        "kmPerYear": 4,
-        "range": [2, 6],
+        "kmPerYear": 1.5,
+        "range": [1, 6],
         "approximate": true,
         "coastal": true,
-        "note": "Applies to sea hops and the 50 km coastal strip of the Mediterranean and Black Sea.",
+        "note": "Applies to sea hops and the 50 km coastal strip of the Mediterranean and Black Sea. The Cardial rate of 5 km/yr holds for the western Mediterranean alone; over the whole sea, with the pauses of section 9.3, 1.5 km/yr fits the dated waypoints.",
         "source": "Zilhao 2001, PNAS 98 (Cardial about 5 km/yr); Isern et al. 2017, PNAS 114"
       },
       {
@@ -39,9 +39,20 @@
         "source": "Derived from the Bantu waypoints (Cameroon 1000 BCE to Limpopo 300 CE); Currie et al. 2013, PLoS ONE 8; Grollemund et al. 2015"
       },
       {
+        "id": "japan",
+        "kmPerYear": 1.5,
+        "range": [1, 2.5],
+        "approximate": true,
+        "box": {
+          "lat": [30, 46],
+          "lon": [129, 146]
+        },
+        "source": "Derived from the Itazuke, Kinki and Tohoku waypoints (Yayoi rice farming, 900 to 400 BCE); Hudson 1999, Ruins of Identity"
+      },
+      {
         "id": "east-asia",
-        "kmPerYear": 0.8,
-        "range": [0.5, 1.2],
+        "kmPerYear": 0.65,
+        "range": [0.5, 1.0],
         "approximate": true,
         "box": {
           "lat": [18, 55],
@@ -77,7 +88,12 @@
         "range": [3, 7],
         "approximate": true,
         "sea": true,
-        "source": "Derived from Taiwan 3500 BCE, Luzon 2200, Bismarck 1500, Tonga 900 BCE; Bellwood 2005; Burley et al. 2012"
+        "source": "Derived from Taiwan 3500 BCE, Luzon 2200, Bismarck 1500, Tonga 900 BCE; Bellwood 2005; Burley et al. 2012",
+        "box": {
+          "lat": [-30, 25],
+          "lon": [105, 180]
+        },
+        "note": "Open water runs at this speed only inside the box (the Austronesian and Lapita seas); other water runs at the speed of the land zone around it."
       }
     ],
     "default": {
@@ -149,6 +165,356 @@
       },
       "notBeforeBce": -870,
       "source": "Vésteinsson & McGovern 2012"
+    },
+    {
+      "id": "aegean",
+      "box": {
+        "lat": [34, 42.5],
+        "lon": [19, 32.5]
+      },
+      "notBeforeBce": 6450,
+      "approximate": true,
+      "source": "The Anatolian pause: farming stood in central Anatolia from about 8200 BCE yet crossed the Aegean only about 6700 BCE; Weninger et al. 2014, Documenta Praehistorica 41; Özdoğan 2011, Current Anthropology 52 S4"
+    },
+    {
+      "id": "pontic-steppe",
+      "box": {
+        "lat": [43, 56],
+        "lon": [30, 75]
+      },
+      "notBeforeBce": 3800,
+      "approximate": true,
+      "source": "Steppe herders took up cattle and sheep about 3800 BCE; Anthony 2007, The Horse, the Wheel and Language"
+    },
+    {
+      "id": "cucuteni",
+      "box": {
+        "lat": [43, 52],
+        "lon": [23, 31]
+      },
+      "notBeforeBce": 5100,
+      "approximate": true,
+      "source": "Cucuteni-Trypillia farming begins about 5100 BCE; Müller et al. 2016"
+    },
+    {
+      "id": "caucasus",
+      "box": {
+        "lat": [38, 44],
+        "lon": [38, 50]
+      },
+      "notBeforeBce": 5800,
+      "approximate": true,
+      "source": "Shulaveri-Shomu farming begins about 5800 BCE; Hamon 2008"
+    },
+    {
+      "id": "iranian-plateau",
+      "box": {
+        "lat": [27, 40],
+        "lon": [50, 62]
+      },
+      "notBeforeBce": 6400,
+      "approximate": true,
+      "source": "The Iranian desert plateau slowed the eastward spread; Jeitun farming about 6400 BCE; Harris 2010, Origins of Agriculture in Western Central Asia"
+    },
+    {
+      "id": "egypt-sahara",
+      "box": {
+        "lat": [18, 33],
+        "lon": [-12, 36]
+      },
+      "notBeforeBce": 5500,
+      "approximate": true,
+      "source": "Neolithic farming reaches Egypt and the Sahara about 5500 BCE; Wengrow et al. 2014, Antiquity 88; Dunne et al. 2012, Nature 486"
+    },
+    {
+      "id": "west-mediterranean",
+      "box": {
+        "lat": [35, 44.5],
+        "lon": [-10, 19]
+      },
+      "notBeforeBce": 5900,
+      "approximate": true,
+      "source": "Impressa and Cardial farming begin about 5900 BCE in the central and western Mediterranean; Zilhão 2001, PNAS 98"
+    },
+    {
+      "id": "korea",
+      "box": {
+        "lat": [33, 43],
+        "lon": [124, 131]
+      },
+      "notBeforeBce": 1500,
+      "approximate": true,
+      "source": "Rice and millet farming of the Mumun period, about 1500 BCE; Lee 2011, Current Anthropology 52 S4"
+    },
+    {
+      "id": "japan-east",
+      "box": {
+        "lat": [30, 46],
+        "lon": [133, 146]
+      },
+      "notBeforeBce": 700,
+      "approximate": true,
+      "source": "Yayoi rice farming reaches Kinki and Tohoku after Kyushu; Hudson 1999; Mizoguchi 2013"
+    },
+    {
+      "id": "taiwan",
+      "box": {
+        "lat": [21.5, 25.5],
+        "lon": [119.5, 122.5]
+      },
+      "notBeforeBce": 3600,
+      "approximate": true,
+      "source": "Dabenkeng farming of rice and millet, about 3600 BCE; Bellwood 2005; Tsang 2005"
+    },
+    {
+      "id": "se-asia",
+      "box": {
+        "lat": [8, 24],
+        "lon": [98, 110]
+      },
+      "notBeforeBce": 2300,
+      "approximate": true,
+      "source": "Rice farming reaches mainland South-East Asia about 2300 BCE; Higham 2002; Bellwood 2005"
+    },
+    {
+      "id": "luzon",
+      "box": {
+        "lat": [12, 19],
+        "lon": [119, 124]
+      },
+      "notBeforeBce": 2300,
+      "approximate": true,
+      "source": "Austronesian farmers reach Luzon about 2300 BCE; Bellwood 2005; Hung et al. 2011"
+    },
+    {
+      "id": "wallacea",
+      "box": {
+        "lat": [-12, 12],
+        "lon": [110, 165]
+      },
+      "notBeforeBce": 1600,
+      "approximate": true,
+      "source": "Farming in the islands between Asia and New Guinea begins about 1600 BCE; Bellwood 2005; Spriggs 2011"
+    },
+    {
+      "id": "deccan",
+      "box": {
+        "lat": [8, 20],
+        "lon": [72, 82]
+      },
+      "notBeforeBce": 3200,
+      "approximate": true,
+      "source": "Southern Neolithic of the Deccan, about 3200 BCE; Fuller 2011, Rice 4"
+    },
+    {
+      "id": "tibet",
+      "box": {
+        "lat": [27, 37],
+        "lon": [78, 103]
+      },
+      "notBeforeBce": 3500,
+      "approximate": true,
+      "source": "Millet farmers reach the Tibetan plateau edge about 3500 BCE; d'Alpoim Guedes 2015"
+    },
+    {
+      "id": "finland",
+      "box": {
+        "lat": [59, 70],
+        "lon": [20, 32]
+      },
+      "notBeforeBce": 2600,
+      "approximate": true,
+      "source": "Cultivation reaches Finland about 2600 BCE; Sørensen & Karg 2014, J. Archaeol. Sci. 51"
+    },
+    {
+      "id": "maya",
+      "box": {
+        "lat": [15, 22],
+        "lon": [-92, -86]
+      },
+      "notBeforeBce": 2900,
+      "approximate": true,
+      "source": "Maize farming of the Maya lowlands, about 2900 BCE; Pohl et al. 1996, Science 274; Smith 1998"
+    },
+    {
+      "id": "altiplano",
+      "box": {
+        "lat": [-20, -12],
+        "lon": [-72, -64]
+      },
+      "notBeforeBce": 2100,
+      "approximate": true,
+      "source": "Farming on the Titicaca altiplano, about 2100 BCE; Bruno 2014"
+    },
+    {
+      "id": "woodlands",
+      "box": {
+        "lat": [36, 48],
+        "lon": [-95, -70]
+      },
+      "notBeforeBce": -150,
+      "approximate": true,
+      "source": "Maize arrives in the Eastern Woodlands only about 150 CE; Hart & Lovis 2013, J. Archaeol. Res. 21"
+    },
+    {
+      "id": "kyushu",
+      "box": {
+        "lat": [30, 35],
+        "lon": [129, 133]
+      },
+      "notBeforeBce": 1000,
+      "approximate": true,
+      "source": "Yayoi rice farming begins in northern Kyushu about 1000 BCE; Hudson 1999; Mizoguchi 2013"
+    },
+    {
+      "id": "balkans",
+      "box": {
+        "lat": [40, 46.5],
+        "lon": [19, 30]
+      },
+      "notBeforeBce": 6250,
+      "approximate": true,
+      "source": "Starčevo and Körös farming begin about 6200 BCE; Reingruber & Thissen 2009, Radiocarbon 51"
+    },
+    {
+      "id": "caral",
+      "box": {
+        "lat": [-16, -6],
+        "lon": [-82, -74]
+      },
+      "notBeforeBce": 3200,
+      "approximate": true,
+      "source": "Coastal Peru farming of squash, beans and cotton, about 3200 BCE; Shady et al. 2001, Science 292"
+    },
+    {
+      "id": "sw-us",
+      "box": {
+        "lat": [30, 38],
+        "lon": [-115, -103]
+      },
+      "notBeforeBce": 2300,
+      "approximate": true,
+      "source": "Maize reaches the American Southwest about 2300 BCE; Merrill et al. 2009, PNAS 106"
+    },
+    {
+      "id": "antilles-greater",
+      "box": {
+        "lat": [17, 24],
+        "lon": [-85, -65]
+      },
+      "notBeforeBce": 500,
+      "approximate": true,
+      "source": "Farming villages on the Antilles, about 500 BCE; Rouse 1992; Keegan 2013"
+    },
+    {
+      "id": "antilles-lesser",
+      "box": {
+        "lat": [11, 18],
+        "lon": [-66, -60]
+      },
+      "notBeforeBce": 500,
+      "approximate": true,
+      "source": "Farming villages on the Antilles, about 500 BCE; Rouse 1992; Keegan 2013"
+    },
+    {
+      "id": "taquara",
+      "box": {
+        "lat": [-30, -22],
+        "lon": [-55, -48]
+      },
+      "notBeforeBce": -100,
+      "approximate": true,
+      "source": "Southern Brazil highland farming, about 100 BCE; Iriarte et al. 2013, Quaternary International"
+    },
+    {
+      "id": "sahel-west",
+      "box": {
+        "lat": [10, 22],
+        "lon": [-18, 5]
+      },
+      "notBeforeBce": 2400,
+      "approximate": true,
+      "source": "Pearl millet farming of the western Sahel, about 2400 BCE; Manning et al. 2011, J. Archaeol. Sci. 38"
+    },
+    {
+      "id": "guinea-forest",
+      "box": {
+        "lat": [4, 10],
+        "lon": [-8, 3]
+      },
+      "notBeforeBce": 1900,
+      "approximate": true,
+      "source": "Yam and oil-palm farming of the Guinea forest edge, about 1900 BCE; Neumann et al. 2012"
+    },
+    {
+      "id": "turkana",
+      "box": {
+        "lat": [-3, 6],
+        "lon": [33, 42]
+      },
+      "notBeforeBce": 3500,
+      "approximate": true,
+      "source": "Pastoralists reach the Turkana basin about 3500 BCE; Ambrose 1998; Lane 2013"
+    },
+    {
+      "id": "ethiopia",
+      "box": {
+        "lat": [6, 14],
+        "lon": [35, 42]
+      },
+      "notBeforeBce": 3000,
+      "approximate": true,
+      "source": "Ensete, teff and cattle in the Ethiopian highlands, about 3000 BCE; Brandt 1984; Harlan 1992"
+    },
+    {
+      "id": "rift",
+      "box": {
+        "lat": [-3, 0.8],
+        "lon": [35, 38]
+      },
+      "notBeforeBce": 1500,
+      "approximate": true,
+      "source": "Pastoral Neolithic of the Kenya Rift, about 1500 BCE; Ambrose 1998"
+    },
+    {
+      "id": "great-lakes",
+      "box": {
+        "lat": [-5, 2],
+        "lon": [29, 35]
+      },
+      "notBeforeBce": 800,
+      "approximate": true,
+      "source": "Urewe farmers with iron about 800 BCE; Schmidt 1997"
+    },
+    {
+      "id": "cameroon",
+      "box": {
+        "lat": [0, 8],
+        "lon": [8, 16]
+      },
+      "notBeforeBce": 1500,
+      "approximate": true,
+      "source": "Bantu-speaking farmers leave the Cameroon grassfields about 1500 BCE; Grollemund et al. 2015, PNAS 112"
+    },
+    {
+      "id": "limpopo",
+      "box": {
+        "lat": [-30, -15],
+        "lon": [25, 35]
+      },
+      "notBeforeBce": -100,
+      "approximate": true,
+      "source": "Early Iron Age farmers reach the Limpopo about 100 BCE; Huffman 2007"
+    },
+    {
+      "id": "ertebolle",
+      "box": {
+        "lat": [53.5, 58],
+        "lon": [8, 16]
+      },
+      "notBeforeBce": 4100,
+      "approximate": true,
+      "source": "The Ertebølle foragers of southern Scandinavia kept their way of life until about 3950 BCE; Sørensen & Karg 2014, J. Archaeol. Sci. 51"
     }
   ],
   "noFarming": [
@@ -167,6 +533,106 @@
         "lon": [-180, 180]
       },
       "source": "peopling.md section 3.5"
+    }
+  ],
+  "barriers": [
+    {
+      "id": "north-pacific-west",
+      "box": {
+        "lat": [48, 72],
+        "lon": [160, 180]
+      },
+      "source": "No Old World crop crossed the Bering Strait before 1492 CE; American farming began on its own (Bellwood 2005, First Farmers; Larson et al. 2014, PNAS 111)"
+    },
+    {
+      "id": "north-pacific-east",
+      "box": {
+        "lat": [48, 72],
+        "lon": [-180, -150]
+      },
+      "source": "Same: open water of the North Pacific and the Bering Strait stops the wave"
+    }
+  ],
+  "centres": [
+    {
+      "id": "fertile-crescent",
+      "package": {
+        "en": "Wheat, barley, lentil, pea, sheep, goat, cattle, pig",
+        "de": "Weizen, Gerste, Linse, Erbse, Schaf, Ziege, Rind, Schwein"
+      },
+      "source": "Zeder 2011, Current Anthropology 52 S4",
+      "spreadBce": 8500,
+      "spreadNote": "The full package of crops and herd animals was assembled in the pre-pottery Neolithic B, about 8500 BCE; Zeder 2011, Current Anthropology 52 S4; Weninger et al. 2014"
+    },
+    {
+      "id": "amazonia",
+      "package": {
+        "en": "Manioc, squash, peanut, palm fruits",
+        "de": "Maniok, Kürbis, Erdnuss, Palmfrüchte"
+      },
+      "source": "Lombardo et al. 2020, Nature 581",
+      "spreadBce": 3500,
+      "spreadNote": "Manioc and squash became staples of settled farming in the second half of the Holocene; Clement et al. 2015, Proc. R. Soc. B 282"
+    },
+    {
+      "id": "mesoamerica",
+      "package": {
+        "en": "Squash, then maize and beans",
+        "de": "Kürbis, später Mais und Bohnen"
+      },
+      "source": "Smith 1997, Science 276",
+      "spreadBce": 4500,
+      "spreadNote": "Maize with large cobs and the full package of maize, beans and squash come together about 4500 BCE; Piperno et al. 2009, PNAS 106; Smith 1998"
+    },
+    {
+      "id": "andes",
+      "package": {
+        "en": "Squash, peanut, cotton, later potato and quinoa",
+        "de": "Kürbis, Erdnuss, Baumwolle, später Kartoffel und Quinoa"
+      },
+      "source": "Dillehay et al. 2007, Science 316",
+      "spreadBce": 3500,
+      "spreadNote": "Potato, quinoa and maize farming with settled villages spread from about 3500 BCE; Pearsall 2008; Dillehay et al. 2007, Science 316"
+    },
+    {
+      "id": "yellow-river",
+      "package": {
+        "en": "Broomcorn and foxtail millet, pig, dog",
+        "de": "Rispen- und Kolbenhirse, Schwein, Hund"
+      },
+      "source": "Lu et al. 2009, PNAS 106",
+      "spreadBce": 6300,
+      "spreadNote": "Millet farming spread from the Cishan and Peiligang villages about 6300 BCE; Lu et al. 2009, PNAS 106; Bellwood 2005"
+    },
+    {
+      "id": "new-guinea",
+      "package": {
+        "en": "Taro, yam, banana, sugarcane",
+        "de": "Taro, Yams, Banane, Zuckerrohr"
+      },
+      "source": "Denham et al. 2003, Science 301",
+      "spreadBce": 5000,
+      "spreadNote": "Banana, taro and yam farming of the highlands (Kuk, 8000 and 4000 BCE) fed the Lapita voyages only about 5000 BCE and later; Denham et al. 2003, Science 301"
+    },
+    {
+      "id": "yangtze",
+      "package": {
+        "en": "Rice, pig, dog",
+        "de": "Reis, Schwein, Hund"
+      },
+      "source": "Zuo et al. 2017, PNAS 114",
+      "spreadBce": 5200,
+      "spreadNote": "Rice became the main crop of the lower Yangtze about 5000 BCE (Hemudu); Fuller et al. 2009, Science 323"
+    },
+    {
+      "id": "south-asia-farming",
+      "package": {
+        "en": "Wheat, barley, cattle, sheep, goat",
+        "de": "Weizen, Gerste, Rind, Schaf, Ziege"
+      },
+      "source": "Jarrige et al. 1995; Fuller 2011, Rice 4",
+      "spreadBce": 6500,
+      "spreadNote": "The Mehrgarh village with wheat, barley and cattle grew into the base of the Indus farming wave about 6500 BCE; Jarrige 2008; Fuller 2011"
     }
   ],
   "waypoints": [
@@ -318,20 +784,6 @@
       "toleranceYears": 400
     },
     {
-      "id": "vinca",
-      "bce": 5700,
-      "lat": 44.76,
-      "lon": 20.62,
-      "en": "Vinča, Serbia",
-      "de": "Vinča, Serbien",
-      "package": {
-        "en": "Wheat, barley, pulses, cattle, sheep, goat, pig, pottery",
-        "de": "Weizen, Gerste, Hülsenfrüchte, Rind, Schaf, Ziege, Schwein, Keramik"
-      },
-      "source": "Borić 2015, Journal of World Prehistory 28; Pinhasi et al. 2005",
-      "toleranceYears": 250
-    },
-    {
       "id": "lbk-transdanubia",
       "bce": 5550,
       "lat": 47,
@@ -431,7 +883,8 @@
       },
       "source": "Dunne et al. 2012, Nature 486",
       "approximate": true,
-      "toleranceYears": 500
+      "toleranceYears": 500,
+      "herdingOnly": true
     },
     {
       "id": "nabta",
@@ -446,7 +899,8 @@
       },
       "source": "Wendorf & Schild 2001; Gifford-Gonzalez & Hanotte 2011 (herding debated)",
       "approximate": true,
-      "toleranceYears": 800
+      "toleranceYears": 800,
+      "herdingOnly": true
     },
     {
       "id": "cucuteni",
@@ -621,7 +1075,8 @@
       },
       "source": "Anthony 2007, The Horse, the Wheel and Language",
       "approximate": true,
-      "toleranceYears": 500
+      "toleranceYears": 500,
+      "herdingOnly": true
     },
     {
       "id": "koldihwa-lahuradewa",
@@ -651,7 +1106,8 @@
       },
       "source": "Fuller 2011, Rice 4; Fuller et al. 2007, Current Anthropology 48",
       "approximate": true,
-      "toleranceYears": 700
+      "toleranceYears": 700,
+      "herdingOnly": true
     },
     {
       "id": "houli",
@@ -1102,21 +1558,6 @@
       "toleranceYears": 300
     },
     {
-      "id": "cahokia",
-      "bce": -900,
-      "lat": 38.65,
-      "lon": -90.06,
-      "en": "Cahokia (Mississippian maize farming)",
-      "de": "Cahokia (Mississippi-Kultur, Maisanbau)",
-      "package": {
-        "en": "Maize, beans, squash",
-        "de": "Mais, Bohnen, Kürbis"
-      },
-      "source": "Fritz 2019, Archaeobotany of the Mississippian; Pauketat 2009",
-      "approximate": true,
-      "toleranceYears": 200
-    },
-    {
       "id": "caribbean",
       "bce": 400,
       "lat": 18.2,
@@ -1189,7 +1630,8 @@
       },
       "source": "Grillo et al. 2018, PNAS 115; Marshall et al. 2011",
       "approximate": true,
-      "toleranceYears": 500
+      "toleranceYears": 500,
+      "herdingOnly": true
     },
     {
       "id": "ethiopia",
@@ -1219,7 +1661,8 @@
       },
       "source": "Ambrose 1998, Journal of Archaeological Science 25; Lane 2013",
       "approximate": true,
-      "toleranceYears": 600
+      "toleranceYears": 600,
+      "herdingOnly": true
     },
     {
       "id": "bantu-cameroon",
