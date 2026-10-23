@@ -679,7 +679,7 @@ void main() {
   ink = max(ink, inkLine(clamp(iceInk, -30.0, 30.0), 0.0, 1.6));
   if (isWater && seaW > 0.0) ink = max(ink, inkLine(clamp(lat - packEdge, -1.0, 1.0), 0.0, 1.6));
 #ifndef SEA_SURFACE
-  if (!isWater && !hasIce) ink = max(ink, inkLine(riverF, riverThreshold, 1.4));
+  if (!isWater && !hasIce && !mouth) ink = max(ink, inkLine(riverF, riverThreshold, 1.4));
 #endif
   if (vSkirt > 0.5) ink = 0.0;
   colour = mix(colour, INK, ink * 0.85);
