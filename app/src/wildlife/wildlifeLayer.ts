@@ -81,6 +81,9 @@ const HIT_MIN_PX = 24;
 const SEPARATE_PASSES = 3;
 /** The steepest an animal leans with the ground, as a slope (about 15 degrees). */
 const MAX_TILT = 0.27;
+/** How far, in body lengths from the middle, the slope points and the nose, tail and flanks lie. */
+const SLOPE_REACH = 0.35;
+const END_REACH = 0.5;
 
 /**
  * Where an animal stands given the ground under its middle and a distance halfKm in front, behind,
@@ -97,6 +100,7 @@ export function standOnGround(
   left: number,
   halfKm: number,
   heightKm: number,
+  ends?: { front: number; back: number; right: number; left: number },
 ): { ground: number; along: number; across: number } {
   const mean = (front + back + right + left) / 4;
   let ground = middle + Math.min(Math.max(mean - middle, 0), heightKm * MAX_LIFT);
@@ -111,6 +115,18 @@ export function standOnGround(
       back - (ground - along * halfKm),
       right - (ground + across * halfKm),
       left - (ground - across * halfKm),
+    );
+    if (buried > 0) ground += Math.min(buried, heightKm * MAX_SLOPE_LIFT);
+  }
+  // Nose, tail and flanks reach further than the slope points: none may lie above its feet,
+  // even on gentle ground (the aurochs sank into the ground by a river, 2026-10-23).
+  if (ends) {
+    const reach = (halfKm * END_REACH) / SLOPE_REACH;
+    const buried = Math.max(
+      ends.front - (ground + along * reach),
+      ends.back - (ground - along * reach),
+      ends.right - (ground + across * reach),
+      ends.left - (ground - across * reach),
     );
     if (buried > 0) ground += Math.min(buried, heightKm * MAX_SLOPE_LIFT);
   }
@@ -242,7 +258,14 @@ export class WildlifeLayer {
     const back = this.groundAt(up, f, r, -halfKm, 0);
     const right = this.groundAt(up, f, r, 0, halfKm);
     const left = this.groundAt(up, f, r, 0, -halfKm);
-    return standOnGround(middle, front, back, right, left, halfKm, heightKm);
+    const k = END_REACH / SLOPE_REACH;
+    const ends = {
+      front: this.groundAt(up, f, r, halfKm * k, 0),
+      back: this.groundAt(up, f, r, -halfKm * k, 0),
+      right: this.groundAt(up, f, r, 0, halfKm * k),
+      left: this.groundAt(up, f, r, 0, -halfKm * k),
+    };
+    return standOnGround(middle, front, back, right, left, halfKm, heightKm, ends);
   }
 
   /**
@@ -477,7 +500,7 @@ export class WildlifeLayer {
       const level = a.liftKm > 0 || a.clip === 'swim';
       const { ground, along, across } = level
         ? { ground: this.surface.surfaceKm([up.x, up.y, up.z]), along: 0, across: 0 }
-        : this.slopeCached(a.key, up, f, reach * a.grow * 0.35, s.height * s.scale * a.grow);
+        : this.slopeCached(a.key, up, f, reach * a.grow * SLOPE_REACH, s.height * s.scale * a.grow);
       // Sea animals ride at the surface: their middle sits rise body heights above it.
       const swim = a.clip === 'swim' ? (a.rise - 0.5) * s.height * s.scale * a.grow : 0;
       this.pos.copy(up).multiplyScalar(EARTH_RADIUS_KM + ground + a.liftKm + swim);
