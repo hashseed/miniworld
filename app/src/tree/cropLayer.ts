@@ -21,6 +21,8 @@ const FIELD_TUFTS = 220;
 const SOIL_LIFT_KM = 22;
 /** Tufts are a little wider than their spacing, so the rows close up into a crop. */
 const TUFT_FILL = 3;
+/** A field's crop changes by one stage at most this often, in milliseconds of drawing. */
+const STAGE_HOLD_MS = 700;
 const THIN_KM = [1_500, 3_500, 6_000];
 
 interface Placed {
@@ -44,6 +46,8 @@ export class CropLayer {
   private geometries = new Map<string, THREE.BufferGeometry>();
   private placed = new Map<string, Placed>();
   private entries: Entry[] = [];
+  /** The stage each field shows now and since when (performance.now), for the rate limit. */
+  private held = new Map<string, { index: number; since: number }>();
   private built = '';
   private version = -1;
   private surface: SurfaceSource;
@@ -75,9 +79,27 @@ export class CropLayer {
       this.placed.set(key, placed);
     }
     // The nearest of the five named stages.
-    let best: number = STAGES[0];
-    for (const s of STAGES) if (Math.abs(s - stage) < Math.abs(best - stage)) best = s;
-    this.entries.push({ key, crop, stage: best, placed });
+    let want = 0;
+    STAGES.forEach((s, i) => {
+      if (Math.abs(s - stage) < Math.abs(STAGES[want]! - stage)) want = i;
+    });
+    // A field changes by one stage at a time, at most one in STAGE_HOLD_MS of drawing, so a clock
+    // running through years does not make the crop flicker (the first sight is as the date says).
+    const now = performance.now();
+    const held = this.held.get(key);
+    let shown = want;
+    if (held) {
+      shown = held.index;
+      if (want !== shown && now - held.since >= STAGE_HOLD_MS) {
+        shown += Math.sign(want - shown);
+        held.index = shown;
+        held.since = now;
+      }
+    } else {
+      if (this.held.size > 4_000) this.held.clear();
+      this.held.set(key, { index: want, since: now });
+    }
+    this.entries.push({ key, crop, stage: STAGES[shown]!, placed });
   }
 
   end(cameraKm: number, groundVersion: number): void {
@@ -112,6 +134,7 @@ export class CropLayer {
       if (g) g.push(x);
       else groups.set(k, [x]);
     }
+    const grow = Math.sqrt(step);
     for (const [k, mesh] of this.meshes) if (!groups.has(k)) mesh.count = 0;
     for (const [k, list] of groups) {
       let total = 0;
@@ -133,6 +156,8 @@ export class CropLayer {
       for (const x of list)
         for (let i = 0; i < x.placed.count; i += step) {
           out.set(x.placed.matrices.subarray(i * 16, i * 16 + 16), at * 16);
+          // Fewer tufts are drawn larger, so a thinned field still closes up into a crop.
+          if (grow !== 1) for (let c = 0; c < 12; c++) out[at * 16 + c] = out[at * 16 + c]! * grow;
           at++;
         }
       mesh.count = at;

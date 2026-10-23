@@ -10,7 +10,7 @@ import { dayAtMs, msAtDay } from '../time/rate.ts';
 import { astronomicalYear, dateFromDay, dayOfYearStart, type Day } from '../time/calendar.ts';
 import { cropStage } from '../tree/cropCalendar.ts';
 import { pointInPolygon, type Field } from '../tree/fieldShapes.ts';
-import { farmingProfileAt } from './farmingOnset.ts';
+import { farmingProfileAt, fieldToolOf } from './farmingOnset.ts';
 import { maskLand } from './fieldMask.ts';
 import { NEOLITHIC_PROFILES, type NeolithicProfileId } from './neolithicProfiles.ts';
 import { roleOf } from './roles.ts';
@@ -116,6 +116,11 @@ const FARM_WORK_SHARE = 0.6;
 /** A pen is drawn at this share of its model's ten metres; the herd's animals raise their heads this often. */
 const PEN_SCALE = 0.4;
 const HERD_LOOK_MS = 6_000;
+/**
+ * The village herd is drawn at this share of life size, in step with the storybook houses and
+ * pens (Yang, 2026-10-23): a goat or sheep stands knee-high to a person, cattle waist-high.
+ */
+export const HERD_SCALE = 0.6;
 const KNAP_POINT_MS = Math.round(10_800 / TEMPO);
 const BIND_POINT_MS = Math.round(7200 / TEMPO);
 const BUTCHER_MEAT_MS = Math.round(7200 / TEMPO);
@@ -408,6 +413,11 @@ export const CAMP_CLEARING_KM = (LODGING_RING_M + 6) * LAYOUT_KM_PER_M;
  * (wildlife.md section 4): the lodgings' ring, a lodging's width and a margin.
  */
 export const CAMP_KEEP_OUT_KM = (LODGING_RING_M + 8) * LAYOUT_KM_PER_M;
+/**
+ * The same around a Neolithic village, whose fields, pen and herd reach about 50 layout metres
+ * from the hearth (section 8.5); wild animals stay out of that too.
+ */
+export const VILLAGE_KEEP_OUT_KM = 50 * LAYOUT_KM_PER_M;
 /** Moves shorter than this are within the camp and not walked. */
 const SAME_PLACE_KM = 1;
 const KM_PER_DEG = 111.195;
@@ -475,6 +485,8 @@ export interface FigurePose extends Placed {
   from?: { clip: TreeClip; clipMs: number; weight: number };
   /** The hand is empty: the figure's spear is in the air, in the prey or in the grass. */
   unarmed?: boolean;
+  /** The tool its hand holds at the field or the work spot instead of the culture's own (section 8.5). */
+  tool?: string;
   /** Inside its hut, out of sight (section 8.1). */
   hidden?: boolean;
   /** The culture whose clothes it wears (peopling.md section 5.3); the founder's when not given. */
@@ -496,6 +508,8 @@ export interface PreyPose extends Placed {
   clipMs: number;
   /** 0 to 1, fading in and out. */
   visibility: number;
+  /** Drawn at this share of life size (the village herd, section 8.5); 1 when left out. */
+  scale?: number;
 }
 
 export interface LodgingPose extends Placed {
@@ -503,6 +517,8 @@ export interface LodgingPose extends Placed {
   kind: string;
   /** 0 to 1: how far it is put up, while the band builds it or takes it down. */
   built: number;
+  /** The share of the full camp's ring its camp's ring is: a lodging is at most that share of LODGING_MAX_M across (section 8.5), so five never touch. */
+  room?: number;
 }
 
 /** A field of a Neolithic camp (section 8.5): its outline in layout metres off the camp's place, and how far its crop has grown. */
@@ -1128,6 +1144,24 @@ export function gapDirection(camp: number, gap: number): Pt {
   return { x: detCos(a), z: detSin(a) };
 }
 
+/**
+ * Whether a layout point lies in one of a camp's outing lanes (the five gaps between its
+ * lodgings and the lanes of the people's outings in them, section 8.1): the fields of a
+ * village keep clear of them so no outing crosses a crop.
+ */
+export function inOutingLane(camp: number, x: number, z: number): boolean {
+  const r = Math.sqrt(x * x + z * z);
+  if (r < 1) return false;
+  const half = 0.17 + 2.5 / r;
+  const a = detAtan2(z, x) / (2 * Math.PI) - campTurn(camp);
+  for (let g = 0; g < LODGING_SLOTS; g++) {
+    let d = a - (g + 0.5) / LODGING_SLOTS;
+    d -= Math.round(d);
+    if (Math.abs(d) * 2 * Math.PI < half) return true;
+  }
+  return false;
+}
+
 /** A figure's own spot at the hearth of a camp, in layout metres: the inner ring first, then the outer. */
 export function figureSpot(spot: number, camp: number): Pt {
   const inner = spot < INNER_SPOTS;
@@ -1567,6 +1601,8 @@ const MILKED = new Set([
   'animal-water-buffalo',
 ]);
 const HERD_FIELD_CLEAR_M = 1.5;
+/** The trees keep this far off a field's farthest corner (layout metres). */
+const FIELD_TREE_MARGIN_M = 2.5;
 
 /** The camp's fields and herd, from its lodgings (section 8.5); null where it has neither. */
 function buildVillage(chunk: TreeChunk, camp: number): Village | null {
@@ -1578,14 +1614,21 @@ function buildVillage(chunk: TreeChunk, camp: number): Village | null {
   const profile = farm && isProfile(farm.culture) ? farm.culture : undefined;
   const lodgings = own.filter((l) => isProfile(l.culture) && l.fieldLand).length;
   const fields = farm
-    ? fieldsOf(camp, first.lat, lodgings, NEOLITHIC_PROFILES[profile!].crops, farm.fieldLand!)
+    ? fieldsOf(
+        camp,
+        first.lat,
+        lodgings,
+        NEOLITHIC_PROFILES[profile!].crops,
+        farm.fieldLand!,
+        (x, z) => inOutingLane(camp, x, z),
+      )
     : [];
   const kinds =
     NEOLITHIC_PROFILES[
       profile ?? farmingProfileAt(deg(first.lat), deg(first.lon)) ?? 'pre-pottery-neolithic-levant'
     ].herd;
   const free = (x: number, z: number) =>
-    (!farm || maskLand(farm.fieldLand!, x, z)) &&
+    (!farm || (maskLand(farm.fieldLand!, x, z) && !inOutingLane(camp, x, z))) &&
     !fields.some(
       (f) =>
         pointInPolygon(f.outline, x, z) ||
@@ -1812,7 +1855,15 @@ export function treeScene(
         lon,
         x: field.centre.x,
         z: field.centre.z,
-        km: Math.sqrt(field.area / Math.PI) * 1.2 * LAYOUT_KM_PER_M,
+        // Round the field's farthest corner, with a margin: a long field is no circle.
+        km:
+          (Math.max(
+            ...field.outline.map((p) =>
+              Math.sqrt((p.x - field.centre.x) ** 2 + (p.z - field.centre.z) ** 2),
+            ),
+          ) +
+            FIELD_TREE_MARGIN_M) *
+          LAYOUT_KM_PER_M,
         amount: 1,
         felling: false,
       });
@@ -1843,6 +1894,7 @@ export function treeScene(
         clip: Math.floor((now + a.phase) / HERD_LOOK_MS + i) % 3 === 0 ? 'idle' : 'graze',
         clipMs: now + a.phase,
         visibility: 1,
+        scale: HERD_SCALE,
       });
     });
   };
@@ -1867,6 +1919,7 @@ export function treeScene(
     scene.lodgings.push({
       id: l.id,
       kind: l.kind,
+      room: ringOf(l.camp) / LODGING_RING_M,
       lat: deg(l.lat),
       lon: deg(l.lon),
       ...spot,
@@ -4100,6 +4153,7 @@ export function treeScene(
     const plan = new Itinerary(st.plan.t, st.plan.at, st.home.camp);
     plan.legs.push(...st.plan.legs);
     let unarmed = false;
+    let hunt0 = false;
     let event: CampEvent | undefined;
     if (ms >= st.busy && st.takes) {
       plan.stay(Math.max(st.free, st.busy), 'rest').go(st.takeSpot).stay(st.leave, 'work', st.hut);
@@ -4118,6 +4172,7 @@ export function treeScene(
         plan.stay(hunt.start, 'rest');
         plan.legs.push(...hunt.legs.get(f.id)!);
         plan.t = hunt.end;
+        hunt0 = true;
         if (hunt.hunter === f.id)
           unarmed = !hunt.bow && hunt.flights.some((fl) => ms >= fl.release && ms < fl.pulled);
       }
@@ -4185,6 +4240,12 @@ export function treeScene(
     const pose: FigurePose = { ...base, x: p.x, z: p.z, ...face, ...motion };
     if (leg.clip === 'inside') pose.hidden = true;
     if (unarmed) pose.unarmed = true;
+    // A farm outing's tool is in the hand from the walk out to the walk back (section 8.5).
+    if (!event && !hunt0) {
+      const held = outingTool(plan.legs, n, tillTool(home.culture));
+      if (held === 'milk') pose.unarmed = true;
+      else if (held) pose.tool = held;
+    }
     if (event) withHost(pose, event, f.id, ms);
     if (
       before &&
@@ -4212,6 +4273,43 @@ export function treeScene(
     }
     return pose;
   }
+}
+
+/** The tool each farm clip holds (neolithic/person-clips.md); milking holds none. */
+const CLIP_TOOL: Partial<Record<Leg['clip'], string>> = {
+  till: 'hoe',
+  sow: 'basket',
+  reap: 'sickle',
+  thresh: 'crook',
+  grind: 'grinding-stone',
+  shape: 'pot',
+  spin: 'spindle',
+  milk: 'milk',
+};
+
+/**
+ * The tool of the farm work in the trip the leg `n` belongs to (the legs between two rests),
+ * found ahead first, so it is in the hand on the walk out and no tool pops in at the field;
+ * 'milk' says the hand is empty. Undefined where the trip has no farm work.
+ */
+function outingTool(legs: Leg[], n: number, till: string): string | undefined {
+  const toolOf = (clip: Leg['clip']) => (clip === 'till' ? till : CLIP_TOOL[clip]);
+  for (let i = n; i < legs.length && legs[i]!.clip !== 'rest'; i++) {
+    const t = toolOf(legs[i]!.clip);
+    if (t) return t;
+  }
+  for (let i = n - 1; i >= 0 && legs[i]!.clip !== 'rest'; i--) {
+    const t = toolOf(legs[i]!.clip);
+    if (t) return t;
+  }
+  return undefined;
+}
+
+/** What tilling holds: the digging stick where the profile has no hoe (farmingOnset.ts), else the hoe. */
+function tillTool(culture: string | undefined): string {
+  return isProfile(culture) && fieldToolOf(culture, 0) === 'digging-stick'
+    ? 'digging-stick'
+    : 'hoe';
 }
 
 /** A camp event (section 8.1): children's catch or a dance round the fire. */

@@ -212,6 +212,7 @@ export function treeFigureBatch(
   look: 'founder' | 'woman' | 'man' | 'child',
   id: number,
   profile: Profile = 'african-stone-age',
+  tool?: string,
 ): TreeBatch | undefined {
   const asset = look === 'founder' ? 'figure-first-person' : `figure-${profile}-${look}`;
   if (!drawable.has(asset)) return undefined;
@@ -223,8 +224,11 @@ export function treeFigureBatch(
     };
   const variant = (id % 997) % LOOK_VARIANTS;
   return {
-    key: `${profile}:${look}:${variant}`,
-    build: () => turned(buildPerson({ profile, kind: look, variant })),
+    key: tool ? `${profile}:${look}:${variant}:${tool}` : `${profile}:${look}:${variant}`,
+    build: () =>
+      turned(
+        buildPerson({ profile, kind: look, variant, ...(tool ? { tool: tool as Tool } : {}) }),
+      ),
   };
 }
 const LOOK_VARIANTS = 12;

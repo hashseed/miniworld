@@ -14,7 +14,7 @@ import { ClipBatches } from '../tree/clipBatches.ts';
 import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 import { latLonToDir, type Vec3 } from '../geo/cube.ts';
 import { msAtDay } from '../time/rate.ts';
-import { CAMP_KEEP_OUT_KM } from '../world/treeScene.ts';
+import { VILLAGE_KEEP_OUT_KM } from '../world/treeScene.ts';
 import { NEVER } from '../world/tree.ts';
 import {
   decodeWildMask,
@@ -215,7 +215,7 @@ export class WildlifeLayer {
       to: to === NEVER ? Infinity : msAtDay(to, startDay) / 1000,
     }));
     this.keepOutList = WILD_GROUPS.map((g, i) =>
-      keepOutsOf(g, camps, CAMP_KEEP_OUT_KM / widths[i]!),
+      keepOutsOf(g, camps, VILLAGE_KEEP_OUT_KM / widths[i]!),
     );
     this.keepOutKey = key;
     return this.keepOutList;

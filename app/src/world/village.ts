@@ -18,6 +18,8 @@ export function fieldsOf(
   lodgings: number,
   crops: readonly string[],
   mask: string,
+  /** Layout points the fields keep clear of (the camp's outing lanes), in layout metres. */
+  blocked: (x: number, z: number) => boolean = () => false,
 ): Field[] {
   const s = FIELD_FRAME_SCALE;
   const fields = layoutFields({
@@ -26,7 +28,7 @@ export function fieldsOf(
     ringRadius: MASK_R0 / s,
     crops,
     isLand: (x, z) => maskLand(mask, x * s, z * s),
-    isBlocked: () => false,
+    isBlocked: (x, z) => blocked(x * s, z * s),
     want: Math.min(10, 2 + FIELDS_PER_LODGING * lodgings),
   });
   return fields.map((f) => ({

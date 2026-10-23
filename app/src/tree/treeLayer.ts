@@ -267,15 +267,16 @@ export class TreeLayer {
   /** The hunted animals of the camps, likewise (clipBatches.ts). */
   private preyClips = new ClipBatches(animateAnimal, animalLoop);
   private scratch = new THREE.Object3D();
-  private fitOf(batch: TreeBatch): number {
-    let fit = this.fits.get(batch.key);
+  private fitOf(batch: TreeBatch, room = 1): number {
+    const key = `${batch.key}@${room.toFixed(2)}`;
+    let fit = this.fits.get(key);
     if (fit === undefined) {
       // Measured on a model of its own, upright at the origin, as built.
       const object = batch.build().object;
       object.updateMatrixWorld(true);
       const size = new THREE.Box3().setFromObject(object).getSize(new THREE.Vector3());
-      fit = Math.min(1, LODGING_MAX_M / Math.max(size.x, size.z, 1e-6));
-      this.fits.set(batch.key, fit);
+      fit = Math.min(1, (LODGING_MAX_M * room) / Math.max(size.x, size.z, 1e-6));
+      this.fits.set(key, fit);
     }
     return fit;
   }
@@ -388,7 +389,7 @@ export class TreeLayer {
       // (clipBatches.ts).
       const profile0 = (f.profile ?? 'african-stone-age') as Profile;
       // A soul is drawn on its own, see-through, never in a batch (humankind.md section 8.2).
-      const batch = f.soul ? undefined : treeFigureBatch(f.look, f.id, profile0);
+      const batch = f.soul ? undefined : treeFigureBatch(f.look, f.id, profile0, f.tool);
       if (batch) {
         const at = this.scratch;
         if (!this.place(at, f, false) || f.hidden) continue;
@@ -561,8 +562,8 @@ export class TreeLayer {
           const [back, front] = this.poleEnds(p);
           at.position.copy(this.dir).multiplyScalar(EARTH_RADIUS_KM + (back + front) / 2);
         }
-        this.block(at, PREY_HALF_M);
-        at.scale.setScalar(FIGURE_KM_PER_M);
+        this.block(at, PREY_HALF_M * (p.scale ?? 1));
+        at.scale.setScalar(FIGURE_KM_PER_M * (p.scale ?? 1));
         at.updateMatrix();
         this.preyClips.add(batch.key, batch.build, at.matrix, {
           clip: p.clip,
@@ -578,7 +579,7 @@ export class TreeLayer {
       // jumping aside the moment it appears (wildlife.md section 5).
       this.block(animal.root, PREY_HALF_M * p.visibility);
       animal.setFade?.(p.visibility);
-      animal.root.scale.setScalar(FIGURE_KM_PER_M);
+      animal.root.scale.setScalar(FIGURE_KM_PER_M * (p.scale ?? 1));
       animal.pose(p.clip, (p.clipMs * TEMPO) / 1000);
     }
     this.prune(this.prey, fading);
@@ -588,7 +589,7 @@ export class TreeLayer {
       if (!batch || !this.place(at, l, false)) continue;
       this.block(at, LODGING_HALF_M);
       // Every lodging fits the camp's layout, at most LODGING_MAX_M across (humankind.md section 8.1).
-      const km = FIGURE_KM_PER_M * this.fitOf(batch);
+      const km = FIGURE_KM_PER_M * this.fitOf(batch, l.room);
       // While the band builds it, the lodging goes up step by step, or rises whole.
       if (this.stepped(batch)) {
         at.scale.setScalar(km);

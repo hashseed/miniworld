@@ -712,9 +712,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         `tree of humankind: band ${camp.id} has no dry place at site ${site.id} on day ${day}`,
       );
     const sea = seaMax(day, ahead(day));
-    const fieldLand =
-      culture && site.key < COMPACT_SITE ? fieldMaskOf(culture, site, sea) : undefined;
-    const herding = site.key < COMPACT_SITE && !!s.herding?.(culture, site.lat, site.lon, day);
+    const fieldLand = culture ? fieldMaskOf(culture, site, sea) : undefined;
+    const herding = !!s.herding?.(culture, site.lat, site.lon, day);
     const l: TreeLodging = {
       id: tree.lodgings.length,
       camp: site.key,
