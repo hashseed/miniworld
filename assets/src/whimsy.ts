@@ -39,8 +39,8 @@ export function whimsy(model: Model, w: Whimsy): Model {
       box.expandByPoint(new THREE.Vector3(p.getX(i), p.getY(i), p.getZ(i)).add(pivot));
   });
   const height = box.max.y - box.min.y;
-  const lo = box.min.y + height * w.eave * 0.6;
-  const hi = box.min.y + height * Math.min(1, w.eave * 1.25);
+  const lo = box.min.y + height * w.eave * 0.85;
+  const hi = box.min.y + height * Math.min(1, w.eave * 1.1);
   const scaleAt = (y: number) => w.base + (w.roof - w.base) * smooth(lo, hi, y);
   const warp = (v: THREE.Vector3) => {
     const s = scaleAt(v.y);
@@ -86,29 +86,41 @@ export function whimsy(model: Model, w: Whimsy): Model {
 /** One look per house: small, with a roof bigger than the base. */
 export const WHIMSY: Record<string, Whimsy> = {
   'shelter-pre-pottery-levant-house': {
-    footprint: 2.2,
+    footprint: 3.0,
     eave: 0.8,
     base: 0.85,
     roof: 1.2,
     tall: 1.2,
   },
-  'shelter-anatolian-house': { footprint: 2.2, eave: 0.85, base: 0.85, roof: 1.2, tall: 1.2 },
+  'shelter-anatolian-house': { footprint: 3.0, eave: 0.85, base: 0.92, roof: 1.08, tall: 1.2 },
   'shelter-anatolian-house-joined': {
-    footprint: 3.0,
+    footprint: 4.0,
     eave: 0.85,
-    base: 0.85,
-    roof: 1.2,
+    base: 0.92,
+    roof: 1.08,
     tall: 1.2,
   },
-  'shelter-lbk-longhouse': { footprint: 4.2, eave: 0.55, base: 0.75, roof: 1.2, tall: 1.4 },
-  'shelter-mehrgarh-house': { footprint: 2.2, eave: 0.8, base: 0.85, roof: 1.2, tall: 1.2 },
-  'shelter-egyptian-neolithic-hut': { footprint: 2.2, eave: 0.5, base: 0.8, roof: 1.2, tall: 1.5 },
-  'shelter-yangtze-stilt-house': { footprint: 3.0, eave: 0.55, base: 0.75, roof: 1.25, tall: 1.1 },
-  'shelter-yellow-river-pit-house': { footprint: 2.4, eave: 0.4, base: 0.8, roof: 1.2, tall: 1.2 },
-  'shelter-mesoamerican-hut': { footprint: 2.2, eave: 0.55, base: 0.8, roof: 1.2, tall: 1.2 },
-  'shelter-andean-stone-house': { footprint: 2.2, eave: 0.55, base: 0.8, roof: 1.2, tall: 1.2 },
+  'shelter-lbk-longhouse': { footprint: 5.4, eave: 0.55, base: 0.92, roof: 1.08, tall: 1.4 },
+  'shelter-mehrgarh-house': { footprint: 3.0, eave: 0.8, base: 0.92, roof: 1.08, tall: 1.2 },
+  'shelter-egyptian-neolithic-hut': {
+    footprint: 3.0,
+    eave: 0.5,
+    base: 0.92,
+    roof: 1.08,
+    tall: 1.5,
+  },
+  'shelter-yangtze-stilt-house': { footprint: 3.6, eave: 0.55, base: 0.92, roof: 1.08, tall: 1.1 },
+  'shelter-yellow-river-pit-house': {
+    footprint: 3.2,
+    eave: 0.4,
+    base: 0.92,
+    roof: 1.08,
+    tall: 1.2,
+  },
+  'shelter-mesoamerican-hut': { footprint: 3.0, eave: 0.55, base: 0.92, roof: 1.08, tall: 1.2 },
+  'shelter-andean-stone-house': { footprint: 3.0, eave: 0.55, base: 0.92, roof: 1.08, tall: 1.2 },
   'shelter-highland-new-guinea-house': {
-    footprint: 2.4,
+    footprint: 3.2,
     eave: 0.45,
     base: 0.7,
     roof: 1.25,

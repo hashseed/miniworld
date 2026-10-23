@@ -43,12 +43,12 @@ export interface FieldInput {
 
 export const MAX_FIELDS = 10;
 /** Distance every outline keeps from anything blocked, from the ring and from the water. */
-export const FIELD_MARGIN_M = 0.12;
-const REACH_M = 4.5;
-const SITE_SPACING_M = 1.8;
-const CAP_RADIUS_M = 1.0;
+export const FIELD_MARGIN_M = 0.08;
+const REACH_M = 3.2;
+const SITE_SPACING_M = 1.1;
+const CAP_RADIUS_M = 0.62;
 const PATH_INSET_M = 0.09;
-const MIN_AREA_M2 = 0.45;
+const MIN_AREA_M2 = 0.16;
 const CAP_SIDES = 24;
 const TAU = 6.283185307179586;
 
@@ -214,7 +214,7 @@ export function layoutFields(input: FieldInput): Field[] {
   // Candidate sites on a hashed, jittered spiral, nearest first with noise.
   const candidates: { x: number; z: number; score: number }[] = [];
   const step = 0.3;
-  for (let r = inner + 0.7, ring = 0; r < ringRadius + REACH_M; r += step, ring++) {
+  for (let r = inner + 0.45, ring = 0; r < ringRadius + REACH_M; r += step, ring++) {
     const count = Math.max(6, Math.floor((TAU * r) / step));
     for (let i = 0; i < count; i++) {
       const jr = hash01(seed, ring, i, 1) - 0.5;
@@ -232,7 +232,7 @@ export function layoutFields(input: FieldInput): Field[] {
     let ok = 0;
     for (let k = 0; k < 8; k++) {
       const t = (k / 8) * TAU;
-      if (clear(x + 0.7 * detCos(t), z + 0.7 * detSin(t))) ok++;
+      if (clear(x + 0.45 * detCos(t), z + 0.45 * detSin(t))) ok++;
     }
     return ok >= 6;
   };
