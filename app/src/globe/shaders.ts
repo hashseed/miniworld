@@ -614,6 +614,9 @@ void main() {
   if (isWater && seaW > 0.0 && !inMouth) discard;
 #endif
 #ifdef SEA_SURFACE
+  // The flat sea draws only where the ocean is: just inside the coast the terrain is the land, and
+  // the sea would otherwise paint dashes of land colour along it.
+  if (seaW <= 0.0 && !hasIce) discard;
   // Rivers are the terrain's; the flat sea never draws river channels or banks, whatever the
   // river field holds at a river mouth.
   bool isRiver = false;
