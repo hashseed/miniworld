@@ -467,7 +467,9 @@
       "kind": "prop",
       "generated": "Modelling script",
       "status": "approved",
-      "note": "The sign put up before an event of the events dialog, a blue information sign (white \"i\") on an oak post (humankind.md section 8.4; Yang, issue 148); approved by Yang 2026-10-23"
+      "geometry": "ddc32d80f0f72666",
+      "note": "The sign put up before an event of the events dialog, a blue information sign (white \"i\") on an oak post (humankind.md section 8.4; Yang, issue 148); approved by Yang 2026-10-23",
+      "reviewed": "2026-10-23"
     },
     {
       "id": "prop-burial",
@@ -475,7 +477,9 @@
       "kind": "prop",
       "generated": "Modelling script",
       "status": "approved",
-      "note": "A grave dug into a heap of earth in four steps: trench, wrapped body with ivory beads and spears, closed with earth and ochre, grass grown over (humankind.md section 8.2); approved by Yang 2026-10-23"
+      "geometry": "32dc89e572a73e9f",
+      "note": "A grave dug into a heap of earth in four steps: trench, wrapped body with ivory beads and spears, closed with earth and ochre, grass grown over (humankind.md section 8.2); approved by Yang 2026-10-23",
+      "reviewed": "2026-10-23"
     },
     {
       "id": "prop-gobekli-ring",
