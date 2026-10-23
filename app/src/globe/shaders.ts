@@ -343,8 +343,6 @@ void main() {
 `;
 
 export const terrainFragment = /* glsl */ `
-// Share of the river threshold below which the field is no river, even at a mouth.
-const float RIVER_MOUTH = 0.3;
 #include <common>
 #include <logdepthbuf_pars_fragment>
 
@@ -605,13 +603,6 @@ void main() {
   float lakeW = (lakeF - 0.5) * 80.0;
   float water = seaW > 0.0 ? seaW : lakeF > 0.5 ? lakeW : max(seaW, lakeW);
   bool isWater = water > 0.0 && !hasIce;
-  float riverNear = riverF;
-  if (abs(seaW) < 8.0) {
-    vec2 d = 2.0 / FIELD_SIZE * vec2(1.0, 0.0);
-    riverNear = max(max(waterFields(vFieldUv + d.xy).z, waterFields(vFieldUv - d.xy).z),
-      max(waterFields(vFieldUv + d.yx).z, waterFields(vFieldUv - d.yx).z));
-    riverNear = max(riverNear, riverF);
-  }
 #ifndef SEA_SURFACE
   // The sea is the flat sea surface's (section 4.4); the terrain leaves it out.
   if (isWater && seaW > 0.0) discard;
@@ -621,10 +612,7 @@ void main() {
   // river field holds at a river mouth.
   bool isRiver = false;
 #else
-  // The river field fades out right at the sea; the last few pixels of a river mouth stay river,
-  // so no hairline of bank or sand parts the river from the sea.
-  bool mouth = riverNear > riverThreshold * RIVER_MOUTH && seaW > -max(fwidth(seaW), 1e-4) * 3.0;
-  bool isRiver = !isWater && !hasIce && (riverF > riverThreshold || mouth);
+  bool isRiver = !isWater && !hasIce && riverF > riverThreshold;
 #endif
   bool isPack = isWater && seaW > 0.0 && lat > packEdge;
   if (isPack) {
@@ -673,7 +661,7 @@ void main() {
   // inland sea's lake part meets its sea part (the Black Sea's shelf at low sea levels) no
   // line is drawn across the water, only at the shore.
   float shoreW = lakeF > 0.5 ? max(seaW, lakeW) : water;
-  if (riverNear < riverThreshold * RIVER_MOUTH && !hasIce) ink = max(ink, inkLine(clamp(shoreW, -30.0, 30.0), 0.0, 1.6));
+  if (riverF < riverThreshold && !hasIce) ink = max(ink, inkLine(clamp(shoreW, -30.0, 30.0), 0.0, 1.6));
   // Pack ice and the ice sheets read as one ice: no line where they meet.
   float iceInk = seaW > 0.0 ? max(iceKm, packKm) : iceKm;
   ink = max(ink, inkLine(clamp(iceInk, -30.0, 30.0), 0.0, 1.6));
