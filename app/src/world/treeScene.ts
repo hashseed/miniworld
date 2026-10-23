@@ -269,6 +269,13 @@ const DROP_M = 14;
 /** It lies there this long before it fades away. */
 const DROP_LINGER_MS = Math.round(40_000 / TEMPO);
 /** Trees make way this far round points of a hunt's lane, in drawn kilometres. */
+/** How far the trees keep from a scene's middle, in layout metres at a full camp. */
+const STAGE_CLEARING_M: Record<TreeStage['kind'], number> = {
+  'cave-painting': 14,
+  burial: 8,
+  monument: 20,
+  'bone-hut': 16,
+};
 const HUNT_CLEARING_KM = 8 * LAYOUT_KM_PER_M;
 /**
  * The hunted animal and one or two of its herd walk in from the treeline at the far end of
@@ -1815,6 +1822,16 @@ export function treeScene(
         ? { lit: sessions.some((q) => ms >= q.begin - 1500 && ms < q.stop) }
         : {}),
     });
+    // The trees make way for the scene, so none stands in a wall, hut or grave (issues 171, 173).
+    scene.clearings.push({
+      lat: deg(stage.lat),
+      lon: deg(stage.lon),
+      x: prop.x,
+      z: prop.z,
+      km: STAGE_CLEARING_M[stage.kind] * stageScale(stage.camp) * LAYOUT_KM_PER_M,
+      amount: Math.min(1, rise * 2),
+      felling: false,
+    });
   }
   // In place order, so a time window's chunk gives the same scene as the whole tree.
   scene.clearings.sort((a, b) => a.lat - b.lat || a.lon - b.lon || a.amount - b.amount);
@@ -2733,7 +2750,11 @@ export function treeScene(
     // After a hunt that brought its kill home, the hunter roasts it on the spit, unless an
     // earlier kill holds the fire (Yang, 2026-10-20). Whether a turn hunts never depends on
     // this (`plain`), so working it out does not reach back through every earlier turn.
-    const planned = forcedHunt(st, k) ? 'hunt' : outingOf(st.f.id, st.look, k);
+    const planned = forcedHunt(st, k)
+      ? 'hunt'
+      : huntHeld(st, turnStart)
+        ? 'rest'
+        : outingOf(st.f.id, st.look, k);
     const own = !plain && planned !== 'hunt' ? huntOf(st, k - 1) : undefined;
     const roast = !!own && own.pole && killAt(st, turnStart) === own;
     const outing = roast ? 'cook' : planned;
@@ -2911,6 +2932,28 @@ export function treeScene(
       if (f && f.hunter.f.id === st.f.id && f.turn === k) return f;
     }
     return undefined;
+  }
+
+  /** Whether a bone hut's mammoth hunt is held at the camp around a turn start, which keeps the others home so they are free to help (issue 173). */
+  function huntHeld(st: Stay, turnStart: number): boolean {
+    for (const stage of chunk.stages ?? []) {
+      if (
+        stage.kind !== 'bone-hut' ||
+        stage.camp !== st.home.camp ||
+        stage.lat !== st.home.lat ||
+        stage.lon !== st.home.lon
+      )
+        continue;
+      const hunts = stageHunts(stage, startDay);
+      for (let r = 0; r < hunts.length; r++)
+        if (
+          turnStart >= hunts[r]!.start - TURN_MS &&
+          turnStart < hunts[r]!.start + TURN_MS &&
+          forcedRound(stage, r)
+        )
+          return true;
+    }
+    return false;
   }
 
   /** The hunt of a bone hut's round: led by the first grown-up of its camp free for the whole turn that starts in the hunt's window. */

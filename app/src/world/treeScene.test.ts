@@ -13,6 +13,7 @@ import {
   MONUMENT_BUILD_SESSIONS,
   MONUMENT_DANCE_SESSIONS,
   MONUMENT_SINK_DAYS,
+  stageHunts,
   stageSessions,
   POLE_ON_SHOULDERS_M,
   TAKE_DOWN_MS,
@@ -778,6 +779,45 @@ describe('the tree scene', () => {
       expect(Math.abs(mix - last)).toBeLessThan(0.5);
       last = mix;
     }
+  });
+
+  it('hunts a mammoth before the bone hut is raised (issue 173)', () => {
+    const figure = (id: number) => ({
+      id,
+      parent: id === 0 ? NEVER : 0,
+      born: d0 - 30 * 365,
+      branch: 0,
+      depth: id === 0 ? 0 : 1,
+      homes: [[d0, 0, id]] as [number, number, number][],
+      lost: NEVER,
+    });
+    const stage = {
+      id: 'mezhyrich',
+      kind: 'bone-hut' as const,
+      prop: 'prop-bone-hut',
+      camp: 2,
+      lat: 0,
+      lon: 36_000_000,
+      slot: 2,
+      beyond: 15,
+      shown: bce(16000),
+      from: bce(16000),
+      until: bce(15000),
+      keep: bce(14900),
+    };
+    const world: TreeChunk = {
+      ...chunk,
+      figures: Array.from({ length: 6 }, (_, i) => figure(i)),
+      lodgings: [{ ...chunk.lodgings[0]!, camp: 2, gone: NEVER, culture: 'ice-age-hunter' }],
+      stages: [stage],
+    };
+    const first = stageHunts(stage, d0)[0]!;
+    const hunted = [];
+    for (let t = first.start; t < first.start + 120_000; t += 500)
+      if (treeScene(world, t, d0).prey.some((p) => p.kind.includes('mammoth'))) hunted.push(t);
+    expect(hunted.length).toBeGreaterThan(0);
+    const hut = stageSessions(stage, d0)[1]!;
+    expect(hunted[0]).toBeLessThan(hut.begin);
   });
 
   it('is the same at the same clock time', () => {
