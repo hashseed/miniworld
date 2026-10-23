@@ -10,6 +10,10 @@ import { ICE_DISTANCE_STEP_KM, ICE_DISTANCE_ZERO, TERRAIN_SAMPLES } from '../con
 import {
   COAST_BEACH_KM,
   COAST_CURVE,
+  COAST_DIP_M,
+  COAST_TAPER,
+  COAST_TAPER_FREE_M,
+  COAST_TAPER_KM,
   COAST_SLOPE,
   ICE_DOME_KM,
   ICE_DOME_M,
@@ -168,6 +172,10 @@ const float ICE_DOME_M = ${f(ICE_DOME_M)};
 const float ICE_DOME_KM = ${f(ICE_DOME_KM)};
 const float ICE_HIDE_KM = ${f(ICE_HIDE_KM)};
 const float COAST_BEACH_KM = ${f(COAST_BEACH_KM)};
+const float COAST_TAPER = ${f(COAST_TAPER)};
+const float COAST_TAPER_FREE_M = ${f(COAST_TAPER_FREE_M)};
+const float COAST_TAPER_KM = ${f(COAST_TAPER_KM)};
+const float COAST_DIP_M = ${f(COAST_DIP_M)};
 const float COAST_SLOPE = ${f(COAST_SLOPE)}; // m per km at the coast
 const float COAST_CURVE = ${f(COAST_CURVE)}; // extra m per km²
 // Spacing (km) of the climate samples that give the ice surface its slope.
@@ -214,7 +222,9 @@ void main() {
   if (sea) {
     // The terrain's sea is left out; the flat sea surface lies just below
     // (section 4.4), so coast triangles never dip under it on the land side.
-    surface = seaLevel;
+    // It dips below the sea in step with the ocean field, so the terrain's edge crosses the sea
+    // exactly where the field does and the coast line stays smooth.
+    surface = seaLevel - min(COAST_TAPER * seaWater, COAST_DIP_M);
     grad = vec3(0.0);
   } else if (!isLake) {
     // The smoothed coast can leave sea floor on the land side.
@@ -233,6 +243,7 @@ void main() {
     float q4 = q * q * q * q;
     float k = inversesqrt(sqrt(1.0 + q4)); // (1 + q^4)^(-1/4)
     surface = seaLevel + rise * k;
+    if (!isLake) surface = min(surface, seaLevel + COAST_TAPER * (oceanLevel - seaLevel) + COAST_TAPER_FREE_M * max(extra.w * 255.0 - COAST_TAPER_KM, 0.0));
     float k5 = k * k * k * k * k; // (1 + q^4)^(-5/4)
     float capSlope = d > 0.0 ? COAST_SLOPE + 2.0 * COAST_CURVE * d : 0.0;
     grad = grad * k5 + coastGrad * (q4 * q * k5 * capSlope);
