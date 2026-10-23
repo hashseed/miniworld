@@ -343,6 +343,8 @@ void main() {
 `;
 
 export const terrainFragment = /* glsl */ `
+// How far a river runs on over the sea past the coast line, in metres of ocean level.
+const float RIVER_OUT = 6.0;
 #include <common>
 #include <logdepthbuf_pars_fragment>
 
@@ -605,14 +607,18 @@ void main() {
   bool isWater = water > 0.0 && !hasIce;
 #ifndef SEA_SURFACE
   // The sea is the flat sea surface's (section 4.4); the terrain leaves it out.
-  if (isWater && seaW > 0.0) discard;
+  // A river runs on a little way out over the water, past the coast line, so no line parts it
+  // from the sea (Yang, 2026-10-23).
+  float riverOut = riverF > riverThreshold * 0.5 ? 1.0 : 0.0;
+  bool inMouth = riverOut > 0.0 && seaW < RIVER_OUT && !hasIce;
+  if (isWater && seaW > 0.0 && !inMouth) discard;
 #endif
 #ifdef SEA_SURFACE
   // Rivers are the terrain's; the flat sea never draws river channels or banks, whatever the
   // river field holds at a river mouth.
   bool isRiver = false;
 #else
-  bool isRiver = !isWater && !hasIce && riverF > riverThreshold;
+  bool isRiver = (!isWater || inMouth) && !hasIce && (riverF > riverThreshold || inMouth);
 #endif
   bool isPack = isWater && seaW > 0.0 && lat > packEdge;
   if (isPack) {
