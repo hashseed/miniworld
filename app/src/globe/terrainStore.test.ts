@@ -178,6 +178,17 @@ describe('TerrainStore', () => {
     expect(store.loading).toBe(0);
   });
 
+  it('counts a change of ground when a tile arrives', async () => {
+    const src = new FakeSource();
+    const store = new TerrainStore(src);
+    const before = store.generation;
+    store.terrainTile(key, 3);
+    expect(store.generation).toBe(before);
+    src.requests[0]!.answer(copy(encodeTerrainTile(rampTile(key))));
+    await settle();
+    expect(store.generation).toBeGreaterThan(before);
+  });
+
   it('passes the priority of each frame to a waiting request', () => {
     const src = new FakeSource();
     const store = new TerrainStore(src);

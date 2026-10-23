@@ -85,6 +85,7 @@ export class TerrainStore implements TerrainSource {
     if (file === undefined) return undefined; // part index still loading
     if (file === 'deep' || file === 'none') {
       this.terrain.set(id, 'deep');
+      this.generation++;
       return 'deep';
     }
     this.terrain.set(id, 'loading');
@@ -97,10 +98,14 @@ export class TerrainStore implements TerrainSource {
       if (!buf) return void this.terrain.delete(id);
       const tile = decodeOrBroken(buf, file);
       this.terrain.set(id, tile);
+      this.generation++;
       if (tile !== 'broken' && key.level > KEEP_LEVEL) this.recent.set(id, true);
     });
     return undefined;
   }
+
+  /** Counts every change of which data tile answers for a place, so what was read from the ground can be dropped. */
+  generation = 0;
 
   /** Deepest level with terrain data in this build (DATA_MAX_LEVEL for a full build). */
   get dataMaxLevel(): number {
@@ -152,6 +157,7 @@ export class TerrainStore implements TerrainSource {
       if (this.recent.size <= MAX_DATA_TILES) break;
       this.recent.delete(id);
       this.terrain.delete(id);
+      this.generation++;
     }
   }
 

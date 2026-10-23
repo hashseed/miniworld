@@ -150,6 +150,7 @@ let minSeaLevel = -130;
 const surface = {
   surfaceKm: (dir: [number, number, number]): number =>
     index ? globe.surfaceKm(dir, loop.planet) : 0,
+  version: (): number => (index ? globe.groundVersion() : -1),
 };
 const controller = new CameraController(
   camera,
@@ -159,11 +160,13 @@ const controller = new CameraController(
 );
 const wildlife = new WildlifeLayer({
   surfaceKm: surface.surfaceKm,
+  version: surface.version,
   toDrawn: (d) => globe.lens.toDrawn(d),
   widthAt: (d) => globe.lens.widthAt(d),
 });
 const tree = new TreeLayer(loader, {
   surfaceKm: surface.surfaceKm,
+  version: surface.version,
   toDrawn: (d) => globe.lens.toDrawn(d),
   // The sea of the day, drawn; a little lens width is allowed for (humankind.md section 8.2).
   seaKm: (): number => (loop.planet.seaLevel as number) * EXAGGERATION * 0.001 * 1.4,

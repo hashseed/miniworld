@@ -523,6 +523,15 @@ export class Globe {
     return this.surfaceAtTrue(this.lens.toTrue(drawnDir), planet);
   }
 
+  /**
+   * Changes whenever the ground a height is read from may have changed: a terrain tile arrived or
+   * left, or the date moved far enough for the ice sheets to have shifted. What stands on the
+   * ground keeps its height only for one version.
+   */
+  groundVersion(): number {
+    return this.store.generation * 1000 + Math.floor(this.day / 100_000);
+  }
+
   /** Drawn surface height in km above the sphere over a true direction. */
   surfaceAtTrue(dir: Vec3, planet: PlanetState): number {
     const top = this.query.surfaceM(dir, this.day, planet.seaLevel);
