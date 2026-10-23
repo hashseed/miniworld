@@ -610,7 +610,7 @@ void main() {
   // A river runs on a little way out over the water, past the coast line, so no line parts it
   // from the sea (Yang, 2026-10-23).
   float riverOut = riverF > riverThreshold * 0.5 ? 1.0 : 0.0;
-  bool inMouth = riverOut > 0.0 && seaW < RIVER_OUT && !hasIce;
+  bool inMouth = riverOut > 0.0 && seaW > 0.0 && seaW < RIVER_OUT && !hasIce;
   if (isWater && seaW > 0.0 && !inMouth) discard;
 #endif
 #ifdef SEA_SURFACE
