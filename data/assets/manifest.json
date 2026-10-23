@@ -466,16 +466,16 @@
       "file": "assets/src/shelters.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "The sign put up before an event of the events dialog, a blue information sign (white \"i\") on an oak post (humankind.md section 8.4; Yang, issue 148); waiting for Yang's review"
+      "status": "approved",
+      "note": "The sign put up before an event of the events dialog, a blue information sign (white \"i\") on an oak post (humankind.md section 8.4; Yang, issue 148); approved by Yang 2026-10-23"
     },
     {
       "id": "prop-burial",
       "file": "assets/src/shelters.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "A grave dug into a heap of earth in four steps: trench, wrapped body with ivory beads and spears, closed with earth and ochre, grass grown over (humankind.md section 8.2); waiting for Yang's review"
+      "status": "approved",
+      "note": "A grave dug into a heap of earth in four steps: trench, wrapped body with ivory beads and spears, closed with earth and ochre, grass grown over (humankind.md section 8.2); approved by Yang 2026-10-23"
     },
     {
       "id": "prop-gobekli-ring",
