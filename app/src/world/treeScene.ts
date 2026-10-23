@@ -271,7 +271,7 @@ const DROP_LINGER_MS = Math.round(40_000 / TEMPO);
 /** Trees make way this far round points of a hunt's lane, in drawn kilometres. */
 /** How far the trees keep from a scene's middle, in layout metres at a full camp. */
 const STAGE_CLEARING_M: Record<TreeStage['kind'], number> = {
-  'cave-painting': 14,
+  'cave-painting': 22,
   burial: 8,
   monument: 20,
   'bone-hut': 16,

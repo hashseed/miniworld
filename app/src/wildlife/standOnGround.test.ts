@@ -19,3 +19,14 @@ describe('standOnGround (issue 129)', () => {
     expect(standOnGround(0, 5, 5, 5, 5, 1, 3).ground).toBeCloseTo(0.3, 9);
   });
 });
+
+describe('standOnGround ends (aurochs in the ground)', () => {
+  it('raises an animal on gentle ground whose tail end lies above its feet', () => {
+    const r = standOnGround(0, 0, 0, 0, 0, 1, 3, { front: 0, back: 0.5, right: 0, left: 0 });
+    expect(r.ground).toBeCloseTo(0.5, 5);
+  });
+  it('never lifts it more than 30% of its height', () => {
+    const r = standOnGround(0, 0, 0, 0, 0, 1, 3, { front: 0, back: 5, right: 0, left: 0 });
+    expect(r.ground).toBeCloseTo(0.9, 5);
+  });
+});
