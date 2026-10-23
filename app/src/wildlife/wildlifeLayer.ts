@@ -279,6 +279,7 @@ export class WildlifeLayer {
       at: THREE.Vector3;
       f: THREE.Vector3;
       half: number;
+      version: number;
       s: ReturnType<WildlifeLayer['slopeUnder']>;
     }
   >();
@@ -290,8 +291,10 @@ export class WildlifeLayer {
     height: number,
   ) {
     const c = this.slopes.get(key);
+    const version = this.surface.version?.() ?? 0;
     if (
       c &&
+      c.version === version &&
       c.half === half &&
       c.at.distanceToSquared(up) < 1e-14 &&
       c.f.distanceToSquared(f) < 1e-8
@@ -299,7 +302,7 @@ export class WildlifeLayer {
       return c.s;
     const s = this.slopeUnder(up, f, this.right, half, height);
     if (this.slopes.size > 4096) this.slopes.clear();
-    this.slopes.set(key, { at: up.clone(), f: f.clone(), half, s });
+    this.slopes.set(key, { at: up.clone(), f: f.clone(), half, version, s });
     return s;
   }
 

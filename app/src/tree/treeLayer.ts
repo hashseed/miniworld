@@ -180,6 +180,7 @@ export class TreeLayer {
   private pixels = new Map<string, number>();
   private probe = new THREE.Vector3();
   /** Where each scene prop was drawn last frame, by anchor id, for taps (humankind.md section 8.3). */
+  private groundVersion = 0;
   private stagePoints: { id: string; at: THREE.Vector3; m: number }[] = [];
   private events: SignEvent[] = [];
   /** The events of the startup index, whose signs stand before them (humankind.md section 8.4). */
@@ -284,6 +285,11 @@ export class TreeLayer {
   update(camera: THREE.PerspectiveCamera, ms: number, startDay: number): void {
     this.camera = camera;
     this.blocked = 0;
+    const groundVersion = this.surface.version?.() ?? 0;
+    if (groundVersion !== this.groundVersion) {
+      this.groundVersion = groundVersion;
+      this.grounds.clear();
+    }
     const day = dayAtMs(ms, startDay);
     let w = -1;
     while (w + 1 < this.windows.length && this.windows[w + 1]! <= day) w++;
