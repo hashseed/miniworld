@@ -606,15 +606,11 @@ void main() {
   float water = seaW > 0.0 ? seaW : lakeF > 0.5 ? lakeW : max(seaW, lakeW);
   bool isWater = water > 0.0 && !hasIce;
   float riverNear = riverF;
-  float mouthReach = 0.0;
   if (abs(seaW) < 8.0) {
     vec2 d = 2.0 / FIELD_SIZE * vec2(1.0, 0.0);
-    vec3 e = waterFields(vFieldUv + d.xy);
-    vec3 w = waterFields(vFieldUv - d.xy);
-    vec3 n = waterFields(vFieldUv + d.yx);
-    vec3 s = waterFields(vFieldUv - d.yx);
-    riverNear = max(max(max(e.z, w.z), max(n.z, s.z)), riverF);
-    mouthReach = min(1.5 * max(abs(e.x - w.x), abs(n.x - s.x)), 2.0);
+    riverNear = max(max(waterFields(vFieldUv + d.xy).z, waterFields(vFieldUv - d.xy).z),
+      max(waterFields(vFieldUv + d.yx).z, waterFields(vFieldUv - d.yx).z));
+    riverNear = max(riverNear, riverF);
   }
 #ifndef SEA_SURFACE
   // The sea is the flat sea surface's (section 4.4); the terrain leaves it out.
@@ -624,11 +620,10 @@ void main() {
   // Rivers are the terrain's; the flat sea never draws river channels or banks, whatever the
   // river field holds at a river mouth.
   bool isRiver = false;
-  bool mouth = false;
 #else
   // The river field fades out right at the sea; the last few pixels of a river mouth stay river,
   // so no hairline of bank or sand parts the river from the sea.
-  bool mouth = riverF > riverThreshold * 0.25 && seaW > -mouthReach;
+  bool mouth = riverNear > riverThreshold * RIVER_MOUTH && seaW > -max(fwidth(seaW), 1e-4) * 3.0;
   bool isRiver = !isWater && !hasIce && (riverF > riverThreshold || mouth);
 #endif
   bool isPack = isWater && seaW > 0.0 && lat > packEdge;
@@ -684,7 +679,7 @@ void main() {
   ink = max(ink, inkLine(clamp(iceInk, -30.0, 30.0), 0.0, 1.6));
   if (isWater && seaW > 0.0) ink = max(ink, inkLine(clamp(lat - packEdge, -1.0, 1.0), 0.0, 1.6));
 #ifndef SEA_SURFACE
-  if (!isWater && !hasIce && !(riverNear > riverThreshold * RIVER_MOUTH && seaW > -mouthReach)) ink = max(ink, inkLine(riverF, riverThreshold, 1.4));
+  if (!isWater && !hasIce && !mouth) ink = max(ink, inkLine(riverF, riverThreshold, 1.4));
 #endif
   if (vSkirt > 0.5) ink = 0.0;
   colour = mix(colour, INK, ink * 0.85);
