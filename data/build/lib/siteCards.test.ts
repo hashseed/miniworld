@@ -93,4 +93,31 @@ describe('buildSiteCards (humankind.md section 8.3)', () => {
     });
     expect(out.errors.join()).toContain('missing language section "## de"');
   });
+
+  it('compiles an event card of an arrival and fails on an arrival without one', () => {
+    const en = EN.replace('**Made:**', '**When:**')
+      .replace('**Discovered:**', '**Where:**')
+      .replace('What was found', 'What we know')
+      .replace('How it looked', 'How it may have looked')
+      .replace('What it was for', 'What is debated');
+    const de = DE.replace('**Entstanden:**', '**Wann:**')
+      .replace('**Entdeckt:**', '**Wo:**')
+      .replace('Was man fand', 'Was man weiß')
+      .replace('So sah es aus', 'Wie es ausgesehen haben könnte')
+      .replace('Wozu es diente', 'Was umstritten ist');
+    const event = `---\nid: cave\nkind: event-card\nsources:\n  - ref: src\n---\n\n${en}\n${de}`;
+    const ok = buildSiteCards({
+      curated: fixture({ 'cave.md': event }),
+      anchors: new Set(),
+      arrivals: new Set(['cave']),
+    });
+    expect(ok.errors).toEqual([]);
+    expect(ok.cards[0]!.text.en.body).toContain('### What we know');
+    const missing = buildSiteCards({
+      curated: fixture({ 'cave.md': event }),
+      anchors: new Set(),
+      arrivals: new Set(['cave', 'far']),
+    });
+    expect(missing.errors.join()).toContain('missing event card for arrival "far"');
+  });
 });

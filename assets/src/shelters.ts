@@ -8,6 +8,7 @@ import {
   ModelBuilder,
   STONE,
   blob,
+  box,
   cone,
   horn,
   lathe,
@@ -39,6 +40,8 @@ export const SHELTERS = [
   'prop-gobekli-ring',
   'prop-bone-hut',
   'prop-bone-pile',
+  // The sign of an event, put up before it (humankind.md section 8.4).
+  'prop-sign-wood',
 ] as const;
 export type ShelterId = (typeof SHELTERS)[number];
 
@@ -653,6 +656,21 @@ export function buildShelter(id: ShelterId): Model {
       b = step(3);
       mb.add(blob([0, 0.62, 0], [0.55, 0.14, 0.4], 6), shade(BONE, -0.12), b);
       mb.add(blob([-0.1, 0.78, 0.1], [0.28, 0.2, 0.24], 5), BONE, b);
+      break;
+    }
+    case 'prop-sign-wood': {
+      // A plank on a crooked post, facing +Z, lashed with hide cord (humankind.md section 8.4).
+      const WOOD = '#8a6238';
+      mb.add(rod([0, 0, 0], [0.05, 1.7, 0], 0.055, 5), POLE);
+      const plank = box([-0.5, -0.24, 0.06], [0.5, 0.24, 0.12]);
+      plank.rotateZ(0.11);
+      plank.translate(0.04, 1.32, 0);
+      mb.add(plank, WOOD);
+      const low = box([-0.38, -0.05, 0.06], [0.38, 0.05, 0.11]);
+      low.rotateZ(-0.07);
+      low.translate(0.04, 0.96, 0);
+      mb.add(low, shade(WOOD, 0.1));
+      for (const y of [1.2, 1.46]) mb.add(blob([0.045, y, 0.1], [0.07, 0.04, 0.05], 5), '#c9a675');
       break;
     }
     case 'prop-carry-pole': {

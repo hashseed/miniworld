@@ -38,6 +38,8 @@ import {
   SCRAPE_SIDE_M,
   BUILD_MS,
   shownAtMs,
+  departureOf,
+  stageHunts,
   slotPoint,
   burialTimes,
   stageSessions,
@@ -159,6 +161,8 @@ export interface TreeEvent {
   day: number;
   lat: number;
   lon: number;
+  /** The id of its card among the startup index's `siteCards` (milestone-1 section 8.3). */
+  card: string;
 }
 
 /** A camp site is steep where its ground rises this much (m) out to the ring of catch (layout m). */
@@ -612,17 +616,26 @@ export function buildHumankind(
   // in a new continent, on the day a band first stood at its site (sites.md section 2.1), there.
   const points = new Map(arrivals.points.map((p) => [p.id, p]));
   const events: TreeEvent[] = [];
-  // The day its camp first shows in the scene, built, at a place on the day its band set out
-  // there (shownAtMs): the dialog travels to then, so the camp is in view.
-  const shownDay = (day: number, lat: number, lon: number) => {
+  // The moment of an event is 3 seconds of watching before its work begins (milestone-1
+  // section 8.3; Yang, issue 148).
+  const LEAD_MS = 3_000;
+  const dayOf = (ms: number) => Math.ceil(dayAtMs(ms - LEAD_MS, TIMELINE_START));
+  const chunkOf = (day: number) => {
+    let w = 0;
+    while (w + 1 < days.length && days[w + 1]! <= day) w++;
+    return chunks[w];
+  };
+  // An arrival: when and where the band that founded the camp there starts its crossing, or
+  // where its camp is built when it made no walk.
+  const startOf = (day: number, lat: number, lon: number) => {
     const l = tree.lodgings.find(
       (x) => x.built === day && x.lat === Math.round(lat * 1e6) && x.lon === Math.round(lon * 1e6),
     );
-    let w = 0;
-    while (w + 1 < days.length && days[w + 1]! <= day) w++;
-    const chunk = chunks[w];
+    const chunk = chunkOf(day);
+    const out = l && chunk ? departureOf(chunk, TIMELINE_START, l.id) : undefined;
+    if (out) return { day: dayOf(out.ms), lat: out.lat, lon: out.lon };
     const ms = l && chunk ? shownAtMs(chunk, TIMELINE_START, l.id) : undefined;
-    return ms === undefined ? day : Math.ceil(dayAtMs(ms + BUILD_MS, TIMELINE_START));
+    return { day: ms === undefined ? day : dayOf(ms), lat, lon };
   };
   for (const r of treeStats.reached) {
     const p = points.get(r.leg);
@@ -633,9 +646,8 @@ export function buildHumankind(
       id: `arrival-${p.id}`,
       kind: 'migration',
       title: { en: p.en, de: p.de },
-      day: shownDay(r.day, r.lat, r.lon),
-      lat: r.lat,
-      lon: r.lon,
+      ...startOf(r.day, r.lat, r.lon),
+      card: p.id,
     });
   }
   log(`events: ${events.length} arrivals in a new continent`);
@@ -681,15 +693,24 @@ export function buildHumankind(
           `tree of humankind: session ${k + 1} of the scene of ${stage.id} has too few people to ${stage.kind === 'cave-painting' ? 'paint' : monument ? (k < MONUMENT_BUILD_SESSIONS ? 'raise the ring' : 'dance') : stage.kind === 'bone-hut' ? (k % 2 ? 'build the hut' : 'take out the bones') : 'dig the grave'}`,
         );
     }
-    if (sessions[0])
+    const first = sessions[0];
+    if (first) {
+      // Before the first paint stroke, the heap of a burial, the first stone of a ring or the
+      // first mammoth hunt (humankind.md section 8.2).
+      const work =
+        stage.kind === 'bone-hut'
+          ? (stageHunts(stage, TIMELINE_START)[0]?.start ?? first.begin)
+          : first.begin;
       events.push({
         id: `scene-${stage.id}`,
         kind: 'scene',
         title: { en: a.en, de: a.de },
-        day: Math.ceil(dayAtMs(sessions[0].begin, TIMELINE_START)),
+        day: dayOf(work),
         lat: stage.lat / 1e6,
         lon: stage.lon / 1e6,
+        card: stage.id,
       });
+    }
   }
   log(
     `scenes: ${(tree.stages ?? []).map((x) => `${x.id} (${x.kind}, ${stageSessions(x, TIMELINE_START).length} sessions)`).join(', ') || 'none'}`,

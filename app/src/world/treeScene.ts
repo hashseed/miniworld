@@ -1438,6 +1438,8 @@ interface Memo {
   builders: Map<number, number[]>;
   takers: Map<number, number[]>;
   appears: Map<number, number>;
+  /** When and where the group that founded a lodging's camp starts its crossing (departureOf). */
+  departs: Map<number, { ms: number; lat: number; lon: number }>;
   campmates: Map<number, TreeFigure[]>;
   places: Map<string, Place>;
   stays: Map<string, Stay | undefined>;
@@ -1461,6 +1463,19 @@ export function shownAtMs(chunk: TreeChunk, startDay: Day, id: number): number |
   if (!memoOf(chunk, startDay).ready) treeScene(chunk, 0, startDay);
   return memoOf(chunk, startDay).appears.get(id);
 }
+/**
+ * When and where the group that founded the camp of a lodging starts its crossing, in watching
+ * ms: the first stretch by water, or for a route on land its setting out from the old camp
+ * (milestone-1 section 8.3). Undefined where its builder made no walk.
+ */
+export function departureOf(
+  chunk: TreeChunk,
+  startDay: Day,
+  id: number,
+): { ms: number; lat: number; lon: number } | undefined {
+  if (!memoOf(chunk, startDay).ready) treeScene(chunk, 0, startDay);
+  return memoOf(chunk, startDay).departs.get(id);
+}
 function memoOf(chunk: TreeChunk, startDay: Day): Memo {
   let m = memos.get(chunk);
   if (!m || m.startDay !== startDay) {
@@ -1471,6 +1486,7 @@ function memoOf(chunk: TreeChunk, startDay: Day): Memo {
       builders: new Map(),
       takers: new Map(),
       appears: new Map(),
+      departs: new Map(),
       campmates: new Map(),
       places: new Map(),
       stays: new Map(),
@@ -1513,7 +1529,7 @@ export function treeScene(
 
   // The builders of each lodging (moving in on the day it is built) and the figures that
   // take it down (leaving on the day it is gone), by id.
-  const { builders, takers, appears, stays, hunts, forced, events, campmates, places } = memo;
+  const { builders, takers, appears, departs, stays, hunts, forced, events, campmates, places } = memo;
   if (!memo.ready)
     for (const f of chunk.figures)
       f.homes.forEach(([day, id], i) => {
@@ -1536,6 +1552,14 @@ export function treeScene(
         const crew = builders.get(id)!;
         const work = buildSpot(crew.indexOf(f.id), crew.length, to);
         appears.set(id, c.end + Math.ceil(routeLength(route(c.entry, work, to.camp)) / PACE.walk));
+        const water = c.legs.findIndex((l) => l.water);
+        const before = c.legs.slice(0, Math.max(0, water)).reduce((a, l) => a + l.km, 0);
+        const from = c.legs[Math.max(0, water)]!.from;
+        departs.set(id, {
+          ms: c.across + Math.ceil(before / WALK_KM_PER_MS),
+          lat: from.lat,
+          lon: from.lon,
+        });
       }
 
   const scene: TreeScene = {

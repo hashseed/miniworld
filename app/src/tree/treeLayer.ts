@@ -4,6 +4,7 @@
 // vignette stage: one drawn size at every zoom, upright on the ground whatever
 // the camera does. It only draws; the scene decides everything.
 
+import { signsAt, type SignEvent } from '../world/eventSigns.ts';
 import * as THREE from 'three';
 import type { ContentLoader } from '../content/loader.ts';
 import { latLonToDir } from '../geo/cube.ts';
@@ -172,6 +173,11 @@ export class TreeLayer {
   private probe = new THREE.Vector3();
   /** Where each scene prop was drawn last frame, by anchor id, for taps (humankind.md section 8.3). */
   private stagePoints: { id: string; at: THREE.Vector3; m: number }[] = [];
+  private events: SignEvent[] = [];
+  /** The events of the startup index, whose signs stand before them (humankind.md section 8.4). */
+  setEvents(events: SignEvent[]): void {
+    this.events = events;
+  }
   /** The anchor whose scene wall or grave is under a screen point, if any (humankind.md section 8.3). */
   hitScene(clientX: number, clientY: number): string | undefined {
     const camera = this.camera;
@@ -306,6 +312,10 @@ export class TreeLayer {
     scene.spears = big(scene.spears, FIGURE_PX);
     scene.poles = big(scene.poles, FIGURE_PX);
     scene.props = scene.props.filter((q) => !this.tiny(q, FIGURE_PX));
+    // The signs before the events (humankind.md section 8.4).
+    scene.props = scene.props.concat(
+      signsAt(this.events, ms, startDay).filter((q) => !this.tiny(q, FIGURE_PX)),
+    );
     scene.sparks = big(scene.sparks, FIGURE_PX);
     scene.lodgings = big(scene.lodgings, LODGING_PX);
     scene.hearths = big(scene.hearths, LODGING_PX);
@@ -425,9 +435,9 @@ export class TreeLayer {
       const batch = treePropBatch(q.kind);
       if (!batch || !this.place(at, q, false)) continue;
       const km = FIGURE_KM_PER_M * (q.scale ?? 1);
-      if (q.id.startsWith('stage:'))
+      if (q.id.startsWith('stage:') || q.id.startsWith('sign:'))
         this.stagePoints.push({
-          id: q.id.slice(6),
+          id: q.id.startsWith('sign:') ? q.id : q.id.slice(6),
           at: at.position.clone().addScaledVector(this.dir, 1.2 * km),
           m: km,
         });

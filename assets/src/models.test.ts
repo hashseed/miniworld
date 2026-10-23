@@ -371,7 +371,7 @@ describe('asset manifest', () => {
     const waiting = Object.keys(MODELS).filter((id) => entries.get(id)?.status !== 'approved');
     expect(
       waiting.every((id) =>
-        /^(figure-african-stone-age-man|figure-(west-asia-hunter|east-asia-hunter|first-americans)-(man|woman|child)|prop-(carry-pole|spit|canoe|cave-wall-sulawesi|cave-wall-chauvet|cave-wall-lascaux|burial|gobekli-ring|bone-hut|bone-pile)|shelter-small-hut)$/.test(
+        /^(figure-african-stone-age-man|figure-(west-asia-hunter|east-asia-hunter|first-americans)-(man|woman|child)|prop-(carry-pole|spit|canoe|cave-wall-sulawesi|cave-wall-chauvet|cave-wall-lascaux|burial|gobekli-ring|bone-hut|bone-pile|sign-wood)|shelter-small-hut)$/.test(
           id,
         ),
       ),

@@ -183,6 +183,10 @@ let sitesView: SitesLayer | undefined;
     if (!d || Math.sqrt((e.clientX - d.x) ** 2 + (e.clientY - d.y) ** 2) > 6) return;
     if (performance.now() - d.t > 500) return;
     const site = tree.hitScene(e.clientX, e.clientY);
+    if (site?.startsWith('sign:')) {
+      const event = index?.events.find((x) => x.id === site.slice(5));
+      if (event) return void openSiteCard(event.card);
+    }
     if (site !== undefined) return void openSiteCard(site);
     const group = wildlife.hit(e.clientX, e.clientY);
     if (group !== undefined) void openAnimal(group);
@@ -451,6 +455,7 @@ async function switchLanguage(lang: Settings['language']): Promise<void> {
   document.documentElement.lang = lang;
   document.title = tabTitle();
   index = next;
+  tree.setEvents(next.events);
   timeline?.setIndex(next);
   if (ui.value.panel === 'vignette' && ui.value.vignette?.site && openSiteId !== undefined)
     void openSiteCard(openSiteId);
@@ -610,6 +615,7 @@ async function start(): Promise<void> {
       speedMode: STRESS ? 'regular' : savedView?.speedMode,
     });
     clock.subscribe(() => loop.syncUi(performance.now()));
+    tree.setEvents(index.events);
     ui.update({
       fixture: manifest.fixture,
       version: manifest.version,
