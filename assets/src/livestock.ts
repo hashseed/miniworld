@@ -31,6 +31,7 @@ function sheep(): Model {
   const dark = '#5e4a38';
   const fleece = '#dcd0b2';
   const p = quadruped({
+    taper: true,
     shoulder: 0.7,
     length: 0.9,
     girth: [0.2, 0.22],
@@ -73,6 +74,7 @@ function goat(): Model {
   const coat = '#85705a';
   const dark = '#33291f';
   const p = quadruped({
+    taper: true,
     shoulder: 0.68,
     length: 0.85,
     girth: [0.15, 0.19],
@@ -124,6 +126,7 @@ function goat(): Model {
 function cattle(): Model {
   const coat = '#5a3422';
   const p = quadruped({
+    taper: true,
     shoulder: 1.15,
     length: 1.6,
     girth: [0.34, 0.4],
@@ -166,6 +169,7 @@ function pig(): Model {
   const coat = '#5d4b3d';
   const bristle = '#2b231c';
   const p = quadruped({
+    taper: true,
     shoulder: 0.58,
     length: 1.0,
     girth: [0.18, 0.2],

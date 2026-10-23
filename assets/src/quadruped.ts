@@ -13,6 +13,8 @@ export interface Quad {
   /** Half thickness of the body (x, y). */
   girth: [number, number];
   leg: number;
+  /** Thigh and shoulder thick, lower leg slim, a bump at the knee (default: even chunky legs). */
+  taper?: boolean;
   /** How far the legs stand out to the sides, as a share of the body's half width (default 0.55). */
   legSpread?: number;
   /** Neck from the chest: forward and up, as a share of the shoulder height. */
@@ -161,20 +163,24 @@ export function quadruped(q: Quad, clay = 1): Parts {
     const legR = q.leg * 1.4; // chunky toy legs
     const footY = Math.max(0.08, legR * 0.75);
     const kneeY = Math.max(footY + legR * 0.5, legTop * at);
-    const kneeR = legR * 0.87;
+    const topR = q.taper ? legR * 1.6 : legR;
+    const kneeR = legR * (q.taper ? 0.62 : 0.87);
+    const footR = legR * (q.taper ? 0.5 : 0.75);
     // Upper leg to the knee, lower leg to one cap radius above the ground, so its rounded end rests there.
     mb.add(
-      limb([lx, legTop, z], [lx, kneeY, z], legR, kneeR, 5, pt?.legs ? 2 : 0),
+      limb([lx, legTop, z], [lx, kneeY, z], topR, kneeR, 5, pt?.legs ? 2 : 0),
       legColour,
       `leg${leg}`,
       pt?.legs,
     );
     mb.add(
-      limb([lx, kneeY, z], [lx, footY, z], kneeR, legR * 0.75, 5, pt?.legs ? 2 : 0),
+      limb([lx, kneeY, z], [lx, footY, z], kneeR, footR, 5, pt?.legs ? 2 : 0),
       legColour,
       bone,
       pt?.legs,
     );
+    if (q.taper)
+      mb.add(blob([lx, kneeY, z], [kneeR * 1.25, kneeR * 1.2, kneeR * 1.25], 5), legColour, bone);
     if (q.toenails) {
       // A round foot as wide as the leg and a little wider at the ground, with
       // three nails at the front (Yang, 2026-10-18: elephants have no flat feet).

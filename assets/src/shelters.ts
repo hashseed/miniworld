@@ -24,6 +24,7 @@ import {
   type EastAsiaAmericasHouseId,
   buildEastAsiaAmericasHouse,
 } from './eastAsiaAmericasHouses.ts';
+import { WHIMSY, type Whimsy, whimsy } from './whimsy.ts';
 import { NEOLITHIC_HOUSES, type NeolithicHouseId, buildNeolithicHouse } from './neolithicHouses.ts';
 
 export const SHELTERS = [
@@ -149,9 +150,9 @@ function slab(min: Vec3, max: Vec3): THREE.BufferGeometry {
 export function buildShelter(id: ShelterId): Model {
   if (isToolProp(id)) return buildToolProp(id as ToolPropId);
   if ((NEOLITHIC_HOUSES as readonly string[]).includes(id))
-    return buildNeolithicHouse(id as NeolithicHouseId);
+    return whimsy(buildNeolithicHouse(id as NeolithicHouseId), WHIMSY[id] as Whimsy);
   if ((EAST_ASIA_AMERICAS_HOUSES as readonly string[]).includes(id))
-    return buildEastAsiaAmericasHouse(id as EastAsiaAmericasHouseId);
+    return whimsy(buildEastAsiaAmericasHouse(id as EastAsiaAmericasHouseId), WHIMSY[id] as Whimsy);
   const mb = new ModelBuilder();
   switch (id) {
     case 'shelter-hide-tent': {

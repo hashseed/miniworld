@@ -36,6 +36,7 @@ export function buildDomesticOtherAnimal(id: DomesticOtherAnimalId): Model {
 function dog(): Model {
   const coat = '#b98c5a';
   const p = quadruped({
+    taper: true,
     knee: 1.1,
     shoulder: 0.55,
     length: 0.8,
@@ -94,6 +95,7 @@ function zebu(): Model {
   const coat = '#b8ad98';
   const dark = '#716a5e';
   const p = quadruped({
+    taper: true,
     shoulder: 1.2,
     length: 1.75,
     girth: [0.38, 0.45],
@@ -146,6 +148,7 @@ function zebu(): Model {
 function waterBuffalo(): Model {
   const coat = '#6b6d70';
   const p = quadruped({
+    taper: true,
     shoulder: 1.2,
     length: 2.0,
     girth: [0.5, 0.5],
@@ -189,6 +192,7 @@ function llama(): Model {
   const brown = '#7d5b3c';
   const white = '#f6f1e6';
   const p = quadruped({
+    taper: true,
     shoulder: 1.15,
     length: 1.3,
     girth: [0.28, 0.32],

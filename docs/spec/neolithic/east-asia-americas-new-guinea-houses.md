@@ -65,3 +65,5 @@ The profile ids are proposals: the people profiles are specified elsewhere, and 
 ## 4. Registration
 
 The ids are in `SHELTERS` (`assets/src/shelters.ts`) and the manifest (`data/assets/manifest.json`) with status `generated`. The model test checks budget, ground contact and determinism, and the door faces +Z by construction; the sheets are `npm run asset-sheets` (shelters sheet and one single sheet per house).
+
+**Scale.** Like the western houses, these are storybook-scaled by `assets/src/whimsy.ts`: small footprint (2 to 3 m), smaller base, larger roof; not life size (Yang, 2026-10-23).

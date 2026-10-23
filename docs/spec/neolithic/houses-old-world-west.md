@@ -4,7 +4,7 @@ Asked for by Yang as part of the Neolithic model set (milestone 3): the lodgings
 
 ## 1. Rules shared by all five
 
-- **Kind of model.** Each is a lodging kind of humankind.md section 3.2, chosen from the architecture set of the culture profile at the place and date. Like every shelter it is built at life size in metres, faces +Z with its door on that side, stands on y = 0, and has at most 1,000 triangles (milestone-2.md section 13.3). Built from the clay-toy kit (`assets/src/kit.ts`): rounded primitives, flat vertex colours, cel shading, ink outline.
+- **Kind of model.** Each is a lodging kind of humankind.md section 3.2, chosen from the architecture set of the culture profile at the place and date. Unlike earlier shelters it is **storybook-scaled, not life size** (Yang, 2026-10-23): `assets/src/whimsy.ts` shrinks it to a footprint of 2 to 4 m, draws the walls in and flares the roof out over them (base about 0.8, roof about 1.2 of the original width), so the house hints at its design, exaggerates its one peculiarity and fits the places villages stand. It faces +Z with its door on that side, stands on y = 0, and has at most 1,000 triangles (milestone-2.md section 13.3). Built from the clay-toy kit (`assets/src/kit.ts`): rounded primitives, flat vertex colours, cel shading, ink outline.
 - **Closed outline.** Box-like parts are rounded prisms with smoothed normals (not hard-edged boxes), so the ink outline of the inverted hull stays closed and sits on the model, never in a gap beside it.
 - **Colours read as the material** (Yang rejected a dark brown sign: wood is oak-coloured, a light warm brown):
 
@@ -19,7 +19,7 @@ Asked for by Yang as part of the Neolithic model set (milestone 3): the lodgings
 | Doorway | dark `#3a2a20` as for the other shelters | Door openings and roof hatch |
 
 - **Building steps.** Each model has bones `build-0` (walls or frame) and `build-1` (roof, ladder and thatch) so a village builds the walls first and the roof second (humankind.md section 8.1).
-- **Sizes** are the real sizes where the village ring allows. A lodging stands on a ring of 12 layout metres round the hearth, five to a ring, so the longhouse is drawn shorter than most real ones (section 4).
+- **Sizes** are storybook sizes (see Kind of model), not the real sizes. A lodging stands on a ring of 12 layout metres round the hearth, five to a ring, so the longhouse is drawn shorter than most real ones (section 4).
 
 ## 2. `shelter-pre-pottery-levant-house`
 

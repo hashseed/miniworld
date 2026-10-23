@@ -297,7 +297,7 @@ function singleSheet(): void {
   place(build(), span * 0.8, 0, -2.2);
   const ref = buildPerson({ profile: 'ice-age-hunter', kind: 'man' });
   posePerson(ref, 'stand');
-  place(ref, 0, span * 0.9, 0);
+  place(ref, 0, 0, 0);
   labels.push({ text: id, at: new THREE.Vector3(0, size.y * 1.15, -span * 0.4) });
   camera.position.set(0, span * 1.1, span * 3.6);
   camera.lookAt(0, size.y * 0.4, 0);
