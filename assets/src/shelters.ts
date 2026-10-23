@@ -80,6 +80,17 @@ export const CAMP_SHELTER: Partial<Record<Profile, ShelterId>> = {
   'west-asia-hunter': 'shelter-hide-tent',
   'east-asia-hunter': 'shelter-hide-tent',
   'first-americans': 'shelter-hide-tent',
+  // The first houses of the farmers (neolithic/people-profiles.md section 5): each profile's first architecture.
+  'pre-pottery-neolithic-levant': 'shelter-pre-pottery-levant-house',
+  'anatolian-farmer': 'shelter-anatolian-house',
+  'lbk-farmer': 'shelter-lbk-longhouse',
+  'indus-farmer': 'shelter-mehrgarh-house',
+  'nile-neolithic': 'shelter-egyptian-neolithic-hut',
+  'yellow-river-millet-farmer': 'shelter-yellow-river-pit-house',
+  'yangtze-rice-farmer': 'shelter-yangtze-stilt-house',
+  'mesoamerican-farmer': 'shelter-mesoamerican-hut',
+  'andean-farmer': 'shelter-andean-stone-house',
+  'new-guinea-highland-farmer': 'shelter-highland-new-guinea-house',
 };
 
 const POLE = '#7a5030';

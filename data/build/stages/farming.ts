@@ -3,7 +3,12 @@
 // waypoints, written as one binary file the app looks onsets up in.
 
 import { OCEAN_MIN_LEVEL, OCEAN_NEVER } from '../../../app/src/content/formats.ts';
-import { dayOfFarmingYear, type FarmingSeedInfo } from '../../../app/src/world/farmingOnset.ts';
+import {
+  dayOfFarmingYear,
+  FarmingGrid,
+  setFarmingGrid,
+  type FarmingSeedInfo,
+} from '../../../app/src/world/farmingOnset.ts';
 import {
   checkFarming,
   computeFarming,
@@ -237,7 +242,10 @@ export function buildFarming(
     `farming onset: ${cells} cells, ${check.report.length} places earlier than the nearest waypoint by 500 years`,
   );
   for (const line of check.report.slice(0, 12)) log(`  ${line}`);
-  return ctx.output.write('farming', 'bin', encodeFarming(raster, read.infos));
+  const bytes = encodeFarming(raster, read.infos);
+  // The tree is built from it next (humankind.md section 8.5).
+  setFarmingGrid(new FarmingGrid(bytes));
+  return ctx.output.write('farming', 'bin', bytes);
 }
 
 interface CentreRecord {

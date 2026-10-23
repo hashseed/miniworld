@@ -253,6 +253,19 @@ export interface TreeSettings {
   arrival?(lat: number, lon: number): Day;
   /** The lodging model of a culture's camps. */
   lodgingOf?(culture: string): string;
+  /**
+   * For a Neolithic culture's camp: the mask of dry ground the fields may use round a site
+   * at a sea level (fieldMask.ts), or undefined for any other culture.
+   */
+  fieldLand?(
+    culture: string,
+    lat: number,
+    lon: number,
+    width: number,
+    sea: number,
+  ): string | undefined;
+  /** Whether herders, not yet farmers, are in a place on a day (humankind.md section 8.5). */
+  herding?(culture: string | undefined, lat: number, lon: number, day: Day): boolean;
   /** The arrival points of the routes, from their days (peopling.md section 3). */
   voyages?: Voyage[];
   /** Neolithic thresholds, where camps settle (peopling.md section 3.6). */
@@ -668,6 +681,15 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   const campOfLodging = new Map<number, Camp>();
   const campOf = (lodging: number) => campOfLodging.get(lodging)!;
 
+  const maskCache = new Map<string, string | undefined>();
+  const fieldMaskOf = (culture: string, site: Site, sea: number): string | undefined => {
+    if (!s.fieldLand) return undefined;
+    const key = `${culture}:${site.id}:${Math.round(sea)}`;
+    if (!maskCache.has(key))
+      maskCache.set(key, s.fieldLand(culture, site.lat, site.lon, site.width, sea));
+    return maskCache.get(key);
+  };
+
   /** A lodging at the camp's site, on its lowest free dry place, its lanes as far as they stay dry. */
   const newLodging = (
     camp: Camp,
@@ -690,6 +712,9 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         `tree of humankind: band ${camp.id} has no dry place at site ${site.id} on day ${day}`,
       );
     const sea = seaMax(day, ahead(day));
+    const fieldLand =
+      culture && site.key < COMPACT_SITE ? fieldMaskOf(culture, site, sea) : undefined;
+    const herding = site.key < COMPACT_SITE && !!s.herding?.(culture, site.lat, site.lon, day);
     const l: TreeLodging = {
       id: tree.lodgings.length,
       camp: site.key,
@@ -709,6 +734,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
           ? MINIMAL_LODGING
           : (culture && s.lodgingOf?.(culture)) || s.lodgingKind,
       ...(culture ? { culture } : {}),
+      ...(fieldLand ? { fieldLand } : {}),
+      ...(herding ? { herding: true } : {}),
       ...(habitat.wood
         ? {
             wood:

@@ -7,7 +7,14 @@
 import { hash01, hash32 } from '../core/hash.ts';
 import { detAtan2, detCos, detSin, RAD } from '../core/detmath.ts';
 import { dayAtMs, msAtDay } from '../time/rate.ts';
-import { astronomicalYear, dayOfYearStart, type Day } from '../time/calendar.ts';
+import { astronomicalYear, dateFromDay, dayOfYearStart, type Day } from '../time/calendar.ts';
+import { cropStage } from '../tree/cropCalendar.ts';
+import { pointInPolygon, type Field } from '../tree/fieldShapes.ts';
+import { farmingProfileAt } from './farmingOnset.ts';
+import { maskLand } from './fieldMask.ts';
+import { NEOLITHIC_PROFILES, type NeolithicProfileId } from './neolithicProfiles.ts';
+import { roleOf } from './roles.ts';
+import { fieldsOf, herdOf, type HerdAnimal } from './village.ts';
 import { NEVER, type TreeFigure, type TreeLodging, type TreeStage } from './tree.ts';
 
 /** One time window's share of the tree (section 8). */
@@ -98,6 +105,17 @@ const FLAY_MS = Math.round(9000 / TEMPO);
 const HANG_HIDE_MS = Math.round(4800 / TEMPO);
 const TAKE_HIDE_MS = Math.round(4800 / TEMPO);
 const CRACK_MS = Math.round(14_400 / TEMPO);
+/** The Neolithic village's work (section 8.5): in the field, at the threshing floor, grinding, shaping and spinning. */
+const FIELD_WORK_MS = Math.round(10_800 / TEMPO);
+const THRESH_MS = Math.round(9_000 / TEMPO);
+const MILK_MS = Math.round(9_000 / TEMPO);
+const GRIND_MS = Math.round(12_600 / TEMPO);
+const SPIN_MS = Math.round(12_600 / TEMPO);
+/** The share of a profile's grown-ups' turns spent at their role's work, the rest being the usual outings. */
+const FARM_WORK_SHARE = 0.6;
+/** A pen is drawn at this share of its model's ten metres; the herd's animals raise their heads this often. */
+const PEN_SCALE = 0.4;
+const HERD_LOOK_MS = 6_000;
 const KNAP_POINT_MS = Math.round(10_800 / TEMPO);
 const BIND_POINT_MS = Math.round(7200 / TEMPO);
 const BUTCHER_MEAT_MS = Math.round(7200 / TEMPO);
@@ -210,7 +228,17 @@ type PreyKind =
   | 'animal-reindeer'
   | 'animal-guanaco'
   | 'animal-mammoth'
-  | 'animal-aurochs';
+  | 'animal-aurochs'
+  // A village's herd (section 8.5).
+  | 'animal-sheep'
+  | 'animal-goat'
+  | 'animal-cattle'
+  | 'animal-pig'
+  | 'animal-dog'
+  | 'animal-zebu'
+  | 'animal-water-buffalo'
+  | 'animal-llama'
+  | 'animal-guinea-pig';
 /** What each culture hunts (peopling.md sections 5.5 and 9.1); the founder's people hunt zebra and eland. */
 const PREY_OF: Record<string, readonly PreyKind[]> = {
   'african-stone-age': ['animal-zebra', 'animal-eland'],
@@ -409,7 +437,16 @@ export type TreeClip =
   | 'dance'
   | 'scrape'
   | 'crack'
-  | 'paddle';
+  | 'paddle'
+  // The Neolithic village's work (section 8.5).
+  | 'till'
+  | 'sow'
+  | 'reap'
+  | 'thresh'
+  | 'grind'
+  | 'milk'
+  | 'shape'
+  | 'spin';
 
 /** A point of the scene: a place on the globe, and an offset there in layout metres east and north. */
 export interface Placed {
@@ -448,7 +485,7 @@ export interface FigurePose extends Placed {
   lift?: number;
 }
 
-export type PreyClip = 'idle' | 'walk' | 'run' | 'fall' | 'bound' | 'hung' | 'struggle';
+export type PreyClip = 'idle' | 'walk' | 'run' | 'fall' | 'bound' | 'hung' | 'struggle' | 'graze';
 
 /** An animal of a hunt: it grazes, flees when the hunter runs at it, falls and is butchered. */
 export interface PreyPose extends Placed {
@@ -466,6 +503,17 @@ export interface LodgingPose extends Placed {
   kind: string;
   /** 0 to 1: how far it is put up, while the band builds it or takes it down. */
   built: number;
+}
+
+/** A field of a Neolithic camp (section 8.5): its outline in layout metres off the camp's place, and how far its crop has grown. */
+export interface FieldPose {
+  /** Unique while shown: the camp and the field. */
+  id: string;
+  lat: number;
+  lon: number;
+  field: Field;
+  /** The crop's stage, 0 to 1 (cropStage). */
+  stage: number;
 }
 
 export interface HearthPose {
@@ -543,6 +591,7 @@ export interface TreeScene {
   poles: PolePose[];
   sparks: SparkPose[];
   props: CampPropPose[];
+  fields: FieldPose[];
   lodgings: LodgingPose[];
   hearths: HearthPose[];
   clearings: ClearingPose[];
@@ -1274,7 +1323,7 @@ interface Leg {
   /** What a standing figure faces. */
   face?: Pt;
   /** A prop shown while the leg lasts: the spit over the fire while cooking. */
-  prop?: 'prop-spit';
+  prop?: 'prop-spit' | 'prop-quern' | 'prop-pot-large';
 }
 
 /** Builds a figure's legs one after another from a point and a time. */
@@ -1341,7 +1390,16 @@ type Outing =
   | 'flay'
   | 'rack'
   | 'fish'
-  | 'hut';
+  | 'hut'
+  // The Neolithic village's work (section 8.5).
+  | 'till'
+  | 'sow'
+  | 'reap'
+  | 'thresh'
+  | 'grind'
+  | 'milk'
+  | 'shape'
+  | 'spin';
 
 /** Shares of a figure's turns by activity (section 8.1), the rest of its turns rests. */
 // Hunting was most of a man's turns until Yang, 2026-10-20: "activities are often just
@@ -1458,6 +1516,8 @@ interface Memo {
   visits: Map<string, CampEvent[]>;
   /** The stay at its site each lodging belongs to (setPlaces). */
   stayOf: Map<number, string>;
+  /** The fields and herd of each Neolithic camp (section 8.5), by camp. */
+  villages: Map<number, Village | null>;
 }
 const memos = new WeakMap<TreeChunk, Memo>();
 
@@ -1483,6 +1543,78 @@ export function departureOf(
   if (!memoOf(chunk, startDay).ready) treeScene(chunk, 0, startDay);
   return memoOf(chunk, startDay).departs.get(id);
 }
+/** The fields and herd of a Neolithic camp (section 8.5). */
+interface Village {
+  profile: NeolithicProfileId | undefined;
+  fields: Field[];
+  herd?: { pen: Pt; penDir: Pt; animals: HerdAnimal[] };
+}
+
+const isProfile = (culture: string | undefined): culture is NeolithicProfileId =>
+  !!culture && culture in NEOLITHIC_PROFILES;
+
+/** The day of the year of a day, 0 to 364. */
+function yearDay(day: Day): number {
+  return Math.min(364, Math.max(0, day - dayOfYearStart(dateFromDay(day).year)));
+}
+
+/** Herd animals that are milked. */
+const MILKED = new Set([
+  'animal-goat',
+  'animal-sheep',
+  'animal-cattle',
+  'animal-zebu',
+  'animal-water-buffalo',
+]);
+const HERD_FIELD_CLEAR_M = 1.5;
+
+/** The camp's fields and herd, from its lodgings (section 8.5); null where it has neither. */
+function buildVillage(chunk: TreeChunk, camp: number): Village | null {
+  const own = chunk.lodgings.filter((l) => l.camp === camp);
+  const farm = own.find((l) => isProfile(l.culture) && l.fieldLand);
+  const herding = own.find((l) => l.herding);
+  const first = farm ?? herding;
+  if (!first) return null;
+  const profile = farm && isProfile(farm.culture) ? farm.culture : undefined;
+  const lodgings = own.filter((l) => isProfile(l.culture) && l.fieldLand).length;
+  const fields = farm
+    ? fieldsOf(camp, first.lat, lodgings, NEOLITHIC_PROFILES[profile!].crops, farm.fieldLand!)
+    : [];
+  const kinds =
+    NEOLITHIC_PROFILES[
+      profile ?? farmingProfileAt(deg(first.lat), deg(first.lon)) ?? 'pre-pottery-neolithic-levant'
+    ].herd;
+  const free = (x: number, z: number) =>
+    (!farm || maskLand(farm.fieldLand!, x, z)) &&
+    !fields.some(
+      (f) =>
+        pointInPolygon(f.outline, x, z) ||
+        Math.sqrt((f.centre.x - x) ** 2 + (f.centre.z - z) ** 2) < HERD_FIELD_CLEAR_M,
+    );
+  // Where the herd stands: a gap with land for it (a herders' camp), or a clear patch of the mask.
+  const a0 = hash01(camp, 235) * 2 * Math.PI;
+  let herd: Village['herd'];
+  for (let i = 0; i < 16 && !herd; i++) {
+    for (const dist of farm ? [22, 28, 34] : [17]) {
+      const angle = farm ? a0 + (i * 2 * Math.PI) / 16 : 0;
+      let at = angle;
+      if (!farm) {
+        const gap = i % LODGING_SLOTS;
+        if ((first.reach[gap] ?? 0) < dist + 13) continue;
+        const d = gapDirection(camp, gap);
+        at = detAtan2(d.z, d.x);
+      }
+      const h = herdOf(camp, kinds, at, dist);
+      if (h.animals.every((a) => free(a.x, a.z)) && (farm ? free(h.pen.x, h.pen.z) : true)) {
+        herd = h;
+        break;
+      }
+    }
+  }
+  if (!fields.length && !herd) return null;
+  return { profile, fields, ...(herd ? { herd } : {}) };
+}
+
 function memoOf(chunk: TreeChunk, startDay: Day): Memo {
   let m = memos.get(chunk);
   if (!m || m.startDay !== startDay) {
@@ -1504,6 +1636,7 @@ function memoOf(chunk: TreeChunk, startDay: Day): Memo {
       sessions: new Map(),
       visits: new Map(),
       stayOf: new Map(),
+      villages: new Map(),
     };
     memos.set(chunk, m);
   }
@@ -1577,6 +1710,7 @@ export function treeScene(
     poles: [],
     sparks: [],
     props: [],
+    fields: [],
     lodgings: [],
     hearths: [],
     clearings: [],
@@ -1659,6 +1793,59 @@ export function treeScene(
       appears.set(l.id, shown);
     }
   }
+  const villaged = new Set<number>();
+  const villageScene = (l: TreeLodging, v: Village, now: number) => {
+    const [lat, lon] = [deg(l.lat), deg(l.lon)];
+    const doy = yearDay(dayAtMs(now, startDay));
+    for (const field of v.fields)
+      scene.fields.push({
+        id: `${l.camp}:${field.id}`,
+        lat,
+        lon,
+        field,
+        stage: cropStage(field.crop, doy, lat, field.offsetDays),
+      });
+    // The trees keep off the fields, as they keep off the camp.
+    for (const field of v.fields)
+      scene.clearings.push({
+        lat,
+        lon,
+        x: field.centre.x,
+        z: field.centre.z,
+        km: Math.sqrt(field.area / Math.PI) * 1.2 * LAYOUT_KM_PER_M,
+        amount: 1,
+        felling: false,
+      });
+    if (!v.herd) return;
+    const { pen, penDir } = v.herd;
+    scene.props.push({
+      id: `pen:${l.camp}`,
+      kind: 'prop-pen',
+      lat,
+      lon,
+      x: pen.x,
+      z: pen.z,
+      dirX: penDir.x,
+      dirZ: penDir.z,
+      scale: PEN_SCALE,
+    });
+    v.herd.animals.forEach((a, i) => {
+      scene.prey.push({
+        id: `herd:${l.camp}:${i}`,
+        kind: a.kind as PreyKind,
+        lat,
+        lon,
+        x: a.x,
+        z: a.z,
+        dirX: detCos(a.heading),
+        dirZ: detSin(a.heading),
+        // Grazing most of the time, head up now and then.
+        clip: Math.floor((now + a.phase) / HERD_LOOK_MS + i) % 3 === 0 ? 'idle' : 'graze',
+        clipMs: now + a.phase,
+        visibility: 1,
+      });
+    });
+  };
   for (const l of chunk.lodgings) {
     const shown = appears.get(l.id)!;
     const gone = l.gone === NEVER ? Infinity : at(l.gone);
@@ -1692,6 +1879,12 @@ export function treeScene(
             ? 1
             : Math.min(1, (ms - shown) / BUILD_MS),
     });
+    // A Neolithic camp's fields, herd and pen stand as long as one of its houses does (section 8.5).
+    if (((isProfile(l.culture) && l.fieldLand) || l.herding) && !villaged.has(l.camp)) {
+      villaged.add(l.camp);
+      const v = villageOf(l.camp);
+      if (v) villageScene(l, v, ms);
+    }
   }
   for (const p of places.values()) {
     if (ms >= p.from && ms < p.to && !scene.hearths.some((h) => h.camp === p.camp)) {
@@ -2739,6 +2932,74 @@ export function treeScene(
     return Math.floor((t + (hash32(id, 73) % TURN_MS)) / TURN_MS);
   }
 
+  /** The village of a camp (section 8.5), worked out once. */
+  function villageOf(camp: number): Village | undefined {
+    let v = memo.villages.get(camp);
+    if (v === undefined) {
+      v = buildVillage(chunk, camp);
+      memo.villages.set(camp, v);
+    }
+    return v ?? undefined;
+  }
+
+  /** The field a figure works in its `k`-th turn, and where in it. */
+  function fieldSpot(st: Stay, k: number): { field: Field; at: Pt; face: Pt } | undefined {
+    const v = villageOf(st.home.camp);
+    if (!v?.fields.length) return undefined;
+    const field = v.fields[hash32(st.f.id, k, 243) % v.fields.length]!;
+    // Somewhere in the field's middle third, in the furrow's line.
+    const r = 0.5 * Math.sqrt(field.area / Math.PI) * hash01(st.f.id, k, 245);
+    const a = hash01(st.f.id, k, 247) * 2 * Math.PI;
+    let at = { x: field.centre.x + r * detCos(a), z: field.centre.z + r * detSin(a) };
+    if (!pointInPolygon(field.outline, at.x, at.z)) at = field.centre;
+    const face = {
+      x: at.x + 2 * detCos(field.furrowAngle),
+      z: at.z + 2 * detSin(field.furrowAngle),
+    };
+    return { field, at, face };
+  }
+
+  /**
+   * The Neolithic work a grown-up's role gives it in its `k`-th turn, in the season of the
+   * field it would work (section 8.5), or undefined for the turn's usual outing.
+   */
+  function farmOuting(st: Stay, k: number, turnStart: number): Outing | undefined {
+    const profile = st.home.culture;
+    if (!isProfile(profile) || st.look === 'child') return undefined;
+    if (hash01(st.f.id, k, 241) >= FARM_WORK_SHARE) return undefined;
+    switch (roleOf(profile, st.f.id)) {
+      case 'farmer':
+      case 'reaper': {
+        const w = fieldSpot(st, k);
+        if (!w) return undefined;
+        const stage = cropStage(
+          w.field.crop,
+          yearDay(dayAtMs(turnStart, startDay)),
+          deg(st.home.lat),
+          w.field.offsetDays,
+        );
+        const reaper = roleOf(profile, st.f.id) === 'reaper';
+        if (stage >= 0.95) return 'thresh';
+        if (stage >= 0.75) return 'reap';
+        if (stage >= 0.5) return undefined;
+        if (reaper) return undefined;
+        return stage < 0.05 ? (hash01(st.f.id, k, 249) < 0.5 ? 'sow' : 'till') : 'till';
+      }
+      case 'herder':
+        return villageOf(st.home.camp)?.herd?.animals.some((a) => MILKED.has(a.kind))
+          ? 'milk'
+          : undefined;
+      case 'potter':
+        return 'shape';
+      case 'weaver':
+        return 'spin';
+      case 'grinder':
+        return 'grind';
+      default:
+        return undefined;
+    }
+  }
+
   /**
    * What a figure goes out to do in its `k`-th turn on its own, as far as its gap has land
    * (section 8.1): a gathering or a stroll with its legs, a hunt (planned as a camp event
@@ -2754,7 +3015,7 @@ export function treeScene(
       ? 'hunt'
       : huntHeld(st, turnStart)
         ? 'rest'
-        : outingOf(st.f.id, st.look, k);
+        : (farmOuting(st, k, turnStart) ?? outingOf(st.f.id, st.look, k));
     const own = !plain && planned !== 'hunt' ? huntOf(st, k - 1) : undefined;
     const roast = !!own && own.pole && killAt(st, turnStart) === own;
     const outing = roast ? 'cook' : planned;
@@ -2855,6 +3116,51 @@ export function treeScene(
         .go(behind, 'carry')
         .stay(trip.t + HANG_HIDE_MS, 'work', rack)
         .go(side)
+        .go(st.spot);
+    } else if (go === 'till' || go === 'sow' || go === 'reap') {
+      // Out to the field, work in it, and for the reaper a sheaf carried in to the threshing floor.
+      const w = fieldSpot(st, k);
+      if (!w || Math.sqrt(w.at.x ** 2 + w.at.z ** 2) > MAX_OUTING_M - 2) return { go: 'rest' };
+      trip.go(w.at).stay(trip.t + FIELD_WORK_MS, go, w.face);
+      if (go === 'reap') {
+        const floor = outingPoint(st.s, camp, 8);
+        trip
+          .go(floor, 'carry')
+          .stay(trip.t + THRESH_MS, 'thresh', { x: floor.x * 2, z: floor.z * 2 });
+      }
+      trip.go(st.spot);
+    } else if (go === 'thresh') {
+      // The threshing floor between the lodgings and the fire.
+      const floor = outingPoint(st.s, camp, 8);
+      trip
+        .go(floor, 'carry')
+        .stay(trip.t + THRESH_MS, 'thresh', { x: floor.x * 2, z: floor.z * 2 })
+        .go(st.spot);
+    } else if (go === 'milk') {
+      const animals = villageOf(camp)?.herd?.animals.filter((a) => MILKED.has(a.kind));
+      if (!animals?.length) return { go: 'rest' };
+      const a = animals[hash32(st.f.id, k, 251) % animals.length]!;
+      // Beside the animal, on the side towards the camp.
+      const d = Math.sqrt(a.x ** 2 + a.z ** 2);
+      const by = { x: a.x - (a.x / d) * 1.6, z: a.z - (a.z / d) * 1.6 };
+      trip
+        .go(by)
+        .stay(trip.t + MILK_MS, 'milk', { x: a.x, z: a.z })
+        .go(st.spot);
+    } else if (go === 'grind' || go === 'shape' || go === 'spin') {
+      // Beside its own lodging, to one side of the door.
+      const door = doorOf(st.home);
+      const r = Math.sqrt(door.x ** 2 + door.z ** 2);
+      const side = 2.2;
+      const by = { x: door.x - (door.z / r) * side, z: door.z + (door.x / r) * side };
+      const lodging = lodgingSpot(st.home);
+      const prop = go === 'grind' ? 'prop-quern' : go === 'shape' ? 'prop-pot-large' : undefined;
+      const face = prop
+        ? { x: by.x + (lodging.x - by.x) * 0.12, z: by.z + (lodging.z - by.z) * 0.12 }
+        : lodging;
+      trip
+        .go(by)
+        .stay(trip.t + (go === 'spin' ? SPIN_MS : GRIND_MS), go, face, prop)
         .go(st.spot);
     } else if (go === 'crack') {
       trip.stay(trip.t + CRACK_MS, 'crack', { x: 0, z: 0 });
@@ -3843,6 +4149,21 @@ export function treeScene(
       : p.dirX || p.dirZ
         ? { dirX: p.dirX, dirZ: p.dirZ }
         : towards(p.x, p.z, 0, 0);
+    if (
+      leg.prop &&
+      leg.prop !== 'prop-spit' &&
+      leg.face &&
+      !scene.props.some((q) => q.id === `${leg.prop}:${f.id}`)
+    )
+      scene.props.push({
+        id: `${leg.prop}:${f.id}`,
+        kind: leg.prop,
+        lat: base.lat,
+        lon: base.lon,
+        x: leg.face.x,
+        z: leg.face.z,
+        ...towards(leg.face.x, leg.face.z, p.x, p.z),
+      });
     if (leg.prop === 'prop-spit' && !scene.props.some((q) => q.id === `spit:${home.camp}`))
       scene.props.push({
         id: `spit:${home.camp}`,

@@ -39,8 +39,9 @@ async function main(args: string[]): Promise<void> {
   const wildlife = buildWildlifeMasks(ctx, map, drawn);
   const climate = buildClimate(ctx, map);
   const { lens, widthAt } = buildLensStage(ctx);
-  const humankind = buildHumankind(ctx, map, climate, drawn, widthAt);
+  // The farming spread first: the tree gives camps their Neolithic culture from it (humankind.md section 8.5).
   const farming = buildFarming(ctx, map, climate);
+  const humankind = buildHumankind(ctx, map, climate, drawn, widthAt);
   const events = [
     ...humankind.events,
     ...farmingEvents(readFileSync(join(ROOT, 'data/curated/neolithic.json'), 'utf8')),

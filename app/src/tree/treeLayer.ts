@@ -4,6 +4,8 @@
 // vignette stage: one drawn size at every zoom, upright on the ground whatever
 // the camera does. It only draws; the scene decides everything.
 
+import { FieldGround } from './fieldGround.ts';
+import { CropLayer } from './cropLayer.ts';
 import { signsAt, type SignEvent } from '../world/eventSigns.ts';
 import * as THREE from 'three';
 import type { ContentLoader } from '../content/loader.ts';
@@ -46,6 +48,7 @@ import { animalLoop, animateAnimal } from '../../../assets/src/clips.ts';
 import type { Model } from '../../../assets/src/kit.ts';
 import { buildSteps, flickerHearth, lightHearth, setBuilt } from '../../../assets/src/shelters.ts';
 import { ClipBatches } from './clipBatches.ts';
+import { FarmingGrid, setFarmingGrid } from '../world/farmingOnset.ts';
 import type { SceneMessage } from './sceneWorker.ts';
 import { PosedBatches } from './posedBatches.ts';
 import type { SurfaceSource } from './surface.ts';
@@ -80,10 +83,24 @@ interface SceneAnswer {
   scene?: TreeScene;
 }
 
+let farmingBytes: Uint8Array | undefined;
+const sceneWorkers = new Set<Worker>();
+
+/** Sets the farming spread grid for the scenes computed here and in the scene workers. */
+export function setTreeFarming(bytes: Uint8Array): void {
+  farmingBytes = bytes;
+  setFarmingGrid(new FarmingGrid(bytes));
+  for (const w of sceneWorkers) w.postMessage({ type: 'farming', bytes } satisfies SceneMessage);
+}
+
 /** The camp scene worker, where the browser has workers; undefined in tests under Node. */
 function startSceneWorker(answer: (a: SceneAnswer) => void): Worker | undefined {
   if (typeof Worker === 'undefined') return undefined;
   const worker = new Worker(new URL('./sceneWorker.ts', import.meta.url), { type: 'module' });
+  // The farming grid goes first, so no scene is computed without it (farming-spread.md section 9.4).
+  if (farmingBytes)
+    worker.postMessage({ type: 'farming', bytes: farmingBytes } satisfies SceneMessage);
+  sceneWorkers.add(worker);
   worker.onmessage = (e: MessageEvent<SceneAnswer>) => answer(e.data);
   return worker;
 }
@@ -154,6 +171,8 @@ export class TreeLayer {
     this.loader = loader;
     this.surface = surface;
     this.ground = new CampGround(surface, CAMP_CLEARING_KM * 0.6);
+    this.fieldGround = new FieldGround(surface);
+    this.crops = new CropLayer(surface);
     this.walls = new CaveWalls(
       (d) => surface.surfaceKm(d),
       () => surface.seaKm?.() ?? -Infinity,
@@ -165,6 +184,8 @@ export class TreeLayer {
       this.clips.group,
       this.preyClips.group,
       this.ground.mesh,
+      this.fieldGround.mesh,
+      this.crops.group,
     );
   }
 
@@ -234,6 +255,9 @@ export class TreeLayer {
   private batches = new PosedBatches();
   /** The lighter ground under the camps seen from orbit (humankind.md section 8.1). */
   private ground: CampGround;
+  /** The tilled patches and the crops of the villages' fields (neolithic/fields-and-crops.md). */
+  private fieldGround: FieldGround;
+  private crops: CropLayer;
   /** The caves' paintings, pictures on their rock faces (cavePaintings.ts). */
   private paintings = new CavePaintings();
   /** The caves' rock faces, smooth walls along their cuts (caveWalls.ts). */
@@ -598,6 +622,19 @@ export class TreeLayer {
         lightHearth(m, h.lit);
       });
     }
+    this.fieldGround.begin();
+    this.crops.begin();
+    for (const f of scene.fields) {
+      if (!this.place(at, { lat: f.lat, lon: f.lon, x: 0, z: 0, dirX: 1, dirZ: 0 }, false))
+        continue;
+      this.fieldGround.add(at.position, f.field, f.stage, { x: 0, z: 0 });
+      this.crops.add(at.position, f.field, f.stage);
+    }
+    this.fieldGround.end(camera.position.length(), this.groundVersion);
+    this.crops.end(camera.position.length(), this.groundVersion);
+    // park() takes hidden things out of the group; the field layers come back when shown.
+    for (const o of [this.fieldGround.mesh, this.crops.group])
+      if (o.visible && o.parent !== this.group) this.group.add(o);
     this.batches.end();
     this.paintings.end();
     this.clips.end();
