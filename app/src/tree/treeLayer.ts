@@ -89,6 +89,14 @@ function startSceneWorker(answer: (a: SceneAnswer) => void): Worker | undefined 
 /** Half sizes of what wild animals keep clear of, in life-size metres (wildlife.md section 4). */
 const FIGURE_HALF_M = 0.4;
 const PREY_HALF_M = 1.3;
+/** How far, in layout metres, a hunted animal's ground is looked up round its middle: a mammoth is about 15 layout metres long, other prey about 6. */
+const preySpread = (kind: string) => (kind.includes('mammoth') ? 7 : 3);
+const SPREAD_STEPS: [number, number][] = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+];
 const LODGING_HALF_M = 1.4;
 /**
  * Levels of detail by size on screen (milestone 2 section 5.5): a figure (FIGURE_M tall)
@@ -512,7 +520,7 @@ export class TreeLayer {
       if (p.visibility <= 0) continue;
       const batch = p.visibility >= 1 ? treePreyBatch(p.kind) : undefined;
       if (batch) {
-        if (!this.place(at, p, false)) continue;
+        if (!this.place(at, p, false, preySpread(p.kind))) continue;
         // Hung from the pole, it hangs at the pole's height, not the ground's under it.
         if (p.clip === 'hung') {
           const [back, front] = this.poleEnds(p);
@@ -530,7 +538,7 @@ export class TreeLayer {
       fading.add(p.id);
       if (!this.prey.has(p.id)) this.prey.set(p.id, buildTreePrey(p.kind));
       const animal = this.prey.get(p.id);
-      if (!animal || !this.place(animal.root, p)) continue;
+      if (!animal || !this.place(animal.root, p, true, preySpread(p.kind))) continue;
       // Its room grows as it fades in, so wild animals near it make way smoothly instead of
       // jumping aside the moment it appears (wildlife.md section 5).
       this.block(animal.root, PREY_HALF_M * p.visibility);
@@ -800,7 +808,7 @@ export class TreeLayer {
    * facing along its direction, whatever the camera does.
    * Returns false, and hides it, when it is on the far side of the globe.
    */
-  private place(root: THREE.Object3D, p: Placed, attach = true): boolean {
+  private place(root: THREE.Object3D, p: Placed, attach = true, spread = 0): boolean {
     const { up, east, north, dir } = this;
     // The drawn up of a camp's place, and the ground under a spot of it, are kept: the
     // history lens is fixed and the ground does not move, while the lookups are not cheap.
@@ -858,6 +866,26 @@ export class TreeLayer {
       if (this.grounds.size > 20_000) this.grounds.clear();
       surface = this.surface.surfaceKm([dir.x, dir.y, dir.z]);
       this.grounds.set(spotKey, surface);
+    }
+    // A big animal is many kilometres long on the drawn globe, so on a slope its middle's
+    // ground would sink an end: it stands on the highest ground under it (issue 172).
+    if (spread > 0) {
+      const key = `${spotKey},${spread}`;
+      let top = this.grounds.get(key);
+      if (top === undefined) {
+        top = surface;
+        northEast(dir, this.n2, this.e2);
+        for (const [dx, dz] of SPREAD_STEPS) {
+          this.v1
+            .copy(dir)
+            .addScaledVector(this.e2, (dx * spread * LAYOUT_KM_PER_M) / EARTH_RADIUS_KM)
+            .addScaledVector(this.n2, (dz * spread * LAYOUT_KM_PER_M) / EARTH_RADIUS_KM)
+            .normalize();
+          top = Math.max(top, this.surface.surfaceKm([this.v1.x, this.v1.y, this.v1.z]));
+        }
+        this.grounds.set(key, top);
+      }
+      surface = top;
     }
     root.position.copy(dir).multiplyScalar(EARTH_RADIUS_KM + surface - this.cutAt(dir, surface));
     const toCam = this.v1.copy(this.camera!.position).sub(root.position);
