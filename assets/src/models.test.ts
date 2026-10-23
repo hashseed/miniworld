@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import manifest from '../../data/assets/manifest.json';
 import { ANIMALS, PREHISTORIC_ANIMALS, buildAnimal } from './animals.ts';
+import { CROPS, RIPE_STAGE, cropGeometry } from './crops.ts';
 import { MODELS, geometryHash } from './approval.ts';
 import {
   BLEND_SECONDS,
@@ -187,6 +188,7 @@ describe('clips', () => {
     'bound',
     'hung',
     'fall',
+    'graze',
   ];
   it.each(ANIMALS)('%s repeats as animalLoop says', (id) => {
     const m = buildAnimal(id);
@@ -371,10 +373,31 @@ describe('asset manifest', () => {
     const waiting = Object.keys(MODELS).filter((id) => entries.get(id)?.status !== 'approved');
     expect(
       waiting.every((id) =>
-        /^(figure-african-stone-age-man|figure-(west-asia-hunter|east-asia-hunter|first-americans)-(man|woman|child)|prop-(carry-pole|spit|canoe|cave-wall-sulawesi|cave-wall-chauvet|cave-wall-lascaux|burial|gobekli-ring|bone-hut|bone-pile|sign-wood)|shelter-small-hut)$/.test(
+        /^(figure-african-stone-age-man|figure-(west-asia-hunter|east-asia-hunter|first-americans|pre-pottery-neolithic-levant|anatolian-farmer|lbk-farmer|indus-farmer|nile-neolithic|yellow-river-millet-farmer|yangtze-rice-farmer|mesoamerican-farmer|andean-farmer|new-guinea-highland-farmer)-(man|woman|child)|prop-(sickle|digging-stick|hoe|ard|yoke|quern|basket|pot-small|pot-large|pot-jar|kiln|granary|silo-pit|pen|well|carry-pole|spit|canoe|cave-wall-sulawesi|cave-wall-chauvet|cave-wall-lascaux|burial|gobekli-ring|bone-hut|bone-pile|sign-wood)|crop-[a-z]+|shelter-small-hut|shelter-(pre-pottery-levant-house|anatolian-house|anatolian-house-joined|lbk-longhouse|mehrgarh-house|egyptian-neolithic-hut|yangtze-stilt-house|yellow-river-pit-house|mesoamerican-hut|andean-stone-house|highland-new-guinea-house)|animal-(sheep|goat|cattle|pig|dog|zebu|water-buffalo|llama|guinea-pig))$/.test(
           id,
         ),
       ),
     ).toBe(true);
+  });
+});
+
+describe('crop tufts', () => {
+  const triangles = (g: THREE.BufferGeometry) => g.getAttribute('position').count / 3;
+  it.each(CROPS)('%s builds the same every time and stays within budget at every stage', (id) => {
+    for (const stage of [0, 0.1, 0.25, 0.4, 0.5, 0.6, 0.75, 0.9, 1]) {
+      const a = cropGeometry(id, stage);
+      const b = cropGeometry(id, stage);
+      expect(Array.from(a.getAttribute('position').array)).toEqual(
+        Array.from(b.getAttribute('position').array),
+      );
+      expect(triangles(a)).toBeLessThanOrEqual(120);
+      expect(triangles(a)).toBeGreaterThan(0);
+      // Plants stand on the ground and stay about a unit around.
+      a.computeBoundingBox();
+      expect(a.boundingBox!.min.y).toBeGreaterThanOrEqual(-0.03);
+      expect(a.boundingBox!.max.y).toBeLessThan(2.2);
+    }
+    expect(triangles(cropGeometry(id, 0))).toBeLessThan(20);
+    expect(triangles(cropGeometry(id, RIPE_STAGE))).toBeGreaterThanOrEqual(40);
   });
 });

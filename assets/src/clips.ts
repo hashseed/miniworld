@@ -41,7 +41,9 @@ export type Clip =
   // Sitting by the fire (humankind.md section 8.1).
   | 'sit'
   // Crossing the sea in a canoe (peopling.md section 6).
-  | 'paddle';
+  | 'paddle'
+  // Livestock with the head down at pasture (neolithic/livestock.md section 3).
+  | 'graze';
 
 /**
  * Height in metres of a carrying pole on the shoulders of two walking people
@@ -666,6 +668,26 @@ function extremePoint(m: Model, sign: 1 | -1): number {
   return sign * best;
 }
 
+/** Where each animal's muzzle is in its head bone's space (cached), for the graze clip. */
+const MUZZLES = new WeakMap<Model, { y: number; z: number }>();
+function muzzleOf(m: Model): { y: number; z: number } {
+  let found = MUZZLES.get(m);
+  if (!found) {
+    const head = m.bones.get('head')!;
+    const box = new THREE.Box3();
+    for (const o of head.children) {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) continue;
+      mesh.geometry.computeBoundingBox();
+      box.union(mesh.geometry.boundingBox!);
+    }
+    // The geometry is in the bone's space: its front end, a little above its lowest point.
+    found = { y: box.min.y + (box.max.y - box.min.y) * 0.3, z: box.max.z };
+    MUZZLES.set(m, found);
+  }
+  return found;
+}
+
 /** How an animal's clip repeats, for baking it (as PERSON_LOOPS for people). */
 export function animalLoop(m: Model, clip: Clip): { loop: number } | { once: number } {
   const stride = Math.sqrt((m.bones.get('body')!.userData.rest as THREE.Vector3).y);
@@ -854,6 +876,30 @@ export function animateAnimal(m: Model, clip: Clip, seconds: number): void {
       // Keep its lowest point on the ground as it rolls, then sink a little.
       body.position.y = rest.y;
       body.position.y += -lowestPoint(m) - f * 0.12 * rest.y;
+      break;
+    }
+    case 'graze': {
+      // Head down to the grass, chewing, lifting now and then to look round and going
+      // down again; the tail flicks. One cycle is animalLoop's default (6 strides).
+      const period = 6 * stride;
+      const u = seconds / period - Math.floor(seconds / period);
+      const up = smooth((u - 0.62) / 0.1) * (1 - smooth((u - 0.88) / 0.1));
+      // The angle that brings the muzzle to about 5 cm above the ground.
+      const head = m.bones.get('head')!;
+      const mz = muzzleOf(m);
+      const y0 = rest.y + (head.userData.rest as THREE.Vector3).y;
+      const r = Math.hypot(mz.y, mz.z);
+      const want = Math.min(1, Math.max(-1, (0.05 - y0) / r));
+      const down = Math.min(1.5, Math.max(0, Math.acos(want) - Math.atan2(mz.z, mz.y)));
+      const chew = (1 - up) * 0.04 * Math.sin((seconds / period) * TAU * 12);
+      rot(
+        'head',
+        down * (1 - 0.75 * up) + chew,
+        0.25 * up * Math.sin((seconds / period) * TAU * 3),
+      );
+      rot('tail', 0, 0.3 * Math.sin((seconds / period) * TAU * 4));
+      // The body leans forward a touch with the weight of the head.
+      body.rotation.x = 0.03 * (1 - up);
       break;
     }
     default: {

@@ -18,6 +18,13 @@ import {
 } from './kit.ts';
 import type { Profile } from './people.ts';
 import { addGobekliRing } from './gobekli.ts';
+import { TOOL_PROPS, type ToolPropId, buildToolProp, isToolProp } from './neolithicTools.ts';
+import {
+  EAST_ASIA_AMERICAS_HOUSES,
+  type EastAsiaAmericasHouseId,
+  buildEastAsiaAmericasHouse,
+} from './eastAsiaAmericasHouses.ts';
+import { NEOLITHIC_HOUSES, type NeolithicHouseId, buildNeolithicHouse } from './neolithicHouses.ts';
 
 export const SHELTERS = [
   'shelter-hide-tent',
@@ -42,6 +49,12 @@ export const SHELTERS = [
   'prop-bone-pile',
   // The sign of an event, put up before it (humankind.md section 8.4).
   'prop-sign-wood',
+  // Houses of the East Asian, American and New Guinea Neolithic (docs/spec/neolithic).
+  ...NEOLITHIC_HOUSES,
+  // Houses of the East Asian, American and New Guinea Neolithic (docs/spec/neolithic).
+  ...EAST_ASIA_AMERICAS_HOUSES,
+  // Neolithic hand tools and village props (docs/spec/neolithic/tools-and-village-props.md).
+  ...TOOL_PROPS,
 ] as const;
 export type ShelterId = (typeof SHELTERS)[number];
 
@@ -134,6 +147,11 @@ function slab(min: Vec3, max: Vec3): THREE.BufferGeometry {
 }
 
 export function buildShelter(id: ShelterId): Model {
+  if (isToolProp(id)) return buildToolProp(id as ToolPropId);
+  if ((NEOLITHIC_HOUSES as readonly string[]).includes(id))
+    return buildNeolithicHouse(id as NeolithicHouseId);
+  if ((EAST_ASIA_AMERICAS_HOUSES as readonly string[]).includes(id))
+    return buildEastAsiaAmericasHouse(id as EastAsiaAmericasHouseId);
   const mb = new ModelBuilder();
   switch (id) {
     case 'shelter-hide-tent': {

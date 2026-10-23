@@ -11,3 +11,4 @@ app/.vite/
 coverage/
 .env.local
 data/build/tree/
+assets/review/

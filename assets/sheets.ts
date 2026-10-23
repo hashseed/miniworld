@@ -10,6 +10,7 @@ const out = process.argv[2] ?? 'assets/sheets';
 const base = process.env.SHEET_URL ?? 'http://localhost:8800/asset-sheet.html';
 const sheets: [string, string][] = [
   ['people', 'sheet=people'],
+  ['people-neolithic', 'sheet=people&set=neolithic'],
   ['first-person', 'sheet=founder'],
   ['first-person-camp', 'sheet=founder-camp'],
   ['first-person-motion', 'sheet=founder-motion'],
@@ -25,11 +26,20 @@ const sheets: [string, string][] = [
   ['shelters', 'sheet=shelters'],
   ['build-grass-hut', 'sheet=build&id=shelter-grass-hut'],
   ['build-gobekli-ring', 'sheet=build&id=prop-gobekli-ring'],
+  ['crops', 'sheet=crops'],
   ['animals-large', 'sheet=animals&set=large'],
   ['animals-small', 'sheet=animals&set=small'],
-  ...['animal-mammoth', 'animal-horse', 'animal-reindeer', 'shelter-mammoth-bone-hut'].map(
-    (id): [string, string] => [id, `sheet=single&id=${id}`],
-  ),
+  ...[
+    'animal-mammoth',
+    'animal-horse',
+    'animal-reindeer',
+    'shelter-mammoth-bone-hut',
+    'shelter-yangtze-stilt-house',
+    'shelter-yellow-river-pit-house',
+    'shelter-mesoamerican-hut',
+    'shelter-andean-stone-house',
+    'shelter-highland-new-guinea-house',
+  ].map((id): [string, string] => [id, `sheet=single&id=${id}`]),
   ['turnaround-ice-age-hunter', 'sheet=turnaround&profile=ice-age-hunter'],
   ['turnaround-neanderthal', 'sheet=turnaround&profile=neanderthal'],
   ...PROFILES.map((p): [string, string] => [`camp-${p}`, `sheet=camp&profile=${p}`]),

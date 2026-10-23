@@ -16,6 +16,12 @@ import { quadruped } from './quadruped.ts';
 import { WILD_ANIMALS, buildWildAnimal, type WildAnimalId } from './wildAnimals.ts';
 import { EXTINCT_ANIMALS, buildExtinctAnimal, type ExtinctAnimalId } from './extinctAnimals.ts';
 import { SEA_ANIMALS, buildSeaAnimal, type SeaAnimalId } from './seaAnimals.ts';
+import { LIVESTOCK_ANIMALS, buildLivestock, type LivestockId } from './livestock.ts';
+import {
+  DOMESTIC_OTHER_ANIMALS,
+  buildDomesticOtherAnimal,
+  type DomesticOtherAnimalId,
+} from './domesticOtherAnimals.ts';
 
 /** The animals of the first culture profiles. */
 export const PREHISTORIC_ANIMALS = [
@@ -36,6 +42,8 @@ export const ANIMALS = [
   ...WILD_ANIMALS,
   ...EXTINCT_ANIMALS,
   ...SEA_ANIMALS,
+  ...LIVESTOCK_ANIMALS,
+  ...DOMESTIC_OTHER_ANIMALS,
 ] as const;
 export type AnimalId = (typeof ANIMALS)[number];
 
@@ -502,6 +510,10 @@ export function buildAnimal(id: AnimalId): Model {
     case 'animal-kangaroo':
       return kangaroo();
     default:
+      if ((DOMESTIC_OTHER_ANIMALS as readonly string[]).includes(id))
+        return buildDomesticOtherAnimal(id as DomesticOtherAnimalId);
+      if ((LIVESTOCK_ANIMALS as readonly string[]).includes(id))
+        return buildLivestock(id as LivestockId);
       if ((SEA_ANIMALS as readonly string[]).includes(id)) return buildSeaAnimal(id as SeaAnimalId);
       if ((EXTINCT_ANIMALS as readonly string[]).includes(id))
         return buildExtinctAnimal(id as ExtinctAnimalId);

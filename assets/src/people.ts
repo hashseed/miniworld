@@ -39,6 +39,12 @@ export type Tool =
   | 'grinding-stone'
   | 'staff'
   | 'palette'
+  // Neolithic tools (docs/spec/neolithic/people-profiles.md section 3).
+  | 'hoe'
+  | 'ard'
+  | 'pot'
+  | 'crook'
+  | 'spindle'
   | 'none';
 
 type Top = 'none' | 'wrap' | 'drape' | 'cloak' | 'tunic' | 'parka' | 'sheath';
@@ -56,6 +62,12 @@ interface ProfileLook {
   headband?: string;
   ochre?: boolean;
   boots?: boolean;
+  /** Bangles on the women's wrists (shell, ivory or jade). */
+  bangles?: string;
+  /** Every grown-up wears the hair up in a bun. */
+  bun?: boolean;
+  /** Colour of the clay pot, and of the painted band round it if any. */
+  pot?: { clay: string; band?: string };
   tools: Record<Kind, Tool>;
   /**
    * A hand axe and a hammerstone for knapping, held in the hands only while
@@ -194,6 +206,131 @@ export const LOOKS: Record<Profile, ProfileLook> = {
     trim: '#cdb98e',
     tools: { man: 'none', woman: 'basket', child: 'none' },
     egyptian: { collar: ['#2a9db0', '#e0aa2e'], tab: '#e9d9a8', band: '#2a9db0' },
+  },
+  // Farmers and herders of the Neolithic (docs/spec/neolithic/people-profiles.md section 2).
+  // Linen-coloured plant fibre and hide, flax tunics, the Natufian headband and shell beads.
+  'pre-pottery-neolithic-levant': {
+    skin: ['#94603f', '#a8714c', '#b8835a'],
+    hair: DARK_HAIR,
+    top: { man: 'tunic', woman: 'tunic', child: 'none' },
+    bottom: { man: 'kilt', woman: 'skirt', child: 'apron' },
+    hide: ['#dccfa6', '#cfc097', '#e6dab4'],
+    trim: '#8c6a3c',
+    headband: '#f2ead8',
+    tools: { man: 'sickle', woman: 'grinding-stone', child: 'basket' },
+  },
+  // Hide and woven plant-fibre kilts and tunics, red ochre lines as at Çatalhöyük.
+  'anatolian-farmer': {
+    skin: ['#a8714c', '#b8835a', '#c4936a'],
+    hair: ['#2a1d17', '#33241b', '#3b2a20', '#4a3220'],
+    top: { man: 'none', woman: 'wrap', child: 'none' },
+    bottom: { man: 'kilt', woman: 'skirt', child: 'apron' },
+    hide: ['#cbb88c', '#bfa97e', '#d6c59c'],
+    trim: '#a8442c',
+    beads: '#a9b8ae',
+    ochre: true,
+    pot: { clay: '#b9744a', band: '#7a2f1e' },
+    tools: { man: 'hoe', woman: 'pot', child: 'basket' },
+  },
+  // Linen tunics, leg wraps, Spondylus coral shell, dark incised pots, shoe-last adze hoes.
+  'lbk-farmer': {
+    skin: ['#d1a07a', '#c48e66', '#b8835a', '#cfa07c'],
+    hair: ['#3b2a20', '#5c3a22', '#2a1d17', '#6a4a30'],
+    top: { man: 'tunic', woman: 'drape', child: 'tunic' },
+    bottom: { man: 'leg-wraps', woman: 'skirt', child: 'kilt' },
+    hide: ['#cdbf9a', '#c2b48c', '#d8cba6'],
+    trim: '#7a5a3a',
+    beads: '#e9b8a6',
+    bangles: '#e0745e',
+    pot: { clay: '#5e4636', band: '#3a2a20' },
+    tools: { man: 'hoe', woman: 'pot', child: 'basket' },
+  },
+  // Cotton and plant fibre, turquoise beads, shell bangles (Mehrgarh).
+  'indus-farmer': {
+    skin: ['#8a5a3b', '#966342', '#a06c48'],
+    hair: ['#141010', '#1a1412', '#221a16'],
+    top: { man: 'none', woman: 'wrap', child: 'none' },
+    bottom: { man: 'kilt', woman: 'skirt', child: 'apron' },
+    hide: ['#e6dcc2', '#d8cca8', '#efe6cf'],
+    trim: '#a8442c',
+    beads: '#2fa7a0',
+    bangles: '#f4eddc',
+    pot: { clay: '#c47a4a', band: '#3a2a20' },
+    tools: { man: 'sickle', woman: 'grinding-stone', child: 'basket' },
+  },
+  // Linen, ivory bangles, malachite beads, black-topped pots; no wigs yet.
+  'nile-neolithic': {
+    skin: ['#7a4e33', '#8d5a3b', '#94603f'],
+    hair: ['#141010', '#1a1412'],
+    top: { man: 'none', woman: 'wrap', child: 'none' },
+    bottom: { man: 'kilt', woman: 'skirt', child: 'apron' },
+    hide: ['#efe6cf', '#e6dcbf', '#f6efdc'],
+    trim: '#7a5a3a',
+    beads: '#3f9a78',
+    bangles: '#f0e8d2',
+    pot: { clay: '#8a5436', band: '#241c18' },
+    tools: { man: 'sickle', woman: 'pot', child: 'basket' },
+  },
+  // Hemp-coloured tunics, hair in a bun, red Yangshao pots with a dark painted band.
+  'yellow-river-millet-farmer': {
+    skin: ['#a8714c', '#b8835a', '#c4936a'],
+    hair: ['#141010', '#1a1412', '#221a16'],
+    top: { man: 'tunic', woman: 'drape', child: 'tunic' },
+    bottom: { man: 'kilt', woman: 'skirt', child: 'kilt' },
+    hide: ['#b9a47c', '#a8936a', '#c7b48c'],
+    trim: '#5a4a32',
+    beads: '#e9e4d2',
+    bun: true,
+    pot: { clay: '#b4552e', band: '#241c18' },
+    tools: { man: 'hoe', woman: 'pot', child: 'basket' },
+  },
+  // Ramie and hemp wraps, bare shoulders in the wet heat, green jade, dark plant-tempered pots.
+  'yangtze-rice-farmer': {
+    skin: ['#a8714c', '#94603f', '#b8835a'],
+    hair: ['#141010', '#1a1412', '#221a16'],
+    top: { man: 'none', woman: 'wrap', child: 'none' },
+    bottom: { man: 'kilt', woman: 'skirt', child: 'apron' },
+    hide: ['#cfc7a2', '#c0b88f', '#d8d1b0'],
+    trim: '#6e7a3a',
+    beads: '#7fb89a',
+    bangles: '#7fb89a',
+    pot: { clay: '#3a3430' },
+    tools: { man: 'hoe', woman: 'pot', child: 'basket' },
+  },
+  // Agave and cotton breechclouts and wrapped skirts, jade-green beads, digging stick and metate.
+  'mesoamerican-farmer': {
+    skin: ['#8d5a3b', '#9c6845', '#a8714c'],
+    hair: ['#141010', '#1a1412', '#221a16'],
+    top: { man: 'none', woman: 'wrap', child: 'none' },
+    bottom: { man: 'apron', woman: 'skirt', child: 'apron' },
+    hide: ['#d9c9a0', '#c9b685', '#e4d6ae'],
+    trim: '#2f8f6a',
+    beads: '#2f8f6a',
+    tools: { man: 'digging-stick', woman: 'grinding-stone', child: 'basket' },
+  },
+  // Natural cream and brown cotton with indigo-blue trim (Huaca Prieta).
+  'andean-farmer': {
+    skin: ['#8d5a3b', '#9c6845', '#a8714c'],
+    hair: ['#141010', '#1a1412', '#221a16'],
+    top: { man: 'tunic', woman: 'tunic', child: 'tunic' },
+    bottom: { man: 'kilt', woman: 'skirt', child: 'kilt' },
+    hide: ['#e0d4b4', '#c9a97a', '#d6c49a'],
+    trim: '#2a4f8a',
+    headband: '#2a4f8a',
+    beads: '#efe6d0',
+    tools: { man: 'hoe', woman: 'basket', child: 'basket' },
+  },
+  // Bark-cloth and fibre aprons, bare chests, leaf-green headband, shell bead string.
+  'new-guinea-highland-farmer': {
+    skin: ['#5a3a26', '#6b4430', '#7a4e33'],
+    hair: ['#1a1412', '#221a16', '#2a1d17'],
+    top: { man: 'none', woman: 'none', child: 'none' },
+    bottom: { man: 'apron', woman: 'skirt', child: 'apron' },
+    hide: ['#8a6a42', '#9c7a4a', '#7a5c38'],
+    trim: '#4f6a2e',
+    headband: '#4f6a2e',
+    beads: '#f4ecd8',
+    tools: { man: 'digging-stick', woman: 'basket', child: 'none' },
   },
 };
 
@@ -444,7 +581,7 @@ export function buildPerson(o: PersonOptions): Model {
         hair,
         'head',
       );
-    if (o.kind === 'woman' && (founder || v % 3 === 1))
+    if ((o.kind === 'woman' && (founder || v % 3 === 1)) || (look.bun && o.kind !== 'child'))
       mb.add(
         blob([0, headY + hr * 0.75, -hr * 0.45], [hr * 0.4, hr * 0.36, hr * 0.36], 6),
         hair,
@@ -494,6 +631,15 @@ export function buildPerson(o: PersonOptions): Model {
     'armLowerL',
     'armLowerR',
   );
+
+  if (look.bangles && o.kind === 'woman') {
+    bothSides(
+      torusRing([sx + 0.035, wrist + 0.1, 0], b.limb * 1.0, b.limb * 0.4, 'y'),
+      look.bangles,
+      'armLowerL',
+      'armLowerR',
+    );
+  }
 
   // Legs and feet.
   const legColour = bottom === 'trousers' ? dark : bottom === 'leg-wraps' ? hide : skin;
@@ -734,7 +880,7 @@ export function buildPerson(o: PersonOptions): Model {
 
   // Tool in the right hand.
   const tool = o.tool ?? (founder ? 'spear' : look.tools[o.kind]);
-  addTool(mb, tool, [-(sx + 0.04), wrist, 0.03], o.kind === 'child' ? 0.75 : 1);
+  addTool(mb, tool, [-(sx + 0.04), wrist, 0.03], o.kind === 'child' ? 0.75 : 1, look.pot);
 
   if (look.egyptian) {
     // A limestone block carried on the shoulder, for building the pyramid.
@@ -876,7 +1022,13 @@ const FLINT = '#6f7378';
 /** A freshly knapped flint, light enough to see in the hand. */
 const FLINT_LIGHT = '#b9b3a6';
 
-function addTool(mb: ModelBuilder, tool: Tool, hand: Vec3, s: number): void {
+function addTool(
+  mb: ModelBuilder,
+  tool: Tool,
+  hand: Vec3,
+  s: number,
+  pot: { clay: string; band?: string } = { clay: '#b9744a' },
+): void {
   const [x, y, z] = hand;
   const bone = 'tool';
   const at = (dy: number): Vec3 => [x, y + dy * s, z];
@@ -996,6 +1148,69 @@ function addTool(mb: ModelBuilder, tool: Tool, hand: Vec3, s: number): void {
       break;
     case 'grinding-stone':
       mb.add(blob([x, y - 0.02, z + 0.1], [0.08, 0.05, 0.11], 6), '#8e8579', bone);
+      break;
+    case 'hoe':
+      // A haft with a stone or bone blade lashed on at a right angle, pointing forward.
+      mb.add(rod(at(-0.6), at(0.8), 0.024 * s), WOOD, bone);
+      mb.add(blob([x, y + 0.8 * s, z + 0.09 * s], [0.035, 0.05 * s, 0.1 * s], 5), '#a89f8c', bone);
+      break;
+    case 'ard':
+      // The handle and beam of an ard: a stilt held up, the beam running forward and down to a share.
+      mb.add(rod(at(-0.25), at(0.5), 0.026 * s), WOOD, bone);
+      mb.add(rod([x, y + 0.3 * s, z], [x, y - 0.35 * s, z + 0.7 * s], 0.026 * s), WOOD, bone);
+      mb.add(
+        cone([x, y - 0.35 * s, z + 0.7 * s], [x, y - 0.5 * s, z + 0.82 * s], 0.04 * s, 4),
+        STONE,
+        bone,
+      );
+      break;
+    case 'pot': {
+      // A round-bellied clay pot held at the hip, with a painted band round the shoulder.
+      const g = lathe(
+        [
+          [0.0, 0],
+          [0.1, 0.01],
+          [0.17, 0.09],
+          [0.19, 0.19],
+          [0.14, 0.27],
+          [0.15, 0.31],
+        ],
+        [0, 0, 0],
+        9,
+      );
+      g.scale(s, s, s);
+      g.translate(x, y - 0.3 * s, z + 0.1);
+      mb.add(g, pot.clay, bone);
+      if (pot.band)
+        mb.add(
+          torusRing([x, y - 0.3 * s + 0.2 * s, z + 0.1], 0.186 * s, 0.022, 'y'),
+          pot.band,
+          bone,
+        );
+      break;
+    }
+    case 'crook':
+      // A herder's stick with a curved top.
+      mb.add(rod(at(-0.75), at(0.95), 0.024 * s), WOOD, bone);
+      mb.add(
+        horn(
+          at(0.95),
+          [x, y + 1.2 * s, z + 0.02],
+          [x, y + 1.05 * s, z + 0.22],
+          0.024 * s,
+          0.02 * s,
+          6,
+          5,
+        ),
+        WOOD,
+        bone,
+      );
+      break;
+    case 'spindle':
+      // A drop spindle with a stone whorl and a ball of thread.
+      mb.add(rod([x, y - 0.1, z + 0.06], [x, y + 0.3, z + 0.1], 0.011), WOOD, bone);
+      mb.add(blob([x, y - 0.02, z + 0.07], [0.05, 0.018, 0.05], 6), '#8e8579', bone);
+      mb.add(blob([x, y + 0.2, z + 0.09], [0.05, 0.06, 0.05], 5), '#efe6d2', bone);
       break;
     case 'staff':
       // An overseer's long staff, taller than he is.

@@ -4,7 +4,7 @@
 
 import * as THREE from 'three';
 import { cameraLight } from '../../app/src/globe/sky.ts';
-import { ModelBuilder, blob, lightUniforms, type Model } from './kit.ts';
+import { ModelBuilder, blob, celMaterial, lightUniforms, type Model } from './kit.ts';
 import { PROFILES, buildPerson, posePerson, type Kind, type Pose } from './people.ts';
 import {
   SHELTERS,
@@ -15,7 +15,9 @@ import {
   setBuilt,
 } from './shelters.ts';
 import { ANIMALS, PREHISTORIC_ANIMALS, buildAnimal, type AnimalId } from './animals.ts';
+import { CROPS, STAGES, cropGeometry } from './crops.ts';
 import { buildGobekliTepe } from './gobekli.ts';
+import { TOOL_PROPS } from './neolithicTools.ts';
 import { WILD_ANIMALS } from './wildAnimals.ts';
 import { EXTINCT_ANIMALS } from './extinctAnimals.ts';
 import {
@@ -75,13 +77,27 @@ const GROUND: Record<string, string> = {
   'west-asia-hunter': '#c8b37c',
   'east-asia-hunter': '#b9c08e',
   'first-americans': '#a9b86a',
+  'pre-pottery-neolithic-levant': '#c4b87a',
+  'anatolian-farmer': '#c9b87e',
+  'lbk-farmer': '#a9b872',
+  'indus-farmer': '#cdbb82',
+  'nile-neolithic': '#d6c58e',
+  'yellow-river-millet-farmer': '#c8b87a',
+  'yangtze-rice-farmer': '#9fb872',
+  'mesoamerican-farmer': '#b2b46c',
+  'andean-farmer': '#c2b08a',
+  'new-guinea-highland-farmer': '#8fb068',
 };
 
 const KINDS: Kind[] = ['man', 'woman', 'child'];
 
 function peopleSheet(): void {
   const poses: Pose[] = ['stand', 'point', 'carry'];
-  PROFILES.forEach((p, i) => {
+  // The Neolithic profiles have their own sheet (docs/spec/neolithic/people-profiles.md).
+  const first = PROFILES.indexOf('pre-pottery-neolithic-levant');
+  const shown =
+    params.get('set') === 'neolithic' ? PROFILES.slice(first) : PROFILES.slice(0, first);
+  shown.forEach((p, i) => {
     const col = i % 4;
     const row = Math.floor(i / 4);
     const x = (col - 1.5) * 3.4 + (row ? 1.7 : 0);
@@ -94,8 +110,14 @@ function peopleSheet(): void {
     });
     labels.push({ text: p, at: new THREE.Vector3(x, 2.35, z - 0.3) });
   });
-  camera.position.set(0, 7.5, 15.5);
-  camera.lookAt(0, 0.2, -0.2);
+  if (params.get('set') === 'neolithic') {
+    // Three rows of four: pull back and aim at the middle of the block.
+    camera.position.set(0.85, 12, 21);
+    camera.lookAt(0.85, 0.2, 1.8);
+  } else {
+    camera.position.set(0, 7.5, 15.5);
+    camera.lookAt(0, 0.2, -0.2);
+  }
 }
 
 function turnaroundSheet(): void {
@@ -160,6 +182,39 @@ function sheltersSheet(): void {
   place(ref, -3.7 - 2.6, -3.75 + 2.4, 0.3);
   camera.position.set(0, 17, 33);
   camera.lookAt(0, 0.2, 0);
+}
+
+/** Crops of fields-and-crops.md section 1: 13 crops (rows) by 5 stages (columns), a 2 x 2 patch each. */
+function cropsSheet(): void {
+  CROPS.forEach((id, row) => {
+    STAGES.forEach((stage, col) => {
+      const g = cropGeometry(id, stage);
+      const tris = g.getAttribute('position').count / 3;
+      for (let k = 0; k < 4; k++) {
+        const mesh = new THREE.Mesh(g, celMaterial());
+        mesh.position.set(
+          (col - 2) * 3.2 + (k % 2) * 1.1 - 0.55,
+          0,
+          (row - 6) * 2.2 + Math.floor(k / 2) * 1.1 - 0.55,
+        );
+        mesh.rotation.y = k * 1.7;
+        scene.add(mesh);
+      }
+      triangles += tris * 4;
+      if (row === 0) {
+        labels.push({
+          text: 'stage ' + stage,
+          at: new THREE.Vector3((col - 2) * 3.2, 0.2, -6 * 2.2 - 1.3),
+        });
+      }
+      if (col === 0) {
+        labels.push({ text: id, at: new THREE.Vector3(-2 * 3.2 - 2.1, 0.3, (row - 6) * 2.2) });
+      }
+    });
+  });
+  ground(0, 0, 17, '#b8a070');
+  camera.position.set(0, 34, 30);
+  camera.lookAt(0, 0.5, 0.5);
 }
 
 function animalsSheet(): void {
@@ -246,6 +301,42 @@ function singleSheet(): void {
   labels.push({ text: id, at: new THREE.Vector3(0, size.y * 1.15, -span * 0.4) });
   camera.position.set(0, span * 1.1, span * 3.6);
   camera.lookAt(0, size.y * 0.4, 0);
+}
+
+/**
+ * Neolithic hand tools and village props (docs/spec/neolithic/tools-and-village-props.md): with
+ * `id`, one prop from two sides close up; without, all of them in rows beside a man.
+ */
+function toolsSheet(): void {
+  const one = params.get('id');
+  const ids = one ? [one] : [...TOOL_PROPS];
+  const ref = buildPerson({ profile: 'natufian', kind: 'man' });
+  posePerson(ref, 'stand');
+  if (one) {
+    const probe = buildShelter(one as (typeof SHELTERS)[number]);
+    const size = new THREE.Box3().setFromObject(probe.object).getSize(new THREE.Vector3());
+    const span = Math.max(size.x, size.y, size.z);
+    ground(0, 0, span * 1.4, '#b2b874');
+    place(buildShelter(one as (typeof SHELTERS)[number]), -span * 0.6, 0, 0.6);
+    place(buildShelter(one as (typeof SHELTERS)[number]), span * 0.55, 0, Math.PI / 2 + 0.2);
+    labels.push({ text: one, at: new THREE.Vector3(0, -0.02, span * 0.8) });
+    camera.position.set(0, span * 1.1, span * 3.4);
+    camera.lookAt(0, size.y * 0.35, 0);
+    return;
+  }
+  const per = 5;
+  ground(0, 0, 14, '#b2b874');
+  ids.forEach((id, i) => {
+    const x = ((i % per) - (per - 1) / 2) * 4.4;
+    const z = Math.floor(i / per) * 4.4 - 3.5;
+    const m = place(buildShelter(id as (typeof SHELTERS)[number]), x, z, 0.4);
+    const w = new THREE.Box3().setFromObject(m.object).getSize(new THREE.Vector3());
+    if (Math.max(w.x, w.y, w.z) > 2.2) m.object.scale.setScalar(0.45);
+    labels.push({ text: id.replace('prop-', ''), at: new THREE.Vector3(x, 0, z + 1.8) });
+  });
+  place(ref, -11.5, 2, 0.3);
+  camera.position.set(0, 13, 17);
+  camera.lookAt(-1, 0, 1.5);
 }
 
 /** A landmark from above and close: `rings` enclosures, `view` = over | close | side. */
@@ -342,7 +433,7 @@ function clipsAnimalSheet(): void {
     labels.push({ text: `${clip} (${times.join(', ')} s)`, at: new THREE.Vector3(-13, 0.5, z) });
   });
   camera.position.set(0, 26, 24);
-  camera.lookAt(0, 0, 0.5);
+  camera.lookAt(0, 0.5, 0.5);
 }
 
 /**
@@ -573,6 +664,7 @@ const sheets: Record<string, () => void> = {
   clips: clipsSheet,
   'clips-animal': clipsAnimalSheet,
   single: singleSheet,
+  tools: toolsSheet,
   landmark: landmarkSheet,
   build: buildSheet,
   people: peopleSheet,
@@ -580,6 +672,7 @@ const sheets: Record<string, () => void> = {
   camp: campSheet,
   shelters: sheltersSheet,
   animals: animalsSheet,
+  crops: cropsSheet,
 };
 sheets[sheetName]!();
 
