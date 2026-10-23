@@ -1,5 +1,6 @@
 // The signs put up before the events of the events dialog (humankind.md section 8.4).
 
+import { detCos, detSin } from '../core/detmath.ts';
 import type { Day } from '../time/calendar.ts';
 import { hash01 } from '../core/hash.ts';
 import { msAtDay } from '../time/rate.ts';
@@ -42,8 +43,8 @@ export function signsAt(events: SignEvent[], ms: number, startDay: Day): CampPro
       x: SIGN_OFFSET_M * Math.SQRT1_2,
       z: SIGN_OFFSET_M * Math.SQRT1_2,
       // Facing south, a little askew.
-      dirX: Math.sin(turn),
-      dirZ: -Math.cos(turn),
+      dirX: detSin(turn),
+      dirZ: -detCos(turn),
       scale: Math.max(0.02, grown * grown * (3 - 2 * grown)),
     });
   }
