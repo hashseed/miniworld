@@ -1,4 +1,4 @@
 {
-  "description": "History lens (spec history-lens.md, section 3): the warp version Yang approved after looking at its before-and-after preview. The data build reports any other version as not approved yet. ed346e43b45d approved by Yang on 2026-10-17 after testing it on the devenv. c636d42d7ab9, with the lens boost for Japan (lens-boosts.json), approved by Yang on 2026-10-19. f8c002e61da6, with the lens boosts for Kyushu, Sulawesi, New Ireland and New Britain, and Tasmania (lens-boosts.json), approved by Yang on 2026-10-20.",
-  "approvedVersion": "f8c002e61da6"
+  "description": "History lens (spec history-lens.md, section 3): the warp version Yang approved after looking at its before-and-after preview. The data build reports any other version as not approved yet. ed346e43b45d approved by Yang on 2026-10-17 after testing it on the devenv. c636d42d7ab9, with the lens boost for Japan (lens-boosts.json), approved by Yang on 2026-10-19. f8c002e61da6, with the lens boosts for Kyushu, Sulawesi, New Ireland and New Britain, and Tasmania (lens-boosts.json), approved by Yang on 2026-10-20. 2697cb41d9d6, without the Lake Mungo burial anchor, approved by Yang on 2026-10-23.",
+  "approvedVersion": "2697cb41d9d6"
 }
