@@ -444,6 +444,7 @@ function Toggle({
 
 function SettingsPanel({ s, t, actions }: { s: UiState; t: T; actions: Actions }) {
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => actions.setSetting(k, v);
+  const [copy, setCopy] = useState<'idle' | 'copied' | 'failed'>('idle');
   return (
     <PanelFrame title={t('settings.title')} t={t} actions={actions}>
       <label class="row">
@@ -469,6 +470,22 @@ function SettingsPanel({ s, t, actions }: { s: UiState; t: T; actions: Actions }
         value={s.settings.showStats}
         onChange={(v) => set('showStats', v)}
       />
+      <button
+        class="link"
+        data-testid="copy-view"
+        onClick={() => {
+          void actions.copyView().then((ok) => {
+            setCopy(ok ? 'copied' : 'failed');
+            setTimeout(() => setCopy('idle'), 2000);
+          });
+        }}
+      >
+        {copy === 'copied'
+          ? t('settings.copied')
+          : copy === 'failed'
+            ? t('settings.copyFailed')
+            : t('settings.copyView')}
+      </button>
       {/* The About panel, with the attribution the data licences require (section 8.5). */}
       <button class="link" data-testid="about-link" onClick={() => actions.setPanel('about')}>
         {t('menu.aboutLink')}

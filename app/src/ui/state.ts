@@ -91,5 +91,7 @@ export interface Actions {
   toggleLanes(): void;
   toggleMinimized(): void;
   saveReport(): void;
+  /** Copies the date and camera place as one line of text; resolves false if the browser refuses. */
+  copyView(): Promise<boolean>;
   attachTimeline(canvas: HTMLCanvasElement | null): void;
 }

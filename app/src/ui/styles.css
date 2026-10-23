@@ -742,3 +742,22 @@ input:focus-visible {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+.panel button.link {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 8px 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.panel button.link:hover {
+  background: var(--panel-hover);
+}

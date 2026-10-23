@@ -391,6 +391,20 @@ const actions: Actions = {
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   },
+  copyView: async () => {
+    const c = controller.state;
+    const date = formatDateReadout(clock.day, i18n.language, {
+      yearsPerMinute: 0,
+      stationary: true,
+    });
+    const text = `${date} | day ${clock.day} | lat ${c.lat.toFixed(4)} lon ${c.lon.toFixed(4)} | alt ${Math.round(c.altitudeKm)} km | heading ${Math.round(c.heading)} | tilt ${Math.round(c.tilt)}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      return false;
+    }
+  },
   attachTimeline: (el) => {
     if (!el) return;
     if (timeline?.canvas === el) return;

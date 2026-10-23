@@ -330,6 +330,8 @@ The camera has one fly-to operation used by bookmarks now and by events and famo
 
 The language names in the selector are always written in their own language. Changes apply immediately and are saved (section 9).
 
+Below the settings is a button "Copy place and time" ("Ort und Zeit kopieren") (Yang, 2026-10-23). It copies the current view to the clipboard as one line of plain text, the same in both languages apart from the formatted date: the date as the readout shows it (section 3.2), the whole-day number, the camera's latitude and longitude in degrees to four decimals, its height in km, heading and tilt in degrees, for example `14 June 1805 | day 123456 | lat 37.5000 lon 119.0000 | alt 1300 km | heading 0 | tilt 0`. For about two seconds the button's label reads "Copied" ("Kopiert"); if the browser refuses the copy it reads "Copy failed" ("Kopieren fehlgeschlagen"). Nothing is saved.
+
 ### 8.3 Events and bookmarks
 
 The bookmark button in the top-right corner opens a large dialog centred on the screen, over the globe (Yang, 2026-10-20), with two tabs: **Events**, the first and the one it opens on, and **Bookmarks**. Each tab has a search field above its list, which filters it as one types, by name and region, ignoring case and accents. The dialog closes with its close button, the Escape key or a click outside it; while it is open the globe does not take input. Tab names: "Events" and "Bookmarks" ("Ereignisse" and "Lesezeichen"); search placeholders "Search events" and "Search bookmarks" ("Ereignisse suchen", "Lesezeichen suchen").
