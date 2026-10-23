@@ -1529,7 +1529,8 @@ export function treeScene(
 
   // The builders of each lodging (moving in on the day it is built) and the figures that
   // take it down (leaving on the day it is gone), by id.
-  const { builders, takers, appears, departs, stays, hunts, forced, events, campmates, places } = memo;
+  const { builders, takers, appears, departs, stays, hunts, forced, events, campmates, places } =
+    memo;
   if (!memo.ready)
     for (const f of chunk.figures)
       f.homes.forEach(([day, id], i) => {
