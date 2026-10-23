@@ -12,14 +12,14 @@ At the very start of the timeline, 70,000 BCE, one person stands on the eastern 
 
 ## 2. Accuracy: what the first person stands for
 
-Humankind never began with one person. Our species, *Homo sapiens*, arose in Africa about 300,000 years ago, and by 70,000 BCE people already lived across much of Africa. The first person is therefore a symbol, in the same way that one figure on the globe always stands for many real people (spec section 2.4): she stands for the first people of Africa. Her card says so plainly, and the opening of the tree is a **prologue** that tells a story of 200,000 years in about 8,000 (section 4.2). After the prologue the tree follows the historical data, as everything else in the world does.
+Humankind never began with one person. Our species, _Homo sapiens_, arose in Africa about 300,000 years ago, and by 70,000 BCE people already lived across much of Africa. The first person is therefore a symbol, in the same way that one figure on the globe always stands for many real people (spec section 2.4): she stands for the first people of Africa. Her card says so plainly, and the opening of the tree is a **prologue** that tells a story of 200,000 years in about 8,000 (section 4.2). After the prologue the tree follows the historical data, as everything else in the world does.
 
-- **Why Lake Turkana.** The Turkana basin, on the border of Kenya and Ethiopia, is one of the richest places on Earth for fossils of early humans and their relatives. The oldest well-dated *Homo sapiens* bones of East Africa, Omo I, about 233,000 years old, come from the Omo valley just north of the lake (Vidal et al. 2022, *Nature* 601). The name "Cradle of Humankind" is also used for a group of cave sites in South Africa; the card names Lake Turkana and says that early humans lived in many parts of Africa. The lake itself is too narrow for the simplified map and is not drawn (milestone 1 section 4.3).
+- **Why Lake Turkana.** The Turkana basin, on the border of Kenya and Ethiopia, is one of the richest places on Earth for fossils of early humans and their relatives. The oldest well-dated _Homo sapiens_ bones of East Africa, Omo I, about 233,000 years old, come from the Omo valley just north of the lake (Vidal et al. 2022, _Nature_ 601). The name "Cradle of Humankind" is also used for a group of cave sites in South Africa; the card names Lake Turkana and says that early humans lived in many parts of Africa. The lake itself is too narrow for the simplified map and is not drawn (milestone 1 section 4.3).
 - **Place.** Koobi Fora, on the eastern shore of the lake, at about 3.95° N, 36.20° E (**Proposed**).
 - **Her look** (decided by Yang on 2026-10-18: a woman): the model `figure-first-person` of [milestone-2.md](milestone-2.md#133-the-prehistoric-model-set) section 13.3, an `african-stone-age` woman with a fixed look and a spear. Her red-ochre headband stays with her in every later era, whatever her clothes, so the root of the tree can always be found.
 - **Founder's card** (draft, both languages):
-  - en: "The first person in this world. Our species, *Homo sapiens*, began in Africa about 300,000 years ago, and some of its oldest bones were found near Lake Turkana. Real humankind did not start with one person: she stands for the first people of Africa. Everyone you will see on this globe comes from here."
-  - de: "Der erste Mensch dieser Welt. Unsere Art, *Homo sapiens*, entstand vor etwa 300.000 Jahren in Afrika, und einige ihrer ältesten Knochen wurden nahe dem Turkana-See gefunden. In Wirklichkeit begann die Menschheit nicht mit einem einzigen Menschen: Sie steht für die ersten Menschen Afrikas. Alle, die du auf diesem Globus sehen wirst, stammen von hier."
+  - en: "The first person in this world. Our species, _Homo sapiens_, began in Africa about 300,000 years ago, and some of its oldest bones were found near Lake Turkana. Real humankind did not start with one person: she stands for the first people of Africa. Everyone you will see on this globe comes from here."
+  - de: "Der erste Mensch dieser Welt. Unsere Art, _Homo sapiens_, entstand vor etwa 300.000 Jahren in Afrika, und einige ihrer ältesten Knochen wurden nahe dem Turkana-See gefunden. In Wirklichkeit begann die Menschheit nicht mit einem einzigen Menschen: Sie steht für die ersten Menschen Afrikas. Alle, die du auf diesem Globus sehen wirst, stammen von hier."
 - **Neanderthals: not shown for now** (Yang, 2026-10-20: "Do we even have neanderthals to begin with? If not, let's not add them"). The build has no Neanderthal tree, and none is planned; the paragraphs on them below stay as the design should they come later. Neanderthals are not descendants of the first person: their ancestors left Africa hundreds of thousands of years earlier. They are a second, smaller tree whose camps already stand in Europe and western Asia at the start of the timeline (section 3.5; decided by Yang on 2026-10-18). Their card says that most people living today carry a little Neanderthal ancestry, because the two met and had children; the tree, being a tree, does not draw these links.
 
 ## 3. What the tree holds
@@ -30,17 +30,17 @@ The tree is three tables, written by the data build (section 5) and read by the 
 
 Every ordinary figure that ever appears is one row:
 
-| Field | Meaning |
-| --- | --- |
-| `id` | Whole number, in the order the figures appear (the first person is 0). Replaces the camp-and-index id of milestone 2 section 5.4 |
-| `parent` | The figure it came from; none only for the roots |
-| `born` | Clock time at which it steps out of its lodging (a whole millisecond, so a whole day follows from it) |
-| `home` | Its lodgings over time: a list of (clock time, lodging id, spot); it walks from one to the next when the camp moves (section 4.4). The spot is its own place at the camp's hearth, the lowest one no other figure of the camp holds when it moves in (section 8.1) |
-| `walks` | Optional: the ways of its trips to an encounter and home again ([sites.md](sites.md#43-encounters) section 4.3), each as (clock time, lodging id, way): it walks to that home along the way instead of the lodging's own |
-| `branch` | The branch it belongs to (section 3.3), inherited from its parent unless it founds a new one |
-| `depth` | Number of steps from its root: a measure of how far the family has come, not a count of real generations |
-| `lost` | Clock time and the event id if it is lost to war, famine, epidemic or disaster, or the day it dies before a burial (section 8.2); empty otherwise |
-| `look` | A hash seed for its colours and parts within its culture profile, as in milestone 2 section 5.2 |
+| Field    | Meaning                                                                                                                                                                                                                                                            |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`     | Whole number, in the order the figures appear (the first person is 0). Replaces the camp-and-index id of milestone 2 section 5.4                                                                                                                                   |
+| `parent` | The figure it came from; none only for the roots                                                                                                                                                                                                                   |
+| `born`   | Clock time at which it steps out of its lodging (a whole millisecond, so a whole day follows from it)                                                                                                                                                              |
+| `home`   | Its lodgings over time: a list of (clock time, lodging id, spot); it walks from one to the next when the camp moves (section 4.4). The spot is its own place at the camp's hearth, the lowest one no other figure of the camp holds when it moves in (section 8.1) |
+| `walks`  | Optional: the ways of its trips to an encounter and home again ([sites.md](sites.md#43-encounters) section 4.3), each as (clock time, lodging id, way): it walks to that home along the way instead of the lodging's own                                           |
+| `branch` | The branch it belongs to (section 3.3), inherited from its parent unless it founds a new one                                                                                                                                                                       |
+| `depth`  | Number of steps from its root: a measure of how far the family has come, not a count of real generations                                                                                                                                                           |
+| `lost`   | Clock time and the event id if it is lost to war, famine, epidemic or disaster, or the day it dies before a burial (section 8.2); empty otherwise                                                                                                                  |
+| `look`   | A hash seed for its colours and parts within its culture profile, as in milestone 2 section 5.2                                                                                                                                                                    |
 
 A figure's culture, role and clothes at a date are not stored: they come from the culture area at its home and its profile at that date, with the per-figure offset inside the transition window that makes eras morph gradually (spec section 9). The tree only says who someone is, where they came from and where they live.
 
@@ -48,17 +48,17 @@ A figure's culture, role and clothes at a date are not stored: they come from th
 
 Every place people live is a lodging: a tent, a grass hut or lean-to at first, later houses, longhouses, farmsteads, town houses, forts and palaces.
 
-| Field | Meaning |
-| --- | --- |
-| `id` | Whole number |
-| `camp` | The camp or settlement it belongs to (lodgings around one hearth or inside one settlement) |
-| `at` | Position in whole microdegrees (milestone 2 section 2.3) |
-| `built`, `gone` | Clock times at which it is put up and taken down or abandoned |
-| `builder` | The figure who builds it; it walks there and the building beat plays (section 4.3) |
-| `slot` | Its place round the camp's hearth, the lowest one no other standing lodging of the camp holds, on land if one is free (section 8.1) |
-| `reach` | For each of the five gaps between the camp's slots, how far out its people can go and stay on land, in layout metres up to 50, measured when it is built (section 8.1) |
-| `kinds` | Its model over time: a list of (clock time, kind), so a hut can be rebuilt as a house where the people stay |
-| `capacity` | How many figures it holds (section 4.1) |
+| Field           | Meaning                                                                                                                                                                |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`            | Whole number                                                                                                                                                           |
+| `camp`          | The camp or settlement it belongs to (lodgings around one hearth or inside one settlement)                                                                             |
+| `at`            | Position in whole microdegrees (milestone 2 section 2.3)                                                                                                               |
+| `built`, `gone` | Clock times at which it is put up and taken down or abandoned                                                                                                          |
+| `builder`       | The figure who builds it; it walks there and the building beat plays (section 4.3)                                                                                     |
+| `slot`          | Its place round the camp's hearth, the lowest one no other standing lodging of the camp holds, on land if one is free (section 8.1)                                    |
+| `reach`         | For each of the five gaps between the camp's slots, how far out its people can go and stay on land, in layout metres up to 50, measured when it is built (section 8.1) |
+| `kinds`         | Its model over time: a list of (clock time, kind), so a hut can be rebuilt as a house where the people stay                                                            |
+| `capacity`      | How many figures it holds (section 4.1)                                                                                                                                |
 
 The **kind** is chosen from the architecture set of the culture profile at the lodging's place and date, so the first person's hut is the approved `shelter-grass-hut` of `african-stone-age` and a Natufian family lives in a `shelter-natufian-house`. From the Neolithic on (milestone 3), the buildings of settlements are lodgings too: figures come out of town houses, the barracks of a fort, a palace or a monastery, according to the building's kind, and its people take the roles that fit it (soldiers from a fort, courtiers and servants from a palace). Landmarks without residents, such as a temple or a pyramid, are not lodgings.
 
@@ -79,9 +79,9 @@ Each branch row holds an id, its parent branch, the figure and clock time it sta
 
 ### 3.5 Roots
 
-| Root | Figure 0 of the root | Where and when |
-| --- | --- | --- |
-| Modern humans | The first person, `african-stone-age` | Koobi Fora at clock time 0 (1 January 70,000 BCE) |
+| Root                                        | Figure 0 of the root                                    | Where and when                                                                                                |
+| ------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Modern humans                               | The first person, `african-stone-age`                   | Koobi Fora at clock time 0 (1 January 70,000 BCE)                                                             |
 | Neanderthals (not shown for now, section 2) | One figure per Neanderthal camp present at clock time 0 | The Neanderthal culture area at 70,000 BCE (milestone 2 section 4), with camps at full density from the start |
 
 Should they come (they are not shown for now, section 2): Neanderthal camps grow no further after the start (decided by Yang on 2026-10-18). From about 45,000 BCE their branch thins out and its last camps disappear by about 38,000 BCE, as an event "Neanderthals disappear" whose card explains that the reasons are still debated (small and scattered groups, climate swings, competition with modern humans) and that their genes live on in us.
@@ -160,10 +160,10 @@ Once the world is fully populated the tree holds tens of thousands of figures, s
 - **Data.** The key moments are a small list per time window, in the tree's chunks (section 5); the view loads them as it scrolls, like the rest of the content.
 
 A view of the tree for viewers, such as a "Family tree of humankind" button, may follow later; for now the tree is for development and the family line on the figure card.
+
 - **Questions.** `npm run tree -- at <date> [--region <id>]` lists the camps and figures alive then, and `npm run tree -- lineage <figure id>` prints the figure's line back to its root, shortened to the branch points ("figure 1,822, Danube 40,000 BCE ← first camp in Europe 45,100 BCE ← crossing of the Bab-el-Mandeb 60,000 BCE ← Lake Turkana 70,000 BCE").
 - **Tree overlay for development.** In development builds, the address flag `?tree` draws lines on the globe from each camp to the camp it budded from, coloured by branch, for the camps founded in the time window in view, so the spread of humankind can be watched and checked.
 - **On the figure card.** The card of every ordinary figure adds one line about its family, in both languages, built from its branch chain, for example "Her family's line goes back to the first person at Lake Turkana and left Africa about 60,000 BCE." / "Die Linie ihrer Familie reicht zurück bis zum ersten Menschen am Turkana-See und verließ Afrika um 60.000 v. Chr." Double-tapping the line flies to the camp where the branch began, at its founding date (**Proposed**).
-
 
 ## 7. Changes to the rest of the spec
 
@@ -223,10 +223,10 @@ A camp is drawn on a stage 1.7 times larger than the old vignette stages (milest
 
 Yang asked on 2026-10-20 for cave painting and burials ("do we have cave painting yet?"; "implement everything": the scenes at Leang Karampuang, Chauvet and Sungir). Before there are villages, the stories of the deep past are told by the camps themselves: an anchor (sites.md section 4.1) may carry a **scene**, which the band held at its site plays as part of its camp life. A scene is not a vignette: it has no cast of its own, only the anchor's band, so nobody is drawn twice and the band's people are the ones who paint or bury.
 
-| Field of `scene` | Meaning |
-| --- | --- |
-| `kind` | `cave-painting`, `burial`, `monument` or `bone-hut` |
-| `prop` | The model it shows: for a cave painting its wall, `prop-cave-wall-sulawesi`, `prop-cave-wall-chauvet` or `prop-cave-wall-lascaux`; for a burial `prop-burial`, for a monument `prop-gobekli-ring`, for a bone hut `prop-bone-hut` |
+| Field of `scene` | Meaning                                                                                                                                                                                                                           |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `kind`           | `cave-painting`, `burial`, `monument` or `bone-hut`                                                                                                                                                                               |
+| `prop`           | The model it shows: for a cave painting its wall, `prop-cave-wall-sulawesi`, `prop-cave-wall-chauvet` or `prop-cave-wall-lascaux`; for a burial `prop-burial`, for a monument `prop-gobekli-ring`, for a bone hut `prop-bone-hut` |
 
 - **Its place at the camp.** The scene stands behind one of the camp's lodging places, out of every lane, on the side of the camp towards the real cave or grave (the anchor's place): the wall or grave 12 layout metres beyond the ring of lodgings, facing the hearth, so 24 metres out at a full camp, 21 at a compact one and 18.2 at a minimal one; where the land is too narrow for that, 10 or 8 metres beyond it. At a compact camp the scene is three quarters of its size, all its places and distances beyond the ring with it, and at a minimal camp half, as their lodgings are smaller (Leang Karampuang's camp is a minimal one). Of the lodging places with no drying rack where the prop, the people's places in front of it and the way there from beside the lodging (out of the gap at 4 metres past the ring) stay dry land for the anchor's whole stay, the build takes the one pointing most nearly towards the anchor's place (Yang, 2026-10-20: the Chauvet cave stood north-east of its fire, while the real cave lies south of the camp's site); without one the build fails, naming the anchor. An anchor may name a separate place for its camp (`camp`, a `lat` and `lon`), where its site is laid and chosen instead of at the anchor's place, so the camp stands where it should beside the cave: Chauvet's about 60 km south-east of the cave, near the Rhône, the place nearby where its cut keeps clear of water (Yang, 2026-10-21: "move the cave away from the water"; west of the Ardèche gorge until then, Yang 2026-10-20: "place the fireplace a bit more to the west"). The cave stands for the real one: at a drawn metre to about 24 km, the camp covers the land round the cave, and on narrow land the anchor's site may lie a few hundred kilometres from it (Leang Karampuang's lies about 220 km up Sulawesi's south-western arm, which is too narrow for any camp, sites.md section 2).
 - **Clear ground.** No tree stands in a scene (issues 171, 173: Lascaux's wall and Mezhyrich's hut had trees growing through them): the trees make way round the prop as it rises, within 22 layout metres of a cave wall (the cut itself reaches 13 each way, and a tree beside either end would hide the picture from the camp: Yang, issue 171 follow-up), 8 of a grave, 16 of a bone hut and 20 of a ring (all at the camp's scale), as they do for a camp.
@@ -241,17 +241,18 @@ Yang asked on 2026-10-20 for cave painting and burials ("do we have cave paintin
 
 The anchors with scenes (`data/curated/anchors.json`):
 
-| Anchor | From | To | Place | Scene |
-| --- | --- | --- | --- | --- |
+| Anchor             | From       | To         | Place                         | Scene                                    |
+| ------------------ | ---------- | ---------- | ----------------------------- | ---------------------------------------- |
 | `leang-karampuang` | 49,200 BCE | 47,200 BCE | Maros, south-western Sulawesi | Cave painting, `prop-cave-wall-sulawesi` |
-| `chauvet` | 35,000 BCE | 33,000 BCE | Ardèche, France | Cave painting, `prop-cave-wall-chauvet` |
-| `sungir` | 32,000 BCE | 31,000 BCE | Vladimir, Russia | Burial, `prop-burial` |
-| `gobekli-tepe` | 9,700 BCE | 8,000 BCE | Şanlıurfa, Türkiye | Monument, `prop-gobekli-ring` |
-| `lake-mungo` | 38,000 BCE | 37,000 BCE | Lake Mungo, New South Wales | Burial, `prop-burial` (Bowler 2003) |
-| `lascaux` | 15,000 BCE | 14,000 BCE | Dordogne, France | Cave painting, `prop-cave-wall-lascaux` |
-| `mezhyrich` | 16,000 BCE | 15,000 BCE | Cherkasy, Ukraine | Bone hut, `prop-bone-hut` |
+| `chauvet`          | 35,000 BCE | 33,000 BCE | Ardèche, France               | Cave painting, `prop-cave-wall-chauvet`  |
+| `sungir`           | 32,000 BCE | 31,000 BCE | Vladimir, Russia              | Burial, `prop-burial`                    |
+| `gobekli-tepe`     | 9,700 BCE  | 8,000 BCE  | Şanlıurfa, Türkiye            | Monument, `prop-gobekli-ring`            |
+| `lascaux`          | 15,000 BCE | 14,000 BCE | Dordogne, France              | Cave painting, `prop-cave-wall-lascaux`  |
+| `mezhyrich`        | 16,000 BCE | 15,000 BCE | Cherkasy, Ukraine             | Bone hut, `prop-bone-hut`                |
 
-Three of the newer anchors name a separate `camp` (section 8.2): Lake Mungo's about 190 km south, on the Murray's side, since the climate model takes the lake's own country for desert at that date and no camp can stand there; Lascaux's about 25 km north-east in the Vézère valley, and Mezhyrich's about 40 km south-west of the Dnieper, where the camp has dry land behind a lodging and enough people free in every session window.
+Two of the newer anchors name a separate `camp` (section 8.2): Lascaux's about 25 km north-east in the Vézère valley and Mezhyrich's about 40 km south-west of the Dnieper, where the camp has dry land behind a lodging and enough people free in every session window.
+
+The burials of Lake Mungo were an anchor too, and are gone (Yang, issue 175: "remove the Mungo lake burial event"); the first people's arrival at Lake Mungo (peopling.md) stays.
 
 ### 8.3 Site cards
 
@@ -267,7 +268,7 @@ Yang asked on 2026-10-21: "Landmarks should have cards. Create them for the cave
 Yang asked on 2026-10-23 (issue 148): "For each event, create a card. ... About 10 watch seconds before the event, at normal watch rate, we should erect a small sign. the sign depends on the era. In the prehistoric era, some wooden board, a bit crooked. later on it can be a metal sign. clicking on the sign brings up the card."
 
 - **Cards.** An event with a scene has its anchor's site card (section 8.3). Each arrival in a new continent has an **event card**, `data/curated/site-cards/<arrival point id>.md`, a record like a site card (front matter `id`, `kind: event-card`, `sources`; `## en` and `## de`), with the title, two lines `**When:**` and `**Where:**` (`**Wann:**`, `**Wo:**`) and the sub-headings `### What we know`, `### How it may have looked` and `### What is debated` (`### Was man weiß`, `### Wie es ausgesehen haben könnte`, `### Was umstritten ist`), in that order. The data build fails when an event has no card or a card has no event. The startup index lists the cards with the site cards (`siteCards`), and each event names its card (`card`).
-- **The sign.** The event's sign stands at the event's place from 5 seconds of watching at the normal pace before the event's time until 20 seconds after it (Yang, issue 148: "The sign should be available 5 watch seconds at normal play speed before the event and 20 watch seconds after the event"; it first stood 10 seconds before the work and 60 after), so a viewer who travels to the event finds the sign already up, and is put up in about 1.5 seconds: it rises out of the ground, and sinks back after the 20 seconds. The sign is placed 9 layout metres north-east of the place, tilted a few degrees by a hash of the event, so it looks hand-made; where the event's place has no land that day, no sign is drawn. In the prehistoric era (before the first metal tools) the sign is a **wooden board**, a plank on a crooked post (`prop-sign-wood`, of pale oak wood, drawn 1.3 times its modelled size so it stands about 2.2 m tall; Yang: "the sign is dark brown, make it oak wood colored and slightly larger"); for later eras a **metal sign** (`prop-sign-metal`) will stand in its place (**Later**: no event so far falls after the prehistoric era).
+- **The sign.** The event's sign stands at the event's place from 5 seconds of watching at the normal pace before the event's time until 20 seconds after it (Yang, issue 148: "The sign should be available 5 watch seconds at normal play speed before the event and 20 watch seconds after the event"; it first stood 10 seconds before the work and 60 after), so a viewer who travels to the event finds the sign already up, and is put up in about 1.5 seconds: it rises out of the ground, and sinks back after the 20 seconds. The sign is placed 9 layout metres north-east of the place, tilted a few degrees by a hash of the event, so it looks hand-made; where the event's place has no land that day, no sign is drawn. In the prehistoric era (before the first metal tools) the sign is a **blue information sign**, an oak board on a crooked oak post carrying a blue plate with a white "i" (`prop-sign-wood`, Yang, issue 180: "turn event sign posts into blue information signs. blue is a lot easier to discover and spot"; it was a plain oak plank; drawn 1.3 times its modelled size so it stands about 2.2 m tall; Yang: "the sign is dark brown, make it oak wood colored and slightly larger"); for later eras a **metal sign** (`prop-sign-metal`) will stand in its place (**Later**: no event so far falls after the prehistoric era).
 - **Opening.** Tapping a sign opens the event's card in the panel at the top left (section 8.3), never pausing time. The tap is tested before the scene props and the animals, with the same rule as for scene props: the nearest sign whose middle lies within its drawn size on screen (at least 28 CSS pixels).
 - **Assets.** `prop-sign-wood` is a new model, generated and waiting for Yang's approval like every model (spec section 13); the sign is drawn only once it is approved (or in a preview build).
 

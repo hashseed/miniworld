@@ -66,24 +66,6 @@
       "source": "Sikora, M. et al. 2017, Ancient genomes show social and reproductive behavior of early Upper Paleolithic foragers, Science 358, 659-662"
     },
     {
-      "id": "lake-mungo",
-      "bce": 38000,
-      "until": 37000,
-      "lat": -33.72,
-      "lon": 143.07,
-      "camp": {
-        "lat": -35.4,
-        "lon": 143.3
-      },
-      "scene": {
-        "kind": "burial",
-        "prop": "prop-burial"
-      },
-      "en": "The burials of Lake Mungo",
-      "de": "Die Bestattungen am Lake Mungo",
-      "source": "Bowler, J. M. et al. 2003, New ages for human occupation and climatic change at Lake Mungo, Australia, Nature 421, 837-840"
-    },
-    {
       "id": "lascaux",
       "bce": 15000,
       "until": 14000,

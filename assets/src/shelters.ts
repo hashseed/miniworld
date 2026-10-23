@@ -683,18 +683,25 @@ export function buildShelter(id: ShelterId): Model {
       break;
     }
     case 'prop-sign-wood': {
-      // A plank on a crooked post, facing +Z, lashed with hide cord, of oak (humankind.md section 8.4).
+      // A blue information sign on a crooked oak post, facing +Z: an oak board, a blue plate with
+      // a white "i" on it (humankind.md section 8.4; Yang, issue 180).
       const WOOD = '#c9a064';
+      const BLUE = '#2f6fd0';
+      const WHITE = '#f4f1e8';
       mb.add(rod([0, 0, 0], [0.05, 1.7, 0], 0.055, 5), shade(WOOD, -0.12));
-      const plank = slab([-0.5, -0.24, 0.06], [0.5, 0.24, 0.12]);
-      plank.rotateZ(0.11);
-      plank.translate(0.04, 1.32, 0);
-      mb.add(plank, WOOD);
+      const place = (g: THREE.BufferGeometry) => {
+        g.rotateZ(0.11);
+        g.translate(0.04, 1.32, 0);
+        return g;
+      };
+      mb.add(place(slab([-0.5, -0.3, 0.06], [0.5, 0.3, 0.1])), WOOD);
+      mb.add(place(slab([-0.43, -0.23, 0.1], [0.43, 0.23, 0.13])), BLUE);
+      mb.add(place(blob([0, 0.12, 0.14], [0.06, 0.06, 0.03], 5)), WHITE);
+      mb.add(place(slab([-0.045, -0.15, 0.13], [0.045, 0.04, 0.15])), WHITE);
       const low = slab([-0.38, -0.05, 0.06], [0.38, 0.05, 0.11]);
       low.rotateZ(-0.07);
-      low.translate(0.04, 0.96, 0);
+      low.translate(0.04, 0.9, 0);
       mb.add(low, shade(WOOD, 0.1));
-      for (const y of [1.2, 1.46]) mb.add(blob([0.045, y, 0.1], [0.07, 0.04, 0.05], 5), '#8a6238');
       break;
     }
     case 'prop-carry-pole': {
