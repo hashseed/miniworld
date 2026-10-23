@@ -15,11 +15,13 @@ export interface SignEvent {
 }
 
 /** A sign stands from this long (watching ms) before the event's time ... */
-export const SIGN_LEAD_MS = 7_000;
+export const SIGN_LEAD_MS = 5_000;
 /** ... to this long after it, and is put up and taken down in SIGN_RISE_MS. */
-export const SIGN_STAY_MS = 60_000;
+export const SIGN_STAY_MS = 20_000;
 export const SIGN_RISE_MS = 1_500;
 /** Layout metres north-east of the event's place. */
+/** How much bigger than the model's own size the sign stands. */
+export const SIGN_SIZE = 1.3;
 const SIGN_OFFSET_M = 9;
 
 /** The model of the sign of an era; metal signs are for later eras (section 8.4). */
@@ -45,7 +47,7 @@ export function signsAt(events: SignEvent[], ms: number, startDay: Day): CampPro
       // Facing south, a little askew.
       dirX: detSin(turn),
       dirZ: -detCos(turn),
-      scale: Math.max(0.02, grown * grown * (3 - 2 * grown)),
+      scale: SIGN_SIZE * Math.max(0.02 / SIGN_SIZE, grown * grown * (3 - 2 * grown)),
     });
   }
   return out;

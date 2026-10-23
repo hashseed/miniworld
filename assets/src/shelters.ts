@@ -112,6 +112,27 @@ function outward(g: THREE.BufferGeometry): THREE.BufferGeometry {
   return g;
 }
 
+/**
+ * A box whose corners share one normal, pointing out from its middle, so the ink outline (back
+ * faces pushed along their normals) stays closed instead of splitting at the edges.
+ */
+function slab(min: Vec3, max: Vec3): THREE.BufferGeometry {
+  const g = box(min, max);
+  const pos = g.getAttribute('position');
+  const normal = g.getAttribute('normal');
+  const mid = new THREE.Vector3(
+    (min[0] + max[0]) / 2,
+    (min[1] + max[1]) / 2,
+    (min[2] + max[2]) / 2,
+  );
+  const v = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i).sub(mid).normalize();
+    normal.setXYZ(i, v.x, v.y, v.z);
+  }
+  return g;
+}
+
 export function buildShelter(id: ShelterId): Model {
   const mb = new ModelBuilder();
   switch (id) {
@@ -662,18 +683,18 @@ export function buildShelter(id: ShelterId): Model {
       break;
     }
     case 'prop-sign-wood': {
-      // A plank on a crooked post, facing +Z, lashed with hide cord (humankind.md section 8.4).
-      const WOOD = '#8a6238';
-      mb.add(rod([0, 0, 0], [0.05, 1.7, 0], 0.055, 5), POLE);
-      const plank = box([-0.5, -0.24, 0.06], [0.5, 0.24, 0.12]);
+      // A plank on a crooked post, facing +Z, lashed with hide cord, of oak (humankind.md section 8.4).
+      const WOOD = '#c9a064';
+      mb.add(rod([0, 0, 0], [0.05, 1.7, 0], 0.055, 5), shade(WOOD, -0.12));
+      const plank = slab([-0.5, -0.24, 0.06], [0.5, 0.24, 0.12]);
       plank.rotateZ(0.11);
       plank.translate(0.04, 1.32, 0);
       mb.add(plank, WOOD);
-      const low = box([-0.38, -0.05, 0.06], [0.38, 0.05, 0.11]);
+      const low = slab([-0.38, -0.05, 0.06], [0.38, 0.05, 0.11]);
       low.rotateZ(-0.07);
       low.translate(0.04, 0.96, 0);
       mb.add(low, shade(WOOD, 0.1));
-      for (const y of [1.2, 1.46]) mb.add(blob([0.045, y, 0.1], [0.07, 0.04, 0.05], 5), '#c9a675');
+      for (const y of [1.2, 1.46]) mb.add(blob([0.045, y, 0.1], [0.07, 0.04, 0.05], 5), '#8a6238');
       break;
     }
     case 'prop-carry-pole': {
