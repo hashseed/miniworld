@@ -1,0 +1,1270 @@
+{
+  "description": "Farming spread (spec neolithic/farming-spread.md): dated waypoints where farming or herding arrived, and the speed parameters of the wave that fills the gaps between them. Years are 'bce'; a negative bce is a year CE (-1000 is 1000 CE).",
+  "speeds": {
+    "seaMaxHopKm": {
+      "value": 900,
+      "approximate": true,
+      "note": "Farthest open-water jump a wave makes (Tonga to Samoa about 800 km); beyond it only waypoints and holds carry farming.",
+      "source": "derived from the Lapita and Cardial waypoints of this file"
+    },
+    "zones": [
+      {
+        "id": "europe-near-east",
+        "kmPerYear": 1,
+        "range": [0.6, 1.3],
+        "box": {
+          "lat": [28, 60],
+          "lon": [-12, 60]
+        },
+        "source": "Pinhasi, Fort & Ammerman 2005, PLoS Biology 3(12): 0.6-1.3 km/yr (95%); Fort 2015, J. R. Soc. Interface 12: about 1 km/yr"
+      },
+      {
+        "id": "mediterranean-coast",
+        "kmPerYear": 4,
+        "range": [2, 6],
+        "approximate": true,
+        "coastal": true,
+        "note": "Applies to sea hops and the 50 km coastal strip of the Mediterranean and Black Sea.",
+        "source": "Zilhao 2001, PNAS 98 (Cardial about 5 km/yr); Isern et al. 2017, PNAS 114"
+      },
+      {
+        "id": "africa-sahel-bantu",
+        "kmPerYear": 1.5,
+        "range": [1, 2.5],
+        "approximate": true,
+        "box": {
+          "lat": [-35, 20],
+          "lon": [-20, 52]
+        },
+        "source": "Derived from the Bantu waypoints (Cameroon 1000 BCE to Limpopo 300 CE); Currie et al. 2013, PLoS ONE 8; Grollemund et al. 2015"
+      },
+      {
+        "id": "east-asia",
+        "kmPerYear": 0.8,
+        "range": [0.5, 1.2],
+        "approximate": true,
+        "box": {
+          "lat": [18, 55],
+          "lon": [90, 150]
+        },
+        "source": "Derived from Yellow River to Korea and Japan waypoints; Bellwood 2005, First Farmers"
+      },
+      {
+        "id": "south-asia",
+        "kmPerYear": 0.7,
+        "range": [0.4, 1],
+        "approximate": true,
+        "box": {
+          "lat": [5, 36],
+          "lon": [60, 92]
+        },
+        "source": "Derived from Mehrgarh to the Ganges and Deccan waypoints; Fuller 2011, Rice 4"
+      },
+      {
+        "id": "americas",
+        "kmPerYear": 0.5,
+        "range": [0.3, 0.8],
+        "approximate": true,
+        "box": {
+          "lat": [-55, 60],
+          "lon": [-130, -30]
+        },
+        "source": "Derived from Mesoamerica to Arizona (2100 BCE) and the Eastern Woodlands; Smith 1998 / Hart & Lovis 2013"
+      },
+      {
+        "id": "island-voyaging",
+        "kmPerYear": 5,
+        "range": [3, 7],
+        "approximate": true,
+        "sea": true,
+        "source": "Derived from Taiwan 3500 BCE, Luzon 2200, Bismarck 1500, Tonga 900 BCE; Bellwood 2005; Burley et al. 2012"
+      }
+    ],
+    "default": {
+      "kmPerYear": 0.8,
+      "approximate": true,
+      "note": "Used where no zone box matches."
+    }
+  },
+  "holds": [
+    {
+      "id": "british-isles",
+      "box": {
+        "lat": [49.8, 61],
+        "lon": [-11, 2]
+      },
+      "notBeforeBce": 4100,
+      "source": "Whittle, Healy & Bayliss 2011, Gathering Time: farming reaches Britain about 4000 BCE, some 700 years after the Continental coast"
+    },
+    {
+      "id": "scandinavia",
+      "box": {
+        "lat": [54.5, 71],
+        "lon": [4, 32]
+      },
+      "notBeforeBce": 4000,
+      "source": "Sørensen & Karg 2014, Journal of Archaeological Science 51"
+    },
+    {
+      "id": "east-polynesia",
+      "box": {
+        "lat": [-30, -5],
+        "lon": [-160, -130]
+      },
+      "notBeforeBce": -1000,
+      "source": "Wilmshurst et al. 2011, PNAS 108 (settlement of East Polynesia 1025-1120 CE)"
+    },
+    {
+      "id": "hawaii",
+      "box": {
+        "lat": [18, 23],
+        "lon": [-161, -154]
+      },
+      "notBeforeBce": -1000,
+      "source": "Wilmshurst et al. 2011, PNAS 108"
+    },
+    {
+      "id": "new-zealand",
+      "box": {
+        "lat": [-48, -34],
+        "lon": [165, 179]
+      },
+      "notBeforeBce": -1250,
+      "source": "Wilmshurst et al. 2008, PNAS 105"
+    },
+    {
+      "id": "easter-island",
+      "box": {
+        "lat": [-28, -26],
+        "lon": [-111, -108]
+      },
+      "notBeforeBce": -1100,
+      "source": "Hunt & Lipo 2011, Science 333"
+    },
+    {
+      "id": "iceland",
+      "box": {
+        "lat": [63, 67],
+        "lon": [-25, -12]
+      },
+      "notBeforeBce": -870,
+      "source": "Vésteinsson & McGovern 2012"
+    }
+  ],
+  "noFarming": [
+    {
+      "id": "australia-mainland",
+      "box": {
+        "lat": [-39, -11],
+        "lon": [112, 154]
+      },
+      "source": "Hunter-gatherers to 1991 CE; Torres Strait gardens are the only exception (Bellwood 2005)"
+    },
+    {
+      "id": "antarctica",
+      "box": {
+        "lat": [-90, -60],
+        "lon": [-180, 180]
+      },
+      "source": "peopling.md section 3.5"
+    }
+  ],
+  "waypoints": [
+    {
+      "id": "cyprus",
+      "bce": 8500,
+      "lat": 34.7,
+      "lon": 32.9,
+      "en": "Cyprus (Klimonas, Shillourokambos)",
+      "de": "Zypern (Klimonas, Shillourokambos)",
+      "package": {
+        "en": "Wheat, barley, lentil, pea, sheep, goat, cattle, pig",
+        "de": "Weizen, Gerste, Linse, Erbse, Schaf, Ziege, Rind, Schwein"
+      },
+      "source": "Vigne et al. 2011, PNAS 108; Vigne 2013, Anthropocene 3",
+      "approximate": true,
+      "toleranceYears": 400
+    },
+    {
+      "id": "central-anatolia",
+      "bce": 8200,
+      "lat": 38.35,
+      "lon": 34,
+      "en": "Central Anatolia (Aşıklı Höyük)",
+      "de": "Zentralanatolien (Aşıklı Höyük)",
+      "package": {
+        "en": "Wheat, barley, lentil, pea, sheep, goat, cattle, pig",
+        "de": "Weizen, Gerste, Linse, Erbse, Schaf, Ziege, Rind, Schwein"
+      },
+      "source": "Özbaşaran 2012 and Stiner et al. 2014, PNAS 111",
+      "approximate": true,
+      "toleranceYears": 400
+    },
+    {
+      "id": "ganj-dareh",
+      "bce": 8000,
+      "lat": 34.27,
+      "lon": 47.45,
+      "en": "Zagros (Ganj Dareh)",
+      "de": "Zagros (Ganj Dareh)",
+      "package": {
+        "en": "Wheat, barley, lentil, pea, sheep, goat, cattle, pig",
+        "de": "Weizen, Gerste, Linse, Erbse, Schaf, Ziege, Rind, Schwein"
+      },
+      "source": "Zeder 2008, PNAS 105 (goat herding); Zeder 2011, Current Anthropology 52 S4",
+      "approximate": true,
+      "toleranceYears": 400
+    },
+    {
+      "id": "crete",
+      "bce": 7000,
+      "lat": 35.3,
+      "lon": 25.16,
+      "en": "Crete (Knossos)",
+      "de": "Kreta (Knossos)",
+      "package": {
+        "en": "Sheep, goat, cattle, pig and the first cereals shipped by boat",
+        "de": "Schaf, Ziege, Rind, Schwein und erste Getreide, per Boot gebracht"
+      },
+      "source": "Douka et al. 2017, Antiquity 91; Efstratiou et al. 2004 (Aegean first farmers)",
+      "approximate": true,
+      "toleranceYears": 400
+    },
+    {
+      "id": "jeitun",
+      "bce": 6000,
+      "lat": 38,
+      "lon": 58.2,
+      "en": "Southern Turkmenistan (Jeitun)",
+      "de": "Südturkmenistan (Dschejtun)",
+      "package": {
+        "en": "Wheat, barley, lentil, pea, sheep, goat, cattle, pig",
+        "de": "Weizen, Gerste, Linse, Erbse, Schaf, Ziege, Rind, Schwein"
+      },
+      "source": "Harris (ed.) 2010, The Origins and Spread of Domestic Animals in Southwest Asia and Europe; Harris et al. 1996",
+      "approximate": true,
+      "toleranceYears": 400
+    },
+    {
+      "id": "western-anatolia",
+      "bce": 6600,
+      "lat": 38.47,
+      "lon": 27.37,
+      "en": "Western Anatolia (Ulucak)",
+      "de": "Westanatolien (Ulucak)",
+      "package": {
+        "en": "Wheat, barley, lentil, pea, sheep, goat, cattle, pig",
+        "de": "Weizen, Gerste, Linse, Erbse, Schaf, Ziege, Rind, Schwein"
+      },
+      "source": "Çilingiroğlu 2012, Documenta Praehistorica 39",
+      "approximate": true,
+      "toleranceYears": 400
+    },
+    {
+      "id": "thessaly",
+      "bce": 6500,
+      "lat": 39.22,
+      "lon": 22.85,
+      "en": "Thessaly, Greece (Sesklo)",
+      "de": "Thessalien, Griechenland (Sesklo)",
+      "package": {
+        "en": "Wheat, barley, pulses, cattle, sheep, goat, pig, pottery",
+        "de": "Weizen, Gerste, Hülsenfrüchte, Rind, Schaf, Ziege, Schwein, Keramik"
+      },
+      "source": "Reingruber & Thissen 2009, Radiocarbon 51; Pinhasi et al. 2005, PLoS Biology 3(12)",
+      "toleranceYears": 250
+    },
+    {
+      "id": "starcevo",
+      "bce": 6100,
+      "lat": 44.85,
+      "lon": 20.65,
+      "en": "Balkans (Starčevo)",
+      "de": "Balkan (Starčevo)",
+      "package": {
+        "en": "Wheat, barley, pulses, cattle, sheep, goat, pig, pottery",
+        "de": "Weizen, Gerste, Hülsenfrüchte, Rind, Schaf, Ziege, Schwein, Keramik"
+      },
+      "source": "Reingruber & Thissen 2009, Radiocarbon 51; Borić 2015, Journal of World Prehistory 28",
+      "toleranceYears": 250
+    },
+    {
+      "id": "italy-apulia",
+      "bce": 6000,
+      "lat": 41.5,
+      "lon": 15.8,
+      "en": "Southern Italy (Apulia, Passo di Corvo)",
+      "de": "Süditalien (Apulien, Passo di Corvo)",
+      "package": {
+        "en": "Wheat, barley, pulses, cattle, sheep, goat, pig, pottery",
+        "de": "Weizen, Gerste, Hülsenfrüchte, Rind, Schaf, Ziege, Schwein, Keramik"
+      },
+      "source": "Guilaine & Manen 2007; Fort 2012; Isern et al. 2017, PNAS 114",
+      "toleranceYears": 250
+    },
+    {
+      "id": "adriatic-impressa",
+      "bce": 5900,
+      "lat": 44,
+      "lon": 15.5,
+      "en": "Dalmatia (Smilčić, Impressa ware)",
+      "de": "Dalmatien (Smilčić, Impresso-Keramik)",
+      "package": {
+        "en": "Wheat, barley, pulses, cattle, sheep, goat, pig, pottery",
+        "de": "Weizen, Gerste, Hülsenfrüchte, Rind, Schaf, Ziege, Schwein, Keramik"
+      },
+      "source": "Forenbaher & Miracle 2005, Antiquity 79",
+      "approximate": true,
+      "toleranceYears": 400
+    },
+    {
+      "id": "vinca",
+      "bce": 5700,
+      "lat": 44.76,
+      "lon": 20.62,
+      "en": "Vinča, Serbia",
+      "de": "Vinča, Serbien",
+      "package": {
+        "en": "Wheat, barley, pulses, cattle, sheep, goat, pig, pottery",
+        "de": "Weizen, Gerste, Hülsenfrüchte, Rind, Schaf, Ziege, Schwein, Keramik"
+      },
+      "source": "Borić 2015, Journal of World Prehistory 28; Pinhasi et al. 2005",
+      "toleranceYears": 250
+    },
+    {
+      "id": "lbk-transdanubia",
+      "bce": 5550,
+      "lat": 47,
+      "lon": 18,
+      "en": "Western Hungary (earliest LBK)",
+      "de": "Westungarn (früheste LBK)",
+      "package": {
+        "en": "Wheat, barley, pulses, cattle, sheep, goat, pig, pottery",
+        "de": "Weizen, Gerste, Hülsenfrüchte, Rind, Schaf, Ziege, Schwein, Keramik"
+      },
+      "source": "Bánffy 2004; Whittle & Bayliss 2007; Pinhasi et al. 2005",
+      "toleranceYears": 250
+    },
+    {
+      "id": "cardial-provence",
+      "bce": 5600,
+      "lat": 43.38,
+      "lon": 5.15,
+      "en": "Provence (Châteauneuf-les-Martigues)",
+      "de": "Provence (Châteauneuf-les-Martigues)",
+      "package": {
+        "en": "Wheat, barley, pulses, cattle, sheep, goat, pig, pottery",
+        "de": "Weizen, Gerste, Hülsenfrüchte, Rind, Schaf, Ziege, Schwein, Keramik"
+      },
+      "source": "Binder et al. 2017, Documenta Praehistorica 44; Isern et al. 2017, PNAS 114",
+      "toleranceYears": 250
+    },
+    {
+      "id": "cardial-valencia",
+      "bce": 5500,
+      "lat": 38.7,
+      "lon": -0.3,
+      "en": "Valencia, Spain (Cova de l'Or)",
+      "de": "Valencia, Spanien (Cova de l'Or)",
+      "package": {
+        "en": "Wheat, barley, pulses, cattle, sheep, goat, pig, pottery",
+        "de": "Weizen, Gerste, Hülsenfrüchte, Rind, Schaf, Ziege, Schwein, Keramik"
+      },
+      "source": "Bernabeu et al. 2017; Isern et al. 2017, PNAS 114",
+      "toleranceYears": 250
+    },
+    {
+      "id": "portugal",
+      "bce": 5400,
+      "lat": 39,
+      "lon": -9.2,
+      "en": "Portugal (Estremadura)",
+      "de": "Portugal (Estremadura)",
+      "package": {
+        "en": "Wheat, barley, pulses, cattle, sheep, goat, pig, pottery",
+        "de": "Weizen, Gerste, Hülsenfrüchte, Rind, Schaf, Ziege, Schwein, Keramik"
+      },
+      "source": "Zilhão 2001, PNAS 98; Carvalho 2010",
+      "approximate": true,
+      "toleranceYears": 300
+    },
+    {
+      "id": "morocco",
+      "bce": 5500,
+      "lat": 35,
+      "lon": -3.4,
+      "en": "Northern Morocco (Ifri Oudadane)",
+      "de": "Nordmarokko (Ifri Oudadane)",
+      "package": {
+        "en": "Wheat, barley, pulses, cattle, sheep, goat, pig, pottery",
+        "de": "Weizen, Gerste, Hülsenfrüchte, Rind, Schaf, Ziege, Schwein, Keramik"
+      },
+      "source": "Linstädter et al. 2012, Quaternary International 1",
+      "approximate": true,
+      "toleranceYears": 400
+    },
+    {
+      "id": "fayum",
+      "bce": 5400,
+      "lat": 29.5,
+      "lon": 30.6,
+      "en": "Fayum, Egypt",
+      "de": "Fayum, Ägypten",
+      "package": {
+        "en": "Wheat, barley, lentil, pea, sheep, goat, cattle, pig",
+        "de": "Weizen, Gerste, Linse, Erbse, Schaf, Ziege, Rind, Schwein"
+      },
+      "source": "Wendrich et al. 2010, Journal of Field Archaeology; Linseele et al. 2014",
+      "approximate": true,
+      "toleranceYears": 300
+    },
+    {
+      "id": "takarkori",
+      "bce": 5200,
+      "lat": 24.55,
+      "lon": 10.4,
+      "en": "Sahara, Libya (Takarkori)",
+      "de": "Sahara, Libyen (Takarkori)",
+      "package": {
+        "en": "Cattle, sheep and goats herded (little or no crop growing)",
+        "de": "Rinder, Schafe und Ziegen als Herden (kaum oder kein Ackerbau)"
+      },
+      "source": "Dunne et al. 2012, Nature 486",
+      "approximate": true,
+      "toleranceYears": 500
+    },
+    {
+      "id": "nabta",
+      "bce": 6000,
+      "lat": 22.5,
+      "lon": 30.7,
+      "en": "Sahara, Egypt (Nabta Playa)",
+      "de": "Sahara, Ägypten (Nabta Playa)",
+      "package": {
+        "en": "Cattle, sheep and goats herded (little or no crop growing)",
+        "de": "Rinder, Schafe und Ziegen als Herden (kaum oder kein Ackerbau)"
+      },
+      "source": "Wendorf & Schild 2001; Gifford-Gonzalez & Hanotte 2011 (herding debated)",
+      "approximate": true,
+      "toleranceYears": 800
+    },
+    {
+      "id": "cucuteni",
+      "bce": 5000,
+      "lat": 47.1,
+      "lon": 27,
+      "en": "Cucuteni-Trypillia, Romania",
+      "de": "Cucuteni-Tripolje, Rumänien",
+      "package": {
+        "en": "Wheat, barley, pulses, cattle, sheep, goat, pig, pottery",
+        "de": "Weizen, Gerste, Hülsenfrüchte, Rind, Schaf, Ziege, Schwein, Keramik"
+      },
+      "source": "Pinhasi et al. 2005, PLoS Biology 3(12); Müller et al. 2016",
+      "approximate": true,
+      "toleranceYears": 400
+    },
+    {
+      "id": "lbk-netherlands",
+      "bce": 5300,
+      "lat": 50.9,
+      "lon": 5.77,
+      "en": "Dutch Limburg (Elsloo)",
+      "de": "Niederländisch Limburg (Elsloo)",
+      "package": {
+        "en": "Wheat, barley, pulses, cattle, sheep, goat, pig, pottery",
+        "de": "Weizen, Gerste, Hülsenfrüchte, Rind, Schaf, Ziege, Schwein, Keramik"
+      },
+      "source": "Louwe Kooijmans 2007; Fort 2015, J. R. Soc. Interface 12",
+      "toleranceYears": 250
+    },
+    {
+      "id": "vaihingen",
+      "bce": 5450,
+      "lat": 48.93,
+      "lon": 8.97,
+      "en": "Vaihingen an der Enz, Germany (LBK)",
+      "de": "Vaihingen an der Enz, Deutschland (LBK)",
+      "package": {
+        "en": "Wheat, barley, pulses, cattle, sheep, goat, pig, pottery",
+        "de": "Weizen, Gerste, Hülsenfrüchte, Rind, Schaf, Ziege, Schwein, Keramik"
+      },
+      "source": "Bickle & Whittle (eds.) 2013, The First Farmers of Central Europe",
+      "toleranceYears": 250
+    },
+    {
+      "id": "paris-basin",
+      "bce": 5100,
+      "lat": 49.4,
+      "lon": 3.6,
+      "en": "Paris Basin (Cuiry-les-Chaudardes)",
+      "de": "Pariser Becken (Cuiry-les-Chaudardes)",
+      "package": {
+        "en": "Wheat, barley, pulses, cattle, sheep, goat, pig, pottery",
+        "de": "Weizen, Gerste, Hülsenfrüchte, Rind, Schaf, Ziege, Schwein, Keramik"
+      },
+      "source": "Jeunesse 1997; Bocquet-Appel et al. 2009, Radiocarbon 51",
+      "approximate": true,
+      "toleranceYears": 300
+    },
+    {
+      "id": "brittany",
+      "bce": 4800,
+      "lat": 48,
+      "lon": -2.8,
+      "en": "Brittany",
+      "de": "Bretagne",
+      "package": {
+        "en": "Wheat, barley, pulses, cattle, sheep, goat, pig, pottery",
+        "de": "Weizen, Gerste, Hülsenfrüchte, Rind, Schaf, Ziege, Schwein, Keramik"
+      },
+      "source": "Marchand 2014, Le Néolithique en France; Bocquet-Appel et al. 2009",
+      "approximate": true,
+      "toleranceYears": 400
+    },
+    {
+      "id": "britain",
+      "bce": 4000,
+      "lat": 51.3,
+      "lon": 0.7,
+      "en": "Southern England (Kent)",
+      "de": "Südengland (Kent)",
+      "package": {
+        "en": "Wheat, barley, pulses, cattle, sheep, goat, pig, pottery",
+        "de": "Weizen, Gerste, Hülsenfrüchte, Rind, Schaf, Ziege, Schwein, Keramik"
+      },
+      "source": "Whittle, Healy & Bayliss 2011, Gathering Time",
+      "toleranceYears": 200
+    },
+    {
+      "id": "ireland",
+      "bce": 3800,
+      "lat": 54.3,
+      "lon": -9.5,
+      "en": "Ireland (Céide Fields)",
+      "de": "Irland (Céide Fields)",
+      "package": {
+        "en": "Wheat, barley, pulses, cattle, sheep, goat, pig, pottery",
+        "de": "Weizen, Gerste, Hülsenfrüchte, Rind, Schaf, Ziege, Schwein, Keramik"
+      },
+      "source": "Whittle, Healy & Bayliss 2011; Cooney 2000, Landscapes of Neolithic Ireland",
+      "toleranceYears": 250
+    },
+    {
+      "id": "denmark",
+      "bce": 3950,
+      "lat": 55.5,
+      "lon": 12,
+      "en": "Denmark (Funnel Beaker)",
+      "de": "Dänemark (Trichterbecher)",
+      "package": {
+        "en": "Wheat, barley, pulses, cattle, sheep, goat, pig, pottery",
+        "de": "Weizen, Gerste, Hülsenfrüchte, Rind, Schaf, Ziege, Schwein, Keramik"
+      },
+      "source": "Sørensen & Karg 2014, Journal of Archaeological Science 51",
+      "toleranceYears": 200
+    },
+    {
+      "id": "south-sweden",
+      "bce": 3900,
+      "lat": 56,
+      "lon": 13.5,
+      "en": "Southern Sweden",
+      "de": "Südschweden",
+      "package": {
+        "en": "Wheat, barley, pulses, cattle, sheep, goat, pig, pottery",
+        "de": "Weizen, Gerste, Hülsenfrüchte, Rind, Schaf, Ziege, Schwein, Keramik"
+      },
+      "source": "Sørensen & Karg 2014; Larsson 2007",
+      "approximate": true,
+      "toleranceYears": 250
+    },
+    {
+      "id": "oslofjord",
+      "bce": 3800,
+      "lat": 59.5,
+      "lon": 10.8,
+      "en": "Oslofjord, Norway",
+      "de": "Oslofjord, Norwegen",
+      "package": {
+        "en": "Wheat, barley, pulses, cattle, sheep, goat, pig, pottery",
+        "de": "Weizen, Gerste, Hülsenfrüchte, Rind, Schaf, Ziege, Schwein, Keramik"
+      },
+      "source": "Prescott 2012; Bergsvik 2002 (approximate)",
+      "approximate": true,
+      "toleranceYears": 400
+    },
+    {
+      "id": "finland",
+      "bce": 2300,
+      "lat": 61,
+      "lon": 22,
+      "en": "Southwest Finland (Corded Ware farming)",
+      "de": "Südwestfinnland (Schnurkeramik, Ackerbau)",
+      "package": {
+        "en": "Barley, wheat, cattle, sheep, pig",
+        "de": "Gerste, Weizen, Rind, Schaf, Schwein"
+      },
+      "source": "Núñez & Lavento 1998; Alenius et al. 2013 (approximate)",
+      "approximate": true,
+      "toleranceYears": 600
+    },
+    {
+      "id": "yamnaya",
+      "bce": 3300,
+      "lat": 48,
+      "lon": 40,
+      "en": "Pontic steppe (Yamnaya herders)",
+      "de": "Pontische Steppe (Jamnaja-Hirten)",
+      "package": {
+        "en": "Cattle, sheep and goats herded (little or no crop growing)",
+        "de": "Rinder, Schafe und Ziegen als Herden (kaum oder kein Ackerbau)"
+      },
+      "source": "Anthony 2007, The Horse, the Wheel and Language",
+      "approximate": true,
+      "toleranceYears": 500
+    },
+    {
+      "id": "koldihwa-lahuradewa",
+      "bce": 6000,
+      "lat": 26.8,
+      "lon": 83,
+      "en": "Middle Ganges (Lahuradewa)",
+      "de": "Mittlerer Ganges (Lahuradewa)",
+      "package": {
+        "en": "Rice, millet, pig, dog",
+        "de": "Reis, Hirse, Schwein, Hund"
+      },
+      "source": "Tewari et al. 2008, Pragdhara 18; Fuller 2011, Rice 4 (dates debated)",
+      "approximate": true,
+      "toleranceYears": 1000
+    },
+    {
+      "id": "south-india",
+      "bce": 3000,
+      "lat": 15,
+      "lon": 76.9,
+      "en": "Southern India (Deccan ash mounds)",
+      "de": "Südindien (Dekkan, Aschehügel)",
+      "package": {
+        "en": "Cattle, sheep and goats herded (little or no crop growing)",
+        "de": "Rinder, Schafe und Ziegen als Herden (kaum oder kein Ackerbau)"
+      },
+      "source": "Fuller 2011, Rice 4; Fuller et al. 2007, Current Anthropology 48",
+      "approximate": true,
+      "toleranceYears": 700
+    },
+    {
+      "id": "houli",
+      "bce": 6500,
+      "lat": 36.6,
+      "lon": 118.3,
+      "en": "Shandong (Houli)",
+      "de": "Shandong (Houli)",
+      "package": {
+        "en": "Broomcorn and foxtail millet, pig, dog",
+        "de": "Rispen- und Kolbenhirse, Schwein, Hund"
+      },
+      "source": "Crawford et al. 2005, Asian Perspectives 44",
+      "approximate": true,
+      "toleranceYears": 400
+    },
+    {
+      "id": "xinglongwa",
+      "bce": 6000,
+      "lat": 42.2,
+      "lon": 119.7,
+      "en": "Inner Mongolia (Xinglongwa)",
+      "de": "Innere Mongolei (Xinglongwa)",
+      "package": {
+        "en": "Broomcorn and foxtail millet, pig, dog",
+        "de": "Rispen- und Kolbenhirse, Schwein, Hund"
+      },
+      "source": "Zhao 2011, Current Anthropology 52 S4",
+      "approximate": true,
+      "toleranceYears": 400
+    },
+    {
+      "id": "dadiwan",
+      "bce": 5800,
+      "lat": 35,
+      "lon": 105.9,
+      "en": "Upper Wei River (Dadiwan)",
+      "de": "Oberer Wei (Dadiwan)",
+      "package": {
+        "en": "Broomcorn and foxtail millet, pig, dog",
+        "de": "Rispen- und Kolbenhirse, Schwein, Hund"
+      },
+      "source": "Barton et al. 2009, PNAS 106 (approximate)",
+      "approximate": true,
+      "toleranceYears": 400
+    },
+    {
+      "id": "hemudu",
+      "bce": 5000,
+      "lat": 30,
+      "lon": 121.4,
+      "en": "Hemudu, Zhejiang",
+      "de": "Hemudu, Zhejiang",
+      "package": {
+        "en": "Rice, millet, pig, dog",
+        "de": "Reis, Hirse, Schwein, Hund"
+      },
+      "source": "Fuller et al. 2009, Science 323",
+      "approximate": true,
+      "toleranceYears": 300
+    },
+    {
+      "id": "karuo",
+      "bce": 3300,
+      "lat": 31.1,
+      "lon": 97.2,
+      "en": "Tibetan Plateau (Karuo)",
+      "de": "Tibetanisches Hochland (Karuo)",
+      "package": {
+        "en": "Broomcorn and foxtail millet, pig, dog",
+        "de": "Rispen- und Kolbenhirse, Schwein, Hund"
+      },
+      "source": "Chen et al. 2015, Science 347",
+      "approximate": true,
+      "toleranceYears": 500
+    },
+    {
+      "id": "dabenkeng",
+      "bce": 3500,
+      "lat": 25.1,
+      "lon": 121.4,
+      "en": "Taiwan (Dabenkeng)",
+      "de": "Taiwan (Dabenkeng)",
+      "package": {
+        "en": "Rice, millet, pig, dog",
+        "de": "Reis, Hirse, Schwein, Hund"
+      },
+      "source": "Bellwood 2005, First Farmers; Fuller et al. 2010 (approximate)",
+      "approximate": true,
+      "toleranceYears": 500
+    },
+    {
+      "id": "songguk-ni",
+      "bce": 1300,
+      "lat": 36.3,
+      "lon": 126.9,
+      "en": "Korea (Songguk-ni, Mumun rice)",
+      "de": "Korea (Songguk-ni, Mumun-Reis)",
+      "package": {
+        "en": "Rice, millet, pig, dog",
+        "de": "Reis, Hirse, Schwein, Hund"
+      },
+      "source": "Crawford & Lee 2003, Antiquity 77; Lee 2011, Current Anthropology 52 S4",
+      "approximate": true,
+      "toleranceYears": 400
+    },
+    {
+      "id": "itazuke",
+      "bce": 900,
+      "lat": 33.55,
+      "lon": 130.45,
+      "en": "Northern Kyushu (Itazuke, Yayoi)",
+      "de": "Nordkyūshū (Itazuke, Yayoi)",
+      "package": {
+        "en": "Rice, millet, pig, dog",
+        "de": "Reis, Hirse, Schwein, Hund"
+      },
+      "source": "Fujio et al. 2003; Shoda 2007, Antiquity 81; Mizoguchi 2013",
+      "approximate": true,
+      "toleranceYears": 200
+    },
+    {
+      "id": "kinki",
+      "bce": 600,
+      "lat": 34.6,
+      "lon": 135.5,
+      "en": "Kinki, Japan",
+      "de": "Kinki, Japan",
+      "package": {
+        "en": "Rice, millet, pig, dog",
+        "de": "Reis, Hirse, Schwein, Hund"
+      },
+      "source": "Mizoguchi 2013, The Archaeology of Japan",
+      "approximate": true,
+      "toleranceYears": 200
+    },
+    {
+      "id": "tohoku-sunazawa",
+      "bce": 400,
+      "lat": 40.5,
+      "lon": 140.5,
+      "en": "Northern Honshu (Sunazawa)",
+      "de": "Nordhonshū (Sunazawa)",
+      "package": {
+        "en": "Rice, millet, pig, dog",
+        "de": "Reis, Hirse, Schwein, Hund"
+      },
+      "source": "Mizoguchi 2013, The Archaeology of Japan",
+      "approximate": true,
+      "toleranceYears": 300
+    },
+    {
+      "id": "cagayan",
+      "bce": 2200,
+      "lat": 18.3,
+      "lon": 121.7,
+      "en": "Luzon, Philippines (Nagsabaran)",
+      "de": "Luzon, Philippinen (Nagsabaran)",
+      "package": {
+        "en": "Taro, yam, banana, breadfruit, pig, dog, chicken",
+        "de": "Taro, Yams, Banane, Brotfrucht, Schwein, Hund, Huhn"
+      },
+      "source": "Hung et al. 2011, Antiquity 85",
+      "approximate": true,
+      "toleranceYears": 400
+    },
+    {
+      "id": "mainland-se-asia",
+      "bce": 2000,
+      "lat": 15.2,
+      "lon": 102.1,
+      "en": "Thailand (Ban Non Wat, Khok Phanom Di)",
+      "de": "Thailand (Ban Non Wat, Khok Phanom Di)",
+      "package": {
+        "en": "Rice, millet, pig, dog",
+        "de": "Reis, Hirse, Schwein, Hund"
+      },
+      "source": "Higham et al. 2011, Antiquity / Higham 2002, Early Cultures of Mainland Southeast Asia",
+      "approximate": true,
+      "toleranceYears": 500
+    },
+    {
+      "id": "red-river",
+      "bce": 2000,
+      "lat": 21.4,
+      "lon": 105.4,
+      "en": "Red River, Vietnam (Phùng Nguyên)",
+      "de": "Roter Fluss, Vietnam (Phùng Nguyên)",
+      "package": {
+        "en": "Rice, millet, pig, dog",
+        "de": "Reis, Hirse, Schwein, Hund"
+      },
+      "source": "Higham 2002; Bellwood 2005 (approximate)",
+      "approximate": true,
+      "toleranceYears": 500
+    },
+    {
+      "id": "marianas",
+      "bce": 1500,
+      "lat": 15.2,
+      "lon": 145.7,
+      "en": "Mariana Islands",
+      "de": "Marianen",
+      "package": {
+        "en": "Taro, yam, banana, breadfruit, pig, dog, chicken",
+        "de": "Taro, Yams, Banane, Brotfrucht, Schwein, Hund, Huhn"
+      },
+      "source": "Hung et al. 2011, Antiquity 85",
+      "approximate": true,
+      "toleranceYears": 300
+    },
+    {
+      "id": "bismarck",
+      "bce": 1500,
+      "lat": -4,
+      "lon": 152,
+      "en": "Bismarck Archipelago (Lapita)",
+      "de": "Bismarck-Archipel (Lapita)",
+      "package": {
+        "en": "Taro, yam, banana, breadfruit, pig, dog, chicken",
+        "de": "Taro, Yams, Banane, Brotfrucht, Schwein, Hund, Huhn"
+      },
+      "source": "Kirch 1997, The Lapita Peoples; Specht et al. 2014",
+      "approximate": true,
+      "toleranceYears": 300
+    },
+    {
+      "id": "tonga",
+      "bce": 900,
+      "lat": -21.1,
+      "lon": -175.2,
+      "en": "Tonga (Lapita)",
+      "de": "Tonga (Lapita)",
+      "package": {
+        "en": "Taro, yam, banana, breadfruit, pig, dog, chicken",
+        "de": "Taro, Yams, Banane, Brotfrucht, Schwein, Hund, Huhn"
+      },
+      "source": "Burley et al. 2012, PNAS 109",
+      "toleranceYears": 200
+    },
+    {
+      "id": "samoa",
+      "bce": 800,
+      "lat": -14,
+      "lon": -171.8,
+      "en": "Samoa",
+      "de": "Samoa",
+      "package": {
+        "en": "Taro, yam, banana, breadfruit, pig, dog, chicken",
+        "de": "Taro, Yams, Banane, Brotfrucht, Schwein, Hund, Huhn"
+      },
+      "source": "Petchey 2001; Wilmshurst et al. 2011, PNAS 108",
+      "approximate": true,
+      "toleranceYears": 250
+    },
+    {
+      "id": "society-islands",
+      "bce": -1000,
+      "lat": -17.5,
+      "lon": -149.8,
+      "en": "Society Islands",
+      "de": "Gesellschaftsinseln",
+      "package": {
+        "en": "Taro, yam, banana, breadfruit, pig, dog, chicken",
+        "de": "Taro, Yams, Banane, Brotfrucht, Schwein, Hund, Huhn"
+      },
+      "source": "Wilmshurst et al. 2011, PNAS 108",
+      "approximate": true,
+      "toleranceYears": 150
+    },
+    {
+      "id": "hawaii",
+      "bce": -1100,
+      "lat": 21.3,
+      "lon": -157.9,
+      "en": "Hawai'i",
+      "de": "Hawaii",
+      "package": {
+        "en": "Taro, yam, banana, breadfruit, pig, dog, chicken",
+        "de": "Taro, Yams, Banane, Brotfrucht, Schwein, Hund, Huhn"
+      },
+      "source": "Wilmshurst et al. 2011, PNAS 108",
+      "approximate": true,
+      "toleranceYears": 150
+    },
+    {
+      "id": "easter-island",
+      "bce": -1200,
+      "lat": -27.1,
+      "lon": -109.4,
+      "en": "Easter Island (Rapa Nui)",
+      "de": "Osterinsel (Rapa Nui)",
+      "package": {
+        "en": "Taro, yam, banana, breadfruit, pig, dog, chicken",
+        "de": "Taro, Yams, Banane, Brotfrucht, Schwein, Hund, Huhn"
+      },
+      "source": "Hunt & Lipo 2011, Science 333; Wilmshurst et al. 2011",
+      "approximate": true,
+      "toleranceYears": 150
+    },
+    {
+      "id": "new-zealand",
+      "bce": -1280,
+      "lat": -38,
+      "lon": 175.5,
+      "en": "New Zealand (Aotearoa)",
+      "de": "Neuseeland (Aotearoa)",
+      "package": {
+        "en": "Taro, yam, banana, breadfruit, pig, dog, chicken",
+        "de": "Taro, Yams, Banane, Brotfrucht, Schwein, Hund, Huhn"
+      },
+      "source": "Wilmshurst et al. 2008, PNAS 105; Wilmshurst et al. 2011",
+      "approximate": true,
+      "toleranceYears": 100
+    },
+    {
+      "id": "iceland",
+      "bce": -874,
+      "lat": 64.1,
+      "lon": -21.9,
+      "en": "Iceland (Landnám)",
+      "de": "Island (Landnahme)",
+      "package": {
+        "en": "Barley, wheat, cattle, sheep, pig",
+        "de": "Gerste, Weizen, Rind, Schaf, Schwein"
+      },
+      "source": "Vésteinsson & McGovern 2012, Journal of the North Atlantic 20",
+      "toleranceYears": 100
+    },
+    {
+      "id": "maya-lowlands",
+      "bce": 2500,
+      "lat": 17.5,
+      "lon": -88.5,
+      "en": "Maya lowlands, Belize",
+      "de": "Maya-Tiefland, Belize",
+      "package": {
+        "en": "Maize, beans, squash",
+        "de": "Mais, Bohnen, Kürbis"
+      },
+      "source": "Pohl et al. 2007; Kennett et al. 2020, Nature Human Behaviour 4",
+      "approximate": true,
+      "toleranceYears": 500
+    },
+    {
+      "id": "ecuador-coast",
+      "bce": 5000,
+      "lat": -2.2,
+      "lon": -80.5,
+      "en": "Coastal Ecuador (Las Vegas, Real Alto)",
+      "de": "Küste Ecuadors (Las Vegas, Real Alto)",
+      "package": {
+        "en": "Maize, beans, squash",
+        "de": "Mais, Bohnen, Kürbis"
+      },
+      "source": "Pearsall 2003; Piperno & Pearsall 1998",
+      "approximate": true,
+      "toleranceYears": 800
+    },
+    {
+      "id": "caral",
+      "bce": 3000,
+      "lat": -10.9,
+      "lon": -77.5,
+      "en": "Peruvian coast (Caral-Supe)",
+      "de": "Küste Perus (Caral-Supe)",
+      "package": {
+        "en": "Potato, quinoa, squash, beans, cotton, llama",
+        "de": "Kartoffel, Quinoa, Kürbis, Bohnen, Baumwolle, Lama"
+      },
+      "source": "Shady et al. 2001, Science 292; Haas et al. 2013, PNAS 110",
+      "approximate": true,
+      "toleranceYears": 500
+    },
+    {
+      "id": "titicaca",
+      "bce": 1500,
+      "lat": -16.3,
+      "lon": -69,
+      "en": "Lake Titicaca (Chiripa)",
+      "de": "Titicacasee (Chiripa)",
+      "package": {
+        "en": "Potato, quinoa, squash, beans, cotton, llama",
+        "de": "Kartoffel, Quinoa, Kürbis, Bohnen, Baumwolle, Lama"
+      },
+      "source": "Bruno 2008; Erickson 1988 (approximate)",
+      "approximate": true,
+      "toleranceYears": 700
+    },
+    {
+      "id": "southwest-us",
+      "bce": 2100,
+      "lat": 32.2,
+      "lon": -111,
+      "en": "Arizona (Tucson Basin, maize)",
+      "de": "Arizona (Tucson-Becken, Mais)",
+      "package": {
+        "en": "Maize, beans, squash",
+        "de": "Mais, Bohnen, Kürbis"
+      },
+      "source": "Merrill et al. 2009, PNAS 106; Mabry (ed.) 2008",
+      "approximate": true,
+      "toleranceYears": 400
+    },
+    {
+      "id": "eastern-complex",
+      "bce": 1800,
+      "lat": 37.5,
+      "lon": -88,
+      "en": "Midwest river valleys (Eastern Agricultural Complex)",
+      "de": "Flusstäler des Mittleren Westens (Östlicher Anbaukomplex)",
+      "package": {
+        "en": "Squash, sunflower, marsh elder, goosefoot, little barley",
+        "de": "Kürbis, Sonnenblume, Sumpfholunder, Gänsefuß, Gerstengras"
+      },
+      "source": "Smith & Yarnell 2009, PNAS 106; Smith 2006, PNAS 103",
+      "approximate": true,
+      "toleranceYears": 500
+    },
+    {
+      "id": "ohio-maize",
+      "bce": -200,
+      "lat": 38.5,
+      "lon": -83,
+      "en": "Ohio valley (maize arrives)",
+      "de": "Ohiotal (Mais kommt an)",
+      "package": {
+        "en": "Maize, beans, squash",
+        "de": "Mais, Bohnen, Kürbis"
+      },
+      "source": "Hart & Lovis 2013, Journal of Archaeological Research 21; Crawford 2005 (approximate)",
+      "approximate": true,
+      "toleranceYears": 300
+    },
+    {
+      "id": "ontario-maize",
+      "bce": -600,
+      "lat": 44,
+      "lon": -77,
+      "en": "Lake Ontario (maize and beans)",
+      "de": "Ontariosee (Mais und Bohnen)",
+      "package": {
+        "en": "Maize, beans, squash",
+        "de": "Mais, Bohnen, Kürbis"
+      },
+      "source": "Hart & Lovis 2013; Crawford et al. 1997, Science 276 (approximate)",
+      "approximate": true,
+      "toleranceYears": 300
+    },
+    {
+      "id": "cahokia",
+      "bce": -900,
+      "lat": 38.65,
+      "lon": -90.06,
+      "en": "Cahokia (Mississippian maize farming)",
+      "de": "Cahokia (Mississippi-Kultur, Maisanbau)",
+      "package": {
+        "en": "Maize, beans, squash",
+        "de": "Mais, Bohnen, Kürbis"
+      },
+      "source": "Fritz 2019, Archaeobotany of the Mississippian; Pauketat 2009",
+      "approximate": true,
+      "toleranceYears": 200
+    },
+    {
+      "id": "caribbean",
+      "bce": 400,
+      "lat": 18.2,
+      "lon": -66.5,
+      "en": "Puerto Rico (Saladoid)",
+      "de": "Puerto Rico (Saladoide)",
+      "package": {
+        "en": "Potato, quinoa, squash, beans, cotton, llama",
+        "de": "Kartoffel, Quinoa, Kürbis, Bohnen, Baumwolle, Lama"
+      },
+      "source": "Rouse 1992, The Tainos; Wilson 2007 (approximate)",
+      "approximate": true,
+      "toleranceYears": 300
+    },
+    {
+      "id": "taquara",
+      "bce": -400,
+      "lat": -28,
+      "lon": -50.5,
+      "en": "Southern Brazil highlands (Taquara)",
+      "de": "Hochland Südbrasiliens (Taquara)",
+      "package": {
+        "en": "Maize, beans, squash",
+        "de": "Mais, Bohnen, Kürbis"
+      },
+      "source": "Iriarte et al. 2017, PNAS 114; Bonomo et al. 2015 (approximate)",
+      "approximate": true,
+      "toleranceYears": 400
+    },
+    {
+      "id": "dhar-tichitt",
+      "bce": 2000,
+      "lat": 18.45,
+      "lon": -9.5,
+      "en": "Southern Mauritania (Dhar Tichitt)",
+      "de": "Südmauretanien (Dhar Tichitt)",
+      "package": {
+        "en": "Pearl millet, cowpea, cattle, goats",
+        "de": "Perlhirse, Kuhbohne, Rinder, Ziegen"
+      },
+      "source": "Manning et al. 2011, Journal of Anthropological Archaeology 30; Fuller & Hildebrand 2013",
+      "approximate": true,
+      "toleranceYears": 600
+    },
+    {
+      "id": "kintampo",
+      "bce": 1700,
+      "lat": 7.9,
+      "lon": -1.7,
+      "en": "Ghana (Kintampo)",
+      "de": "Ghana (Kintampo)",
+      "package": {
+        "en": "Pearl millet, cowpea, cattle, goats",
+        "de": "Perlhirse, Kuhbohne, Rinder, Ziegen"
+      },
+      "source": "Stahl 2013, African Archaeology; D'Andrea & Casey 2002 (approximate)",
+      "approximate": true,
+      "toleranceYears": 500
+    },
+    {
+      "id": "turkana",
+      "bce": 3300,
+      "lat": 3.5,
+      "lon": 36.2,
+      "en": "Lake Turkana, Kenya (pastoralists)",
+      "de": "Turkana-See, Kenia (Hirten)",
+      "package": {
+        "en": "Cattle, sheep and goats herded (little or no crop growing)",
+        "de": "Rinder, Schafe und Ziegen als Herden (kaum oder kein Ackerbau)"
+      },
+      "source": "Grillo et al. 2018, PNAS 115; Marshall et al. 2011",
+      "approximate": true,
+      "toleranceYears": 500
+    },
+    {
+      "id": "ethiopia",
+      "bce": 2000,
+      "lat": 9,
+      "lon": 38.7,
+      "en": "Ethiopian highlands (enset, teff, noog)",
+      "de": "Äthiopisches Hochland (Ensete, Teff, Nug)",
+      "package": {
+        "en": "Pearl millet, cowpea, cattle, goats",
+        "de": "Perlhirse, Kuhbohne, Rinder, Ziegen"
+      },
+      "source": "Harlan 1992, Crops and Man; Blench 2006 (centre of domestication; date approximate)",
+      "approximate": true,
+      "toleranceYears": 1000
+    },
+    {
+      "id": "kenya-rift",
+      "bce": 1000,
+      "lat": -0.5,
+      "lon": 36,
+      "en": "Kenya Rift Valley (Pastoral Neolithic)",
+      "de": "Kenianisches Rift Valley (Pastoral Neolithic)",
+      "package": {
+        "en": "Cattle, sheep and goats herded (little or no crop growing)",
+        "de": "Rinder, Schafe und Ziegen als Herden (kaum oder kein Ackerbau)"
+      },
+      "source": "Ambrose 1998, Journal of Archaeological Science 25; Lane 2013",
+      "approximate": true,
+      "toleranceYears": 600
+    },
+    {
+      "id": "bantu-cameroon",
+      "bce": 1000,
+      "lat": 4,
+      "lon": 11.5,
+      "en": "Cameroon (Bantu, Western Bantu)",
+      "de": "Kamerun (Bantu)",
+      "package": {
+        "en": "Pearl millet, sorghum, yam, oil palm, goats, cattle, iron tools",
+        "de": "Perlhirse, Sorghum, Yams, Ölpalme, Ziegen, Rinder, Eisenwerkzeuge"
+      },
+      "source": "Grollemund et al. 2015, PNAS 112; Bostoen et al. 2015",
+      "approximate": true,
+      "toleranceYears": 500
+    },
+    {
+      "id": "urewe",
+      "bce": 500,
+      "lat": 0,
+      "lon": 34.5,
+      "en": "Great Lakes (Urewe, Bantu)",
+      "de": "Große Seen (Urewe, Bantu)",
+      "package": {
+        "en": "Pearl millet, sorghum, yam, oil palm, goats, cattle, iron tools",
+        "de": "Perlhirse, Sorghum, Yams, Ölpalme, Ziegen, Rinder, Eisenwerkzeuge"
+      },
+      "source": "Grollemund et al. 2015; Schoenbrun 1998",
+      "approximate": true,
+      "toleranceYears": 400
+    },
+    {
+      "id": "bantu-limpopo",
+      "bce": -300,
+      "lat": -23,
+      "lon": 29,
+      "en": "Limpopo valley (Bantu farmers)",
+      "de": "Limpopo-Tal (Bantu-Bauern)",
+      "package": {
+        "en": "Pearl millet, sorghum, yam, oil palm, goats, cattle, iron tools",
+        "de": "Perlhirse, Sorghum, Yams, Ölpalme, Ziegen, Rinder, Eisenwerkzeuge"
+      },
+      "source": "Huffman 2007, Handbook of the Iron Age; Grollemund et al. 2015",
+      "approximate": true,
+      "toleranceYears": 400
+    }
+  ]
+}
