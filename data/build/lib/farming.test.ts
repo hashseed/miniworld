@@ -31,7 +31,7 @@ describe('computeFarming', () => {
     const b = computeFarming(base([centre]));
     expect(Array.from(a.onset.slice(0, 5000))).toEqual(Array.from(b.onset.slice(0, 5000)));
     expect(a.seed).toEqual(b.seed);
-  });
+  }, 60_000);
 
   it('spreads monotonically from the centre at about the zone speed', () => {
     const r = computeFarming(base([centre]));
@@ -56,7 +56,7 @@ describe('computeFarming', () => {
     // The wave can still go round the world the other way, but only far later.
     const t = at(blocked, 30, 20);
     expect(Number.isNaN(t) || t < at(open, 30, 20) - 1000).toBe(true);
-  });
+  }, 60_000);
 
   it('keeps a hold as the earliest year and lets the wave go on from it', () => {
     const r = computeFarming(

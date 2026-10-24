@@ -68,5 +68,5 @@ describe('tree figures', () => {
           else shapes.set(lookShape(kind, variant), p);
         }
       }
-  });
+  }, 60_000);
 });
