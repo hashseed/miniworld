@@ -152,6 +152,13 @@ export function parseEra(
   const fromDay = from?.first ?? 0;
   const toDay = to?.first ?? 0;
   if (!from || !to) e.add('when needs a from and a to date');
+  else if (
+    from.precision === 'month' ||
+    from.precision === 'day' ||
+    to.precision === 'month' ||
+    to.precision === 'day'
+  )
+    e.add('an era begins and ends at the start of a year');
   else {
     if (fromDay >= toDay) e.add('ends before it starts');
     if (fromDay < inp.startDay || toDay > inp.cutoffDay) e.add('lies outside the timeline');

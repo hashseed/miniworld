@@ -113,7 +113,7 @@ Dates are written in a small human-readable form and converted by the data build
 | `1789-07-14` | a single day |
 | `start`, `today` | the start of the timeline, the content cutoff |
 
-Years CE are written without a suffix and with four or fewer digits; there is no year 0 in written dates (the build converts to astronomical numbering).
+Years CE are written without a suffix and with four or fewer digits; there is no year 0 in written dates (the build converts to astronomical numbering). A month or a day is written only for a year CE (`1342-07`, `1789-07-14`, `79-10-24`, with `c.` in front where approximate); the build fails on a month or day that does not exist. An era's boundaries are years.
 
 `when` has the same shape for every kind:
 
