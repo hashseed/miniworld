@@ -40,7 +40,7 @@ Only the first row is a published rate. The others are our fit to the dated wayp
 
 ## 3. Waypoints
 
-`data/curated/farming.json` holds 72 waypoints (Vinča and Cahokia were dropped: they are later cultures on ground where farming had begun, at the Starčevo site and in the Mississippi valley): `id`, `bce` (negative for CE), `lat`, `lon`, `en`, `de`, `package` (`en`, `de`), `source`, optional `"approximate": true`, and `toleranceYears` for the check. Summary by region (dates BCE unless CE):
+`data/curated/farming.json` holds 73 waypoints (Vinča and Cahokia were dropped: they are later cultures on ground where farming had begun, at the Starčevo site and in the Mississippi valley): `id`, `bce` (negative for CE), `lat`, `lon`, `en`, `de`, `package` (`en`, `de`), `source`, optional `"approximate": true`, and `toleranceYears` for the check. Summary by region (dates BCE unless CE):
 
 | Region | Waypoints (date) |
 | --- | --- |
@@ -55,7 +55,9 @@ Only the first row is a published rate. The others are our fit to the dated wayp
 | South Asia | Ganges 6000 (debated), Deccan 3000 |
 | East Asia | Houli 6500, Xinglongwa 6000, Dadiwan 5800, Hemudu 5000, Tibet 3300, Korea (Dongsam-dong millet) 3300, Kyushu 900, Kinki 600, Tohoku 400 |
 | South-East Asia and Pacific | Taiwan 3500, Luzon 2200, Thailand 2000, Vietnam 2000, Marianas 1500, Bismarck 1500, Tonga 900, Samoa 800, Society Is. 1000 CE, Hawaii 1100 CE, Easter Is. 1200 CE, New Zealand 1280 CE |
-| Americas | Ecuador 3500, Caral 3000, Maya lowlands 2500, Arizona 2100, Eastern Agricultural Complex 1800, Titicaca 1500, Caribbean 400, Ohio 200 CE, Taquara 400 CE, Ontario 600 CE |
+| Americas | Panama 4500 (preceramic maize and manioc), Ecuador 3500, Caral 3000, Maya lowlands 2500, Arizona 2100, Eastern Agricultural Complex 1800, Titicaca 1500, Caribbean 400, Ohio 200 CE, Taquara 400 CE, Ontario 600 CE |
+
+Checked against sources on 2026-10-24 and kept: Fayum 5400 (domesticates 5400 to 5200 BCE; caprines about 5600) and Ganj Dareh 8000 (goats managed by about 8200 BCE). East Asia needs no faster zone: with the centre dates of section 9.2 Beijing gets farming 5900 BCE, Seoul 3100, Busan 3400. Colombia follows the Panama waypoint (Cali about 3000, Bogotá 2600 BCE); the Orinoco basin and Caracas stay late (about 1100 to 1250 BCE), as the lowland forest was farmed late.
 
 Most dates outside Europe are approximate; the file says which. Dates of the Sahara, the Ganges, Ethiopia and the Eastern Woodlands are debated and should be shown as "about" in the UI.
 

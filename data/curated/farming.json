@@ -1469,6 +1469,21 @@
       "toleranceYears": 500
     },
     {
+      "id": "panama",
+      "bce": 4500,
+      "lat": 8.2,
+      "lon": -80.6,
+      "en": "Panama (Aguadulce Shelter, Cueva de los Ladrones)",
+      "de": "Panama (Aguadulce-Felsdach, Cueva de los Ladrones)",
+      "package": {
+        "en": "Maize, manioc, squash, arrowroot",
+        "de": "Mais, Maniok, Kürbis, Pfeilwurz"
+      },
+      "source": "Maize and manioc starch on grinding stones of the preceramic horizons, 7800 to 5000 years ago; Piperno & Pearsall 1998; Dickau et al. 2007, PNAS 104",
+      "approximate": true,
+      "toleranceYears": 700
+    },
+    {
       "id": "ecuador-coast",
       "bce": 3500,
       "lat": -2.2,
