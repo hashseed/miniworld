@@ -12,6 +12,7 @@ import { dayAtPosition } from '../../../app/src/time/axis.ts';
 import { BuildCache, cacheKey } from '../lib/buildCache.ts';
 import { checkLicences, type SourceEntry } from '../lib/licence.ts';
 import type { Output } from '../lib/output.ts';
+import { tableErrors, type Table, type TableName } from '../../schema/tables.ts';
 
 export const ROOT = new URL('../../..', import.meta.url).pathname;
 const SOURCES = join(ROOT, 'data/sources');
@@ -31,8 +32,8 @@ export interface BuildContext {
   sourceFiles(id: string): string[];
   /** A Natural Earth file by its name. */
   neFile(name: string): string;
-  /** A file under data/curated, parsed as JSON. */
-  curated<T>(name: string): T;
+  /** A curated table under data/curated, parsed and checked against its schema (content-format.md section 1.1). */
+  curated<N extends TableName>(name: N): Table<N>;
   /** The names of the curated files read through `curated` since the list was last cleared. */
   curatedReads: Set<string>;
   /** Caches are off (`--no-cache`, `--fresh`). */
@@ -88,9 +89,12 @@ export function createContext(args: string[]): BuildContext {
     console.log(`build-data ${s}s: ${message}`);
   };
   const curatedReads = new Set<string>();
-  const curated = <T>(name: string) => {
+  const curated = <N extends TableName>(name: N): Table<N> => {
     curatedReads.add(name);
-    return JSON.parse(readFileSync(join(ROOT, 'data/curated', name), 'utf8')) as T;
+    const value: unknown = JSON.parse(readFileSync(join(ROOT, 'data/curated', name), 'utf8'));
+    const errors = tableErrors(name, value);
+    if (errors.length) fail(errors.join('\n'));
+    return value as Table<N>;
   };
 
   // Sources and licences.
@@ -129,7 +133,7 @@ export function createContext(args: string[]): BuildContext {
   );
 
   // Time windows of equal watching time (section 10.3).
-  const release = curated<{ version: string; cutoffDate: string }>('release.json');
+  const release = curated('release.json');
   const [cy, cm, cd] = release.cutoffDate.split('-').map(Number) as [number, number, number];
   const cutoffDay = dayFromDate(cy, cm, cd);
   // The curve from watching to history time ends on the cutoff (spec section 2.1).

@@ -17,19 +17,13 @@ import { fixtureElevation } from '../lib/fixture.ts';
 import { Grid, GridPyramid } from '../lib/grid.ts';
 import { openShare, wildMasks } from '../lib/wildlife.ts';
 import { WILD_GROUPS } from '../../../app/src/world/wildlife.ts';
-import {
-  floodInlandSeas,
-  oceanConnection,
-  validateInlandSeas,
-  type InlandSea,
-} from '../lib/ocean.ts';
+import { floodInlandSeas, oceanConnection, validateInlandSeas } from '../lib/ocean.ts';
 import { readElevation, readFeatures } from '../lib/readers.ts';
 import {
   enlargeIslands,
   removeAreas,
   smoothElevation,
   validateRemovedAreas,
-  type RemovedArea,
 } from '../lib/simplify.ts';
 import {
   blendPolar,
@@ -42,15 +36,9 @@ import {
   COARSE_MIN_SPACING_KM,
   validateIslands,
   validateStraits,
-  type KeptIsland,
   type Strait,
 } from '../lib/coast.ts';
-import {
-  allowPeaksAtCoast,
-  famousRelief,
-  validateMountains,
-  type Mountain,
-} from '../lib/relief.ts';
+import { allowPeaksAtCoast, famousRelief, validateMountains } from '../lib/relief.ts';
 import { allTileKeys, buildTerrainTile, isDeepTile, lakeNear } from '../lib/terrain.ts';
 import {
   NO_LAKE,
@@ -59,7 +47,6 @@ import {
   riverFlow,
   riverPicks,
   validateRivers,
-  type CuratedRiver,
 } from '../lib/water.ts';
 import { validateHumidPeriods, type HumidPeriod } from '../lib/climate.ts';
 import type { BuildContext, WriteContext } from './context.ts';
@@ -99,13 +86,13 @@ export interface WorldMap {
 /** Reads and simplifies the map (sections 4.2 and 5.1). */
 export function buildMap(ctx: BuildContext): WorldMap {
   const { log, fail, neFile } = ctx;
-  const straits = ctx.curated<{ straits: Strait[] }>('straits.json').straits;
-  const keptIslands = ctx.curated<{ islands: KeptIsland[] }>('islands.json').islands;
-  const removedAreas = ctx.curated<{ areas: RemovedArea[] }>('removed-areas.json').areas;
-  const mountains = ctx.curated<{ mountains: Mountain[] }>('mountains.json').mountains;
-  const humidPeriods = ctx.curated<{ periods: HumidPeriod[] }>('humid-periods.json').periods;
-  const curatedRivers = ctx.curated<{ rivers: CuratedRiver[] }>('rivers.json').rivers;
-  const inlandSeas = ctx.curated<{ seas: InlandSea[] }>('inland-seas.json').seas;
+  const straits = ctx.curated('straits.json').straits;
+  const keptIslands = ctx.curated('islands.json').islands;
+  const removedAreas = ctx.curated('removed-areas.json').areas;
+  const mountains = ctx.curated('mountains.json').mountains;
+  const humidPeriods = ctx.curated('humid-periods.json').periods;
+  const curatedRivers = ctx.curated('rivers.json').rivers;
+  const inlandSeas = ctx.curated('inland-seas.json').seas;
   const mapErrors = [
     ...validateHumidPeriods(humidPeriods),
     ...validateStraits(straits),

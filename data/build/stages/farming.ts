@@ -186,10 +186,8 @@ export function buildFarming(
     log('farming onset skipped on the fixture map');
     return undefined;
   }
-  const file = ctx.curated<FarmingFile>('farming.json');
-  const { thresholds } = ctx.curated<{
-    thresholds: { id: string; bce: number; lat: number; lon: number; en: string; de: string }[];
-  }>('neolithic.json');
+  const file = ctx.curated('farming.json');
+  const { thresholds } = ctx.curated('neolithic.json');
   const read = readFarming(file, thresholds);
   if (read.errors.length) fail(read.errors.join('\n'));
   const { connection, lakes, elevation } = map;

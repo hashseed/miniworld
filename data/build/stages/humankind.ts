@@ -21,7 +21,6 @@ import {
   siteStepAt,
   TREE_END,
   validateCultureAreas,
-  type CultureAreas,
 } from '../lib/cultureAreas.ts';
 import { buildSites, type Site, type SiteMap } from '../lib/sites.ts';
 import {
@@ -48,13 +47,7 @@ import {
   VISIT_M,
   treeScene,
 } from '../../../app/src/world/treeScene.ts';
-import {
-  arrivalMap,
-  dayOfBce,
-  type ArrivalMap,
-  type Arrivals,
-  type Crossing,
-} from '../lib/arrivals.ts';
+import { arrivalMap, dayOfBce, type ArrivalMap, type Arrivals } from '../lib/arrivals.ts';
 import { CAMP_SHELTER } from '../../../assets/src/shelters.ts';
 import { farmingStateAt } from '../../../app/src/world/farmingOnset.ts';
 import { NEOLITHIC_PROFILES } from '../../../app/src/world/neolithicProfiles.ts';
@@ -221,15 +214,13 @@ export function buildHumankind(
       return t !== undefined && mm !== undefined && mm >= KOPPEN_DRY_MM_PER_C * t + KOPPEN_DRY_MM;
     },
   });
-  const cultureAreas = ctx.curated<CultureAreas>('culture-areas.json');
+  const cultureAreas = ctx.curated('culture-areas.json');
   const areaErrors = validateCultureAreas(cultureAreas);
   if (areaErrors.length) fail(areaErrors.join('\n'));
   // The arrival map (peopling.md section 4), over land at each date; ice and desert are crossed.
-  const arrivals = ctx.curated<Arrivals>('arrivals.json');
-  const { crossings } = ctx.curated<{ crossings: Crossing[] }>('crossings.json');
-  const { thresholds } = ctx.curated<{
-    thresholds: { id: string; bce: number; lat: number; lon: number }[];
-  }>('neolithic.json');
+  const arrivals = ctx.curated('arrivals.json');
+  const { crossings } = ctx.curated('crossings.json');
+  const { thresholds } = ctx.curated('neolithic.json');
   const lowDay =
     climate.seaLevel.startDay +
     climate.seaLevel.stepDays *
@@ -273,27 +264,10 @@ export function buildHumankind(
     rivers.bilinear(lat, lon) >= RIVER_BANK_FIELD ? -Infinity : walkFlood(lat, lon);
   const lowestSea = Math.min(...climate.seaLevel.metres);
   const highestSea = Math.max(...climate.seaLevel.metres);
-  const { places: keyPlaces } = ctx.curated<{
-    places: { id: string; lat: number; lon: number }[];
-  }>('key-places.json');
+  const { places: keyPlaces } = ctx.curated('key-places.json');
   // Anchors: places that must have a band from a year (sites.md section 4.1).
-  const { anchors } = ctx.curated<{
-    anchors: {
-      id: string;
-      bce: number;
-      until?: number;
-      lat: number;
-      lon: number;
-      scene?: { kind: string; prop: string };
-      camp?: { lat: number; lon: number };
-      en: string;
-      de: string;
-      source: string;
-    }[];
-  }>('anchors.json');
-  for (const a of anchors)
-    if (!a.id || !a.en || !a.de || !a.source || Math.abs(a.lat) > 90 || Math.abs(a.lon) > 180)
-      fail(`anchors.json: ${a.id || '(no id)'} needs an id, a place, en, de and a source`);
+  // Fields, places and texts are checked by the table's schema (data/schema/tables.ts).
+  const { anchors } = ctx.curated('anchors.json');
   // Scenes at anchors (humankind.md section 8.2).
   const SCENE_PROPS: Record<string, string[]> = {
     'cave-painting': [
@@ -328,39 +302,10 @@ export function buildHumankind(
     lon: t.lon,
   }));
   // Encounters: parties of several bands meeting at a place (sites.md section 4.3).
-  const { encounters } = ctx.curated<{
-    encounters: {
-      id: string;
-      kind: string;
-      bce: number;
-      every?: number;
-      until?: number;
-      stay?: number;
-      lat: number;
-      lon: number;
-      host?: string;
-      roles: { id: string; lat: number; lon: number; km: number; people: number }[];
-      en: string;
-      de: string;
-      source: string;
-    }[];
-  }>('encounters.json');
-  const KINDS = ['visit', 'gathering', 'trade', 'battle'];
-  for (const e of encounters) {
-    const name = `encounters.json: ${e.id || '(no id)'}`;
-    if (!e.id || !e.en || !e.de || !e.source || Math.abs(e.lat) > 90 || Math.abs(e.lon) > 180)
-      fail(`${name} needs an id, a place, en, de and a source`);
-    if (!KINDS.includes(e.kind)) fail(`${name}: kind must be one of ${KINDS.join(', ')}`);
-    if ((e.every === undefined) !== (e.until === undefined) || (e.every ?? 1) <= 0)
-      fail(`${name}: every and until come together, every more than 0 years`);
-    if (e.host && !anchors.some((a) => a.id === e.host)) fail(`${name}: no anchor ${e.host}`);
-    if (!e.roles?.length) fail(`${name} needs at least one role`);
-    for (const r of e.roles)
-      if (!r.id || !(r.people >= 2 && r.people <= 8) || !(r.km > 0))
-        fail(
-          `${name}: role ${r.id || '(no id)'} needs an id, a place, a km above 0 and 2 to 8 people`,
-        );
-  }
+  const { encounters } = ctx.curated('encounters.json');
+  for (const e of encounters)
+    if (e.host && !anchors.some((a) => a.id === e.host))
+      fail(`encounters.json: ${e.id}: no anchor ${e.host}`);
   const encounterRecords = encounters.map((e) => {
     const days: number[] = [];
     for (let bce = e.bce; bce >= (e.until ?? e.bce); bce -= e.every ?? 1) days.push(dayOfBce(bce));
@@ -617,7 +562,7 @@ export function buildHumankind(
       const [from, to] = [siteOf.get(`arrival:${p.id}`), siteOf.get(`arrival:${other}`)];
       if (from === undefined || to === undefined) continue;
       const seen = new Set([from]);
-      for (let ring = [from]; ring.length;) {
+      for (let ring = [from]; ring.length; ) {
         const next: number[] = [];
         for (const i of ring)
           for (const j of foot.get(i) ?? [])

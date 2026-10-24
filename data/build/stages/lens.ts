@@ -39,9 +39,7 @@ export function buildLensStage(ctx: WriteContext): {
       .map((f) => join(SPEC, 'events', f)),
   ];
   // Curated boosts count as extra event coordinates (section 2).
-  const { boosts } = ctx.curated<{
-    boosts: { id: string; weight: number; points: [number, number][] }[];
-  }>('lens-boosts.json');
+  const { boosts } = ctx.curated('lens-boosts.json');
   const eventPoints = [
     ...eventFiles.flatMap((f) => parseCoordinates(readFileSync(f, 'utf8'))),
     ...boosts.flatMap((b) =>
@@ -84,7 +82,7 @@ export function buildLensStage(ctx: WriteContext): {
       `${strongest.minArea.toFixed(2)}, stretch up to ${strongest.maxAnisotropy.toFixed(2)}:1`,
   );
   // The before-and-after preview Yang approves before a new warp ships (section 3).
-  const { approvedVersion } = ctx.curated<{ approvedVersion: string }>('lens.json');
+  const { approvedVersion } = ctx.curated('lens.json');
   if (approvedVersion !== version) {
     const preview = join(ROOT, 'data/out/lens', `preview-${version}.svg`);
     if (!existsSync(preview))

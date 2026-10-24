@@ -197,7 +197,7 @@ All dates are checked against sources when the records are written, and the rows
 1. **Art sheet first.** Before any other asset, one sheet showing a figure of each profile at close zoom on the globe, next to a camp, for Yang to approve the look of people.
 2. Then the rig and clips, the profile parts, the camp props and the animals.
 
-Every asset is listed in `data/assets/manifest.json` with its status (milestone 1 section 12). Until approved, the app draws a flat-coloured stand-in of the same size, and the production build fails if an unapproved asset is referenced.
+Every asset is listed in `data/assets/manifest.json` with its status (milestone 1 section 12). Until approved, the app draws a flat-coloured stand-in of the same size; only a preview build with `VITE_PREVIEW_ASSETS=1` draws it for review (milestone 1 section 12).
 
 **Approval by content.** A model is code, so its approval is tied to the geometry Yang saw: the manifest entry of every approved model also records `geometry`, a hash of what the script builds by default (variant 0 with its default tool): the vertex positions, vertex colours and indices of every part and each part's placement, rounded to 0.1 mm and colours to 0.001, so the hash does not depend on the last bits of floating-point maths. The model tests fail when a model no longer matches its hash, so a model that changes needs approving again. After Yang approves it, `npm run approve-assets -- <id>...` records the new hash, the status `approved` and the review date. The plant models of [foliage.md](foliage.md) are approved the same way.
 
