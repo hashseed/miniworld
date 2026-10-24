@@ -519,8 +519,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   const free = (site: Site, day: Day, except?: Camp) => {
     if (claimed(site, day, except)) return false;
     const spacing = spacingAt(site, day);
-    if ([...held.values()].some((h) => distanceKm(h.lat, h.lon, site.lat, site.lon) < spacing))
-      return false;
+    for (const h of held.values())
+      if (distanceKm(h.lat, h.lon, site.lat, site.lon) < spacing) return false;
     // Overlapping sites are mutually exclusive, and bands keep their density's spacing.
     return camps.every((c) => {
       if (c === except || c.lodgings.length === 0) return true;
@@ -535,8 +535,14 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   };
 
   /** Whether a link can be walked, or paddled at a listed crossing, on a day. */
-  const open = (l: Link, day: Day) =>
-    l.crossing ? l.crossing.day <= day : l.level > seaMax(day, after(day, STEP_MS));
+  // The highest sea of a day is asked for every link of a search, so the last day's is kept.
+  let seaDay = NaN;
+  let seaOfDay = 0;
+  const open = (l: Link, day: Day) => {
+    if (l.crossing) return l.crossing.day <= day;
+    if (day !== seaDay) [seaDay, seaOfDay] = [day, seaMax(day, after(day, STEP_MS))];
+    return l.level > seaOfDay;
+  };
   const other = (l: Link, site: Site) => sites[l.a === site.id ? l.b : l.a]!;
 
   /**

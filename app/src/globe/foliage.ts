@@ -20,7 +20,8 @@ import {
   type TileKey,
   type Vec3,
 } from '../geo/cube.ts';
-import { groundOf, KINDS } from './foliageKinds.ts';
+import { KINDS } from './foliageKinds.ts';
+import { groundTint } from './groundTint.ts';
 import { plantGeometry } from './foliageModels.ts';
 import { iceSlicePair, type PlanetState } from '../planet/state.ts';
 import type { Globe } from './globe.ts';
@@ -34,7 +35,7 @@ import {
   treeLine,
   type Plant,
 } from './foliagePlace.ts';
-import type { FoliageMessage } from './foliageWorker.ts';
+import type { FoliageAnswer, FoliageMessage } from './foliageWorker.ts';
 import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 
 /** Range of the slot hash over which a plant grows in as the lens raises its share. */
@@ -117,10 +118,16 @@ export class Foliage {
   private requested: boolean[] = [];
   private samples = new Map<string, TileSamples>();
   /** The worker that places plants off the main thread (section 7), the tiles it is placing (with their day) and the slices it has. */
-  private worker = startFoliageWorker((a) => this.placed_(a.id, a.plants));
+  private worker = startFoliageWorker((a) =>
+    a.type === 'ground'
+      ? this.loaded(a.k, this.decoded.get(a.k), a.tint)
+      : this.placed_(a.id, a.plants),
+  );
   private pending = new Map<string, number>();
   /** Each tile's latest plants, drawn while its plants for a new state are being worked out. */
   private latest = new Map<string, Plant[]>();
+  /** Slices decoded and sent to the worker, waiting for their ground tint. */
+  private decoded = new Map<number, FoliageSlice>();
   private sliceSent: boolean[] = [];
   private placed = new Map<string, Plant[]>();
   /** What the plants' places in the lists were worked out for, and the clearings last applied. */
@@ -402,21 +409,30 @@ export class Foliage {
         this.requested[k] = false;
         return;
       }
+      let slice: FoliageSlice;
       try {
-        this.slices[k] = decodeFoliageSlice(buf);
+        slice = decodeFoliageSlice(buf);
       } catch (e) {
         console.error(`${this.files[k]}: ${(e as Error).message}`); // stays requested: not asked for again
         return;
       }
-      this.grounds[k] = groundTexture(this.slices[k]);
-      this.worker?.postMessage({
-        type: 'slice',
-        k,
-        slice: this.slices[k],
-      } satisfies FoliageMessage);
-      this.sliceSent[k] = true;
-      this.layoutKey = '';
+      // The worker makes the ground tint (section 7) and answers with it, and only then does
+      // the slice count as loaded; without a worker it is made here, the same bytes.
+      if (this.worker) {
+        this.decoded.set(k, slice);
+        this.worker.postMessage({ type: 'slice', k, slice } satisfies FoliageMessage);
+      } else this.loaded(k, slice, groundTint(slice));
     });
+  }
+
+  /** A slice with its ground tint: from now on it is drawn and plants are placed from it. */
+  private loaded(k: number, slice: FoliageSlice | undefined, tint: Uint8Array): void {
+    if (!slice) return;
+    this.decoded.delete(k);
+    this.slices[k] = slice;
+    this.grounds[k] = groundTexture(tint);
+    this.sliceSent[k] = !!this.worker;
+    this.layoutKey = '';
   }
 
   /**
@@ -497,23 +513,13 @@ export class Foliage {
 }
 
 /** The ground tint of a foliage slice as an RGBA texture on its grid (section 6). */
-function groundTexture(slice: FoliageSlice): THREE.DataTexture {
-  const n = FOLIAGE_GRID_W * FOLIAGE_GRID_H;
-  const data = new Uint8Array(n * 4);
-  // Colours are blurred premultiplied by their strength, so untinted cells do not darken edges.
-  let a: Float32Array = new Float32Array(n * 4);
-  for (let i = 0; i < n; i++) {
-    const [r, g, b, w] = groundOf(slice.cells[i]!, slice.density[i]! / 255);
-    a.set([r * w, g * w, b * w, w], i * 4);
-  }
-  // Two passes of a 3 × 3 blur, so the 0.5° cells blend into soft edges.
-  for (let pass = 0; pass < 2; pass++) a = blurGrid(a);
-  for (let i = 0; i < n; i++) {
-    const w = a[i * 4 + 3]!;
-    for (let k = 0; k < 3; k++) data[i * 4 + k] = w > 0 ? Math.round((a[i * 4 + k]! / w) * 255) : 0;
-    data[i * 4 + 3] = Math.round(w * 255);
-  }
-  const tex = new THREE.DataTexture(data, FOLIAGE_GRID_W, FOLIAGE_GRID_H, THREE.RGBAFormat);
+function groundTexture(data: Uint8Array): THREE.DataTexture {
+  const tex = new THREE.DataTexture(
+    data as Uint8Array<ArrayBuffer>,
+    FOLIAGE_GRID_W,
+    FOLIAGE_GRID_H,
+    THREE.RGBAFormat,
+  );
   tex.wrapS = THREE.RepeatWrapping;
   tex.magFilter = THREE.LinearFilter;
   tex.minFilter = THREE.LinearFilter;
@@ -521,36 +527,10 @@ function groundTexture(slice: FoliageSlice): THREE.DataTexture {
   return tex;
 }
 
-/** A 3 × 3 box blur of an RGBA grid on the foliage grid, wrapping in longitude. */
-function blurGrid(src: Float32Array): Float32Array {
-  const W = FOLIAGE_GRID_W;
-  const H = FOLIAGE_GRID_H;
-  const out = new Float32Array(src.length);
-  for (let r = 0; r < H; r++)
-    for (let c = 0; c < W; c++) {
-      let count = 0;
-      const o = (r * W + c) * 4;
-      for (let dr = -1; dr <= 1; dr++) {
-        const rr = r + dr;
-        if (rr < 0 || rr >= H) continue;
-        for (let dc = -1; dc <= 1; dc++) {
-          const i = (rr * W + ((c + dc + W) % W)) * 4;
-          for (let k = 0; k < 4; k++) out[o + k]! += src[i + k]!;
-          count++;
-        }
-      }
-      for (let k = 0; k < 4; k++) out[o + k]! /= count;
-    }
-  return out;
-}
-
 /** The foliage worker, where the browser has workers; undefined in tests under Node. */
-function startFoliageWorker(
-  answer: (a: { id: string; plants: Plant[] | undefined }) => void,
-): Worker | undefined {
+function startFoliageWorker(answer: (a: FoliageAnswer) => void): Worker | undefined {
   if (typeof Worker === 'undefined') return undefined;
   const worker = new Worker(new URL('./foliageWorker.ts', import.meta.url), { type: 'module' });
-  worker.onmessage = (e: MessageEvent<{ id: string; plants: Plant[] | undefined }>) =>
-    answer(e.data);
+  worker.onmessage = (e: MessageEvent<FoliageAnswer>) => answer(e.data);
   return worker;
 }

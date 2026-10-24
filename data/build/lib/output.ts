@@ -33,6 +33,24 @@ export class Output {
    */
   private readonly brotliCache: string | undefined;
 
+  /** The files written since `startRecording`, for the stage cache. */
+  private recording: { name: string; bytes: Uint8Array }[] | undefined;
+
+  startRecording(): void {
+    this.recording = [];
+  }
+
+  stopRecording(): { name: string; bytes: Uint8Array }[] {
+    const writes = this.recording ?? [];
+    this.recording = undefined;
+    return writes;
+  }
+
+  /** Writes files a cached stage wrote before, under the same names. */
+  replay(writes: { name: string; bytes: Uint8Array }[]): void {
+    for (const w of writes) this.writeNamed(w.name, w.bytes);
+  }
+
   constructor(root: string, brotliCache?: string) {
     this.root = root;
     this.brotliCache = brotliCache;
@@ -53,6 +71,7 @@ export class Output {
 
   /** Writes a file under a fixed name (the manifest). */
   writeNamed(name: string, bytes: Uint8Array): void {
+    this.recording?.push({ name, bytes });
     const path = join(this.root, name);
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, bytes);
