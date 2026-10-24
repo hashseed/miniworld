@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import { EARTH_RADIUS_KM } from '../geo/earth.ts';
-import { FieldGround } from './fieldGround.ts';
+import { FieldGround, fieldGrowth } from './fieldGround.ts';
 import { layoutFields } from './fieldShapes.ts';
 import type { SurfaceSource } from './surface.ts';
 
@@ -43,16 +43,22 @@ describe('FieldGround', () => {
     expect(ground.mesh.geometry.getAttribute('stage').count).toBe(position.count);
   });
 
-  it('fades out far from the ground and rebuilds when the ground changes', () => {
+  it('stays drawn from orbit, enlarged, and rebuilds when the ground changes', () => {
     const ground = new FieldGround(surface);
     const origin = new THREE.Vector3(0, 0, EARTH_RADIUS_KM);
     ground.begin();
     ground.add(origin, fields[0]!, 0.5, centre);
     ground.end(EARTH_RADIUS_KM + 20_000, 1);
-    expect(ground.mesh.visible).toBe(false);
+    expect(ground.mesh.visible).toBe(true);
     ground.begin();
     ground.add(origin, fields[0]!, 0.5, centre);
     ground.end(EARTH_RADIUS_KM + 2_000, 2);
     expect(ground.mesh.visible).toBe(true);
+  });
+
+  it('enlarges fields in proportion to the altitude, within bounds', () => {
+    expect(fieldGrowth(1_000)).toBe(1);
+    expect(fieldGrowth(12_000)).toBeCloseTo(2, 5);
+    expect(fieldGrowth(100_000)).toBe(4);
   });
 });
