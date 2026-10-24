@@ -48,37 +48,13 @@ Heights, fruit size and colours are interpolated between keyframes, so any `s` i
 
 ## 2. The stage of a crop on a day (part B)
 
-The stage is a **pure function** of the whole-day integer day of the year and the crop's calendar: `cropStage(crop, dayOfYear, latitude, fieldOffsetDays)` in `app/src/tree/cropCalendar.ts` returns `s` in 0..1. No `Math.random`, no trigonometry, no wall-clock time; the day of year is an integer 0 (1 January) to 364 (29 February is ignored, the calendar has 365 days); the latitude is rounded to whole degrees before use.
+**A field changes only when somebody works it (Yang, 2026-10-24: "crops grow too quickly. they should grow much slower, and I want activities in the field like plowing and harvest etc. fields that are not harvested or plowed should not continue to grow").** The old calendar (`cropCalendar.ts`, a crop's stage from the day of the year) is gone: at Neolithic dates a year passes in a few seconds of watching, so the crops flickered through their whole cycle. The stage is now a **pure function of the village's life clock**, `fieldStage(clock, field, ms)` in `app/src/tree/fieldWork.ts`. No `Math.random`, no wall-clock time.
 
-**Calendar.** Each crop has a **sowing day** `sow` for the northern hemisphere (spring-sown crops sow later by 2 days per degree of latitude beyond 35°, up to 40 days, because spring comes later towards the poles; autumn-sown crops sow earlier by 1 day per degree beyond 35°, up to 20 days), and offsets from sowing in days: `emerge` (sprout reaches 0.25), `green` (0.5), `ripe` (0.75, held until harvest), `harvest` (the moment the stage jumps to stubble, 1), and `plough` (the stubble is turned and the ground is bare again, 0). In the southern hemisphere (latitude below zero) the sowing day moves half a year, 182 days, on. In the tropics, below 15° of latitude either way, crops that follow the rains (rice, taro's planting, banana's fruiting) use a rainy-season sowing day instead: 1 June in the north, 15 November in the south.
+**States.** A crop cycle has six states: stubble (stage 1), tilled earth (0), seed (0.1), sprouts (0.35), green (0.55), ripe (0.75). Each is left by one job: `till` (stubble to tilled), `sow`, `weed` three times, then `reap` (ripe to stubble). The next job of a field is `CYCLE[state]`. Each field starts in a state taken from the village's hash, so the fields of a village are not all alike.
 
-| Crop | Season | Sow (north, day of year) | Emerge | Green | Ripe | Harvest | Plough |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `emmer`, `einkorn`, `barley` | Autumn-sown (winter) | 305 (1 November) | 30 | 120 | 200 | 215 | 260 |
-| `lentil` | Autumn-sown | 320 | 25 | 100 | 170 | 185 | 220 |
-| `flax` | Spring | 90 (1 April) | 14 | 55 | 95 | 105 | 150 |
-| `millet` | Late spring | 120 (1 May) | 10 | 45 | 110 | 125 | 170 |
-| `maize` | Late spring | 120 | 12 | 55 | 120 | 135 | 190 |
-| `squash` | Late spring | 130 | 12 | 50 | 100 | 115 | 170 |
-| `potato`, `quinoa` | Spring | 100 (southern hemisphere: 282, about 9 October, so the Andes sow in spring) | 20 | 60 | 120 | 135 | 190 |
-| `rice` | Rains (Jun) | 152 (1 June) | 12 | 55 | 105 | 120 | 160 |
-| `taro` | Rains | 152 | 25 | 90 | 250 | 280 | 300 |
-| `banana` | Rains | 152 | 40 | 120 | 260 | 290 | 320 |
+**Slots.** The village gives out one job per slot of `JOB_MS` = 30 s of the clock, to the fields in turn (the first field set by the village's hash). A field therefore changes once in every `n` slots (`n` the number of fields) and holds still in between; a field nobody works does not grow. The result shows `CHANGE_MS` = 26 s into the slot, easing over `EASE_MS` = 4 s (a cut, no ease, from stubble to tilled earth). Between two jobs the stage is constant. A full cycle of one field takes six jobs, so several minutes of watching with a few fields.
 
-For the winter cereals the harvest falls 215 days after 1 November, about 4 June, which is the Near East's barley and emmer harvest in May and June (Zohary, Hopf and Weiss 2012, *Domestication of Plants in the Old World*, 4th ed., ch. 2). Andean potato and quinoa are sown in September and October and harvested in April and May. The dates are first values for Yang to tune on previews.
-
-**Stage from the day.** Let `d = (dayOfYear + 365 - sowDay) mod 365 - fieldOffsetDays`, taken mod 365, so `d` counts the days since this field's sowing. With the offsets above:
-
-- `d < emerge`: `s` rises 0 to 0.25 (the sprout pushes through), starting from bare 0 at `d = 0`;
-- `emerge ≤ d < green`: 0.25 to 0.5;
-- `green ≤ d < ripe`: 0.5 to 0.75;
-- `ripe ≤ d < harvest`: 0.75 held;
-- `harvest ≤ d < plough`: 1 (stubble);
-- `plough ≤ d`: 0 (bare) until the next sowing.
-
-Within a segment `s` rises linearly in whole-day steps. `fieldOffsetDays` (0 to 14, from the field's hash) makes the fields of one village not turn gold on the same day.
-
-**Latitude and altitude.** Latitude shifts the sowing day only as above; altitude is ignored by the function (the Andean rows are chosen by region). Tropical crops that need no cold season (taro, banana) stay green for 8 months of the year, as perennial clones do.
+**Who works.** The job of a slot goes to one **assigned worker**: a grown-up farmer or reaper who is at the camp at the slot's start, chosen by hash among the ids in ascending order, whose turn contains the slot start. Their `till`, `sow` or `reap` outing (`weed` is drawn as the till clip) is at that field; they walk there, work and walk back as in section 3. The other farmers' extra field work (the share of the profile's activity mix) goes to the field's next job, so several people work one field. If no farmer is at the camp at a slot (all away hunting or trading), nobody works, but the arithmetic still counts the job: an accepted approximation, as the field's stage must not depend on who happens to be home.
 
 **Water.** Rice paddies stand in water (wet mud when bare) until the harvest and are drained for the stubble: part D draws water in a field of crop `rice` while `s < 0.99`.
 
@@ -91,7 +67,7 @@ Within a segment `s` rises linearly in whole-day steps. `fieldOffsetDays` (0 to 
 **Rules.**
 
 1. **Count.** As many fields as the free space allows, **3 to 10**. Where land is short (a coast, a gorge, a river bend between mountains) the count is lower, even below 3 or none at all: fewer fields, never forced fields (Yang's decision). A field must also fit, so a gap too small for a decent field gets none.
-2. **Placement.** Candidate sites lie on a hashed jittered spiral in the band from the lodging ring (plus margin) to 4.5 layout metres beyond it, nearer sites first (with hashed noise, so the order differs by seed). A site is taken if the land is free around it (at least six of eight points at 0.7 m), at least 1.8 m from the other sites.
+2. **Placement.** Candidate sites lie on a hashed jittered spiral in the band from the lodging ring (plus margin) to 4.5 layout metres beyond it, nearer sites first (the nearest edge of a field is about 14 m from the hearth, "much closer to the living quarters", Yang 2026-10-24) (with hashed noise, so the order differs by seed). A site is taken if the land is free around it (at least six of eight points at 0.7 m), at least 1.8 m from the other sites.
 3. **Cells.** The sites are relaxed (two rounds of Lloyd's centroid step) in a **power diagram** with a small hashed weight per site, so cells differ in size; each cell is the intersection of the bisector half-planes, bounded by a regular 24-gon of radius 1.0 m around its site. Cells are convex and never overlap. The cell is then **inset by 0.09 m** (leaving a path between neighbours), **Chaikin-smoothed** (two rounds of corner cutting) and given a **low-frequency edge wobble**: the radius from the cell's centroid is multiplied by a smooth factor between 0.86 and 1 that depends on the angle (two sine waves of hashed phase, so only a few bulges per field). The wobble only pulls inwards and the cell is convex, so the result stays inside its cell: fields never overlap.
 4. **Never square.** The result is a closed outline of 30 to 60 points, rounded and uneven; the ratio of its area to that of its smallest bounding rectangle is below 0.9 for every field (a rectangle's is 1), which the tests check.
 5. **Exclusions.** Every outline vertex, and each of four points 0.08 m (margin) around it, must be land, not blocked and outside the lodging ring plus the margin; points along every edge (every 0.05 m) and in the interior (every 0.2 m) are tested too. A failing vertex is pulled towards the centroid (still inside the cell) until it passes; if an edge or the interior still fails, the whole field shrinks towards its centroid by 15% up to six times; if it still fails, or its area ends below 0.16 m² (about 0.4 m across), the field is dropped.
@@ -107,7 +83,7 @@ Within a segment `s` rises linearly in whole-day steps. `fieldOffsetDays` (0 to 
 
 `app/src/tree/fieldGround.ts` follows `campGround.ts`: a ground patch, triangulated from the outline, draped on the drawn terrain.
 
-- **Triangulation.** The outline is star-shaped about its centroid (part C), so a fan from the centroid works: three rings (0.35, 0.7, 1 of the radius) of the outline's own points give a draped patch of about three triangles per outline point (under 200 per field). Each vertex is lifted onto `SurfaceSource.surfaceKm` plus a lift of 22 km (the camp's patch floats 30 km; a field lies under the camp's and under the tufts).
+- **Triangulation.** The outline is star-shaped about its centroid (part C), so a fan from the centroid works: five rings (0.2, 0.4, 0.6, 0.8, 1 of the radius) of the outline's own points give a draped patch of about five triangles per outline point. Each vertex is lifted onto `SurfaceSource.surfaceKm` plus a lift of 4 km (just enough to clear the drawn terrain; at 22 km the patches hovered over sloping ground, Yang 2026-10-24).
 - **Layout to globe.** `add(origin, field, stage)` takes the village's drawn position on the globe and places layout metres with `northEast` and `LAYOUT_KM_PER_M`, as the camps do; the patch is cached by place and field and rebuilt only when `groundVersion` changes.
 - **Shader.** One `ShaderMaterial`, `DoubleSide`, transparent, `depthWrite` off, `polygonOffset` -2, the log-depth chunks of the globe, `frustumCulled` off, `renderOrder` 1. Attributes per vertex: the position in the field's furrow frame (metres across and along the furrows), the distance from the rim (0 at the rim, 1 inside), the stage `s`, the crop's green and ripe colours (a table in the file, matching part A) and a water flag. The fragment shader paints: soil brown with **furrow stripes** (alternate light and dark bands across the furrow frame, one band per 0.07 m, softened with `fwidth` so they fade into plain colour before they shimmer), the crop colour in the stripes growing with `s` (sprout pale green thin stripes at 0.25, deep green at 0.5, gold at 0.75, straw at 1, and bare soil at 0), a darker bund along the rim and a soft alpha fade at the very rim. Rice shows still blue-grey water between the stripes while the water flag is set. The stage per field is an attribute rather than a uniform because the fields of all villages share one draw call; it changes only when the day crosses a stage step (the patch is rewritten, not rebuilt).
 - **Visibility.** The patches fade in between camera altitudes of 9,000 and 3,000 km (fully drawn below 3,000), unlike the camp patch which fades *out* with nearness: from orbit a field is a few pixels, and the tufts of part A take over close up.
@@ -116,5 +92,5 @@ Within a segment `s` rises linearly in whole-day steps. `fieldOffsetDays` (0 to 
 ## 5. Tests
 
 - `fieldShapes.test.ts`: count between 3 and 10 in open country, fewer on a strip of land, none in a gorge; no two outlines overlap; no outline contains or touches a banned point (river polyline, mountain disc, sea half-plane, the lodging ring); never rectangular (area over smallest bounding rectangle below 0.9); about 0.6 to 1.2 metres across; the same seed gives identical output, a different seed a different layout.
-- `cropCalendar.test.ts`: the stage is 0 before sowing, reaches the keyframes on the day offsets, stays in 0..1, is periodic with the 365-day year, shifts by 182 days in the southern hemisphere and is the same on every call.
+- `fieldWork.test.ts`: slots go to the fields in turn; a field changes by exactly one state, once in every n slots, and only after `CHANGE_MS`; `jobAt` is `CYCLE[state]`; the stage is constant between jobs.
 - `crops` in `assets/src/models.test.ts`: every crop at every keyframe builds the same geometry twice and stays under 120 triangles; each `crop-<id>` is in the manifest.

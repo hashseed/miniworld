@@ -214,7 +214,7 @@ export function layoutFields(input: FieldInput): Field[] {
   // Candidate sites on a hashed, jittered spiral, nearest first with noise.
   const candidates: { x: number; z: number; score: number }[] = [];
   const step = 0.3;
-  for (let r = inner + 0.45, ring = 0; r < ringRadius + REACH_M; r += step, ring++) {
+  for (let r = inner + 0.2, ring = 0; r < ringRadius + REACH_M; r += step, ring++) {
     const count = Math.max(6, Math.floor((TAU * r) / step));
     for (let i = 0; i < count; i++) {
       const jr = hash01(seed, ring, i, 1) - 0.5;
@@ -223,7 +223,7 @@ export function layoutFields(input: FieldInput): Field[] {
       const a = ((i + ja) / count) * TAU + hash01(seed, ring, 0, 3) * TAU;
       const x = centre.x + rr * detCos(a);
       const z = centre.z + rr * detSin(a);
-      candidates.push({ x, z, score: rr + 1.1 * hash01(seed, ring, i, 4) });
+      candidates.push({ x, z, score: rr + 0.5 * hash01(seed, ring, i, 4) });
     }
   }
   candidates.sort((a, b) => a.score - b.score);
@@ -232,7 +232,7 @@ export function layoutFields(input: FieldInput): Field[] {
     let ok = 0;
     for (let k = 0; k < 8; k++) {
       const t = (k / 8) * TAU;
-      if (clear(x + 0.45 * detCos(t), z + 0.45 * detSin(t))) ok++;
+      if (clear(x + 0.3 * detCos(t), z + 0.3 * detSin(t))) ok++;
     }
     return ok >= 6;
   };

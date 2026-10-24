@@ -31,14 +31,14 @@ describe('FieldGround', () => {
     expect(ground.mesh.visible).toBe(true);
     const position = ground.mesh.geometry.getAttribute('position');
     const index = ground.mesh.geometry.getIndex()!;
-    const ring = fields.reduce((n, f) => n + 1 + 3 * f.outline.length, 0);
+    const ring = fields.reduce((n, f) => n + 1 + 5 * f.outline.length, 0);
     expect(position.count).toBe(ring);
     for (const i of index.array) expect(i).toBeLessThan(position.count);
     for (let i = 0; i < position.count; i++) {
       const r = Math.hypot(position.getX(i), position.getY(i), position.getZ(i));
-      // The ground is at 0.5 +- 0.3 km, the patch floats 22 km over it.
-      expect(r).toBeGreaterThan(EARTH_RADIUS_KM + 21);
-      expect(r).toBeLessThan(EARTH_RADIUS_KM + 24);
+      // The ground is at 0.5 +- 0.3 km, the patch floats 4 km over it.
+      expect(r).toBeGreaterThan(EARTH_RADIUS_KM + 3);
+      expect(r).toBeLessThan(EARTH_RADIUS_KM + 6);
     }
     expect(ground.mesh.geometry.getAttribute('stage').count).toBe(position.count);
   });

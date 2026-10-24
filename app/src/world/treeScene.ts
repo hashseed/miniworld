@@ -7,8 +7,15 @@
 import { hash01, hash32 } from '../core/hash.ts';
 import { detAtan2, detCos, detSin, RAD } from '../core/detmath.ts';
 import { dayAtMs, msAtDay } from '../time/rate.ts';
-import { astronomicalYear, dateFromDay, dayOfYearStart, type Day } from '../time/calendar.ts';
-import { cropStage } from '../tree/cropCalendar.ts';
+import { astronomicalYear, dayOfYearStart, type Day } from '../time/calendar.ts';
+import {
+  JOB_MS,
+  fieldOfSlot,
+  fieldStage,
+  jobAt,
+  type FieldClock,
+  type FieldJob,
+} from '../tree/fieldWork.ts';
 import { pointInPolygon, type Field } from '../tree/fieldShapes.ts';
 import { farmingProfileAt, fieldToolOf } from './farmingOnset.ts';
 import { maskLand } from './fieldMask.ts';
@@ -113,6 +120,13 @@ const GRIND_MS = Math.round(12_600 / TEMPO);
 const SPIN_MS = Math.round(12_600 / TEMPO);
 /** The share of a profile's grown-ups' turns spent at their role's work, the rest being the usual outings. */
 const FARM_WORK_SHARE = 0.6;
+/** What a worker is shown doing in each job of a field's cycle (weeding is hoeing). */
+const JOB_OUTING: Record<FieldJob, Outing> = {
+  till: 'till',
+  sow: 'sow',
+  weed: 'till',
+  reap: 'reap',
+};
 /** A pen is drawn at this share of its model's ten metres; the herd's animals raise their heads this often. */
 const PEN_SCALE = 0.4;
 const HERD_LOOK_MS = 6_000;
@@ -528,7 +542,7 @@ export interface FieldPose {
   lat: number;
   lon: number;
   field: Field;
-  /** The crop's stage, 0 to 1 (cropStage). */
+  /** The crop's stage, 0 to 1 (fieldStage). */
   stage: number;
 }
 
@@ -1550,6 +1564,8 @@ interface Memo {
   visits: Map<string, CampEvent[]>;
   /** The stay at its site each lodging belongs to (setPlaces). */
   stayOf: Map<number, string>;
+  /** Who does the field job of each camp's slot (`camp:slot`). */
+  workers: Map<string, number | undefined>;
   /** The fields and herd of each Neolithic camp (section 8.5), by camp. */
   villages: Map<number, Village | null>;
 }
@@ -1587,11 +1603,6 @@ interface Village {
 const isProfile = (culture: string | undefined): culture is NeolithicProfileId =>
   !!culture && culture in NEOLITHIC_PROFILES;
 
-/** The day of the year of a day, 0 to 364. */
-function yearDay(day: Day): number {
-  return Math.min(364, Math.max(0, day - dayOfYearStart(dateFromDay(day).year)));
-}
-
 /** Herd animals that are milked. */
 const MILKED = new Set([
   'animal-goat',
@@ -1600,7 +1611,9 @@ const MILKED = new Set([
   'animal-zebu',
   'animal-water-buffalo',
 ]);
-const HERD_FIELD_CLEAR_M = 1.5;
+const HERD_FIELD_CLEAR_M = 2.5;
+/** Fields keep this far from a pen's middle: the pen is drawn about 12 layout metres across. */
+const PEN_CLEAR_M = 8;
 /** The trees keep this far off a field's farthest corner (layout metres). */
 const FIELD_TREE_MARGIN_M = 2.5;
 
@@ -1613,33 +1626,19 @@ function buildVillage(chunk: TreeChunk, camp: number): Village | null {
   if (!first) return null;
   const profile = farm && isProfile(farm.culture) ? farm.culture : undefined;
   const lodgings = own.filter((l) => isProfile(l.culture) && l.fieldLand).length;
-  const fields = farm
-    ? fieldsOf(
-        camp,
-        first.lat,
-        lodgings,
-        NEOLITHIC_PROFILES[profile!].crops,
-        farm.fieldLand!,
-        (x, z) => inOutingLane(camp, x, z),
-      )
-    : [];
   const kinds =
     NEOLITHIC_PROFILES[
       profile ?? farmingProfileAt(deg(first.lat), deg(first.lon)) ?? 'pre-pottery-neolithic-levant'
     ].herd;
   const free = (x: number, z: number) =>
-    (!farm || (maskLand(farm.fieldLand!, x, z) && !inOutingLane(camp, x, z))) &&
-    !fields.some(
-      (f) =>
-        pointInPolygon(f.outline, x, z) ||
-        Math.sqrt((f.centre.x - x) ** 2 + (f.centre.z - z) ** 2) < HERD_FIELD_CLEAR_M,
-    );
-  // Where the herd stands: a gap with land for it (a herders' camp), or a clear patch of the mask.
+    !farm || (maskLand(farm.fieldLand!, x, z) && !inOutingLane(camp, x, z));
+  // The herd is placed first, on land and out of the lanes; the fields then keep clear of its pen and animals.
   const a0 = hash01(camp, 235) * 2 * Math.PI;
   let herd: Village['herd'];
-  for (let i = 0; i < 16 && !herd; i++) {
-    for (const dist of farm ? [22, 28, 34] : [17]) {
-      const angle = farm ? a0 + (i * 2 * Math.PI) / 16 : 0;
+  for (let i = 0; i < 24 && !herd; i++) {
+    // The animals stand 8 to 12 metres round the pen, so the mask (13 to 38 metres out) holds them all only about here.
+    for (const dist of farm ? [25.5, 24, 27, 22] : [17]) {
+      const angle = farm ? a0 + (i * 2 * Math.PI) / 24 : 0;
       let at = angle;
       if (!farm) {
         const gap = i % LODGING_SLOTS;
@@ -1648,12 +1647,26 @@ function buildVillage(chunk: TreeChunk, camp: number): Village | null {
         at = detAtan2(d.z, d.x);
       }
       const h = herdOf(camp, kinds, at, dist);
-      if (h.animals.every((a) => free(a.x, a.z)) && (farm ? free(h.pen.x, h.pen.z) : true)) {
+      if (h.animals.every((a) => free(a.x, a.z)) && free(h.pen.x, h.pen.z)) {
         herd = h;
         break;
       }
     }
   }
+  const nearHerd = (x: number, z: number) =>
+    !!herd &&
+    ((x - herd.pen.x) ** 2 + (z - herd.pen.z) ** 2 < PEN_CLEAR_M ** 2 ||
+      herd.animals.some((a) => (x - a.x) ** 2 + (z - a.z) ** 2 < HERD_FIELD_CLEAR_M ** 2));
+  const fields = farm
+    ? fieldsOf(
+        camp,
+        first.lat,
+        lodgings,
+        NEOLITHIC_PROFILES[profile!].crops,
+        farm.fieldLand!,
+        (x, z) => inOutingLane(camp, x, z) || nearHerd(x, z),
+      )
+    : [];
   if (!fields.length && !herd) return null;
   return { profile, fields, ...(herd ? { herd } : {}) };
 }
@@ -1679,6 +1692,7 @@ function memoOf(chunk: TreeChunk, startDay: Day): Memo {
       sessions: new Map(),
       visits: new Map(),
       stayOf: new Map(),
+      workers: new Map(),
       villages: new Map(),
     };
     memos.set(chunk, m);
@@ -1839,14 +1853,14 @@ export function treeScene(
   const villaged = new Set<number>();
   const villageScene = (l: TreeLodging, v: Village, now: number) => {
     const [lat, lon] = [deg(l.lat), deg(l.lon)];
-    const doy = yearDay(dayAtMs(now, startDay));
+    const clock = fieldClockOf(l.camp, v);
     for (const field of v.fields)
       scene.fields.push({
         id: `${l.camp}:${field.id}`,
         lat,
         lon,
         field,
-        stage: cropStage(field.crop, doy, lat, field.offsetDays),
+        stage: fieldStage(clock, field.id, now),
       });
     // The trees keep off the fields, as they keep off the camp.
     for (const field of v.fields)
@@ -2995,11 +3009,49 @@ export function treeScene(
     return v ?? undefined;
   }
 
+  /** The clock of a village's field jobs (fieldWork.ts). */
+  function fieldClockOf(camp: number, v: Village): FieldClock {
+    return { fields: v.fields.length, seed: hash32(camp, 277) };
+  }
+
+  /**
+   * Who does the job of a slot: one of the camp's grown-up farmers and reapers who are at home
+   * then, by hash; nobody where there is none, and then the slot's field is left as it is.
+   */
+  function jobWorker(camp: number, slot: number): number | undefined {
+    const key = `${camp}:${slot}`;
+    if (memo.workers.has(key)) return memo.workers.get(key);
+    const t = slot * JOB_MS;
+    const ids: number[] = [];
+    for (const f of mates(camp)) {
+      const st = stayAt(f, t);
+      if (!st || st.home.camp !== camp || st.look === 'child' || t < st.free || t >= st.busy)
+        continue;
+      if (!isProfile(st.home.culture)) continue;
+      const role = roleOf(st.home.culture, f.id);
+      if (role === 'farmer' || role === 'reaper') ids.push(f.id);
+    }
+    ids.sort((a, b) => a - b);
+    const worker = ids.length ? ids[hash32(camp, slot, 263) % ids.length] : undefined;
+    memo.workers.set(key, worker);
+    return worker;
+  }
+
+  /** The field a figure is given to work in its `k`-th turn, if its turn starts in a slot whose job is its own. */
+  function assignedField(st: Stay, k: number): number | undefined {
+    const turnStart = turnStartOf(st.f.id, k);
+    const slot = Math.ceil(turnStart / JOB_MS);
+    if (slot * JOB_MS >= turnStart + TURN_MS) return undefined;
+    const v = villageOf(st.home.camp);
+    if (!v?.fields.length || jobWorker(st.home.camp, slot) !== st.f.id) return undefined;
+    return fieldOfSlot(fieldClockOf(st.home.camp, v), slot);
+  }
+
   /** The field a figure works in its `k`-th turn, and where in it. */
   function fieldSpot(st: Stay, k: number): { field: Field; at: Pt; face: Pt } | undefined {
     const v = villageOf(st.home.camp);
     if (!v?.fields.length) return undefined;
-    const field = v.fields[hash32(st.f.id, k, 243) % v.fields.length]!;
+    const field = v.fields[assignedField(st, k) ?? hash32(st.f.id, k, 243) % v.fields.length]!;
     // Somewhere in the field's middle third, in the furrow's line.
     const r = 0.5 * Math.sqrt(field.area / Math.PI) * hash01(st.f.id, k, 245);
     const a = hash01(st.f.id, k, 247) * 2 * Math.PI;
@@ -3019,24 +3071,19 @@ export function treeScene(
   function farmOuting(st: Stay, k: number, turnStart: number): Outing | undefined {
     const profile = st.home.culture;
     if (!isProfile(profile) || st.look === 'child') return undefined;
-    if (hash01(st.f.id, k, 241) >= FARM_WORK_SHARE) return undefined;
-    switch (roleOf(profile, st.f.id)) {
+    const role = roleOf(profile, st.f.id);
+    const assigned = assignedField(st, k) !== undefined;
+    if (!assigned && hash01(st.f.id, k, 241) >= FARM_WORK_SHARE) return undefined;
+    switch (role) {
       case 'farmer':
       case 'reaper': {
         const w = fieldSpot(st, k);
-        if (!w) return undefined;
-        const stage = cropStage(
-          w.field.crop,
-          yearDay(dayAtMs(turnStart, startDay)),
-          deg(st.home.lat),
-          w.field.offsetDays,
-        );
-        const reaper = roleOf(profile, st.f.id) === 'reaper';
-        if (stage >= 0.95) return 'thresh';
-        if (stage >= 0.75) return 'reap';
-        if (stage >= 0.5) return undefined;
-        if (reaper) return undefined;
-        return stage < 0.05 ? (hash01(st.f.id, k, 249) < 0.5 ? 'sow' : 'till') : 'till';
+        const v = villageOf(st.home.camp);
+        if (!w || !v) return undefined;
+        const job = jobAt(fieldClockOf(st.home.camp, v), w.field.id, turnStart);
+        // Hands that are not the field's worker help with its next job; reapers only reap.
+        if (role === 'reaper' && job !== 'reap' && !assigned) return undefined;
+        return JOB_OUTING[job];
       }
       case 'herder':
         return villageOf(st.home.camp)?.herd?.animals.some((a) => MILKED.has(a.kind))

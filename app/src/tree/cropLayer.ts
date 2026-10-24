@@ -18,7 +18,7 @@ import type { SurfaceSource } from './surface.ts';
 const FIELD_TUFTS = 220;
 /** Every tuft below the first altitude, every second below the next, and so on; none past the last (km). */
 /** The ground patch floats this far over the ground (fieldGround.ts), so the tufts stand on it. */
-const SOIL_LIFT_KM = 22;
+const SOIL_LIFT_KM = 4;
 /** Tufts are a little wider than their spacing, so the rows close up into a crop. */
 const TUFT_FILL = 3;
 /** A field's crop changes by one stage at most this often, in milliseconds of drawing. */

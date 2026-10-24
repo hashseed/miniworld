@@ -97,7 +97,7 @@ describe('layoutFields', () => {
   });
 
   it('gives fewer fields where land is short, and none where there is none', () => {
-    const strip = layoutFields(base(9, { isLand: (_x, z) => Math.abs(z + 2) < 1.1 && true }));
+    const strip = layoutFields(base(9, { isLand: (_x, z) => Math.abs(z + 2) < 0.7 }));
     expect(strip.length).toBeLessThan(10);
     expect(layoutFields(base(9, { isLand: () => false }))).toEqual([]);
   });

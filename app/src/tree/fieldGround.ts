@@ -10,9 +10,9 @@ import type { Field, Pt } from './fieldShapes.ts';
 import type { SurfaceSource } from './surface.ts';
 
 /** Rings of the patch as shares of the outline's radius; the last is the outline itself. */
-const RINGS = [0.35, 0.7, 1];
-/** The patch floats this far over the ground, in km (the camp's patch floats 30). */
-const LIFT_KM = 22;
+const RINGS = [0.2, 0.4, 0.6, 0.8, 1];
+/** The patch floats this far over the ground, in km: just enough to clear the drawn terrain. */
+const LIFT_KM = 4;
 /** Fully drawn below the near altitude, fading out up to the far one, in km of camera altitude. */
 const FADE_NEAR_KM = 3_000;
 const FADE_FAR_KM = 9_000;
@@ -162,7 +162,7 @@ export class FieldGround {
   /**
    * Adds a field of a village. `origin` is where the village's centre is drawn (a position on the
    * globe), `village` its centre in the layout space of the field's outline (the `centre` given to
-   * layoutFields). `stage` is the crop's stage from cropStage (cropCalendar.ts); a flooded rice paddy
+   * layoutFields). `stage` is the crop's stage from fieldStage (fieldWork.ts); a flooded rice paddy
    * shows water.
    */
   add(origin: THREE.Vector3, field: Field, stage: number, village: Pt): void {
