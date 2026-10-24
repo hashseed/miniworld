@@ -742,8 +742,8 @@ export const MONUMENT_BUILD_SESSIONS = 6;
 export const MONUMENT_DANCE_SESSIONS = 6;
 /** Its first session falls this many windows after the anchor's day, the guests having walked there. */
 export const MONUMENT_LEAD_WINDOWS = 4;
-/** The ring sinks into the ground by itself over its last 500 years, linearly with the date. */
-export const MONUMENT_SINK_DAYS = Math.round(500 * 365.2425);
+/** The ring sinks into the ground by itself over its last 250 years, linearly with the date. */
+export const MONUMENT_SINK_DAYS = Math.round(250 * 365.2425);
 /** The monument's model is drawn at this share of the scene's size: a small enclosure. */
 export const MONUMENT_SCALE = 0.48;
 /** Layout metres in one of the ring's own metres: a figure's metre is three layout metres. */
