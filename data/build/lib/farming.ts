@@ -150,6 +150,9 @@ function neighbours(cell: number, out: [number, number][]): number {
 /** The seed a latitude-longitude point belongs to is its cell. */
 export const seedCell = (s: { lat: number; lon: number }): number => farmingCellOf(s.lat, s.lon);
 
+/** The country within this distance of a centre farms from the centre's own date. */
+export const CENTRE_CORE_KM = 100;
+
 export function computeFarming(input: FarmingInput): FarmingRaster {
   const N = FARMING_COLS * FARMING_ROWS;
   const lat = new Float64Array(N);
@@ -304,6 +307,23 @@ export function computeFarming(input: FarmingInput): FarmingRaster {
     if (s.spreadBce === undefined || !(s.bce > onset[c]!)) return;
     onset[c] = s.bce;
     if (!Number.isNaN(farming[c]!)) farming[c] = s.bce;
+  });
+  // So is the country round a centre (section 9.2): its own people, the camps within
+  // CENTRE_CORE_KM, farm from the centre's date, where the land is habitable then.
+  input.seeds.forEach((s, k) => {
+    if (s.kind !== 'centre') return;
+    const c = seedCells[k]!;
+    const cos = detCos(s.lat * RAD);
+    for (let i = 0; i < N; i++) {
+      if (!land[i] || !(s.bce > onset[i]! || Number.isNaN(onset[i]!))) continue;
+      const dy = (lat[i]! - s.lat) * 111.2;
+      const dx = (lon[i]! - s.lon) * 111.2 * cos;
+      if (dx * dx + dy * dy > CENTRE_CORE_KM * CENTRE_CORE_KM) continue;
+      if (i !== c && (blocked[i] || !input.habitable(lat[i]!, lon[i]!, s.bce))) continue;
+      onset[i] = s.bce;
+      seed[i] = k;
+      if (!s.herdingOnly) farming[i] = s.bce;
+    }
   });
   return { onset, farming, seed, land };
 }

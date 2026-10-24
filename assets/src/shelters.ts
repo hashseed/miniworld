@@ -716,7 +716,7 @@ export function buildShelter(id: ShelterId): Model {
       // A round, fully blue metal information sign on a thin steel rod, facing +Z, with a white "i"
       // (humankind.md section 8.4; Yang, issue 180).
       const STEEL = '#8e9aa6';
-      const BLUE = '#1f5fcf';
+      const BLUE = '#3d86e6';
       const WHITE = '#f4f1e8';
       mb.add(rod([0, 0, 0], [0, 1.75, 0], 0.03, 6), STEEL);
       mb.add(blob([0, 0.04, 0], [0.07, 0.04, 0.07], 6), shade(STEEL, -0.1));
