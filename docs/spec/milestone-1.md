@@ -512,6 +512,21 @@ Garbage collection pauses show as stutter, most of all on phones, so the code th
 
 The globe is drawn from a few hundred metres to tens of thousands of kilometres away. Where the graphics card offers clip control (`EXT_clip_control`), the depth buffer is reversed and 32-bit float, which keeps that whole range precise without the fragment shaders writing depth, so the card can reject hidden pixels before shading them; elsewhere a logarithmic depth buffer is used, as before. Terrain and sea surfaces are drawn front side only: the globe is closed, so their back faces are always hidden. The terrain shader still leaves out the pixels the flat sea draws (section 4.4).
 
+### 11.8 Shared memory between the workers and the main thread (issue 127)
+
+Whether a `SharedArrayBuffer` would speed up what the workers hand to the main thread was measured first (Chromium 154 on the devenv, real data, the camp scene of central Europe at 4792 BCE with the clock running 15 s, and four jumps across the timeline; the main thread's time from the browser's sampling profiler and a structured-clone timer on every worker message).
+
+| Worker | Messages | What is sent | Cost on the main thread |
+| --- | --- | --- | --- |
+| Terrain | 710 in 15 s | typed arrays, transferred | 0.1 ms per message, in all 0.5% of a frame budget |
+| Camp scene | 11 a second, about 310 KB each | the scene as nested objects and arrays (poses of figures, animals, lodgings) | about 1.2 ms to receive each, in all about 1.3% of the main thread, 7 ms at most |
+| Plant placement | one answer per tile and date step | an array of plant objects | too little to show in the profile |
+| Ground tint | one slice at a time, built on the main thread | not a message at all | about 25 ms per slice, a dropped frame or two on every jump into a new slice |
+
+- **Decision: no `SharedArrayBuffer` for now.** The only large flows are the terrain's, which already move without a copy by transfer, and the camp scene's, which is made of objects, not of typed arrays, so shared memory would first need the whole scene turned into flat arrays (a rewrite of `treeScene` and of every reader in `treeLayer`) to save about 1% of the main thread. Shared memory also needs cross-origin isolation (`Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`), and the app's host, GitHub Pages (spec.md, section 10, "Hosting"), cannot send those headers; only a service worker that rewrites the headers could, with a reload on the first visit and a risk to every cross-origin resource. The app must therefore work without isolation in any case, so a shared path would be a second code path that most viewers never run, for no measurable gain. This is revisited if a profile of the real device shows a worker answer taking a noticeable part of a frame, or when the host can set headers.
+- **The cheaper win, done.** The ground tint of a foliage slice moved into the foliage worker (foliage.md, section 7) and comes back as a transferred byte array. The longest main-thread task while jumping through time falls by the 25 ms the tint took. The world is unchanged: the same function makes the same bytes on either side, and a slice is used only when its tint is ready, so the picture never depends on timing.
+- **Rule for later work.** A worker's answer is flat typed arrays that are transferred, not objects, where it is large and frequent. Objects are fine for small or rare answers.
+
 ## 12. Assets in this milestone
 
 The only shipped assets are the six terrain textures, the water normal map and the ice texture. The interface icons are simple shapes drawn in code (SVG), and the interface uses the Fredoka web font (section 8.4), so neither needs an approval. Each is generated and listed in `data/assets/manifest.json` with: id, file, kind, how it was generated, status (`generated`, `approved`, `rejected`), the date it was reviewed and a note; a model built by code also records the hash of the geometry that was approved (milestone 2, section 13.3). Until Yang approves an asset, the app uses a flat-coloured stand-in of the same size in development, and the production build fails if an unapproved asset is referenced.
