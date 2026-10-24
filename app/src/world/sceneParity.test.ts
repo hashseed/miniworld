@@ -52,12 +52,26 @@ function chunk(): TreeChunk {
         });
     }
   });
+  // Every third figure moves on to the next camp after 500 years, the herders' camp by canoe,
+  // so the walks and crossings between camps are in the scene too.
+  const first = (camp: number) => lodgings.find((l) => l.camp === camp)!;
+  figures.forEach((f, i) => {
+    if (i % 3) return;
+    const camp = lodgings.find((l) => l.id === f.homes[0]![1])!.camp;
+    const to = first((camp + 1) % camps.length);
+    f.homes.push([d0 + years(500 + (i % 7) * 30), to.id, 20 + (i % 9)]);
+  });
+  const boat = first(camps.length - 1);
+  boat.voyage = {
+    id: 'crossing',
+    way: [[boat.lat - 1_000_000, boat.lon - 2_000_000]],
+    water: [false, true],
+  };
   return { fromDay: d0, toDay: d0 + years(10000), figures, lodgings };
 }
 
-const times = Array.from(
-  { length: 24 },
-  (_, k) => msAtDay(d0 + years(100), d0) + k * 7_919 + (k % 5) * 61_000,
+const times = [100, 520, 560, 640].flatMap((y) =>
+  Array.from({ length: 8 }, (_, k) => msAtDay(d0 + years(y), d0) + k * 7_919 + (k % 5) * 61_000),
 );
 
 describe('the tree scene', () => {
