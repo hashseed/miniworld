@@ -433,6 +433,17 @@ export interface PersonOptions {
   founder?: boolean;
 }
 
+/**
+ * Which of two shapes a variant gives a person: the variants of one shape share every
+ * vertex and differ in colour only (the long hair of a child, the bun of a woman, the
+ * beard of a man), so a batch can draw them as one model in several looks.
+ */
+export function lookShape(kind: Kind, variant: number): 0 | 1 {
+  if (kind === 'child') return variant % 2 === 1 ? 1 : 0;
+  if (kind === 'woman') return variant % 3 === 1 ? 1 : 0;
+  return variant % 3 !== 2 ? 1 : 0;
+}
+
 /** The first person's fixed look: red-ochre headband (her mark in every era), ochre-dyed hide, two bead strings. */
 const FOUNDER = {
   skin: '#8a5a3b',

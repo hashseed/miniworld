@@ -424,6 +424,18 @@ mat4 pose() {
   return instanceMatrix * m;
 }
 #endif
+// Looks (several colourings of one model in one draw call): the colour of vertex v in look
+// k is texel k * lookVerts + v of lookTex, a row of 2048 texels at a time; each copy names
+// its look in the instanced attribute look.
+#ifdef USE_LOOKS
+uniform highp sampler2D lookTex;
+uniform int lookVerts;
+attribute float look;
+vec3 lookColour() {
+  int i = int(look + 0.5) * lookVerts + gl_VertexID;
+  return texelFetch(lookTex, ivec2(i & 2047, i >> 11), 0).rgb;
+}
+#endif
 `;
 
 // The log-depth chunks match the globe's logarithmic depth buffer in the app;
@@ -437,7 +449,11 @@ varying vec3 vWorld;
 varying vec3 vLocal;
 ${poseChunk}
 void main() {
+  #ifdef USE_LOOKS
+  vColour = lookColour();
+  #else
   vColour = color;
+  #endif
   vLocal = position;
   // Instanced models (wildlife.md section 5) carry each part's pose in instanceMatrix,
   // or, merged into one mesh, in a texture of every animal's part poses.
@@ -605,19 +621,24 @@ export function posedMaterials(poseTex: THREE.Texture): {
  * The clay and ink materials of a model merged into one mesh whose copies play baked clips
  * from a clip texture (milestone 2, section 5.3), a row per frame.
  */
-export function clipMaterials(clipTex: THREE.Texture): {
+export function clipMaterials(
+  clipTex: THREE.Texture,
+  looks?: { tex: THREE.Texture; verts: number },
+): {
   cel: THREE.ShaderMaterial;
   ink: THREE.ShaderMaterial;
 } {
   const uniforms = { ...lightUniforms, clipTex: { value: clipTex } };
   return {
     cel: new THREE.ShaderMaterial({
-      uniforms,
+      uniforms: looks
+        ? { ...uniforms, lookTex: { value: looks.tex }, lookVerts: { value: looks.verts } }
+        : uniforms,
       vertexShader: celVertex,
       fragmentShader: celFragment,
       vertexColors: true,
       side: THREE.DoubleSide,
-      defines: { USE_CLIPS: '' },
+      defines: looks ? { USE_CLIPS: '', USE_LOOKS: '' } : { USE_CLIPS: '' },
     }),
     ink: new THREE.ShaderMaterial({
       uniforms,

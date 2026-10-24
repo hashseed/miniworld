@@ -17,6 +17,11 @@ export type Animate = (m: Model, clip: Clip, seconds: number) => void;
 export type LoopOf = (m: Model, clip: Clip) => { loop: number } | { once: number } | undefined;
 import { clipMaterials, type Model } from '../../../assets/src/kit.ts';
 
+/** Colourings of one model a batch can hold (skin, hair and hide colours repeat after this many). */
+export const LOOKS_PER_MODEL = 12;
+/** Texels in a row of a look texture (the shader reads it with the same 2048). */
+const LOOK_ROW = 2048;
+
 /** Frames baked per second of a clip; the shader blends between neighbouring frames. */
 export const CLIP_FPS = 30;
 
@@ -56,6 +61,9 @@ interface Batch {
   rows: number;
   clipData: Float32Array;
   clipTex: THREE.DataTexture;
+  /** For a model drawn in several looks: one colour per vertex and look, in a texture. */
+  looks?: { verts: number; data: Float32Array; tex: THREE.DataTexture; have: Set<number> };
+  lookAttr?: THREE.InstancedBufferAttribute;
   materials: { cel: THREE.ShaderMaterial; ink: THREE.ShaderMaterial };
 }
 
@@ -87,15 +95,27 @@ export class ClipBatches {
     this.loopOf = loopOf;
   }
 
-  /** Adds a copy of the model `key` (built once by `build`) standing at `root`. */
-  add(key: string, build: () => Model, root: THREE.Matrix4, copy: ClipCopy): void {
+  /**
+   * Adds a copy of the model `key` (built by `build`) standing at `root`. A model with
+   * several colourings gives `look`, and `build(look)` builds the one coloured that way: the
+   * looks must share their geometry, and all copies of the model are one draw call.
+   */
+  add(
+    key: string,
+    build: (look: number) => Model,
+    root: THREE.Matrix4,
+    copy: ClipCopy,
+    look?: number,
+  ): void {
     let b = this.batches.get(key);
     if (!b) {
-      b = this.make(build());
+      b = this.make(build(look ?? 0), look !== undefined);
       this.batches.set(key, b);
     }
+    if (look !== undefined) this.addLook(b, build, look);
     if (b.count === b.capacity) this.grow(b);
     const i = b.count++;
+    if (b.lookAttr) b.lookAttr.array[i] = look ?? 0;
     root.toArray(b.roots.array, i * 16);
     const to = this.frame(b, copy.clip, copy.seconds);
     const hide = copy.hide === undefined ? -1 : (b.partOf.get(copy.hide) ?? -1);
@@ -120,7 +140,7 @@ export class ClipBatches {
         m.visible = b.count > 0;
       }
       if (b.count === 0) continue;
-      for (const a of [b.roots, b.from, b.to]) {
+      for (const a of b.lookAttr ? [b.roots, b.from, b.to, b.lookAttr] : [b.roots, b.from, b.to]) {
         a.clearUpdateRanges();
         a.addUpdateRange(0, b.count * a.itemSize);
         a.needsUpdate = true;
@@ -189,7 +209,22 @@ export class ClipBatches {
     b.materials.cel.uniforms.clipTex!.value = b.clipTex;
   }
 
-  private make(template: Model): Batch {
+  /** Writes a look's colours into the look texture, the first time a copy has it. */
+  private addLook(b: Batch, build: (look: number) => Model, look: number): void {
+    const l = b.looks!;
+    if (l.have.has(look)) return;
+    const colours = partColours(build(look));
+    if (colours.length !== l.verts * 3)
+      throw new Error(`look ${look} of a model has a different shape from look 0`);
+    for (let v = 0; v < l.verts; v++) {
+      const at = (look * l.verts + v) * 4;
+      l.data.set([colours[v * 3]!, colours[v * 3 + 1]!, colours[v * 3 + 2]!, 1], at);
+    }
+    l.have.add(look);
+    l.tex.needsUpdate = true;
+  }
+
+  private make(template: Model, looked = false): Batch {
     template.object.updateMatrixWorld(true);
     const parts: THREE.Mesh[] = [];
     template.object.traverse((o) => {
@@ -213,6 +248,19 @@ export class ClipBatches {
         return g;
       }),
     )!;
+    let looks: Batch['looks'];
+    if (looked) {
+      const verts = geometry.getAttribute('position').count;
+      const rows = Math.ceil((verts * LOOKS_PER_MODEL) / LOOK_ROW);
+      const data = new Float32Array(rows * LOOK_ROW * 4);
+      const tex = new THREE.DataTexture(data, LOOK_ROW, rows, THREE.RGBAFormat, THREE.FloatType);
+      looks = { verts, data, tex, have: new Set() };
+      const first = partColours(template);
+      for (let v = 0; v < verts; v++)
+        data.set([first[v * 3]!, first[v * 3 + 1]!, first[v * 3 + 2]!, 1], v * 4);
+      looks.have.add(0);
+      tex.needsUpdate = true;
+    }
     const clipData = new Float32Array(FIRST_ROWS * parts.length * 16);
     const clipTex = clipTexture(clipData, parts.length, FIRST_ROWS);
     const b = {
@@ -227,7 +275,8 @@ export class ClipBatches {
       clipData,
       clipTex,
       // The clay and ink share their uniforms, so one clip texture serves both.
-      materials: clipMaterials(clipTex),
+      ...(looks ? { looks } : {}),
+      materials: clipMaterials(clipTex, looks),
     } as unknown as Batch;
     this.alloc(b, FIRST_CAPACITY);
     return b;
@@ -236,6 +285,7 @@ export class ClipBatches {
   /** Twice the room, keeping the copies already added this frame. */
   private grow(b: Batch): void {
     const old = [b.roots.array, b.from.array, b.to.array];
+    const oldLook = b.lookAttr?.array;
     for (const m of [b.cel, b.ink]) {
       this.group.remove(m);
       m.dispose();
@@ -244,6 +294,7 @@ export class ClipBatches {
     b.roots.array.set(old[0]!);
     b.from.array.set(old[1]!);
     b.to.array.set(old[2]!);
+    if (oldLook) b.lookAttr!.array.set(oldLook);
   }
 
   private alloc(b: Batch, capacity: number): void {
@@ -258,6 +309,10 @@ export class ClipBatches {
     b.to = attribute(4);
     b.geometry.setAttribute('clipFrom', b.from);
     b.geometry.setAttribute('clipTo', b.to);
+    if (b.looks) {
+      b.lookAttr = attribute(1);
+      b.geometry.setAttribute('look', b.lookAttr);
+    }
     const mesh = (material: THREE.Material) => {
       const m = new THREE.InstancedMesh(b.geometry, material, capacity);
       m.instanceMatrix = b.roots;
@@ -271,6 +326,19 @@ export class ClipBatches {
     b.cel = mesh(b.materials.cel);
     b.ink = mesh(b.materials.ink);
   }
+}
+
+/** The vertex colours of a model's parts, in the order its batch merges them. */
+function partColours(template: Model): Float32Array {
+  const out: number[] = [];
+  template.object.updateMatrixWorld(true);
+  template.object.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh || (mesh.parent as THREE.Mesh).isMesh) return;
+    const c = mesh.geometry.getAttribute('color');
+    for (let v = 0; v < c.count; v++) out.push(c.getX(v), c.getY(v), c.getZ(v));
+  });
+  return new Float32Array(out);
 }
 
 function clipTexture(data: Float32Array, parts: number, rows: number): THREE.DataTexture {

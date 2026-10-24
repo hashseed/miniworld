@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
+import {
+  PROFILES,
+  buildPerson,
+  lookShape,
+  type Kind,
+  type Profile,
+} from '../../../assets/src/people.ts';
 import { buildActor } from './figures.ts';
+import { LOOKS_PER_MODEL } from './clipBatches.ts';
+import type * as THREE from 'three';
 
 /** The hunter role's cast rules from vocab/roles.yaml. */
 const HUNTER = { man: true as const, tool: 'spear' };
@@ -36,5 +45,28 @@ describe('tree figures', () => {
     const actor = buildActor('human', 'no-such-culture', 'k', 0, HUNTER);
     expect(actor.root.children.length).toBeGreaterThan(0);
     expect(actor.height).toBeCloseTo(1.75);
+  });
+
+  it('colours the looks of a model without changing its shape', () => {
+    // One batch draws the looks of one shape (clipBatches.ts), so they must share vertices.
+    const positions = (profile: Profile, kind: Kind, variant: number) => {
+      const out: number[] = [];
+      buildPerson({ profile, kind, variant }).object.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        if (!mesh.isMesh || (mesh.parent as THREE.Mesh).isMesh) return;
+        out.push(...(mesh.geometry.getAttribute('position').array as Float32Array));
+      });
+      return out;
+    };
+    for (const profile of PROFILES)
+      for (const kind of ['woman', 'man', 'child'] as const) {
+        const shapes = new Map<number, number[]>();
+        for (let variant = 0; variant < LOOKS_PER_MODEL; variant++) {
+          const p = positions(profile, kind, variant);
+          const have = shapes.get(lookShape(kind, variant));
+          if (have) expect(p).toEqual(have);
+          else shapes.set(lookShape(kind, variant), p);
+        }
+      }
   });
 });

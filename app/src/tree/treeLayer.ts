@@ -397,14 +397,20 @@ export class TreeLayer {
         this.block(at, FIGURE_HALF_M);
         at.scale.setScalar(FIGURE_KM_PER_M);
         at.updateMatrix();
-        this.clips.add(batch.key, batch.build, at.matrix, {
-          clip: f.clip,
-          seconds: sec(f.clipMs),
-          ...(f.from
-            ? { from: { clip: f.from.clip, seconds: sec(f.from.clipMs), weight: f.from.weight } }
-            : {}),
-          ...(f.unarmed ? { hide: 'tool' } : {}),
-        });
+        this.clips.add(
+          batch.key,
+          batch.build,
+          at.matrix,
+          {
+            clip: f.clip,
+            seconds: sec(f.clipMs),
+            ...(f.from
+              ? { from: { clip: f.from.clip, seconds: sec(f.from.clipMs), weight: f.from.weight } }
+              : {}),
+            ...(f.unarmed ? { hide: 'tool' } : {}),
+          },
+          batch.look,
+        );
         continue;
       }
       // A figure in new clothes is a new model (peopling.md section 5.3).
