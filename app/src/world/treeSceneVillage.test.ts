@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { TIMELINE_START, DAYS_PER_YEAR } from '../time/calendar.ts';
 import { msAtDay } from '../time/rate.ts';
 import { encodeMask, MASK_RINGS, MASK_SECTORS } from './fieldMask.ts';
-import { pointInPolygon } from '../tree/fieldShapes.ts';
+import { pointInPolygon } from './fieldShapes.ts';
 import { NEVER } from './tree.ts';
 import { treeScene, type TreeChunk, type TreeScene } from './treeScene.ts';
 

@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 import { LAYOUT_KM_PER_M } from '../world/treeScene.ts';
 import { detCos, detSin } from '../core/detmath.ts';
-import type { Field, Pt } from './fieldShapes.ts';
+import type { Field, Pt } from '../world/fieldShapes.ts';
 import type { SurfaceSource } from './surface.ts';
 
 /** Rings of the patch as shares of the outline's radius; the last is the outline itself. */

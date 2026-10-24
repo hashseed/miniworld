@@ -347,7 +347,9 @@ function outlineIsClear(
   for (let i = 0; i < outline.length; i++) {
     const p = outline[i]!;
     const q = outline[(i + 1) % outline.length]!;
-    const n = Math.max(1, Math.ceil(Math.hypot(q.x - p.x, q.z - p.z) / 0.05));
+    const dx = q.x - p.x;
+    const dz = q.z - p.z;
+    const n = Math.max(1, Math.ceil(Math.sqrt(dx * dx + dz * dz) / 0.05));
     for (let k = 0; k < n; k++) {
       const t = k / n;
       if (!clear(p.x + (q.x - p.x) * t, p.z + (q.z - p.z) * t)) return false;

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import { EARTH_RADIUS_KM } from '../geo/earth.ts';
 import { FieldGround, fieldGrowth } from './fieldGround.ts';
-import { layoutFields } from './fieldShapes.ts';
+import { layoutFields } from '../world/fieldShapes.ts';
 import type { SurfaceSource } from './surface.ts';
 
 const surface: SurfaceSource = {
