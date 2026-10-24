@@ -11,7 +11,7 @@ import { hash01 } from '../core/hash.ts';
 import { drawable } from '../content/assets.ts';
 import { celMaterial } from '../../../assets/src/kit.ts';
 import { CROP_SPACING_M, STAGES, cropGeometry, type CropId } from '../../../assets/src/crops.ts';
-import { pointInPolygon, type Field } from './fieldShapes.ts';
+import { pointInPolygon, type Field } from '../world/fieldShapes.ts';
 import type { SurfaceSource } from './surface.ts';
 
 /** Most tufts of one field. */

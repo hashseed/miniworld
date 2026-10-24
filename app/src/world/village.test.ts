@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MASK_RINGS, MASK_SECTORS, encodeMask, maskLand } from './fieldMask.ts';
-import { pointInPolygon } from '../tree/fieldShapes.ts';
+import { pointInPolygon } from './fieldShapes.ts';
 import { fieldsOf, herdOf } from './village.ts';
 import { NEOLITHIC_PROFILES } from './neolithicProfiles.ts';
 import { ROLE_NOUNS, roleOf } from './roles.ts';

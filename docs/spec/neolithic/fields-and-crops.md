@@ -48,7 +48,7 @@ Heights, fruit size and colours are interpolated between keyframes, so any `s` i
 
 ## 2. The stage of a crop on a day (part B)
 
-**A field changes only when somebody works it (Yang, 2026-10-24: "crops grow too quickly. they should grow much slower, and I want activities in the field like plowing and harvest etc. fields that are not harvested or plowed should not continue to grow").** The old calendar (`cropCalendar.ts`, a crop's stage from the day of the year) is gone: at Neolithic dates a year passes in a few seconds of watching, so the crops flickered through their whole cycle. The stage is now a **pure function of the village's life clock**, `fieldStage(clock, field, ms)` in `app/src/tree/fieldWork.ts`. No `Math.random`, no wall-clock time.
+**A field changes only when somebody works it (Yang, 2026-10-24: "crops grow too quickly. they should grow much slower, and I want activities in the field like plowing and harvest etc. fields that are not harvested or plowed should not continue to grow").** The old calendar (`cropCalendar.ts`, a crop's stage from the day of the year) is gone: at Neolithic dates a year passes in a few seconds of watching, so the crops flickered through their whole cycle. The stage is now a **pure function of the village's life clock**, `fieldStage(clock, field, ms)` in `app/src/world/fieldWork.ts`. No `Math.random`, no wall-clock time.
 
 **States.** A crop cycle has six states: stubble (stage 1), tilled earth (0), seed (0.1), sprouts (0.35), green (0.55), ripe (0.75). Each is left by one job: `till` (stubble to tilled), `sow`, `weed` three times, then `reap` (ripe to stubble). The next job of a field is `CYCLE[state]`. Each field starts in a state taken from the village's hash, so the fields of a village are not all alike.
 
@@ -60,7 +60,7 @@ Heights, fruit size and colours are interpolated between keyframes, so any `s` i
 
 ## 3. Field shapes (part C)
 
-`app/src/tree/fieldShapes.ts` is a pure, deterministic module in layout metres (x east, z north, one layout metre about 24 drawn km, `LAYOUT_KM_PER_M`). `layoutFields(input)` returns the fields of one village.
+`app/src/world/fieldShapes.ts` is a pure, deterministic module in layout metres (x east, z north, one layout metre about 24 drawn km, `LAYOUT_KM_PER_M`). `layoutFields(input)` returns the fields of one village.
 
 **Inputs.** The village centre, the outer radius of its ring of lodgings, a seed, the list of crops the village grows, a land test (`isLand(x, z)`, true at dry level and on gentle slope; the caller combines the sea of the date, slope and height), a blocked test (`isBlocked(x, z)`, true on rivers, lakes, mountains and anything else fields must avoid), and the most fields wanted (default 10, at most 10). Land and blocked tests are plain functions so the module has no dependency on the globe: the caller builds them from `SurfaceSource` and the river/sea fields of the tree layer.
 

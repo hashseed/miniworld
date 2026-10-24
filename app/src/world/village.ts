@@ -3,7 +3,7 @@
 
 import { hash01, hash32 } from '../core/hash.ts';
 import { detCos, detSin } from '../core/detmath.ts';
-import { layoutFields, MAX_FIELDS, type Field, type Pt } from '../tree/fieldShapes.ts';
+import { layoutFields, MAX_FIELDS, type Field, type Pt } from './fieldShapes.ts';
 import { maskLand, MASK_R0 } from './fieldMask.ts';
 
 /** Fields are laid out in a frame this many times smaller than the layout, then scaled up (spec 8.5). */

@@ -15,8 +15,8 @@ import {
   jobAt,
   type FieldClock,
   type FieldJob,
-} from '../tree/fieldWork.ts';
-import { pointInPolygon, type Field } from '../tree/fieldShapes.ts';
+} from './fieldWork.ts';
+import { pointInPolygon, type Field } from './fieldShapes.ts';
 import { farmingProfileAt, fieldToolOf } from './farmingOnset.ts';
 import { maskLand } from './fieldMask.ts';
 import { NEOLITHIC_PROFILES, type NeolithicProfileId } from './neolithicProfiles.ts';
