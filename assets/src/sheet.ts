@@ -43,6 +43,8 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.1, 500);
 const labels: { text: string; at: THREE.Vector3 }[] = [];
 let triangles = 0;
+const info = { text: '' };
+const tileLabels: { text: string; x: number; y: number }[] = [];
 /** Set by sheets that move: poses the scene at a time in seconds (`window.setFrame`). */
 let update: ((seconds: number) => void) | undefined;
 /** Set by sheets that draw their own tiles instead of the one default camera. */
@@ -365,6 +367,120 @@ function landmarkSheet(): void {
   });
 }
 
+/** Any model the review loop handles, by asset id. */
+function buildAsset(id: string): Model {
+  if (id.startsWith('animal-')) return buildAnimal(id as AnimalId);
+  if (id === 'prop-hearth') return buildHearth();
+  return buildShelter(id as (typeof SHELTERS)[number]);
+}
+
+/** The sheet's optional pose for a moving asset: `&clip=walk&t=0.3`. */
+function poseAsset(m: Model, id: string): void {
+  const clip = params.get('clip');
+  if (clip && id.startsWith('animal-'))
+    animateAnimal(m, clip as Clip, Number(params.get('t') ?? 0));
+}
+
+/** Set by sheets drawn as several views: renders them all instead of the single camera. */
+let renderViews: (() => void) | undefined;
+
+/**
+ * Front, side, top and three-quarter views of one asset with a man for scale
+ * (review loop, milestone-2 section 13.4). The first three are orthographic.
+ */
+function viewsSheet(): void {
+  const id = params.get('id') ?? 'animal-mammoth';
+  const probe = buildAsset(id);
+  const box = new THREE.Box3().setFromObject(probe.object);
+  const size = box.getSize(new THREE.Vector3());
+  const centre = box.getCenter(new THREE.Vector3());
+  const span = Math.max(size.x, size.y, size.z, 1.8);
+  const half = Math.max(size.y * 0.6, Math.max(size.z, size.x) * 0.68, 1.4);
+  ground(0, 0, half * 1.15, '#b2b874');
+  const m = place(buildAsset(id), 0, 0, 0);
+  poseAsset(m, id);
+  const ref = buildPerson({ profile: 'ice-age-hunter', kind: 'man' });
+  posePerson(ref, 'stand');
+  place(ref, box.max.x + 0.9, box.min.z - 0.4, 0);
+  // Centred on the model's box, not its origin, so long tusks or a tail are not cut off.
+  const mid = new THREE.Vector3(centre.x, Math.max(size.y, 1.8) * 0.5, centre.z);
+  const tiles: { name: string; cam: THREE.Camera }[] = [];
+  const ortho = (name: string, at: THREE.Vector3, up: THREE.Vector3) => {
+    const aspect = innerWidth / innerHeight;
+    const cam = new THREE.OrthographicCamera(-half * aspect, half * aspect, half, -half, 0.1, 500);
+    cam.position.copy(mid).add(at);
+    cam.up.copy(up);
+    cam.lookAt(mid);
+    tiles.push({ name, cam });
+  };
+  ortho('front', new THREE.Vector3(0, 0, 60), new THREE.Vector3(0, 1, 0));
+  ortho('side', new THREE.Vector3(60, 0, 0), new THREE.Vector3(0, 1, 0));
+  ortho('top', new THREE.Vector3(0, 60, 0), new THREE.Vector3(0, 0, -1));
+  const persp = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.1, 500);
+  persp.position.set(span * 1.5, span * 1.0, span * 2.6);
+  persp.lookAt(mid);
+  tiles.push({ name: 'three-quarter', cam: persp });
+  info.text = `${id}: ${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)} m (w x h x l), ${Math.round(m.triangles).toLocaleString('en')} triangles`;
+  renderViews = () => {
+    const w = Math.floor(innerWidth / 2);
+    const h = Math.floor(innerHeight / 2);
+    renderer.setScissorTest(true);
+    tiles.forEach((t, i) => {
+      const x = (i % 2) * w;
+      const y = (1 - Math.floor(i / 2)) * h;
+      renderer.setViewport(x, y, w, h);
+      renderer.setScissor(x, y, w, h);
+      t.cam.updateMatrixWorld();
+      cameraLight(t.cam, lightUniforms.lightDir.value);
+      const e = t.cam.matrixWorld.elements;
+      lightUniforms.screenUp.value.set(e[4]!, e[5]!, e[6]!);
+      lightUniforms.viewport.value.set(w * renderer.getPixelRatio(), h * renderer.getPixelRatio());
+      renderer.render(scene, t.cam);
+      tileLabels.push({ text: t.name, x: x + 8, y: innerHeight - y - 26 });
+    });
+    renderer.setScissorTest(false);
+  };
+  camera.position.copy(persp.position);
+}
+
+/**
+ * An asset with people around it, in the poses they take in the game
+ * (review loop, milestone-2 section 13.4): animals with hunters, shelters with
+ * a family, the hearth and someone working at it.
+ */
+function withPeopleSheet(): void {
+  const id = params.get('id') ?? 'animal-mammoth';
+  const isAnimal = id.startsWith('animal-');
+  const probe = buildAsset(id);
+  const size = new THREE.Box3().setFromObject(probe.object).getSize(new THREE.Vector3());
+  const span = Math.max(size.x, size.z, 1.8);
+  ground(0, 0, span * 2.2, '#b2b874');
+  const m = place(buildAsset(id), 0, 0, 0);
+  poseAsset(m, id);
+  const faceModel = (x: number, z: number) => Math.atan2(-x, -z);
+  const cast: { kind: Kind; pose: Pose; x: number; z: number; t?: number }[] = isAnimal
+    ? [
+        { kind: 'man', pose: 'throw', x: -span * 0.2, z: span * 1.35, t: 0.3 },
+        { kind: 'woman', pose: 'point', x: span * 0.75, z: span * 1.25 },
+        { kind: 'child', pose: 'stand', x: -span * 0.95, z: span * 1.1 },
+      ]
+    : [
+        { kind: 'man', pose: 'stand', x: -0.6, z: span * 0.85 + 0.6 },
+        { kind: 'child', pose: 'stand', x: 0.3, z: span * 0.85 + 0.9 },
+        { kind: 'woman', pose: 'work', x: span * 0.9, z: span * 0.5, t: 0.3 },
+      ];
+  if (!isAnimal) place(buildHearth(), span * 0.55, span * 0.5);
+  cast.forEach((c, i) => {
+    const p = buildPerson({ profile: 'ice-age-hunter', kind: c.kind, variant: i });
+    posePerson(p, c.pose, c.t ?? 0);
+    place(p, c.x, c.z, faceModel(c.x, c.z));
+    labels.push({ text: c.pose, at: new THREE.Vector3(c.x, 2.0, c.z) });
+  });
+  camera.position.set(span * 0.9, span * 1.1, span * 3.3);
+  camera.lookAt(0, Math.max(size.y, 1.8) * 0.4, span * 0.5);
+  info.text = `${id} with people`;
+}
+
 /** A shelter going up, step by step, from the frame to the finished shelter. */
 function buildSheet(): void {
   const id = (params.get('id') ?? 'shelter-grass-hut') as (typeof SHELTERS)[number];
@@ -670,6 +786,8 @@ const sheets: Record<string, () => void> = {
   single: singleSheet,
   tools: toolsSheet,
   landmark: landmarkSheet,
+  views: viewsSheet,
+  'with-people': withPeopleSheet,
   build: buildSheet,
   people: peopleSheet,
   turnaround: turnaroundSheet,
@@ -689,7 +807,8 @@ lightUniforms.viewport.value.set(
   innerHeight * renderer.getPixelRatio(),
 );
 lightUniforms.inkPixels.value = 1.6 * renderer.getPixelRatio();
-if (!customRender) renderer.render(scene, camera);
+if (renderViews) renderViews();
+else if (!customRender) renderer.render(scene, camera);
 if (update) {
   const step = update;
   (window as unknown as { setFrame: (t: number) => void }).setFrame = (t) => {
@@ -715,14 +834,28 @@ for (const l of labels) {
   });
   document.body.appendChild(div);
 }
-const info = document.createElement('div');
-info.textContent = `${customRender ? document.title : sheetName}: ${Math.round(triangles).toLocaleString('en')} triangles`;
-Object.assign(info.style, {
+for (const t of tileLabels) {
+  const div = document.createElement('div');
+  div.textContent = t.text;
+  Object.assign(div.style, {
+    position: 'absolute',
+    left: `${t.x}px`,
+    top: `${t.y}px`,
+    font: '600 14px system-ui',
+    color: '#3a261c',
+  });
+  document.body.appendChild(div);
+}
+const infoDiv = document.createElement('div');
+infoDiv.textContent =
+  info.text ||
+  `${customRender ? document.title : sheetName}: ${Math.round(triangles).toLocaleString('en')} triangles`;
+Object.assign(infoDiv.style, {
   position: 'absolute',
   left: '12px',
   top: '10px',
   font: '600 14px system-ui',
   color: '#3a261c',
 });
-document.body.appendChild(info);
+document.body.appendChild(infoDiv);
 document.body.dataset.ready = '1';

@@ -21,6 +21,7 @@ The spec in `docs/spec/` is the source of truth. Before implementing any change 
 - Presentation: nothing bloody, nothing softened. Hard history (war, slavery, colonial violence, the Holocaust) is named and explained correctly at an 11 to 12-year-old reading level.
 - Assets are generated and must be approved by Yang before use; only assets with status `approved` in the asset manifest may ship.
 - Content is streamed in chunks by place, time window and language (spec section 10); never add content that the app must download in full at startup beyond the light index.
+- New or changed models follow the design and review loop of `docs/spec/milestone-2.md` section 13.4: model card, build, `npm run model -- <id> <round>`, self-check, images sent into the thread, Yang's numbered feedback, approve.
 
 ## Animation review
 
