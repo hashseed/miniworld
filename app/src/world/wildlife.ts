@@ -5,6 +5,7 @@
 // (milestone 2, section 2.3). The wildlife layer places them on the globe.
 
 import groupsFile from '../../../data/curated/wildlife.json' with { type: 'json' };
+import type { Table } from '../../../data/schema/tables.ts';
 import { detCos, detSin, RAD } from '../core/detmath.ts';
 import { hash01, hashString } from '../core/hash.ts';
 import { EARTH_RADIUS_KM } from '../geo/earth.ts';
@@ -32,6 +33,18 @@ export interface WildGroup {
 }
 
 export const WILD_GROUPS: readonly WildGroup[] = (groupsFile as { groups: WildGroup[] }).groups;
+
+/** How a model moves and is drawn where it differs from the defaults: its row of `models` in the data file. */
+export type WildModelTraits = Table<'wildlife.json'>['models'][string];
+
+const MODEL_TRAITS: Readonly<Record<string, WildModelTraits>> = (
+  groupsFile as unknown as Table<'wildlife.json'>
+).models;
+
+/** A model's traits; none for a model the data file does not list. */
+export function traitsOf(model: string): WildModelTraits {
+  return Object.hasOwn(MODEL_TRAITS, model) ? MODEL_TRAITS[model]! : {};
+}
 
 export type WildClip = 'idle' | 'walk' | 'fly' | 'swim';
 
@@ -72,7 +85,9 @@ const GROW_YEARS = 5;
  * 2026-10-18: "like the radius of 1000km").
  */
 const ROAM_KM = 1000;
-const ROAM_KM_CROCODILE = 80;
+/** A round's seconds before its hashed extra, and the most of it a walk takes, unless a model's traits say. */
+const ROUND_SECONDS = 10;
+const WALK_SHARE = 0.9;
 /** Walking speed in km of the globe per second of the clock. */
 const WALK_KM_S = 55;
 /**
@@ -91,9 +106,9 @@ const FLIGHT_KM_S = 45;
 /** Birds of a group fly this far apart along the loop (turns) and across it (km). */
 const FLIGHT_GAP_TURNS = 0.15;
 const FLIGHT_LANE_KM = 60;
-const BIRDS = new Set(['animal-parrot', 'animal-kea', 'animal-haast-eagle']);
-/** Sea animals swim at the surface of the open sea (section 4). */
-const SWIMMERS = new Set(['animal-whale', 'animal-dolphin', 'animal-sea-cow']);
+/** Birds fly over anything; sea animals swim at the surface of the open sea (section 4). */
+const isBird = (model: string) => traitsOf(model).moves === 'fly';
+const isSwimmer = (model: string) => traitsOf(model).moves === 'swim';
 /** A dolphin's leap, and how high it rises, in seconds and body heights. */
 const LEAP_SECONDS = 2.4;
 const LEAP_RISE = 0.9;
@@ -160,7 +175,7 @@ export function keepOutsOf(
   camps: readonly { lat: number; lon: number; from: number; to: number }[],
   rKm: number,
 ): KeepOut[] {
-  if (BIRDS.has(g.model) || SWIMMERS.has(g.model)) return [];
+  if (isBird(g.model) || isSwimmer(g.model)) return [];
   const unit = (lat: number, lon: number): P3 => [
     detCos(lat * RAD) * detSin(lon * RAD),
     detSin(lat * RAD),
@@ -331,7 +346,7 @@ export function wildClearings(
 ): { lat: number; lon: number; eastKm: number; northKm: number; km: number }[] {
   const out: { lat: number; lon: number; eastKm: number; northKm: number; km: number }[] = [];
   groups.forEach((g) => {
-    if (!BIRDS.has(g.model) || groupGrowth(g, day) <= 0) return;
+    if (!isBird(g.model) || groupGrowth(g, day) <= 0) return;
     const len = Math.max(drawnLengthKm(g.model), drawnLengthKm(modelOf(g, 1)));
     out.push({
       lat: g.lat,
@@ -346,7 +361,7 @@ export function wildClearings(
   for (let t = 0; t <= CLEAR_STEP_S; t += CLEAR_SAMPLE_S)
     for (const a of wildlifeAt(day, step + t, groups, masks, reachKm, keepOuts)) {
       const g = groups[Number(a.key.split(':')[0])]!;
-      if (BIRDS.has(g.model)) continue;
+      if (isBird(g.model)) continue;
       const reach = reachKm(a.model, g);
       const x = a.eastKm + a.offset[0] * reach;
       const y = a.northKm + a.offset[1] * reach;
@@ -371,7 +386,7 @@ export function wildClearings(
 
 /** Seconds of one round of grazing and walking for a group. */
 function roundSeconds(g: WildGroup, seed: number): number {
-  return (g.model === 'animal-crocodile' ? 18 : 10) + 6 * hash01(seed, 4);
+  return (traitsOf(g.model).roundSeconds ?? ROUND_SECONDS) + 6 * hash01(seed, 4);
 }
 
 /**
@@ -384,7 +399,7 @@ function groupPlaces(
   reachKm: (model: string, g: WildGroup) => number,
 ): { offsets: P2[]; places: P2[] } {
   const seed = groupSeed(g, gi);
-  const swimmer = SWIMMERS.has(g.model);
+  const swimmer = isSwimmer(g.model);
   const offsets: P2[] = [];
   const places: P2[] = [];
   for (let i = 0; i < groupSize(g, gi); i++) {
@@ -401,26 +416,24 @@ function groupPlaces(
 /** The model of the i-th animal of a group: a lion's pride has lionesses, a silverback leads females. */
 function modelOf(g: WildGroup, i: number): string {
   if (i === 0) return g.model;
-  if (g.model === 'animal-lion') return 'animal-lioness';
-  if (g.model === 'animal-gorilla') return 'animal-gorilla-female';
-  return g.model;
+  return traitsOf(g.model).others ?? g.model;
 }
 
 /** Whether a group flies (birds), over any ground (section 4). */
 export function flies(g: WildGroup): boolean {
-  return BIRDS.has(g.model);
+  return isBird(g.model);
 }
 
 /** Whether a group swims in the open sea (section 4). */
 export function swims(g: WildGroup): boolean {
-  return SWIMMERS.has(g.model);
+  return isSwimmer(g.model);
 }
 
 /** Roaming radius of a group in km (section 4). */
 export function roamOf(g: WildGroup): number {
   if (g.roamKm !== undefined) return g.roamKm;
-  if (BIRDS.has(g.model)) return FLIGHT_RADIUS_KM + 2 * FLIGHT_LANE_KM;
-  return g.model === 'animal-crocodile' ? ROAM_KM_CROCODILE : ROAM_KM;
+  if (isBird(g.model)) return FLIGHT_RADIUS_KM + 2 * FLIGHT_LANE_KM;
+  return traitsOf(g.model).roamKm ?? ROAM_KM;
 }
 
 /** Middle and spread (km east and north of the home) of a group's open cells within its roaming radius. */
@@ -922,7 +935,7 @@ export function wildlifeAt(
     const size = groupSize(g, gi);
     const model = (i: number) => modelOf(g, i);
 
-    if (BIRDS.has(g.model)) {
+    if (isBird(g.model)) {
       // Loops around the home, each bird well behind the one before and on a
       // wider loop, so they never crowd (Yang, 2026-10-18).
       const turnsPerS = FLIGHT_KM_S / (2 * Math.PI * FLIGHT_RADIUS_KM);
@@ -956,8 +969,9 @@ export function wildlifeAt(
     // its own path near the group's spots, starts a beat apart from the
     // others and faces along its own curve, so the group stays together
     // without moving as one rigid shape (Yang, 2026-10-18).
-    const crocodile = g.model === 'animal-crocodile';
-    const swimmer = SWIMMERS.has(g.model);
+    const walkShare = traitsOf(g.model).walkShare ?? WALK_SHARE;
+    const swimStyle = traitsOf(g.model).swim;
+    const swimmer = isSwimmer(g.model);
     const roam = roamOf(g);
     const mask = masks[gi];
     const period = roundSeconds(g, seed);
@@ -1131,9 +1145,7 @@ export function wildlifeAt(
         ? alongPath(path, 1).length
         : Math.sqrt((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2);
       const walkS =
-        chord < 1
-          ? 0
-          : Math.min(period * (crocodile ? 0.4 : 0.9), Math.max(3, chord / (WALK_KM_S * pace)));
+        chord < 1 ? 0 : Math.min(period * walkShare, Math.max(3, chord / (WALK_KM_S * pace)));
       const walking = inRound > period - walkS;
       const f = walking ? (inRound - (period - walkS)) / walkS : 0;
       const u = f * f * (3 - 2 * f);
@@ -1213,11 +1225,11 @@ export function wildlifeAt(
         a.clip = 'swim';
         a.seconds = seconds + hash01(seed, 30 + i) * 1.6;
         a.walkS = 0;
-        if (g.model === 'animal-dolphin') {
+        if (swimStyle === 'leap') {
           const [c, sn] = cosSinTurn(seconds / LEAP_SECONDS + hash01(seed, 80 + i));
           a.rise = LEAP_RISE * sn - 0.1;
           a.pitch = 0.6 * c;
-        } else if (g.model === 'animal-whale' && !walking) {
+        } else if (swimStyle === 'dive' && !walking) {
           const dive = inRound / (period - walkS);
           const [c, sn] = cosSinTurn(Math.min(1, Math.max(0, dive)));
           a.rise = -0.15 - DIVE_DEPTH * 0.5 * (1 - c);

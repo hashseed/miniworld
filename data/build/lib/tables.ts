@@ -80,6 +80,10 @@ export function tableAssetRefs(tables: Partial<{ [N in TableName]: Table<N> }>):
   const refs: AssetRef[] = [];
   for (const g of tables['wildlife.json']?.groups ?? [])
     refs.push({ id: g.model, from: `wildlife.json: ${g.species} at ${g.home}` });
+  for (const [model, t] of Object.entries(tables['wildlife.json']?.models ?? {})) {
+    refs.push({ id: model, from: `wildlife.json: models` });
+    if (t.others) refs.push({ id: t.others, from: `wildlife.json: models.${model}` });
+  }
   for (const a of tables['anchors.json']?.anchors ?? [])
     if (a.scene) refs.push({ id: a.scene.prop, from: `anchors.json: ${a.id}` });
   for (const c of tables['cultures.json']?.cultures ?? []) {

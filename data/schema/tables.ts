@@ -448,8 +448,35 @@ export const farmingTable = z.strictObject({
 
 // --- Wildlife (wildlife.md section 4) ----------------------------------------
 
+/** How a model moves and is drawn where it differs from the defaults (wildlife.md sections 4 and 5). */
+export const wildModelTraits = z.strictObject({
+  /** Walks on open land (the default), flies loops over anything, or swims in the open sea. */
+  moves: z.enum(['walk', 'fly', 'swim']).optional(),
+  /** How a swimmer rides the sea: leaps in arcs, dives between journeys, or floats. */
+  swim: z.enum(['leap', 'dive', 'float']).optional(),
+  /** Roaming radius in km, where a group gives none (default 1000). */
+  roamKm: z.number().positive().optional(),
+  /** Seconds of a round of grazing and walking, before its hashed extra (default 10). */
+  roundSeconds: z.number().positive().optional(),
+  /** The most of a round a walk may take (default 0.9). */
+  walkShare: z.number().positive().max(1).optional(),
+  /** The model of a group's other members, such as lionesses in a lion's pride. */
+  others: id.optional(),
+  /** Drawn size in life-size metres, in place of the rule. */
+  drawnM: z.number().positive().optional(),
+  /** Share of the rule's drawn size. */
+  shrink: z.number().positive().max(1).optional(),
+});
+
 export const wildlifeTable = z.strictObject({
   source: citation,
+  /** Traits by model id. */
+  models: z
+    .record(id, wildModelTraits)
+    .refine(
+      (m) => Object.values(m).every((t) => (t.swim === undefined) === (t.moves !== 'swim')),
+      'a swimmer names how it swims, and only a swimmer does',
+    ),
   groups: z.array(
     z.strictObject({
       species: id,
