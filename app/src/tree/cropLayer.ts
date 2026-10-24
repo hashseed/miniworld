@@ -18,7 +18,7 @@ import type { SurfaceSource } from './surface.ts';
 const FIELD_TUFTS = 220;
 /** Every tuft below the first altitude, every second below the next, and so on; none past the last (km). */
 /** The ground patch floats this far over the ground (fieldGround.ts), so the tufts stand on it. */
-const SOIL_LIFT_KM = 22;
+const SOIL_LIFT_KM = 4;
 /** Tufts are a little wider than their spacing, so the rows close up into a crop. */
 const TUFT_FILL = 3;
 /** A field's crop changes by one stage at most this often, in milliseconds of drawing. */
@@ -211,6 +211,13 @@ export class CropLayer {
         const x = centre.x + uu * -fs + vv * fc;
         const z = centre.z + uu * fc + vv * fs;
         if (!pointInPolygon(outline, x, z)) continue;
+        // Towards the edge the crop thins out and the plants are smaller, so there is no clear border.
+        const deep = pointInPolygon(
+          outline,
+          centre.x + (x - centre.x) * 1.2,
+          centre.z + (z - centre.z) * 1.2,
+        );
+        if (!deep && hash01(field.id, index, 34) < 0.5) continue;
         this.p
           .copy(up)
           .addScaledVector(east, (x * LAYOUT_KM_PER_M) / EARTH_RADIUS_KM)
@@ -219,7 +226,7 @@ export class CropLayer {
         const ground = this.surface.surfaceKm([this.p.x, this.p.y, this.p.z]);
         this.p.multiplyScalar(EARTH_RADIUS_KM + ground + SOIL_LIFT_KM);
         const turn = hash01(field.id, index, 33) * Math.PI * 2;
-        const s = spacing * TUFT_FILL * LAYOUT_KM_PER_M;
+        const s = spacing * TUFT_FILL * LAYOUT_KM_PER_M * (deep ? 1 : 0.75);
         const upHere = this.p.clone().normalize();
         const e2 = new THREE.Vector3();
         const n2 = new THREE.Vector3();

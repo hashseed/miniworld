@@ -11,11 +11,11 @@ const halfLand = encodeMask(
 );
 
 describe('village fields', () => {
-  it('are the same every time and number 3 to 10 on open land', () => {
+  it('are the same every time and number 3 to 5 on open land', () => {
     const a = fieldsOf(7, 99, 4, ['emmer', 'lentil'], allLand);
     expect(fieldsOf(7, 99, 4, ['emmer', 'lentil'], allLand)).toEqual(a);
     expect(a.length).toBeGreaterThanOrEqual(3);
-    expect(a.length).toBeLessThanOrEqual(10);
+    expect(a.length).toBeLessThanOrEqual(5);
   });
   it('keep to the land of the mask and out of the ring of houses', () => {
     for (const f of fieldsOf(11, 5, 5, ['barley'], halfLand))

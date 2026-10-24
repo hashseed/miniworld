@@ -10,12 +10,16 @@ import type { Field, Pt } from './fieldShapes.ts';
 import type { SurfaceSource } from './surface.ts';
 
 /** Rings of the patch as shares of the outline's radius; the last is the outline itself. */
-const RINGS = [0.35, 0.7, 1];
-/** The patch floats this far over the ground, in km (the camp's patch floats 30). */
-const LIFT_KM = 22;
-/** Fully drawn below the near altitude, fading out up to the far one, in km of camera altitude. */
-const FADE_NEAR_KM = 3_000;
-const FADE_FAR_KM = 9_000;
+const RINGS = [0.2, 0.4, 0.6, 0.8, 1];
+/** The patch floats this far over the ground, in km: just enough to clear the drawn terrain. */
+const LIFT_KM = 4;
+/** Seen from beyond GROW_FROM_KM of altitude a field is drawn larger about its centre, in proportion to the altitude, up to GROW_MAX times. */
+const GROW_FROM_KM = 6_000;
+const GROW_MAX = 4;
+/** The factor a field is enlarged by at a camera altitude in km (1 close up; never fades out). */
+export function fieldGrowth(altitudeKm: number): number {
+  return Math.min(GROW_MAX, Math.max(1, altitudeKm / GROW_FROM_KM));
+}
 /** Whole stage steps the ground colour is rewritten at (stage times this, rounded). */
 const STAGE_STEPS = 48;
 
@@ -39,6 +43,7 @@ const FALLBACK: [number, number] = [0x6fa83a, 0xd9b04a];
 
 interface Patch {
   position: Float32Array;
+  heart: Float32Array;
   local: Float32Array;
   rim: Float32Array;
   alpha: Float32Array;
@@ -62,7 +67,7 @@ export class FieldGround {
   private entries: Entry[] = [];
   private version = -1;
   private built = '';
-  private amount = { value: 0 };
+  private grow = { value: 1 };
   private n = new THREE.Vector3();
   private e = new THREE.Vector3();
   private p = new THREE.Vector3();
@@ -72,7 +77,7 @@ export class FieldGround {
   constructor(surface: SurfaceSource) {
     this.surface = surface;
     const material = new THREE.ShaderMaterial({
-      uniforms: { amount: this.amount },
+      uniforms: { grow: this.grow },
       transparent: true,
       depthWrite: false,
       side: THREE.DoubleSide,
@@ -82,6 +87,8 @@ export class FieldGround {
       vertexShader: /* glsl */ `
         #include <common>
         #include <logdepthbuf_pars_vertex>
+        uniform float grow;
+        attribute vec3 heart;
         attribute vec2 local;
         attribute float rim;
         attribute float alpha;
@@ -104,13 +111,15 @@ export class FieldGround {
           vWater = water;
           vGreen = greenColour;
           vRipe = ripeColour;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          // Far away the field is enlarged about its centre, along the sphere, so it stays a few pixels wide.
+          vec3 spread = heart + (position - heart) * grow;
+          vec3 placed = normalize(spread) * length(position);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(placed, 1.0);
           #include <logdepthbuf_vertex>
         }`,
       fragmentShader: /* glsl */ `
         #include <common>
         #include <logdepthbuf_pars_fragment>
-        uniform float amount;
         varying vec2 vLocal;
         varying float vRim;
         varying float vAlpha;
@@ -142,10 +151,12 @@ export class FieldGround {
           // The rows show as stripes in young crops and fill in as it grows.
           float rows = mix(ridge, 1.0, smoothstep(0.3, 0.7, s));
           vec3 colour = mix(base, crop * (0.85 + 0.2 * ridge), cover * rows);
-          // A darker bund along the rim, and a soft edge.
-          colour = mix(vec3(0.36, 0.25, 0.14), colour, smoothstep(0.02, 0.1, vRim));
-          float edge = smoothstep(0.0, 0.05, vRim);
-          gl_FragColor = vec4(colour, vAlpha * amount * edge * 0.95);
+          // No hard boundary (Yang, 2026-10-24): the tilled earth thins out into the ground over the
+          // outer metre or two, ragged where a plough and a hoe would stop.
+          float n = 0.5 + 0.25 * sin(vLocal.x * 1.9 + vLocal.y * 0.7) * cos(vLocal.y * 2.3 - vLocal.x * 0.6)
+            + 0.25 * sin(vLocal.x * 5.1 - vLocal.y * 4.3);
+          float edge = smoothstep(0.0, 1.5, vRim + 0.9 * (n - 0.5));
+          gl_FragColor = vec4(colour, vAlpha * edge * edge * 0.95);
         }`,
     });
     this.mesh = new THREE.Mesh(new THREE.BufferGeometry(), material);
@@ -162,7 +173,7 @@ export class FieldGround {
   /**
    * Adds a field of a village. `origin` is where the village's centre is drawn (a position on the
    * globe), `village` its centre in the layout space of the field's outline (the `centre` given to
-   * layoutFields). `stage` is the crop's stage from cropStage (cropCalendar.ts); a flooded rice paddy
+   * layoutFields). `stage` is the crop's stage from fieldStage (fieldWork.ts); a flooded rice paddy
    * shows water.
    */
   add(origin: THREE.Vector3, field: Field, stage: number, village: Pt): void {
@@ -187,14 +198,11 @@ export class FieldGround {
     });
   }
 
-  /** Builds the mesh if the list or any stage changed, and sets the fade for the camera's altitude. */
+  /** Builds the mesh if the list or any stage changed, and sets the enlargement for the camera's altitude. */
   end(cameraKm: number, groundVersion: number): void {
     const altitude = cameraKm - EARTH_RADIUS_KM;
-    this.amount.value = Math.min(
-      1,
-      Math.max(0, (FADE_FAR_KM - altitude) / (FADE_FAR_KM - FADE_NEAR_KM)),
-    );
-    this.mesh.visible = this.amount.value > 0 && this.entries.length > 0;
+    this.grow.value = fieldGrowth(altitude);
+    this.mesh.visible = this.entries.length > 0;
     if (!this.mesh.visible) return;
     if (groundVersion !== this.version) {
       // The ground changed: every patch is lifted again.
@@ -216,6 +224,7 @@ export class FieldGround {
     let total = 0;
     for (const x of this.entries) total += x.vertexCount;
     const position = new Float32Array(total * 3);
+    const heart = new Float32Array(total * 3);
     const local = new Float32Array(total * 2);
     const rim = new Float32Array(total);
     const alpha = new Float32Array(total);
@@ -229,6 +238,7 @@ export class FieldGround {
     for (const x of this.entries) {
       const count = x.vertexCount;
       position.set(x.patch.position, at * 3);
+      for (let i = 0; i < count; i++) heart.set(x.patch.heart, (at + i) * 3);
       local.set(x.patch.local, at * 2);
       rim.set(x.patch.rim, at);
       alpha.set(x.patch.alpha, at);
@@ -254,6 +264,7 @@ export class FieldGround {
     }
     const geometry = this.mesh.geometry;
     geometry.setAttribute('position', new THREE.BufferAttribute(position, 3));
+    geometry.setAttribute('heart', new THREE.BufferAttribute(heart, 3));
     geometry.setAttribute('local', new THREE.BufferAttribute(local, 2));
     geometry.setAttribute('rim', new THREE.BufferAttribute(rim, 1));
     geometry.setAttribute('alpha', new THREE.BufferAttribute(alpha, 1));
@@ -308,6 +319,6 @@ export class FieldGround {
         put(x, z, (1 - share) * Math.hypot(p.x - field.centre.x, p.z - field.centre.z));
       }
     }
-    return { position, local, rim, alpha };
+    return { position, heart: position.slice(0, 3), local, rim, alpha };
   }
 }

@@ -3,13 +3,11 @@
 
 import { hash01, hash32 } from '../core/hash.ts';
 import { detCos, detSin } from '../core/detmath.ts';
-import { layoutFields, type Field, type Pt } from '../tree/fieldShapes.ts';
+import { layoutFields, MAX_FIELDS, type Field, type Pt } from '../tree/fieldShapes.ts';
 import { maskLand, MASK_R0 } from './fieldMask.ts';
 
 /** Fields are laid out in a frame this many times smaller than the layout, then scaled up (spec 8.5). */
 export const FIELD_FRAME_SCALE = 8;
-/** Most fields a camp has, and the fewest it is given when the land allows. */
-export const FIELDS_PER_LODGING = 2;
 
 /** The fields of a camp, in layout metres off its hearth. Empty where the mask leaves none. */
 export function fieldsOf(
@@ -29,7 +27,7 @@ export function fieldsOf(
     crops,
     isLand: (x, z) => maskLand(mask, x * s, z * s),
     isBlocked: (x, z) => blocked(x * s, z * s),
-    want: Math.min(10, 2 + FIELDS_PER_LODGING * lodgings),
+    want: Math.min(MAX_FIELDS, Math.max(2, lodgings + 1)),
   });
   return fields.map((f) => ({
     ...f,
