@@ -26,7 +26,7 @@ Dioramas are not to scale (milestone 2 section 13.3): every model is built for a
 
 **Evidence.** Cattle were domesticated at Mehrgarh (Balochistan, Pakistan) from the local Indian aurochs, *Bos primigenius namadicus*, in the seventh millennium BCE (Meadow 1993; Chen et al. 2010, *Molecular Biology and Evolution* 27 on the separate origin of indicine cattle). The hump is a muscle over the shoulders and is shown on Indus seals from about 2600 BCE, so humped cattle are used from the Indus phase (dates approximate).
 
-**Against the wild animal.** The aurochs (`animal-aurochs`) is black and larger, with long forward-curving horns. The zebu is smaller, light grey to fawn with a darker neck and shoulder in bulls, has a high muscular hump over the shoulders, a loose dewlap hanging from the throat, long drooping ears, short upswept horns and a long thin tail with a dark tuft.
+**Against the wild animal.** The aurochs (`animal-aurochs`) is dark brown (#4a3424) and larger, with long forward-curving horns. The zebu is smaller, light grey to fawn with a darker neck and shoulder in bulls, has a high muscular hump over the shoulders, a loose dewlap hanging from the throat, long drooping ears, short upswept horns and a long thin tail with a dark tuft.
 
 ### 1.3 Water buffalo (`animal-water-buffalo`)
 

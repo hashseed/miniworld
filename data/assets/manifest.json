@@ -893,9 +893,9 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "9f03e18974d4fbff",
+      "geometry": "1af2ea818397b914",
       "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
-      "reviewed": "2026-10-18"
+      "reviewed": "2026-10-24"
     },
     {
       "id": "animal-cave-lion",

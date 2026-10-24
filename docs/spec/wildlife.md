@@ -184,7 +184,7 @@ The extinct megafauna are in `assets/src/extinctAnimals.ts`:
 | Id | Animal | Look |
 | --- | --- | --- |
 | `animal-giant-deer` | Giant deer (Irish elk) | Big reddish deer with huge flat antlers, palms with tines |
-| `animal-aurochs` | Aurochs | Huge black wild bull, pale stripe down the back, pale muzzle, long forward-curving horns |
+| `animal-aurochs` | Aurochs | Huge dark-brown wild bull, pale stripe down the back, pale muzzle, long forward-curving horns |
 | `animal-cave-lion` | Cave lion | A pale lion without a mane |
 | `animal-smilodon` | Sabre-toothed cat | Stocky tawny cat, short tail, two long upper fangs |
 | `animal-mastodon` | American mastodon | Lower and longer than a mammoth, reddish-brown hair, long upcurved tusks |
