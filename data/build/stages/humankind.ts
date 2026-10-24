@@ -56,6 +56,16 @@ import {
   type Crossing,
 } from '../lib/arrivals.ts';
 import { CAMP_SHELTER } from '../../../assets/src/shelters.ts';
+import { farmingStateAt } from '../../../app/src/world/farmingOnset.ts';
+import { NEOLITHIC_PROFILES } from '../../../app/src/world/neolithicProfiles.ts';
+import {
+  encodeMask,
+  FIELD_RELIEF_M,
+  MASK_DR,
+  MASK_RINGS,
+  MASK_SECTORS,
+  maskCentre,
+} from '../../../app/src/world/fieldMask.ts';
 import type { Profile } from '../../../app/src/world/cultures.ts';
 import type { Tree, TreeStage } from '../../../app/src/world/tree.ts';
 import { climateHabitat } from '../lib/habitat.ts';
@@ -142,7 +152,9 @@ const SITES_CODE = [
       (f) =>
         f.endsWith('.ts') &&
         !f.endsWith('.test.ts') &&
-        !['humankind.ts', 'cultureAreas.ts', 'arrivals.ts', 'treeReport.ts'].includes(f),
+        !['humankind.ts', 'cultureAreas.ts', 'arrivals.ts', 'treeReport.ts', 'farming.ts'].includes(
+          f,
+        ),
     )
     .sort()
     .map((f) => `data/build/lib/${f}`),
@@ -496,6 +508,49 @@ export function buildHumankind(
     voyages: arrived.legs,
     thresholds: thresholdRecords,
   });
+  // The farming spread (farming-spread.md section 9.4) turns the camps of a Neolithic profile's land
+  // into that profile from its first crops; the herders before them keep their culture (humankind.md
+  // section 8.5).
+  const areaCulture = treeSettings.culture;
+  treeSettings.culture = (lat, lon, day) =>
+    farmingStateAt(lat, lon, day).profile ?? areaCulture?.(lat, lon, day);
+  treeSettings.herding = (culture, lat, lon, day) =>
+    !(culture && culture in NEOLITHIC_PROFILES) &&
+    farmingStateAt(lat, lon, day).stage === 'herding';
+  treeSettings.fieldLand = (culture, lat, lon, width, sea) => {
+    if (!(culture in NEOLITHIC_PROFILES)) return undefined;
+    const here = elevation.bilinear(lat, lon);
+    const flags: boolean[] = [];
+    for (let ring = 0; ring < MASK_RINGS; ring++)
+      for (let sector = 0; sector < MASK_SECTORS; sector++) {
+        const c = maskCentre(ring, sector);
+        let ok = true;
+        // The cell's middle and four points half a cell off it: all dry, off rivers, on gentle ground.
+        for (const [dx, dz] of [
+          [0, 0],
+          [MASK_DR / 2, 0],
+          [-MASK_DR / 2, 0],
+          [0, MASK_DR / 2],
+          [0, -MASK_DR / 2],
+        ] as const) {
+          const p = onGlobe(
+            lat,
+            lon,
+            ((c.x + dx) * LAYOUT_KM_PER_M) / width,
+            ((c.z + dz) * LAYOUT_KM_PER_M) / width,
+          );
+          if (
+            campFlood(p.lat, p.lon) <= sea ||
+            Math.abs(elevation.bilinear(p.lat, p.lon) - here) > FIELD_RELIEF_M
+          ) {
+            ok = false;
+            break;
+          }
+        }
+        flags.push(ok);
+      }
+    return encodeMask(flags);
+  };
   treeSettings.anchors = anchorRecords;
   treeSettings.encounters = encounterRecords;
   treeSettings.campFlood = campFlood;

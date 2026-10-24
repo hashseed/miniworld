@@ -5,12 +5,14 @@
 //
 // Usage: node data/build/build-data.ts [--fixture] [--max-level N]
 
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { LANGUAGES } from '../../app/src/i18n/messages.ts';
 import { DrawnTiles } from './lib/drawnGround.ts';
 import { Output } from './lib/output.ts';
 import { buildClimate } from './stages/climate.ts';
 import { buildContent, validateContent } from './stages/content.ts';
+import { buildFarming, farmingEvents } from './stages/farming.ts';
 import { createContext, ROOT, type WriteContext } from './stages/context.ts';
 import { buildHumankind } from './stages/humankind.ts';
 import { buildLensStage } from './stages/lens.ts';
@@ -37,9 +39,15 @@ async function main(args: string[]): Promise<void> {
   const wildlife = buildWildlifeMasks(ctx, map, drawn);
   const climate = buildClimate(ctx, map);
   const { lens, widthAt } = buildLensStage(ctx);
+  // The farming spread first: the tree gives camps their Neolithic culture from it (humankind.md section 8.5).
+  const farming = buildFarming(ctx, map, climate);
   const humankind = buildHumankind(ctx, map, climate, drawn, widthAt);
-  const index = buildContent(ctx, content, climate, wildlife, humankind.camps, humankind.events);
-  writeManifest(ctx, { index, lens, terrain, climate, tree: humankind.files });
+  const events = [
+    ...humankind.events,
+    ...farmingEvents(readFileSync(join(ROOT, 'data/curated/neolithic.json'), 'utf8')),
+  ];
+  const index = buildContent(ctx, content, climate, wildlife, humankind.camps, events);
+  writeManifest(ctx, { index, lens, terrain, climate, tree: humankind.files, farming });
 
   await output.finish();
   const brotliKb = (files: string[]) =>

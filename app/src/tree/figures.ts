@@ -9,6 +9,7 @@ import { animateAnimal, animatePerson, blendPerson } from '../../../assets/src/c
 import { lightUniforms, type Model } from '../../../assets/src/kit.ts';
 import {
   buildPerson,
+  lookShape,
   buildArrow,
   buildBow,
   buildSpear,
@@ -27,6 +28,7 @@ import {
   type ShelterId,
 } from '../../../assets/src/shelters.ts';
 import { hashString } from '../core/hash.ts';
+import { LOOKS_PER_MODEL } from './clipBatches.ts';
 import type { CastRules, Clip } from './standIns.ts';
 import { buildStandIn, type StandIn } from './standIns.ts';
 
@@ -212,6 +214,7 @@ export function treeFigureBatch(
   look: 'founder' | 'woman' | 'man' | 'child',
   id: number,
   profile: Profile = 'african-stone-age',
+  tool?: string,
 ): TreeBatch | undefined {
   const asset = look === 'founder' ? 'figure-first-person' : `figure-${profile}-${look}`;
   if (!drawable.has(asset)) return undefined;
@@ -221,18 +224,27 @@ export function treeFigureBatch(
       build: () =>
         turned(buildPerson({ profile: 'african-stone-age', kind: 'woman', founder: true })),
     };
-  const variant = (id % 997) % LOOK_VARIANTS;
+  const variant = (id % 997) % LOOKS_PER_MODEL;
+  // The looks of a model share its geometry and differ in colour only, so they are
+  // one batch, one draw call: each copy names its look (clipBatches.ts).
   return {
-    key: `${profile}:${look}:${variant}`,
-    build: () => turned(buildPerson({ profile, kind: look, variant })),
+    key: `${profile}:${look}:${lookShape(look, variant)}${tool ? `:${tool}` : ''}`,
+    look: variant,
+    build: (variant = 0) =>
+      turned(
+        buildPerson({ profile, kind: look, variant, ...(tool ? { tool: tool as Tool } : {}) }),
+      ),
   };
 }
-const LOOK_VARIANTS = 12;
 
-/** A model drawn as copies in a batch (posedBatches.ts): its key and how to build it. */
+/**
+ * A model drawn as copies in a batch (posedBatches.ts): its key and how to build it. A model
+ * with several colourings gives the copy's `look`, and `build(look)` builds that colouring.
+ */
 export interface TreeBatch {
   key: string;
-  build: () => Model;
+  look?: number;
+  build: (look?: number) => Model;
 }
 
 /** Turns a model to face +X like the stage and the stand-ins, as wrap() does. */

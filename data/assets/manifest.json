@@ -1,6 +1,46 @@
 {
   "assets": [
     {
+      "id": "animal-dog",
+      "file": "assets/src/domesticOtherAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Domesticated animal of another centre (docs/spec/neolithic/domestic-animals-other-centres.md); waiting for Yang's review"
+    },
+    {
+      "id": "animal-zebu",
+      "file": "assets/src/domesticOtherAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Domesticated animal of another centre (docs/spec/neolithic/domestic-animals-other-centres.md); waiting for Yang's review"
+    },
+    {
+      "id": "animal-water-buffalo",
+      "file": "assets/src/domesticOtherAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Domesticated animal of another centre (docs/spec/neolithic/domestic-animals-other-centres.md); waiting for Yang's review"
+    },
+    {
+      "id": "animal-llama",
+      "file": "assets/src/domesticOtherAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Domesticated animal of another centre (docs/spec/neolithic/domestic-animals-other-centres.md); waiting for Yang's review"
+    },
+    {
+      "id": "animal-guinea-pig",
+      "file": "assets/src/domesticOtherAnimals.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Domesticated animal of another centre (docs/spec/neolithic/domestic-animals-other-centres.md); waiting for Yang's review"
+    },
+    {
       "id": "figure-african-stone-age-man",
       "file": "assets/src/people.ts",
       "kind": "figure",
@@ -853,9 +893,9 @@
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
       "status": "approved",
-      "geometry": "9f03e18974d4fbff",
+      "geometry": "1af2ea818397b914",
       "note": "Wildlife (wildlife.md section 6), jointed legs; approved by Yang on 2026-10-18 (\"let's merge this\")",
-      "reviewed": "2026-10-18"
+      "reviewed": "2026-10-24"
     },
     {
       "id": "animal-cave-lion",
@@ -1116,6 +1156,590 @@
       "geometry": "5a32960a9ce4f79e",
       "note": "Approved by Yang (\"commit the egyptians and the pyramids as assets\"); the Giza diorama itself was shelved and later removed (issue 147); face redone on 2026-10-20 (eyes, nose and mouth on a smoother head) and approved by Yang (\"the faces are ok\")",
       "reviewed": "2026-10-21"
+    },
+    {
+      "id": "figure-pre-pottery-neolithic-levant-man",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A man of the Neolithic profile pre-pottery-neolithic-levant (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-pre-pottery-neolithic-levant-woman",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A woman of the Neolithic profile pre-pottery-neolithic-levant (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-pre-pottery-neolithic-levant-child",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A child of the Neolithic profile pre-pottery-neolithic-levant (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-anatolian-farmer-man",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A man of the Neolithic profile anatolian-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-anatolian-farmer-woman",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A woman of the Neolithic profile anatolian-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-anatolian-farmer-child",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A child of the Neolithic profile anatolian-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-lbk-farmer-man",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A man of the Neolithic profile lbk-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-lbk-farmer-woman",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A woman of the Neolithic profile lbk-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-lbk-farmer-child",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A child of the Neolithic profile lbk-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-indus-farmer-man",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A man of the Neolithic profile indus-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-indus-farmer-woman",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A woman of the Neolithic profile indus-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-indus-farmer-child",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A child of the Neolithic profile indus-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-nile-neolithic-man",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A man of the Neolithic profile nile-neolithic (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-nile-neolithic-woman",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A woman of the Neolithic profile nile-neolithic (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-nile-neolithic-child",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A child of the Neolithic profile nile-neolithic (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-yellow-river-millet-farmer-man",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A man of the Neolithic profile yellow-river-millet-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-yellow-river-millet-farmer-woman",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A woman of the Neolithic profile yellow-river-millet-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-yellow-river-millet-farmer-child",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A child of the Neolithic profile yellow-river-millet-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-yangtze-rice-farmer-man",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A man of the Neolithic profile yangtze-rice-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-yangtze-rice-farmer-woman",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A woman of the Neolithic profile yangtze-rice-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-yangtze-rice-farmer-child",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A child of the Neolithic profile yangtze-rice-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-mesoamerican-farmer-man",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A man of the Neolithic profile mesoamerican-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-mesoamerican-farmer-woman",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A woman of the Neolithic profile mesoamerican-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-mesoamerican-farmer-child",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A child of the Neolithic profile mesoamerican-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-andean-farmer-man",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A man of the Neolithic profile andean-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-andean-farmer-woman",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A woman of the Neolithic profile andean-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-andean-farmer-child",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A child of the Neolithic profile andean-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-new-guinea-highland-farmer-man",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A man of the Neolithic profile new-guinea-highland-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-new-guinea-highland-farmer-woman",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A woman of the Neolithic profile new-guinea-highland-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "figure-new-guinea-highland-farmer-child",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "A child of the Neolithic profile new-guinea-highland-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+    },
+    {
+      "id": "animal-sheep",
+      "file": "assets/src/livestock.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Neolithic livestock (neolithic/livestock.md), waiting for Yang's review"
+    },
+    {
+      "id": "animal-goat",
+      "file": "assets/src/livestock.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Neolithic livestock (neolithic/livestock.md), waiting for Yang's review"
+    },
+    {
+      "id": "animal-cattle",
+      "file": "assets/src/livestock.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Neolithic livestock (neolithic/livestock.md), waiting for Yang's review"
+    },
+    {
+      "id": "animal-pig",
+      "file": "assets/src/livestock.ts",
+      "kind": "animal",
+      "generated": "Modelling script, buildAnimal",
+      "status": "generated",
+      "note": "Neolithic livestock (neolithic/livestock.md), waiting for Yang's review"
+    },
+    {
+      "id": "shelter-pre-pottery-levant-house",
+      "file": "assets/src/neolithicHouses.ts",
+      "kind": "shelter",
+      "generated": "Modelling script, buildNeolithicHouse",
+      "status": "generated",
+      "note": "Neolithic house of the western Old World (neolithic/houses-old-world-west.md), waiting for Yang's review"
+    },
+    {
+      "id": "shelter-anatolian-house",
+      "file": "assets/src/neolithicHouses.ts",
+      "kind": "shelter",
+      "generated": "Modelling script, buildNeolithicHouse",
+      "status": "generated",
+      "note": "Neolithic house of the western Old World (neolithic/houses-old-world-west.md), waiting for Yang's review"
+    },
+    {
+      "id": "shelter-anatolian-house-joined",
+      "file": "assets/src/neolithicHouses.ts",
+      "kind": "shelter",
+      "generated": "Modelling script, buildNeolithicHouse",
+      "status": "generated",
+      "note": "Neolithic house of the western Old World (neolithic/houses-old-world-west.md), waiting for Yang's review"
+    },
+    {
+      "id": "shelter-lbk-longhouse",
+      "file": "assets/src/neolithicHouses.ts",
+      "kind": "shelter",
+      "generated": "Modelling script, buildNeolithicHouse",
+      "status": "generated",
+      "note": "Neolithic house of the western Old World (neolithic/houses-old-world-west.md), waiting for Yang's review"
+    },
+    {
+      "id": "shelter-mehrgarh-house",
+      "file": "assets/src/neolithicHouses.ts",
+      "kind": "shelter",
+      "generated": "Modelling script, buildNeolithicHouse",
+      "status": "generated",
+      "note": "Neolithic house of the western Old World (neolithic/houses-old-world-west.md), waiting for Yang's review"
+    },
+    {
+      "id": "shelter-egyptian-neolithic-hut",
+      "file": "assets/src/neolithicHouses.ts",
+      "kind": "shelter",
+      "generated": "Modelling script, buildNeolithicHouse",
+      "status": "generated",
+      "note": "Neolithic house of the western Old World (neolithic/houses-old-world-west.md), waiting for Yang's review"
+    },
+    {
+      "id": "shelter-yangtze-stilt-house",
+      "file": "assets/src/eastAsiaAmericasHouses.ts",
+      "kind": "shelter",
+      "generated": "Modelling script, buildEastAsiaAmericasHouse",
+      "status": "generated",
+      "note": "Neolithic house (neolithic/east-asia-americas-new-guinea-houses.md), waiting for Yang's review"
+    },
+    {
+      "id": "shelter-yellow-river-pit-house",
+      "file": "assets/src/eastAsiaAmericasHouses.ts",
+      "kind": "shelter",
+      "generated": "Modelling script, buildEastAsiaAmericasHouse",
+      "status": "generated",
+      "note": "Neolithic house (neolithic/east-asia-americas-new-guinea-houses.md), waiting for Yang's review"
+    },
+    {
+      "id": "shelter-mesoamerican-hut",
+      "file": "assets/src/eastAsiaAmericasHouses.ts",
+      "kind": "shelter",
+      "generated": "Modelling script, buildEastAsiaAmericasHouse",
+      "status": "generated",
+      "note": "Neolithic house (neolithic/east-asia-americas-new-guinea-houses.md), waiting for Yang's review"
+    },
+    {
+      "id": "shelter-andean-stone-house",
+      "file": "assets/src/eastAsiaAmericasHouses.ts",
+      "kind": "shelter",
+      "generated": "Modelling script, buildEastAsiaAmericasHouse",
+      "status": "generated",
+      "note": "Neolithic house (neolithic/east-asia-americas-new-guinea-houses.md), waiting for Yang's review"
+    },
+    {
+      "id": "shelter-highland-new-guinea-house",
+      "file": "assets/src/eastAsiaAmericasHouses.ts",
+      "kind": "shelter",
+      "generated": "Modelling script, buildEastAsiaAmericasHouse",
+      "status": "generated",
+      "note": "Neolithic house (neolithic/east-asia-americas-new-guinea-houses.md), waiting for Yang's review"
+    },
+    {
+      "id": "prop-sickle",
+      "file": "assets/src/neolithicTools.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "Flint-bladed sickle in an oak haft, Natufian and early farming (neolithic/tools-and-village-props.md); waiting for Yang's review"
+    },
+    {
+      "id": "prop-digging-stick",
+      "file": "assets/src/neolithicTools.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "Pointed oak digging stick with a bored stone weight; waiting for Yang's review"
+    },
+    {
+      "id": "prop-hoe",
+      "file": "assets/src/neolithicTools.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "Oak-hafted hoe with a stone adze blade, Linearbandkeramik style; waiting for Yang's review"
+    },
+    {
+      "id": "prop-ard",
+      "file": "assets/src/neolithicTools.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "Scratch plough (ard) with share, beam and stilt, to be pulled by two cattle; waiting for Yang's review"
+    },
+    {
+      "id": "prop-yoke",
+      "file": "assets/src/neolithicTools.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "Oak yoke for two cattle, resting on its pegs; waiting for Yang's review"
+    },
+    {
+      "id": "prop-quern",
+      "file": "assets/src/neolithicTools.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "Saddle quern with a hand stone, grain and flour; waiting for Yang's review"
+    },
+    {
+      "id": "prop-basket",
+      "file": "assets/src/neolithicTools.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "Woven straw basket with a leather carrying strap; waiting for Yang's review"
+    },
+    {
+      "id": "prop-pot-small",
+      "file": "assets/src/neolithicTools.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "Small Yangshao painted red-on-buff pot; waiting for Yang's review"
+    },
+    {
+      "id": "prop-pot-large",
+      "file": "assets/src/neolithicTools.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "Large Linearbandkeramik pot with incised band lines; waiting for Yang's review"
+    },
+    {
+      "id": "prop-pot-jar",
+      "file": "assets/src/neolithicTools.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "Cardial-ware jar with shell-impressed neck and two handles; waiting for Yang's review"
+    },
+    {
+      "id": "prop-kiln",
+      "file": "assets/src/neolithicTools.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "Updraught pottery kiln, clay dome with a fire mouth and a woodpile; waiting for Yang's review"
+    },
+    {
+      "id": "prop-granary",
+      "file": "assets/src/neolithicTools.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "Raised round granary on posts with mouse stones, wattle drum and thatched cone roof; waiting for Yang's review"
+    },
+    {
+      "id": "prop-silo-pit",
+      "file": "assets/src/neolithicTools.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "Clay-lined storage pit with grain and a propped-open woven lid; waiting for Yang's review"
+    },
+    {
+      "id": "prop-pen",
+      "file": "assets/src/neolithicTools.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "Wattle sheep pen about 10 m across with a hinged hurdle gate; waiting for Yang's review"
+    },
+    {
+      "id": "prop-well",
+      "file": "assets/src/neolithicTools.ts",
+      "kind": "prop",
+      "generated": "Modelling script",
+      "status": "generated",
+      "note": "Oak-lined log-cabin well with a crossbar and a leather bucket; waiting for Yang's review"
+    },
+    {
+      "id": "crop-emmer",
+      "file": "assets/src/crops.ts",
+      "kind": "crop",
+      "generated": "Modelling script, cropGeometry",
+      "status": "generated",
+      "note": "Emmer wheat tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+    },
+    {
+      "id": "crop-einkorn",
+      "file": "assets/src/crops.ts",
+      "kind": "crop",
+      "generated": "Modelling script, cropGeometry",
+      "status": "generated",
+      "note": "Einkorn tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+    },
+    {
+      "id": "crop-barley",
+      "file": "assets/src/crops.ts",
+      "kind": "crop",
+      "generated": "Modelling script, cropGeometry",
+      "status": "generated",
+      "note": "Barley tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+    },
+    {
+      "id": "crop-millet",
+      "file": "assets/src/crops.ts",
+      "kind": "crop",
+      "generated": "Modelling script, cropGeometry",
+      "status": "generated",
+      "note": "Broomcorn millet tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+    },
+    {
+      "id": "crop-rice",
+      "file": "assets/src/crops.ts",
+      "kind": "crop",
+      "generated": "Modelling script, cropGeometry",
+      "status": "generated",
+      "note": "Rice tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+    },
+    {
+      "id": "crop-maize",
+      "file": "assets/src/crops.ts",
+      "kind": "crop",
+      "generated": "Modelling script, cropGeometry",
+      "status": "generated",
+      "note": "Maize tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+    },
+    {
+      "id": "crop-squash",
+      "file": "assets/src/crops.ts",
+      "kind": "crop",
+      "generated": "Modelling script, cropGeometry",
+      "status": "generated",
+      "note": "Squash tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+    },
+    {
+      "id": "crop-potato",
+      "file": "assets/src/crops.ts",
+      "kind": "crop",
+      "generated": "Modelling script, cropGeometry",
+      "status": "generated",
+      "note": "Potato tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+    },
+    {
+      "id": "crop-quinoa",
+      "file": "assets/src/crops.ts",
+      "kind": "crop",
+      "generated": "Modelling script, cropGeometry",
+      "status": "generated",
+      "note": "Quinoa tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+    },
+    {
+      "id": "crop-taro",
+      "file": "assets/src/crops.ts",
+      "kind": "crop",
+      "generated": "Modelling script, cropGeometry",
+      "status": "generated",
+      "note": "Taro tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+    },
+    {
+      "id": "crop-banana",
+      "file": "assets/src/crops.ts",
+      "kind": "crop",
+      "generated": "Modelling script, cropGeometry",
+      "status": "generated",
+      "note": "Banana tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+    },
+    {
+      "id": "crop-flax",
+      "file": "assets/src/crops.ts",
+      "kind": "crop",
+      "generated": "Modelling script, cropGeometry",
+      "status": "generated",
+      "note": "Flax tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+    },
+    {
+      "id": "crop-lentil",
+      "file": "assets/src/crops.ts",
+      "kind": "crop",
+      "generated": "Modelling script, cropGeometry",
+      "status": "generated",
+      "note": "Lentil tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
     }
   ]
 }

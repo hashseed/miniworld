@@ -15,5 +15,16 @@ export const PROFILES = [
   'west-asia-hunter',
   'east-asia-hunter',
   'first-americans',
+  // Farmers and herders of the Neolithic (docs/spec/neolithic/people-profiles.md).
+  'pre-pottery-neolithic-levant',
+  'anatolian-farmer',
+  'lbk-farmer',
+  'indus-farmer',
+  'nile-neolithic',
+  'yellow-river-millet-farmer',
+  'yangtze-rice-farmer',
+  'mesoamerican-farmer',
+  'andean-farmer',
+  'new-guinea-highland-farmer',
 ] as const;
 export type Profile = (typeof PROFILES)[number];

@@ -18,6 +18,14 @@ import {
 } from './kit.ts';
 import type { Profile } from './people.ts';
 import { addGobekliRing } from './gobekli.ts';
+import { TOOL_PROPS, type ToolPropId, buildToolProp, isToolProp } from './neolithicTools.ts';
+import {
+  EAST_ASIA_AMERICAS_HOUSES,
+  type EastAsiaAmericasHouseId,
+  buildEastAsiaAmericasHouse,
+} from './eastAsiaAmericasHouses.ts';
+import { WHIMSY, type Whimsy, whimsy } from './whimsy.ts';
+import { NEOLITHIC_HOUSES, type NeolithicHouseId, buildNeolithicHouse } from './neolithicHouses.ts';
 
 export const SHELTERS = [
   'shelter-hide-tent',
@@ -42,6 +50,12 @@ export const SHELTERS = [
   'prop-bone-pile',
   // The sign of an event, put up before it (humankind.md section 8.4).
   'prop-sign-wood',
+  // Houses of the East Asian, American and New Guinea Neolithic (docs/spec/neolithic).
+  ...NEOLITHIC_HOUSES,
+  // Houses of the East Asian, American and New Guinea Neolithic (docs/spec/neolithic).
+  ...EAST_ASIA_AMERICAS_HOUSES,
+  // Neolithic hand tools and village props (docs/spec/neolithic/tools-and-village-props.md).
+  ...TOOL_PROPS,
 ] as const;
 export type ShelterId = (typeof SHELTERS)[number];
 
@@ -66,6 +80,17 @@ export const CAMP_SHELTER: Partial<Record<Profile, ShelterId>> = {
   'west-asia-hunter': 'shelter-hide-tent',
   'east-asia-hunter': 'shelter-hide-tent',
   'first-americans': 'shelter-hide-tent',
+  // The first houses of the farmers (neolithic/people-profiles.md section 5): each profile's first architecture.
+  'pre-pottery-neolithic-levant': 'shelter-pre-pottery-levant-house',
+  'anatolian-farmer': 'shelter-anatolian-house',
+  'lbk-farmer': 'shelter-lbk-longhouse',
+  'indus-farmer': 'shelter-mehrgarh-house',
+  'nile-neolithic': 'shelter-egyptian-neolithic-hut',
+  'yellow-river-millet-farmer': 'shelter-yellow-river-pit-house',
+  'yangtze-rice-farmer': 'shelter-yangtze-stilt-house',
+  'mesoamerican-farmer': 'shelter-mesoamerican-hut',
+  'andean-farmer': 'shelter-andean-stone-house',
+  'new-guinea-highland-farmer': 'shelter-highland-new-guinea-house',
 };
 
 const POLE = '#7a5030';
@@ -134,6 +159,11 @@ function slab(min: Vec3, max: Vec3): THREE.BufferGeometry {
 }
 
 export function buildShelter(id: ShelterId): Model {
+  if (isToolProp(id)) return buildToolProp(id as ToolPropId);
+  if ((NEOLITHIC_HOUSES as readonly string[]).includes(id))
+    return whimsy(buildNeolithicHouse(id as NeolithicHouseId), WHIMSY[id] as Whimsy);
+  if ((EAST_ASIA_AMERICAS_HOUSES as readonly string[]).includes(id))
+    return whimsy(buildEastAsiaAmericasHouse(id as EastAsiaAmericasHouseId), WHIMSY[id] as Whimsy);
   const mb = new ModelBuilder();
   switch (id) {
     case 'shelter-hide-tent': {

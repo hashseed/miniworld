@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import manifest from '../../data/assets/manifest.json';
 import { ANIMALS, PREHISTORIC_ANIMALS, buildAnimal } from './animals.ts';
+import { CROPS, RIPE_STAGE, cropGeometry } from './crops.ts';
 import { MODELS, geometryHash } from './approval.ts';
 import {
   BLEND_SECONDS,
@@ -131,6 +132,9 @@ describe('shelters and animals', () => {
   });
 });
 
+/** The farmer's-day clips (docs/spec/neolithic/person-clips.md). */
+const FARM_CLIPS: Clip[] = ['till', 'sow', 'reap', 'thresh', 'grind', 'milk', 'shape', 'spin'];
+
 describe('clips', () => {
   const clips: Clip[] = [
     'idle',
@@ -142,6 +146,7 @@ describe('clips', () => {
     'throw',
     'shoot',
     'cheer',
+    ...FARM_CLIPS,
   ];
 
   function pose(m: Model): number[] {
@@ -187,6 +192,7 @@ describe('clips', () => {
     'bound',
     'hung',
     'fall',
+    'graze',
   ];
   it.each(ANIMALS)('%s repeats as animalLoop says', (id) => {
     const m = buildAnimal(id);
@@ -232,7 +238,7 @@ describe('clips', () => {
     };
   }
 
-  it.each(['walk', 'carry', 'haul', 'bearBehind', 'bearAhead'] as const)(
+  it.each(['walk', 'carry', 'haul', 'bearBehind', 'bearAhead', 'sow'] as const)(
     'moving at the gait speed, the standing foot of %s stays put on the ground',
     (clip) => {
       const m = buildPerson({ profile: 'african-stone-age', kind: 'woman', founder: true });
@@ -256,7 +262,18 @@ describe('clips', () => {
 
   it('changing clip never snaps a limb (fluid motion)', () => {
     const m = buildPerson({ profile: 'african-stone-age', kind: 'woman', founder: true });
-    const all: Clip[] = ['idle', 'walk', 'run', 'carry', 'haul', 'work', 'point', 'cheer'];
+    const all: Clip[] = [
+      'idle',
+      'walk',
+      'run',
+      'carry',
+      'haul',
+      'work',
+      'point',
+      'cheer',
+      ...FARM_CLIPS,
+    ];
+    const names = [...m.bones.keys()];
     const world = () => {
       m.object.updateMatrixWorld(true);
       return [...m.bones.values()].map((b) => b.getWorldQuaternion(new THREE.Quaternion()));
@@ -273,10 +290,55 @@ describe('clips', () => {
           else animatePerson(m, to, t);
           const cur = world();
           // A real arm swings at well under 30 radians per second, except in a throw.
-          if (prev) cur.forEach((q, i) => expect(q.angleTo(prev![i]!) * 60).toBeLessThan(30));
+          // (A spindle's own whirl is not a limb, so it is not held to that.)
+          const spindle = from === 'spin' || to === 'spin' ? names.indexOf('tool') : -1;
+          if (prev)
+            cur.forEach((q, i) => {
+              if (i !== spindle)
+                expect(q.angleTo(prev![i]!) * 60, `${from}>${to} f${f} b${i}`).toBeLessThan(30);
+            });
           prev = cur;
         }
       }
+  });
+
+  it.each(FARM_CLIPS)(
+    '%s gives finite poses over a whole loop, and keeps the tool in hand',
+    (clip) => {
+      const m = buildPerson({ profile: 'anatolian-farmer', kind: 'man' });
+      const how = PERSON_LOOPS[clip] as { loop: number };
+      expect(how.loop).toBeGreaterThan(0);
+      for (let i = 0; i <= 24; i++) {
+        animatePerson(m, clip, (i / 24) * how.loop);
+        for (const b of m.bones.values()) {
+          for (const v of [...b.rotation.toArray().slice(0, 3), ...b.position.toArray()])
+            expect(Number.isFinite(v)).toBe(true);
+        }
+        // Only the milking hands are empty; every other farm clip holds the tool.
+        expect(m.bones.get('tool')!.visible).toBe(clip !== 'milk');
+      }
+    },
+  );
+
+  it.each(FARM_CLIPS)('%s starts and ends at the same pose (the loop closes)', (clip) => {
+    const m = buildPerson({ profile: 'anatolian-farmer', kind: 'woman' });
+    const how = PERSON_LOOPS[clip] as { loop: number };
+    const at = (t: number) => {
+      animatePerson(m, clip, t);
+      return [...m.bones.values()].flatMap(
+        (b) => [...b.rotation.toArray().slice(0, 3)] as number[],
+      );
+    };
+    const a = at(0);
+    const z = at(how.loop);
+    for (let i = 0; i < a.length; i++) expect(Math.abs(z[i]! - a[i]!)).toBeLessThan(1e-6);
+    // And just before the loop ends it is close to the start: no snap.
+    const e = at(how.loop - 0.01);
+    for (let i = 0; i < a.length; i++) {
+      // A spindle's turn wraps round a full circle, which is no snap.
+      const d = Math.abs(e[i]! - a[i]!) % (2 * Math.PI);
+      expect(Math.min(d, 2 * Math.PI - d)).toBeLessThan(0.35);
+    }
   });
 
   it('the held tool is hidden for the whole bow gesture, and the arrow leaves the string after the bow is up', () => {
@@ -371,10 +433,31 @@ describe('asset manifest', () => {
     const waiting = Object.keys(MODELS).filter((id) => entries.get(id)?.status !== 'approved');
     expect(
       waiting.every((id) =>
-        /^(figure-african-stone-age-man|figure-(west-asia-hunter|east-asia-hunter|first-americans)-(man|woman|child)|prop-(carry-pole|spit|canoe|cave-wall-sulawesi|cave-wall-chauvet|cave-wall-lascaux|burial|gobekli-ring|bone-hut|bone-pile|sign-wood)|shelter-small-hut)$/.test(
+        /^(figure-african-stone-age-man|figure-(west-asia-hunter|east-asia-hunter|first-americans|pre-pottery-neolithic-levant|anatolian-farmer|lbk-farmer|indus-farmer|nile-neolithic|yellow-river-millet-farmer|yangtze-rice-farmer|mesoamerican-farmer|andean-farmer|new-guinea-highland-farmer)-(man|woman|child)|prop-(sickle|digging-stick|hoe|ard|yoke|quern|basket|pot-small|pot-large|pot-jar|kiln|granary|silo-pit|pen|well|carry-pole|spit|canoe|cave-wall-sulawesi|cave-wall-chauvet|cave-wall-lascaux|burial|gobekli-ring|bone-hut|bone-pile|sign-wood)|crop-[a-z]+|shelter-small-hut|shelter-(pre-pottery-levant-house|anatolian-house|anatolian-house-joined|lbk-longhouse|mehrgarh-house|egyptian-neolithic-hut|yangtze-stilt-house|yellow-river-pit-house|mesoamerican-hut|andean-stone-house|highland-new-guinea-house)|animal-(sheep|goat|cattle|pig|dog|zebu|water-buffalo|llama|guinea-pig))$/.test(
           id,
         ),
       ),
     ).toBe(true);
+  });
+});
+
+describe('crop tufts', () => {
+  const triangles = (g: THREE.BufferGeometry) => g.getAttribute('position').count / 3;
+  it.each(CROPS)('%s builds the same every time and stays within budget at every stage', (id) => {
+    for (const stage of [0, 0.1, 0.25, 0.4, 0.5, 0.6, 0.75, 0.9, 1]) {
+      const a = cropGeometry(id, stage);
+      const b = cropGeometry(id, stage);
+      expect(Array.from(a.getAttribute('position').array)).toEqual(
+        Array.from(b.getAttribute('position').array),
+      );
+      expect(triangles(a)).toBeLessThanOrEqual(120);
+      expect(triangles(a)).toBeGreaterThan(0);
+      // Plants stand on the ground and stay about a unit around.
+      a.computeBoundingBox();
+      expect(a.boundingBox!.min.y).toBeGreaterThanOrEqual(-0.03);
+      expect(a.boundingBox!.max.y).toBeLessThan(2.2);
+    }
+    expect(triangles(cropGeometry(id, 0))).toBeLessThan(20);
+    expect(triangles(cropGeometry(id, RIPE_STAGE))).toBeGreaterThanOrEqual(40);
   });
 });

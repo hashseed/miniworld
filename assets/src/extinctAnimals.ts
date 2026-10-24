@@ -124,9 +124,9 @@ function giantDeer(): Model {
   return mb.build('animal-giant-deer');
 }
 
-/** Aurochs: a huge black wild bull with a pale stripe down its back and forward-curving horns. */
+/** Aurochs: a huge dark-brown wild bull with a pale stripe down its back and forward-curving horns. */
 function aurochs(): Model {
-  const coat = '#241c18';
+  const coat = '#4a3424';
   const p = quadruped({
     shoulder: 1.8,
     length: 2.3,

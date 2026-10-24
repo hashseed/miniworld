@@ -27,7 +27,7 @@ import { attachKeys } from './input.ts';
 import { FrameLoop } from './loop.ts';
 import { WildlifeLayer } from './wildlife/wildlifeLayer.ts';
 import { OPENING_DAY, TIMELINE_START } from './time/calendar.ts';
-import { TreeLayer } from './tree/treeLayer.ts';
+import { TreeLayer, setTreeFarming } from './tree/treeLayer.ts';
 import { SitesLayer } from './tree/sitesLayer.ts';
 import { Clock, JUMP_SECONDS } from './time/clock.ts';
 import { yearsPerMinuteAt } from './time/rate.ts';
@@ -598,10 +598,12 @@ async function start(): Promise<void> {
       scene.add(sitesView.group);
     }
     // The lens grids load with the startup index; the first frame needs both.
-    const [loadedIndex, lensBytes] = await Promise.all([
+    const [loadedIndex, lensBytes, farmingBytes] = await Promise.all([
       loader.index(i18n.language),
       loader.fetchBytes(manifest.lens.file),
+      manifest.farming ? loader.fetchBytes(manifest.farming) : Promise.resolve(undefined),
     ]);
+    if (farmingBytes) setTreeFarming(farmingBytes);
     index = loadedIndex;
     showLoaded(0.35);
     const grids = decodeLensGrids(lensBytes);

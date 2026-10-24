@@ -41,7 +41,18 @@ export type Clip =
   // Sitting by the fire (humankind.md section 8.1).
   | 'sit'
   // Crossing the sea in a canoe (peopling.md section 6).
-  | 'paddle';
+  | 'paddle'
+  // Livestock with the head down at pasture (neolithic/livestock.md section 3).
+  | 'graze'
+  // The farmer's day (neolithic/person-clips.md).
+  | 'till'
+  | 'sow'
+  | 'reap'
+  | 'thresh'
+  | 'grind'
+  | 'milk'
+  | 'shape'
+  | 'spin';
 
 /**
  * Height in metres of a carrying pole on the shoulders of two walking people
@@ -77,6 +88,7 @@ export const GAITS = {
   bearAhead: { period: 1.15, swing: 0.3, stance: 0.62, knee: 0.7 },
   crouch: { period: 1.2, swing: 0.3, stance: 0.62, knee: 1.1 },
   haul: { period: 1.6, swing: 0.27, stance: 0.65, knee: 0.5 },
+  sow: { period: 1.2, swing: 0.3, stance: 0.62, knee: 0.8 },
 } satisfies Record<string, Gait>;
 
 /**
@@ -138,6 +150,14 @@ export const PERSON_LOOPS: Partial<Record<Clip, { loop: number } | { once: numbe
   bearAhead: { loop: GAITS.bearAhead.period },
   crouch: { loop: GAITS.crouch.period },
   haul: { loop: GAITS.haul.period },
+  sow: { loop: GAITS.sow.period },
+  till: { loop: 1.8 },
+  reap: { loop: 3.2 },
+  thresh: { loop: 1.2 },
+  grind: { loop: 2 },
+  milk: { loop: 1.2 },
+  shape: { loop: 4 },
+  spin: { loop: 2.4 },
   strike: { loop: 0.45 },
   dance: { loop: 0.8 },
   scrape: { loop: 1.1 },
@@ -182,6 +202,7 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
     clip !== 'sit' &&
     clip !== 'lie' &&
     clip !== 'shoot' &&
+    clip !== 'milk' &&
     !(clip === 'throw' && t >= THROW_RELEASE);
   bone('load').visible = clip === 'carry';
   // Knapping stones, on the models of cultures that knap.
@@ -232,6 +253,20 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
     rot('armLowerR', bendR - 0.12 * (1 + lag) * (1 - holdR));
   };
   const lagOf = (phase: number) => Math.sin(TAU * (phase - 0.38));
+  const frac = (x: number) => x - Math.floor(x);
+  /**
+   * Turns the held tool so that its long axis makes `angle` with the vertical about the
+   * sideways axis (0 upright, positive tipping its top forward), whatever the arm and torso
+   * are doing. Call it after the arm and torso are posed.
+   */
+  const aim = (angle: number, y = 0, z = 0) =>
+    rot(
+      'tool',
+      angle -
+        (bone('torso').rotation.x + bone('armUpperR').rotation.x + bone('armLowerR').rotation.x),
+      y,
+      z,
+    );
 
   switch (clip) {
     case 'idle': {
@@ -590,6 +625,154 @@ export function animatePerson(m: Model, clip: Clip, seconds: number): void {
       lift(Math.max(0, s) * 0.12);
       break;
     }
+    case 'till': {
+      // Standing feet apart, the hoe swung up over the shoulder and brought down in a quick
+      // stroke that bites the soil ahead of the feet, with a short pull back; the left hand
+      // steadies the haft (neolithic/person-clips.md).
+      const u = frac(t / 1.8);
+      const r =
+        u < 0.08
+          ? 0
+          : u < 0.5
+            ? smooth((u - 0.08) / 0.42)
+            : u < 0.55
+              ? 1
+              : u < 0.65
+                ? 1 - ((u - 0.55) / 0.1) ** 2
+                : 0;
+      lift(-0.05 * hipRest);
+      rot('legUpperL', -0.3);
+      rot('legLowerL', 0.4);
+      rot('legUpperR', 0.25);
+      rot('legLowerR', 0.15);
+      // After the blow the blade is dragged back through the soil.
+      const drag = u > 0.65 ? Math.sin((Math.PI * (u - 0.65)) / 0.35) : 0;
+      rot('torso', mix(0.85, -0.05, r) + 0.08 * drag);
+      rot('head', mix(-0.55, 0.1, r));
+      rot('armUpperR', mix(-1.1, -2.3, r) + 0.15 * drag, 0, -0.1);
+      rot('armLowerR', mix(-0.3, -0.9, r) - 0.2 * drag);
+      rot('armUpperL', mix(-1.1, -2.2, r) + 0.15 * drag, 0, -0.3);
+      rot('armLowerL', mix(-0.5, -0.9, r));
+      aim(mix(2.2, -1.1, r) - 0.35 * drag);
+      break;
+    }
+    case 'sow': {
+      // A slow walk with the basket held against the belly in the right hand; on each step the
+      // left hand dips into it, then throws the seed out sideways in an arc.
+      const p = t / GAITS.sow.period;
+      legs(p, GAITS.sow);
+      const f = frac(2 * p);
+      const arc = Math.sin(Math.PI * f) ** 1.5;
+      rot('torso', 0.18, -0.3 * arc);
+      rot('head', -0.12, 0.3 * arc);
+      rot('armUpperR', -0.35, 0, 0.3);
+      rot('armLowerR', -1.2);
+      rot('armUpperL', mix(-0.8, -1.35, arc), 0, mix(-0.35, 1.0, arc));
+      rot('armLowerL', mix(-1.0, -0.2, arc));
+      aim(0);
+      break;
+    }
+    case 'reap': {
+      // Bends to the standing grain, grasps a bundle of stalks with the left hand, cuts across
+      // its foot with the sickle towards the body, rises with the bundle, bends once more to
+      // lay the sheaf down and straightens.
+      const u = frac(t / 3.2);
+      const ramp = (a: number, b: number) => smooth((u - a) / (b - a));
+      const bend = ramp(0, 0.2) - ramp(0.45, 0.6) + 0.7 * (ramp(0.68, 0.8) - ramp(0.84, 1));
+      // The right hand cuts, then goes back to its side.
+      const cut = ramp(0.3, 0.42) - ramp(0.5, 0.6);
+      // The left hand holds the bundle against the chest.
+      const hold = ramp(0.45, 0.6) - ramp(0.7, 0.8);
+      lift(-0.12 * hipRest * bend);
+      rot('legUpperL', -0.55 * bend);
+      rot('legLowerL', 0.8 * bend);
+      rot('legUpperR', 0.15 * bend);
+      rot('legLowerR', 0.3 * bend);
+      rot('torso', 0.1 + 0.8 * bend);
+      rot('head', -0.4 * bend);
+      rot('armUpperL', mix(-0.4 - 1.0 * bend, -0.6, hold), 0, mix(0.1, -0.15, bend + hold));
+      rot('armLowerL', mix(-0.2 - 0.2 * bend, -1.7, hold));
+      rot('armUpperR', -0.35 - 1.0 * bend + 0.45 * cut, 0, -0.2);
+      rot('armLowerR', -0.3 - 0.2 * bend - 0.9 * cut);
+      aim(mix(0.6 + 0.9 * bend, 0.7, cut));
+      break;
+    }
+    case 'thresh': {
+      const u = frac(t / 1.2);
+      const r = u < 0.5 ? smooth(u / 0.5) : u < 0.62 ? 1 - ((u - 0.5) / 0.12) ** 2 : 0;
+      lift(-0.04 * hipRest);
+      rot('legUpperL', -0.3 + 0.2 * Math.sin(TAU * u));
+      rot('legUpperR', 0.3 - 0.2 * Math.sin(TAU * u));
+      rot('legLowerL', 0.3);
+      rot('legLowerR', 0.3);
+      rot('torso', mix(0.5, -0.1, r));
+      rot('head', mix(-0.3, 0.1, r));
+      rot('armUpperR', mix(-1.2, -2.6, r), 0, -0.15);
+      rot('armLowerR', mix(-0.3, -0.7, r));
+      rot('armUpperL', mix(-1.2, -2.4, r), 0, -0.3);
+      rot('armLowerL', mix(-0.4, -0.8, r));
+      aim(mix(-0.6, 0.6, r));
+      break;
+    }
+    case 'grind': {
+      const u = t / 2;
+      const s = Math.sin(TAU * u);
+      lift(-0.52 * hipRest);
+      rot('legUpperL', -0.3, 0, 0.1);
+      rot('legUpperR', -0.3, 0, -0.1);
+      rot('legLowerL', 1.85);
+      rot('legLowerR', 1.85);
+      rot('torso', 0.8 + 0.1 * s);
+      rot('head', -0.5);
+      rot('armUpperL', -1.05 - 0.2 * s, 0, 0.05);
+      rot('armUpperR', -1.05 - 0.2 * s, 0, -0.05);
+      rot('armLowerL', -0.15 + 0.3 * s);
+      rot('armLowerR', -0.15 + 0.3 * s);
+      aim(0);
+      break;
+    }
+    case 'milk': {
+      const s = Math.sin(TAU * (t / 1.2));
+      lift(-0.39 * hipRest);
+      rot('legUpperL', -1.1, 0, 0.4);
+      rot('legUpperR', -1.1, 0, -0.4);
+      rot('legLowerL', 1.9);
+      rot('legLowerR', 1.9);
+      rot('torso', 0.45);
+      rot('head', -0.4);
+      rot('armUpperL', -0.75, 0, -0.1);
+      rot('armUpperR', -0.75, 0, 0.1);
+      rot('armLowerL', -0.55 + 0.3 * s);
+      rot('armLowerR', -0.55 - 0.3 * s);
+      break;
+    }
+    case 'shape': {
+      const s = Math.sin(TAU * (t / 4));
+      lift(-0.62 * hipRest);
+      rot('legUpperL', -1.4, 0, 0.45);
+      rot('legUpperR', -1.4, 0, -0.45);
+      rot('legLowerL', 1.9);
+      rot('legLowerR', 1.9);
+      rot('torso', 0.35);
+      rot('head', -0.3);
+      rot('armUpperR', -0.8, 0, 0.35);
+      rot('armLowerR', -1.0);
+      rot('armUpperL', -0.9 + 0.12 * s, 0, -0.35);
+      rot('armLowerL', -0.9 + 0.3 * s);
+      aim(0, 0.6 * s);
+      break;
+    }
+    case 'spin': {
+      const s = Math.sin(TAU * (t / 1.2));
+      rot('torso', 0.05);
+      rot('head', -0.1, 0.2);
+      rot('armUpperR', -1.1 + 0.2 * s, 0, 0.05);
+      rot('armLowerR', -1.3 + 0.2 * s);
+      rot('armUpperL', -0.9 - 0.5 * s, 0, 0.5 + 0.3 * s);
+      rot('armLowerL', -0.4);
+      aim(-Math.PI, TAU * 2 * frac(t / 2.4));
+      break;
+    }
     case 'fall':
       break;
   }
@@ -664,6 +847,26 @@ function extremePoint(m: Model, sign: 1 | -1): number {
       best = Math.min(best, sign * v.fromBufferAttribute(pos, i).applyMatrix4(matrix).y);
   });
   return sign * best;
+}
+
+/** Where each animal's muzzle is in its head bone's space (cached), for the graze clip. */
+const MUZZLES = new WeakMap<Model, { y: number; z: number }>();
+function muzzleOf(m: Model): { y: number; z: number } {
+  let found = MUZZLES.get(m);
+  if (!found) {
+    const head = m.bones.get('head')!;
+    const box = new THREE.Box3();
+    for (const o of head.children) {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) continue;
+      mesh.geometry.computeBoundingBox();
+      box.union(mesh.geometry.boundingBox!);
+    }
+    // The geometry is in the bone's space: its front end, a little above its lowest point.
+    found = { y: box.min.y + (box.max.y - box.min.y) * 0.3, z: box.max.z };
+    MUZZLES.set(m, found);
+  }
+  return found;
 }
 
 /** How an animal's clip repeats, for baking it (as PERSON_LOOPS for people). */
@@ -854,6 +1057,30 @@ export function animateAnimal(m: Model, clip: Clip, seconds: number): void {
       // Keep its lowest point on the ground as it rolls, then sink a little.
       body.position.y = rest.y;
       body.position.y += -lowestPoint(m) - f * 0.12 * rest.y;
+      break;
+    }
+    case 'graze': {
+      // Head down to the grass, chewing, lifting now and then to look round and going
+      // down again; the tail flicks. One cycle is animalLoop's default (6 strides).
+      const period = 6 * stride;
+      const u = seconds / period - Math.floor(seconds / period);
+      const up = smooth((u - 0.62) / 0.1) * (1 - smooth((u - 0.88) / 0.1));
+      // The angle that brings the muzzle to about 5 cm above the ground.
+      const head = m.bones.get('head')!;
+      const mz = muzzleOf(m);
+      const y0 = rest.y + (head.userData.rest as THREE.Vector3).y;
+      const r = Math.hypot(mz.y, mz.z);
+      const want = Math.min(1, Math.max(-1, (0.05 - y0) / r));
+      const down = Math.min(1.5, Math.max(0, Math.acos(want) - Math.atan2(mz.z, mz.y)));
+      const chew = (1 - up) * 0.04 * Math.sin((seconds / period) * TAU * 12);
+      rot(
+        'head',
+        down * (1 - 0.75 * up) + chew,
+        0.25 * up * Math.sin((seconds / period) * TAU * 3),
+      );
+      rot('tail', 0, 0.3 * Math.sin((seconds / period) * TAU * 4));
+      // The body leans forward a touch with the weight of the head.
+      body.rotation.x = 0.03 * (1 - up);
       break;
     }
     default: {

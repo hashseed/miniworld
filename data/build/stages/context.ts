@@ -144,6 +144,7 @@ export function createContext(args: string[]): BuildContext {
         'cultureAreas.ts',
         'arrivals.ts',
         'treeReport.ts',
+        'farming.ts',
       ]),
       join(ROOT, 'data/build/stages/terrain.ts'),
       join(ROOT, 'data/build/stages/climate.ts'),

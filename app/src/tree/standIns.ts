@@ -38,7 +38,17 @@ export type Clip =
   | 'bearAhead'
   | 'sit'
   // Crossing the sea in a canoe (peopling.md section 6).
-  | 'paddle';
+  | 'paddle'
+  // The Neolithic village's work and its herd (humankind.md section 8.5).
+  | 'till'
+  | 'sow'
+  | 'reap'
+  | 'thresh'
+  | 'grind'
+  | 'milk'
+  | 'shape'
+  | 'spin'
+  | 'graze';
 
 /** A role's cast rules (vocab/roles.yaml), copied into each group by the build. */
 export interface CastRules {

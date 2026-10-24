@@ -50,6 +50,8 @@ export interface SiteCardInputs {
   anchors: Set<string>;
   /** The ids of the arrival points that are events (milestone-1 section 8.3). */
   arrivals?: Set<string>;
+  /** The ids of the first-farming events, `farming-<centre id>` (farming-spread.md section 9.5). */
+  farming?: Set<string>;
 }
 
 /** Parses the language sections of a card, checking its structure. */
@@ -102,6 +104,7 @@ function parseCardText(
 }
 
 const arrivals = (inp: SiteCardInputs) => inp.arrivals ?? new Set<string>();
+const farming = (inp: SiteCardInputs) => inp.farming ?? new Set<string>();
 
 export function buildSiteCards(inp: SiteCardInputs): { cards: BuiltSiteCard[]; errors: string[] } {
   const errors: string[] = [];
@@ -140,9 +143,8 @@ export function buildSiteCards(inp: SiteCardInputs): { cards: BuiltSiteCard[]; e
     const kind = str(y.kind);
     if (kind !== 'site-card' && kind !== 'event-card')
       e.add('kind must be "site-card" or "event-card"');
-    const arrivals = inp.arrivals ?? new Set<string>();
-    if (id && kind === 'event-card' && !arrivals.has(id))
-      e.add(`no arrival event has the id "${id}"`);
+    if (id && kind === 'event-card' && !arrivals(inp).has(id) && !farming(inp).has(id))
+      e.add(`no arrival or farming event has the id "${id}"`);
     if (id && kind === 'site-card' && !inp.anchors.has(id)) e.add(`no anchor has the id "${id}"`);
     const refs = Array.isArray(y.sources) ? y.sources : [];
     if (!refs.length) e.add('names no source');
@@ -162,5 +164,8 @@ export function buildSiteCards(inp: SiteCardInputs): { cards: BuiltSiteCard[]; e
   for (const a of [...arrivals(inp)].sort())
     if (!files.includes(`${a}.md`))
       errors.push(`site-cards/${a}.md: missing event card for arrival "${a}"`);
+  for (const a of [...farming(inp)].sort())
+    if (!files.includes(`${a}.md`))
+      errors.push(`site-cards/${a}.md: missing event card for farming event "${a}"`);
   return { cards, errors };
 }

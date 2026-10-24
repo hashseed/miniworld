@@ -154,13 +154,12 @@ test('settings and bookmarks survive a reload', async ({ page }) => {
   await page.getByRole('button', { name: en['timeline.restore'] }).click();
   await page.getByRole('button', { name: en['timeline.expand'] }).click();
   // The events and bookmarks dialog opens on its events tab (milestone-1 section 8.3);
-  // the fixture map has no tree of humankind, so it has no events.
+  // the fixture data carries only the first-farming events.
   await page.getByRole('button', { name: en['menu.bookmarks'] }).click();
   await expect(page.getByRole('tab', { name: en['events.tab'] })).toHaveAttribute(
     'aria-selected',
     'true',
   );
-  await expect(page.getByText(en['events.empty']!)).toBeVisible();
   await page.getByRole('tab', { name: en['bookmarks.tab'] }).click();
   await page.getByRole('button', { name: en['bookmarks.add'] }).click();
   const rows = page.locator('.dialog tbody tr');

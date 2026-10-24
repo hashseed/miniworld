@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { plantGeometry } from '../../app/src/globe/foliageModels.ts';
 import { KINDS as PLANT_KINDS } from '../../app/src/globe/foliageKinds.ts';
 import { ANIMALS, buildAnimal } from './animals.ts';
+import { CROPS, RIPE_STAGE, cropGeometry } from './crops.ts';
 import { PROFILES, buildPerson, type Kind } from './people.ts';
 import { SHELTERS, buildHearth, buildShelter } from './shelters.ts';
 
@@ -30,6 +31,10 @@ export const MODELS: Record<string, () => THREE.Object3D> = Object.fromEntries([
   ...PLANT_KINDS.map((kind, i) => [
     `plant-${kind}`,
     () => new THREE.Mesh(plantGeometry(i), new THREE.MeshBasicMaterial()),
+  ]),
+  ...CROPS.map((id) => [
+    `crop-${id}`,
+    () => new THREE.Mesh(cropGeometry(id, RIPE_STAGE), new THREE.MeshBasicMaterial()),
   ]),
 ]) as Record<string, () => THREE.Object3D>;
 

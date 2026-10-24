@@ -33,9 +33,11 @@ export function writeManifest(
     terrain: LayerOut;
     climate: Climate;
     tree: TreeFiles;
+    /** The farming onset raster (farming-spread.md section 9); absent on the fixture map. */
+    farming?: string;
   },
 ): Manifest {
-  const { index, climate, tree } = parts;
+  const { index, climate, tree, farming } = parts;
   const manifest: Manifest = {
     version: ctx.release.version,
     buildId: createHash('sha256').update(JSON.stringify(index)).digest('hex').slice(0, 12),
@@ -52,6 +54,7 @@ export function writeManifest(
     climate: { days: climate.iceDays, files: climate.climateFiles },
     foliage: { days: climate.iceDays, files: climate.foliageFiles },
     ...(tree ? { tree } : {}),
+    ...(farming ? { farming } : {}),
   };
   ctx.output.writeNamed('manifest.json', new TextEncoder().encode(JSON.stringify(manifest)));
   return manifest;

@@ -64,6 +64,13 @@ export interface TreeLodging {
   /** The culture profile of its camp (peopling.md section 5.1); its people wear its clothes. */
   culture?: string;
   /**
+   * Of a Neolithic profile's camp: the dry cells round its hearth the fields may use, a base64
+   * polar mask (fieldMask.ts, humankind.md section 8.5).
+   */
+  fieldLand?: string;
+  /** Built while herders, not yet farmers, are in the land (humankind.md section 8.5): its camp keeps a herd and a pen. */
+  herding?: boolean;
+  /**
    * The first lodging of a camp founded across the sea (peopling.md section 6): the crossing's
    * way, [lat, lon] in whole microdegrees, and for each stretch of the trip, from the old camp
    * to the first point, between the points and on to this camp, whether it is paddled.
