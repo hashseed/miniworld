@@ -39,6 +39,22 @@ jobs:
           path: coverage/
           if-no-files-found: ignore
 
+  # The full build from the real data, as the preview site builds it (hashseed-pages, spec
+  # milestone 1 section 2.4): what only goes wrong on the real map, such as the scenes at
+  # anchors, which the fixture map has none of, is caught here and not at deploy.
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build 2>&1 | tee build.log
+      - if: failure()
+        run: echo "::error title=release build::$(grep -v '^\s*$' build.log | tail -n 60 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')"
+
   data:
     runs-on: ubuntu-latest
     outputs:
