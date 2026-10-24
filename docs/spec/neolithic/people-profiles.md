@@ -23,7 +23,7 @@ The profile of a figure follows the culture area of its camp (peopling.md sectio
 
 - **Limits (peopling.md section 5.2).** `coldestC` 0 °C for the lowland and subtropical profiles; −5 °C for `lbk-farmer` and `yellow-river-millet-farmer`; and `highestM` 4,800 m for `andean-farmer` (potatoes and herds up to the puna), 3,500 m for the rest. A farming region the data does not let people live in stays with the hunter profile.
 - **Between hunter and farmer.** Land inside a farming region before its onset keeps its hunter profile; land the farming spread never reached keeps it for good. The farming plan decides spread dates (**Proposed** lag of at most 300 years per 100 km of spread, owned by `farming.json`).
-- **Order of work.** The profile ids exist in `app/src/world/cultures.ts` and their records in `app/src/world/neolithicProfiles.ts` now, so the models are drawn and reviewed; the polygons are added to `culture-areas.json` once `farming.json` exists, so nothing draws these profiles on the globe before the plan does.
+- **Order of work.** The profile ids exist in `app/src/world/cultures.ts` and their records in the culture table `data/curated/cultures.json` ([content-format.md](../content-format.md#11-tables) section 1.1) now, so the models are drawn and reviewed; the polygons are added to `culture-areas.json` once `farming.json` exists, so nothing draws these profiles on the globe before the plan does.
 
 ## 2. What each profile wears and holds
 
@@ -83,7 +83,7 @@ The role vocabulary is in `vocab/roles.yaml` (milestone 2 section 11), where eac
 | `hunter`, `gatherer`, `fisher`, `toolmaker` | As before | As before | As before, in the shares below |
 
 - **The mix.** Each profile gives the share of its grown-up figures doing each role (**Proposed**; the sum is 100). Children gather and play as before; the mix decides what grown-ups do in their next turn, the way a hash picks the activity (humankind.md section 8.1). Any role may be held by a woman or a man (milestone 2 section 4); the shares are not split by sex, and the cards never assume it.
-- **Records.** The mix and the rest of each profile live in `app/src/world/neolithicProfiles.ts` (`NEOLITHIC_PROFILES`), one record per profile: its labels, its architecture set, its tools by kind, its roles with their shares, its animals and its farming region ids. A test checks that the shares sum to 100, that every role is in the vocabulary above, that every tool is a known tool and every architecture id a shelter of the model set.
+- **Records.** Every culture profile, hunter-gatherer or farmer, is one row of the culture table `data/curated/cultures.json`, until culture records exist (content-format.md section 5). A row holds the profile's camp lodging, the animals it hunts and, for a farming profile, its `farming` block: its labels in both languages, its farming region ids, its area boxes (section 1), its architecture set, its tools by kind, its field tool and the date it takes up the ard, its roles with their shares, its herd and its crops. The table's schema (`data/schema/tables.ts`) checks that the shares are whole numbers summing to 100 over exactly the roles above, that every tool is in the vocabulary of section 3, and that there is one row for every id of `app/src/world/cultures.ts`; the data build checks that every lodging, house, herd animal, hunted animal and crop names an asset of the manifest. `app/src/world/neolithicProfiles.ts` reads the table (`NEOLITHIC_PROFILES`, `neolithicProfile`), so a new farming profile is a row in the table and its look in `assets/src/people.ts`, with no code.
 
 | Profile | farmer | reaper | herder | potter | weaver | builder | grinder | hunter | gatherer | fisher | toolmaker |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -102,7 +102,7 @@ The reasons are in the evidence of section 2: pottery is rare in the Andean and 
 
 ## 5. The architecture set
 
-The shelters are built by the shelter models of other plans; this section only names them (ids not yet in the model set are listed in the hand-over notes, not built here). Each profile's set is its camp lodging kinds; the first is the one `CAMP_SHELTER` (assets/src/shelters.ts) gives the profile once the model exists.
+The shelters are built by the shelter models of other plans; this section only names them (ids not yet in the model set are listed in the hand-over notes, not built here). Each profile's set is its camp lodging kinds; the first is the profile's camp lodging, its `lodging` in the culture table (read as `CAMP_SHELTER` by `assets/src/shelters.ts`).
 
 | Profile | Architecture set (**Proposed** order) | Fallback until the shelter is approved |
 | --- | --- | --- |
@@ -121,7 +121,7 @@ Until a shelter is approved, the drawn camp uses the fallback (the production bu
 
 ## 6. Animals and what the profile hunts or herds
 
-Hunting stays a share of the mix (section 4); the prey of each profile is listed in `PREY_OF` of `app/src/world/treeScene.ts` once the camp-life plan uses the profiles. The domestic animals each profile keeps (a herder's flock stands at the camp's edge, one to three animals by hash):
+Hunting stays a share of the mix (section 4); the prey of each profile is its `hunts` in the culture table; a profile without one hunts what the founder's people hunt. The domestic animals each profile keeps (a herder's flock stands at the camp's edge, one to three animals by hash):
 
 | Profile | Herd animals (asset ids; those not built yet are in the domestic animal specs) |
 | --- | --- |

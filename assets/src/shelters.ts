@@ -16,7 +16,7 @@ import {
   sheet,
   shade,
 } from './kit.ts';
-import type { Profile } from './people.ts';
+import { PROFILES, campLodgingOf, type Profile } from '../../app/src/world/cultures.ts';
 import { addGobekliRing } from './gobekli.ts';
 import { TOOL_PROPS, type ToolPropId, buildToolProp, isToolProp } from './neolithicTools.ts';
 import {
@@ -65,33 +65,18 @@ export const POLE_R = 0.045;
 /** Bones named this and a number are the steps of putting a shelter up, in order. */
 export const BUILD_BONE = 'build-';
 
-/** The shelter of each hunter-gatherer profile's camp; later profiles live in towns. */
-export const CAMP_SHELTER: Partial<Record<Profile, ShelterId>> = {
-  'african-stone-age': 'shelter-grass-hut',
-  neanderthal: 'shelter-windbreak',
-  // A closed hut, not the open lean-to: new people step out of their lodging, which an
-  // open shelter cannot hide (Yang, 2026-10-19; milestone-2 section 13.3).
-  'coastal-asia-hunter': 'shelter-grass-hut',
-  'first-australians': 'shelter-bark',
-  'ice-age-hunter': 'shelter-hide-tent',
-  'steppe-beringia-hunter': 'shelter-hide-tent',
-  natufian: 'shelter-natufian-house',
-  // Hide tents until their own shelters are made (peopling.md section 9.1).
-  'west-asia-hunter': 'shelter-hide-tent',
-  'east-asia-hunter': 'shelter-hide-tent',
-  'first-americans': 'shelter-hide-tent',
-  // The first houses of the farmers (neolithic/people-profiles.md section 5): each profile's first architecture.
-  'pre-pottery-neolithic-levant': 'shelter-pre-pottery-levant-house',
-  'anatolian-farmer': 'shelter-anatolian-house',
-  'lbk-farmer': 'shelter-lbk-longhouse',
-  'indus-farmer': 'shelter-mehrgarh-house',
-  'nile-neolithic': 'shelter-egyptian-neolithic-hut',
-  'yellow-river-millet-farmer': 'shelter-yellow-river-pit-house',
-  'yangtze-rice-farmer': 'shelter-yangtze-stilt-house',
-  'mesoamerican-farmer': 'shelter-mesoamerican-hut',
-  'andean-farmer': 'shelter-andean-stone-house',
-  'new-guinea-highland-farmer': 'shelter-highland-new-guinea-house',
-};
+/**
+ * The shelter of each profile's camp: its `lodging` in the culture table
+ * data/curated/cultures.json (neolithic/people-profiles.md section 5).
+ */
+export const CAMP_SHELTER: Partial<Record<Profile, ShelterId>> = Object.fromEntries(
+  PROFILES.flatMap((p) => {
+    const lodging = campLodgingOf(p);
+    return lodging !== undefined && (SHELTERS as readonly string[]).includes(lodging)
+      ? [[p, lodging as ShelterId] as const]
+      : [];
+  }),
+);
 
 const POLE = '#7a5030';
 const HIDE = '#b58b5c';

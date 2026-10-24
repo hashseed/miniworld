@@ -42,6 +42,19 @@ export function validateTables(dir: string): {
   return { tables: tables as Partial<{ [N in TableName]: Table<N> }>, errors };
 }
 
+/** References between tables that their schemas cannot see on their own. */
+export function crossTableErrors(tables: Partial<{ [N in TableName]: Table<N> }>): string[] {
+  const errors: string[] = [];
+  const thresholds = new Set((tables['neolithic.json']?.thresholds ?? []).map((t) => t.id));
+  for (const c of tables['cultures.json']?.cultures ?? [])
+    for (const r of c.farming?.regions ?? [])
+      if (!thresholds.has(r))
+        errors.push(
+          `cultures.json: ${c.id}: farming region ${r} is not a threshold of neolithic.json`,
+        );
+  return errors;
+}
+
 /** The asset manifest, checked against its schema. */
 export function readAssetManifest(path: string): { manifest?: AssetManifest; errors: string[] } {
   const result = assetManifest.safeParse(JSON.parse(readFileSync(path, 'utf8')));
@@ -59,13 +72,25 @@ export interface AssetRef {
   from: string;
 }
 
-/** The asset ids the curated tables name: the wildlife models and the props of the anchors' scenes. */
+/**
+ * The asset ids the curated tables name: the wildlife models, the props of the anchors'
+ * scenes, and each culture's lodging, houses, herd, prey and crops.
+ */
 export function tableAssetRefs(tables: Partial<{ [N in TableName]: Table<N> }>): AssetRef[] {
   const refs: AssetRef[] = [];
   for (const g of tables['wildlife.json']?.groups ?? [])
     refs.push({ id: g.model, from: `wildlife.json: ${g.species} at ${g.home}` });
   for (const a of tables['anchors.json']?.anchors ?? [])
     if (a.scene) refs.push({ id: a.scene.prop, from: `anchors.json: ${a.id}` });
+  for (const c of tables['cultures.json']?.cultures ?? []) {
+    const from = `cultures.json: ${c.id}`;
+    if (c.lodging) refs.push({ id: c.lodging, from });
+    for (const id of c.hunts ?? []) refs.push({ id, from });
+    const f = c.farming;
+    if (f)
+      for (const id of [...f.architecture, ...f.herd, ...f.crops.map((x) => `crop-${x}`)])
+        refs.push({ id, from });
+  }
   return refs;
 }
 

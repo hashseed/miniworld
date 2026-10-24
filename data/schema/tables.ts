@@ -6,6 +6,8 @@
 // it is used.
 
 import { z } from 'zod';
+import { PROFILES } from '../../app/src/world/cultures.ts';
+import { NEOLITHIC_ROLES, NEOLITHIC_TOOLS } from '../../app/src/world/neolithicProfiles.ts';
 
 /** A stable lowercase slug: letters, digits and single hyphens. */
 export const id = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'must be a lowercase slug');
@@ -306,6 +308,79 @@ export const encountersTable = z.strictObject({
   ),
 });
 
+// --- Culture profiles (neolithic/people-profiles.md section 4) --------------
+
+const role = z.number().int().min(0).max(100);
+const tool = z.enum(NEOLITHIC_TOOLS);
+
+export const culturesTable = z.strictObject({
+  description,
+  cultures: list(
+    z
+      .strictObject({
+        id: z.enum(PROFILES),
+        /** The asset id of the profile's camp lodging. */
+        lodging: id.optional(),
+        /** Asset ids of the animals it hunts; the founder's people's prey where absent. */
+        hunts: z.array(id).min(1).optional(),
+        en: text.optional(),
+        de: text.optional(),
+        farming: z
+          .strictObject({
+            /** Region ids of farming.json whose onset starts the profile. */
+            regions: z.array(id).min(1),
+            /** Interim boxes [south, north, west, east]; where boxes overlap, the lower areaRank wins. */
+            areas: z
+              .array(
+                z
+                  .tuple([lat, lat, lon, lon])
+                  .refine(([s, n, w, e]) => s < n && w < e, 'needs south < north and west < east'),
+              )
+              .min(1),
+            areaRank: z.number().int().positive(),
+            /** Shelter asset ids. */
+            architecture: z.array(id).min(1),
+            tools: z.strictObject({ man: tool, woman: tool, child: tool }),
+            fieldTool: z.enum(['hoe', 'digging-stick']),
+            /** From this year BCE the field tool is the ard. */
+            ardFromBce: bce.optional(),
+            /** Percent of the grown-ups in each role, in the order of NEOLITHIC_ROLES. */
+            mix: z
+              .strictObject(
+                Object.fromEntries(NEOLITHIC_ROLES.map((r) => [r, role])) as {
+                  [R in (typeof NEOLITHIC_ROLES)[number]]: typeof role;
+                },
+              )
+              .refine(
+                (m) => Object.values(m).reduce((a, b) => a + b, 0) === 100,
+                'the shares must sum to 100',
+              ),
+            /** Asset ids of the herd animals. */
+            herd: z.array(id).min(1),
+            /** Crop ids; each is drawn by the asset crop-<id>. */
+            crops: z.array(id).min(1),
+          })
+          .optional(),
+      })
+      .refine((c) => (c.en === undefined) === (c.de === undefined), {
+        message: 'labels come in both languages or neither',
+        path: ['de'],
+      })
+      .refine((c) => !c.farming || c.en !== undefined, {
+        message: 'a farming profile needs its labels',
+        path: ['en'],
+      }),
+  )
+    .refine((rows) => {
+      const ranks = rows.flatMap((r) => (r.farming ? [r.farming.areaRank] : []));
+      return new Set(ranks).size === ranks.length;
+    }, 'every farming profile needs an areaRank of its own')
+    .refine(
+      (rows) => PROFILES.every((p) => rows.some((r) => r.id === p)),
+      `every profile of app/src/world/cultures.ts needs a row: ${PROFILES.join(', ')}`,
+    ),
+});
+
 // --- Farming (neolithic/farming-spread.md) -----------------------------------
 
 const approximateValue = <T extends z.ZodType>(value: T) =>
@@ -417,6 +492,7 @@ export const TABLES = {
   'anchors.json': anchorsTable,
   'encounters.json': encountersTable,
   'farming.json': farmingTable,
+  'cultures.json': culturesTable,
   'wildlife.json': wildlifeTable,
 } as const;
 

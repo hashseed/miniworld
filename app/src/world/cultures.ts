@@ -1,6 +1,11 @@
-// The culture profiles of milestone 2 (spec milestone 2, section 4), until
-// culture records exist. One list for the models, the card build and the
-// review sheets.
+// The culture profiles (spec milestone 2, section 4; neolithic/people-profiles.md),
+// until culture records exist. The ids are listed here, one list for the models,
+// the card build and the review sheets; everything else about a profile is its
+// row of the culture table data/curated/cultures.json, which the data build
+// checks against its schema (data/schema/tables.ts).
+
+import culturesFile from '../../../data/curated/cultures.json' with { type: 'json' };
+import type { Table } from '../../../data/schema/tables.ts';
 
 export const PROFILES = [
   'african-stone-age',
@@ -28,3 +33,28 @@ export const PROFILES = [
   'new-guinea-highland-farmer',
 ] as const;
 export type Profile = (typeof PROFILES)[number];
+
+/** One profile's row of the culture table. */
+export type Culture = Table<'cultures.json'>['cultures'][number];
+
+/** Every profile's row, by id. */
+export const CULTURES: ReadonlyMap<string, Culture> = new Map(
+  (culturesFile as unknown as Table<'cultures.json'>).cultures.map((c) => [c.id, c]),
+);
+
+/** The founder's people, whose prey a profile without its own hunts. */
+const FOUNDER_PROFILE: Profile = 'african-stone-age';
+
+/** The asset id of a profile's camp lodging, if it has one. */
+export function campLodgingOf(profile: string | undefined): string | undefined {
+  return profile === undefined ? undefined : CULTURES.get(profile)?.lodging;
+}
+
+/** The animals a profile hunts (peopling.md sections 5.5 and 9.1). */
+export function huntsOf(profile: string | undefined): readonly string[] {
+  return (
+    (profile === undefined ? undefined : CULTURES.get(profile)?.hunts) ??
+    CULTURES.get(FOUNDER_PROFILE)?.hunts ??
+    []
+  );
+}

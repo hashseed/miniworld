@@ -3,7 +3,11 @@
 // once; every query is then a lookup, so the world stays a pure function of the date.
 
 import { astronomicalYear, dayOfYearStart } from '../time/calendar.ts';
-import { NEOLITHIC_PROFILES, type NeolithicProfileId } from './neolithicProfiles.ts';
+import {
+  NEOLITHIC_PROFILES,
+  neolithicProfile,
+  type NeolithicProfileId,
+} from './neolithicProfiles.ts';
 
 /** The raster: 0.5 degree cells (about 50 km), row 0 at the north pole, column 0 at 180 W. */
 export const FARMING_CELL_DEG = 0.5;
@@ -122,41 +126,31 @@ export function settlementStage(lat: number, lon: number, day: number): Settleme
 type Area = [number, number, number, number];
 
 /**
- * Where each Neolithic profile applies (people-profiles.md section 1), as boxes until the
- * polygons are drawn into culture-areas.json. The first profile whose box holds a place
- * wins, so the narrower areas come first.
+ * Where each Neolithic profile applies (people-profiles.md section 1), as the boxes of
+ * the culture table until the polygons are drawn into culture-areas.json. Where boxes
+ * overlap, the profile of the lower rank wins, so the narrower areas come first.
  */
-export const PROFILE_AREAS: { profile: NeolithicProfileId; areas: Area[] }[] = [
-  { profile: 'new-guinea-highland-farmer', areas: [[-7, -4.5, 143, 146.5]] },
-  { profile: 'anatolian-farmer', areas: [[36, 41.5, 26, 37.5]] },
-  { profile: 'pre-pottery-neolithic-levant', areas: [[29, 38, 34, 49]] },
-  { profile: 'nile-neolithic', areas: [[22, 31.6, 29, 34.5]] },
-  { profile: 'indus-farmer', areas: [[22, 34, 60, 76]] },
-  { profile: 'lbk-farmer', areas: [[40, 52.5, -1, 30]] },
-  { profile: 'yellow-river-millet-farmer', areas: [[33, 42, 105, 122]] },
-  { profile: 'yangtze-rice-farmer', areas: [[22, 33, 105, 123]] },
-  { profile: 'mesoamerican-farmer', areas: [[14, 23, -105, -88]] },
-  { profile: 'andean-farmer', areas: [[-22, 2, -82, -65]] },
-];
-
-const DIGGING_STICK_PROFILES: readonly NeolithicProfileId[] = [
-  'mesoamerican-farmer',
-  'new-guinea-highland-farmer',
-];
+export const PROFILE_AREAS: { profile: NeolithicProfileId; area: Area }[] = Object.entries(
+  NEOLITHIC_PROFILES,
+)
+  .flatMap(([profile, p]) => p.areas.map((area) => ({ profile, area, rank: p.areaRank })))
+  .sort((a, b) => a.rank - b.rank)
+  .map(({ profile, area }) => ({ profile, area }));
 
 /** The profile that applies at a place, or null where farmers keep no profile of their own. */
 export function farmingProfileAt(lat: number, lon: number): NeolithicProfileId | null {
-  for (const p of PROFILE_AREAS)
-    for (const [s, n, w, e] of p.areas)
-      if (lat >= s && lat <= n && lon >= w && lon <= e) return p.profile;
+  for (const { profile, area } of PROFILE_AREAS) {
+    const [s, n, w, e] = area;
+    if (lat >= s && lat <= n && lon >= w && lon <= e) return profile;
+  }
   return null;
 }
 
-/** The field tool of a profile on a day: the ard from its date, else the hoe or digging stick. */
+/** The field tool of a profile on a day: the ard from its date, else its own (hoe or digging stick). */
 export function fieldToolOf(profile: NeolithicProfileId, day: number): FieldTool {
-  const ard = NEOLITHIC_PROFILES[profile].ardFromBce;
-  if (ard !== undefined && day >= dayOfFarmingYear(ard)) return 'ard';
-  return DIGGING_STICK_PROFILES.includes(profile) ? 'digging-stick' : 'hoe';
+  const p = neolithicProfile(profile);
+  if (p.ardFromBce !== undefined && day >= dayOfFarmingYear(p.ardFromBce)) return 'ard';
+  return p.fieldTool;
 }
 
 export interface FarmingState {
