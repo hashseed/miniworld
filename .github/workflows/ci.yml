@@ -25,9 +25,13 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run coverage
+      # Each check's output also goes into the log file, whose last lines become
+      # annotations on failure, so they show on the pull request.
+      - run: npm run lint 2>&1 | tee -a check.log
+      - run: npm run typecheck 2>&1 | tee -a check.log
+      - run: npm run coverage 2>&1 | tee -a check.log
+      - if: failure()
+        run: echo "::error title=check::$(grep -v '^\s*$' check.log | tail -n 60 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
