@@ -136,12 +136,13 @@ export function humankindSettings(c: CultureAreas, world: PeoplingInputs): TreeS
     }
     return lo; // stretch k holds from changeDays[k - 1] (or the start) to changeDays[k]
   };
-  const byPlace = new Map<string, (Area | undefined | null)[]>();
+  const byPlace = new Map<number, Map<number, (Area | undefined | null)[]>>();
   type Area = (typeof areas)[number];
   const areaAt = (lat: number, lon: number, day: Day): Area | undefined => {
-    const key = `${lat},${lon}`;
-    let row = byPlace.get(key);
-    if (!row) byPlace.set(key, (row = new Array(changeDays.length + 1).fill(null)));
+    let lons = byPlace.get(lat);
+    if (!lons) byPlace.set(lat, (lons = new Map()));
+    let row = lons.get(lon);
+    if (!row) lons.set(lon, (row = new Array(changeDays.length + 1).fill(null)));
     const k = stretchOf(day);
     let hit = row[k];
     if (hit === null) {
