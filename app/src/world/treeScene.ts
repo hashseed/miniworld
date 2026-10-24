@@ -5,1695 +5,298 @@
 // function of the tree chunk and the clock time.
 
 import { hash01, hash32 } from '../core/hash.ts';
-import { detAtan2, detCos, detSin, RAD } from '../core/detmath.ts';
+import { detCos, detSin, RAD } from '../core/detmath.ts';
 import { dayAtMs, msAtDay } from '../time/rate.ts';
-import { astronomicalYear, dayOfYearStart, type Day } from '../time/calendar.ts';
-import {
-  JOB_MS,
-  fieldOfSlot,
-  fieldStage,
-  jobAt,
-  type FieldClock,
-  type FieldJob,
-} from './fieldWork.ts';
+import type { Day } from '../time/calendar.ts';
+import { JOB_MS, fieldOfSlot, fieldStage, jobAt, type FieldClock } from './fieldWork.ts';
 import { pointInPolygon, type Field } from './fieldShapes.ts';
-import { farmingProfileAt, fieldToolOf } from './farmingOnset.ts';
-import { maskLand } from './fieldMask.ts';
-import {
-  isNeolithicProfile,
-  neolithicProfile,
-  type NeolithicProfileId,
-} from './neolithicProfiles.ts';
 import { huntsOf as preyOf } from './cultures.ts';
 import { roleOf } from './roles.ts';
-import { fieldsOf, herdOf, type HerdAnimal } from './village.ts';
 import { NEVER, type TreeFigure, type TreeLodging, type TreeStage } from './tree.ts';
-
-/** One time window's share of the tree (section 8). */
-export interface TreeChunk {
-  fromDay: Day;
-  toDay: Day;
-  figures: TreeFigure[];
-  lodgings: TreeLodging[];
-  /** Scenes at anchors standing in the chunk's time (humankind.md section 8.2). */
-  stages?: TreeStage[];
-}
-
-/**
- * Drawn kilometres per life-size metre of a figure: 1.7 times a vignette's 50 (milestone 2,
- * section 5.1; Yang, 2026-10-18: "make the humans and their buildings/fire places 70% larger").
- */
-export const FIGURE_KM_PER_M = 72.25;
-/**
- * Figures act this many times faster than life: their clips play faster and they cover
- * ground faster, so the feet still do not slide (Yang, 2026-10-18: livelier camps).
- */
-export const TEMPO = 3.6;
-/** A figure's walking pace in life-size metres per second, matching the walk clip's stride. */
-export const WALK_M_PER_S = 1.2;
-/** Running and carrying paces, matching those clips' strides at the same leg length. */
-const RUN_M_PER_S = 4.2;
-const CARRY_M_PER_S = 0.87;
-/** The camp layout is drawn three times smaller than the figures (milestone 2, section 5.1). */
-export const LAYOUT_KM_PER_M = FIGURE_KM_PER_M / 3;
-/** Drawn kilometres a figure covers per millisecond of watching. */
-const WALK_KM_PER_MS = (TEMPO * WALK_M_PER_S * FIGURE_KM_PER_M) / 1000;
-/** Layout metres covered per millisecond of watching, by clip. */
-const PACE: Record<
-  'walk' | 'run' | 'carry' | 'pole' | 'crouch' | 'bearBehind' | 'bearAhead',
-  number
-> = {
-  walk: (WALK_M_PER_S * 3 * TEMPO) / 1000,
-  run: (RUN_M_PER_S * 3 * TEMPO) / 1000,
-  carry: (CARRY_M_PER_S * 3 * TEMPO) / 1000,
-  pole: (CARRY_M_PER_S * 3 * TEMPO) / 1000,
-  bearBehind: (CARRY_M_PER_S * 3 * TEMPO) / 1000,
-  bearAhead: (CARRY_M_PER_S * 3 * TEMPO) / 1000,
-  crouch: (WALK_M_PER_S * 0.55 * 3 * TEMPO) / 1000,
-};
-/**
- * Lodgings stand this far from the hearth, in layout metres; lodgings are drawn at
- * figure size, three times the layout, so the ring keeps them clear of the people.
- */
-export const LODGING_RING_M = 12;
-/** Places for lodgings round a hearth, evenly spaced so lodgings never overlap. */
-export const LODGING_SLOTS = 5;
-/** Spots for figures at a hearth: an inner ring and an outer ring, spaced so figures never overlap. */
-export const INNER_SPOTS = 8;
-const INNER_M = 5;
-const OUTER_SPOTS = 12;
-const OUTER_M = 8.5;
-export const HEARTH_SPOTS = INNER_SPOTS + OUTER_SPOTS;
-const INNER_ORDER = [0, 4, 2, 6, 1, 5, 3, 7];
-const OUTER_ORDER = [0, 6, 3, 9, 1, 7, 4, 10, 2, 8, 5, 11];
-/** Paths keep this far from the middle of the hearth, in layout metres, so nobody walks through the fire. */
-const FIRE_CLEAR_M = 3;
-/** The threshing floor lies 8 m out through a gap: only where the gap has land that far and a little beyond. */
-const THRESH_ROOM_M = 10;
-/** Figures leave and enter a camp at this distance from its hearth, between the people and the lodgings. */
-const GATE_M = 7;
-/** The farthest out anyone goes, in layout metres; the build measures land this far out. */
-export const MAX_OUTING_M = 50;
-/**
- * The build needs land all round a camp spot out to this many layout metres, past the inner
- * ring of people's spots, which a band of three to five never outgrows (peopling.md
- * section 4: coastal camps). Catch, on its wider ring, is played only where the land goes
- * further.
- */
-export const CAMP_ROOM_M = INNER_M + 2;
-/** Figures change between idle and work every 20 to 40 seconds of life, sped up by TEMPO. */
-const ACTIVITY_MIN_MS = 20_000 / TEMPO;
-const ACTIVITY_SPREAD_MS = Math.round(20_000 / TEMPO);
-/** Each figure plans its day in turns of this long: an outing, a stroll or a rest. */
-const TURN_MS = 60_000 / TEMPO;
-/** Camp life (section 8.1): how long each activity's work at its place lasts. */
-const FIREWOOD_M = 20;
-const BREAK_MS = Math.round(7200 / TEMPO);
-const FILL_MS = Math.round(5400 / TEMPO);
-/** Fishing at the water's edge: watching with the spear raised, and each stab down. */
-const FISH_WATCH_MS = Math.round(5400 / TEMPO);
-const FISH_STAB_MS = Math.round(2400 / TEMPO);
-const SCRAPE_MS = Math.round(14_400 / TEMPO);
-/** Skinning a kill, hanging its hide on the rack, and taking a dried one down (section 8.1). */
-const FLAY_MS = Math.round(9000 / TEMPO);
-const HANG_HIDE_MS = Math.round(4800 / TEMPO);
-const TAKE_HIDE_MS = Math.round(4800 / TEMPO);
-const CRACK_MS = Math.round(14_400 / TEMPO);
-/** The Neolithic village's work (section 8.5): in the field, at the threshing floor, grinding, shaping and spinning. */
-const FIELD_WORK_MS = Math.round(10_800 / TEMPO);
-const THRESH_MS = Math.round(9_000 / TEMPO);
-const MILK_MS = Math.round(9_000 / TEMPO);
-const GRIND_MS = Math.round(12_600 / TEMPO);
-const SPIN_MS = Math.round(12_600 / TEMPO);
-/** The share of a profile's grown-ups' turns spent at their role's work, the rest being the usual outings. */
-const FARM_WORK_SHARE = 0.6;
-/** What a worker is shown doing in each job of a field's cycle (weeding is hoeing). */
-const JOB_OUTING: Record<FieldJob, Outing> = {
-  till: 'till',
-  sow: 'sow',
-  weed: 'till',
-  reap: 'reap',
-};
-/** A pen is drawn at this share of its model's ten metres; the herd's animals raise their heads this often. */
-const PEN_SCALE = 0.4;
-const HERD_LOOK_MS = 6_000;
-/**
- * The village herd is drawn at this share of life size, in step with the storybook houses and
- * pens (Yang, 2026-10-23): a goat or sheep stands knee-high to a person, cattle waist-high.
- */
-export const HERD_SCALE = 0.6;
-const KNAP_POINT_MS = Math.round(10_800 / TEMPO);
-const BIND_POINT_MS = Math.round(7200 / TEMPO);
-const BUTCHER_MEAT_MS = Math.round(7200 / TEMPO);
-const ROAST_MS = Math.round(14_400 / TEMPO);
-const INSIDE_MS = Math.round(14_400 / TEMPO);
-/**
- * The layout offset of a figure on its way between camps, on leg `n` at `u` of it and `t` of
- * the whole way: from the old camp's edge to the new camp's when there is one leg, else
- * from the old camp's edge to nothing on the first leg and from nothing to the new camp's
- * edge on the last, so the figure keeps to the route's way in between.
- */
-function edgeOffset(
-  c: { exit: Pt; entry: Pt; legs: unknown[] },
-  n: number,
-  u: number,
-  t: number,
-): Pt {
-  if (c.legs.length === 1)
-    return { x: c.exit.x + (c.entry.x - c.exit.x) * t, z: c.exit.z + (c.entry.z - c.exit.z) * t };
-  if (n === 0) return { x: c.exit.x * (1 - u), z: c.exit.z * (1 - u) };
-  if (n === c.legs.length - 1) return { x: c.entry.x * u, z: c.entry.z * u };
-  return { x: 0, z: 0 };
-}
-
-/**
- * A band on its way walks as a loose group, not on one line (Yang, 2026-10-20: "multiple
- * people bunched together"): by its spot at the new camp, each walker leaves and comes in
- * GROUP_SIDE_M (layout metres) to one side of the camps' gates, in the middle or to the
- * other side, and walks in rows of three GROUP_BACK_M apart, the rows forming over the first
- * GROUP_FADE of the way and closing up over the last.
- */
-const GROUP_SIDE_M = 2.2;
-const GROUP_BACK_M = 3;
-const GROUP_FADE = 0.1;
-/** Canoes on a crossing string out along the way by up to this many layout metres, none beyond its ends. */
-const CANOE_GAP_M = 0.5;
-/** Walkers keep within this of the way's line in layout metres on the open way, inside the 15 km a link is checked. */
-const GROUP_WAY_SIDE_M = 0.45;
-function groupOffset(
-  p: Pt,
-  way: { dirX: number; dirZ: number },
-  spot: number,
-  t: number,
-  km: number,
-  side = 0,
-  water = false,
-): Pt {
-  // A canoe keeps to the line of its way, where the water was checked, one behind the other.
-  const fade = water ? 1 : Math.max(0, Math.min(1, t / GROUP_FADE, (1 - t) / GROUP_FADE));
-  const lim = water ? 0 : GROUP_WAY_SIDE_M;
-  // Never further behind than a twentieth of the walk: less than the way covered while the
-  // rows form, so nobody walks backwards on a short walk.
-  const rows = water ? spot : Math.floor(spot / 3);
-  const back =
-    Math.min(rows * (water ? CANOE_GAP_M : GROUP_BACK_M), (0.05 * km) / LAYOUT_KM_PER_M) * fade;
-  // On the open way walkers close in to within GROUP_WAY_SIDE_M of the line, the strip a
-  // link is checked for water (sites.md section 3); they spread out again near the camps.
-  const across = p.x * -way.dirZ + p.z * way.dirX + side;
-  const capped = Math.max(-lim, Math.min(lim, across));
-  const shift = across + (capped - across) * fade - (across - side);
-  return {
-    x: p.x - way.dirX * back - way.dirZ * shift,
-    z: p.z - way.dirZ * back + way.dirX * shift,
-  };
-}
-
-/** Walks reach a lodging's door this far in front of its middle, before crouching in. */
-export const HUT_DOOR_M = 4.8;
-/**
- * Camp events (section 8.1): catch and dancing last EVENT_MS once everyone is in place.
- * Children run round a ring CATCH_R from the hearth at a little over half a run, "it"
- * catching the next every CHASE_MS; dancers turn slowly on a ring DANCE_R round the fire.
- */
-const EVENT_MS = Math.round(36_000 / TEMPO);
-const CHASE_MS = Math.round(9000 / TEMPO);
-const CATCH_R = 7;
-const DANCE_R = 4.5;
-const CATCH_SHARE = 1 / 3;
-const DANCE_SHARE = 1 / 6;
-/**
- * A lodging's drying rack stands behind it, this far from the hearth, out of every lane,
- * and whoever scrapes a hide works from behind it, facing in (Yang, 2026-10-19: a kill
- * carried through a hide hung out to dry).
- */
-export const RACK_R = 18;
-/** The scraper stands this far behind the rack, and walks round its end this far along it. */
-export const SCRAPE_BACK_M = 2;
-export const SCRAPE_SIDE_M = 5.6;
-/** How long gatherers pick, hunters butcher and strollers look about at the far end. */
-const GATHER_MS = Math.round(9000 / TEMPO);
-const BUTCHER_MS = Math.round(4000 / TEMPO);
-const LOOK_MS = Math.round(4000 / TEMPO);
-/**
- * Prey of a hunt grazes this far out in its hunter's lane, flees to this far when the hunter
- * runs at it and falls there; the hunter stops short of it to butcher (layout metres).
- */
-const PREY_GRAZE_M = 34;
-const PREY_FALL_M = 40;
-const PREY_REACH_M = PREY_FALL_M + 4;
-/** Gatherers pick this far out (layout metres). */
-const GATHER_M = 22;
-/** Prey fades in when the hunter sets out and out once the meat is carried off. */
-const PREY_FADE_MS = 400;
-/** The animals the first people hunt (wildlife.md section 6 models). */
-type PreyKind =
-  | 'animal-zebra'
-  | 'animal-eland'
-  | 'animal-gazelle'
-  | 'animal-kangaroo'
-  | 'animal-reindeer'
-  | 'animal-guanaco'
-  | 'animal-mammoth'
-  | 'animal-aurochs'
-  // A village's herd (section 8.5).
-  | 'animal-sheep'
-  | 'animal-goat'
-  | 'animal-cattle'
-  | 'animal-pig'
-  | 'animal-dog'
-  | 'animal-zebu'
-  | 'animal-water-buffalo'
-  | 'animal-llama'
-  | 'animal-guinea-pig';
-/**
- * Hunts (section 8.1): the hunter throws from this far short of the animal (layout
- * metres; about 5 life-size metres at the figures' scale, so the flight reads), and a
- * missed spear sticks this far beyond it, a little to the side; the animal bolts this far.
- */
-const THROW_GAP_M = 16;
-const MISS_BEYOND_M = 5;
-const MISS_SIDE_M = 1.6;
-/** About one throw in three misses (section 8.1). */
-const MISS_SHARE = 0.35;
-/** The throw clip runs this long; the spear leaves the hand at THROW_RELEASE (0.55 s of clip). */
-const THROW_MS = Math.ceil(1600 / TEMPO);
-const RELEASE_MS = Math.round(550 / TEMPO);
-/** A spear is in the air this long. */
-const FLIGHT_MS = 600;
-/** It leaves the hand this high and lands this high in the animal, in life-size metres. */
-const HAND_H = 1.7;
-const HIT_H = 1.05;
-/** The arc of a flight rises by this share of its length at the figures' scale. */
-const SPEAR_ARC = 0.18;
-/** The animal runs from the missed spear for this long. */
-const BOLT_MS = 450;
-/** A hunter pulls a missed spear out of the ground over this long. */
-const PICK_MS = Math.round(1200 / TEMPO);
-/** Hunter and helper kneel this far to either side of the kill, and bind it for BIND_SECONDS. */
-const KNEEL_SIDE_M = 3.5;
-const BIND_MS = Math.ceil(2400 / TEMPO);
-/**
- * Half the length of the carrying pole in layout metres (1.6 life-size metres at the figures'
- * scale), and how long lifting it and laying it down take.
- */
-export const POLE_HALF_M = 4.5;
-const LIFT_MS = Math.round(1200 / TEMPO);
-const PUT_MS = Math.round(1200 / TEMPO);
-/**
- * Height of the pole on the carriers' shoulders and of its middle lying on the ground, in
- * life-size metres (POLE_HEIGHT in assets/src/clips.ts, POLE_R in assets/src/shelters.ts).
- */
-export const POLE_ON_SHOULDERS_M = 1.42;
-export const POLE_ON_GROUND_M = 0.045;
-/** The kill is carried to here in the hunter's gap, between the people and the lodgings. */
-const DROP_M = 14;
-/** It lies there this long before it fades away. */
-const DROP_LINGER_MS = Math.round(40_000 / TEMPO);
-/** Trees make way this far round points of a hunt's lane, in drawn kilometres. */
-/** How far the trees keep from a scene's middle, in layout metres at a full camp. */
-const STAGE_CLEARING_M: Record<TreeStage['kind'], number> = {
-  'cave-painting': 22,
-  burial: 8,
-  monument: 20,
-  'bone-hut': 16,
-};
-const HUNT_CLEARING_KM = 8 * LAYOUT_KM_PER_M;
-/**
- * The hunted animal and one or two of its herd walk in from the treeline at the far end of
- * the hunter's lane (Yang, 2026-10-19: animals appeared out of thin air), at this pace in
- * layout metres per millisecond, a little apart; they graze this long before the hunter
- * throws, and the companions bolt back to the trees when the spear lands.
- */
-const PREY_WALK = (WALK_M_PER_S * 2.4 * TEMPO) / 1000;
-const HERD_SIDE_M = 3.5;
-const GRAZE_FIRST_MS = Math.round(1500 / TEMPO);
-/**
- * The hunted animal comes out of the trees this long before the hunters set out, and grazes,
- * so it is seen in its place before the hunt (Yang, 2026-10-20: "they should spawn and roam
- * for some time before being hunted").
- */
-const ROAM_MS = Math.round(30_000 / TEMPO);
-/** A hunted animal keeps this far from another camp's hearth, where its people are (layout m). */
-const OTHER_CAMP_M = 25;
-/** A monument's visitors come from camps within this many layout metres: up to two camps, two people each. */
-export const VISIT_M = 60;
-const VISIT_SLACK_MS = 8000;
-/** Visitors set out this long before the session's start, to be at their places when it begins. */
-const VISIT_EARLY_MS = 4000;
-const VISIT_CAMPS = 2;
-const VISIT_PEOPLE = 2;
-/**
- * The survivors scatter to their own spots aside, stand there looking back for this long and
- * more by hash, and fade one by one (Yang, 2026-10-19: they should not fade right away).
- */
-const SCATTER_LINGER_MS = Math.round(10_000 / TEMPO);
-const SCATTER_MORE_MS = Math.round(10_000 / TEMPO);
-/**
- * Mammoth hunts (Yang, 2026-10-19: "implement mammoth hunting"): a mammoth is far too big
- * for the pole, so hunter and helper butcher it where it falls and carry the meat home, and
- * its remains lie there a while. Being large, it grazes further out, the hunter throws from
- * further off and the herd keeps further apart; only in lanes with land to MAX_OUTING_M, and
- * only while mammoths lived on the mainland, to 10,000 BCE (wildlife.md section 2).
- */
-const MAMMOTH = {
-  /** The hunting party: the hunter and up to three more; at least two more are needed. */
-  party: 4,
-  /** Across the lane between the party's throwers, and between their throws (layout m, ms). */
-  spread: 4.5,
-  throwEvery: Math.round(2200 / TEMPO),
-  graze: 38,
-  fall: 42,
-  gap: THROW_GAP_M + 5,
-  kneel: 7,
-  herdSide: 9,
-  reach: MAX_OUTING_M,
-  butcher: Math.round(7000 / TEMPO),
-  remains: Math.round(20_000 / TEMPO),
-};
-/** Hunters of every culture but the Neanderthals' shoot with bows from about 45,000 BCE (section 8.1). */
-const BOW_FROM: Day = dayOfYearStart(astronomicalYear(45_000, 'BCE'));
-/** The shoot clip runs this long; the arrow leaves the string at SHOOT_RELEASE_MS. */
-const SHOOT_MS = Math.ceil(2400 / TEMPO);
-const SHOOT_RELEASE_MS = Math.round(1100 / TEMPO);
-/** A wounded animal walks on for this long, slowly, and a bow hunter lets it settle before the next arrow. */
-const WOUND_MS = Math.ceil(4000 / TEMPO);
-const SETTLE_MS = 300;
-/** The larger game takes two arrows. */
-const LARGE_GAME: ReadonlySet<PreyKind> = new Set([
-  'animal-zebra',
-  'animal-eland',
-  'animal-reindeer',
-  'animal-aurochs',
-]);
-/** Each arrow strikes an animal this much further out along the lane than the one before. */
-const BOW_STEP_M = 3;
-/** The bow is held this far ahead of the archer and this far to his left, the arrow leaves the string at this height (life-size metres). */
-const BOW_AHEAD_M = 0.6;
-const BOW_ASIDE_M = 0.2;
-const BOW_H = 1.38;
-/** The arrow's middle at the draw, ahead of the archer in life-size metres: at rest on the bow, then drawn back. */
-const NOCK_REST_M = 0.9;
-const NOCK_DRAWN_M = 0.4;
-const MAMMOTH_UNTIL: Day = dayOfYearStart(astronomicalYear(10_000, 'BCE'));
-
-/** Clip changes ease over this long (milestone 2, section 5.3). */
-export const BLEND_MS = 350;
-/** The band takes this long to build a new lodging, about a year of history. */
-export const BUILD_MS = Math.round(8000 / TEMPO);
-/** And this long to take one down before it leaves. */
-export const TAKE_DOWN_MS = Math.round(5000 / TEMPO);
-/** Builders stand this far from the middle of the lodging they build, in layout metres. */
-export const BUILD_RING_M = 5;
-/**
- * The trees of a place wither over THIN_MS before its band arrives, planned from the tree
- * (sites.md section 6), and grow back over REGROW_MS (about five years) after it leaves.
- */
-export const THIN_MS = 10_000;
-export const REGROW_MS = 12_000;
-/** A new camp (section 8.1): the first builder lights the fire with flint stones for FLINT_MS before building. */
-const FLINT_MS = Math.round(9000 / TEMPO);
-/** The lighter kneels this far from the middle of the hearth, just outside the paths' clearance. */
-const LIGHT_M = 3.1;
-/** Plants keep this far from a hearth while the camp stands, in drawn kilometres. */
-export const CAMP_CLEARING_KM = (LODGING_RING_M + 6) * LAYOUT_KM_PER_M;
-/**
- * Wild animals keep this far from a hearth while its camp stands, in drawn kilometres
- * (wildlife.md section 4): the lodgings' ring, a lodging's width and a margin.
- */
-export const CAMP_KEEP_OUT_KM = (LODGING_RING_M + 8) * LAYOUT_KM_PER_M;
-/**
- * The same around a Neolithic village, whose fields, pen and herd reach about 50 layout metres
- * from the hearth (section 8.5); wild animals stay out of that too.
- */
-export const VILLAGE_KEEP_OUT_KM = 50 * LAYOUT_KM_PER_M;
-/** Moves shorter than this are within the camp and not walked. */
-const SAME_PLACE_KM = 1;
-const KM_PER_DEG = 111.195;
-
-export type FigureLook = 'founder' | 'woman' | 'man' | 'child';
-export type TreeClip =
-  | 'idle'
-  | 'work'
-  // At a cave painting; falling ill and dying before a burial (section 8.2).
-  | 'paint'
-  | 'ill'
-  | 'lie'
-  | 'sit'
-  // Telling a story by the fire (section 8.1).
-  | 'point'
-  | 'knap'
-  | 'walk'
-  | 'run'
-  | 'carry'
-  | 'throw'
-  | 'shoot'
-  | 'pole'
-  | 'bearBehind'
-  | 'bearAhead'
-  | 'strike'
-  | 'crouch'
-  | 'dance'
-  | 'scrape'
-  | 'crack'
-  | 'paddle'
-  // The Neolithic village's work (section 8.5).
-  | 'till'
-  | 'sow'
-  | 'reap'
-  | 'thresh'
-  | 'grind'
-  | 'milk'
-  | 'shape'
-  | 'spin';
-
-/** A point of the scene: a place on the globe, and an offset there in layout metres east and north. */
-export interface Placed {
-  lat: number;
-  lon: number;
-  x: number;
-  z: number;
-  /** Facing, east and north. */
-  dirX: number;
-  dirZ: number;
-  /**
-   * The same spot in another place's frame, and how far to trust it, 0 to 1: a visitor on its
-   * way to a monument is drawn between where its own camp's frame puts it and where the host's
-   * frame puts it, so its place at the monument is the host's own and never an estimate of the
-   * distance between two camps (humankind.md section 8.2).
-   */
-  anchor?: { lat: number; lon: number; x: number; z: number; mix: number };
-}
-
-export interface FigurePose extends Placed {
-  id: number;
-  look: FigureLook;
-  clip: TreeClip;
-  clipMs: number;
-  /** The clip being eased out of, while a change is under way. */
-  from?: { clip: TreeClip; clipMs: number; weight: number };
-  /** The hand is empty: the figure's spear is in the air, in the prey or in the grass. */
-  unarmed?: boolean;
-  /** The tool its hand holds at the field or the work spot instead of the culture's own (section 8.5). */
-  tool?: string;
-  /** Inside its hut, out of sight (section 8.1). */
-  hidden?: boolean;
-  /** The culture whose clothes it wears (peopling.md section 5.3); the founder's when not given. */
-  profile?: string;
-  /** A dead's soul (section 8.2): how far it shows, 0 to 1, and how high it floats, in life-size metres. */
-  soul?: { fade: number; height: number };
-  /** Held up off the ground by its bearers, in life-size metres (a dead carried to its grave). */
-  lift?: number;
-}
-
-export type PreyClip = 'idle' | 'walk' | 'run' | 'fall' | 'bound' | 'hung' | 'struggle' | 'graze';
-
-/** An animal of a hunt: it grazes, flees when the hunter runs at it, falls and is butchered. */
-export interface PreyPose extends Placed {
-  /** The hunter's id and the turn of the hunt, unique while it is shown. */
-  id: string;
-  kind: PreyKind;
-  clip: PreyClip;
-  clipMs: number;
-  /** 0 to 1, fading in and out. */
-  visibility: number;
-  /** Drawn at this share of life size (the village herd, section 8.5); 1 when left out. */
-  scale?: number;
-}
-
-export interface LodgingPose extends Placed {
-  id: number;
-  kind: string;
-  /** 0 to 1: how far it is put up, while the band builds it or takes it down. */
-  built: number;
-  /** The share of the full camp's ring its camp's ring is: a lodging is at most that share of LODGING_MAX_M across (section 8.5), so five never touch. */
-  room?: number;
-}
-
-/** A field of a Neolithic camp (section 8.5): its outline in layout metres off the camp's place, and how far its crop has grown. */
-export interface FieldPose {
-  /** Unique while shown: the camp and the field. */
-  id: string;
-  lat: number;
-  lon: number;
-  field: Field;
-  /** The crop's stage, 0 to 1 (fieldStage). */
-  stage: number;
-}
-
-export interface HearthPose {
-  camp: number;
-  lat: number;
-  lon: number;
-  /** 0 before the fire is lit at a new camp, rising to 1 as it catches (section 8.1). */
-  lit: number;
-}
-
-/** A spark from the flint stones of a fire being lit: layout point, height in life-size metres, 0 to 1 of its life. */
-export interface SparkPose {
-  lat: number;
-  lon: number;
-  x: number;
-  z: number;
-  height: number;
-  life: number;
-}
-
-/** A prop of camp life at a layout point: a drying rack beside a lodging, a spit over the fire. */
-export interface CampPropPose extends Placed {
-  id: string;
-  /** A drying rack, the spit, a canoe, or a scene's wall or grave (section 8.2). */
-  kind: string;
-  /** 0 to 1: how far a scene's prop has grown in, painted or filled. */
-  built?: number;
-  /** A share of its full size, for a scene's prop at a smaller camp. */
-  scale?: number;
-  /** Whether a cave's torch is lit. */
-  lit?: boolean;
-  /** 0 to 1: how far a scene's hill or heap of earth has risen out of the ground. */
-  rise?: number;
-  /** 0 to 1: how far a cave's painting shows, fading before the cave sinks back. */
-  paint?: number;
-  /** 0 to 1: how far a prop has faded, 1 drawn in full: the dead's skull. */
-  fade?: number;
-  /** Height above the ground in life-size metres: the dead's skull rising. */
-  height?: number;
-}
-
-/** Where the trees make way for a camp: 1 cleared, 0 grown back. */
-export interface ClearingPose {
-  lat: number;
-  lon: number;
-  amount: number;
-  /** True while the trees are being felled, false while they grow back. */
-  felling: boolean;
-  /** Off the hearth in layout metres, and the radius in drawn kilometres, for a hunt's ground. */
-  x?: number;
-  z?: number;
-  km?: number;
-}
-
-/** A hunter's spear away from his hand: its middle, height above the ground in life-size metres, and pitch. */
-export interface SpearPose extends Placed {
-  id: string;
-  /** An arrow in a bow hunt, or the bow itself in the archer's hand (humankind.md section 8.1); a spear without it. */
-  kind?: 'arrow' | 'bow';
-  height: number;
-  /** Rise per unit along (dirX, dirZ), tip first; negative points down. */
-  slope: number;
-}
-
-/** The carrying pole of a hunt: its middle, and its height above the ground in life-size metres. */
-export interface PolePose extends Placed {
-  id: string;
-  height: number;
-}
-
-export interface TreeScene {
-  figures: FigurePose[];
-  prey: PreyPose[];
-  spears: SpearPose[];
-  poles: PolePose[];
-  sparks: SparkPose[];
-  props: CampPropPose[];
-  fields: FieldPose[];
-  lodgings: LodgingPose[];
-  hearths: HearthPose[];
-  clearings: ClearingPose[];
-}
-
-/** The look of a figure: the first person keeps hers; the others are women, men and children. */
-export function lookOf(id: number): FigureLook {
-  if (id === 0) return 'founder';
-  return (['woman', 'man', 'child'] as const)[hash32(id, 31) % 3]!;
-}
-
-const deg = (micro: number) => micro / 1e6;
-
-/** Degrees east from one longitude to another, the short way round, across the date line too. */
-const eastOf = (from: number, to: number): number => {
-  const d = to - from;
-  return d > 180 ? d - 360 : d < -180 ? d + 360 : d;
-};
-/** A longitude brought back between -180 and 180. */
-const wrapLon = (lon: number): number => (lon > 180 ? lon - 360 : lon < -180 ? lon + 360 : lon);
-
-/** A place in degrees. */
-interface LatLon {
-  lat: number;
-  lon: number;
-}
-
-function kmBetween(a: LatLon, b: LatLon): number {
-  const x = eastOf(a.lon, b.lon) * detCos(((a.lat + b.lat) / 2) * RAD);
-  const y = b.lat - a.lat;
-  return Math.sqrt(x * x + y * y) * KM_PER_DEG;
-}
-
-const placeOf = (l: TreeLodging): LatLon => ({ lat: deg(l.lat), lon: deg(l.lon) });
-
-interface Pt {
-  x: number;
-  z: number;
-}
-
-/**
- * Sites from this id on have a compact camp, and from MINIMAL_SITE on a minimal one (sites.md
- * section 2): land too small for a full camp where a band must stand, so its huts stand closer
- * to the fire, its people on one ring, with no drying racks and no catch. The camp's own id
- * tells, so the scene needs nothing else.
- */
-export const COMPACT_SITE = 1_000_000;
-export const MINIMAL_SITE = 2_000_000;
-export const isCompact = (camp: number): boolean => camp >= COMPACT_SITE;
-
-/** A camp's layout, in layout metres: hut ring, people's ring, door, core, gate, dancers, builders, and people at most. */
-export interface Layout {
-  ring: number;
-  inner: number;
-  door: number;
-  core: number;
-  gate: number;
-  dance: number;
-  build: number;
-  people: number;
-  /** Walks keep this far from a lodging's middle. */
-  clear: number;
-  /** Rings round a lodging's middle, out to its door, that must be dry, in layout metres. */
-  floor: number[];
-}
-const FULL: Layout = {
-  ring: LODGING_RING_M,
-  inner: INNER_M,
-  door: HUT_DOOR_M,
-  core: OUTER_M + 1,
-  gate: GATE_M,
-  dance: DANCE_R,
-  build: BUILD_RING_M,
-  people: INNER_SPOTS + OUTER_SPOTS,
-  clear: 4.6,
-  floor: [1, 2, 3, 4, HUT_DOOR_M],
-};
-const COMPACT: Layout = {
-  ring: 9,
-  inner: 3.8,
-  door: 4.6,
-  core: 5,
-  gate: 4.5,
-  dance: 3.4,
-  build: BUILD_RING_M,
-  people: INNER_SPOTS,
-  clear: 4.6,
-  floor: [1, 2, 3, 4, HUT_DOOR_M],
-};
-/** A minimal camp has one small brush shelter (shelter-small-hut, about 1.7 m across) near its fire. */
-const MINIMAL: Layout = {
-  ring: 6.2,
-  inner: 3.1,
-  door: 3.1,
-  core: 3.6,
-  gate: 3.4,
-  dance: 3.1,
-  build: 3.2,
-  people: 4,
-  clear: 3,
-  floor: [0.7, 1.4, 2.1, 2.6, 3.1],
-};
-/** The lodging of every minimal camp, whatever the culture. */
-export const MINIMAL_LODGING = 'shelter-small-hut';
-export const layoutOf = (camp: number): Layout =>
-  camp >= MINIMAL_SITE ? MINIMAL : camp >= COMPACT_SITE ? COMPACT : FULL;
-/** The ring of lodging places round a camp's hearth. */
-export const ringOf = (camp: number): number => layoutOf(camp).ring;
-const doorM = (camp: number) => layoutOf(camp).door;
-const gateM = (camp: number) => layoutOf(camp).gate;
-
-/** The turn of a camp's ring of places, by its hash. */
-const campTurn = (camp: number) => hash01(camp, 41);
-
-/** The point of a lodging slot round a camp's hearth, in layout metres: evenly spaced, turned by the camp's hash. */
-export function slotPoint(camp: number, slot: number): Pt {
-  const a = (campTurn(camp) + slot / LODGING_SLOTS) * 2 * Math.PI;
-  return { x: ringOf(camp) * detCos(a), z: ringOf(camp) * detSin(a) };
-}
-
-/**
- * A scene at an anchor stands this far beyond the ring of lodgings (humankind.md section 8.2),
- * or, where the land is too narrow, nearer: the first of these that is dry.
- */
-export const STAGE_BEYOND_M = [12, 10, 8];
-/** A cave's hill stands further out, so its watchers are clear of the lodging in front of it. */
-export const CAVE_BEYOND_M = [12, 10, 8];
-/** A monument stands further out still: its ring is 11 metres across and its dancers round it. */
-export const MONUMENT_BEYOND_M = [15, 14, 13];
-/** A monument is raised in this many sessions and danced round in as many (humankind.md section 8.2). */
-export const MONUMENT_BUILD_SESSIONS = 6;
-export const MONUMENT_DANCE_SESSIONS = 6;
-/** Its first session falls this many windows after the anchor's day, the guests having walked there. */
-export const MONUMENT_LEAD_WINDOWS = 4;
-/** The ring sinks into the ground by itself over its last 250 years, linearly with the date. */
-export const MONUMENT_SINK_DAYS = Math.round(250 * 365.2425);
-/** The monument's model is drawn at this share of the scene's size: a small enclosure. */
-export const MONUMENT_SCALE = 0.48;
-/** Layout metres in one of the ring's own metres: a figure's metre is three layout metres. */
-const MONUMENT_M = MONUMENT_SCALE * 3;
-/** The model's own metres: the rings the walkers go round by, outside the wall and inside it. */
-const MONUMENT_OUT_R = 7.6;
-const MONUMENT_IN_R = 2.6;
-/** A cave's cut and this many layout metres round it keep clear of water where they can. */
-export const CAVE_WATER_CLEAR_M = 16;
-/** A bone hut is seven metres across at a full camp, with its pile of bones beside it. */
-export const BONE_HUT_BEYOND_M = [15, 13, 11];
-/** Mammoths are hunted, their bones taken out and carried, and the hut built, in this many rounds. */
-export const BONE_ROUNDS = 3;
-/** A round's windows: the hunt in the first, the bones taken out in the third, carried and built in with in the fourth. */
-const BONE_ROUND_WINDOWS = 4;
-export const stageBeyond = (kind: TreeStage['kind']) =>
-  kind === 'cave-painting'
-    ? CAVE_BEYOND_M
-    : kind === 'monument'
-      ? MONUMENT_BEYOND_M
-      : kind === 'bone-hut'
-        ? BONE_HUT_BEYOND_M
-        : STAGE_BEYOND_M;
-/** A scene's prop and places at a full, a compact and a minimal camp, as a share of full size. */
-export const stageScale = (camp: number) =>
-  camp >= MINIMAL_SITE ? 0.5 : camp >= COMPACT_SITE ? 0.75 : 1;
-/** Mourners stand round a grave this far from it, on the hearth's side. */
-const MOURN_R = 5.5;
-/** At most this many mourners at a burial, round the grave. */
-const MOURNERS = 6;
-
-/**
- * The places of a scene behind a lodging place, in layout metres: its prop, a point `back`
- * metres from it towards the hearth and `side` metres to one side, and the way there out of
- * the gap beside the lodging (humankind.md section 8.2).
- */
-export function stageSpots(camp: number, slot: number, beyond: number) {
-  const p = slotPoint(camp, slot);
-  const ring = ringOf(camp);
-  const u = { x: p.x / ring, z: p.z / ring };
-  // Smaller at a smaller camp, as its lodgings are (section 8.2).
-  const k = stageScale(camp);
-  const r = ring + beyond * k;
-  const prop = { x: u.x * r, z: u.z * r };
-  const at = (back: number, side: number): Pt => ({
-    x: prop.x - u.x * back * k - u.z * side * k,
-    z: prop.z - u.z * back * k + u.x * side * k,
-  });
-  const g = gapDirection(camp, slot);
-  const gap = { x: g.x * (ring + 4), z: g.z * (ring + 4) };
-  // In front of a cave's rock face, clear of the lodging before it: the way to it (section 8.2).
-  const door = at(6, 0);
-  // A bone hut's pile of bones beside it, and the place by it where bones are taken up.
-  const pile = at(3, 16);
-  const pick = at(3, 12);
-  return { prop, u, at, gap, door, pile, pick };
-}
-
-/** A monument's session needs at least this many people (humankind.md section 8.2). */
-export const MONUMENT_MIN = 3;
-/** At most this many people at a session, and the pause between one setting out and the next. */
-export const MONUMENT_MAX = 6;
-/** The host camp takes at most this many places at a monument session; its visitors take the rest. */
-const MONUMENT_HOST = 3;
-const MONUMENT_LAG_MS = 500;
-/** At a bone hut each sets out a moment after the one before; bones are taken out and set in place in this long. */
-const BONE_LAG_MS = 600;
-/** The hut shows, rising out of the ground, over this long when its first bones are set. */
-const BONE_RISE_MS = 2_000;
-const BONE_TAKE_MS = Math.round(3_000 / TEMPO);
-const BONE_SET_MS = Math.round(1_500 / TEMPO);
-/** People at a monument stand at least this far apart, in the model's metres (1.4 layout metres). */
-const MONUMENT_APART = 3;
-
-/**
- * The way from the camp's side of a monument to a place at it, in the model's metres: round
- * the outside of the wall at a safe distance, or, for a place inside, in by the gate on the
- * camp's side, then round the inside, never through the wall; a step each 30 degrees.
- */
-function monumentPath(
-  to: Pt,
-  prop: Pt,
-  at: (back: number, side: number) => Pt,
-  k: number,
-  who: number,
-): Pt[] {
-  const [dx, dz] = [(to.x - prop.x) / (k * MONUMENT_M), (to.z - prop.z) / (k * MONUMENT_M)];
-  const [back, side] = [at(1, 0), at(0, 1)];
-  const [bx, bz] = [(back.x - prop.x) / k, (back.z - prop.z) / k];
-  const [sx, sz] = [(side.x - prop.x) / k, (side.z - prop.z) / k];
-  // The angle from the camp's side, and the point on a ring of a radius at an angle.
-  const a = detAtan2(dx * sx + dz * sz, dx * bx + dz * bz);
-  const onRing = (ang: number, rad: number) =>
-    at(rad * MONUMENT_M * detCos(ang), rad * MONUMENT_M * detSin(ang));
-  const inside = Math.sqrt(dx * dx + dz * dz) < 5;
-  // Each goes round at its own distance from the wall, so they do not walk in a clump.
-  const off = ((who * 7) % 5) - 2;
-  const rad = inside ? MONUMENT_IN_R + 0.3 * off : MONUMENT_OUT_R + 0.45 * off;
-  const path = inside ? [onRing(0, MONUMENT_OUT_R), onRing(0, MONUMENT_IN_R + 0.3 * off)] : [];
-  const n = Math.max(1, Math.ceil(Math.abs(a) / (Math.PI / 6)));
-  for (let j = 1; j <= n; j++) path.push(onRing((a * j) / n, rad));
-  return path;
-}
-
-/**
- * Where a monument's people stand for a session, in the model's metres, handed out one by
- * one: wherever the session's stones are set (the floor, the wall, the near and then the far
- * pillars, the figures, the arms and reliefs), or the dancers in two rings, or the carriers
- * of earth round the wall (humankind.md section 8.2).
- */
-function monumentStands(at: (back: number, side: number) => Pt, session: number): Pt[] {
-  // A place by its angle from the gate and its share of the ellipse of the ring pillars.
-  const ell = (a: number, f: number): [number, number] => [detSin(a) * 5.5 * f, detCos(a) * 5 * f];
-  const pillar = (i: number) => ((i + 0.5) / 8) * Math.PI * 2;
-  const spots: [number, number][] = [];
-  if (session === 0) {
-    // The floor: laid across.
-    for (let i = 0; i < 5; i++) spots.push(ell(1 + (i * 2 * Math.PI) / 5, i % 2 ? 0.25 : 0.62));
-  } else if (session === 1) {
-    // The wall: round the outside of it.
-    for (let i = 0; i < 6; i++) spots.push(ell(0.7 + (i * (2 * Math.PI - 1.4)) / 5, 1.3));
-  } else if (session === 2 || session === 3) {
-    // The ring pillars, the near four, then the far four: a stone is set up at each.
-    const first = session === 2 ? [0, 1, 6, 7] : [2, 3, 4, 5];
-    for (const i of first) spots.push(ell(pillar(i), 0.72));
-    spots.push(ell(pillar(first[0]!) + (session === 2 ? -0.5 : 0.5), 0.45));
-  } else if (session === 4) {
-    // The two tall figure-pillars in the middle.
-    spots.push([2, -1.3], [-2, 1.3], [0.4, -2.3], [-0.4, 2.3], [1.6, 1.1]);
-  } else if (session === 5) {
-    // Their arms and the reliefs on the ring pillars, among the pillars.
-    for (const i of [0, 2, 4, 6]) spots.push(ell(pillar(i), 0.72));
-    spots.push([1.4, -1.8]);
-  } else {
-    // Dancers in two rings, inside and outside, handed out alternately so a small party
-    // still makes two rings.
-    const ring = (n: number, r: number) =>
-      Array.from({ length: n }, (_, k): [number, number] => {
-        const a = ((k + 0.5) / n) * 2 * Math.PI;
-        return [detSin(a) * r, detCos(a) * r];
-      });
-    const inner = ring(3, 2.7);
-    const outer = ring(4, 3.5);
-    outer.forEach((q, k) => spots.push(q, ...(k < inner.length ? [inner[k]!] : [])));
-  }
-  // Pushed apart until nobody stands against another, each keeping to the floor inside the
-  // wall or to the ground round the outside of it; the model's +X lies on the other side of
-  // the camp's axis from the layout's sides.
-  const placed = spots.slice(0, MONUMENT_MAX);
-  const within = placed.map((q) => Math.sqrt(q[0] * q[0] + q[1] * q[1]) < 5);
-  for (let round = 0; round < 40; round++) {
-    for (const [i, a] of placed.entries())
-      for (const b of placed.slice(i + 1)) {
-        const [dx, dz] = [b[0] - a[0], b[1] - a[1]];
-        const d = Math.sqrt(dx * dx + dz * dz);
-        if (d >= MONUMENT_APART) continue;
-        const [ux, uz] = d < 1e-6 ? [detSin(i + 1), detCos(i + 1)] : [dx / d, dz / d];
-        const push = (MONUMENT_APART - d) / 2;
-        a[0] -= ux * push;
-        a[1] -= uz * push;
-        b[0] += ux * push;
-        b[1] += uz * push;
-      }
-    for (const [i, q] of placed.entries()) {
-      const r = Math.sqrt(q[0] * q[0] + q[1] * q[1]) || 1e-6;
-      const into = Math.min(
-        Math.max(r, within[i]! ? (session > 5 ? 2.6 : 0.6) : 6.4),
-        within[i]! ? 3.5 : 9.5,
-      );
-      q[0] *= into / r;
-      q[1] *= into / r;
-    }
-  }
-  return placed.map(([x, z]) => at(z * MONUMENT_M, -x * MONUMENT_M));
-}
-
-/** Where the people of a scene stand: the painter and two watchers, or two diggers and the mourners. */
-function stageStands(
-  camp: number,
-  slot: number,
-  beyond: number,
-  kind: TreeStage['kind'],
-  session = 0,
-): Pt[] {
-  const { at } = stageSpots(camp, slot, beyond);
-  if (kind === 'monument') return monumentStands(at, session);
-  // The painter at the rock face, the watchers behind; diggers at the grave's heap of earth.
-  if (kind === 'cave-painting') return [at(1.8, 0), at(5, -2.2), at(5, 2.2)];
-  // Round the front of the bone hut, outside its wall, where its builders set bones in place.
-  if (kind === 'bone-hut') return [at(9.5, -3), at(9.5, 3), at(8, -7.5), at(8, 7.5)];
-  const out = [at(2.4, -1.5), at(2.4, 1.5)];
-  for (let k = 0; k < MOURNERS; k++) {
-    const a = ((k + 0.5) / MOURNERS - 0.5) * (2 * Math.PI) * 0.45;
-    out.push(at(MOURN_R * detCos(a), MOURN_R * detSin(a)));
-  }
-  return out;
-}
-
-/** Every point of a scene that must be dry land: its prop and round it, its people's places and the way there. */
-export function stagePoints(
-  camp: number,
-  slot: number,
-  beyond: number,
-  kind: TreeStage['kind'],
-): Pt[] {
-  const { prop, gap, at, door, pile, pick } = stageSpots(camp, slot, beyond);
-  const out: Pt[] = [prop];
-  if (kind === 'bone-hut') {
-    // The hut and the ground round its wall, the pile, where bones are taken up, and the ways there.
-    for (let k = 0; k < 16; k++) {
-      const a = (k / 16) * 2 * Math.PI;
-      out.push(at(8.5 * detCos(a), 8.5 * detSin(a)));
-      out.push({
-        x: pile.x + 3 * stageScale(camp) * detCos(a),
-        z: pile.z + 3 * stageScale(camp) * detSin(a),
-      });
-    }
-    const stands = stageStands(camp, slot, beyond, kind);
-    out.push(pile, pick, ...stands, gap);
-    const walk = (a: Pt, b: Pt) => {
-      const n = Math.ceil(Math.sqrt((b.x - a.x) ** 2 + (b.z - a.z) ** 2));
-      for (let k = 1; k < n; k++)
-        out.push({ x: a.x + ((b.x - a.x) * k) / n, z: a.z + ((b.z - a.z) * k) / n });
-    };
-    walk(gap, pick);
-    for (const q of stands) walk(pick, q);
-    return out;
-  }
-  // Round the prop as it lies, in layout metres: the cave's rock face and the ground before
-  // it (its hill is the ground, which does not rise over water); the grave's heap 4.2 by 2.6.
-  const cave = kind === 'cave-painting';
-  const [wide, deep, mid] = cave ? [6, 4, -2] : [4.2, 2.6, 0];
-  if (kind === 'monument') {
-    // The ring and the ground round it where its people stand and walk, and the way there.
-    for (const r of [MONUMENT_IN_R, 5, MONUMENT_OUT_R, MONUMENT_OUT_R + 1.5])
-      for (let k = 0; k < 16; k++) {
-        const a = (k / 16) * 2 * Math.PI;
-        out.push(at(r * MONUMENT_M * detCos(a), r * MONUMENT_M * detSin(a)));
-      }
-    out.push(gap);
-    return out;
-  }
-  for (let k = 0; k < 12; k++) {
-    const a = (k / 12) * 2 * Math.PI;
-    out.push(at(mid + deep * detCos(a), wide * detSin(a)));
-  }
-  const stands = stageStands(camp, slot, beyond, kind);
-  out.push(...stands, gap);
-  const line = (a: Pt, b: Pt) => {
-    const n = Math.ceil(Math.sqrt((b.x - a.x) ** 2 + (b.z - a.z) ** 2));
-    for (let k = 1; k < n; k++)
-      out.push({ x: a.x + ((b.x - a.x) * k) / n, z: a.z + ((b.z - a.z) * k) / n });
-  };
-  for (const q of stands) {
-    if (cave) {
-      line(gap, door);
-      line(door, q);
-    } else line(gap, q);
-  }
-  return out;
-}
-
-/**
- * A scene's people are in place this long after their window starts and paint or bury for
- * STAGE_MS, leaving time to walk back before the window ends.
- */
-const STAGE_LEAD_MS = Math.round(15_000 / TEMPO);
-/** A burial's people are in place when the dead dies; the grave is dug, the dead carried in, then covered. */
-const BURIAL_LEAD_MS = Math.round(10_000 / TEMPO);
-/** From the heap's rise: the grave is dug this long, and the dead is laid in at BODY_AFTER_MS. */
-const DIG_MS = 1_500;
-const BODY_AFTER_MS = 10_300;
-/** The two diggers fetch the dead, and lift it, this long after the digging, then carry it in. */
-const FETCH_MS = 3_000;
-/** The belongings are added, then the grave covered, in this long after the dead is laid in. */
-const FILL_GRAVE_MS = 1_200;
-const CORPSE_LIFT_MS = 500;
-/** The dead is set down into the grave over this long before it is laid in. */
-const LAY_MS = 1_200;
-const CARRIED_M = 0.9;
-/** The two who carry the dead stand this far (layout metres) before and behind its middle, at its head and feet. */
-const BEARER_HALF_M = 3;
-const STAGE_MS = Math.round(27_000 / TEMPO);
-/** A monument's inner ring is further to walk to, so its people come later and work a little shorter. */
-const MONUMENT_LEAD_MS = Math.round(26_000 / TEMPO);
-const MONUMENT_STAGE_MS = Math.round(12_000 / TEMPO);
-/**
- * A cave fades in over CAVE_FADE_MS of watching from CAVE_LEAD_MS before its first session,
- * and out over CAVE_FADE_MS from CAVE_LINGER_MS after its last; a closed grave fades into the
- * ground over GRAVE_FADE_DAYS (humankind.md section 8.2).
- */
-export const CAVE_LEAD_MS = 60_000;
-export const CAVE_LINGER_MS = 60_000;
-export const CAVE_FADE_MS = 10_000;
-export const PAINT_FADE_MS = 5_000;
-export const GRAVE_FADE_DAYS = Math.round(50 * 365.2425);
-/** A grave's heap rises this long, grass grows over it this long after it is closed, taking GRASS_MS. */
-const HEAP_MS = 1_500;
-/** A grave sinks back flat over GRAVE_FADE_DAYS, or this much watching where that passes quicker. */
-export const GRAVE_SINK_MS = 60_000;
-const GRASS_AFTER_MS = 10_000;
-const GRASS_MS = 10_000;
-/** The dead sits ill this long from the start of the burial's window, then lies dead; the soul rises for SOUL_MS. */
-const ILL_MS = 3_000;
-const SOUL_MS = 4_000;
-
-/**
- * The moments of a burial (section 8.2): its window's start, when its dead dies and when the
- * body is laid in the grave, its session, and when grass has grown over the grave.
- */
-export function burialTimes(stage: TreeStage, startDay: Day) {
-  const q = stageSessions(stage, startDay)[0];
-  if (!q) return undefined;
-  const dig = q.begin + HEAP_MS;
-  return {
-    w: q.w,
-    start: q.start,
-    death: q.start + ILL_MS,
-    digEnd: dig + DIG_MS,
-    carry: dig + DIG_MS + FETCH_MS,
-    // The body is laid in after the two diggers fetched and carried it (section 8.2).
-    body: dig + BODY_AFTER_MS,
-    begin: q.begin,
-    dig,
-    stop: q.stop,
-    grown: q.stop + GRASS_AFTER_MS + GRASS_MS,
-  };
-}
-/** A cave painting grows in this many sessions, one window in two (humankind.md section 8.2). */
-export const PAINT_SESSIONS = 6;
-
-/**
- * The sessions of a scene (humankind.md section 8.2): the windows of its camp's day it takes,
- * fixed from the anchor's day by the camp alone, whoever is free; each with the window's start,
- * when its people are in place and when they stop.
- */
-export function stageSessions(
-  stage: TreeStage,
-  startDay: Day,
-): { w: number; start: number; begin: number; stop: number }[] {
-  const shift = hash32(stage.camp, 113) % TURN_MS;
-  const w0 = Math.ceil((msAtDay(stage.from, startDay) + shift) / TURN_MS);
-  const end = msAtDay(stage.until, startDay);
-  const ws =
-    stage.kind === 'cave-painting'
-      ? Array.from({ length: PAINT_SESSIONS }, (_, k) => w0 + 2 * k)
-      : stage.kind === 'monument'
-        ? Array.from(
-            { length: MONUMENT_BUILD_SESSIONS + MONUMENT_DANCE_SESSIONS },
-            (_, k) => w0 + MONUMENT_LEAD_WINDOWS + k,
-          )
-        : stage.kind === 'bone-hut'
-          ? boneWindows(w0).flatMap((r) => [r.extract, r.haul])
-          : [w0 + 1];
-  return ws
-    .map((w) => {
-      const start = w * TURN_MS - shift;
-      const monument = stage.kind === 'monument';
-      const lead =
-        stage.kind === 'burial' ? BURIAL_LEAD_MS : monument ? MONUMENT_LEAD_MS : STAGE_LEAD_MS;
-      const long = stage.kind === 'burial' ? HEAP_MS + BODY_AFTER_MS + FILL_GRAVE_MS - STAGE_MS : 0;
-      return {
-        w,
-        start,
-        begin: start + lead,
-        stop: start + lead + (monument ? MONUMENT_STAGE_MS : STAGE_MS) + long,
-      };
-    })
-    .filter((x) => x.start + TURN_MS <= end);
-}
-
-/** The windows of a bone hut's rounds, from its camp's first window: the hunt, then the bones taken out and the bones carried in and built. */
-function boneWindows(w0: number) {
-  return Array.from({ length: BONE_ROUNDS }, (_, c) => {
-    const hunt = w0 + 1 + BONE_ROUND_WINDOWS * c;
-    return { hunt, extract: hunt + 2, haul: hunt + 3 };
-  });
-}
-
-/** The windows in which a bone hut's mammoth hunts are held, with each window's start. */
-export function stageHunts(stage: TreeStage, startDay: Day): { w: number; start: number }[] {
-  const shift = hash32(stage.camp, 113) % TURN_MS;
-  const w0 = Math.ceil((msAtDay(stage.from, startDay) + shift) / TURN_MS);
-  const end = msAtDay(stage.until, startDay);
-  return boneWindows(w0)
-    .map((r) => ({ w: r.hunt, start: r.hunt * TURN_MS - shift }))
-    .filter((x) => x.start + 2 * TURN_MS <= end);
-}
-
-/** Where a lodging stands around its hearth, in layout metres, by its slot. Its door faces the hearth. */
-export function lodgingSpot(l: TreeLodging): Pt {
-  return slotPoint(l.camp, l.slot);
-}
-
-/** The direction out from the hearth through the middle of a gap between the lodging slots. */
-export function gapDirection(camp: number, gap: number): Pt {
-  const a = (campTurn(camp) + (gap + 0.5) / LODGING_SLOTS) * 2 * Math.PI;
-  return { x: detCos(a), z: detSin(a) };
-}
-
-/**
- * Whether a layout point lies in one of a camp's outing lanes (the five gaps between its
- * lodgings and the lanes of the people's outings in them, section 8.1): the fields of a
- * village keep clear of them so no outing crosses a crop.
- */
-export function inOutingLane(camp: number, x: number, z: number): boolean {
-  const r = Math.sqrt(x * x + z * z);
-  if (r < 1) return false;
-  const half = 0.17 + 2.5 / r;
-  const a = detAtan2(z, x) / (2 * Math.PI) - campTurn(camp);
-  for (let g = 0; g < LODGING_SLOTS; g++) {
-    let d = a - (g + 0.5) / LODGING_SLOTS;
-    d -= Math.round(d);
-    if (Math.abs(d) * 2 * Math.PI < half) return true;
-  }
-  return false;
-}
-
-/** A figure's own spot at the hearth of a camp, in layout metres: the inner ring first, then the outer. */
-export function figureSpot(spot: number, camp: number): Pt {
-  const inner = spot < INNER_SPOTS;
-  // Spots fill in an order that keeps a small band spread round the fire.
-  const k = (inner ? INNER_ORDER : OUTER_ORDER)[inner ? spot : spot - INNER_SPOTS]!;
-  const n = inner ? INNER_SPOTS : OUTER_SPOTS;
-  const r = isCompact(camp) ? layoutOf(camp).inner + (inner ? 0 : 2) : inner ? INNER_M : OUTER_M;
-  const a = (hash01(camp, 43) + (k + (inner ? 0 : 0.5)) / n) * 2 * Math.PI;
-  return { x: r * detCos(a), z: r * detSin(a) };
-}
-
-/**
- * A point out from the hearth through a gap between the lodgings, for a figure's own
- * outings: the gap and the lane in it come from its spot, which no one else in the camp
- * has, so two figures never head for the same place.
- */
-function outingPoint(spot: number, camp: number, distance: number): Pt {
-  const lane = Math.floor(spot / LODGING_SLOTS);
-  const a =
-    (campTurn(camp) + ((spot % LODGING_SLOTS) + 0.5) / LODGING_SLOTS) * 2 * Math.PI +
-    (lane - 1.5) * 0.1;
-  const r = distance + 3.5 * lane;
-  return { x: r * detCos(a), z: r * detSin(a) };
-}
-
-/** The farthest a figure's outings may go from the hearth: the land in its gap, less its lane. */
-function outingRoom(spot: number, home: TreeLodging): number {
-  return (home.reach[spot % LODGING_SLOTS] ?? 0) - 3.5 * Math.floor(spot / LODGING_SLOTS);
-}
-
-/** Unit vector from (x0, z0) to (x1, z1), or the fallback when they meet. */
-function towards(x0: number, z0: number, x1: number, z1: number, fx = 1, fz = 0) {
-  const dx = x1 - x0;
-  const dz = z1 - z0;
-  const len = Math.sqrt(dx * dx + dz * dz);
-  return len < 1e-9 ? { dirX: fx, dirZ: fz } : { dirX: dx / len, dirZ: dz / len };
-}
-
-/**
- * What a figure does at its spot by the fire at a clock time, with the clip it eases out of:
- * stands, tends the fire, or (grown-ups) knaps a stone hand axe.
- */
-function activity(
-  id: number,
-  ms: number,
-  knaps: boolean,
-  village = false,
-): Pick<FigurePose, 'clip' | 'clipMs' | 'from'> {
-  const period = ACTIVITY_MIN_MS + (hash32(id, 53) % ACTIVITY_SPREAD_MS);
-  const shifted = ms + (hash32(id, 59) % period);
-  const k = Math.floor(shifted / period);
-  // Standing a quarter of the time, sitting a quarter, tending the fire a fifth, cracking
-  // nuts a tenth, telling a story a twelfth and knapping an eighth (humankind.md section 8.1).
-  const clipOf = (n: number): TreeClip => {
-    const h = hash32(id, n, 61) % 120;
-    // A village has no fire to tend and no nuts to crack by it (Yang, 2026-10-24).
-    if (village && h >= 60 && h < 96) return h < 78 ? 'idle' : 'sit';
-    if (h < 30) return 'idle';
-    if (h < 60) return 'sit';
-    if (h < 84) return 'work';
-    if (h < 96) return 'crack';
-    if (h < 106) return 'point';
-    return knaps ? 'knap' : 'sit';
-  };
-  const clip = clipOf(k);
-  const clipMs = shifted - k * period;
-  const prev = clipOf(k - 1);
-  if (clipMs < BLEND_MS && prev !== clip)
-    return {
-      clip,
-      clipMs,
-      from: { clip: prev, clipMs: period + clipMs, weight: clipMs / BLEND_MS },
-    };
-  return { clip, clipMs };
-}
-
-/**
- * Where a figure stands while the band builds or takes down a lodging: around it on the
- * hearth's side, the `k`-th of `n`, evenly spread so they never overlap.
- */
-function buildSpot(k: number, n: number, lodging: TreeLodging): Pt {
-  const hut = lodgingSpot(lodging);
-  const toHearth = Math.sqrt(hut.x * hut.x + hut.z * hut.z);
-  const a = n > 1 ? (k / (n - 1) - 0.5) * 0.75 * Math.PI : 0;
-  const c = detCos(a);
-  const sn = detSin(a);
-  // On the hearth's side, or behind the hut at a compact camp, whose people stand close by.
-  const side = isCompact(lodging.camp) ? 1 : -1;
-  const ux = (side * hut.x) / toHearth;
-  const uz = (side * hut.z) / toHearth;
-  return {
-    x: hut.x + layoutOf(lodging.camp).build * (ux * c - uz * sn),
-    z: hut.z + layoutOf(lodging.camp).build * (ux * sn + uz * c),
-  };
-}
-
-/**
- * The way from a to b within a camp: straight, or round the fire by a point beside it
- * when the straight line would pass through it.
- */
-function route(a: Pt, b: Pt, camp?: number): Pt[] {
-  // The same walks are asked for frame after frame: remember them (a pure function).
-  const key = `${camp}|${a.x}|${a.z}|${b.x}|${b.z}`;
-  const known = routes.get(key);
-  if (known) return known;
-  if (routes.size >= ROUTES_KEPT) routes.clear();
-  const way = routeOf(a, b, camp);
-  routes.set(key, way);
-  return way;
-}
-const routes = new Map<string, Pt[]>();
-const ROUTES_KEPT = 50_000;
-
-function routeOf(a: Pt, b: Pt, camp?: number): Pt[] {
-  const all = camp === undefined ? FIRE_ONLY : campObstacles(camp);
-  // Obstacles at either end are where the walk is going, or leaving from: a hut door, a rack.
-  const live = all.filter(
-    (c) =>
-      Math.sqrt((a.x - c.x) ** 2 + (a.z - c.z) ** 2) >= c.r &&
-      Math.sqrt((b.x - c.x) ** 2 + (b.z - c.z) ** 2) >= c.r,
-  );
-  return detour(a, b, live, 4);
-}
-
-/** A circle a walk keeps out of, in layout metres. */
-interface Circle {
-  x: number;
-  z: number;
-  r: number;
-}
-
-const FIRE_ONLY: Circle[] = [{ x: 0, z: 0, r: FIRE_CLEAR_M }];
-/** Walks keep this far from the middle of a drying rack (section 8.1); from a lodging, its layout's clear. */
-const RACK_CLEAR_M = 4.4;
-
-/** The fire, the lodgings of every slot and their racks: what walks at a camp go round. */
-const obstacles = new Map<number, Circle[]>();
-function campObstacles(camp: number): Circle[] {
-  let list = obstacles.get(camp);
-  if (!list) {
-    list = [...FIRE_ONLY];
-    for (let k = 0; k < LODGING_SLOTS; k++) {
-      list.push({ ...slotPoint(camp, k), r: layoutOf(camp).clear });
-      if (hasRack(camp, k)) list.push({ ...rackAt(camp, k), r: RACK_CLEAR_M });
-    }
-    obstacles.set(camp, list);
-  }
-  return list;
-}
-
-/**
- * The way from a to b round the first circle the straight line passes through, by a point
- * beside it on the side the line already passes; each part is checked again in turn.
- */
-function detour(a: Pt, b: Pt, circles: Circle[], depth: number): Pt[] {
-  const dx = b.x - a.x;
-  const dz = b.z - a.z;
-  const len2 = dx * dx + dz * dz;
-  if (len2 < 1e-9 || depth === 0) return [a, b];
-  let hit: { c: Circle; t: number; px: number; pz: number } | undefined;
-  for (const c of circles) {
-    const t = Math.min(1, Math.max(0, ((c.x - a.x) * dx + (c.z - a.z) * dz) / len2));
-    if (t <= 0 || t >= 1) continue;
-    const px = a.x + dx * t;
-    const pz = a.z + dz * t;
-    if (Math.sqrt((px - c.x) ** 2 + (pz - c.z) ** 2) >= c.r) continue;
-    if (!hit || t < hit.t) hit = { c, t, px, pz };
-  }
-  if (!hit) return [a, b];
-  const { c, px, pz } = hit;
-  const d = Math.sqrt((px - c.x) ** 2 + (pz - c.z) ** 2);
-  const len = Math.sqrt(len2);
-  let [sx, sz] = d > 1e-6 ? [(px - c.x) / d, (pz - c.z) / d] : [-dz / len, dx / len];
-  // Round a lodging or rack on the fire's side, not away from the hearth, where the land is
-  // not checked: an empty lodging place may lie in the sea (sites.md section 2).
-  const out = Math.sqrt(c.x * c.x + c.z * c.z);
-  if (out > 1e-6 && (sx * c.x + sz * c.z) / out > 0.5) [sx, sz] = [-c.x / out, -c.z / out];
-  const w = { x: c.x + sx * c.r * 1.3, z: c.z + sz * c.r * 1.3 };
-  return [...detour(a, w, circles, depth - 1), ...detour(w, b, circles, depth - 1).slice(1)];
-}
-
-function routeLength(points: Pt[]): number {
-  let m = 0;
-  for (let i = 1; i < points.length; i++)
-    m += Math.sqrt((points[i]!.x - points[i - 1]!.x) ** 2 + (points[i]!.z - points[i - 1]!.z) ** 2);
-  return m;
-}
-
-/** A stretch of a figure's time at a camp: walking a route, or standing at a point. */
-interface Leg {
-  start: number;
-  end: number;
-  /** A clip, a rest, inside the hut (out of sight), or a camp event's own motion. */
-  clip: TreeClip | 'rest' | 'inside' | 'event';
-  route: Pt[];
-  /** What a standing figure faces. */
-  face?: Pt;
-  /** A prop shown while the leg lasts: the spit over the fire while cooking. */
-  prop?: 'prop-spit' | 'prop-quern' | 'prop-pot-large';
-}
-
-/** Builds a figure's legs one after another from a point and a time. */
-class Itinerary {
-  legs: Leg[] = [];
-  t: number;
-  at: Pt;
-  /** The camp whose fire, lodgings and racks its walks go round. */
-  camp: number | undefined;
-  constructor(t: number, at: Pt, camp?: number) {
-    this.t = t;
-    this.at = at;
-    this.camp = camp;
-  }
-  go(
-    to: Pt,
-    clip: 'walk' | 'run' | 'carry' | 'pole' | 'crouch' | 'bearBehind' | 'bearAhead' = 'walk',
-  ): this {
-    // A carrying pole keeps to its lane, so its two carriers walk in step.
-    const way = route(this.at, to, clip === 'pole' ? undefined : this.camp);
-    const m = routeLength(way);
-    if (m < 1e-6) return this;
-    const end = this.t + Math.ceil(m / PACE[clip]);
-    this.legs.push({ start: this.t, end, clip, route: way });
-    this.t = end;
-    this.at = to;
-    return this;
-  }
-  stay(until: number, clip: Leg['clip'], face?: Pt, prop?: Leg['prop']): this {
-    if (until <= this.t) return this;
-    this.legs.push({ start: this.t, end: until, clip, route: [this.at], face, prop });
-    this.t = until;
-    return this;
-  }
-}
-
-/** The point a fraction of the way along a route, and the direction it goes there. */
-function along(way: Pt[], f: number): Pt & { dirX: number; dirZ: number } {
-  if (way.length === 1) return { ...way[0]!, dirX: 0, dirZ: 0 };
-  let left = routeLength(way) * f;
-  for (let i = 1; i < way.length; i++) {
-    const [a, b] = [way[i - 1]!, way[i]!];
-    const m = Math.sqrt((b.x - a.x) ** 2 + (b.z - a.z) ** 2);
-    if (left <= m || i === way.length - 1) {
-      const t = m < 1e-9 ? 1 : Math.min(1, left / m);
-      return { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t, ...towards(a.x, a.z, b.x, b.z) };
-    }
-    left -= m;
-  }
-  return { ...way.at(-1)!, dirX: 0, dirZ: 0 };
-}
-
-type Outing =
-  | 'rest'
-  | 'gather'
-  | 'hunt'
-  | 'stroll'
-  | 'firewood'
-  | 'water'
-  | 'scrape'
-  | 'crack'
-  | 'spear'
-  | 'cook'
-  | 'flay'
-  | 'rack'
-  | 'fish'
-  | 'hut'
-  // The Neolithic village's work (section 8.5).
-  | 'till'
-  | 'sow'
-  | 'reap'
-  | 'thresh'
-  | 'grind'
-  | 'milk'
-  | 'shape'
-  | 'spin';
-
-/** Shares of a figure's turns by activity (section 8.1), the rest of its turns rests. */
-// Hunting was most of a man's turns until Yang, 2026-10-20: "activities are often just
-// hunting. what about other activities?"
-const OUTING_SHARES: Record<FigureLook, [Outing, number][]> = {
-  man: [
-    ['hunt', 0.25],
-    ['spear', 0.12],
-    ['firewood', 0.1],
-    ['water', 0.05],
-    ['fish', 0.08],
-    ['hut', 0.1],
-    ['flay', 0.08],
-    ['rack', 0.04],
-    ['stroll', 0.05],
-  ],
-  founder: [
-    ['hunt', 0.18],
-    ['gather', 0.1],
-    ['firewood', 0.08],
-    ['water', 0.06],
-    ['crack', 0.1],
-    ['cook', 0.08],
-    ['flay', 0.05],
-    ['hut', 0.1],
-    ['stroll', 0.05],
-  ],
-  woman: [
-    ['gather', 0.18],
-    ['scrape', 0.12],
-    ['crack', 0.1],
-    ['water', 0.1],
-    ['fish', 0.04],
-    ['firewood', 0.08],
-    ['cook', 0.12],
-    ['flay', 0.06],
-    ['rack', 0.06],
-    ['hut', 0.1],
-    ['stroll', 0.04],
-  ],
-  child: [
-    ['gather', 0.15],
-    ['crack', 0.12],
-    ['hut', 0.14],
-    ['stroll', 0.15],
-  ],
-};
-
-/** What a figure does in one of its turns (section 8.1), chosen by hash from its look's shares. */
-function outingOf(id: number, look: FigureLook, turn: number): Outing {
-  let roll = hash01(id, turn, 71);
-  for (const [outing, share] of OUTING_SHARES[look]) {
-    if (roll < share) return outing;
-    roll -= share;
-  }
-  return 'rest';
-}
-
-/** A figure's stay at one of its homes (section 8.1). */
-interface Stay {
-  f: TreeFigure;
-  i: number;
-  home: TreeLodging;
-  look: FigureLook;
-  /** Its spot's number at the hearth, and the spot. */
-  s: number;
-  spot: Pt;
-  hut: Pt;
-  plan: Itinerary;
-  free: number;
-  busy: number;
-  leave: number;
-  takes: boolean;
-  takeSpot: Pt;
-  /** The clothes it came in, while they differ from its new camp's, and when it changes them. */
-  wore: string | undefined;
-  changeAt: number;
-}
-
-/**
- * What the scene of a chunk works out that does not change with the clock: lodgings by id,
- * builders and takers, when each lodging appears, who lives at each camp, the places camps
- * stand, and the stays, hunts, events and walks between camps worked out so far. Kept per
- * chunk, so each frame only works out what is new; the scene is a pure function of the
- * clock either way.
- */
-/** A bone hut's mammoth hunt: who leads it, in which of their turns, and when the carcass is picked clean. */
-interface ForcedHunt {
-  stage: TreeStage;
-  round: number;
-  hunter: Stay;
-  turn: number;
-  /** The end of the session that takes the bones out: the carcass stays until then. */
-  stop: number;
-}
-
-interface Memo {
-  startDay: Day;
-  ready: boolean;
-  lodgings: Map<number, TreeLodging>;
-  builders: Map<number, number[]>;
-  takers: Map<number, number[]>;
-  appears: Map<number, number>;
-  /** When and where the group that founded a lodging's camp starts its crossing (departureOf). */
-  departs: Map<number, { ms: number; lat: number; lon: number }>;
-  campmates: Map<number, TreeFigure[]>;
-  places: Map<string, Place>;
-  stays: Map<string, Stay | undefined>;
-  hunts: Map<string, Hunt | undefined>;
-  forced: Map<string, ForcedHunt | undefined>;
-  events: Map<string, CampEvent | undefined>;
-  crossings: Map<string, unknown>;
-  sessions: Map<TreeStage, ReturnType<typeof stageSessions>>;
-  visits: Map<string, CampEvent[]>;
-  /** The stay at its site each lodging belongs to (setPlaces). */
-  stayOf: Map<number, string>;
-  /** Who does the field job of each camp's slot (`camp:slot`). */
-  workers: Map<string, number | undefined>;
-  /** The fields and herd of each Neolithic camp (section 8.5), by camp. */
-  villages: Map<number, Village | null>;
-}
-const memos = new WeakMap<TreeChunk, Memo>();
-
-/**
- * When a lodging first shows in the scene, in watching ms: not the day it is built, but when
- * its builder has walked there, the trees are felled and the fire lit (the events dialog
- * travels there then, milestone-1 section 8.3). Undefined for a lodging not in the chunk.
- */
-export function shownAtMs(chunk: TreeChunk, startDay: Day, id: number): number | undefined {
-  if (!memoOf(chunk, startDay).ready) treeScene(chunk, 0, startDay);
-  return memoOf(chunk, startDay).appears.get(id);
-}
-/**
- * When and where the group that founded the camp of a lodging starts its crossing, in watching
- * ms: the first stretch by water, or for a route on land its setting out from the old camp
- * (milestone-1 section 8.3). Undefined where its builder made no walk.
- */
-export function departureOf(
-  chunk: TreeChunk,
-  startDay: Day,
-  id: number,
-): { ms: number; lat: number; lon: number } | undefined {
-  if (!memoOf(chunk, startDay).ready) treeScene(chunk, 0, startDay);
-  return memoOf(chunk, startDay).departs.get(id);
-}
-/** The fields and herd of a Neolithic camp (section 8.5). */
-interface Village {
-  profile: NeolithicProfileId | undefined;
-  fields: Field[];
-  herd?: { pen: Pt; penDir: Pt; animals: HerdAnimal[] };
-}
-
-const isProfile = isNeolithicProfile;
-
-/** Herd animals that are milked. */
-const MILKED = new Set([
-  'animal-goat',
-  'animal-sheep',
-  'animal-cattle',
-  'animal-zebu',
-  'animal-water-buffalo',
-]);
-const HERD_FIELD_CLEAR_M = 2.5;
-/** Fields keep this far from a pen's middle: the pen is drawn about 12 layout metres across. */
-const PEN_CLEAR_M = 8;
-/** The trees keep this far off a field's farthest corner (layout metres). */
-const FIELD_TREE_MARGIN_M = 2.5;
-
-/** The camp's fields and herd, from its lodgings (section 8.5); null where it has neither. */
-function buildVillage(chunk: TreeChunk, camp: number): Village | null {
-  const own = chunk.lodgings.filter((l) => l.camp === camp);
-  const farm = own.find((l) => isProfile(l.culture) && l.fieldLand);
-  const herding = own.find((l) => l.herding);
-  const first = farm ?? herding;
-  if (!first) return null;
-  const profile = farm && isProfile(farm.culture) ? farm.culture : undefined;
-  const lodgings = own.filter((l) => isProfile(l.culture) && l.fieldLand).length;
-  const kinds = neolithicProfile(
-    profile ?? farmingProfileAt(deg(first.lat), deg(first.lon)) ?? 'pre-pottery-neolithic-levant',
-  ).herd;
-  const free = (x: number, z: number) =>
-    !farm || (maskLand(farm.fieldLand!, x, z) && !inOutingLane(camp, x, z));
-  // The herd is placed first, on land and out of the lanes; the fields then keep clear of its pen and animals.
-  const a0 = hash01(camp, 235) * 2 * Math.PI;
-  let herd: Village['herd'];
-  for (let i = 0; i < 24 && !herd; i++) {
-    // The animals stand 8 to 12 metres round the pen, so the mask (13 to 38 metres out) holds them all only about here.
-    for (const dist of farm ? [25.5, 24, 27, 22] : [17]) {
-      const angle = farm ? a0 + (i * 2 * Math.PI) / 24 : 0;
-      let at = angle;
-      if (!farm) {
-        const gap = i % LODGING_SLOTS;
-        if ((first.reach[gap] ?? 0) < dist + 13) continue;
-        const d = gapDirection(camp, gap);
-        at = detAtan2(d.z, d.x);
-      }
-      const h = herdOf(camp, kinds, at, dist);
-      if (h.animals.every((a) => free(a.x, a.z)) && free(h.pen.x, h.pen.z)) {
-        herd = h;
-        break;
-      }
-    }
-  }
-  const nearHerd = (x: number, z: number) =>
-    !!herd &&
-    ((x - herd.pen.x) ** 2 + (z - herd.pen.z) ** 2 < PEN_CLEAR_M ** 2 ||
-      herd.animals.some((a) => (x - a.x) ** 2 + (z - a.z) ** 2 < HERD_FIELD_CLEAR_M ** 2));
-  const fields = farm
-    ? fieldsOf(
-        camp,
-        first.lat,
-        lodgings,
-        neolithicProfile(profile!).crops,
-        farm.fieldLand!,
-        (x, z) => inOutingLane(camp, x, z) || nearHerd(x, z),
-      )
-    : [];
-  if (!fields.length && !herd) return null;
-  return { profile, fields, ...(herd ? { herd } : {}) };
-}
-
-function memoOf(chunk: TreeChunk, startDay: Day): Memo {
-  let m = memos.get(chunk);
-  if (!m || m.startDay !== startDay) {
-    m = {
-      startDay,
-      ready: false,
-      lodgings: new Map(chunk.lodgings.map((l) => [l.id, l])),
-      builders: new Map(),
-      takers: new Map(),
-      appears: new Map(),
-      departs: new Map(),
-      campmates: new Map(),
-      places: new Map(),
-      stays: new Map(),
-      hunts: new Map(),
-      forced: new Map(),
-      events: new Map(),
-      crossings: new Map(),
-      sessions: new Map(),
-      visits: new Map(),
-      stayOf: new Map(),
-      workers: new Map(),
-      villages: new Map(),
-    };
-    memos.set(chunk, m);
-  }
-  return m;
-}
+import type { TreeChunk, TreeScene, FigurePose, PreyPose } from './scene/types.ts';
+import {
+  memoOf,
+  isProfile,
+  type Village,
+  FIELD_TREE_MARGIN_M,
+  type Stay,
+  buildVillage,
+  MILKED,
+  type ForcedHunt,
+} from './scene/memo.ts';
+import {
+  BUILD_MS,
+  TAKE_DOWN_MS,
+  buildSpot,
+  FLINT_MS,
+  lightSpot,
+  PEN_SCALE,
+  HERD_LOOK_MS,
+  HERD_SCALE,
+  lodgingSpot,
+  rackOnLand,
+  rackSpot,
+  towards,
+  ringOf,
+  LODGING_RING_M,
+  REGROW_MS,
+  THIN_MS,
+  GROUP_SIDE_M,
+  gateM,
+  figureSpot,
+  type CampEvent,
+  TURN_MS,
+  CATCH_SHARE,
+  isCompact,
+  DANCE_SHARE,
+  layoutOf,
+  CATCH_R,
+  DANCE_R,
+  ringPoint,
+  EVENT_MS,
+  eventPoint,
+  CATCH_PACE_SHARE,
+  type Place,
+  doorOf,
+  INSIDE_MS,
+  FARM_WORK_SHARE,
+  JOB_OUTING,
+  outingRoom,
+  FIREWOOD_M,
+  outingPoint,
+  BREAK_MS,
+  MAX_OUTING_M,
+  gapDirection,
+  FISH_WATCH_MS,
+  FISH_STAB_MS,
+  FILL_MS,
+  RACK_R,
+  SCRAPE_BACK_M,
+  SCRAPE_SIDE_M,
+  SCRAPE_MS,
+  rackSides,
+  TAKE_HIDE_MS,
+  FLAY_MS,
+  HANG_HIDE_MS,
+  FIELD_WORK_MS,
+  THRESH_ROOM_M,
+  THRESH_MS,
+  MILK_MS,
+  SPIN_MS,
+  GRIND_MS,
+  CRACK_MS,
+  KNAP_POINT_MS,
+  BIND_POINT_MS,
+  BUTCHER_MEAT_MS,
+  ROAST_MS,
+  CANOE_GAP_M,
+  groupOffset,
+  edgeOffset,
+  activity,
+  outingTool,
+  tillTool,
+  BLEND_MS,
+} from './scene/camp.ts';
+import { routeLength, route, type Leg, along, Itinerary, detour } from './scene/routes.ts';
+import {
+  PACE,
+  WALK_KM_PER_MS,
+  deg,
+  LAYOUT_KM_PER_M,
+  lookOf,
+  smoothstep,
+  type LatLon,
+  placeOf,
+  kmBetween,
+  SAME_PLACE_KM,
+  eastOf,
+  type Pt,
+  wrapLon,
+} from './scene/units.ts';
+import {
+  type PreyKind,
+  STAGE_CLEARING_M,
+  VISIT_M,
+  VISIT_EARLY_MS,
+  VISIT_SLACK_MS,
+  VISIT_CAMPS,
+  VISIT_PEOPLE,
+  PREY_REACH_M,
+  GATHER_M,
+  GATHER_MS,
+  LOOK_MS,
+  PREY_FADE_MS,
+  type Hunt,
+  MAMMOTH,
+  OTHER_CAMP_M,
+  MAMMOTH_UNTIL,
+  BOW_FROM,
+  PREY_GRAZE_M,
+  PREY_FALL_M,
+  THROW_GAP_M,
+  MISS_SHARE,
+  LARGE_GAME,
+  BOW_STEP_M,
+  ROAM_MS,
+  PREY_WALK,
+  HERD_SIDE_M,
+  SCATTER_LINGER_MS,
+  SCATTER_MORE_MS,
+  GRAZE_FIRST_MS,
+  type Flight,
+  SHOOT_RELEASE_MS,
+  RELEASE_MS,
+  SHOOT_MS,
+  THROW_MS,
+  FLIGHT_MS,
+  scatterAt,
+  DROP_M,
+  MISS_BEYOND_M,
+  MISS_SIDE_M,
+  BOLT_MS,
+  WOUND_MS,
+  SETTLE_MS,
+  PICK_MS,
+  KNEEL_SIDE_M,
+  BIND_MS,
+  POLE_HALF_M,
+  LIFT_MS,
+  PUT_MS,
+  BUTCHER_MS,
+  DROP_LINGER_MS,
+  HUNT_CLEARING_KM,
+  BOW_AHEAD_M,
+  BOW_ASIDE_M,
+  BOW_H,
+  NOCK_DRAWN_M,
+  NOCK_REST_M,
+  HAND_H,
+  HIT_H,
+  SPEAR_ARC,
+  POLE_ON_GROUND_M,
+  POLE_ON_SHOULDERS_M,
+} from './scene/hunt.ts';
+import {
+  stageSessions,
+  CAVE_LEAD_MS,
+  CAVE_LINGER_MS,
+  PAINT_FADE_MS,
+  CAVE_FADE_MS,
+  PAINT_SESSIONS,
+  MONUMENT_BUILD_SESSIONS,
+  MONUMENT_SINK_DAYS,
+  BONE_ROUNDS,
+  BONE_RISE_MS,
+  stageSpots,
+  stageScale,
+  burialTimes,
+  GRAVE_FADE_DAYS,
+  GRAVE_SINK_MS,
+  HEAP_MS,
+  LAY_MS,
+  GRASS_AFTER_MS,
+  GRASS_MS,
+  MONUMENT_SCALE,
+  SOUL_MS,
+  CORPSE_LIFT_MS,
+  CARRIED_M,
+  BONE_LAG_MS,
+  BONE_TAKE_MS,
+  BONE_SET_MS,
+  MONUMENT_DANCE_SESSIONS,
+  stageStands,
+  monumentPath,
+  MONUMENT_HOST,
+  MONUMENT_LAG_MS,
+  BEARER_HALF_M,
+  stageHunts,
+} from './scene/stages.ts';
+import { type Outing, outingOf } from './scene/outings.ts';
+export {
+  type TreeChunk,
+  type FigureLook,
+  type TreeClip,
+  type Placed,
+  type FigurePose,
+  type PreyClip,
+  type PreyPose,
+  type LodgingPose,
+  type FieldPose,
+  type HearthPose,
+  type SparkPose,
+  type CampPropPose,
+  type ClearingPose,
+  type SpearPose,
+  type PolePose,
+  type TreeScene,
+} from './scene/types.ts';
+export { FIGURE_KM_PER_M, TEMPO, WALK_M_PER_S, LAYOUT_KM_PER_M, lookOf } from './scene/units.ts';
+export {
+  LODGING_RING_M,
+  LODGING_SLOTS,
+  INNER_SPOTS,
+  HEARTH_SPOTS,
+  MAX_OUTING_M,
+  CAMP_ROOM_M,
+  HERD_SCALE,
+  HUT_DOOR_M,
+  RACK_R,
+  SCRAPE_BACK_M,
+  SCRAPE_SIDE_M,
+  BLEND_MS,
+  BUILD_MS,
+  TAKE_DOWN_MS,
+  BUILD_RING_M,
+  THIN_MS,
+  REGROW_MS,
+  CAMP_CLEARING_KM,
+  CAMP_KEEP_OUT_KM,
+  VILLAGE_KEEP_OUT_KM,
+  COMPACT_SITE,
+  MINIMAL_SITE,
+  isCompact,
+  type Layout,
+  MINIMAL_LODGING,
+  layoutOf,
+  ringOf,
+  slotPoint,
+  lodgingSpot,
+  gapDirection,
+  inOutingLane,
+  figureSpot,
+  hasRack,
+} from './scene/camp.ts';
+export { POLE_HALF_M, POLE_ON_SHOULDERS_M, POLE_ON_GROUND_M, VISIT_M } from './scene/hunt.ts';
+export {
+  STAGE_BEYOND_M,
+  CAVE_BEYOND_M,
+  MONUMENT_BEYOND_M,
+  MONUMENT_BUILD_SESSIONS,
+  MONUMENT_DANCE_SESSIONS,
+  MONUMENT_LEAD_WINDOWS,
+  MONUMENT_SINK_DAYS,
+  MONUMENT_SCALE,
+  CAVE_WATER_CLEAR_M,
+  BONE_HUT_BEYOND_M,
+  BONE_ROUNDS,
+  stageBeyond,
+  stageScale,
+  stageSpots,
+  MONUMENT_MIN,
+  MONUMENT_MAX,
+  stagePoints,
+  CAVE_LEAD_MS,
+  CAVE_LINGER_MS,
+  CAVE_FADE_MS,
+  PAINT_FADE_MS,
+  GRAVE_FADE_DAYS,
+  GRAVE_SINK_MS,
+  burialTimes,
+  PAINT_SESSIONS,
+  stageSessions,
+  stageHunts,
+} from './scene/stages.ts';
+export { shownAtMs, departureOf } from './scene/memo.ts';
 
 /** Everything the tree shows at a clock time (section 8.1). */
 export function treeScene(
@@ -4330,243 +2933,3 @@ export function treeScene(
     return pose;
   }
 }
-
-/** The tool each farm clip holds (neolithic/person-clips.md); milking holds none. */
-const CLIP_TOOL: Partial<Record<Leg['clip'], string>> = {
-  till: 'hoe',
-  sow: 'basket',
-  reap: 'sickle',
-  thresh: 'crook',
-  grind: 'grinding-stone',
-  shape: 'pot',
-  spin: 'spindle',
-  milk: 'milk',
-};
-
-/**
- * The tool of the farm work in the trip the leg `n` belongs to (the legs between two rests),
- * found ahead first, so it is in the hand on the walk out and no tool pops in at the field;
- * 'milk' says the hand is empty. Undefined where the trip has no farm work.
- */
-function outingTool(legs: Leg[], n: number, till: string): string | undefined {
-  const toolOf = (clip: Leg['clip']) => (clip === 'till' ? till : CLIP_TOOL[clip]);
-  for (let i = n; i < legs.length && legs[i]!.clip !== 'rest'; i++) {
-    const t = toolOf(legs[i]!.clip);
-    if (t) return t;
-  }
-  for (let i = n - 1; i >= 0 && legs[i]!.clip !== 'rest'; i--) {
-    const t = toolOf(legs[i]!.clip);
-    if (t) return t;
-  }
-  return undefined;
-}
-
-/** What tilling holds: the digging stick where the profile has no hoe (farmingOnset.ts), else the hoe. */
-function tillTool(culture: string | undefined): string {
-  return isProfile(culture) && fieldToolOf(culture, 0) === 'digging-stick'
-    ? 'digging-stick'
-    : 'hoe';
-}
-
-/** A camp event (section 8.1): children's catch or a dance round the fire. */
-interface CampEvent {
-  id: string;
-  /** Catch and dancing, or a scene's session (section 8.2). */
-  kind: 'catch' | 'dance' | 'paint' | 'burial' | 'raise' | 'celebrate' | 'haul';
-  camp: number;
-  /** Figure ids, in their order round the ring. */
-  members: number[];
-  a0: number;
-  r: number;
-  /** Everyone sets off at start, is in place at begin, stops at stop and is back by end. */
-  start: number;
-  begin: number;
-  stop: number;
-  end: number;
-  legs: Map<number, Leg[]>;
-  /** At a scene: where each member stands, and what they face. */
-  stands?: Pt[];
-  face?: Pt;
-  /**
-   * A visit: the host camp's place, the visiting camp's offset from it, and for each visitor
-   * when it leaves home, reaches the host's gate, leaves the gate again and is home.
-   */
-  host?: {
-    lat: number;
-    lon: number;
-    off: Pt;
-    ramps: Map<number, [number, number, number, number]>;
-  };
-}
-
-/** Catch is played at this share of a full run. */
-const CATCH_PACE_SHARE = 0.6;
-
-/** Member i's place on the ring at a share of its own turning (radians already run). */
-function ringPoint(ev: CampEvent, i: number, turned: number): Pt {
-  const a = ev.a0 + (2 * Math.PI * i) / ev.members.length + turned;
-  return { x: ev.r * detCos(a), z: ev.r * detSin(a) };
-}
-
-/**
- * Where member i is at a clock time while the event runs: dancers turn slowly round the
- * fire; in catch everyone runs round the ring, and in each chase "it" runs on ahead along
- * the ring to catch the next and drops back into its place, so nobody crosses the fire.
- */
-function eventPoint(ev: CampEvent, i: number, ms: number): Pt {
-  if (ev.stands) return ev.stands[i]!;
-  const tau = Math.min(Math.max(0, ms - ev.begin), ev.stop - ev.begin);
-  const n = ev.members.length;
-  if (ev.kind === 'dance') return ringPoint(ev, i, (tau * PACE.walk * 0.12) / ev.r);
-  const turned = (tau * PACE.run * CATCH_PACE_SHARE) / ev.r;
-  const j = Math.floor(tau / CHASE_MS);
-  const u = (tau - j * CHASE_MS) / CHASE_MS;
-  if (j % n !== i) return ringPoint(ev, i, turned);
-  const ahead = (2 * Math.PI) / n;
-  const s = u < 0.7 ? smoothstep(u / 0.7) : 1 - smoothstep((u - 0.7) / 0.3);
-  return ringPoint(ev, i, turned + s * ahead);
-}
-
-/** A place a camp stands (section 8.1): its time span, tree cover and the founding times. */
-interface Place {
-  camp: number;
-  lat: number;
-  lon: number;
-  from: number;
-  to: number;
-  wood: number;
-  /** Its first lodging, whose builder lights the fire. */
-  first: TreeLodging;
-  fellEnd: number;
-  litStart: number;
-  litEnd: number;
-  /** When its last hunter-gatherer lodging goes: the fire burns until then; a village has none (Yang, 2026-10-24). */
-  fireTo: number;
-}
-
-/** Where walks reach a lodging's door: outside its walls, on the hearth side. */
-function doorOf(l: TreeLodging): Pt {
-  const p = lodgingSpot(l);
-  const k = 1 - doorM(l.camp) / ringOf(l.camp);
-  return { x: p.x * k, z: p.z * k };
-}
-
-/** Where the drying rack of a lodging slot stands: behind the lodging, out of the lanes. */
-/**
- * Whether a lodging place of a camp has a drying rack behind it: about one in three, by hash,
- * never at a compact camp (section 8.1; Yang, 2026-10-19: "every camp has hides hung up.
- * that's weird. let's only have some").
- */
-export function hasRack(camp: number, slot: number): boolean {
-  return !isCompact(camp) && hash32(camp, slot, 151) % 3 === 0;
-}
-
-/** Whether a lodging's rack and the scraper behind it stand on land: both gaps beside its place reach that far. */
-function rackOnLand(l: TreeLodging): boolean {
-  const near = Math.min(
-    l.reach[l.slot] ?? 0,
-    l.reach[(l.slot + LODGING_SLOTS - 1) % LODGING_SLOTS] ?? 0,
-  );
-  return hasRack(l.camp, l.slot) && near >= RACK_R + SCRAPE_BACK_M + SCRAPE_SIDE_M + 1;
-}
-
-function rackAt(camp: number, slot: number): Pt {
-  const p = slotPoint(camp, slot);
-  return { x: (p.x * RACK_R) / LODGING_RING_M, z: (p.z * RACK_R) / LODGING_RING_M };
-}
-
-/** Where a figure stands behind a lodging's rack, the way round its end to there, and the rack. */
-function rackSides(l: TreeLodging): { side: Pt; behind: Pt; rack: Pt } {
-  const rack = rackSpot(l);
-  const [ux, uz] = [rack.x / RACK_R, rack.z / RACK_R];
-  const behind = { x: rack.x + ux * SCRAPE_BACK_M, z: rack.z + uz * SCRAPE_BACK_M };
-  const side = { x: behind.x - uz * SCRAPE_SIDE_M, z: behind.z + ux * SCRAPE_SIDE_M };
-  return { side, behind, rack };
-}
-
-function rackSpot(l: TreeLodging): Pt {
-  return rackAt(l.camp, l.slot);
-}
-
-/** Where a figure kneels to light the fire: beside the hearth, on a side of its own. */
-function lightSpot(id: number): Pt {
-  const a = hash01(id, 109) * 2 * Math.PI;
-  return { x: LIGHT_M * detCos(a), z: LIGHT_M * detSin(a) };
-}
-
-/** A spear's flight in a hunt: from the hand to the animal or the grass, and when it is pulled out. */
-interface Flight {
-  from: Pt;
-  to: Pt;
-  release: number;
-  hit: boolean;
-  pulled: number;
-}
-
-/** A hunt (section 8.1): who takes part, the places and the moments of its steps. */
-interface Hunt {
-  id: string;
-  /** The hunter's spot at the hearth and the camp, whose lane the hunt follows. */
-  spot: number;
-  camp: number;
-  hunter: number;
-  /** Who hunts with the hunter: one helper, or for a mammoth the rest of the party. */
-  helpers: number[];
-  /** Hunter and helper carry the kill home on the pole (not a mammoth, not alone). */
-  pole: boolean;
-  start: number;
-  end: number;
-  lat: number;
-  lon: number;
-  kind: PreyKind;
-  /** The hunter's lane, out from the hearth. */
-  out: { dirX: number; dirZ: number };
-  /**
-   * Where the hunted animal comes out of the trees, when it does (ROAM_MS before the
-   * hunters set out, so it is seen grazing first), and when it has walked in to graze.
-   */
-  entry: Pt;
-  appear: number;
-  arrive: number;
-  /**
-   * One or two of its herd, which walk in beside it, scatter to their own spots when the
-   * spear lands, stand there for `linger` and fade one by one.
-   */
-  herd: HerdMate[];
-  graze: Pt;
-  kill: Pt;
-  drop: Pt;
-  /** When a missed spear lands and the animal bolts (Infinity without a miss). */
-  alert: number;
-  /** The hunter shoots with a bow (from BOW_FROM), the party too. */
-  bow: boolean;
-  /** A bow hunt's animal moves on after an arrow that does not kill it: when, how long, from where to where, running or walking. */
-  steps: { at: number; dur: number; from: Pt; to: Pt; run: boolean }[];
-  killed: number;
-  bind: number;
-  lift: number;
-  carry: number;
-  put: number;
-  laid: number;
-  /** When the animal has faded away. */
-  gone: number;
-  flights: Flight[];
-  legs: Map<number, Leg[]>;
-}
-
-interface HerdMate {
-  entry: Pt;
-  graze: Pt;
-  scatter: Pt;
-  linger: number;
-}
-
-/** When a herd mate that bolts as the first spear lands reaches its spot aside. */
-function scatterAt(c: HerdMate, landed: number): number {
-  return (
-    landed +
-    Math.ceil(Math.sqrt((c.scatter.x - c.graze.x) ** 2 + (c.scatter.z - c.graze.z) ** 2) / PACE.run)
-  );
-}
-
-const smoothstep = (x: number) => x * x * (3 - 2 * x);
