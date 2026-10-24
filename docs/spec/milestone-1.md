@@ -73,7 +73,8 @@ All are npm scripts, run in the dev container or any machine with the pinned Nod
 | --- | --- |
 | `npm run fetch-data` | Downloads the original source datasets listed in `data/sources.json` into `data/out/` and checks them against their recorded checksums (recording the checksum of a new source); used only when adding or updating a source |
 | `npm run simplify-data` | Turns the original downloads into the simplified extracts under `data/sources/` and records their checksums; used only when adding or updating a source |
-| `npm run build-data` | Runs the offline data build (section 10): terrain tiles, ocean mask, ice, sea-level curve, startup index, chunks, manifest |
+| `npm run build-data` | Runs the offline data build (section 10): terrain tiles, ocean mask, ice, sea-level curve, startup index, chunks, manifest; incremental through its caches (section 10.7.1), `-- --no-cache` or `-- --clean` to force |
+| `npm run verify-cache` | Builds without caches, with a clean fill and from the caches, and fails when the output files differ (section 10.7.2) |
 | `npm run dev` | The dev server on port 8800 |
 | `npm run staging` | The former staging watcher, which kept a checkout on the latest `main` with its dev server on port 8800; no longer used in the devenv (spec section 11) |
 | `npm run build` | Production build of app plus data into `dist/` |
@@ -442,7 +443,34 @@ The data build keeps the results of its slow stages in `data/out/` (git-ignored)
 - **The land cache** (`data/out/cache/<key>/`) holds the map grids, the coarse coasts of the terrain tiles and the climate and foliage slices, stored exactly. Its key is a hash of the source checksums (`data/sources.json`), the land's curated files (straits, islands, removed areas, mountains, humid periods, rivers, inland seas), the build code that makes the land and the climate (everything in `data/build/lib/` but the tree's own files, the terrain, climate and context stages, and the app modules they use) and the options.
 - **The camp sites** ([sites.md](sites.md) section 7) are kept the same way in `data/out/sites/`.
 - **Brotli copies** are kept by the hash of their file's bytes in `data/out/brotli/`, so unchanged files are not compressed again.
-- Each cache keeps only what the latest build used. `npm run build-data -- --fresh` uses and writes no cache. A cached build must write exactly the same files as a fresh one.
+- **The stage cache** (`data/out/stages/`, section 10.7.2) holds the result and the files of whole stages.
+- Each cache keeps only what the latest build used. `npm run build-data -- --no-cache` (also `--fresh`) uses and writes no cache; `--clean` empties every cache first and then fills them. A cached build must write exactly the same files as a fresh one, and `npm run verify-cache` proves it by building without caches, with a clean fill and from the caches, and comparing a hash of every output file.
+
+### 10.7.2 Incremental builds and the stage graph
+
+The build logs the seconds of every stage (`stage seconds:` line at the end), so a slow stage shows. A stage whose result is expensive and depends on little is cached as a whole (Yang, issue 152: "incremental builds that can reuse as much as previous builds as possible"): its return value and every file it wrote are stored under a key, and a later build with the same key replays them, writing the same names and bytes. The key hashes
+
+- the stage's code: its file and every file it imports, transitively (code and JSON, found by reading the `import` lines, so a new import is picked up by itself);
+- the stage's inputs from earlier stages (for the tree: the land cache key, the lens manifest entry, the options);
+- every curated file the stage read through `ctx.curated`, recorded on the run that filled the cache and compared by content hash on the next, so changing `data/curated/farming.json` reruns only the stages that read it.
+
+A stage is cached only when it completes. One entry is kept per stage; the build with `--fixture` caches no stages.
+
+The stage graph (an arrow means the later stage uses the result):
+
+| Stage | Reads | Cache |
+| --- | --- | --- |
+| map | sources, land curated files | land cache |
+| terrain | map | land cache for the coarse coasts; tiles are written every build (about 3 s) |
+| wildlife masks | map, drawn ground | not cached (about 2 s) |
+| climate | map, sources | land cache (climate and foliage slices) |
+| lens | spec event coordinates, `lens-boosts.json`, `lens.json` | lens grids in `data/out/lens/` |
+| farming | map, climate, `farming.json` | not cached (under 1 s) |
+| tree of humankind | map, climate, drawn ground, lens width, culture areas, arrivals, crossings, key places, anchors, encounters, thresholds | stage cache, and the camp sites in `data/out/sites/` |
+| content | curated records, climate, wildlife, tree camps and events | not cached (under 1 s) |
+| manifest, Brotli copies | everything above | Brotli copies by content hash |
+
+The stages run one after another: terrain fills the drawn-ground tiles that the wildlife masks and the tree read, so they are not independent in the current code.
 
 ### 10.8 Data build validation
 
@@ -519,12 +547,12 @@ Whether a `SharedArrayBuffer` would speed up what the workers hand to the main t
 | Worker | Messages | What is sent | Cost on the main thread |
 | --- | --- | --- | --- |
 | Terrain | 710 in 15 s | typed arrays, transferred | 0.1 ms per message, in all 0.5% of a frame budget |
-| Camp scene | 11 a second, about 310 KB each | the scene as nested objects and arrays (poses of figures, animals, lodgings) | about 1.2 ms to receive each, in all about 1.3% of the main thread, 7 ms at most |
+| Camp scene | 11 a second, about 310 KB each | the scene as nested objects and arrays (poses of figures, animals, lodgings) | about 1.2 ms to receive each, in all about 1.3% of the main thread (a full clone out and in took 7.7 ms at most) |
 | Plant placement | one answer per tile and date step | an array of plant objects | too little to show in the profile |
 | Ground tint | one slice at a time, built on the main thread | not a message at all | about 25 ms per slice, a dropped frame or two on every jump into a new slice |
 
 - **Decision: no `SharedArrayBuffer` for now.** The only large flows are the terrain's, which already move without a copy by transfer, and the camp scene's, which is made of objects, not of typed arrays, so shared memory would first need the whole scene turned into flat arrays (a rewrite of `treeScene` and of every reader in `treeLayer`) to save about 1% of the main thread. Shared memory also needs cross-origin isolation (`Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`), and the app's host, GitHub Pages (spec.md, section 10, "Hosting"), cannot send those headers; only a service worker that rewrites the headers could, with a reload on the first visit and a risk to every cross-origin resource. The app must therefore work without isolation in any case, so a shared path would be a second code path that most viewers never run, for no measurable gain. This is revisited if a profile of the real device shows a worker answer taking a noticeable part of a frame, or when the host can set headers.
-- **The cheaper win, done.** The ground tint of a foliage slice moved into the foliage worker (foliage.md, section 7) and comes back as a transferred byte array. The longest main-thread task while jumping through time falls by the 25 ms the tint took. The world is unchanged: the same function makes the same bytes on either side, and a slice is used only when its tint is ready, so the picture never depends on timing.
+- **The cheaper win, done.** The ground tint of a foliage slice moved into the foliage worker (foliage.md, section 7) and comes back as a transferred byte array. Across five jumps over the timeline the main thread spent 127 ms in the tint (`groundTexture` and `blurGrid` in the profile) before and none after. The world is unchanged: the same function makes the same bytes on either side, and a slice is used only when its tint is ready, so the picture never depends on timing.
 - **Rule for later work.** A worker's answer is flat typed arrays that are transferred, not objects, where it is large and frequent. Objects are fine for small or rare answers.
 
 ## 12. Assets in this milestone
