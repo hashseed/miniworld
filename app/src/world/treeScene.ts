@@ -24,7 +24,7 @@ import {
   neolithicProfile,
   type NeolithicProfileId,
 } from './neolithicProfiles.ts';
-import { huntsOf } from './cultures.ts';
+import { huntsOf as preyOf } from './cultures.ts';
 import { roleOf } from './roles.ts';
 import { fieldsOf, herdOf, type HerdAnimal } from './village.ts';
 import { NEVER, type TreeFigure, type TreeLodging, type TreeStage } from './tree.ts';
@@ -3543,7 +3543,7 @@ export function treeScene(
    */
   /** What a hunt goes after, by hash; a mammoth only where and when it can be (MAMMOTH). */
   function preyKindOf(st: Stay, k: number, small = false): PreyKind {
-    const kinds = huntsOf(st.home.culture) as readonly PreyKind[];
+    const kinds = preyOf(st.home.culture) as readonly PreyKind[];
     const kind = forcedHunt(st, k)
       ? 'animal-mammoth'
       : kinds[hash32(st.f.id, k, 79) % kinds.length]!;
