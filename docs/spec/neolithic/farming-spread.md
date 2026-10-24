@@ -16,6 +16,7 @@ T(x)    = max( wave(x), max over holds h containing x of h.notBeforeBce )
 - **Seeds** are the eight centres (`neolithic.json`, with their own dates) and every waypoint of `farming.json`. Each is a dated observation that farming was there; it is also a seed because the wave continues from it.
 - **cost(s, x)** is the least-cost path length from `s` to `x` in years: the sum over path segments of `length_km / kmPerYear(zone)`. The path runs over land cells of the land mask already used for the tree (peopling.md section 4); it may cross open water in hops of at most `seaMaxHopKm` (900 km, approximate); sea hops and the 50 km coastal strip of the Mediterranean and Black Sea are charged at the zone's coastal speed. Zones are lat/lon boxes, first match wins, `default` otherwise. Polynesian voyaging uses `island-voyaging`.
 - **Holds** are boxes with a `notBeforeBce` floor. They stop a wave that is faster than history: farming stood on the Continental coast around 4800 BCE but crossed the Channel only about 4000 BCE (Whittle, Healy & Bayliss 2011, *Gathering Time*), and Polynesian islands were settled late (Wilmshurst et al. 2011, *PNAS* 108).
+- **Irrigated land:** `irrigated` boxes in `farming.json` (the Mesopotamian plain, the lower Indus, the oases round Tehran and Sialk) waive the dry-climate limit, because those places were farmed on river or spring water (Wilkinson 2003; Possehl 2002). Without them the dry rule left Mesopotamia, Sindh and the Iranian plateau with no farming at all.
 - **No farming:** `noFarming` boxes (mainland Australia, Antarctica) never get an onset. Cells whose limits fail the culture area (cold, dry, high: peopling.md section 5.2) also get none; the same limits as the tree, no new numbers.
 - Computation: one Dijkstra over a coarse grid (about 50 km cells) at build time, written to a small raster in the content chunks; at runtime the onset is a lookup, so the world stays a pure function of the date.
 
@@ -40,7 +41,7 @@ Only the first row is a published rate. The others are our fit to the dated wayp
 
 ## 3. Waypoints
 
-`data/curated/farming.json` holds 72 waypoints (Vinča and Cahokia were dropped: they are later cultures on ground where farming had begun, at the Starčevo site and in the Mississippi valley): `id`, `bce` (negative for CE), `lat`, `lon`, `en`, `de`, `package` (`en`, `de`), `source`, optional `"approximate": true`, and `toleranceYears` for the check. Summary by region (dates BCE unless CE):
+`data/curated/farming.json` holds 73 waypoints (Vinča and Cahokia were dropped: they are later cultures on ground where farming had begun, at the Starčevo site and in the Mississippi valley): `id`, `bce` (negative for CE), `lat`, `lon`, `en`, `de`, `package` (`en`, `de`), `source`, optional `"approximate": true`, and `toleranceYears` for the check. Summary by region (dates BCE unless CE):
 
 | Region | Waypoints (date) |
 | --- | --- |
@@ -55,7 +56,9 @@ Only the first row is a published rate. The others are our fit to the dated wayp
 | South Asia | Ganges 6000 (debated), Deccan 3000 |
 | East Asia | Houli 6500, Xinglongwa 6000, Dadiwan 5800, Hemudu 5000, Tibet 3300, Korea (Dongsam-dong millet) 3300, Kyushu 900, Kinki 600, Tohoku 400 |
 | South-East Asia and Pacific | Taiwan 3500, Luzon 2200, Thailand 2000, Vietnam 2000, Marianas 1500, Bismarck 1500, Tonga 900, Samoa 800, Society Is. 1000 CE, Hawaii 1100 CE, Easter Is. 1200 CE, New Zealand 1280 CE |
-| Americas | Ecuador 3500, Caral 3000, Maya lowlands 2500, Arizona 2100, Eastern Agricultural Complex 1800, Titicaca 1500, Caribbean 400, Ohio 200 CE, Taquara 400 CE, Ontario 600 CE |
+| Americas | Panama 4500 (preceramic maize and manioc), Ecuador 3500, Caral 3000, Maya lowlands 2500, Arizona 2100, Eastern Agricultural Complex 1800, Titicaca 1500, Caribbean 400, Ohio 200 CE, Taquara 400 CE, Ontario 600 CE |
+
+Checked against sources on 2026-10-24 and kept: Fayum 5400 (domesticates 5400 to 5200 BCE; caprines about 5600) and Ganj Dareh 8000 (goats managed by about 8200 BCE). East Asia needs no faster zone: with the centre dates of section 9.2 Beijing gets farming 5900 BCE, Seoul 3100, Busan 3400. Colombia follows the Panama waypoint (Cali about 3000, Bogotá 2600 BCE); the Orinoco basin and Caracas stay late (about 1100 to 1250 BCE), as the lowland forest was farmed late.
 
 Most dates outside Europe are approximate; the file says which. Dates of the Sahara, the Ganges, Ethiopia and the Eastern Woodlands are debated and should be shown as "about" in the UI.
 
@@ -112,6 +115,7 @@ Pinhasi, Fort & Ammerman 2005 (PLoS Biology 3(12)); Fort 2015 (J. R. Soc. Interf
 - **Land** is the land mask at the sea level of 6000 BCE, lakes are not land, and a cell is land if any of 5 sample points is. A seed's own cell is always land. Water within 450 km (half of `seaMaxHopKm`) of land is passable, except inside `barriers` (the North Pacific, so the wave cannot cross Beringia by water).
 - **Two waves:** one from all seeds gives the onset; one from the seeds that are not `herdingOnly` gives the first crops. Where the second is later, herding is the stage between the two. The herding-only seeds are Takarkori, Nabta, Yamnaya, Turkana, Kenya Rift and South India.
 - **Exclusion** at the onset year: mean temperature below -5 C, a dry climate by the Köppen rule, ice, and ground above 3500 m (4800 m on the Andean and Tibetan plateaus) get no onset; so do the `noFarming` boxes. Seed cells are always valid.
+- **Arrival after 2000 CE:** a year later than the raster holds (2000 CE) is stored as none, never as a wrapped-round year; before this rule 5,000 cells in Alaska and southern New Zealand read as farmed since the ice age.
 - **File:** u32 little-endian header length, a JSON header `{ seeds }` (id, date, approximate, herding-only, names, package of each seed), then five planes of 720 x 360 bytes: onset high bytes, onset low bytes, crop delay high and low bytes, the index of the seed + 1 that set the onset. A year is stored as `round(bce) + 2001`, 0 meaning none; a delay of 0xffff means no crops. About 1.3 MB, about 60 KB after Brotli.
 
 ### 9.2 Start date of a centre
@@ -120,7 +124,7 @@ A centre's date is when farming first stood at its place; the package is complet
 
 ### 9.3 Holds
 
-Each hold in `farming.json` is a box with a `notBeforeBce`, a source and `approximate`. Besides Britain, Scandinavia and Polynesia there are regional pauses that the dated waypoints force: the Anatolian pause (Aegean 6450), the Balkans 6250, the steppe by river (Don and Pontic 3800, Volga 4600, west of the Dnieper 5300), Cucuteni 5600, the Caucasus 5800, the Iranian plateau 6400, Egypt and the Sahara 5500, the central and western Mediterranean 5900, Ertebølle 4100, Finland 2600; Korea 3500, Hokkaido 700, the Ryukyu Islands 900, Kyushu 1000, eastern Japan 700, Taiwan 3600, mainland South-East Asia 2300, Luzon 2300, Wallacea 1600, the Deccan 3200, Tibet 3500; the Maya lowlands 2900, the Peruvian coast 3200, the altiplano 2100, the American Southwest 2300, the Antilles 500, the Eastern Woodlands 150 CE, southern Brazil 100 CE; and Africa south of the Sahara (West Sahel 2400, Guinea forest 1900, Turkana 3500, Ethiopia 3000, the Rift 1500, the Great Lakes 800, Cameroon 1500, Limpopo 100 CE). The calibration is the fit of section 6: with them every waypoint is within its tolerance and no centre is later than its date.
+Each hold in `farming.json` is a box with a `notBeforeBce`, a source and `approximate`. Besides Britain, Scandinavia and Polynesia there are regional pauses that the dated waypoints force: the Anatolian pause (Aegean 6450), the Balkans 6250, the steppe by river (Don and Pontic 3800, Volga 4600, west of the Dnieper 5300), Cucuteni 5600, the Caucasus 5800, the Iranian plateau 6400, Egypt and the Sahara 5500, the central and western Mediterranean 5900, Ertebølle 4100, Finland 2600; Korea 3500, the Mesopotamian alluvium 6200, the Indus and Ghaggar-Hakra plains 4500, the Russian forest zone 2900, Hokkaido 700, the Ryukyu Islands 900, Kyushu 1000, eastern Japan 700, Taiwan 3600, mainland South-East Asia 2300, Luzon 2300, Wallacea 1600, the Deccan 3200, Tibet 3500; the Maya lowlands 2900, the Peruvian coast 3200, the altiplano 2100, the American Southwest 2300, the Antilles 500, the Eastern Woodlands 150 CE, southern Brazil 100 CE; and Africa south of the Sahara (West Sahel 2400, Guinea forest 1900, Turkana 3500, Ethiopia 3000, the Rift 1500, the Great Lakes 800, Cameroon 1500, Limpopo 100 CE). The calibration is the fit of section 6: with them every waypoint is within its tolerance and no centre is later than its date.
 
 ### 9.4 App module
 

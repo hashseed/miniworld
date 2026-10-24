@@ -13,6 +13,7 @@ import {
   checkFarming,
   computeFarming,
   encodeFarming,
+  inBox,
   type Box,
   type FarmingInput,
   type FarmingSeed,
@@ -55,6 +56,8 @@ interface FarmingFile {
     default: { kmPerYear: number };
   };
   holds: { id: string; box: Box; notBeforeBce: number; source: string }[];
+  /** Boxes where river or spring water waives the dry-climate limit. */
+  irrigated: { id: string; box: Box; source: string }[];
   noFarming: { id: string; box: Box; source: string }[];
   barriers: { id: string; box: Box; source: string }[];
   centres: CentreFile[];
@@ -205,6 +208,7 @@ export function buildFarming(
       elevation: (lat, lon) => elevation.bilinear(lat, lon),
       highestM,
       wetForItsWarmth: (lat, lon, day) => {
+        if (file.irrigated.some((b) => inBox(b.box, lat, lon))) return true;
         const t = climate.temperatureAt(lat, lon, day);
         const mm = climate.precipitationAt(lat, lon, day);
         return t !== undefined && mm !== undefined && mm >= KOPPEN_DRY_MM_PER_C * t + KOPPEN_DRY_MM;

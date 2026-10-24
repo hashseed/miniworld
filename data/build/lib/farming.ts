@@ -392,13 +392,16 @@ export function encodeFarming(r: FarmingRaster, seeds: FarmingSeedInfo[]): Uint8
   const base = 4 + head.length;
   for (let i = 0; i < N; i++) {
     const t = r.onset[i]!;
-    const v = Number.isNaN(t) ? 0 : Math.round(t) + FARMING_YEAR_BIAS;
+    // An arrival after the last year the raster holds (2000 CE) is none, not a wrapped-round year.
+    const year = Math.round(t) + FARMING_YEAR_BIAS;
+    const v = Number.isNaN(t) || year <= 0 ? 0 : year;
     const f = r.farming[i]!;
-    const d = Number.isNaN(t)
-      ? 0
-      : Number.isNaN(f)
-        ? 0xffff
-        : Math.min(0xfffe, Math.max(0, Math.round(t) - Math.round(f)));
+    const d =
+      v === 0
+        ? 0
+        : Number.isNaN(f)
+          ? 0xffff
+          : Math.min(0xfffe, Math.max(0, Math.round(t) - Math.round(f)));
     // High bytes, then low bytes, so the smooth part compresses on its own.
     out[base + i] = v >> 8;
     out[base + N + i] = v & 255;

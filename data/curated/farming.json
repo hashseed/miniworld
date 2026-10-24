@@ -555,6 +555,62 @@
       "notBeforeBce": 4100,
       "approximate": true,
       "source": "The Ertebølle foragers of southern Scandinavia kept their way of life until about 3950 BCE; Sørensen & Karg 2014, J. Archaeol. Sci. 51"
+    },
+    {
+      "id": "mesopotamian-alluvium",
+      "box": {
+        "lat": [30.5, 34],
+        "lon": [43, 48.5]
+      },
+      "notBeforeBce": 6200,
+      "approximate": true,
+      "source": "Irrigated farming on the southern plain began with the Samarra culture, about 6200 BCE; Oates & Oates 1976; Wilkinson 2003"
+    },
+    {
+      "id": "indus-plains",
+      "box": {
+        "lat": [24, 32.5],
+        "lon": [68, 77]
+      },
+      "notBeforeBce": 4500,
+      "approximate": true,
+      "source": "Villages on the Indus and Ghaggar-Hakra plains from about 4500 BCE, the early Harappan; Possehl 2002, The Indus Civilization; Fuller 2011, Rice 4"
+    },
+    {
+      "id": "russian-forest",
+      "box": {
+        "lat": [54, 62],
+        "lon": [30, 60]
+      },
+      "notBeforeBce": 2900,
+      "approximate": true,
+      "source": "The Fatyanovo-Balanovo culture of the Corded Ware complex brought herding and probably crops to the Upper Volga and Oka forests, 2900 to 2050 BCE, replacing the Volosovo foragers; Kristiansen et al. 2017, Antiquity 91"
+    }
+  ],
+  "irrigated": [
+    {
+      "id": "mesopotamia",
+      "box": {
+        "lat": [30.5, 36.5],
+        "lon": [43, 48.5]
+      },
+      "source": "Farming on river water: Ubaid and Samarra irrigation from about 6200 BCE (Oates & Oates 1976; Wilkinson 2003, Archaeological Landscapes of the Near East)"
+    },
+    {
+      "id": "lower-indus",
+      "box": {
+        "lat": [24, 31],
+        "lon": [66.5, 71.5]
+      },
+      "source": "Farming on the Indus floods and its channels; Fuller 2011, Rice 4; Possehl 2002, The Indus Civilization"
+    },
+    {
+      "id": "iranian-oases",
+      "box": {
+        "lat": [33.5, 36.5],
+        "lon": [49.5, 53]
+      },
+      "source": "Villages at Sialk and Cheshmeh Ali on spring and stream water from about 6000 BCE; Fazeli Nashli et al. 2010"
     }
   ],
   "noFarming": [
@@ -1467,6 +1523,21 @@
       "source": "Pohl et al. 2007; Kennett et al. 2020, Nature Human Behaviour 4",
       "approximate": true,
       "toleranceYears": 500
+    },
+    {
+      "id": "panama",
+      "bce": 4500,
+      "lat": 8.2,
+      "lon": -80.6,
+      "en": "Panama (Aguadulce Shelter, Cueva de los Ladrones)",
+      "de": "Panama (Aguadulce-Felsdach, Cueva de los Ladrones)",
+      "package": {
+        "en": "Maize, manioc, squash, arrowroot",
+        "de": "Mais, Maniok, Kürbis, Pfeilwurz"
+      },
+      "source": "Maize and manioc starch on grinding stones of the preceramic horizons, 7800 to 5000 years ago; Piperno & Pearsall 1998; Dickau et al. 2007, PNAS 104",
+      "approximate": true,
+      "toleranceYears": 700
     },
     {
       "id": "ecuador-coast",
