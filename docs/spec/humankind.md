@@ -179,7 +179,25 @@ Nothing about the tree is simulated in the app. The world query loads the tree c
 
 The tree's chunks are split by time only: one file per minute of watching (**Proposed**; one per window of the timeline axis while the tree held only Africa), each holding the lodgings standing and the figures alive in it and in the minute before (for walks under way), with each figure's homes up to the first after the window, since what it does before a move depends on the move (Yang, 2026-10-20: "occasionally I see people's animations stop and replaced by a completely new animation, which resets the position of the people very abruptly": until then the scene in a window's last moments differed between its file and the next, and people jumped when the app moved on), and the app loads the file of the clock's minute and the next. Once the tree spreads beyond Africa (peopling.md), the app works out only the camps near the view each frame. The camp scene (who stands where, doing what, `treeScene`) is worked out in a Web Worker (Yang, 2026-10-20: optimizations, without shared memory): the app sends each tree file to the worker once, asks it each frame for the scene at the clock's time on the camera's side of the globe, and draws the newest answer while the clock runs, at most a few frames old. While the clock stands still, after a jump, or where no answer for the time is at hand, the app works the scene out itself, so a paused picture is always exact and the same as the worker's. The split by tile follows if a minute's file grows past about 100 KB compressed.
 
-**Where the scene's code lives.** `treeScene(chunk, ms, startDay, near)` in `app/src/world/treeScene.ts` composes the scene; what it builds on lives in `app/src/world/scene/`, one module per part of the camp's life: `types.ts` (the chunk it reads and the poses it returns, the contract with the renderer), `units.ts` (scales, paces, places and looks), `camp.ts` (the ring of lodgings and spots, timings of the camp's work, outings' lanes, held tools, the camp events' places), `hunt.ts` (prey, throws, bow shots, carrying the kill, herds), `stages.ts` (the scenes at anchors of section 8.2), `routes.ts` (walks round obstacles), `outings.ts` (which outing a figure takes) and `memo.ts` (what is worked out once per chunk: stays, places, villages). A new kind of activity or scene adds its constants and pure helpers to the module it belongs to, or a module of its own, rather than to `treeScene.ts`. These modules are world code: the lint rules of milestone-2 section 2.3 apply to them as to the rest of `app/src/world/`.
+**Where the scene's code lives.** `treeScene(chunk, ms, startDay, near)` in `app/src/world/treeScene.ts` composes the scene: it works out the lookups of one call (the chunk's memo, who lives where, each figure's stays and turns) and asks the parts for poses. The parts live in `app/src/world/scene/`, one module per part of the camp's life:
+
+| Module | Holds |
+| --- | --- |
+| `types.ts` | the chunk the scene reads and the poses it returns: the contract with the renderer |
+| `units.ts` | scales, paces, places and looks |
+| `camp.ts` | the ring of lodgings and spots, timings of the camp's work, outings' lanes, held tools, the camp events' places |
+| `memo.ts` | what is worked out once per chunk: stays, places, villages |
+| `stays.ts` | a figure's stays at camps and its walks between them |
+| `turns.ts` | what a figure goes off to do in each turn of its day |
+| `poses.ts` | where a figure is and what it does at a clock time |
+| `campEvents.ts` | catch, dances, visits and feasts |
+| `hunt.ts`, `huntPlans.ts` | prey, throws and bow shots; who hunts when, and the hunt's plan and props |
+| `stages.ts`, `stageEvents.ts` | the scenes at anchors of section 8.2 and their sessions |
+| `villageLife.ts` | the fields' jobs of a Neolithic village and what the village shows |
+| `routes.ts`, `outings.ts` | walks round obstacles; which outing a figure takes |
+| `context.ts` | `SceneCx`, the lookups of one call that the parts share |
+
+A part is a plain function that takes the members of `SceneCx` it needs (`Pick<SceneCx, …>`) and its own arguments; `treeScene()` builds the `SceneCx` once per call and keeps a short wrapper of each part under its old name, so the parts call each other as before and a scene is the same whatever module a part lives in. A new kind of activity or scene is a new part, or an addition to the module it belongs to, not more code in `treeScene.ts`. These modules are world code: the lint rules of milestone-2 section 2.3 apply to them as to the rest of `app/src/world/`.
 
 ### 8.1 Drawing a camp
 
