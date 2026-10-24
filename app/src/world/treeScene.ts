@@ -83,6 +83,8 @@ const INNER_ORDER = [0, 4, 2, 6, 1, 5, 3, 7];
 const OUTER_ORDER = [0, 6, 3, 9, 1, 7, 4, 10, 2, 8, 5, 11];
 /** Paths keep this far from the middle of the hearth, in layout metres, so nobody walks through the fire. */
 const FIRE_CLEAR_M = 3;
+/** The threshing floor lies 8 m out through a gap: only where the gap has land that far and a little beyond. */
+const THRESH_ROOM_M = 10;
 /** Figures leave and enter a camp at this distance from its hearth, between the people and the lodgings. */
 const GATE_M = 7;
 /** The farthest out anyone goes, in layout metres; the build measures land this far out. */
@@ -1222,6 +1224,7 @@ function activity(
   id: number,
   ms: number,
   knaps: boolean,
+  village = false,
 ): Pick<FigurePose, 'clip' | 'clipMs' | 'from'> {
   const period = ACTIVITY_MIN_MS + (hash32(id, 53) % ACTIVITY_SPREAD_MS);
   const shifted = ms + (hash32(id, 59) % period);
@@ -1230,6 +1233,8 @@ function activity(
   // nuts a tenth, telling a story a twelfth and knapping an eighth (humankind.md section 8.1).
   const clipOf = (n: number): TreeClip => {
     const h = hash32(id, n, 61) % 120;
+    // A village has no fire to tend and no nuts to crack by it (Yang, 2026-10-24).
+    if (village && h >= 60 && h < 96) return h < 78 ? 'idle' : 'sit';
     if (h < 30) return 'idle';
     if (h < 60) return 'sit';
     if (h < 84) return 'work';
@@ -1821,9 +1826,11 @@ export function treeScene(
           fellEnd: arrived,
           litStart: arrived,
           litEnd: arrived,
+          fireTo: isProfile(l.culture) ? -Infinity : gone,
         });
       else {
         if (arrived < p.from) [p.from, p.first] = [arrived, l];
+        if (!isProfile(l.culture)) p.fireTo = Math.max(p.fireTo, gone);
         p.to = Math.max(p.to, gone);
         p.wood = Math.max(p.wood, l.wood ?? 0);
       }
@@ -1832,14 +1839,14 @@ export function treeScene(
       if (p.from <= 0) continue;
       p.fellEnd = p.from;
       p.litStart = p.fellEnd;
-      p.litEnd = p.litStart + FLINT_MS;
+      p.litEnd = isProfile(p.first.culture) ? p.litStart : p.litStart + FLINT_MS;
     }
     // No lodging goes up before the felling is done, nor the lighter's before the fire is lit.
     for (const l of chunk.lodgings) {
       const p = places.get(placeKey(l))!;
       if (p.from <= 0) continue;
       let shown = Math.max(appears.get(l.id)!, p.fellEnd);
-      if (l === p.first) {
+      if (l === p.first && !isProfile(l.culture)) {
         const crew = builders.get(l.id) ?? [l.builder];
         const work = buildSpot(Math.max(0, crew.indexOf(l.builder)), crew.length, l);
         shown = Math.max(
@@ -1954,7 +1961,7 @@ export function treeScene(
     }
   }
   for (const p of places.values()) {
-    if (ms >= p.from && ms < p.to && !scene.hearths.some((h) => h.camp === p.camp)) {
+    if (ms >= p.from && ms < p.fireTo && !scene.hearths.some((h) => h.camp === p.camp)) {
       // The flames rise from nothing as the fire catches.
       const lit = p.from <= 0 ? 1 : Math.min(1, Math.max(0, (ms - p.litStart) / FLINT_MS));
       scene.hearths.push({ camp: p.camp, lat: p.lat, lon: p.lon, lit });
@@ -2928,7 +2935,13 @@ export function treeScene(
             : new Itinerary(-Infinity, spot, home.camp);
       // At a new camp the first builder lights the fire with flint stones (section 8.1).
       const place = places.get(placeKey(home))!;
-      if (builds && home === place.first && f.id === home.builder && place.from > 0)
+      if (
+        builds &&
+        home === place.first &&
+        f.id === home.builder &&
+        place.from > 0 &&
+        place.litEnd > place.litStart
+      )
         plan
           .go(lightSpot(f.id))
           .stay(place.litStart, 'idle', { x: 0, z: 0 })
@@ -3023,16 +3036,19 @@ export function treeScene(
     if (memo.workers.has(key)) return memo.workers.get(key);
     const t = slot * JOB_MS;
     const ids: number[] = [];
+    const others: number[] = [];
     for (const f of mates(camp)) {
       const st = stayAt(f, t);
       if (!st || st.home.camp !== camp || st.look === 'child' || t < st.free || t >= st.busy)
         continue;
       if (!isProfile(st.home.culture)) continue;
       const role = roleOf(st.home.culture, f.id);
-      if (role === 'farmer' || role === 'reaper') ids.push(f.id);
+      (role === 'farmer' || role === 'reaper' ? ids : others).push(f.id);
     }
-    ids.sort((a, b) => a - b);
-    const worker = ids.length ? ids[hash32(camp, slot, 263) % ids.length] : undefined;
+    // With no farmer at home, any grown-up of the village takes the job: a field is never left untended.
+    const pool = ids.length ? ids : others;
+    pool.sort((a, b) => a - b);
+    const worker = pool.length ? pool[hash32(camp, slot, 263) % pool.length] : undefined;
     memo.workers.set(key, worker);
     return worker;
   }
@@ -3074,7 +3090,7 @@ export function treeScene(
     const role = roleOf(profile, st.f.id);
     const assigned = assignedField(st, k) !== undefined;
     if (!assigned && hash01(st.f.id, k, 241) >= FARM_WORK_SHARE) return undefined;
-    switch (role) {
+    switch (assigned ? 'farmer' : role) {
       case 'farmer':
       case 'reaper': {
         const w = fieldSpot(st, k);
@@ -3117,7 +3133,7 @@ export function treeScene(
         ? 'rest'
         : (farmOuting(st, k, turnStart) ?? outingOf(st.f.id, st.look, k));
     const own = !plain && planned !== 'hunt' ? huntOf(st, k - 1) : undefined;
-    const roast = !!own && own.pole && killAt(st, turnStart) === own;
+    const roast = !isProfile(st.home.culture) && !!own && own.pole && killAt(st, turnStart) === own;
     const outing = roast ? 'cook' : planned;
     // Outings stay on land: each goes only as far as its gap has land, or not at all.
     const room = outingRoom(st.s, st.home);
@@ -3125,6 +3141,8 @@ export function treeScene(
       outing === 'hunt' && room < PREY_REACH_M ? (room >= GATHER_M ? 'gather' : 'rest') : outing;
     const sure = kind === 'gather' && room < GATHER_M ? (room >= 16 ? 'stroll' : 'rest') : kind;
     let go: Outing = sure === 'stroll' && room < 13 ? 'rest' : sure;
+    // No fire in a village: nobody cracks nuts or roasts at it.
+    if (isProfile(st.home.culture) && (go === 'crack' || go === 'cook')) go = 'rest';
     if (go === 'firewood' && room < FIREWOOD_M + 1) go = 'rest';
     // A compact camp has no drying racks.
     if ((go === 'scrape' || go === 'rack' || go === 'flay') && !rackOnLand(st.home)) go = 'rest';
@@ -3222,7 +3240,7 @@ export function treeScene(
       const w = fieldSpot(st, k);
       if (!w || Math.sqrt(w.at.x ** 2 + w.at.z ** 2) > MAX_OUTING_M - 2) return { go: 'rest' };
       trip.go(w.at).stay(trip.t + FIELD_WORK_MS, go, w.face);
-      if (go === 'reap') {
+      if (go === 'reap' && room >= THRESH_ROOM_M) {
         const floor = outingPoint(st.s, camp, 8);
         trip
           .go(floor, 'carry')
@@ -3230,6 +3248,7 @@ export function treeScene(
       }
       trip.go(st.spot);
     } else if (go === 'thresh') {
+      if (room < THRESH_ROOM_M) return { go: 'rest' };
       // The threshing floor between the lodgings and the fire.
       const floor = outingPoint(st.s, camp, 8);
       trip
@@ -4280,7 +4299,7 @@ export function treeScene(
       return withHost(eventPose(event, f.id, ms, base), event, f.id, ms);
     const motion =
       leg.clip === 'rest'
-        ? activity(f.id, ms, look !== 'child')
+        ? activity(f.id, ms, look !== 'child', isProfile(home.culture))
         : leg.clip === 'inside' || leg.clip === 'event'
           ? { clip: 'idle' as const, clipMs: 0 }
           : { clip: leg.clip, clipMs: ms - (leg.start === -Infinity ? 0 : leg.start) };
@@ -4314,7 +4333,7 @@ export function treeScene(
       leg.clip !== 'rest' &&
       leg.clip !== 'inside'
     ) {
-      const was = activity(f.id, leg.start, look !== 'child').clip;
+      const was = activity(f.id, leg.start, look !== 'child', isProfile(home.culture)).clip;
       if (was !== leg.clip)
         pose.from = { clip: was, clipMs: ms - leg.start, weight: (ms - leg.start) / BLEND_MS };
     }
@@ -4431,6 +4450,8 @@ interface Place {
   fellEnd: number;
   litStart: number;
   litEnd: number;
+  /** When its last hunter-gatherer lodging goes: the fire burns until then; a village has none (Yang, 2026-10-24). */
+  fireTo: number;
 }
 
 /** Where walks reach a lodging's door: outside its walls, on the hearth side. */

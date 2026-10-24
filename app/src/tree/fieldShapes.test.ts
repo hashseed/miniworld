@@ -52,14 +52,14 @@ const mountain = (x: number, z: number) => Math.hypot(x - 6.5, z + 4) < 1.2;
 const sea = (x: number) => x < -0.6; // the sea lies west of this line
 
 describe('layoutFields', () => {
-  it.each([1, 2, 3, 7, 42, 1000])('gives 3 to 10 fields in open country (seed %i)', (seed) => {
+  it.each([1, 2, 3, 7, 42, 1000])('gives 3 to 5 fields in open country (seed %i)', (seed) => {
     const fields = layoutFields(base(seed));
     expect(fields.length).toBeGreaterThanOrEqual(3);
-    expect(fields.length).toBeLessThanOrEqual(10);
+    expect(fields.length).toBeLessThanOrEqual(5);
   });
 
-  it('fills the space it is given up to 10 fields', () => {
-    expect(layoutFields(base(5)).length).toBe(10);
+  it('fills the space it is given up to 5 fields', () => {
+    expect(layoutFields(base(5)).length).toBe(5);
     expect(layoutFields(base(5, { want: 4 })).length).toBe(4);
   });
 

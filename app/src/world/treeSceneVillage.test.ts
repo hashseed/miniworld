@@ -107,6 +107,22 @@ describe('a Neolithic village in the tree scene', () => {
     }
   });
 
+  it("has no fire in a village, but keeps the herders' (Yang, 2026-10-24)", () => {
+    for (const s of all) {
+      expect(s.hearths.some((h) => h.camp === 0)).toBe(false);
+      expect(s.sparks.length).toBe(0);
+      expect(s.props.some((p) => p.kind === 'prop-spit' && p.id.includes('0'))).toBe(false);
+    }
+    expect(all.some((s) => s.hearths.some((h) => h.camp === 1))).toBe(true);
+  });
+
+  it('has villagers who never crack nuts by a fire', () => {
+    const start = msAtDay(d0 + years(1), d0) + 90_000;
+    for (let t = 0; t < 300_000; t += 7_000)
+      for (const f of treeScene(chunk, start + t, d0).figures)
+        if (f.id % 2 === 0) expect(f.clip).not.toBe('crack');
+  });
+
   it('is the same scene every time', () => {
     const again = scenes();
     expect(JSON.stringify(again)).toBe(JSON.stringify(all));

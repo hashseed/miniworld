@@ -142,10 +142,12 @@ export class FieldGround {
           // The rows show as stripes in young crops and fill in as it grows.
           float rows = mix(ridge, 1.0, smoothstep(0.3, 0.7, s));
           vec3 colour = mix(base, crop * (0.85 + 0.2 * ridge), cover * rows);
-          // A darker bund along the rim, and a soft edge.
-          colour = mix(vec3(0.36, 0.25, 0.14), colour, smoothstep(0.02, 0.1, vRim));
-          float edge = smoothstep(0.0, 0.05, vRim);
-          gl_FragColor = vec4(colour, vAlpha * amount * edge * 0.95);
+          // No hard boundary (Yang, 2026-10-24): the tilled earth thins out into the ground over the
+          // outer metre or two, ragged where a plough and a hoe would stop.
+          float n = 0.5 + 0.25 * sin(vLocal.x * 1.9 + vLocal.y * 0.7) * cos(vLocal.y * 2.3 - vLocal.x * 0.6)
+            + 0.25 * sin(vLocal.x * 5.1 - vLocal.y * 4.3);
+          float edge = smoothstep(0.0, 1.5, vRim + 0.9 * (n - 0.5));
+          gl_FragColor = vec4(colour, vAlpha * amount * edge * edge * 0.95);
         }`,
     });
     this.mesh = new THREE.Mesh(new THREE.BufferGeometry(), material);

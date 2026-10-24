@@ -41,12 +41,12 @@ export interface FieldInput {
   want?: number;
 }
 
-export const MAX_FIELDS = 10;
+export const MAX_FIELDS = 5;
 /** Distance every outline keeps from anything blocked, from the ring and from the water. */
 export const FIELD_MARGIN_M = 0.08;
-const REACH_M = 3.2;
-const SITE_SPACING_M = 1.1;
-const CAP_RADIUS_M = 0.62;
+const REACH_M = 3.6;
+const SITE_SPACING_M = 1.5;
+const CAP_RADIUS_M = 0.85;
 const PATH_INSET_M = 0.09;
 const MIN_AREA_M2 = 0.16;
 const CAP_SIDES = 24;

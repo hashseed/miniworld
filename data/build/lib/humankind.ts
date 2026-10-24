@@ -72,6 +72,9 @@ export const DENSITIES: Record<Density, { spacingKm: number; band: [number, numb
   medium: { spacingKm: 600, band: [3, 5] },
 };
 
+/** A village of farmers grows to VILLAGE_MIN people plus a hash of its id below VILLAGE_SPREAD (Yang, 2026-10-24). */
+const VILLAGE_MIN = 12;
+const VILLAGE_SPREAD = 9;
 /** Figures a lodging holds, and lodgings a camp may have (section 4.1, Proposed). */
 export const LODGING_CAPACITY = 4;
 export const MAX_LODGINGS = 5;
@@ -247,6 +250,8 @@ export interface TreeSettings {
   spacing?(lat: number, lon: number, day: Day): number | undefined;
   /** The culture of the area at a place and day (peopling.md section 5.1); without it, every camp is the founder's. */
   culture?(lat: number, lon: number, day: Day): string | undefined;
+  /** Whether a culture's camps are villages of farmers, which grow bigger than a band (humankind.md section 4.1). */
+  village?(culture: string): boolean;
   /** Whether the way of life of the area at a place lets people camp there on a day: cold and height (peopling.md section 5.2). */
   livable?(lat: number, lon: number, day: Day): boolean;
   /** The first day people may camp at a place, from the arrival map (peopling.md section 4). */
@@ -2015,6 +2020,9 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       // A camp that a band joined this step waits for the next, so nobody has two moves a day.
       // An encounter's camp neither roams, buds nor grows (sites.md section 4.3).
       if (camp.lodgings.length === 0 || joined.has(camp) || camp.gathering) continue;
+      // A village needs hands for its fields: it grows well past a band's size (humankind.md section 4.1).
+      if (camp.culture && s.village?.(camp.culture) && !isHeld(camp, day))
+        camp.target = Math.max(camp.target, VILLAGE_MIN + (hash32(camp.id, 13) % VILLAGE_SPREAD));
       // Near a Neolithic threshold that has come, camps settle (peopling.md section 3.6).
       if (
         !camp.settled &&

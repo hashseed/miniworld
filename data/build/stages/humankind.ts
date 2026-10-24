@@ -514,6 +514,7 @@ export function buildHumankind(
   const areaCulture = treeSettings.culture;
   treeSettings.culture = (lat, lon, day) =>
     farmingStateAt(lat, lon, day).profile ?? areaCulture?.(lat, lon, day);
+  treeSettings.village = (culture) => culture in NEOLITHIC_PROFILES;
   treeSettings.herding = (culture, lat, lon, day) =>
     !(culture && culture in NEOLITHIC_PROFILES) &&
     farmingStateAt(lat, lon, day).stage === 'herding';
