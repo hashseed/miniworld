@@ -110,6 +110,46 @@
       "en": "Farmers of the Konya Plain: Aşıklı Höyük and Çatalhöyük",
       "de": "Bauern der Konya-Ebene: Aşıklı Höyük und Çatalhöyük",
       "source": "Hodder, I. 2006, The Leopard's Tale: Revealing the Mysteries of Çatalhöyük, Thames & Hudson (Çatalhöyük East c. 7100-5950 BCE); Esin, U. and Harmankaya, S. 1999, Aşıklı, in Neolithic in Turkey (Aşıklı Höyük c. 8200-7400 BCE)"
+    },
+    {
+      "id": "jericho",
+      "bce": 8000,
+      "until": 6000,
+      "lat": 31.871,
+      "lon": 35.444,
+      "en": "First farmers of the Fertile Crescent: Jericho",
+      "de": "Erste Bauern des Fruchtbaren Halbmonds: Jericho",
+      "source": "Kenyon, K. 1957, Digging Up Jericho, Ernest Benn (Pre-Pottery Neolithic A and B, c. 9600-6000 BCE); Zeder, M. 2011, The origins of agriculture in the Near East, Current Anthropology 52 S4"
+    },
+    {
+      "id": "nanchoc",
+      "bce": 8000,
+      "until": 6000,
+      "lat": -6.85,
+      "lon": -79.2,
+      "en": "First farmers of the Andes: the Ñanchoc Valley",
+      "de": "Erste Bauern der Anden: das Ñanchoc-Tal",
+      "source": "Dillehay, T. et al. 2007, Preceramic adoption of peanut, squash, and cotton in northern Peru, Science 316, 1890-1893 (squash c. 8000 BCE)"
+    },
+    {
+      "id": "mehrgarh",
+      "bce": 7000,
+      "until": 5500,
+      "lat": 29.38,
+      "lon": 67.62,
+      "en": "Mehrgarh: farmers and herders at the edge of the Indus plain",
+      "de": "Mehrgarh: Bauern und Hirten am Rand der Indusebene",
+      "source": "Jarrige, J.-F. et al. 1995, Mehrgarh: Field Reports 1974-1985, from Neolithic Times to the Indus Civilization (Period I, c. 7000-5500 BCE)"
+    },
+    {
+      "id": "kuk",
+      "bce": 8000,
+      "until": 6400,
+      "lat": -5.78,
+      "lon": 144.33,
+      "en": "Kuk Swamp: gardeners of the New Guinea Highlands",
+      "de": "Kuk-Sumpf: Gärtner im Hochland von Neuguinea",
+      "source": "Denham, T. et al. 2003, Origins of agriculture at Kuk Swamp in the highlands of New Guinea, Science 301, 189-193 (plant tending c. 8000 BCE, debated; mounded gardens c. 5000 BCE)"
     }
   ]
 }
