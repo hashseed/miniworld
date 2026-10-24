@@ -1,5 +1,50 @@
 {
   "source": "docs/spec/wildlife.md section 3",
+  "models": {
+    "animal-parrot": {
+      "moves": "fly"
+    },
+    "animal-kea": {
+      "moves": "fly",
+      "drawnM": 1.2
+    },
+    "animal-haast-eagle": {
+      "moves": "fly",
+      "drawnM": 2.2
+    },
+    "animal-whale": {
+      "moves": "swim",
+      "swim": "dive"
+    },
+    "animal-dolphin": {
+      "moves": "swim",
+      "swim": "leap"
+    },
+    "animal-sea-cow": {
+      "moves": "swim",
+      "swim": "float"
+    },
+    "animal-crocodile": {
+      "roamKm": 80,
+      "roundSeconds": 18,
+      "walkShare": 0.4
+    },
+    "animal-lion": {
+      "others": "animal-lioness"
+    },
+    "animal-gorilla": {
+      "others": "animal-gorilla-female"
+    },
+    "animal-capybara": {
+      "drawnM": 1.2
+    },
+    "animal-wolf": {
+      "shrink": 0.75
+    },
+    "animal-cave-lion": {
+      "shrink": 0.85
+    }
+  },
   "groups": [
     {
       "species": "african-elephant",

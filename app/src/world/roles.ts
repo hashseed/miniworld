@@ -3,7 +3,8 @@
 
 import { hash01 } from '../core/hash.ts';
 import {
-  NEOLITHIC_PROFILES,
+  NEOLITHIC_ROLES,
+  neolithicProfile,
   type NeolithicProfileId,
   type NeolithicRole,
 } from './neolithicProfiles.ts';
@@ -29,9 +30,11 @@ export const ROLE_NOUNS: Record<NeolithicRole, RoleNoun> = {
 
 /** The role of a grown-up of a profile, drawn by hash from the profile's mix (shares sum to 100). */
 export function roleOf(profile: NeolithicProfileId, id: number): NeolithicRole {
-  const mix = NEOLITHIC_PROFILES[profile].mix;
+  const mix = neolithicProfile(profile).mix;
   let roll = hash01(id, 97) * 100;
-  for (const [role, share] of Object.entries(mix) as [NeolithicRole, number][]) {
+  // In the vocabulary's order, so the draw never depends on how the table orders a mix.
+  for (const role of NEOLITHIC_ROLES) {
+    const share = mix[role];
     if (roll < share) return role;
     roll -= share;
   }

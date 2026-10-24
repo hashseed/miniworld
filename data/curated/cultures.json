@@ -1,0 +1,391 @@
+{
+  "description": "Culture profiles (spec milestone-2 section 4, peopling.md section 5.1, neolithic/people-profiles.md), one row per id of app/src/world/cultures.ts, until culture records exist (content-format.md section 5): the camp lodging, the animals the profile hunts and, for a farming profile, its labels, farming region ids (farming.json), interim area boxes as [south, north, west, east] with a rank (where boxes overlap, the lower rank wins), architecture set, tools by kind, field tool, the year BCE it takes up the ard, role mix in percent, herd and crops. Looks are in assets/src/people.ts.",
+  "cultures": [
+    {
+      "id": "african-stone-age",
+      "lodging": "shelter-grass-hut",
+      "hunts": ["animal-zebra", "animal-eland"]
+    },
+    {
+      "id": "neanderthal",
+      "lodging": "shelter-windbreak"
+    },
+    {
+      "id": "coastal-asia-hunter",
+      "lodging": "shelter-grass-hut",
+      "hunts": ["animal-gazelle"]
+    },
+    {
+      "id": "first-australians",
+      "lodging": "shelter-bark",
+      "hunts": ["animal-kangaroo"]
+    },
+    {
+      "id": "ice-age-hunter",
+      "lodging": "shelter-hide-tent",
+      "hunts": ["animal-reindeer", "animal-aurochs", "animal-mammoth"]
+    },
+    {
+      "id": "steppe-beringia-hunter",
+      "lodging": "shelter-hide-tent",
+      "hunts": ["animal-reindeer", "animal-mammoth"]
+    },
+    {
+      "id": "natufian",
+      "lodging": "shelter-natufian-house",
+      "hunts": ["animal-gazelle", "animal-aurochs"]
+    },
+    {
+      "id": "old-kingdom-egyptian"
+    },
+    {
+      "id": "west-asia-hunter",
+      "lodging": "shelter-hide-tent",
+      "hunts": ["animal-gazelle", "animal-aurochs"]
+    },
+    {
+      "id": "east-asia-hunter",
+      "lodging": "shelter-hide-tent",
+      "hunts": ["animal-gazelle"]
+    },
+    {
+      "id": "first-americans",
+      "lodging": "shelter-hide-tent",
+      "hunts": ["animal-guanaco"]
+    },
+    {
+      "id": "pre-pottery-neolithic-levant",
+      "lodging": "shelter-pre-pottery-levant-house",
+      "en": "Pre-Pottery Neolithic farmers of the Levant",
+      "de": "Frühe Bauern der Levante (vorkeramisches Neolithikum)",
+      "farming": {
+        "regions": ["fertile-crescent"],
+        "areas": [[29, 38, 34, 49]],
+        "areaRank": 3,
+        "architecture": ["shelter-pre-pottery-levant-house", "shelter-natufian-house"],
+        "tools": {
+          "man": "sickle",
+          "woman": "grinding-stone",
+          "child": "basket"
+        },
+        "fieldTool": "hoe",
+        "mix": {
+          "farmer": 20,
+          "reaper": 12,
+          "herder": 10,
+          "potter": 0,
+          "weaver": 6,
+          "builder": 12,
+          "grinder": 14,
+          "hunter": 12,
+          "gatherer": 8,
+          "fisher": 0,
+          "toolmaker": 6
+        },
+        "herd": ["animal-goat", "animal-sheep", "animal-dog"],
+        "crops": ["emmer", "einkorn", "barley", "lentil"]
+      }
+    },
+    {
+      "id": "anatolian-farmer",
+      "lodging": "shelter-anatolian-house",
+      "en": "Farmers of Anatolia",
+      "de": "Bauern Anatoliens",
+      "farming": {
+        "regions": ["fertile-crescent"],
+        "areas": [[36, 41.5, 26, 37.5]],
+        "areaRank": 2,
+        "architecture": ["shelter-anatolian-house"],
+        "tools": {
+          "man": "hoe",
+          "woman": "pot",
+          "child": "basket"
+        },
+        "fieldTool": "hoe",
+        "ardFromBce": 4500,
+        "mix": {
+          "farmer": 20,
+          "reaper": 10,
+          "herder": 12,
+          "potter": 8,
+          "weaver": 8,
+          "builder": 12,
+          "grinder": 10,
+          "hunter": 8,
+          "gatherer": 6,
+          "fisher": 0,
+          "toolmaker": 6
+        },
+        "herd": ["animal-goat", "animal-sheep", "animal-cattle", "animal-dog"],
+        "crops": ["einkorn", "emmer", "barley", "lentil", "flax"]
+      }
+    },
+    {
+      "id": "lbk-farmer",
+      "lodging": "shelter-lbk-longhouse",
+      "en": "Linear Pottery farmers of central Europe",
+      "de": "Bandkeramik-Bauern Mitteleuropas",
+      "farming": {
+        "regions": ["fertile-crescent"],
+        "areas": [[40, 52.5, -1, 30]],
+        "areaRank": 6,
+        "architecture": ["shelter-lbk-longhouse"],
+        "tools": {
+          "man": "hoe",
+          "woman": "pot",
+          "child": "basket"
+        },
+        "fieldTool": "hoe",
+        "ardFromBce": 4000,
+        "mix": {
+          "farmer": 22,
+          "reaper": 10,
+          "herder": 14,
+          "potter": 10,
+          "weaver": 8,
+          "builder": 12,
+          "grinder": 8,
+          "hunter": 6,
+          "gatherer": 6,
+          "fisher": 0,
+          "toolmaker": 4
+        },
+        "herd": ["animal-cattle", "animal-sheep", "animal-goat", "animal-pig", "animal-dog"],
+        "crops": ["emmer", "einkorn", "barley", "flax", "lentil"]
+      }
+    },
+    {
+      "id": "indus-farmer",
+      "lodging": "shelter-mehrgarh-house",
+      "en": "Farmers of the Indus borderlands",
+      "de": "Bauern am Indus",
+      "farming": {
+        "regions": ["south-asia-farming"],
+        "areas": [[22, 34, 60, 76]],
+        "areaRank": 5,
+        "architecture": ["shelter-mehrgarh-house"],
+        "tools": {
+          "man": "sickle",
+          "woman": "grinding-stone",
+          "child": "basket"
+        },
+        "fieldTool": "hoe",
+        "ardFromBce": 3500,
+        "mix": {
+          "farmer": 18,
+          "reaper": 12,
+          "herder": 16,
+          "potter": 8,
+          "weaver": 8,
+          "builder": 10,
+          "grinder": 10,
+          "hunter": 6,
+          "gatherer": 6,
+          "fisher": 0,
+          "toolmaker": 6
+        },
+        "herd": ["animal-zebu", "animal-goat", "animal-sheep", "animal-dog"],
+        "crops": ["barley", "emmer", "lentil"]
+      }
+    },
+    {
+      "id": "nile-neolithic",
+      "lodging": "shelter-egyptian-neolithic-hut",
+      "en": "Neolithic farmers and herders of the Nile",
+      "de": "Bauern und Hirten am Nil",
+      "farming": {
+        "regions": ["fertile-crescent"],
+        "areas": [[22, 31.6, 29, 34.5]],
+        "areaRank": 4,
+        "architecture": ["shelter-egyptian-neolithic-hut"],
+        "tools": {
+          "man": "sickle",
+          "woman": "pot",
+          "child": "basket"
+        },
+        "fieldTool": "hoe",
+        "ardFromBce": 3500,
+        "mix": {
+          "farmer": 18,
+          "reaper": 10,
+          "herder": 14,
+          "potter": 8,
+          "weaver": 10,
+          "builder": 8,
+          "grinder": 8,
+          "hunter": 6,
+          "gatherer": 6,
+          "fisher": 10,
+          "toolmaker": 2
+        },
+        "herd": ["animal-cattle", "animal-goat", "animal-sheep", "animal-pig", "animal-dog"],
+        "crops": ["emmer", "barley", "flax"]
+      }
+    },
+    {
+      "id": "yellow-river-millet-farmer",
+      "lodging": "shelter-yellow-river-pit-house",
+      "en": "Millet farmers of the Yellow River",
+      "de": "Hirsebauern am Gelben Fluss",
+      "farming": {
+        "regions": ["yellow-river"],
+        "areas": [[33, 42, 105, 122]],
+        "areaRank": 7,
+        "architecture": ["shelter-yellow-river-pit-house"],
+        "tools": {
+          "man": "hoe",
+          "woman": "pot",
+          "child": "basket"
+        },
+        "fieldTool": "hoe",
+        "mix": {
+          "farmer": 22,
+          "reaper": 10,
+          "herder": 8,
+          "potter": 10,
+          "weaver": 8,
+          "builder": 12,
+          "grinder": 10,
+          "hunter": 8,
+          "gatherer": 6,
+          "fisher": 2,
+          "toolmaker": 4
+        },
+        "herd": ["animal-pig", "animal-dog"],
+        "crops": ["millet"]
+      }
+    },
+    {
+      "id": "yangtze-rice-farmer",
+      "lodging": "shelter-yangtze-stilt-house",
+      "en": "Rice farmers of the Yangtze",
+      "de": "Reisbauern am Jangtse",
+      "farming": {
+        "regions": ["yangtze"],
+        "areas": [[22, 33, 105, 123]],
+        "areaRank": 8,
+        "architecture": ["shelter-yangtze-stilt-house"],
+        "tools": {
+          "man": "hoe",
+          "woman": "pot",
+          "child": "basket"
+        },
+        "fieldTool": "hoe",
+        "mix": {
+          "farmer": 22,
+          "reaper": 12,
+          "herder": 4,
+          "potter": 8,
+          "weaver": 8,
+          "builder": 12,
+          "grinder": 8,
+          "hunter": 6,
+          "gatherer": 6,
+          "fisher": 12,
+          "toolmaker": 2
+        },
+        "herd": ["animal-pig", "animal-dog", "animal-water-buffalo"],
+        "crops": ["rice"]
+      }
+    },
+    {
+      "id": "mesoamerican-farmer",
+      "lodging": "shelter-mesoamerican-hut",
+      "en": "Maize farmers of Mesoamerica",
+      "de": "Maisbauern Mesoamerikas",
+      "farming": {
+        "regions": ["mesoamerica"],
+        "areas": [[14, 23, -105, -88]],
+        "areaRank": 9,
+        "architecture": ["shelter-mesoamerican-hut"],
+        "tools": {
+          "man": "digging-stick",
+          "woman": "grinding-stone",
+          "child": "basket"
+        },
+        "fieldTool": "digging-stick",
+        "mix": {
+          "farmer": 26,
+          "reaper": 8,
+          "herder": 0,
+          "potter": 6,
+          "weaver": 8,
+          "builder": 10,
+          "grinder": 16,
+          "hunter": 10,
+          "gatherer": 10,
+          "fisher": 0,
+          "toolmaker": 6
+        },
+        "herd": ["animal-dog"],
+        "crops": ["maize", "squash"]
+      }
+    },
+    {
+      "id": "andean-farmer",
+      "lodging": "shelter-andean-stone-house",
+      "en": "Farmers and herders of the Andes",
+      "de": "Bauern und Hirten der Anden",
+      "farming": {
+        "regions": ["andes"],
+        "areas": [[-22, 2, -82, -65]],
+        "areaRank": 10,
+        "architecture": ["shelter-andean-stone-house"],
+        "tools": {
+          "man": "hoe",
+          "woman": "basket",
+          "child": "basket"
+        },
+        "fieldTool": "hoe",
+        "mix": {
+          "farmer": 22,
+          "reaper": 8,
+          "herder": 16,
+          "potter": 0,
+          "weaver": 14,
+          "builder": 10,
+          "grinder": 6,
+          "hunter": 6,
+          "gatherer": 8,
+          "fisher": 6,
+          "toolmaker": 4
+        },
+        "herd": ["animal-llama", "animal-guinea-pig", "animal-dog"],
+        "crops": ["potato", "quinoa"]
+      }
+    },
+    {
+      "id": "new-guinea-highland-farmer",
+      "lodging": "shelter-highland-new-guinea-house",
+      "en": "Highland gardeners of New Guinea",
+      "de": "Gartenbauern im Hochland Neuguineas",
+      "farming": {
+        "regions": ["new-guinea"],
+        "areas": [[-7, -4.5, 143, 146.5]],
+        "areaRank": 1,
+        "architecture": ["shelter-highland-new-guinea-house"],
+        "tools": {
+          "man": "digging-stick",
+          "woman": "basket",
+          "child": "none"
+        },
+        "fieldTool": "digging-stick",
+        "mix": {
+          "farmer": 34,
+          "reaper": 6,
+          "herder": 0,
+          "potter": 0,
+          "weaver": 6,
+          "builder": 12,
+          "grinder": 4,
+          "hunter": 12,
+          "gatherer": 16,
+          "fisher": 0,
+          "toolmaker": 10
+        },
+        "herd": ["animal-dog"],
+        "crops": ["taro", "banana"]
+      }
+    }
+  ]
+}

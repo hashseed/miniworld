@@ -20,6 +20,7 @@ import {
   decodeWildMask,
   groupGrowth,
   keepOutsOf,
+  traitsOf,
   CLEAR_STEP_S,
   wildClearings,
   wildlifeAt,
@@ -35,18 +36,14 @@ export const KM_PER_M = 63.75;
 /** An animal's size (the larger of its height and half its length) is drawn between these, in metres (section 1). */
 const MIN_SIZE_M = 1.8;
 const MAX_SIZE_M = 4;
-/** Drawn sizes that differ from the rule above (section 5). */
-export const DRAWN_SIZE_M: Record<string, number> = {
-  'animal-kea': 1.2,
-  'animal-haast-eagle': 2.2,
-  'animal-capybara': 1.2,
-};
-/** Species drawn smaller than the rule above gives, as a share of it (section 5). */
-const SHRINK: Record<string, number> = { 'animal-wolf': 0.75, 'animal-cave-lion': 0.85 };
-/** An animal's drawn size in metres, by its model and its life-size size (the larger of height and half length). */
+/**
+ * An animal's drawn size in metres, by its model and its life-size size (the larger of height and
+ * half length); a model's traits in the data file may set it or shrink it (section 5).
+ */
 export function drawnSizeM(model: string, sizeM: number): number {
   return (
-    DRAWN_SIZE_M[model] ?? Math.min(MAX_SIZE_M, Math.max(MIN_SIZE_M, sizeM)) * (SHRINK[model] ?? 1)
+    traitsOf(model).drawnM ??
+    Math.min(MAX_SIZE_M, Math.max(MIN_SIZE_M, sizeM)) * (traitsOf(model).shrink ?? 1)
   );
 }
 /** Something on the drawn globe animals keep clear of (section 4): its direction and half size in km. */

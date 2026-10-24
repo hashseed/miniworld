@@ -19,7 +19,12 @@ import {
 import { pointInPolygon, type Field } from './fieldShapes.ts';
 import { farmingProfileAt, fieldToolOf } from './farmingOnset.ts';
 import { maskLand } from './fieldMask.ts';
-import { NEOLITHIC_PROFILES, type NeolithicProfileId } from './neolithicProfiles.ts';
+import {
+  isNeolithicProfile,
+  neolithicProfile,
+  type NeolithicProfileId,
+} from './neolithicProfiles.ts';
+import { huntsOf as preyOf } from './cultures.ts';
 import { roleOf } from './roles.ts';
 import { fieldsOf, herdOf, type HerdAnimal } from './village.ts';
 import { NEVER, type TreeFigure, type TreeLodging, type TreeStage } from './tree.ts';
@@ -260,19 +265,6 @@ type PreyKind =
   | 'animal-water-buffalo'
   | 'animal-llama'
   | 'animal-guinea-pig';
-/** What each culture hunts (peopling.md sections 5.5 and 9.1); the founder's people hunt zebra and eland. */
-const PREY_OF: Record<string, readonly PreyKind[]> = {
-  'african-stone-age': ['animal-zebra', 'animal-eland'],
-  'coastal-asia-hunter': ['animal-gazelle'],
-  // Aurochs, the wild cattle of Europe, the Near East and North Africa (Yang, 2026-10-20).
-  'west-asia-hunter': ['animal-gazelle', 'animal-aurochs'],
-  'east-asia-hunter': ['animal-gazelle'],
-  natufian: ['animal-gazelle', 'animal-aurochs'],
-  'first-australians': ['animal-kangaroo'],
-  'ice-age-hunter': ['animal-reindeer', 'animal-aurochs', 'animal-mammoth'],
-  'steppe-beringia-hunter': ['animal-reindeer', 'animal-mammoth'],
-  'first-americans': ['animal-guanaco'],
-};
 /**
  * Hunts (section 8.1): the hunter throws from this far short of the animal (layout
  * metres; about 5 life-size metres at the figures' scale, so the flight reads), and a
@@ -1605,8 +1597,7 @@ interface Village {
   herd?: { pen: Pt; penDir: Pt; animals: HerdAnimal[] };
 }
 
-const isProfile = (culture: string | undefined): culture is NeolithicProfileId =>
-  !!culture && culture in NEOLITHIC_PROFILES;
+const isProfile = isNeolithicProfile;
 
 /** Herd animals that are milked. */
 const MILKED = new Set([
@@ -1631,10 +1622,9 @@ function buildVillage(chunk: TreeChunk, camp: number): Village | null {
   if (!first) return null;
   const profile = farm && isProfile(farm.culture) ? farm.culture : undefined;
   const lodgings = own.filter((l) => isProfile(l.culture) && l.fieldLand).length;
-  const kinds =
-    NEOLITHIC_PROFILES[
-      profile ?? farmingProfileAt(deg(first.lat), deg(first.lon)) ?? 'pre-pottery-neolithic-levant'
-    ].herd;
+  const kinds = neolithicProfile(
+    profile ?? farmingProfileAt(deg(first.lat), deg(first.lon)) ?? 'pre-pottery-neolithic-levant',
+  ).herd;
   const free = (x: number, z: number) =>
     !farm || (maskLand(farm.fieldLand!, x, z) && !inOutingLane(camp, x, z));
   // The herd is placed first, on land and out of the lanes; the fields then keep clear of its pen and animals.
@@ -1667,7 +1657,7 @@ function buildVillage(chunk: TreeChunk, camp: number): Village | null {
         camp,
         first.lat,
         lodgings,
-        NEOLITHIC_PROFILES[profile!].crops,
+        neolithicProfile(profile!).crops,
         farm.fieldLand!,
         (x, z) => inOutingLane(camp, x, z) || nearHerd(x, z),
       )
@@ -3553,7 +3543,7 @@ export function treeScene(
    */
   /** What a hunt goes after, by hash; a mammoth only where and when it can be (MAMMOTH). */
   function preyKindOf(st: Stay, k: number, small = false): PreyKind {
-    const kinds = PREY_OF[st.home.culture ?? ''] ?? PREY_OF['african-stone-age']!;
+    const kinds = preyOf(st.home.culture) as readonly PreyKind[];
     const kind = forcedHunt(st, k)
       ? 'animal-mammoth'
       : kinds[hash32(st.f.id, k, 79) % kinds.length]!;
