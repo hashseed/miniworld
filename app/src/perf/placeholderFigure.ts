@@ -16,22 +16,29 @@ interface Part {
 }
 
 // Bones: 0 body, 1 head, 2 left arm, 3 right arm, 4 left leg, 5 right leg.
-function parts(): Part[] {
-  const limb = (r: number, h: number) => new THREE.CylinderGeometry(r, r * 0.85, h, 8, 1, true);
+function parts(far: boolean): Part[] {
+  // The far level (about 150 triangles) has the same shapes with fewer segments.
+  const round = far ? 5 : 10;
+  const limb = (r: number, h: number) =>
+    new THREE.CylinderGeometry(r, r * 0.85, h, far ? 5 : 8, 1, true);
+  const ball = (r: number, detail: number) =>
+    far
+      ? new THREE.TetrahedronGeometry(r, far && r > 0.1 ? 1 : 0)
+      : new THREE.IcosahedronGeometry(r, detail);
   const at = (g: THREE.BufferGeometry, x: number, y: number, z = 0) => g.translate(x, y, z);
   return [
     {
-      geometry: at(new THREE.CylinderGeometry(0.22, 0.18, 0.6, 10, 2), 0, 1.15),
+      geometry: at(new THREE.CylinderGeometry(0.22, 0.18, 0.6, round, far ? 1 : 2), 0, 1.15),
       pivot: new THREE.Vector3(0, 0.85, 0),
       bone: 0,
     },
     {
-      geometry: at(new THREE.CylinderGeometry(0.18, 0.2, 0.2, 10, 1), 0, 0.8),
+      geometry: at(new THREE.CylinderGeometry(0.18, 0.2, 0.2, round, 1), 0, 0.8),
       pivot: new THREE.Vector3(0, 0.85, 0),
       bone: 0,
     },
     {
-      geometry: at(new THREE.IcosahedronGeometry(0.17, 2), 0, 1.65),
+      geometry: at(ball(0.17, 2), 0, 1.65),
       pivot: new THREE.Vector3(0, 1.45, 0),
       bone: 1,
     },
@@ -42,12 +49,12 @@ function parts(): Part[] {
     },
     { geometry: at(limb(0.065, 0.62), 0.3, 1.12), pivot: new THREE.Vector3(0.3, 1.42, 0), bone: 3 },
     {
-      geometry: at(new THREE.IcosahedronGeometry(0.08, 0), -0.3, 0.78),
+      geometry: at(ball(0.08, 0), -0.3, 0.78),
       pivot: new THREE.Vector3(-0.3, 1.42, 0),
       bone: 2,
     },
     {
-      geometry: at(new THREE.IcosahedronGeometry(0.08, 0), 0.3, 0.78),
+      geometry: at(ball(0.08, 0), 0.3, 0.78),
       pivot: new THREE.Vector3(0.3, 1.42, 0),
       bone: 3,
     },
@@ -82,8 +89,8 @@ export interface PlaceholderFigure {
   vertices: number;
 }
 
-export function buildPlaceholderFigure(): PlaceholderFigure {
-  const ps = parts();
+export function buildPlaceholderFigure(far = false): PlaceholderFigure {
+  const ps = parts(far);
   const tagged = ps.map((p) => {
     const g = p.geometry.toNonIndexed();
     g.deleteAttribute('uv');

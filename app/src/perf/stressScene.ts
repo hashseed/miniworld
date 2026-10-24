@@ -13,6 +13,19 @@ export const STRESS_CENTRE = { lat: 31.0, lon: 31.0 };
 export const STRESS_FIGURES = 20000;
 export const STRESS_BUILDINGS = 1000;
 const AREA_KM = 30;
+/**
+ * Below these sizes on screen (pixels, in a nominal 800-pixel-high view) a
+ * figure or building is drawn at its simple level (spec milestone 1, section 11.4).
+ */
+export const STRESS_LOD_FIGURE_PX = 16;
+export const STRESS_LOD_BUILDING_PX = 24;
+const NOMINAL_VIEW_PX = 800;
+const BUILDING_WIDTH_KM = 0.04;
+
+/** The distance (km) beyond which something `sizeKm` tall or wide is under `px` pixels on screen. */
+export function lodDistanceKm(sizeKm: number, px: number, fovDeg: number): number {
+  return (sizeKm * (NOMINAL_VIEW_PX / 2)) / (Math.tan((fovDeg * Math.PI) / 360) * px);
+}
 const FIGURE_HEIGHT_KM = 0.03; // miniature scale: a figure stands about 30 m tall
 
 const figureVertex = /* glsl */ `
@@ -76,9 +89,14 @@ export class StressScene {
   readonly group = new THREE.Group();
   readonly figureTriangles: number;
   private animated: THREE.InstancedMesh;
+  private animatedFar: THREE.InstancedMesh;
+  private houses: THREE.InstancedMesh;
+  private housesFar: THREE.InstancedMesh;
+  private houseMatrices: Float32Array;
   private marks: THREE.Points;
   private homes: Float32Array;
   private material: THREE.ShaderMaterial;
+  private materialFar: THREE.ShaderMaterial;
   private animatedLimit: number;
   private lastSort = -1e9;
   private placedGround = false;
@@ -108,28 +126,14 @@ export class StressScene {
       this.homes[i * 2 + 1] = vz + Math.sin(a) * r;
     }
 
-    const fig = buildPlaceholderFigure();
-    this.figureTriangles = fig.triangles;
-    this.material = new THREE.ShaderMaterial({
-      vertexShader: figureVertex,
-      fragmentShader: figureFragment,
-      uniforms: {
-        anim: { value: fig.animation },
-        time: { value: 0 },
-        scale: { value: FIGURE_HEIGHT_KM / 1.8 },
-      },
-    });
-    const max = 5000;
-    this.animated = new THREE.InstancedMesh(fig.geometry, this.material, max);
-    this.animated.frustumCulled = false;
-    const inst = new THREE.InstancedBufferAttribute(new Float32Array(max * 4), 4);
-    const tint = new THREE.InstancedBufferAttribute(new Float32Array(max * 3), 3);
-    inst.setUsage(THREE.DynamicDrawUsage);
-    tint.setUsage(THREE.DynamicDrawUsage);
-    fig.geometry.setAttribute('inst', inst);
-    fig.geometry.setAttribute('tint', tint);
-    this.animated.count = 0;
-    this.group.add(this.animated);
+    const near = this.makeFigures(buildPlaceholderFigure(false));
+    const far = this.makeFigures(buildPlaceholderFigure(true));
+    this.figureTriangles = near.triangles;
+    this.material = near.material;
+    this.animated = near.mesh;
+    this.materialFar = far.material;
+    this.animatedFar = far.mesh;
+    this.group.add(this.animated, this.animatedFar);
 
     const markPos = new Float32Array(STRESS_FIGURES * 3);
     const markCol = new Float32Array(STRESS_FIGURES * 3);
@@ -143,15 +147,25 @@ export class StressScene {
     this.marks.frustumCulled = false;
     this.group.add(this.marks);
 
-    // Buildings: about 2,000 triangles each.
-    const house = new THREE.BoxGeometry(0.04, 0.025, 0.04, 16, 8, 16).translate(0, 0.0125, 0);
-    const roof = new THREE.ConeGeometry(0.034, 0.02, 4).rotateY(Math.PI / 4).translate(0, 0.035, 0);
-    const houseGeo = mergeHouse(house, roof);
-    const houses = new THREE.InstancedMesh(
-      houseGeo,
-      new THREE.MeshLambertMaterial({ color: 0xc9a77a }),
-      STRESS_BUILDINGS,
-    );
+    // Buildings: about 2,000 triangles each, and about 200 when small on screen.
+    const buildHouse = (segments: number) => {
+      const house = new THREE.BoxGeometry(
+        0.04,
+        0.025,
+        0.04,
+        segments,
+        segments / 2,
+        segments,
+      ).translate(0, 0.0125, 0);
+      const roof = new THREE.ConeGeometry(0.034, 0.02, 4)
+        .rotateY(Math.PI / 4)
+        .translate(0, 0.035, 0);
+      return mergeHouse(house, roof);
+    };
+    const houseMaterial = new THREE.MeshLambertMaterial({ color: 0xc9a77a });
+    this.houses = new THREE.InstancedMesh(buildHouse(16), houseMaterial, STRESS_BUILDINGS);
+    this.housesFar = new THREE.InstancedMesh(buildHouse(4), houseMaterial, STRESS_BUILDINGS);
+    this.houseMatrices = new Float32Array(STRESS_BUILDINGS * 16);
     const m = new THREE.Matrix4();
     for (let i = 0; i < STRESS_BUILDINGS; i++) {
       const home = Math.floor(hash01(i, 9) * STRESS_FIGURES);
@@ -161,11 +175,43 @@ export class StressScene {
         0,
         this.homes[home * 2 + 1]! + (hash01(i, 12) - 0.5) * 0.1,
       );
-      houses.setMatrixAt(i, m);
+      m.toArray(this.houseMatrices, i * 16);
     }
-    houses.frustumCulled = false;
-    this.group.add(houses);
+    for (const h of [this.houses, this.housesFar]) {
+      h.frustumCulled = false;
+      h.count = 0;
+      h.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      this.group.add(h);
+    }
     this.group.add(new THREE.HemisphereLight(0xffffff, 0x445533, 2.2));
+  }
+
+  /** One level of the animated figures: its instanced mesh, material and per-copy attributes. */
+  private makeFigures(fig: ReturnType<typeof buildPlaceholderFigure>): {
+    mesh: THREE.InstancedMesh;
+    material: THREE.ShaderMaterial;
+    triangles: number;
+  } {
+    const material = new THREE.ShaderMaterial({
+      vertexShader: figureVertex,
+      fragmentShader: figureFragment,
+      uniforms: {
+        anim: { value: fig.animation },
+        time: { value: 0 },
+        scale: { value: FIGURE_HEIGHT_KM / 1.8 },
+      },
+    });
+    const max = 5000;
+    const mesh = new THREE.InstancedMesh(fig.geometry, material, max);
+    mesh.frustumCulled = false;
+    const inst = new THREE.InstancedBufferAttribute(new Float32Array(max * 4), 4);
+    const tint = new THREE.InstancedBufferAttribute(new Float32Array(max * 3), 3);
+    inst.setUsage(THREE.DynamicDrawUsage);
+    tint.setUsage(THREE.DynamicDrawUsage);
+    fig.geometry.setAttribute('inst', inst);
+    fig.geometry.setAttribute('tint', tint);
+    mesh.count = 0;
+    return { mesh, material, triangles: fig.triangles };
   }
 
   /** Raises the scene onto the terrain once its height is known. */
@@ -196,10 +242,13 @@ export class StressScene {
   }
 
   update(camera: THREE.Camera, clockMs: number, nowMs: number): void {
-    this.material.uniforms.time!.value = (clockMs % 3_600_000) / 1000;
+    const time = (clockMs % 3_600_000) / 1000;
+    this.material.uniforms.time!.value = time;
+    this.materialFar.uniforms.time!.value = time;
     if (nowMs - this.lastSort < 500) return;
     this.lastSort = nowMs;
     // Pick the figures nearest the camera to animate; the rest become marks.
+    this.group.updateWorldMatrix(true, false);
     const local = this.group.worldToLocal(camera.position.clone());
     const n = STRESS_FIGURES;
     const dist = new Float32Array(n);
@@ -210,28 +259,40 @@ export class StressScene {
     }
     const order = Array.from({ length: n }, (_, i) => i).sort((a, b) => dist[a]! - dist[b]!);
     const limit = Math.min(this.animatedLimit, 5000);
-    const geo = this.animated.geometry;
-    const inst = geo.getAttribute('inst') as THREE.InstancedBufferAttribute;
-    const tint = geo.getAttribute('tint') as THREE.InstancedBufferAttribute;
-    for (let k = 0; k < limit; k++) {
-      const i = order[k]!;
-      inst.setXYZW(
-        k,
-        this.homes[i * 2]!,
-        this.homes[i * 2 + 1]!,
-        hash01(i, 6) * Math.PI * 2,
-        hash01(i, 7) * 100,
-      );
-      tint.setXYZ(
-        k,
-        0.4 + hash01(i, 13) * 0.6,
-        0.3 + hash01(i, 14) * 0.5,
-        0.2 + hash01(i, 15) * 0.6,
-      );
-    }
-    inst.needsUpdate = true;
-    tint.needsUpdate = true;
-    this.animated.count = limit;
+    // The figures are sorted by distance, so the nearest ones take the full level.
+    const fov = (camera as THREE.PerspectiveCamera).fov ?? 45;
+    const figureKm = lodDistanceKm(FIGURE_HEIGHT_KM, STRESS_LOD_FIGURE_PX, fov);
+    const buildingKm = lodDistanceKm(BUILDING_WIDTH_KM, STRESS_LOD_BUILDING_PX, fov);
+    const lod2 = figureKm * figureKm;
+    let nearCount = 0;
+    while (nearCount < limit && dist[order[nearCount]!]! <= lod2) nearCount++;
+    const fill = (mesh: THREE.InstancedMesh, from: number, to: number): void => {
+      const geo = mesh.geometry;
+      const inst = geo.getAttribute('inst') as THREE.InstancedBufferAttribute;
+      const tint = geo.getAttribute('tint') as THREE.InstancedBufferAttribute;
+      for (let k = from; k < to; k++) {
+        const i = order[k]!;
+        inst.setXYZW(
+          k - from,
+          this.homes[i * 2]!,
+          this.homes[i * 2 + 1]!,
+          hash01(i, 6) * Math.PI * 2,
+          hash01(i, 7) * 100,
+        );
+        tint.setXYZ(
+          k - from,
+          0.4 + hash01(i, 13) * 0.6,
+          0.3 + hash01(i, 14) * 0.5,
+          0.2 + hash01(i, 15) * 0.6,
+        );
+      }
+      inst.needsUpdate = true;
+      tint.needsUpdate = true;
+      mesh.count = to - from;
+    };
+    fill(this.animated, 0, nearCount);
+    fill(this.animatedFar, nearCount, limit);
+    this.sortHouses(local, buildingKm * buildingKm);
     const mp = this.marks.geometry.getAttribute('position') as THREE.BufferAttribute;
     const mc = this.marks.geometry.getAttribute('color') as THREE.BufferAttribute;
     let c = 0;
@@ -244,6 +305,27 @@ export class StressScene {
     mp.needsUpdate = true;
     mc.needsUpdate = true;
     this.marks.geometry.setDrawRange(0, c);
+  }
+
+  /** Hands each building to the full or the simple level by its distance from the camera. */
+  private sortHouses(local: THREE.Vector3, lod2: number): void {
+    const near = this.houses.instanceMatrix;
+    const far = this.housesFar.instanceMatrix;
+    let nearCount = 0;
+    let farCount = 0;
+    const src = this.houseMatrices;
+    for (let i = 0; i < STRESS_BUILDINGS; i++) {
+      const dx = src[i * 16 + 12]! - local.x;
+      const dz = src[i * 16 + 14]! - local.z;
+      const isNear = dx * dx + dz * dz + local.y * local.y <= lod2;
+      const target = isNear ? near : far;
+      const slot = isNear ? nearCount++ : farCount++;
+      target.array.set(src.subarray(i * 16, i * 16 + 16), slot * 16);
+    }
+    near.needsUpdate = true;
+    far.needsUpdate = true;
+    this.houses.count = nearCount;
+    this.housesFar.count = farCount;
   }
 
   dispose(): void {
