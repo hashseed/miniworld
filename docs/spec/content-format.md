@@ -24,13 +24,23 @@ data/curated/
   geo/          areas and paths as GeoJSON, referenced by id
   sources.yaml  bibliography of content sources (books, papers, databases)
   CHRONOLOGY.md, <kind>/INDEX.md               generated (section 8)
-data/schema/    one schema per kind, shared by the data build and the app
+  *.json        curated tables (section 1.1)
+data/schema/    one schema per kind and per table, shared by the data build and the app
 ```
 
 - One file per record keeps pull requests small: a change touches only the records it is about, and a reviewer reads one item at a time.
 - The front matter is parsed strictly as YAML 1.2 with no implicit type guessing, so `no` stays a string and `1.10` is not a number. Plain Markdown tables are not used for records, because they cannot hold nested data such as paths, phases or effects.
 - **Vocabularies are data.** Event types, effect types, people categories, timeline lanes, regions, tags each live in one YAML file under `vocab/`, every entry keyed by its id (`lanes.yaml`, whose order matters, is a list), with `en` and `de` labels where the viewer reads them. Code and records refer to vocabulary ids only, never to labels. Each vocabulary file has a schema in `data/schema/` (section 7), and the data build fails on an entry that does not match it.
   - **Regions and lanes.** `vocab/regions.yaml` maps each world region's id to its labels, in the order of [spec.md section 7.1](spec.md#71-timeline): `europe`, `mena`, `africa`, `central-asia`, `south-asia`, `east-asia`, `southeast-asia`, `americas`, `oceania`. `vocab/lanes.yaml` lists the timeline lanes from top to bottom: the World lane as `{ id: world, en: World, de: Welt }`, then one entry `{ region: <id> }` per region, which takes the region's id and labels, so a region's name is written once. The data build fails when a region has no lane, has two, or a lane names an unknown region.
+
+### 1.1 Tables
+
+Not everything curated is a record a viewer reads about. Geography corrections (straits, islands, mountains, rivers, inland seas, removed areas), the tree of humankind's inputs (culture areas, arrivals, crossings, thresholds, key places, anchors, encounters), the farming spread, the wildlife groups, the history lens and the release facts are **tables**: one JSON file directly under `data/curated/`, named by what it holds, opening with a `description` that says what it is for and which part of the spec it serves.
+
+- **Every table has a schema.** `data/schema/tables.ts` holds one Zod schema per table, keyed by its file name, written as strict objects: an unknown field, a missing field, a wrong type, a latitude or longitude out of range, an id that is not a lowercase slug or that repeats within its list, an empty `en` or `de` text, or an empty source fails the build. The data build checks every table before any stage runs, and fails on a JSON file under `data/curated/` that has no schema, so a new table is added by writing its schema first.
+- **One way in.** Build stages read a table only through the build context's `curated(name)`, which validates it and returns the type inferred from its schema; nothing casts a table to a hand-written type. Where code keeps an interface of its own for a table's rows, the schema's type must be assignable to it, so the two cannot drift.
+- **Sources.** A table row names its source as a free-text citation for now. Moving these to references into `sources.yaml`, as records have, is planned table by table; until then the schema only requires that the citation is not empty.
+- **Tables become records.** A table that holds content the viewer reads, such as the anchors and arrivals that carry card titles, is provisional until its kind of record exists (events, places, cultures); it then moves into records of that kind, and its schema moves with it.
 
 ## 2. The record envelope
 
@@ -194,7 +204,7 @@ flowchart LR
   presenters --> renderer["Renderer and interface"]
 ```
 
-- **Schemas.** `data/schema/` holds one schema per kind, written in TypeScript with a schema library such as Zod. The data build validates records with it, and the app imports the TypeScript types inferred from it, so a change to the format shows up as a type error wherever the app depends on it.
+- **Schemas.** `data/schema/` holds one schema per kind and per table (section 1.1), written in TypeScript with Zod, and the schema of the asset manifest (`data/schema/assets.ts`). The data build validates with them, and the build and the app import the TypeScript types inferred from them, so a change to the format shows up as a type error wherever it is used. The tables have their schemas now; the Markdown records of eras, animals and site cards are still checked by the parsers in `data/build/lib/` and move onto schemas kind by kind as their kinds grow.
 - **Startup index.** Per language, every event, era, place founding and famous person in chronological order, with id, kind, type or category, `from` and `to` as day integers with their approximate flags, regions, anchor, title and icon. The timeline, search, the "Happening now" list and double-click fly-to all read it. It holds no card text, paths or geometry, within the budget of [milestone-1.md](milestone-1.md#102-startup-index) section 10.2.
 - **Structure chunks.** Each layer (`events`, `people`, `places`, `polities`, `routes`, `cultures`) is split by quadtree tile and time window ([spec.md section 10](spec.md#10-content-delivery)). A record goes into every chunk its `when` and `where` overlap, so a long war or a voyage is present wherever and whenever it is visible. Structure chunks hold no text and use the language key `xx`.
 - **Text chunks.** Card texts and "Learn more" per language, grouped by layer, tile and window like the structure chunks, loaded when a card opens.
@@ -221,4 +231,5 @@ The lists in [events.md](events.md), [people.md](people.md) and [eras.md](eras.m
 | A new effect type | A section in this file, a vocabulary entry and one shared system |
 | A new field | This file, then the schema, then the records that use it |
 | A new kind of content, such as guided tours | A section in this file, a schema and a build step for its layer |
+| A new table | A row in section 1.1's list, its schema in `data/schema/tables.ts`, then the JSON file |
 | A new language | Add it to the supported languages; the build lists every record missing that language |

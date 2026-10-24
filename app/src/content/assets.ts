@@ -3,12 +3,13 @@
 // review them in place; such a build is never shipped.
 
 import manifest from '../../../data/assets/manifest.json';
+import type { AssetManifest } from '../../../data/schema/assets.ts';
 
 const preview = import.meta.env.VITE_PREVIEW_ASSETS === '1';
 
 /** Asset ids that may be drawn with their own model rather than a stand-in. */
 export const drawable = new Set(
-  (manifest as { assets: { id: string; status: string }[] }).assets
+  (manifest as AssetManifest).assets
     .filter((a) => a.status === 'approved' || (preview && a.status === 'generated'))
     .map((a) => a.id),
 );

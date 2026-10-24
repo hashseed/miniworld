@@ -474,7 +474,7 @@ The stages run one after another: terrain fills the drawn-ground tiles that the 
 
 ### 10.8 Data build validation
 
-The build fails when: a source has no licence entry, its licence is not allowed by the data licence policy, or its files under `data/sources/` do not match their checksums; an era record lacks a date, a source or its label in any supported language; a date is outside the timeline; an approximate flag is missing where [eras.md](eras.md) marks "c."; a chunk exceeds 1 MB; or a referenced asset is not `approved` in the asset manifest.
+The build fails when: a source has no licence entry, its licence is not allowed by the data licence policy, or its files under `data/sources/` do not match their checksums; an era record lacks a date, a source or its label in any supported language; a date is outside the timeline; an approximate flag is missing where [eras.md](eras.md) marks "c."; a chunk exceeds 1 MB; a curated table does not match its schema, or a JSON file under `data/curated/` has none ([content-format.md](content-format.md#11-tables) section 1.1); the asset manifest does not match its schema; or an asset the content refers to (a wildlife model, a scene's prop, a culture's lodging) is missing from the asset manifest or `rejected`. A referenced asset that is listed but not yet `approved` does not fail the build: the app draws its stand-in until Yang approves it (section 12), and the build log lists every such asset.
 
 ### 10.9 Service worker and caching
 
@@ -557,7 +557,7 @@ Whether a `SharedArrayBuffer` would speed up what the workers hand to the main t
 
 ## 12. Assets in this milestone
 
-The only shipped assets are the six terrain textures, the water normal map and the ice texture. The interface icons are simple shapes drawn in code (SVG), and the interface uses the Fredoka web font (section 8.4), so neither needs an approval. Each is generated and listed in `data/assets/manifest.json` with: id, file, kind, how it was generated, status (`generated`, `approved`, `rejected`), the date it was reviewed and a note; a model built by code also records the hash of the geometry that was approved (milestone 2, section 13.3). Until Yang approves an asset, the app uses a flat-coloured stand-in of the same size in development, and the production build fails if an unapproved asset is referenced.
+The only shipped assets are the six terrain textures, the water normal map and the ice texture. The interface icons are simple shapes drawn in code (SVG), and the interface uses the Fredoka web font (section 8.4), so neither needs an approval. Each is generated and listed in `data/assets/manifest.json` with: id, file, kind, how it was generated, status (`generated`, `approved`, `rejected`), the date it was reviewed and a note; a model built by code also records the hash of the geometry that was approved (milestone 2, section 13.3). Until Yang approves an asset, the app draws a flat-coloured stand-in of the same size in its place, in development and in the shipped app alike. Only a development server started with `VITE_PREVIEW_ASSETS=1` draws the assets still waiting for review, so Yang can review them in place; a production build (`vite build`) refuses to run with that flag, so a shipped build can never draw an unapproved asset.
 
 ## 13. Tests
 

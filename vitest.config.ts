@@ -13,7 +13,12 @@ export default defineConfig({
     // the coverage of October 2026: they may rise, never fall.
     coverage: {
       provider: 'v8',
-      include: ['app/src/**/*.{ts,tsx}', 'assets/src/**/*.ts', 'data/build/**/*.ts'],
+      include: [
+        'app/src/**/*.{ts,tsx}',
+        'assets/src/**/*.ts',
+        'data/build/**/*.ts',
+        'data/schema/**/*.ts',
+      ],
       exclude: ['**/*.test.ts'],
       reporter: ['text-summary', 'html', 'json-summary'],
       reportsDirectory: 'coverage',

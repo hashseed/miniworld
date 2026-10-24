@@ -22,6 +22,13 @@ import { buildSiteCards } from '../lib/siteCards.ts';
 import { farmingEventIds } from './farming.ts';
 import { WILD_GROUPS } from '../../../app/src/world/wildlife.ts';
 import { regionGrid } from '../lib/regions.ts';
+import {
+  checkAssetRefs,
+  readAssetManifest,
+  tableAssetRefs,
+  validateTables,
+} from '../lib/tables.ts';
+import { CAMP_SHELTER } from '../../../assets/src/shelters.ts';
 import { ROOT, type BuildContext, type WriteContext } from './context.ts';
 
 export interface Content {
@@ -37,6 +44,27 @@ export function validateContent(ctx: BuildContext): Content {
   const { cutoffDay, fail } = ctx;
   const curated = join(ROOT, 'data/curated');
   const read = (path: string) => readFileSync(join(curated, path), 'utf8');
+  // Every curated table against its schema, and the assets they name against the
+  // manifest (content-format.md section 1.1, milestone-1 section 10.8).
+  const checked = validateTables(curated);
+  const assets = readAssetManifest(join(ROOT, 'data/assets/manifest.json'));
+  const tableProblems = [...checked.errors, ...assets.errors];
+  if (assets.manifest) {
+    const refs = [
+      ...tableAssetRefs(checked.tables),
+      ...Object.entries(CAMP_SHELTER).map(([profile, id]) => ({
+        id: id!,
+        from: `CAMP_SHELTER of ${profile}`,
+      })),
+    ];
+    const { errors, waiting } = checkAssetRefs(refs, assets.manifest);
+    tableProblems.push(...errors);
+    if (waiting.length)
+      ctx.log(
+        `${waiting.length} referenced assets wait for approval (drawn as stand-ins): ${waiting.join(', ')}`,
+      );
+  }
+  if (tableProblems.length) fail(tableProblems.join('\n'));
   const laneVocab = readLanes(read('vocab/regions.yaml'), read('vocab/lanes.yaml'));
   if (laneVocab.errors.length) fail(laneVocab.errors.join('\n'));
   const sources = parseYaml(read('sources.yaml'), { schema: 'failsafe' }) as Parameters<
