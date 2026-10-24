@@ -25,7 +25,7 @@ export const SIGN_SIZE = 1.3;
 const SIGN_OFFSET_M = 9;
 
 /** The model of the sign of an era; metal signs are for later eras (section 8.4). */
-export const signKind = (_day: Day): string => 'prop-sign-wood';
+export const signKind = (_day: Day): string => 'prop-sign-metal';
 
 /** The signs standing at a clock time, as props to draw. */
 export function signsAt(events: SignEvent[], ms: number, startDay: Day): CampPropPose[] {

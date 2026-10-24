@@ -25,6 +25,6 @@ describe('signsAt (humankind.md section 8.4)', () => {
     expect(early.scale!).toBeLessThan(0.1);
     expect(up.scale).toBe(SIGN_SIZE);
     expect(up.id).toBe('sign:arrival-x');
-    expect(up.kind).toBe('prop-sign-wood');
+    expect(up.kind).toBe('prop-sign-metal');
   });
 });

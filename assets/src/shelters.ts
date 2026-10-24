@@ -49,7 +49,7 @@ export const SHELTERS = [
   'prop-bone-hut',
   'prop-bone-pile',
   // The sign of an event, put up before it (humankind.md section 8.4).
-  'prop-sign-wood',
+  'prop-sign-metal',
   // Houses of the East Asian, American and New Guinea Neolithic (docs/spec/neolithic).
   ...NEOLITHIC_HOUSES,
   // Houses of the East Asian, American and New Guinea Neolithic (docs/spec/neolithic).
@@ -712,26 +712,19 @@ export function buildShelter(id: ShelterId): Model {
       mb.add(blob([-0.1, 0.78, 0.1], [0.28, 0.2, 0.24], 5), BONE, b);
       break;
     }
-    case 'prop-sign-wood': {
-      // A blue information sign on a crooked oak post, facing +Z: an oak board, a blue plate with
-      // a white "i" on it (humankind.md section 8.4; Yang, issue 180).
-      const WOOD = '#c9a064';
-      const BLUE = '#2f6fd0';
+    case 'prop-sign-metal': {
+      // A round, fully blue metal information sign on a thin steel rod, facing +Z, with a white "i"
+      // (humankind.md section 8.4; Yang, issue 180).
+      const STEEL = '#8e9aa6';
+      const BLUE = '#1f5fcf';
       const WHITE = '#f4f1e8';
-      mb.add(rod([0, 0, 0], [0.05, 1.7, 0], 0.055, 5), shade(WOOD, -0.12));
-      const place = (g: THREE.BufferGeometry) => {
-        g.rotateZ(0.11);
-        g.translate(0.04, 1.32, 0);
-        return g;
-      };
-      mb.add(place(slab([-0.5, -0.3, 0.06], [0.5, 0.3, 0.1])), WOOD);
-      mb.add(place(slab([-0.43, -0.23, 0.1], [0.43, 0.23, 0.13])), BLUE);
-      mb.add(place(blob([0, 0.12, 0.14], [0.06, 0.06, 0.03], 5)), WHITE);
-      mb.add(place(slab([-0.045, -0.15, 0.13], [0.045, 0.04, 0.15])), WHITE);
-      const low = slab([-0.38, -0.05, 0.06], [0.38, 0.05, 0.11]);
-      low.rotateZ(-0.07);
-      low.translate(0.04, 0.9, 0);
-      mb.add(low, shade(WOOD, 0.1));
+      mb.add(rod([0, 0, 0], [0, 1.75, 0], 0.03, 6), STEEL);
+      mb.add(blob([0, 0.04, 0], [0.07, 0.04, 0.07], 6), shade(STEEL, -0.1));
+      const disc = (r: number, z: number, t: number) => blob([0, 1.45, z], [r, r, t], 12);
+      mb.add(disc(0.4, 0.05, 0.035), shade(BLUE, -0.12));
+      mb.add(disc(0.35, 0.065, 0.03), BLUE);
+      mb.add(blob([0, 1.58, 0.1], [0.052, 0.052, 0.025], 6), WHITE);
+      mb.add(slab([-0.04, 1.27, 0.085], [0.04, 1.49, 0.115]), WHITE);
       break;
     }
     case 'prop-carry-pole': {

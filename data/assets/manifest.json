@@ -502,14 +502,12 @@
       "note": "The bones of the hunted mammoths heaped beside the hut site in four steps, shrinking as they are carried off (humankind.md section 8.2); waiting for Yang's review"
     },
     {
-      "id": "prop-sign-wood",
+      "id": "prop-sign-metal",
       "file": "assets/src/shelters.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "approved",
-      "geometry": "ddc32d80f0f72666",
-      "note": "The sign put up before an event of the events dialog, a blue information sign (white \"i\") on an oak post (humankind.md section 8.4; Yang, issue 148); approved by Yang 2026-10-23",
-      "reviewed": "2026-10-23"
+      "status": "generated",
+      "note": "The sign put up before an event of the events dialog: a round, fully blue metal information sign (white \"i\") on a metal rod (humankind.md section 8.4; Yang, issue 180); replaces the wooden prop-sign-wood"
     },
     {
       "id": "prop-burial",
