@@ -143,4 +143,24 @@ describe('the farming file', () => {
     expect(grid.seedOf(farmingCellOf(-40, 100))?.id).toBe('late');
     expect(grid.onsetYear(farmingCellOf(-40, 100))).toBe(3000);
   });
+
+  it('stores an arrival after 2000 CE as none, not as a wrapped year', () => {
+    const r = computeFarming(base([{ ...centre, bce: -3000 }]));
+    const cell = farmingCellOf(30, 0);
+    r.onset[cell] = -3000;
+    const grid = new FarmingGrid(
+      encodeFarming(r, [
+        {
+          id: 'c',
+          bce: -3000,
+          approximate: false,
+          herdingOnly: false,
+          en: 'c',
+          de: 'c',
+          package: { en: 'a', de: 'b' },
+        },
+      ]),
+    );
+    expect(grid.onsetYear(cell)).toBeNull();
+  });
 });
