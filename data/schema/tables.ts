@@ -239,6 +239,8 @@ export const neolithicTable = z.strictObject({
       lat,
       lon,
       ...named,
+      /** The title of its first-farming event in the events dialog. */
+      title: z.strictObject(named),
       source: citation,
       debated: z.boolean().optional(),
     }),

@@ -257,6 +257,7 @@ interface CentreRecord {
   lon: number;
   en: string;
   de: string;
+  title: { en: string; de: string };
 }
 
 const centresOf = (neolithicJson: string): CentreRecord[] =>
@@ -279,7 +280,7 @@ export function farmingEvents(neolithicJson: string): {
   return centresOf(neolithicJson).map((c) => ({
     id: `farming-${c.id}`,
     kind: 'farming' as const,
-    title: { en: `First farming: ${c.en}`, de: `Erste Landwirtschaft: ${c.de}` },
+    title: { en: c.title.en, de: c.title.de },
     day: dayOfFarmingYear(c.bce),
     lat: c.lat,
     lon: c.lon,

@@ -5,7 +5,7 @@
 import en from '../../../app/messages/en.json' with { type: 'json' };
 import de from '../../../app/messages/de.json' with { type: 'json' };
 import { LANGUAGES, type Language } from '../../../app/src/i18n/messages.ts';
-import { astronomicalYear, dayOfYearStart } from '../../../app/src/time/calendar.ts';
+import { astronomicalYear, dayFromDate, dayOfYearStart } from '../../../app/src/time/calendar.ts';
 
 /** The record heading over the "Learn more" text, as the card labels it (content-format section 2). */
 const LEARN_MORE: Record<Language, string> = {
@@ -57,9 +57,11 @@ export interface ParsedDate {
   /** Day after the last day the date covers. */
   end: number;
   approximate: boolean;
+  /** What the written date names: a year, a month or a day, or the timeline's start or end. */
+  precision: 'year' | 'month' | 'day' | 'boundary';
 }
 
-/** Written dates of content-format section 3, at year precision. */
+/** Written dates of content-format section 3: years, months (`1342-07`) and days (`1789-07-14`). */
 export function parseDate(
   v: Yaml | undefined,
   startDay: number,
@@ -67,15 +69,37 @@ export function parseDate(
 ): ParsedDate | undefined {
   if (typeof v !== 'string') return undefined;
   const s = v.trim();
-  if (s === 'start') return { first: startDay, end: startDay, approximate: false };
+  if (s === 'start')
+    return { first: startDay, end: startDay, approximate: false, precision: 'boundary' };
   // The last day of the timeline is included, so what stands 'to today' is still there on it.
-  if (s === 'today') return { first: cutoffDay, end: cutoffDay + 1, approximate: false };
+  if (s === 'today')
+    return { first: cutoffDay, end: cutoffDay + 1, approximate: false, precision: 'boundary' };
+  // A month or a day of a year CE, written with four or fewer digits and no suffix.
+  const md = /^(c\.\s*)?(\d{1,4})-(\d{2})(?:-(\d{2}))?$/.exec(s);
+  if (md) {
+    const year = Number(md[2]);
+    const month = Number(md[3]);
+    if (year < 1 || month < 1 || month > 12) return undefined;
+    const monthStart = dayFromDate(year, month, 1);
+    const monthEnd = month === 12 ? dayFromDate(year + 1, 1, 1) : dayFromDate(year, month + 1, 1);
+    const approximate = !!md[1];
+    if (md[4] === undefined)
+      return { first: monthStart, end: monthEnd, approximate, precision: 'month' };
+    const day = monthStart + Number(md[4]) - 1;
+    if (day < monthStart || day >= monthEnd) return undefined;
+    return { first: day, end: day + 1, approximate, precision: 'day' };
+  }
   const m = /^(c\.\s*)?(\d{1,3}(?:,\d{3})*|\d+)(\s+BCE)?$/.exec(s);
   if (!m) return undefined;
   const year = Number(m[2]!.replace(/,/g, ''));
   if (year < 1) return undefined;
   const astro = m[3] ? astronomicalYear(year, 'BCE') : year;
-  return { first: dayOfYearStart(astro), end: dayOfYearStart(astro + 1), approximate: !!m[1] };
+  return {
+    first: dayOfYearStart(astro),
+    end: dayOfYearStart(astro + 1),
+    approximate: !!m[1],
+    precision: 'year',
+  };
 }
 
 /** Splits the language sections of a record (content-format section 2). */
