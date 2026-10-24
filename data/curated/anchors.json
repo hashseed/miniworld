@@ -71,7 +71,10 @@
       "until": 14000,
       "lat": 45.0538,
       "lon": 1.1695,
-      "camp": { "lat": 45.25, "lon": 1.5 },
+      "camp": {
+        "lat": 45.25,
+        "lon": 1.5
+      },
       "scene": {
         "kind": "cave-painting",
         "prop": "prop-cave-wall-lascaux"
@@ -97,6 +100,16 @@
       "en": "The mammoth-bone huts of Mezhyrich",
       "de": "Die Mammutknochenhütten von Meschyritsch",
       "source": "Chu, W., Shydlovskyi, P. and Maier, A. 2025, A revised radiocarbon chronology for the mammoth bone structures and associated features at Mezhyrich, Ukraine, Open Research Europe 5, 198"
+    },
+    {
+      "id": "catalhoyuk",
+      "bce": 7100,
+      "until": 5950,
+      "lat": 37.667,
+      "lon": 32.828,
+      "en": "Farmers of the Konya Plain: Aşıklı Höyük and Çatalhöyük",
+      "de": "Bauern der Konya-Ebene: Aşıklı Höyük und Çatalhöyük",
+      "source": "Hodder, I. 2006, The Leopard's Tale: Revealing the Mysteries of Çatalhöyük, Thames & Hudson (Çatalhöyük East c. 7100-5950 BCE); Esin, U. and Harmankaya, S. 1999, Aşıklı, in Neolithic in Turkey (Aşıklı Höyük c. 8200-7400 BCE)"
     }
   ]
 }
