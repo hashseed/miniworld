@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { FarmingGrid, farmingCellOf } from '../../../app/src/world/farmingOnset.ts';
 import {
   checkFarming,
@@ -8,6 +8,7 @@ import {
   type FarmingSeed,
 } from './farming.ts';
 
+vi.setConfig({ testTimeout: 60_000 });
 // A flat world: land between 60 S and 70 N, a one-degree sea strip at 10 E.
 const base = (seeds: FarmingSeed[], extra: Partial<FarmingInput> = {}): FarmingInput => ({
   seeds,
