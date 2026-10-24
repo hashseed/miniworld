@@ -10,7 +10,7 @@ sources:
 
 # The first rice farmers of the Yangtze
 
-**When:** about 9,500 years ago (c. 7500 BCE); the date is approximate.
+**When:** about 7,800 years ago (c. 5750 BCE), when the Kuahuqiao village grew rice; people at Shangshan had used rice since about 7400 BCE. The date is approximate.
 
 **Where:** the lower Yangtze valley in eastern China, in the hills and marshes of Zhejiang.
 
@@ -30,7 +30,7 @@ Scientists argue how long it took until rice was fully tamed, with estimates fro
 
 # Die ersten Reisbauern am Jangtse
 
-**Wann:** vor etwa 9.500 Jahren (ca. 7500 v. Chr.); das Datum ist ungefähr.
+**Wann:** vor etwa 7.800 Jahren (ca. 5750 v. Chr.), als das Dorf Kuahuqiao Reis anbaute; schon um 7400 v. Chr. nutzten Menschen bei Shangshan Reis. Das Datum ist ungefähr.
 
 **Wo:** das untere Jangtse-Tal in Ostchina, in den Hügeln und Sümpfen von Zhejiang.
 

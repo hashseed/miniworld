@@ -177,14 +177,34 @@
       "source": "The Anatolian pause: farming stood in central Anatolia from about 8200 BCE yet crossed the Aegean only about 6700 BCE; Weninger et al. 2014, Documenta Praehistorica 41; Özdoğan 2011, Current Anthropology 52 S4"
     },
     {
+      "id": "steppe-volga",
+      "box": {
+        "lat": [43, 56],
+        "lon": [45, 60]
+      },
+      "notBeforeBce": 4600,
+      "approximate": true,
+      "source": "Khvalynsk herders on the middle and lower Volga kept cattle and sheep by about 4500 BCE; Anthony 2007, The Horse, the Wheel and Language"
+    },
+    {
+      "id": "steppe-west",
+      "box": {
+        "lat": [43, 56],
+        "lon": [30, 45]
+      },
+      "notBeforeBce": 5300,
+      "approximate": true,
+      "source": "Cattle and sheep reached the Azov and Dnieper steppes about 5500 to 5000 BCE (Dnieper-Donets II); Anthony 2007, The Horse, the Wheel and Language"
+    },
+    {
       "id": "pontic-steppe",
       "box": {
         "lat": [43, 56],
-        "lon": [30, 75]
+        "lon": [60, 75]
       },
       "notBeforeBce": 3800,
       "approximate": true,
-      "source": "Steppe herders took up cattle and sheep about 3800 BCE; Anthony 2007, The Horse, the Wheel and Language"
+      "source": "Farming reached the far eastern steppe (Kazakhstan, Botai foragers) only about 3800 BCE; Anthony 2007, The Horse, the Wheel and Language"
     },
     {
       "id": "cucuteni",
@@ -192,9 +212,9 @@
         "lat": [43, 52],
         "lon": [23, 31]
       },
-      "notBeforeBce": 5100,
+      "notBeforeBce": 5600,
       "approximate": true,
-      "source": "Cucuteni-Trypillia farming begins about 5100 BCE; Müller et al. 2016"
+      "source": "Starčevo-Criş farmers reached Moldavia and the Carpathian foothills about 5800 to 5500 BCE, before Cucuteni-Trypillia (about 5100); Reingruber & Thissen 2009, Radiocarbon 51"
     },
     {
       "id": "caucasus",
@@ -242,9 +262,9 @@
         "lat": [33, 43],
         "lon": [124, 131]
       },
-      "notBeforeBce": 1500,
+      "notBeforeBce": 3500,
       "approximate": true,
-      "source": "Rice and millet farming of the Mumun period, about 1500 BCE; Lee 2011, Current Anthropology 52 S4"
+      "source": "Millet farming of the Chulmun period from about 3500 BCE, rice and intensive fields of the Mumun period from about 1500 BCE; Crawford & Lee 2003, Antiquity 77; Lee 2011, Current Anthropology 52 S4"
     },
     {
       "id": "japan-east",
@@ -255,6 +275,26 @@
       "notBeforeBce": 700,
       "approximate": true,
       "source": "Yayoi rice farming reaches Kinki and Tohoku after Kyushu; Hudson 1999; Mizoguchi 2013"
+    },
+    {
+      "id": "ryukyu",
+      "box": {
+        "lat": [24, 30],
+        "lon": [123, 130]
+      },
+      "notBeforeBce": -900,
+      "approximate": true,
+      "source": "The Ryukyu islands had farming villages only from the Gusuku period, about 900 to 1100 CE; Pearson 2013, Okinawa: The Rise of an Island Kingdom"
+    },
+    {
+      "id": "hokkaido",
+      "box": {
+        "lat": [41.3, 46],
+        "lon": [139, 146]
+      },
+      "notBeforeBce": -700,
+      "approximate": true,
+      "source": "Hokkaido stayed with the foraging Epi-Jomon until the farming Satsumon culture, about 700 CE; Mizoguchi 2013, The Archaeology of Japan"
     },
     {
       "id": "taiwan",
@@ -570,9 +610,7 @@
         "en": "Manioc, squash, peanut, palm fruits",
         "de": "Maniok, Kürbis, Erdnuss, Palmfrüchte"
       },
-      "source": "Lombardo et al. 2020, Nature 581",
-      "spreadBce": 3500,
-      "spreadNote": "Manioc and squash became staples of settled farming in the second half of the Holocene; Clement et al. 2015, Proc. R. Soc. B 282"
+      "source": "Lombardo et al. 2020, Nature 581"
     },
     {
       "id": "mesoamerica",
@@ -580,9 +618,7 @@
         "en": "Squash, then maize and beans",
         "de": "Kürbis, später Mais und Bohnen"
       },
-      "source": "Smith 1997, Science 276",
-      "spreadBce": 4500,
-      "spreadNote": "Maize with large cobs and the full package of maize, beans and squash come together about 4500 BCE; Piperno et al. 2009, PNAS 106; Smith 1998"
+      "source": "Smith 1997, Science 276"
     },
     {
       "id": "andes",
@@ -590,9 +626,7 @@
         "en": "Squash, peanut, cotton, later potato and quinoa",
         "de": "Kürbis, Erdnuss, Baumwolle, später Kartoffel und Quinoa"
       },
-      "source": "Dillehay et al. 2007, Science 316",
-      "spreadBce": 3500,
-      "spreadNote": "Potato, quinoa and maize farming with settled villages spread from about 3500 BCE; Pearsall 2008; Dillehay et al. 2007, Science 316"
+      "source": "Dillehay et al. 2007, Science 316"
     },
     {
       "id": "yellow-river",
@@ -610,9 +644,7 @@
         "en": "Taro, yam, banana, sugarcane",
         "de": "Taro, Yams, Banane, Zuckerrohr"
       },
-      "source": "Denham et al. 2003, Science 301",
-      "spreadBce": 5000,
-      "spreadNote": "Banana, taro and yam farming of the highlands (Kuk, 8000 and 4000 BCE) fed the Lapita voyages only about 5000 BCE and later; Denham et al. 2003, Science 301"
+      "source": "Denham et al. 2003, Science 301"
     },
     {
       "id": "yangtze",
@@ -1063,22 +1095,6 @@
       "toleranceYears": 600
     },
     {
-      "id": "yamnaya",
-      "bce": 3300,
-      "lat": 48,
-      "lon": 40,
-      "en": "Pontic steppe (Yamnaya herders)",
-      "de": "Pontische Steppe (Jamnaja-Hirten)",
-      "package": {
-        "en": "Cattle, sheep and goats herded (little or no crop growing)",
-        "de": "Rinder, Schafe und Ziegen als Herden (kaum oder kein Ackerbau)"
-      },
-      "source": "Anthony 2007, The Horse, the Wheel and Language",
-      "approximate": true,
-      "toleranceYears": 500,
-      "herdingOnly": true
-    },
-    {
       "id": "koldihwa-lahuradewa",
       "bce": 6000,
       "lat": 26.8,
@@ -1200,19 +1216,19 @@
       "toleranceYears": 500
     },
     {
-      "id": "songguk-ni",
-      "bce": 1300,
-      "lat": 36.3,
-      "lon": 126.9,
-      "en": "Korea (Songguk-ni, Mumun rice)",
-      "de": "Korea (Songguk-ni, Mumun-Reis)",
+      "id": "dongsam-dong",
+      "bce": 3300,
+      "lat": 35.05,
+      "lon": 129.07,
+      "en": "Korea (Dongsam-dong, Chulmun millet)",
+      "de": "Korea (Dongsam-dong, Chulmun-Hirse)",
       "package": {
-        "en": "Rice, millet, pig, dog",
-        "de": "Reis, Hirse, Schwein, Hund"
+        "en": "Millet, pig, dog",
+        "de": "Hirse, Schwein, Hund"
       },
       "source": "Crawford & Lee 2003, Antiquity 77; Lee 2011, Current Anthropology 52 S4",
       "approximate": true,
-      "toleranceYears": 400
+      "toleranceYears": 500
     },
     {
       "id": "itazuke",
@@ -1454,7 +1470,7 @@
     },
     {
       "id": "ecuador-coast",
-      "bce": 5000,
+      "bce": 3500,
       "lat": -2.2,
       "lon": -80.5,
       "en": "Coastal Ecuador (Las Vegas, Real Alto)",
@@ -1463,9 +1479,9 @@
         "en": "Maize, beans, squash",
         "de": "Mais, Bohnen, Kürbis"
       },
-      "source": "Pearsall 2003; Piperno & Pearsall 1998",
+      "source": "Valdivia villages with maize at Real Alto, about 3500 BCE; Pearsall 2003; Zarrillo et al. 2008, PNAS 105 (earlier maize starch at Las Vegas is contested)",
       "approximate": true,
-      "toleranceYears": 800
+      "toleranceYears": 500
     },
     {
       "id": "caral",
@@ -1708,6 +1724,22 @@
       "source": "Huffman 2007, Handbook of the Iron Age; Grollemund et al. 2015",
       "approximate": true,
       "toleranceYears": 400
+    },
+    {
+      "id": "pontic-herders",
+      "bce": 5000,
+      "lat": 48,
+      "lon": 38,
+      "en": "Pontic steppe (Dnieper-Donets herders)",
+      "de": "Pontische Steppe (Dnjepr-Donez-Hirten)",
+      "package": {
+        "en": "Cattle, sheep and goats herded (little or no crop growing)",
+        "de": "Rinder, Schafe und Ziegen als Herden (kaum oder kein Ackerbau)"
+      },
+      "source": "Anthony 2007, The Horse, the Wheel and Language (domestic cattle and sheep on the Azov and Dnieper steppes about 5500 to 5000 BCE)",
+      "approximate": true,
+      "toleranceYears": 500,
+      "herdingOnly": true
     }
   ]
 }

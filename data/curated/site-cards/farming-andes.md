@@ -9,7 +9,7 @@ sources:
 
 # The first farmers of the Andes
 
-**When:** more than 9,000 years ago (c. 8000 BCE); the date is approximate.
+**When:** about 5,500 years ago (c. 3500 BCE), when fields with irrigation channels lay in the valleys; squash had been grown there since about 8000 BCE. The date is approximate.
 
 **Where:** the Zaña valley on the north coast of Peru, between the Pacific and the Andes.
 
@@ -29,7 +29,7 @@ Plant remains are hard to find in the dry soil, and the dates for squash, peanut
 
 # Die ersten Bauern der Anden
 
-**Wann:** vor mehr als 9.000 Jahren (ca. 8000 v. Chr.); das Datum ist ungefähr.
+**Wann:** vor etwa 5.500 Jahren (ca. 3500 v. Chr.), als in den Tälern Felder mit Bewässerungskanälen lagen; Kürbis wurde dort schon seit etwa 8000 v. Chr. angebaut. Das Datum ist ungefähr.
 
 **Wo:** das Zaña-Tal an der Nordküste Perus, zwischen dem Pazifik und den Anden.
 
