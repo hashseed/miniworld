@@ -9,7 +9,7 @@ sources:
 
 # The first gardeners of south-west Amazonia
 
-**When:** about 10,000 years ago (c. 8300 BCE); the date is approximate and debated.
+**When:** about 5,500 years ago (c. 3500 BCE), when villages with gardens stood on the mounds; squash and manioc had been eaten there since about 8300 BCE. The date is approximate and debated.
 
 **Where:** the south-west of the Amazon basin, in the lowlands of Bolivia and the forest near the Madeira river.
 
@@ -29,7 +29,7 @@ No one knows exactly when each plant was tamed, because wet soil rots plant rema
 
 # Die ersten Gärtner im Südwesten Amazoniens
 
-**Wann:** vor etwa 10.000 Jahren (ca. 8300 v. Chr.); das Datum ist ungefähr und umstritten.
+**Wann:** vor etwa 5.500 Jahren (ca. 3500 v. Chr.), als auf den Hügeln Dörfer mit Gärten standen; Kürbis und Maniok wurden dort schon seit etwa 8300 v. Chr. gegessen. Das Datum ist ungefähr und umstritten.
 
 **Wo:** der Südwesten des Amazonasbeckens, im Tiefland Boliviens und im Wald am Rio Madeira.
 

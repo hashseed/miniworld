@@ -12,58 +12,58 @@
     },
     {
       "id": "amazonia",
-      "bce": 8300,
+      "bce": 3500,
       "lat": -13.6,
       "lon": -65.4,
       "en": "Southwestern Amazonia",
       "de": "Südwestliches Amazonien",
-      "source": "Lombardo et al. 2020, Early Holocene crop cultivation and landscape modification in Amazonia, Nature 581"
+      "source": "Lombardo et al. 2020, Early Holocene crop cultivation and landscape modification in Amazonia, Nature 581 (crops from about 8300 BCE); farming villages and fields about 3500 BCE, approximate"
     },
     {
       "id": "mesoamerica",
-      "bce": 8000,
+      "bce": 4300,
       "lat": 16.95,
       "lon": -96.43,
       "en": "Mesoamerica",
       "de": "Mesoamerika",
-      "source": "Smith 1997, The initial domestication of Cucurbita pepo in the Americas 10,000 years ago, Science 276"
+      "source": "Piperno & Flannery 2001, The earliest archaeological maize (Zea mays L.) from highland Mexico, PNAS 98 (maize at Guilá Naquitz about 4300 BCE; squash, Smith 1997, Science 276, was used from about 8000 BCE)"
     },
     {
       "id": "andes",
-      "bce": 8000,
+      "bce": 3500,
       "lat": -6.85,
       "lon": -79.2,
       "en": "Northern Andes",
       "de": "Nördliche Anden",
-      "source": "Dillehay et al. 2007, Preceramic adoption of peanut, squash, and cotton in northern Peru, Science 316"
+      "source": "Dillehay et al. 2007, Preceramic adoption of peanut, squash, and cotton in northern Peru, Science 316 (cultivated plants from about 8000 BCE); farming with fields and irrigation about 3500 BCE, approximate"
     },
     {
       "id": "yellow-river",
-      "bce": 8000,
+      "bce": 6500,
       "lat": 36.58,
       "lon": 114.1,
       "en": "Yellow River",
       "de": "Gelber Fluss",
-      "source": "Lu et al. 2009, Earliest domestication of common millet (Panicum miliaceum) in East Asia extended to 10,000 years ago, PNAS 106"
+      "source": "Lu et al. 2009, Earliest domestication of common millet (Panicum miliaceum) in East Asia extended to 10,000 years ago, PNAS 106 (first millet use); the date is that of the farming villages of Cishan and Peiligang, Zhao 2011, Current Anthropology 52 S4"
     },
     {
       "id": "new-guinea",
-      "bce": 8000,
+      "bce": 5000,
       "lat": -5.78,
       "lon": 144.33,
       "en": "New Guinea Highlands",
       "de": "Hochland von Neuguinea",
-      "source": "Denham et al. 2003, Origins of agriculture at Kuk Swamp in the highlands of New Guinea, Science 301",
+      "source": "Denham et al. 2003, Origins of agriculture at Kuk Swamp in the highlands of New Guinea, Science 301 (mounded cultivation, phase 2, from 6950 to 6440 cal BP; plant use there from about 8000 BCE)",
       "debated": true
     },
     {
       "id": "yangtze",
-      "bce": 7500,
+      "bce": 5750,
       "lat": 29.45,
       "lon": 119.97,
       "en": "Lower Yangtze",
       "de": "Unterer Jangtsekiang",
-      "source": "Zuo et al. 2017, Dating rice remains through phytolith carbon-14 study reveals domestication at the beginning of the Holocene, PNAS 114"
+      "source": "Fuller et al. 2009, The domestication process and domestication rate in rice, Science 323 (rice cultivation at Kuahuqiao about 5750 BCE; first use at Shangshan, Zuo et al. 2017, PNAS 114, was earlier)"
     },
     {
       "id": "south-asia-farming",

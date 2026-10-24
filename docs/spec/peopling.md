@@ -79,17 +79,17 @@ This plan ends at the Neolithic thresholds of section 3.6, where farming begins 
 
 ### 3.6 Neolithic thresholds
 
-A **Neolithic threshold** is a place and date where a local population of foragers is about to start farming or herding on its own: the centres of domestication of mainstream archaeology (Larson et al. 2014, *PNAS* 111) that fall before the tree's end. The farming plan (milestone 3) continues from them; this plan only marks them. The records go to `data/curated/neolithic.json` (**Proposed**), each with its source.
+A **Neolithic threshold** is a place and date where a local population of foragers is about to start farming or herding on its own: the centres of domestication of mainstream archaeology (Larson et al. 2014, *PNAS* 111) that fall before the tree's end. A threshold is dated to when real farming villages with fields stood, not to the first use of a wild plant, so that the first-farming events and the Neolithic scenes agree with history (Yang, 2026-10-24); the earlier use is named in the evidence. The records go to `data/curated/neolithic.json` (**Proposed**), each with its source.
 
 | Id | Date | Place | Lat, lon | Evidence and source |
 | --- | --- | --- | --- | --- |
 | `fertile-crescent` | c. 9500 BCE | Jericho, southern Levant | 31.87, 35.44 | Pre-Pottery Neolithic A, wild cereals sown and harvested (Zeder 2011, *Current Anthropology* 52 S4) |
-| `amazonia` | c. 8300 BCE | Llanos de Moxos, Bolivia | -13.60, -65.40 | Squash and manioc on forest islands, about 10,350 years ago (Lombardo et al. 2020, *Nature* 581) |
-| `mesoamerica` | c. 8000 BCE | Guilá Naquitz, Oaxaca, Mexico | 16.95, -96.43 | Domesticated squash, about 10,000 years ago (Smith 1997, *Science* 276) |
-| `andes` | c. 8000 BCE | Ñanchoc Valley, northern Peru | -6.85, -79.20 | Squash, about 10,000 years ago (Dillehay et al. 2007, *Science* 316) |
-| `yellow-river` | c. 8000 BCE | Cishan, Hebei, China | 36.58, 114.10 | Broomcorn millet, about 10,000 years ago (Lu et al. 2009, *PNAS* 106) |
-| `new-guinea` | c. 8000 BCE | Kuk Swamp, Papua New Guinea | -5.78, 144.33 | Plants tended at the swamp edge about 10,000 years ago, debated; mounded gardens from about 7000 years ago (Denham et al. 2003, *Science* 301) |
-| `yangtze` | c. 7500 BCE | Shangshan, Zhejiang, China | 29.45, 119.97 | Rice cultivation, about 9,400 years ago (Zuo et al. 2017, *PNAS* 114) |
+| `amazonia` | c. 3500 BCE | Llanos de Moxos, Bolivia | -13.60, -65.40 | Squash and manioc were eaten on forest islands from about 8300 BCE (Lombardo et al. 2020, *Nature* 581); the date is that of the first mound villages with gardens, approximate |
+| `mesoamerica` | c. 4300 BCE | Guilá Naquitz, Oaxaca, Mexico | 16.95, -96.43 | Domesticated squash from about 8000 BCE (Smith 1997, *Science* 276); the date is that of maize at the same cave, the start of fields (Piperno & Flannery 2001, *PNAS* 98) |
+| `andes` | c. 3500 BCE | Ñanchoc Valley, northern Peru | -6.85, -79.20 | Squash was tended from about 8000 BCE (Dillehay et al. 2007, *Science* 316); the date is that of irrigated fields on the Peruvian coast, approximate |
+| `yellow-river` | c. 6500 BCE | Cishan, Hebei, China | 36.58, 114.10 | Millet was grown at Cishan from about 8000 BCE (Lu et al. 2009, *PNAS* 106); the date is that of the Cishan and Peiligang villages with fields (Zhao 2011, *Current Anthropology* 52 S4) |
+| `new-guinea` | c. 5000 BCE | Kuk Swamp, Papua New Guinea | -5.78, 144.33 | Plants tended at the swamp edge from about 8000 BCE, debated; the date is that of the mounded gardens, phase 2 at Kuk, 4950 to 4500 BCE (Denham et al. 2003, *Science* 301) |
+| `yangtze` | c. 5750 BCE | Shangshan, Zhejiang, China | 29.45, 119.97 | Rice was used at Shangshan from about 7400 BCE (Zuo et al. 2017, *PNAS* 114); the date is that of the Kuahuqiao village with rice fields (Fuller et al. 2009, *Science* 323) |
 | `south-asia-farming` | c. 7000 BCE | Mehrgarh, Pakistan | 29.38, 67.62 | Barley, wheat and zebu cattle, about 9,000 years ago (Jarrige et al. 1995, *Mehrgarh: Field Reports 1974–1985*) |
 
 Later centres (eastern North America, the Sahel and West Africa, Ethiopia) come after the tree's end and belong to the farming plan.

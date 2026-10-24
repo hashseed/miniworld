@@ -10,7 +10,7 @@ sources:
 
 # The first millet farmers of the Yellow River
 
-**When:** about 10,000 years ago (c. 8000 BCE); the date is approximate.
+**When:** about 8,500 years ago (c. 6500 BCE), when villages with millet fields stood; people at Cishan had grown millet since about 8000 BCE. The date is approximate.
 
 **Where:** the plains and foothills of the Yellow River in northern China, at places such as Cishan.
 
@@ -30,7 +30,7 @@ The first steps of taming millet are hard to date, and a few scientists think th
 
 # Die ersten Hirsebauern am Gelben Fluss
 
-**Wann:** vor etwa 10.000 Jahren (ca. 8000 v. Chr.); das Datum ist ungefähr.
+**Wann:** vor etwa 8.500 Jahren (ca. 6500 v. Chr.), als Dörfer mit Hirsefeldern standen; schon um 8000 v. Chr. bauten Menschen bei Cishan Hirse an. Das Datum ist ungefähr.
 
 **Wo:** die Ebenen und Vorberge des Gelben Flusses in Nordchina, an Orten wie Cishan.
 

@@ -9,7 +9,7 @@ sources:
 
 # The first gardeners of the New Guinea highlands
 
-**When:** about 10,000 years ago (c. 8000 BCE); the date is approximate and debated.
+**When:** about 7,000 years ago (c. 5000 BCE), when mounded gardens were dug at Kuk; plants were tended there earlier, from about 8000 BCE. The date is approximate and debated.
 
 **Where:** Kuk Swamp in the Wahgi valley, high in the mountains of New Guinea.
 
@@ -29,7 +29,7 @@ Plants like taro and bananas leave few remains, so scientists use traces such as
 
 # Die ersten Gärtner im Hochland von Neuguinea
 
-**Wann:** vor etwa 10.000 Jahren (ca. 8000 v. Chr.); das Datum ist ungefähr und umstritten.
+**Wann:** vor etwa 7.000 Jahren (ca. 5000 v. Chr.), als bei Kuk Gärten auf Hügelbeeten angelegt wurden; schon ab etwa 8000 v. Chr. pflegten Menschen dort Pflanzen. Das Datum ist ungefähr und umstritten.
 
 **Wo:** der Kuk-Sumpf im Wahgi-Tal, hoch in den Bergen Neuguineas.
 

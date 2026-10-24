@@ -10,7 +10,7 @@ sources:
 
 # The first farmers of Mesoamerica
 
-**When:** about 10,000 years ago (c. 8000 BCE); the dates are approximate.
+**When:** about 6,300 years ago (c. 4300 BCE), when maize was grown in the Oaxaca valley; squash had been grown there since about 8000 BCE. The dates are approximate.
 
 **Where:** the valleys of Oaxaca and the Balsas river in southern Mexico.
 
@@ -30,7 +30,7 @@ It is hard to date plant remains from caves, so the years are uncertain by some 
 
 # Die ersten Bauern Mesoamerikas
 
-**Wann:** vor etwa 10.000 Jahren (ca. 8000 v. Chr.); die Daten sind ungefähr.
+**Wann:** vor etwa 6.300 Jahren (ca. 4300 v. Chr.), als im Tal von Oaxaca Mais angebaut wurde; Kürbis wuchs dort schon seit etwa 8000 v. Chr. Die Daten sind ungefähr.
 
 **Wo:** die Täler von Oaxaca und des Río Balsas im Süden Mexikos.
 

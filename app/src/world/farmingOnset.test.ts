@@ -38,10 +38,10 @@ describe.skipIf(!built)('farming onset (built raster)', () => {
       ['Catalhoyuk', 37.67, 32.83, 8300, 7000],
       ['LBK', 47, 18, 5850, 5500],
       ['Britain', 51.3, 0.7, 4050, 3950],
-      ['Yellow River', 36.58, 114.1, 8050, 7950],
-      ['Mesoamerica', 16.95, -96.43, 8050, 7950],
-      ['Andes', -6.85, -79.2, 8050, 7950],
-      ['Kuk', -5.78, 144.33, 8050, 7950],
+      ['Yellow River', 36.58, 114.1, 6550, 6450],
+      ['Mesoamerica', 16.95, -96.43, 4350, 4250],
+      ['Andes', -6.85, -79.2, 3550, 3450],
+      ['Kuk', -5.78, 144.33, 5050, 4950],
     ];
     for (const [name, lat, lon, from, to] of anchors) {
       const y = yearOf(lat, lon) ?? 0;
