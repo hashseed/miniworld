@@ -3,7 +3,7 @@
 // the output and the log.
 
 import { createHash } from 'node:crypto';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { TIME_WINDOWS } from '../../../app/src/content/formats.ts';
 import { DATA_MAX_LEVEL } from '../../../app/src/geo/cube.ts';
@@ -33,6 +33,10 @@ export interface BuildContext {
   neFile(name: string): string;
   /** A file under data/curated, parsed as JSON. */
   curated<T>(name: string): T;
+  /** The names of the curated files read through `curated` since the list was last cleared. */
+  curatedReads: Set<string>;
+  /** Caches are off (`--no-cache`, `--fresh`). */
+  noCache: boolean;
   /**
    * The cache of the land: the map grids, the coarse coasts and the climate slices, kept
    * while the sources, the land's curated files, the build code that makes them and the
@@ -68,6 +72,11 @@ function fail(message: string): never {
 
 /** Reads the options, checks the sources and their licences, and lays out the timeline. */
 export function createContext(args: string[]): BuildContext {
+  // `--clean` forgets every cache first; `--no-cache` (or `--fresh`) uses and writes none.
+  const noCache = args.includes('--no-cache') || args.includes('--fresh');
+  if (args.includes('--clean'))
+    for (const d of ['cache', 'sites', 'stages', 'brotli'])
+      rmSync(join(ROOT, 'data/out', d), { recursive: true, force: true });
   const useFixture = args.includes('--fixture');
   const maxLevelArg = args.indexOf('--max-level');
   const maxLevel = maxLevelArg >= 0 ? Number(args[maxLevelArg + 1]) : DATA_MAX_LEVEL;
@@ -78,8 +87,11 @@ export function createContext(args: string[]): BuildContext {
     const s = ((performance.now() - started) / 1000).toFixed(1).padStart(5);
     console.log(`build-data ${s}s: ${message}`);
   };
-  const curated = <T>(name: string) =>
-    JSON.parse(readFileSync(join(ROOT, 'data/curated', name), 'utf8')) as T;
+  const curatedReads = new Set<string>();
+  const curated = <T>(name: string) => {
+    curatedReads.add(name);
+    return JSON.parse(readFileSync(join(ROOT, 'data/curated', name), 'utf8')) as T;
+  };
 
   // Sources and licences.
   const registry = (
@@ -160,17 +172,15 @@ export function createContext(args: string[]): BuildContext {
     ],
     { fixture, maxLevel, cutoffDay },
   );
-  const landCache = new BuildCache(
-    join(ROOT, 'data/out/cache'),
-    landKey,
-    !args.includes('--fresh'),
-  );
+  const landCache = new BuildCache(join(ROOT, 'data/out/cache'), landKey, !noCache);
   if (landCache.on) log(`land cache ${landKey}`);
 
   return {
     fixture,
     maxLevel,
     landCache,
+    noCache,
+    curatedReads,
     release,
     registry,
     cutoffDay,
