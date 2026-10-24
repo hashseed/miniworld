@@ -377,7 +377,8 @@ function buildAsset(id: string): Model {
 /** The sheet's optional pose for a moving asset: `&clip=walk&t=0.3`. */
 function poseAsset(m: Model, id: string): void {
   const clip = params.get('clip');
-  if (clip && id.startsWith('animal-')) animateAnimal(m, clip as Clip, Number(params.get('t') ?? 0));
+  if (clip && id.startsWith('animal-'))
+    animateAnimal(m, clip as Clip, Number(params.get('t') ?? 0));
 }
 
 /** Set by sheets drawn as several views: renders them all instead of the single camera. */
