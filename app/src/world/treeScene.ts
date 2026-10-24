@@ -626,7 +626,8 @@ export function treeScene(
     return c;
   }
   function crossingOf(f: TreeFigure, i: number) {
-    return crossingOfOf(cx, f, i);
+    // Asked for while the lookups are still being worked out, before cx exists.
+    return crossingOfOf({ at, endOfStay, lodgings }, f, i);
   }
 
   /** Where a figure stands at the end of its stay in its `i`-th home: at its spot, or where it took the lodging down. */
