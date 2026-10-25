@@ -9,6 +9,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { LANGUAGES } from '../../app/src/i18n/messages.ts';
+import { chunkSizeProblems, largestFiles } from './lib/chunkSize.ts';
 import { DrawnTiles } from './lib/drawnGround.ts';
 import { Output } from './lib/output.ts';
 import { StageCache } from './lib/stageCache.ts';
@@ -107,6 +108,14 @@ async function main(args: string[]): Promise<void> {
   );
   for (const language of LANGUAGES)
     log(`index ${language}: ${(output.sizes.get(index[language])! / 1000).toFixed(0)} KB Brotli`);
+  // No chunk over 1 MB as it is sent (milestone 1, section 10.8).
+  log(
+    `largest files: ${largestFiles(output.sizes, 5)
+      .map(([f, n]) => `${f} ${(n / 1000).toFixed(0)} KB`)
+      .join(', ')}`,
+  );
+  const tooLarge = chunkSizeProblems(output.sizes);
+  if (tooLarge.length) throw new Error(`chunks over the size limit:\n${tooLarge.join('\n')}`);
 }
 
 await main(process.argv.slice(2));
