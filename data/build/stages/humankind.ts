@@ -7,7 +7,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { OCEAN_MIN_LEVEL, OCEAN_NEVER } from '../../../app/src/content/formats.ts';
-import { TIMELINE_START } from '../../../app/src/time/calendar.ts';
+import { DAYS_PER_YEAR, TIMELINE_START, type Day } from '../../../app/src/time/calendar.ts';
 import { detCos, detSin } from '../../../app/src/core/detmath.ts';
 import { onGlobe } from '../lib/geo.ts';
 import { dayAtMs, dayAtWatch, msAtDay } from '../../../app/src/time/rate.ts';
@@ -49,7 +49,7 @@ import {
 } from '../../../app/src/world/treeScene.ts';
 import { arrivalMap, dayOfBce, type ArrivalMap, type Arrivals } from '../lib/arrivals.ts';
 import { CAMP_SHELTER } from '../../../assets/src/shelters.ts';
-import { farmingStateAt } from '../../../app/src/world/farmingOnset.ts';
+import { farmingProfileAt, farmingStateAt } from '../../../app/src/world/farmingOnset.ts';
 import { NEOLITHIC_PROFILES } from '../../../app/src/world/neolithicProfiles.ts';
 import {
   encodeMask,
@@ -180,12 +180,17 @@ export function buildHumankind(
   drawn: DrawnGround,
   /** Drawn km per true km at a place, from the history lens (sites.md section 2). */
   widthAt: (lat: number, lon: number) => number = () => 1,
-): { files: TreeFiles; camps: CampPlace[]; events: TreeEvent[] } {
+): {
+  files: TreeFiles;
+  camps: CampPlace[];
+  events: TreeEvent[];
+  farmingStarts: FarmingStart[];
+} {
   const { log, fail } = ctx;
   // The fixture map has no Africa.
   if (ctx.fixture) {
     log('tree of humankind skipped on the fixture map');
-    return { files: undefined, camps: [], events: [] };
+    return { files: undefined, camps: [], events: [], farmingStarts: [] };
   }
   const { connection, lakes, rivers, elevation } = map;
   // Water in the source grids or as the globe draws it, whichever reaches further,
@@ -460,6 +465,9 @@ export function buildHumankind(
   treeSettings.culture = (lat, lon, day) =>
     farmingStateAt(lat, lon, day).profile ?? areaCulture?.(lat, lon, day);
   treeSettings.village = (culture) => culture in NEOLITHIC_PROFILES;
+  // The band at a farming sign's site becomes its centre's village on the sign's day
+  // (neolithic/villages.md section 1): the profile whose area holds the sign's point.
+  treeSettings.thresholdCulture = (t) => farmingProfileAt(t.lat, t.lon) ?? undefined;
   treeSettings.herding = (culture, lat, lon, day) =>
     !(culture && culture in NEOLITHIC_PROFILES) &&
     farmingStateAt(lat, lon, day).stage === 'herding';
@@ -715,7 +723,59 @@ export function buildHumankind(
   log(
     `scenes: ${(tree.stages ?? []).map((x) => `${x.id} (${x.kind}, ${stageSessions(x, TIMELINE_START).length} sessions)`).join(', ') || 'none'}`,
   );
-  return { files: { files, days, sites: sitesFile }, camps, events };
+  const starts = farmingStarts(tree);
+  for (const t of thresholdRecords) {
+    const start = starts.find((x) => x.id === t.id);
+    // A centre whose land has no farming profile (Amazonia) has no village to wait for.
+    if (!treeSettings.thresholdCulture?.(t)) continue;
+    if (!start) {
+      fail(`farming sign ${t.id}: no village with fields stands at its site`);
+      continue;
+    }
+    const late = (start.day - t.day) / DAYS_PER_YEAR;
+    if (late > FARMING_LATE_YEARS)
+      fail(
+        `farming sign ${t.id}: its first village with fields stands ${Math.round(late)} years after its date, at ${start.lat.toFixed(2)}, ${start.lon.toFixed(2)}`,
+      );
+    log(`farming sign ${t.id}: first fields ${Math.round(late)} years after its date`);
+  }
+  return { files: { files, days, sites: sitesFile }, camps, events, farmingStarts: starts };
+}
+
+/** Where and when a farming centre's first village with fields was built (neolithic/villages.md section 1). */
+export interface FarmingStart {
+  id: string;
+  day: Day;
+  lat: number;
+  lon: number;
+}
+
+/** A farming village must stand at its sign's site within this many years of the sign's date. */
+const FARMING_LATE_YEARS = 50;
+
+/**
+ * Where and when each farming centre's first village with fields was built in the tree: the
+ * first farming house of the band settled at its threshold's site (neolithic/villages.md
+ * section 1). The sign shows this, so it says when it happens in miniworld; the build fails
+ * when it comes more than FARMING_LATE_YEARS after the centre's date, or never.
+ */
+function farmingStarts(tree: Tree): FarmingStart[] {
+  const out: FarmingStart[] = [];
+  for (const t of treeStats.thresholds) {
+    let first: TreeLodging | undefined;
+    for (const l of tree.lodgings)
+      if (
+        l.camp === t.camp &&
+        l.culture !== undefined &&
+        l.culture in NEOLITHIC_PROFILES &&
+        l.fieldLand &&
+        (!first || l.built < first.built)
+      )
+        first = l;
+    if (!first) continue;
+    out.push({ id: t.id, day: first.built, lat: first.lat / 1e6, lon: first.lon / 1e6 });
+  }
+  return out;
 }
 
 /** Each place a camp stands, from its first lodging built to its last taken down, as the app shows it. */
