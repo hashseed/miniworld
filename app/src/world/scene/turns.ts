@@ -1,7 +1,8 @@
 // A figure's turns (spec humankind.md section 8.1): what it goes off to do in each turn of
 // its day, alone or with others.
 
-import { type Stay, isProfile, MILKED } from './memo.ts';
+import { type Stay, type Village, isProfile, MILKED } from './memo.ts';
+import { TEMPO } from './units.ts';
 import { type Outing, outingOf } from './outings.ts';
 import { Itinerary } from './routes.ts';
 import {
@@ -51,6 +52,10 @@ import type { SceneCx } from './context.ts';
 
 /** A reaper carrying a sheaf goes back along its way out to this far from the hearth (layout metres), inside the ring. */
 const SHEAF_BACK_M = 10;
+/** The store's lane is entered this far out, its door stood at this far from its middle (layout metres), and the grain put away in this long. */
+const STORE_LANE_M = 5;
+const STORE_BY_M = 2.6;
+const STORE_MS = Math.round(3_000 / TEMPO);
 
 /** A farmer sets off for a field from this far out on the field's own line (layout metres). */
 const FIELD_GATE_M = 3;
@@ -232,16 +237,16 @@ export function soloTurn(
         .go(back, 'carry', true)
         .go(floor, 'carry')
         .stay(trip.t + THRESH_MS, 'thresh', { x: floor.x * 2, z: floor.z * 2 });
+      storeGrain(trip, villageOf(camp)?.store);
     } else trip.go(gate, 'walk', true);
     trip.go(st.spot);
   } else if (go === 'thresh') {
     if (room < THRESH_ROOM_M) return { go: 'rest' };
     // The threshing floor between the lodgings and the fire.
     const floor = outingPoint(st.s, camp, 8);
-    trip
-      .go(floor, 'carry')
-      .stay(trip.t + THRESH_MS, 'thresh', { x: floor.x * 2, z: floor.z * 2 })
-      .go(st.spot);
+    trip.go(floor, 'carry').stay(trip.t + THRESH_MS, 'thresh', { x: floor.x * 2, z: floor.z * 2 });
+    storeGrain(trip, villageOf(camp)?.store);
+    trip.go(st.spot);
   } else if (go === 'milk') {
     const animals = villageOf(camp)?.herd?.animals.filter((a) => MILKED.has(a.kind));
     if (!animals?.length) return { go: 'rest' };
@@ -306,4 +311,23 @@ export function soloTurn(
       .go(st.spot);
   } else return { go };
   return trip.t <= Math.min(st.busy, turnStart + TURN_MS) ? { go, trip } : { go: 'rest' };
+}
+
+/**
+ * The threshed grain carried to the village's store and put away (Yang, 2026-10-25: "grains
+ * are stored in pots or the granary"): in towards the middle, out along the store's own lane
+ * and back the same way, so the walk passes no house.
+ */
+function storeGrain(trip: Itinerary, store: Village['store']): void {
+  if (!store) return;
+  const { at, dir } = store;
+  const r = Math.sqrt(at.x * at.x + at.z * at.z);
+  const lane = { x: (at.x * STORE_LANE_M) / r, z: (at.z * STORE_LANE_M) / r };
+  // At the store's door, on the village's side.
+  const by = { x: at.x + dir.x * STORE_BY_M, z: at.z + dir.z * STORE_BY_M };
+  trip
+    .go(lane, 'carry')
+    .go(by, 'carry', true)
+    .stay(trip.t + STORE_MS, 'work', at)
+    .go(lane, 'walk', true);
 }

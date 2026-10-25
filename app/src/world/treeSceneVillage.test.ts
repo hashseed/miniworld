@@ -94,6 +94,30 @@ describe('a Neolithic village in the tree scene', () => {
     }
   });
 
+  it('keeps the grain in the village store, clear of the fields (Yang, 2026-10-25)', () => {
+    const s = all.find((x) => x.props.some((p) => p.id.startsWith('store:0:')))!;
+    expect(s).toBeDefined();
+    const pots = s.props.filter((p) => p.id.startsWith('store:0:'));
+    // The LBK keeps its grain in jars.
+    expect(pots.every((p) => p.kind === 'prop-pot-large')).toBe(true);
+    for (const f of s.fields)
+      for (const p of f.field.outline)
+        for (const q of pots)
+          expect(Math.sqrt((p.x - q.x) ** 2 + (p.z - q.z) ** 2)).toBeGreaterThan(2);
+  });
+
+  it('keeps the dog out of the pen, at the heels of one of its people (Yang, 2026-10-25)', () => {
+    for (const s of all) {
+      expect(s.prey.some((p) => p.id.startsWith('herd:') && p.kind === 'animal-dog')).toBe(false);
+      for (const d of s.prey.filter((p) => p.id.startsWith('dog:'))) {
+        const m = s.figures.find((f) => `dog:${f.id}` === d.id)!;
+        expect(m).toBeDefined();
+        expect(Math.hypot(d.x - m.x, d.z - m.z)).toBeLessThan(4);
+      }
+    }
+    expect(all.some((s) => s.prey.some((p) => p.id.startsWith('dog:')))).toBe(true);
+  });
+
   it('changes a field only when it is worked: stages hold still between jobs', () => {
     const start = msAtDay(d0 + years(1), d0) + 90_000;
     const seen = new Map<string, number[]>();

@@ -81,6 +81,8 @@ export interface NeolithicProfile {
   houseM?: number;
   /** How many people one house holds, where not the usual four. */
   houseCapacity?: number;
+  /** Where the village keeps its grain (villages.md section 8); none for root crops. */
+  store?: 'granary' | 'silo-pit' | 'pots';
 }
 
 function farmingProfiles(): Record<NeolithicProfileId, NeolithicProfile> {
@@ -104,6 +106,7 @@ function farmingProfiles(): Record<NeolithicProfileId, NeolithicProfile> {
       layout: f.layout,
       ...(f.houseM !== undefined ? { houseM: f.houseM } : {}),
       ...(f.houseCapacity !== undefined ? { houseCapacity: f.houseCapacity } : {}),
+      ...(f.store !== undefined ? { store: f.store } : {}),
     };
   }
   return out;

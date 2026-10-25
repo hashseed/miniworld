@@ -126,6 +126,10 @@ export interface Village {
   founded: Day;
   fields: Field[];
   herd?: { pen: Pt; penDir: Pt; animals: HerdAnimal[] };
+  /** Where it keeps its grain (villages.md section 8): the store's kind, its middle and its facing. */
+  store?: { kind: 'granary' | 'silo-pit' | 'pots'; at: Pt; dir: Pt };
+  /** The village keeps a dog, which follows one of its people about, never penned (villages.md section 7). */
+  dog?: boolean;
 }
 
 export const isProfile = isNeolithicProfile;
@@ -147,6 +151,12 @@ export const PEN_CLEAR_M = 8;
 /** Fields and the pen keep this far from a house's footprint (layout metres). */
 export const HOUSE_CLEAR_M = 2;
 
+/** The grain store stands this far out from the village's middle, on the land mask's first ring, and fields keep STORE_CLEAR_M from it (layout metres). */
+export const STORE_R_M = 15;
+/** Its sides, which must be land as its middle is. */
+const STORE_SIDE_M = 2;
+export const STORE_CLEAR_M = 4;
+
 /** The trees keep this far off a field's farthest corner (layout metres). */
 export const FIELD_TREE_MARGIN_M = 2.5;
 
@@ -159,9 +169,12 @@ export function buildVillage(chunk: TreeChunk, camp: number): Village | null {
   if (!first) return null;
   const profile = farm && isProfile(farm.culture) ? farm.culture : undefined;
   const lodgings = own.filter((l) => isProfile(l.culture) && l.fieldLand).length;
-  const kinds = neolithicProfile(
+  const all = neolithicProfile(
     profile ?? farmingProfileAt(deg(first.lat), deg(first.lon)) ?? 'pre-pottery-neolithic-levant',
   ).herd;
+  // The dog is no herd animal: it keeps to its people, not the pen (Yang, 2026-10-25).
+  const dog = all.includes('animal-dog');
+  const kinds = all.filter((k) => k !== 'animal-dog');
   // Its houses where its culture builds them (villages.md section 5): no field or pen under one,
   // nor behind one from the green, where the walk out would pass through it (section 6).
   const houses = own.flatMap((l) => {
@@ -186,7 +199,7 @@ export function buildVillage(chunk: TreeChunk, camp: number): Village | null {
   // The herd is placed first, on land and out of the lanes; the fields then keep clear of its pen and animals.
   const a0 = hash01(camp, 235) * 2 * Math.PI;
   let herd: Village['herd'];
-  for (let i = 0; i < 24 && !herd; i++) {
+  for (let i = 0; i < 24 && !herd && kinds.length; i++) {
     // The animals stand 8 to 12 metres round the pen, so the mask (13 to 38 metres out) holds them all only about here.
     for (const dist of farm ? [25.5, 24, 27, 22] : [17]) {
       const angle = farm ? a0 + (i * 2 * Math.PI) / 24 : 0;
@@ -204,6 +217,29 @@ export function buildVillage(chunk: TreeChunk, camp: number): Village | null {
       }
     }
   }
+  // The grain store, just past the green in the first outing lane clear of the houses and the
+  // pen (villages.md section 8): the lanes stay free of fields, and its way in is a straight one.
+  let store: Village['store'];
+  const kind = profile ? neolithicProfile(profile).store : undefined;
+  for (let gap = 0; kind && !store && gap < LODGING_SLOTS; gap++) {
+    const d = gapDirection(camp, gap);
+    const at = { x: d.x * STORE_R_M, z: d.z * STORE_R_M };
+    const clearOfPen =
+      !herd ||
+      (at.x - herd.pen.x) ** 2 + (at.z - herd.pen.z) ** 2 > (PEN_CLEAR_M + STORE_CLEAR_M) ** 2;
+    // On land the way out to it is land too (the mask's maskReach), and to either side of it.
+    const side = (k: number) => maskReach(farm!.fieldLand!, at.x - d.z * k, at.z + d.x * k);
+    if (
+      clearOfPen &&
+      !underHouse(at.x, at.z) &&
+      side(0) &&
+      side(STORE_SIDE_M) &&
+      side(-STORE_SIDE_M)
+    )
+      store = { kind, at, dir: { x: -d.x, z: -d.z } };
+  }
+  const nearStore = (x: number, z: number) =>
+    !!store && (x - store.at.x) ** 2 + (z - store.at.z) ** 2 < STORE_CLEAR_M ** 2;
   const nearHerd = (x: number, z: number) =>
     !!herd &&
     ((x - herd.pen.x) ** 2 + (z - herd.pen.z) ** 2 < PEN_CLEAR_M ** 2 ||
@@ -215,15 +251,22 @@ export function buildVillage(chunk: TreeChunk, camp: number): Village | null {
         lodgings,
         neolithicProfile(profile!).crops,
         farm.fieldLand!,
-        (x, z) => inOutingLane(camp, x, z) || nearHerd(x, z) || underHouse(x, z),
+        (x, z) => inOutingLane(camp, x, z) || nearHerd(x, z) || nearStore(x, z) || underHouse(x, z),
       )
     : [];
-  if (!fields.length && !herd) return null;
+  if (!fields.length && !herd && !dog) return null;
   const founded = Math.min(
     ...own.filter((l) => isProfile(l.culture) && l.fieldLand).map((l) => l.built),
     first.built,
   );
-  return { profile, founded, fields, ...(herd ? { herd } : {}) };
+  return {
+    profile,
+    founded,
+    fields,
+    ...(herd ? { herd } : {}),
+    ...(dog ? { dog } : {}),
+    ...(store && fields.length ? { store } : {}),
+  };
 }
 
 export function memoOf(chunk: TreeChunk, startDay: Day): Memo {

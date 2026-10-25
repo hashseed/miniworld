@@ -354,6 +354,8 @@ export const culturesTable = z.strictObject({
             ardFromBce: bce.optional(),
             /** How its village is laid out (neolithic/villages.md section 5). */
             layout: z.enum(['rows', 'cluster', 'hamlet', 'pits', 'stilts']),
+            /** Where its grain is kept (neolithic/villages.md section 8); none for root crops. */
+            store: z.enum(['granary', 'silo-pit', 'pots']).optional(),
             /** The longest a house is drawn, in figure metres, where not the usual 2.7. */
             houseM: z.number().positive().max(12).optional(),
             /** How many people one house holds, where a whole village lives in one (the longhouse). */

@@ -1,5 +1,5 @@
-// The fields around a village (spec neolithic/fields-and-crops.md section 3): organic closed outlines
-// from relaxed power-diagram cells, inset for paths, Chaikin-smoothed and wobbled, never overlapping
+// The fields around a village (spec neolithic/fields-and-crops.md section 3): plots side by side in a belt
+// round the village, each a sector inset for paths, Chaikin-smoothed and wobbled, never overlapping
 // each other, the lodging ring or whatever the caller blocks. Pure and deterministic: hashes and the
 // engine-independent trigonometry only, in layout metres (x east, z north).
 
@@ -44,30 +44,14 @@ export interface FieldInput {
 export const MAX_FIELDS = 5;
 /** Distance every outline keeps from anything blocked, from the ring and from the water. */
 export const FIELD_MARGIN_M = 0.08;
-const REACH_M = 3.6;
+/** A plot's width along the belt and its depth out from the village (layout metres of the field frame). */
 const SITE_SPACING_M = 1.5;
-const CAP_RADIUS_M = 0.85;
+const FIELD_DEPTH_M = 1.5;
+/** Points along each of a plot's two arcs. */
+const ARC_STEPS = 6;
 const PATH_INSET_M = 0.09;
 const MIN_AREA_M2 = 0.16;
-const CAP_SIDES = 24;
 const TAU = 6.283185307179586;
-
-/** Convex polygon clipped to the half-plane a*x + b*z <= c (Sutherland-Hodgman). */
-function clip(poly: Pt[], a: number, b: number, c: number): Pt[] {
-  const out: Pt[] = [];
-  for (let i = 0; i < poly.length; i++) {
-    const p = poly[i]!;
-    const q = poly[(i + 1) % poly.length]!;
-    const dp = a * p.x + b * p.z - c;
-    const dq = a * q.x + b * q.z - c;
-    if (dp <= 0) out.push(p);
-    if ((dp < 0 && dq > 0) || (dp > 0 && dq < 0)) {
-      const t = dp / (dp - dq);
-      out.push({ x: p.x + (q.x - p.x) * t, z: p.z + (q.z - p.z) * t });
-    }
-  }
-  return out;
-}
 
 function area(poly: Pt[]): number {
   let s = 0;
@@ -93,50 +77,6 @@ function centroid(poly: Pt[]): Pt {
   }
   if (Math.abs(a) < 1e-9) return poly[0]!;
   return { x: cx / (3 * a), z: cz / (3 * a) };
-}
-
-interface Site extends Pt {
-  weight: number;
-}
-
-/** The convex cell of a site: its cap polygon cut by the power bisectors with the other sites. */
-function cell(site: Site, sites: Site[]): Pt[] {
-  let poly: Pt[] = [];
-  for (let i = 0; i < CAP_SIDES; i++) {
-    const t = (i / CAP_SIDES) * TAU;
-    poly.push({ x: site.x + CAP_RADIUS_M * detCos(t), z: site.z + CAP_RADIUS_M * detSin(t) });
-  }
-  for (const o of sites) {
-    if (o === site) continue;
-    const dx = o.x - site.x;
-    const dz = o.z - site.z;
-    if (dx * dx + dz * dz > 4 * CAP_RADIUS_M * CAP_RADIUS_M) continue;
-    // |p - s|^2 - ws <= |p - o|^2 - wo
-    const a = 2 * dx;
-    const b = 2 * dz;
-    const c = o.x * o.x + o.z * o.z - site.x * site.x - site.z * site.z - (o.weight - site.weight);
-    poly = clip(poly, a, b, c);
-    if (poly.length < 3) return [];
-  }
-  return poly;
-}
-
-/** Moves a convex polygon's edges inwards by d (each edge's line shifted, the polygon cut by all). */
-function inset(poly: Pt[], d: number): Pt[] {
-  let out = poly;
-  for (let i = 0; i < poly.length && out.length >= 3; i++) {
-    const p = poly[i]!;
-    const q = poly[(i + 1) % poly.length]!;
-    const ex = q.x - p.x;
-    const ez = q.z - p.z;
-    const len = Math.sqrt(ex * ex + ez * ez);
-    if (len < 1e-9) continue;
-    // Counter-clockwise polygon: the inside is on the left, the outward normal is (ez, -ex).
-    const nx = ez / len;
-    const nz = -ex / len;
-    out = clip(out, nx, nz, nx * p.x + nz * p.z - d);
-  }
-  return out;
 }
 
 function chaikin(poly: Pt[]): Pt[] {
@@ -211,23 +151,6 @@ export function layoutFields(input: FieldInput): Field[] {
     return free(x, z) && free(x + m, z) && free(x - m, z) && free(x, z + m) && free(x, z - m);
   };
 
-  // Candidate sites on a hashed, jittered spiral, nearest first with noise.
-  const candidates: { x: number; z: number; score: number }[] = [];
-  const step = 0.3;
-  for (let r = inner + 0.2, ring = 0; r < ringRadius + REACH_M; r += step, ring++) {
-    const count = Math.max(6, Math.floor((TAU * r) / step));
-    for (let i = 0; i < count; i++) {
-      const jr = hash01(seed, ring, i, 1) - 0.5;
-      const ja = hash01(seed, ring, i, 2) - 0.5;
-      const rr = r + jr * step;
-      const a = ((i + ja) / count) * TAU + hash01(seed, ring, 0, 3) * TAU;
-      const x = centre.x + rr * detCos(a);
-      const z = centre.z + rr * detSin(a);
-      candidates.push({ x, z, score: rr + 0.5 * hash01(seed, ring, i, 4) });
-    }
-  }
-  candidates.sort((a, b) => a.score - b.score);
-
   const roomAround = (x: number, z: number): boolean => {
     let ok = 0;
     for (let k = 0; k < 8; k++) {
@@ -236,39 +159,68 @@ export function layoutFields(input: FieldInput): Field[] {
     }
     return ok >= 6;
   };
-  const sites: Site[] = [];
-  for (const c of candidates) {
-    if (sites.length >= want) break;
-    if (!clear(c.x, c.z) || !roomAround(c.x, c.z)) continue;
-    let near = false;
-    for (const s of sites) {
-      const dx = s.x - c.x;
-      const dz = s.z - c.z;
-      if (dx * dx + dz * dz < SITE_SPACING_M * SITE_SPACING_M) {
-        near = true;
-        break;
+  // In order round the village (Yang, 2026-10-25: "make them more regularly ordered around the
+  // village"): plots side by side in a belt just beyond the houses, each a sector of the ring
+  // between two lines out from the village, from the most open way out; a second belt behind
+  // the first where the first is short.
+  const r1 = inner + FIELD_DEPTH_M / 2;
+  const slots = Math.max(want, Math.round((TAU * r1) / SITE_SPACING_M));
+  const step = TAU / slots;
+  const a0 = hash01(seed, 0, 0, 3) * TAU;
+  const mid = (belt: number, k: number) => {
+    const a = a0 + k * step;
+    const r = r1 + belt * FIELD_DEPTH_M;
+    return { x: centre.x + r * detCos(a), z: centre.z + r * detSin(a) };
+  };
+  const free1 = Array.from({ length: slots }, (_, k) => {
+    const p = mid(0, k);
+    return clear(p.x, p.z) && roomAround(p.x, p.z);
+  });
+  // The longest run of free plots round the belt first, then the others, longest first.
+  const runs: number[][] = [];
+  if (free1.every(Boolean)) runs.push(Array.from({ length: slots }, (_, k) => k));
+  else {
+    const first = free1.indexOf(false);
+    let run: number[] = [];
+    // Once round from the first blocked plot, which closes the last run.
+    for (let n = 1; n <= slots; n++) {
+      const k = (first + n) % slots;
+      if (free1[k]) run.push(k);
+      else if (run.length) {
+        runs.push(run);
+        run = [];
       }
     }
-    if (near) continue;
-    const w = 0.35 * hash01(seed, sites.length, 0, 5);
-    sites.push({ x: c.x, z: c.z, weight: w });
   }
-
-  // Lloyd relaxation: a site moves to its cell's centroid when that spot is still free.
-  for (let round = 0; round < 2; round++) {
-    const moved = sites.map((s) => {
-      const poly = cell(s, sites);
-      if (poly.length < 3) return s;
-      const c = centroid(poly);
-      return clear(c.x, c.z) ? { ...s, x: c.x, z: c.z } : s;
-    });
-    for (let i = 0; i < sites.length; i++) sites[i] = moved[i]!;
+  runs.sort((a, b) => b.length - a.length || a[0]! - b[0]!);
+  const plots: { belt: number; k: number }[] = [];
+  for (const run of runs) for (const k of run) if (plots.length < want) plots.push({ belt: 0, k });
+  for (const { k } of [...plots]) {
+    const p = mid(1, k);
+    if (plots.length < want && clear(p.x, p.z) && roomAround(p.x, p.z)) plots.push({ belt: 1, k });
   }
+  /** A plot's ground: its sector of the belt, a path's width in from every side. */
+  const sector = ({ belt, k }: { belt: number; k: number }): Pt[] => {
+    const rIn = inner + belt * FIELD_DEPTH_M + PATH_INSET_M;
+    const rOut = inner + (belt + 1) * FIELD_DEPTH_M - PATH_INSET_M;
+    const a = a0 + k * step;
+    const half = step / 2 - PATH_INSET_M / r1;
+    const out: Pt[] = [];
+    for (const [r, from, to] of [
+      [rIn, a - half, a + half],
+      [rOut, a + half, a - half],
+    ] as const)
+      for (let q = 0; q <= ARC_STEPS; q++) {
+        const t = from + ((to - from) * q) / ARC_STEPS;
+        out.push({ x: centre.x + r * detCos(t), z: centre.z + r * detSin(t) });
+      }
+    return out;
+  };
 
   const fields: Field[] = [];
   const cropOffset = hash32(seed, 77) % input.crops.length;
-  for (let i = 0; i < sites.length; i++) {
-    const shaped = shapeField(sites[i]!, sites, seed, i, clear);
+  for (let i = 0; i < plots.length; i++) {
+    const shaped = shapeField(sector(plots[i]!), seed, i, clear);
     if (!shaped) continue;
     fields.push({
       id: 0,
@@ -276,7 +228,8 @@ export function layoutFields(input: FieldInput): Field[] {
       outline: shaped.outline,
       centre: shaped.centre,
       area: shaped.area,
-      furrowAngle: shaped.furrowAngle,
+      // Furrows run out from the village, a little turned by the hash.
+      furrowAngle: a0 + plots[i]!.k * step + (hash01(seed, i, 0, 31) - 0.5) * 0.3,
       offsetDays: hash32(seed, i, 0, 9) % 15,
     });
   }
@@ -293,16 +246,11 @@ export function layoutFields(input: FieldInput): Field[] {
 }
 
 function shapeField(
-  site: Site,
-  sites: Site[],
+  path: Pt[],
   seed: number,
   index: number,
   clear: (x: number, z: number) => boolean,
-): { outline: Pt[]; centre: Pt; area: number; furrowAngle: number } | undefined {
-  const base = cell(site, sites);
-  if (base.length < 3) return undefined;
-  const path = inset(base, PATH_INSET_M);
-  if (path.length < 3) return undefined;
+): { outline: Pt[]; centre: Pt; area: number } | undefined {
   const c0 = centroid(path);
   let outline = chaikin(chaikin(path));
   // Low-frequency wobble: the radius shrinks by up to 14%, never grows, so the cell still holds it.
@@ -311,7 +259,7 @@ function shapeField(
   outline = outline.map((p) => {
     const a = detAtan2(p.z - c0.z, p.x - c0.x);
     const w = 0.6 * detSin(2 * a + p2) + 0.4 * detSin(3 * a + p3);
-    const f = 1 - 0.14 * (0.5 - 0.5 * w);
+    const f = 1 - 0.06 * (0.5 - 0.5 * w);
     return { x: c0.x + (p.x - c0.x) * f, z: c0.z + (p.z - c0.z) * f };
   });
 
@@ -336,7 +284,7 @@ function shapeField(
   const a = polygonArea(outline);
   if (a < MIN_AREA_M2) return undefined;
   const centre = centroid(outline);
-  return { outline, centre, area: a, furrowAngle: furrowAngleOf(outline, centre, seed, index) };
+  return { outline, centre, area: a };
 }
 
 function outlineIsClear(
@@ -368,20 +316,4 @@ function outlineIsClear(
   for (let x = x0; x <= x1; x += 0.2)
     for (let z = z0; z <= z1; z += 0.2) if (inside(outline, x, z) && !clear(x, z)) return false;
   return clear(centre.x, centre.z);
-}
-
-/** Long axis of the outline (second moments of its vertices), turned a little by the hash. */
-function furrowAngleOf(outline: Pt[], c: Pt, seed: number, index: number): number {
-  let sxx = 0,
-    szz = 0,
-    sxz = 0;
-  for (const p of outline) {
-    const dx = p.x - c.x;
-    const dz = p.z - c.z;
-    sxx += dx * dx;
-    szz += dz * dz;
-    sxz += dx * dz;
-  }
-  const axis = 0.5 * detAtan2(2 * sxz, sxx - szz);
-  return axis + (hash01(seed, index, 0, 31) - 0.5) * 0.6;
 }

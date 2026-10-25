@@ -5,7 +5,14 @@ import { dayAtMs } from '../../time/rate.ts';
 import { fieldToolOf } from '../farmingOnset.ts';
 import type { FigurePose } from './types.ts';
 import type { TreeLodging } from '../tree.ts';
-import { type Village, FIELD_TREE_MARGIN_M, isProfile, type Stay, MILKED } from './memo.ts';
+import {
+  type Village,
+  FIELD_TREE_MARGIN_M,
+  isProfile,
+  type Stay,
+  MILKED,
+  STORE_CLEAR_M,
+} from './memo.ts';
 import { deg, LAYOUT_KM_PER_M, type Pt } from './units.ts';
 import { fieldStage, jobAt, jobFrom, jobStart, UNPLOUGHED } from '../fieldWork.ts';
 import {
@@ -34,10 +41,52 @@ export function villageScene(
   const [lat, lon] = [deg(l.lat), deg(l.lon)];
   const clock = fieldClockOf(l.camp, v);
   // A field is there from its first ploughing (fields-and-crops.md section 2).
+  let ploughed = false;
   for (const field of v.fields) {
     const stage = fieldStage(clock, field.id, now);
-    if (stage !== UNPLOUGHED)
-      scene.fields.push({ id: `${l.camp}:${field.id}`, lat, lon, field, stage });
+    if (stage === UNPLOUGHED) continue;
+    ploughed = true;
+    scene.fields.push({ id: `${l.camp}:${field.id}`, lat, lon, field, stage });
+  }
+  // The grain store, from the first ploughing on (villages.md section 8).
+  const store = v.store;
+  if (store && ploughed) {
+    const { at, dir } = store;
+    const parts =
+      store.kind === 'pots'
+        ? STORE_POTS.map(([u, w]) => ({ kind: 'prop-pot-large', u, w, scale: 1 }))
+        : [
+            {
+              kind: store.kind === 'granary' ? 'prop-granary' : 'prop-silo-pit',
+              u: 0,
+              w: 0,
+              scale: STORE_SCALE,
+            },
+          ];
+    // No tree stands on it.
+    scene.clearings.push({
+      lat,
+      lon,
+      x: at.x,
+      z: at.z,
+      km: STORE_CLEAR_M * LAYOUT_KM_PER_M,
+      amount: 1,
+      felling: false,
+    });
+    parts.forEach((q, i) =>
+      scene.props.push({
+        id: `store:${l.camp}:${i}`,
+        kind: q.kind,
+        lat,
+        lon,
+        // Across the way in (u) and along it (w), its door towards the village.
+        x: at.x + q.u * dir.z + q.w * dir.x,
+        z: at.z - q.u * dir.x + q.w * dir.z,
+        dirX: dir.x,
+        dirZ: dir.z,
+        scale: q.scale,
+      }),
+    );
   }
   // The trees keep off the fields' ground from the village's founding, as they keep off the camp.
   for (const field of v.fields)
@@ -218,6 +267,14 @@ export function farmOuting(
       return undefined;
   }
 }
+
+/** The granary and the storage pit are drawn at this share of life size; three jars stand side by side (layout metres). */
+const STORE_SCALE = 0.6;
+const STORE_POTS: readonly [number, number][] = [
+  [-0.9, 0],
+  [0.9, 0],
+  [0, -0.9],
+];
 
 /** The trees keep this far from a pen's middle (layout metres): its fence is about 6 out, and a crown is wide. */
 const PEN_TREE_CLEAR_M = 11;

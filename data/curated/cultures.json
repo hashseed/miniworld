@@ -70,6 +70,7 @@
         },
         "fieldTool": "hoe",
         "layout": "hamlet",
+        "store": "granary",
         "mix": {
           "farmer": 20,
           "reaper": 12,
@@ -105,6 +106,7 @@
         "fieldTool": "hoe",
         "ardFromBce": 4500,
         "layout": "cluster",
+        "store": "silo-pit",
         "mix": {
           "farmer": 20,
           "reaper": 10,
@@ -140,6 +142,7 @@
         "fieldTool": "hoe",
         "ardFromBce": 4000,
         "layout": "rows",
+        "store": "pots",
         "mix": {
           "farmer": 22,
           "reaper": 10,
@@ -177,6 +180,7 @@
         "fieldTool": "hoe",
         "ardFromBce": 3500,
         "layout": "hamlet",
+        "store": "granary",
         "mix": {
           "farmer": 18,
           "reaper": 12,
@@ -212,6 +216,7 @@
         "fieldTool": "hoe",
         "ardFromBce": 3500,
         "layout": "hamlet",
+        "store": "silo-pit",
         "mix": {
           "farmer": 18,
           "reaper": 10,
@@ -246,6 +251,7 @@
         },
         "fieldTool": "hoe",
         "layout": "pits",
+        "store": "silo-pit",
         "mix": {
           "farmer": 22,
           "reaper": 10,
@@ -281,6 +287,7 @@
         },
         "fieldTool": "hoe",
         "layout": "stilts",
+        "store": "granary",
         "mix": {
           "farmer": 22,
           "reaper": 12,
@@ -316,6 +323,7 @@
         },
         "fieldTool": "digging-stick",
         "layout": "hamlet",
+        "store": "silo-pit",
         "mix": {
           "farmer": 26,
           "reaper": 8,
@@ -350,6 +358,7 @@
         },
         "fieldTool": "hoe",
         "layout": "hamlet",
+        "store": "pots",
         "mix": {
           "farmer": 22,
           "reaper": 8,
