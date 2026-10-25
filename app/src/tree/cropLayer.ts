@@ -139,7 +139,6 @@ export class CropLayer {
       if (g) g.push(x);
       else groups.set(k, [x]);
     }
-    const grow = Math.sqrt(step);
     for (const [k, mesh] of this.meshes) if (!groups.has(k)) mesh.count = 0;
     for (const [k, list] of groups) {
       let total = 0;
@@ -160,9 +159,8 @@ export class CropLayer {
       let at = 0;
       for (const x of list)
         for (let i = 0; i < x.placed.count; i += step) {
+          // Thinned from high up, but never drawn larger: a field keeps its size at every zoom.
           out.set(x.placed.matrices.subarray(i * 16, i * 16 + 16), at * 16);
-          // Fewer tufts are drawn larger, so a thinned field still closes up into a crop.
-          if (grow !== 1) for (let c = 0; c < 12; c++) out[at * 16 + c] = out[at * 16 + c]! * grow;
           at++;
         }
       mesh.count = at;

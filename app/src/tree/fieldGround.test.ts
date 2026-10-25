@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import { EARTH_RADIUS_KM } from '../geo/earth.ts';
-import { FieldGround, fieldGrowth } from './fieldGround.ts';
+import { FieldGround } from './fieldGround.ts';
 import { layoutFields } from '../world/fieldShapes.ts';
 import type { SurfaceSource } from './surface.ts';
 
@@ -56,9 +56,15 @@ describe('FieldGround', () => {
     expect(ground.mesh.visible).toBe(true);
   });
 
-  it('enlarges fields in proportion to the altitude, within bounds', () => {
-    expect(fieldGrowth(1_000)).toBe(1);
-    expect(fieldGrowth(12_000)).toBeCloseTo(2, 5);
-    expect(fieldGrowth(100_000)).toBe(4);
+  it('draws a field at the same size from every altitude', () => {
+    const origin = new THREE.Vector3(0.3, 0.2, 0.93).normalize().multiplyScalar(EARTH_RADIUS_KM);
+    const at = (altitudeKm: number) => {
+      const g = new FieldGround(surface);
+      g.begin();
+      g.add(origin, fields[0]!, 0.5, centre);
+      g.end(EARTH_RADIUS_KM + altitudeKm, 1);
+      return Array.from(g.mesh.geometry.getAttribute('position').array);
+    };
+    expect(at(20_000)).toEqual(at(1_000));
   });
 });

@@ -115,6 +115,8 @@ export function departureOf(
 /** The fields and herd of a Neolithic camp (section 8.5). */
 export interface Village {
   profile: NeolithicProfileId | undefined;
+  /** The day its first farming house was built: its fields are ploughed in turn from then on. */
+  founded: Day;
   fields: Field[];
   herd?: { pen: Pt; penDir: Pt; animals: HerdAnimal[] };
 }
@@ -188,7 +190,11 @@ export function buildVillage(chunk: TreeChunk, camp: number): Village | null {
       )
     : [];
   if (!fields.length && !herd) return null;
-  return { profile, fields, ...(herd ? { herd } : {}) };
+  const founded = Math.min(
+    ...own.filter((l) => isProfile(l.culture) && l.fieldLand).map((l) => l.built),
+    first.built,
+  );
+  return { profile, founded, fields, ...(herd ? { herd } : {}) };
 }
 
 export function memoOf(chunk: TreeChunk, startDay: Day): Memo {

@@ -76,6 +76,8 @@ const CAVE_WALL_FROM = 0.04;
 /** The cut, and its wall, run this many layout metres behind the painting. */
 const CAVE_FACE_BEHIND_M = 0;
 const NEAR_MARGIN = 0.3;
+/** A field's crop tufts are drawn from this stage on: halfway from the seed to the sprouts' keyframe. */
+const SPROUT_TUFTS = 0.125;
 /** The oldest camp scene from the worker drawn while the clock runs: a few frames' worth of watching. */
 const MAX_SCENE_LAG_MS = 100;
 
@@ -666,7 +668,9 @@ export class TreeLayer {
       if (!this.place(at, { lat: f.lat, lon: f.lon, x: 0, z: 0, dirX: 1, dirZ: 0 }, false))
         continue;
       this.fieldGround.add(at.position, f.field, f.stage, { x: 0, z: 0 });
-      this.crops.add(at.position, f.field, f.stage);
+      // Ploughed or sown ground is furrows only; the crop's tufts stand once it sprouts
+      // (fields-and-crops.md section 4), so a new field is no field of clods.
+      if (f.stage >= SPROUT_TUFTS) this.crops.add(at.position, f.field, f.stage);
     }
     this.fieldGround.end(camera.position.length(), this.groundVersion);
     this.crops.end(camera.position.length(), this.groundVersion);
