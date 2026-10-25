@@ -95,6 +95,8 @@ const KOPPEN_DRY_MM = 140;
 
 /** A place of a future city asks for a camp site within this far of it, in km (neolithic/villages.md section 2). */
 const VILLAGE_SITE_KM = 150;
+/** The way out to a field is checked for water every this many layout metres. */
+const FIELD_WAY_STEP_M = 0.5;
 /** An anchor asks for a camp site within this far of its place, in km (sites.md section 4.1). */
 const ANCHOR_SITE_KM = 75;
 
@@ -278,7 +280,12 @@ export function buildHumankind(
     JSON.parse(readFileSync(join(ROOT, 'data/sources/reba-2016/cities.json'), 'utf8')) as {
       cities: { name: string; lat: number; lon: number }[];
     }
-  ).cities.filter((c) => farmingProfileAt(c.lat, c.lon) !== null);
+  ).cities
+    // And the excavated villages of the curated list, where few later cities stood.
+    .concat(
+      ctx.curated('village-sites.json').sites.map((v) => ({ name: v.id, lat: v.lat, lon: v.lon })),
+    )
+    .filter((c) => farmingProfileAt(c.lat, c.lon) !== null);
   const cityPlaces = cities.map((c, i) => ({
     id: `city:${i}:${c.name}`,
     lat: c.lat,
@@ -358,7 +365,6 @@ export function buildHumankind(
   const siteInputs = {
     keyPlaces: [
       ...keyPlaces,
-      ...cityPlaces,
       ...dated.map((p) => ({
         id: `${p.kind}:${p.id}`,
         lat: p.lat,
@@ -366,6 +372,8 @@ export function buildHumankind(
         sea: seaOver(p.day, p.until),
         ...(p.kind === 'anchor' ? { km: ANCHOR_SITE_KM } : {}),
       })),
+      // The places of future cities last: a dated place keeps its own close site.
+      ...cityPlaces,
     ],
     stepAt: (lat: number, lon: number) => siteStepAt(cultureAreas, lat, lon),
     widthAt,
@@ -461,7 +469,7 @@ export function buildHumankind(
     if (best) villageSites.add(`${best.lat}:${best.lon}`);
   }
   log(
-    `village sites: ${villageSites.size} sites for ${cities.length} places of future cities in farming land`,
+    `village sites: ${villageSites.size} sites for ${cities.length} places of future cities and listed villages in farming land`,
   );
   // Sites on a steep mountainside: the ground out to the ring of children's catch rises or
   // falls more than STEEP_M from the hearth (Yang, 2026-10-20: "I have kids running up the
@@ -498,6 +506,7 @@ export function buildHumankind(
   // hunter-gatherers until it founds a village at one (neolithic/villages.md section 2).
   const villageSite = (lat: number, lon: number) => villageSites.has(`${lat}:${lon}`);
   treeSettings.villageSite = villageSite;
+  treeSettings.farmingAt = (lat, lon, day) => farmingStateAt(lat, lon, day).profile ?? undefined;
   treeSettings.culture = (lat, lon, day) =>
     (villageSite(lat, lon) ? farmingStateAt(lat, lon, day).profile : undefined) ??
     areaCulture?.(lat, lon, day);
@@ -537,6 +546,18 @@ export function buildHumankind(
             ok = false;
             break;
           }
+        }
+        // And the straight way out to it is land, sampled finely: people walk it to their fields,
+        // and the cells are too coarse to see a narrow strait (neolithic/villages.md section 6).
+        const r = Math.sqrt(c.x * c.x + c.z * c.z);
+        for (let d = FIELD_WAY_STEP_M; ok && d < r; d += FIELD_WAY_STEP_M) {
+          const p = onGlobe(
+            lat,
+            lon,
+            ((c.x * d) / r) * (LAYOUT_KM_PER_M / width),
+            ((c.z * d) / r) * (LAYOUT_KM_PER_M / width),
+          );
+          if (campFlood(p.lat, p.lon) <= sea) ok = false;
         }
         flags.push(ok);
       }
