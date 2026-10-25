@@ -6,6 +6,7 @@
 // data/curated/farming.json.
 
 import { CULTURES } from './cultures.ts';
+import { onWorldTables } from './tables.ts';
 
 /** The roles of the farmer's day (spec section 4); the hunter-gatherer roles keep their old ids. */
 export const NEOLITHIC_ROLES = [
@@ -99,9 +100,14 @@ function farmingProfiles(): Record<NeolithicProfileId, NeolithicProfile> {
   return out;
 }
 
-/** The farming profiles, from the culture table (people-profiles.md section 4). */
-export const NEOLITHIC_PROFILES: Readonly<Record<NeolithicProfileId, NeolithicProfile>> =
-  farmingProfiles();
+const profiles: Record<NeolithicProfileId, NeolithicProfile> = {};
+/** The farming profiles, from the culture table (people-profiles.md section 4), once the world has its tables. */
+export const NEOLITHIC_PROFILES: Readonly<Record<NeolithicProfileId, NeolithicProfile>> = profiles;
+// After CULTURES, which this module's import of cultures.ts filled first.
+onWorldTables(() => {
+  for (const id of Object.keys(profiles)) delete profiles[id];
+  Object.assign(profiles, farmingProfiles());
+});
 
 /** Whether a culture is a farming profile. */
 export const isNeolithicProfile = (culture: string | undefined): culture is NeolithicProfileId =>

@@ -1,5 +1,6 @@
 // Manifest and startup index (spec milestone 1, sections 10.1 to 10.3).
 
+import type { WorldTables } from '../world/tables.ts';
 import type { Language } from '../i18n/messages.ts';
 
 export interface LocalisedText {
@@ -95,6 +96,18 @@ export interface StartupIndex {
   animals: AnimalEntry[];
   /** Card of each anchor: the real place a scene shows (humankind.md section 8.3). */
   siteCards: AnimalEntry[];
+  /** The culture and wildlife tables the world reads (milestone-1 section 10.2, world/tables.ts). */
+  tables: WorldTables;
+  /** The models that may be drawn, approved or waiting for review, with their module (content/assets.ts). */
+  models: ModelEntry[];
+}
+
+/** A model of the asset manifest, as far as the app needs it (milestone-1 section 10.2). */
+export interface ModelEntry {
+  id: string;
+  status: 'approved' | 'generated';
+  /** Its module or image, as the asset manifest names it. */
+  file: string;
 }
 
 /** An event of the events dialog (milestone-1 section 8.3): where and when it happens. */

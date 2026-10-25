@@ -4,8 +4,8 @@
 // row of the culture table data/curated/cultures.json, which the data build
 // checks against its schema (data/schema/tables.ts).
 
-import culturesFile from '../../../data/curated/cultures.json' with { type: 'json' };
 import type { Table } from '../../../data/schema/tables.ts';
+import { onWorldTables } from './tables.ts';
 
 export const PROFILES = [
   'african-stone-age',
@@ -37,10 +37,13 @@ export type Profile = (typeof PROFILES)[number];
 /** One profile's row of the culture table. */
 export type Culture = Table<'cultures.json'>['cultures'][number];
 
-/** Every profile's row, by id. */
-export const CULTURES: ReadonlyMap<string, Culture> = new Map(
-  (culturesFile as unknown as Table<'cultures.json'>).cultures.map((c) => [c.id, c]),
-);
+const rows = new Map<string, Culture>();
+/** Every profile's row, by id, once the world has its tables (tables.ts). */
+export const CULTURES: ReadonlyMap<string, Culture> = rows;
+onWorldTables((t) => {
+  rows.clear();
+  for (const c of t.cultures.cultures) rows.set(c.id, c);
+});
 
 /** The founder's people, whose prey a profile without its own hunts. */
 const FOUNDER_PROFILE: Profile = 'african-stone-age';

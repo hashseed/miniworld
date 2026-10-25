@@ -27,7 +27,8 @@ import { attachKeys } from './input.ts';
 import { FrameLoop } from './loop.ts';
 import { WildlifeLayer } from './wildlife/wildlifeLayer.ts';
 import { OPENING_DAY, TIMELINE_START } from './time/calendar.ts';
-import { TreeLayer, setTreeFarming } from './tree/treeLayer.ts';
+import { TreeLayer, setTreeFarming, setTreeTables } from './tree/treeLayer.ts';
+import { setModels } from './content/assets.ts';
 import { SitesLayer } from './tree/sitesLayer.ts';
 import { Clock, JUMP_SECONDS } from './time/clock.ts';
 import { yearsPerMinuteAt } from './time/rate.ts';
@@ -603,6 +604,10 @@ async function start(): Promise<void> {
       loader.fetchBytes(manifest.lens.file),
       manifest.farming ? loader.fetchBytes(manifest.farming) : Promise.resolve(undefined),
     ]);
+    // The world's tables and the models that may be drawn come with the index (milestone-1
+    // section 10.2), before anything asks the world.
+    setTreeTables(loadedIndex.tables);
+    setModels(loadedIndex.models);
     if (farmingBytes) setTreeFarming(farmingBytes);
     index = loadedIndex;
     showLoaded(0.35);

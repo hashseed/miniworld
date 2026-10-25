@@ -3,9 +3,8 @@
 // culture or lodging that names one of their models is near the camera and the clock. Until then
 // the model is drawn as it would be unapproved. Only what is drawn waits; the world never does.
 
-import manifest from '../../../data/assets/manifest.json';
-import type { AssetManifest } from '../../../data/schema/assets.ts';
 import { CULTURES } from '../world/cultures.ts';
+import type { ModelEntry } from './types.ts';
 
 /** The culture-specific modules, each its own file of the build. */
 const MODULES = import.meta.glob([
@@ -16,12 +15,19 @@ const MODULES = import.meta.glob([
 ]);
 
 /** The module of each model that loads with its culture, by asset id, from the manifest's `file`. */
-const moduleOf = new Map<string, string>(
-  (manifest as AssetManifest).assets.flatMap((a) => {
-    const key = `../../../${a.file}`;
-    return key in MODULES ? [[a.id, key] as const] : [];
-  }),
-);
+const moduleOf = new Map<string, string>();
+/** The models of each culture profile, worked out once (cultureModels). */
+const assetsOf = new Map<string, string[]>();
+
+/** Takes the models' files from the startup index (content/assets.ts). */
+export function setModuleFiles(models: readonly ModelEntry[]): void {
+  moduleOf.clear();
+  assetsOf.clear();
+  for (const m of models) {
+    const key = `../../../${m.file}`;
+    if (key in MODULES) moduleOf.set(m.id, key);
+  }
+}
 
 const loaded = new Set<string>();
 const loading = new Set<string>();
@@ -58,8 +64,6 @@ function strings(value: unknown, out: string[]): string[] {
     for (const v of Object.values(value)) strings(v, out);
   return out;
 }
-
-const assetsOf = new Map<string, string[]>();
 
 /**
  * The asset ids a culture profile names in the culture table: its lodging and architecture

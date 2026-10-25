@@ -5,7 +5,13 @@
 import { join } from 'node:path';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { parse as parseYaml } from 'yaml';
-import type { EventEntry, SourceInfo, StartupIndex } from '../../../app/src/content/types.ts';
+import type {
+  EventEntry,
+  ModelEntry,
+  SourceInfo,
+  StartupIndex,
+} from '../../../app/src/content/types.ts';
+import { curatedWorldTables } from '../lib/worldTables.ts';
 import { LANGUAGES, type Language } from '../../../app/src/i18n/messages.ts';
 import { TIMELINE_START } from '../../../app/src/time/calendar.ts';
 import {
@@ -172,6 +178,15 @@ export function buildContent(
   log(`${siteFiles.length} site cards`);
 
   const grid = regionGrid(content.regions);
+  // The tables the world reads and the models the app may draw (milestone-1 section 10.2).
+  const tables = curatedWorldTables();
+  const models: ModelEntry[] = (
+    readAssetManifest(join(ROOT, 'data/assets/manifest.json')).manifest?.assets ?? []
+  ).flatMap((a) =>
+    a.status === 'approved' || a.status === 'generated'
+      ? [{ id: a.id, status: a.status, file: a.file }]
+      : [],
+  );
   const index = {} as Record<Language, string>;
   for (const language of LANGUAGES) {
     const idx: StartupIndex = {
@@ -197,6 +212,8 @@ export function buildContent(
         title: c.text[language].title,
         text: text[language],
       })),
+      tables,
+      models,
     };
     index[language] = output.writeJson(`index-${language}`, idx);
   }
