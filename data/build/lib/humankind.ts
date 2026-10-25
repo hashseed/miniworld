@@ -72,9 +72,12 @@ export const DENSITIES: Record<Density, { spacingKm: number; band: [number, numb
   medium: { spacingKm: 600, band: [3, 5] },
 };
 
-/** A village of farmers grows to VILLAGE_MIN people plus a hash of its id below VILLAGE_SPREAD (Yang, 2026-10-24). */
-const VILLAGE_MIN = 12;
-const VILLAGE_SPREAD = 9;
+/**
+ * A village of farmers grows to VILLAGE_MIN people plus a hash of its id below VILLAGE_SPREAD:
+ * 6 to 10 (Yang, 2026-10-25: "half as many"; 12 to 20 from 2026-10-24).
+ */
+const VILLAGE_MIN = 6;
+const VILLAGE_SPREAD = 5;
 /** Figures a lodging holds, and lodgings a camp may have (section 4.1, Proposed). */
 export const LODGING_CAPACITY = 4;
 export const MAX_LODGINGS = 5;
@@ -2075,10 +2078,12 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
           continue;
         }
       }
+      // A village stays where it was founded (neolithic/villages.md section 3).
+      const village = !!camp.culture && !!s.village?.(camp.culture);
       // The end of a residence window: the band moves along a link, unless it has settled.
       if (day >= camp.nextMove) {
         camp.nextMove = after(day, RESIDENCE_MS + (hash32(camp.id, day, 12) % RESIDENCE_MS));
-        if (!camp.settled && !isHeld(camp, day)) {
+        if (!camp.settled && !village && !isHeld(camp, day)) {
           const n = headcount(camp);
           // Only among the sites of its home range (sites.md section 4).
           const options = () =>
@@ -2136,7 +2141,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
             moveIn(builder, homeOf(builder), l.id, l.built);
           }
         }
-      } else if (day >= camp.nextBud && !camp.settled && !isHeld(camp, day)) {
+      } else if (day >= camp.nextBud && (!camp.settled || village) && !isHeld(camp, day)) {
+        // A village never moves but founds new ones, also near a threshold (villages.md section 3).
         // A full camp sends out a small group to the best free site within a few links (section 4.3).
         camp.nextBud = after(day, BUD_MS);
         const options = reach(

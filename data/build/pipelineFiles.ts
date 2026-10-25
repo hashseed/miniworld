@@ -19,7 +19,6 @@ export function filesHashed(shard: number, shards: number): void {
         expect(hash, file).toBe(contentHash(bytes));
         expect(brotliDecompressSync(read(`${file}.br`)).equals(bytes), `${file}.br`).toBe(true);
       }
-    }, // Reading and decompressing a quarter of the full build takes seconds on a busy machine.
-    120_000);
+    }, 120_000); // Reading and decompressing a quarter of the full build takes seconds on a busy machine.
   });
 }
