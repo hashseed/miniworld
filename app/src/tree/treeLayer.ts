@@ -4,6 +4,7 @@
 // vignette stage: one drawn size at every zoom, upright on the ground whatever
 // the camera does. It only draws; the scene decides everything.
 
+import { placedTrue } from '../geo/placement.ts';
 import { FieldGround } from './fieldGround.ts';
 import { CropLayer } from './cropLayer.ts';
 import { signsAt, type SignEvent } from '../world/eventSigns.ts';
@@ -803,14 +804,18 @@ export class TreeLayer {
     return Math.min(depth, Math.max(0, surface - sea - 1));
   }
 
+  /**
+   * The true direction of a layout point of a camp, laid out on the drawn globe as place() lays
+   * it (history-lens.md section 4.2), for what takes true directions, such as the clearings.
+   */
   private offsetDir(lat: number, lon: number, x: number, z: number): [number, number, number] {
-    const up = this.v1.set(...latLonToDir(lat, lon));
-    northEast(up, this.n2, this.e2);
-    up.multiplyScalar(EARTH_RADIUS_KM)
-      .addScaledVector(this.e2, x * LAYOUT_KM_PER_M)
-      .addScaledVector(this.n2, z * LAYOUT_KM_PER_M)
-      .normalize();
-    return [up.x, up.y, up.z];
+    const { toDrawn, toTrue } = this.surface;
+    return placedTrue(
+      { toDrawn: (d) => toDrawn(d), toTrue: (d) => (toTrue ? toTrue(d) : d) },
+      latLonToDir(lat, lon),
+      x * LAYOUT_KM_PER_M,
+      z * LAYOUT_KM_PER_M,
+    );
   }
 
   /**

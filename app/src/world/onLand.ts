@@ -32,7 +32,8 @@ import { VILLAGE_KEEP_OUT_KM } from './scene/camp.ts';
 import { NEVER } from './tree.ts';
 import { buildAnimal, type AnimalId } from '../../../assets/src/animals.ts';
 import { drawnSizeM, KM_PER_M } from '../wildlife/wildlifeLayer.ts';
-import { decodeLensGrids, LENS_STRENGTH, sampleScalar, widthFactors } from '../globe/lens.ts';
+import { decodeLensGrids, Lens, LENS_STRENGTH, sampleScalar, widthFactors } from '../geo/lens.ts';
+import { placedTrue } from '../geo/placement.ts';
 
 const DATA = join(import.meta.dirname, '../../public/data');
 const built = existsSync(join(DATA, 'manifest.json'));
@@ -134,11 +135,12 @@ export function pathsOnLand(shard: number, shards: number): void {
       };
 
       // The history lens at its fixed strength (history-lens.md section 1).
-      const width = built
-        ? widthFactors(
-            decodeLensGrids(new Uint8Array(await readFile(join(DATA, manifest.lens.file)))).forward,
-          )
-        : new Float32Array(0);
+      const grids = built
+        ? decodeLensGrids(new Uint8Array(await readFile(join(DATA, manifest.lens.file))))
+        : undefined;
+      const width = grids ? widthFactors(grids.forward) : new Float32Array(0);
+      const lens = grids ? new Lens(grids.forward, grids.inverse) : undefined;
+      if (lens) lens.blend = LENS_STRENGTH;
       const lensWidth = (lat: number, lon: number) =>
         1 + (sampleScalar(width, latLonToDir(lat, lon)) - 1) * LENS_STRENGTH;
 
@@ -161,13 +163,13 @@ export function pathsOnLand(shard: number, shards: number): void {
             for (let ms = from; ms < to; ms += 1999) {
               const day = dayAtMs(ms, start);
               for (const f of treeScene(chunk, ms, start).figures) {
-                // Drawn km at the camp are fewer true km where the lens draws the land bigger.
-                const lens = lensWidth(f.lat, f.lon);
-                const dir = offsetDir(
-                  f.lat,
-                  f.lon,
-                  (f.x * LAYOUT_KM_PER_M) / lens,
-                  (f.z * LAYOUT_KM_PER_M) / lens,
+                // Where the tree layer draws it: its spot laid out on the drawn globe, taken back
+                // through the inverse lens (history-lens.md section 4.2).
+                const dir = placedTrue(
+                  lens!,
+                  latLonToDir(f.lat, f.lon),
+                  f.x * LAYOUT_KM_PER_M,
+                  f.z * LAYOUT_KM_PER_M,
                 );
                 // Bands crossing the sea paddle canoes, and a canoe stays on the water
                 // (peopling.md section 6; Yang, 2026-10-20: "they must not be on boats on land").

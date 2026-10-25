@@ -754,6 +754,8 @@ export function hasRack(camp: number, slot: number): boolean {
 
 /** Whether a lodging's rack and the scraper behind it stand on land: both gaps beside its place reach that far. */
 export function rackOnLand(l: TreeLodging): boolean {
+  // Farmers no longer hang hides up to dry (neolithic/villages.md section 8).
+  if (isProfile(l.culture)) return false;
   const near = Math.min(
     l.reach[l.slot] ?? 0,
     l.reach[(l.slot + LODGING_SLOTS - 1) % LODGING_SLOTS] ?? 0,

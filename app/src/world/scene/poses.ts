@@ -117,8 +117,9 @@ export function poseAt(
               (n > 0 && c.legs[n - 1]!.water ? Math.min(1, 4 * u) : 1) *
               (n < c.legs.length - 1 && c.legs[n + 1]!.water ? Math.min(1, 4 * (1 - u)) : 1),
         leg.water,
-        // Just landed: the rows behind are not still out on the water.
-        n > 0 && !leg.water && c.legs[n - 1]!.water ? (u * leg.km) / LAYOUT_KM_PER_M : Infinity,
+        // Just landed, the rows behind are not still out on the water; just put in, the canoes
+        // behind are not still on the shore.
+        leg.water || (n > 0 && c.legs[n - 1]!.water) ? (u * leg.km) / LAYOUT_KM_PER_M : Infinity,
       ),
       ...leg.way,
       clip: leg.water ? 'paddle' : 'walk',

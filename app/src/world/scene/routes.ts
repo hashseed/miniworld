@@ -136,9 +136,13 @@ export class Itinerary {
   go(
     to: Pt,
     clip: 'walk' | 'run' | 'carry' | 'pole' | 'crouch' | 'bearBehind' | 'bearAhead' = 'walk',
+    /** Straight there, round nothing: a way whose ground was checked as a straight line. */
+    direct = false,
   ): this {
     // A carrying pole keeps to its lane, so its two carriers walk in step.
-    const way = route(this.at, to, clip === 'pole' ? undefined : this.camp);
+    const way = direct
+      ? [this.at, to]
+      : route(this.at, to, clip === 'pole' ? undefined : this.camp);
     const m = routeLength(way);
     if (m < 1e-6) return this;
     const end = this.t + Math.ceil(m / PACE[clip]);

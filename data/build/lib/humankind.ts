@@ -284,6 +284,16 @@ export interface TreeSettings {
   thresholds?: Threshold[];
   /** The farming profile the band at a threshold's site becomes on its day (neolithic/villages.md section 1). */
   thresholdCulture?: (t: Threshold) => string | undefined;
+  /**
+   * The true place of a point in drawn km east and north of a place, laid out on the drawn
+   * globe as the tree layer draws it (history-lens.md section 4.2); without it, true km.
+   */
+  placeAt?: (
+    lat: number,
+    lon: number,
+    eastKm: number,
+    northKm: number,
+  ) => { lat: number; lon: number };
   /** Whether a site is a village site, the place of a future city (neolithic/villages.md section 2). */
   villageSite?: (lat: number, lon: number) => boolean;
   /** The farming profile the farming spread has brought to a place by a day, wherever it is (farming-spread.md section 9.4). */
@@ -1835,6 +1845,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   // that points most nearly towards the anchor's place, of those with no drying rack whose
   // prop, people's places and way there stay dry land for the anchor's whole stay.
   const stages: TreeStage[] = [];
+  const placeAt = s.placeAt ?? onGlobe;
   /** Whether a scene of the camp's anchor is in session in the step from `day`, with the time to take down and build round it. */
   const inSession = (camp: Camp, day: Day): boolean => {
     const from = msAtDay(day, s.startDay) - BUILD_MS;
@@ -1855,12 +1866,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     const sea = seaMax(p.day, p.until);
     const flood = s.campFlood ?? s.walkFlood ?? (() => Infinity);
     const dryAt = (q: { x: number; z: number }) => {
-      const g = onGlobe(
-        site.lat,
-        site.lon,
-        (q.x * LAYOUT_KM_PER_M) / site.width,
-        (q.z * LAYOUT_KM_PER_M) / site.width,
-      );
+      const g = placeAt(site.lat, site.lon, q.x * LAYOUT_KM_PER_M, q.z * LAYOUT_KM_PER_M);
       return flood(g.lat, g.lon) > sea;
     };
     // Towards the real cave or grave, in layout directions (x east, z north).
@@ -1874,12 +1880,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     // scene above the hearth's, up to 300 m counting as much as facing the right way.
     const tl = Math.max(1e-9, Math.sqrt(toward.x * toward.x + toward.z * toward.z));
     const groundAt = (q: { x: number; z: number }) => {
-      const g = onGlobe(
-        site.lat,
-        site.lon,
-        (q.x * LAYOUT_KM_PER_M) / site.width,
-        (q.z * LAYOUT_KM_PER_M) / site.width,
-      );
+      const g = placeAt(site.lat, site.lon, q.x * LAYOUT_KM_PER_M, q.z * LAYOUT_KM_PER_M);
       return s.elevation?.(g.lat, g.lon) ?? 0;
     };
     const hearth = s.elevation?.(site.lat, site.lon) ?? 0;
@@ -1905,15 +1906,18 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         }
       return true;
     };
-    const options: { k: number; b: number; clear: boolean }[] = [];
+    const options: { k: number; b: number; clear: boolean; rack: boolean }[] = [];
     for (const b of stageBeyond(a.scene.kind))
       for (let k = 0; k < LODGING_SLOTS; k++)
-        if (!hasRack(site.key, k) && stagePoints(site.key, k, b, a.scene.kind).every(dryAt))
-          options.push({ k, b, clear: clearOfWater(k, b) });
-    // Clear of water first, then the farthest out, then facing the real place.
+        if (stagePoints(site.key, k, b, a.scene.kind).every(dryAt))
+          options.push({ k, b, clear: clearOfWater(k, b), rack: hasRack(site.key, k) });
+    // Behind a lodging place without a drying rack first (one with a rack does not put it up
+    // while the scene stands, humankind.md section 8.2), then clear of water, then the farthest
+    // out, then facing the real place.
     const order = stageBeyond(a.scene.kind);
     options.sort(
       (x, y) =>
+        Number(x.rack) - Number(y.rack) ||
         Number(y.clear) - Number(x.clear) ||
         order.indexOf(x.b) - order.indexOf(y.b) ||
         facing(y.k, y.b) - facing(x.k, x.b) ||
@@ -1928,12 +1932,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     if (a.scene.kind === 'monument') {
       // No other band's camp may overlap the ring: its sites are kept free for the anchor.
       const { prop } = stageSpots(site.key, slot, beyond);
-      const at = onGlobe(
-        site.lat,
-        site.lon,
-        (prop.x * LAYOUT_KM_PER_M) / site.width,
-        (prop.z * LAYOUT_KM_PER_M) / site.width,
-      );
+      const at = placeAt(site.lat, site.lon, prop.x * LAYOUT_KM_PER_M, prop.z * LAYOUT_KM_PER_M);
       const ring = (11 * stageScale(site.key)) / site.width;
       for (const x of sites) {
         if (x.pass || p.footprint.has(x.id)) continue;

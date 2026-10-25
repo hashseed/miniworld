@@ -12,12 +12,14 @@ import type { Manifest } from '../../../app/src/content/types.ts';
 import {
   decodeLensGrids,
   encodeLensGrids,
+  Lens,
   LENS_STRENGTH,
   MAX_STRENGTH,
   sampleScalar,
   widthFactors,
 } from '../../../app/src/globe/lens.ts';
-import { latLonToDir } from '../../../app/src/geo/cube.ts';
+import { dirToLatLon, latLonToDir } from '../../../app/src/geo/cube.ts';
+import { placedTrue } from '../../../app/src/geo/placement.ts';
 import { atStrength, buildLens, checkLens, LENS_PARAMS, parseCoordinates } from '../lib/lens.ts';
 import { lensPreviewSvg } from '../lib/lensPreview.ts';
 import { readFeatures } from '../lib/readers.ts';
@@ -27,6 +29,12 @@ export function buildLensStage(ctx: WriteContext): {
   lens: Manifest['lens'];
   /** Drawn km per true km at a place, at the lens's fixed strength (sites.md section 2). */
   widthAt(lat: number, lon: number): number;
+  /**
+   * The true place of a point `eastKm` east and `northKm` north of a place in drawn km, laid out
+   * on the drawn globe as the tree layer places it (app/src/geo/placement.ts): the one mapping
+   * the build checks the ground of every camp, field and pen by (history-lens.md section 4.2).
+   */
+  placeAt(lat: number, lon: number, eastKm: number, northKm: number): { lat: number; lon: number };
 } {
   const { log } = ctx;
   const SPEC = join(ROOT, 'docs/spec');
@@ -98,8 +106,14 @@ export function buildLensStage(ctx: WriteContext): {
         `preview in ${preview}`,
     );
   }
-  const width = widthFactors(decodeLensGrids(bytes).forward);
+  const grids = decodeLensGrids(bytes);
+  const width = widthFactors(grids.forward);
+  const drawn = new Lens(grids.forward, grids.inverse);
+  drawn.blend = LENS_STRENGTH;
+  const out: [number, number, number] = [0, 0, 0];
   return {
+    placeAt: (lat, lon, eastKm, northKm) =>
+      dirToLatLon(placedTrue(drawn, latLonToDir(lat, lon), eastKm, northKm, out)),
     lens: { file: ctx.output.write('lens', 'bin', bytes), version, exponent },
     widthAt: (lat, lon) => 1 + (sampleScalar(width, latLonToDir(lat, lon)) - 1) * LENS_STRENGTH,
   };

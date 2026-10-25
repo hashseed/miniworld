@@ -184,6 +184,13 @@ export function buildHumankind(
   drawn: DrawnGround,
   /** Drawn km per true km at a place, from the history lens (sites.md section 2). */
   widthAt: (lat: number, lon: number) => number = () => 1,
+  /** A layout point's true place through the history lens (history-lens.md section 4.2). */
+  placeAt: (
+    lat: number,
+    lon: number,
+    eastKm: number,
+    northKm: number,
+  ) => { lat: number; lon: number } = onGlobe,
 ): {
   files: TreeFiles;
   camps: CampPlace[];
@@ -377,6 +384,7 @@ export function buildHumankind(
     ],
     stepAt: (lat: number, lon: number) => siteStepAt(cultureAreas, lat, lon),
     widthAt,
+    placeAt,
     campFlood,
     elevation: (lat: number, lon: number) => elevation.bilinear(lat, lon),
     walkFlood,
@@ -477,11 +485,11 @@ export function buildHumankind(
   for (const x of sites.sites) {
     if (x.pass) continue;
     const here = elevation.bilinear(x.lat, x.lon);
-    const km = (CATCH_RING_M * LAYOUT_KM_PER_M) / x.width;
+    const km = CATCH_RING_M * LAYOUT_KM_PER_M;
     let rise = 0;
     for (let k = 0; k < 12; k++) {
       const a = (k / 12) * 2 * Math.PI;
-      const p = onGlobe(x.lat, x.lon, km * detCos(a), km * detSin(a));
+      const p = placeAt(x.lat, x.lon, km * detCos(a), km * detSin(a));
       rise = Math.max(rise, Math.abs(elevation.bilinear(p.lat, p.lon) - here));
     }
     if (rise > STEEP_M) x.steep = true;
@@ -533,12 +541,7 @@ export function buildHumankind(
           [0, MASK_DR / 2],
           [0, -MASK_DR / 2],
         ] as const) {
-          const p = onGlobe(
-            lat,
-            lon,
-            ((c.x + dx) * LAYOUT_KM_PER_M) / width,
-            ((c.z + dz) * LAYOUT_KM_PER_M) / width,
-          );
+          const p = placeAt(lat, lon, (c.x + dx) * LAYOUT_KM_PER_M, (c.z + dz) * LAYOUT_KM_PER_M);
           if (
             campFlood(p.lat, p.lon) <= sea ||
             Math.abs(elevation.bilinear(p.lat, p.lon) - here) > FIELD_RELIEF_M
@@ -551,11 +554,11 @@ export function buildHumankind(
         // and the cells are too coarse to see a narrow strait (neolithic/villages.md section 6).
         const r = Math.sqrt(c.x * c.x + c.z * c.z);
         for (let d = FIELD_WAY_STEP_M; ok && d < r; d += FIELD_WAY_STEP_M) {
-          const p = onGlobe(
+          const p = placeAt(
             lat,
             lon,
-            ((c.x * d) / r) * (LAYOUT_KM_PER_M / width),
-            ((c.z * d) / r) * (LAYOUT_KM_PER_M / width),
+            ((c.x * d) / r) * LAYOUT_KM_PER_M,
+            ((c.z * d) / r) * LAYOUT_KM_PER_M,
           );
           if (campFlood(p.lat, p.lon) <= sea) ok = false;
         }
@@ -564,6 +567,7 @@ export function buildHumankind(
     return encodeMask(flags);
   };
   treeSettings.anchors = anchorRecords;
+  treeSettings.placeAt = placeAt;
   treeSettings.encounters = encounterRecords;
   treeSettings.campFlood = campFlood;
   treeSettings.elevation = (lat, lon) => elevation.bilinear(lat, lon);
