@@ -36,11 +36,13 @@ A farming village is founded only at a **village site**, a dated place of the pl
 
 ## 3. Villages stay
 
+**Built 2026-10-25** (the founding at village sites follows with part 2): a camp of a farming profile does not move at the end of its residence window, as a settled band does not; unlike one, it still buds, also near a threshold. On the real build every farming village stands at one place, most to the end of the tree.
+
 From its founding a village does not move: its band is settled at its site (as an anchor's band is, sites.md section 4.1) for as long as the culture area has people, its houses are rebuilt in place, and it buds off new villages by sending a small group (two to four grown-ups and their children) walking to the nearest free village site, never by moving the village. A village is abandoned only where the sea floods its site (it then moves to the nearest free village site inland) or a listed event ends it. The tree's checks add: a farming house is never taken down while its village stands, and no village's site changes.
 
 ## 4. People
 
-A village holds **6 to 10 figures** (`VILLAGE_MIN` 6 plus a hash of its id below 5; 12 to 20 until 2026-10-25), in two or three houses. Its fields' jobs need one worker at a time (fields-and-crops.md section 2), which a village of 6 always has at home.
+**Built 2026-10-25.** A village holds **6 to 10 figures** (`VILLAGE_MIN` 6 plus a hash of its id below 5; 12 to 20 until 2026-10-25), in two or three houses. Its fields' jobs need one worker at a time (fields-and-crops.md section 2), which a village of 6 always has at home.
 
 ## 5. Layout: rows, not a ring
 
