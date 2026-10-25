@@ -140,7 +140,10 @@ export function lightModels(
   lightUniforms.lightDir.value.copy(lightDir);
   lightUniforms.screenUp.value.set(e[4]!, e[5]!, e[6]!);
   lightUniforms.viewport.value.set(canvas.width, canvas.height);
-  lightUniforms.inkPixels.value = (1.6 * canvas.width) / Math.max(1, canvas.clientWidth);
+  const dpr = canvas.width / Math.max(1, canvas.clientWidth);
+  lightUniforms.inkPixels.value = 1.6 * dpr;
+  // Full ink from 40 CSS pixels per life-size metre, a figure about 70 pixels tall (issue 207).
+  lightUniforms.inkFullPixels.value = 40 * dpr;
 }
 
 /**

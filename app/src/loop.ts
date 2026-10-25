@@ -18,6 +18,7 @@ import { DynamicResolution, FrameStats, targetFrameMs } from './perf/quality.ts'
 import { planetAt, type PlanetState } from './planet/state.ts';
 import type { Clock } from './time/clock.ts';
 import type { HotState } from './ui/state.ts';
+import { lightModels } from './tree/figures.ts';
 import type { TreeLayer } from './tree/treeLayer.ts';
 import type { WildlifeLayer } from './wildlife/wildlifeLayer.ts';
 
@@ -143,6 +144,8 @@ export class FrameLoop {
     cameraLight(p.camera, u.lightDir!.value);
     const e = p.camera.matrixWorld.elements;
     u.screenUp!.value.set(e[4]!, e[5]!, e[6]!);
+    // The models' light, ink width and screen size, as the globe's (milestone 2 section 5).
+    lightModels(u.lightDir!.value, p.camera, p.renderer.domElement);
     // Wrapped to an hour so the shader's float keeps millisecond precision.
     u.time!.value = (p.clock.ms % 3_600_000) / 1000;
     // The views the camera will fly to have their tiles loaded too.

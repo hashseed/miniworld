@@ -656,6 +656,7 @@ function animSheet(): void {
         renderer.setScissor(x, y, tileW, tileH);
         lightUniforms.viewport.value.set(tileW * pr, tileH * pr);
         lightUniforms.inkPixels.value = 1.6 * pr;
+        lightUniforms.inkFullPixels.value = 40 * pr;
         renderer.render(scene, cam);
       });
     });
@@ -809,6 +810,7 @@ lightUniforms.viewport.value.set(
   innerHeight * renderer.getPixelRatio(),
 );
 lightUniforms.inkPixels.value = 1.6 * renderer.getPixelRatio();
+lightUniforms.inkFullPixels.value = 40 * renderer.getPixelRatio();
 if (renderViews) renderViews();
 else if (!customRender) renderer.render(scene, camera);
 if (update) {
