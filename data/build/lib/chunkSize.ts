@@ -12,15 +12,29 @@ export function largestFiles(
   return [...sizes].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, count);
 }
 
-/** One line per file over the limit, largest first; empty when every file fits. */
+/**
+ * The largest a minute's tree file may be, Brotli, before the tree is split by tile as well
+ * (humankind.md section 8).
+ */
+export const TREE_MINUTE_LIMIT_BYTES = 100_000;
+
+const TREE_MINUTE = /^tree\/m\d+\./;
+
+/** One line per file over its limit, largest first; empty when every file fits. */
 export function chunkSizeProblems(
   sizes: ReadonlyMap<string, number>,
   limit = CHUNK_LIMIT_BYTES,
+  treeLimit = TREE_MINUTE_LIMIT_BYTES,
 ): string[] {
-  return largestFiles(sizes, sizes.size)
-    .filter(([, n]) => n > limit)
-    .map(
-      ([name, n]) =>
-        `${name} is ${(n / 1000).toFixed(0)} KB Brotli, over the ${limit / 1000} KB limit`,
-    );
+  const kb = (n: number) => (n / 1000).toFixed(0);
+  return largestFiles(sizes, sizes.size).flatMap(([name, n]) =>
+    n > limit
+      ? [`${name} is ${kb(n)} KB Brotli, over the ${kb(limit)} KB limit`]
+      : TREE_MINUTE.test(name) && n > treeLimit
+        ? [
+            `${name} is ${kb(n)} KB Brotli, over the ${kb(treeLimit)} KB of a minute's tree file: ` +
+              'split the tree by tile (humankind.md section 8)',
+          ]
+        : [],
+  );
 }

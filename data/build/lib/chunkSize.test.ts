@@ -16,6 +16,18 @@ describe('the chunk size limit', () => {
     expect(chunkSizeProblems(new Map([['a', 10]]))).toEqual([]);
   });
 
+  it("names a minute's tree file over 100 KB, which calls for the split by tile", () => {
+    const tree = new Map([
+      ['tree/m7.e.json', 100_001],
+      ['tree/sites.f.json', 200_000],
+      ['tree/m8.g.json', 100_000],
+    ]);
+    expect(chunkSizeProblems(tree)).toEqual([
+      "tree/m7.e.json is 100 KB Brotli, over the 100 KB of a minute's tree file: " +
+        'split the tree by tile (humankind.md section 8)',
+    ]);
+  });
+
   it('lists the largest files first', () => {
     expect(largestFiles(sizes, 2).map(([f]) => f)).toEqual(['big.c.bin', 'edge.d.bin']);
   });
