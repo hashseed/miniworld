@@ -5,49 +5,60 @@
       "file": "assets/src/domesticOtherAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Domesticated animal of another centre (docs/spec/neolithic/domestic-animals-other-centres.md); waiting for Yang's review"
+      "status": "approved",
+      "geometry": "e40e99012f4b439e",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "animal-zebu",
       "file": "assets/src/domesticOtherAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Domesticated animal of another centre (docs/spec/neolithic/domestic-animals-other-centres.md); waiting for Yang's review"
+      "status": "approved",
+      "geometry": "b9ea31aeb962351f",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "animal-water-buffalo",
       "file": "assets/src/domesticOtherAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Domesticated animal of another centre (docs/spec/neolithic/domestic-animals-other-centres.md); waiting for Yang's review"
+      "status": "approved",
+      "geometry": "7d1e99385454bdf9",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "animal-llama",
       "file": "assets/src/domesticOtherAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Domesticated animal of another centre (docs/spec/neolithic/domestic-animals-other-centres.md); waiting for Yang's review"
+      "status": "approved",
+      "geometry": "0b565945b06ac123",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "animal-guinea-pig",
       "file": "assets/src/domesticOtherAnimals.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Domesticated animal of another centre (docs/spec/neolithic/domestic-animals-other-centres.md); waiting for Yang's review"
+      "status": "approved",
+      "geometry": "ecfc964ae1f95ae7",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-african-stone-age-man",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "reviewed": "2026-10-18",
-      "note": "Approved by Yang from the review sheets; spear instead of bow (Yang, 2026-10-19), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "e206348644176e90",
+      "reviewed": "2026-10-25",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")"
     },
     {
       "id": "figure-african-stone-age-woman",
@@ -264,72 +275,90 @@
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A man of the hunters of western and central Asia (peopling.md section 5.1), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "436f976f11ac06f5",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-west-asia-hunter-woman",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A woman of the hunters of western and central Asia (peopling.md section 5.1), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "c4542dbd26302858",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-west-asia-hunter-child",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A child of the hunters of western and central Asia (peopling.md section 5.1), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "f5952f3cbbb061cb",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-east-asia-hunter-man",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A man of the hunters of northern China, Korea and Japan (peopling.md section 5.1), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "ea71b18a571e07cc",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-east-asia-hunter-woman",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A woman of the hunters of northern China, Korea and Japan (peopling.md section 5.1), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "c77dad88cffefbc5",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-east-asia-hunter-child",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A child of the hunters of northern China, Korea and Japan (peopling.md section 5.1), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "c58ffd2ede3ab85d",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-first-americans-man",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A man of the first people of the Americas (peopling.md section 5.1), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "208ad67f402ff793",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-first-americans-woman",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A woman of the first people of the Americas (peopling.md section 5.1), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "1abc63c90bdaec3a",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-first-americans-child",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A child of the first people of the Americas (peopling.md section 5.1), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "3c78908e55b4ea13",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "shelter-hide-tent",
@@ -416,16 +445,20 @@
       "file": "assets/src/shelters.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Carrying pole for hunted animals (humankind.md section 8.1), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "2df7e7f2bbed7986",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "prop-spit",
       "file": "assets/src/shelters.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Roasting spit over the camp fire (humankind.md section 8.1), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "88fb1937f73886c2",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "prop-canoe",
@@ -442,72 +475,87 @@
       "file": "assets/src/shelters.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "The torch on a cave's rock face, lit while its painting is painted (humankind.md section 8.2); the painting is a texture; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "de379f6f8dd071fa",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "prop-cave-wall-chauvet",
       "file": "assets/src/shelters.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "The torch on a cave's rock face, lit while its painting is painted (humankind.md section 8.2); the painting is a texture; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "de379f6f8dd071fa",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "prop-cave-wall-lascaux",
       "file": "assets/src/shelters.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "The torch on Lascaux's white calcite wall, lit while its painting is painted (humankind.md section 8.2); the painting is a texture; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "de379f6f8dd071fa",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "texture-cave-lascaux",
       "file": "app/public/textures/cave-lascaux.png",
       "kind": "texture",
       "generated": "tools/cave-art.mjs after the Hall of the Bulls (Aujoulat 2004)",
-      "status": "generated",
-      "note": "Fresh reconstruction of Lascaux's bulls, cow, horses, stag and dots in black and red-brown, in six painting stages (humankind.md section 8.2); waiting for Yang's review"
+      "status": "approved",
+      "reviewed": "2026-10-25",
+      "note": "Approved with every asset then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")"
     },
     {
       "id": "texture-cave-chauvet",
       "file": "app/public/textures/cave-chauvet.png",
       "kind": "texture",
       "generated": "tools/cave-art.mjs from the public-domain photograph of the Chauvet replica (data/sources/chauvet-replica-photo)",
-      "status": "generated",
-      "note": "Fresh reconstruction of the Chauvet panels in charcoal, in six painting stages (humankind.md section 8.2); waiting for Yang's review"
+      "status": "approved",
+      "reviewed": "2026-10-25",
+      "note": "Approved with every asset then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")"
     },
     {
       "id": "texture-cave-leang-karampuang",
       "file": "app/public/textures/cave-leang-karampuang.png",
       "kind": "texture",
       "generated": "tools/cave-art.mjs from the CC BY 4.0 tracing of Oktaviana et al. 2024, Figure 3c (data/sources/leang-karampuang-tracing)",
-      "status": "generated",
-      "note": "Fresh reconstruction of the Leang Karampuang pig and human figures in red ochre, in six painting stages (humankind.md section 8.2); waiting for Yang's review"
+      "status": "approved",
+      "reviewed": "2026-10-25",
+      "note": "Approved with every asset then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")"
     },
     {
       "id": "prop-bone-hut",
       "file": "assets/src/shelters.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Mezhyrich's mammoth-bone hut raised in six steps: skull ring, jaws and long bones, shoulder blades, tusk arch, rafters, hides (humankind.md section 8.2); waiting for Yang's review"
+      "status": "approved",
+      "geometry": "c5a029ab85a26abb",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "prop-bone-pile",
       "file": "assets/src/shelters.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "The bones of the hunted mammoths heaped beside the hut site in four steps, shrinking as they are carried off (humankind.md section 8.2); waiting for Yang's review"
+      "status": "approved",
+      "geometry": "e4cebb5735669dc3",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "prop-sign-metal",
       "file": "assets/src/shelters.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "The sign put up before an event of the events dialog: a round, fully blue metal information sign (white \"i\") on a metal rod (humankind.md section 8.4; Yang, issue 180); replaces the wooden prop-sign-wood"
+      "status": "approved",
+      "geometry": "948ede7fefd721f8",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "prop-burial",
@@ -524,16 +572,20 @@
       "file": "assets/src/shelters.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Göbekli Tepe's single enclosure (Enclosure D) raised in six steps, 740 triangles, for the monument scene (humankind.md section 8.2, gobekli-tepe.md); waiting for Yang's review"
+      "status": "approved",
+      "geometry": "4b53368b69c8babe",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "shelter-small-hut",
       "file": "assets/src/shelters.ts",
       "kind": "shelter",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Small brush shelter for one family, for minimal camps on narrow land (sites.md section 2), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "32a4266ed545cb2e",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "prop-hearth",
@@ -1160,584 +1212,730 @@
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A man of the Neolithic profile pre-pottery-neolithic-levant (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "dadd1f693e3473ca",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-pre-pottery-neolithic-levant-woman",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A woman of the Neolithic profile pre-pottery-neolithic-levant (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "d4370f5642581cc5",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-pre-pottery-neolithic-levant-child",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A child of the Neolithic profile pre-pottery-neolithic-levant (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "b65fdc915acd07b1",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-anatolian-farmer-man",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A man of the Neolithic profile anatolian-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "0b4e8627aab5e4b1",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-anatolian-farmer-woman",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A woman of the Neolithic profile anatolian-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "20ae62dfa645d614",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-anatolian-farmer-child",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A child of the Neolithic profile anatolian-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "86ab7d7759332ff2",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-lbk-farmer-man",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A man of the Neolithic profile lbk-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "4de85f6c604b7d67",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-lbk-farmer-woman",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A woman of the Neolithic profile lbk-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "3624f7dc30444d8d",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-lbk-farmer-child",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A child of the Neolithic profile lbk-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "14639a23ef3f652c",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-indus-farmer-man",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A man of the Neolithic profile indus-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "69d16aa8104fd076",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-indus-farmer-woman",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A woman of the Neolithic profile indus-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "1592bdd82cab0065",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-indus-farmer-child",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A child of the Neolithic profile indus-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "8ec114a54973d157",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-nile-neolithic-man",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A man of the Neolithic profile nile-neolithic (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "96b5f0c9ab575af2",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-nile-neolithic-woman",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A woman of the Neolithic profile nile-neolithic (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "f16200cc2297ccdd",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-nile-neolithic-child",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A child of the Neolithic profile nile-neolithic (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "8304523bd5c87db4",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-yellow-river-millet-farmer-man",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A man of the Neolithic profile yellow-river-millet-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "a2fc949fb6df3fef",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-yellow-river-millet-farmer-woman",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A woman of the Neolithic profile yellow-river-millet-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "27a95a6c844a45b7",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-yellow-river-millet-farmer-child",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A child of the Neolithic profile yellow-river-millet-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "6c7ab24f539b4e7f",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-yangtze-rice-farmer-man",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A man of the Neolithic profile yangtze-rice-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "34babb179f7e583e",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-yangtze-rice-farmer-woman",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A woman of the Neolithic profile yangtze-rice-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "916c268c58d979b0",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-yangtze-rice-farmer-child",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A child of the Neolithic profile yangtze-rice-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "6a0bf5836c33b542",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-mesoamerican-farmer-man",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A man of the Neolithic profile mesoamerican-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "370f14b4ee86cde2",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-mesoamerican-farmer-woman",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A woman of the Neolithic profile mesoamerican-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "a352ea80929b5e5b",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-mesoamerican-farmer-child",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A child of the Neolithic profile mesoamerican-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "1a115661f0f16e86",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-andean-farmer-man",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A man of the Neolithic profile andean-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "4802d41242d14ffd",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-andean-farmer-woman",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A woman of the Neolithic profile andean-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "215e53388f5c8acc",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-andean-farmer-child",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A child of the Neolithic profile andean-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "ed6c2375945d09af",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-new-guinea-highland-farmer-man",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A man of the Neolithic profile new-guinea-highland-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "23dc7d7e905d29ad",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-new-guinea-highland-farmer-woman",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A woman of the Neolithic profile new-guinea-highland-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "e3db792876f8891f",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "figure-new-guinea-highland-farmer-child",
       "file": "assets/src/people.ts",
       "kind": "figure",
       "generated": "Modelling script, buildPerson",
-      "status": "generated",
-      "note": "A child of the Neolithic profile new-guinea-highland-farmer (docs/spec/neolithic/people-profiles.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "060a9bbfe10d025e",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "animal-sheep",
       "file": "assets/src/livestock.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Neolithic livestock (neolithic/livestock.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "083d757d81620d1d",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "animal-goat",
       "file": "assets/src/livestock.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Neolithic livestock (neolithic/livestock.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "b117ef52734c62aa",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "animal-cattle",
       "file": "assets/src/livestock.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Neolithic livestock (neolithic/livestock.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "8974b7642557b0e5",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "animal-pig",
       "file": "assets/src/livestock.ts",
       "kind": "animal",
       "generated": "Modelling script, buildAnimal",
-      "status": "generated",
-      "note": "Neolithic livestock (neolithic/livestock.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "0145b8e35873f45c",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "shelter-pre-pottery-levant-house",
       "file": "assets/src/neolithicHouses.ts",
       "kind": "shelter",
       "generated": "Modelling script, buildNeolithicHouse",
-      "status": "generated",
-      "note": "Neolithic house of the western Old World (neolithic/houses-old-world-west.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "d1d1067e5eab8ef2",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "shelter-anatolian-house",
       "file": "assets/src/neolithicHouses.ts",
       "kind": "shelter",
       "generated": "Modelling script, buildNeolithicHouse",
-      "status": "generated",
-      "note": "Neolithic house of the western Old World (neolithic/houses-old-world-west.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "04e55a8aa41d430f",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "shelter-anatolian-house-joined",
       "file": "assets/src/neolithicHouses.ts",
       "kind": "shelter",
       "generated": "Modelling script, buildNeolithicHouse",
-      "status": "generated",
-      "note": "Neolithic house of the western Old World (neolithic/houses-old-world-west.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "54f9958b6d6e4089",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "shelter-lbk-longhouse",
       "file": "assets/src/neolithicHouses.ts",
       "kind": "shelter",
       "generated": "Modelling script, buildNeolithicHouse",
-      "status": "generated",
-      "note": "Neolithic house of the western Old World (neolithic/houses-old-world-west.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "3fc83e7b8c08fa17",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "shelter-mehrgarh-house",
       "file": "assets/src/neolithicHouses.ts",
       "kind": "shelter",
       "generated": "Modelling script, buildNeolithicHouse",
-      "status": "generated",
-      "note": "Neolithic house of the western Old World (neolithic/houses-old-world-west.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "a6a6c7d8a0e2d1fe",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "shelter-egyptian-neolithic-hut",
       "file": "assets/src/neolithicHouses.ts",
       "kind": "shelter",
       "generated": "Modelling script, buildNeolithicHouse",
-      "status": "generated",
-      "note": "Neolithic house of the western Old World (neolithic/houses-old-world-west.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "33175a5373e57432",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "shelter-yangtze-stilt-house",
       "file": "assets/src/eastAsiaAmericasHouses.ts",
       "kind": "shelter",
       "generated": "Modelling script, buildEastAsiaAmericasHouse",
-      "status": "generated",
-      "note": "Neolithic house (neolithic/east-asia-americas-new-guinea-houses.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "fdfc8bd8263a10f0",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "shelter-yellow-river-pit-house",
       "file": "assets/src/eastAsiaAmericasHouses.ts",
       "kind": "shelter",
       "generated": "Modelling script, buildEastAsiaAmericasHouse",
-      "status": "generated",
-      "note": "Neolithic house (neolithic/east-asia-americas-new-guinea-houses.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "e005f7218b7d4122",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "shelter-mesoamerican-hut",
       "file": "assets/src/eastAsiaAmericasHouses.ts",
       "kind": "shelter",
       "generated": "Modelling script, buildEastAsiaAmericasHouse",
-      "status": "generated",
-      "note": "Neolithic house (neolithic/east-asia-americas-new-guinea-houses.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "1084f52d251b7e08",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "shelter-andean-stone-house",
       "file": "assets/src/eastAsiaAmericasHouses.ts",
       "kind": "shelter",
       "generated": "Modelling script, buildEastAsiaAmericasHouse",
-      "status": "generated",
-      "note": "Neolithic house (neolithic/east-asia-americas-new-guinea-houses.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "f55954890395d8ff",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "shelter-highland-new-guinea-house",
       "file": "assets/src/eastAsiaAmericasHouses.ts",
       "kind": "shelter",
       "generated": "Modelling script, buildEastAsiaAmericasHouse",
-      "status": "generated",
-      "note": "Neolithic house (neolithic/east-asia-americas-new-guinea-houses.md), waiting for Yang's review"
+      "status": "approved",
+      "geometry": "51fe5fac0b6fa003",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "prop-sickle",
       "file": "assets/src/neolithicTools.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Flint-bladed sickle in an oak haft, Natufian and early farming (neolithic/tools-and-village-props.md); waiting for Yang's review"
+      "status": "approved",
+      "geometry": "63d5fec668a15ce4",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "prop-digging-stick",
       "file": "assets/src/neolithicTools.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Pointed oak digging stick with a bored stone weight; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "c434ca68607c8b9d",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "prop-hoe",
       "file": "assets/src/neolithicTools.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Oak-hafted hoe with a stone adze blade, Linearbandkeramik style; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "f1d6792d49e9c7b1",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "prop-ard",
       "file": "assets/src/neolithicTools.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Scratch plough (ard) with share, beam and stilt, to be pulled by two cattle; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "c0d69dea244f37f9",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "prop-yoke",
       "file": "assets/src/neolithicTools.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Oak yoke for two cattle, resting on its pegs; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "0782b321fa2affa1",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "prop-quern",
       "file": "assets/src/neolithicTools.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Saddle quern with a hand stone, grain and flour; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "e6a85159b0b318cf",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "prop-basket",
       "file": "assets/src/neolithicTools.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Woven straw basket with a leather carrying strap; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "ac04a32f5c82d28e",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "prop-pot-small",
       "file": "assets/src/neolithicTools.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Small Yangshao painted red-on-buff pot; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "8513da699675bd48",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "prop-pot-large",
       "file": "assets/src/neolithicTools.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Large Linearbandkeramik pot with incised band lines; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "5766d7c71bac54b5",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "prop-pot-jar",
       "file": "assets/src/neolithicTools.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Cardial-ware jar with shell-impressed neck and two handles; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "6f88aeef3b0ee0ad",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "prop-kiln",
       "file": "assets/src/neolithicTools.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Updraught pottery kiln, clay dome with a fire mouth and a woodpile; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "ce652c779a696165",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "prop-granary",
       "file": "assets/src/neolithicTools.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Raised round granary on posts with mouse stones, wattle drum and thatched cone roof; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "d601c54d99e66567",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "prop-silo-pit",
       "file": "assets/src/neolithicTools.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Clay-lined storage pit with grain and a propped-open woven lid; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "4535dcf4f58786c5",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "prop-pen",
       "file": "assets/src/neolithicTools.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Wattle sheep pen about 10 m across with a hinged hurdle gate; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "b961adc80df0c79a",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "prop-well",
       "file": "assets/src/neolithicTools.ts",
       "kind": "prop",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Oak-lined log-cabin well with a crossbar and a leather bucket; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "43b6a68e047a320e",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "crop-emmer",
       "file": "assets/src/crops.ts",
       "kind": "crop",
       "generated": "Modelling script, cropGeometry",
-      "status": "generated",
-      "note": "Emmer wheat tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "d7134a45da48adcc",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "crop-einkorn",
       "file": "assets/src/crops.ts",
       "kind": "crop",
       "generated": "Modelling script, cropGeometry",
-      "status": "generated",
-      "note": "Einkorn tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "ba70b926650b109f",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "crop-barley",
       "file": "assets/src/crops.ts",
       "kind": "crop",
       "generated": "Modelling script, cropGeometry",
-      "status": "generated",
-      "note": "Barley tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "90811fa55c43caa5",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "crop-millet",
       "file": "assets/src/crops.ts",
       "kind": "crop",
       "generated": "Modelling script, cropGeometry",
-      "status": "generated",
-      "note": "Broomcorn millet tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "b60be0f79be5e7da",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "crop-rice",
       "file": "assets/src/crops.ts",
       "kind": "crop",
       "generated": "Modelling script, cropGeometry",
-      "status": "generated",
-      "note": "Rice tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "d8e4ea9c01dedccc",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "crop-maize",
       "file": "assets/src/crops.ts",
       "kind": "crop",
       "generated": "Modelling script, cropGeometry",
-      "status": "generated",
-      "note": "Maize tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "578b160ab506feb7",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "crop-squash",
       "file": "assets/src/crops.ts",
       "kind": "crop",
       "generated": "Modelling script, cropGeometry",
-      "status": "generated",
-      "note": "Squash tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "0fb77d74ea1c8840",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "crop-potato",
       "file": "assets/src/crops.ts",
       "kind": "crop",
       "generated": "Modelling script, cropGeometry",
-      "status": "generated",
-      "note": "Potato tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "393d62f699a814b7",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "crop-quinoa",
       "file": "assets/src/crops.ts",
       "kind": "crop",
       "generated": "Modelling script, cropGeometry",
-      "status": "generated",
-      "note": "Quinoa tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "699d52416d40bc7e",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "crop-taro",
       "file": "assets/src/crops.ts",
       "kind": "crop",
       "generated": "Modelling script, cropGeometry",
-      "status": "generated",
-      "note": "Taro tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "e11b476b93f11d53",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "crop-banana",
       "file": "assets/src/crops.ts",
       "kind": "crop",
       "generated": "Modelling script, cropGeometry",
-      "status": "generated",
-      "note": "Banana tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "718391c2fce66e37",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "crop-flax",
       "file": "assets/src/crops.ts",
       "kind": "crop",
       "generated": "Modelling script, cropGeometry",
-      "status": "generated",
-      "note": "Flax tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "fc6c5877e516ebc2",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     },
     {
       "id": "crop-lentil",
       "file": "assets/src/crops.ts",
       "kind": "crop",
       "generated": "Modelling script, cropGeometry",
-      "status": "generated",
-      "note": "Lentil tuft that tiles in a field, five growth stages (bare, sprout, green, ripe, stubble), approved at ripe; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "b1d3b877bad5f11e",
+      "note": "Approved with every model then waiting for review (Yang, 2026-10-25: \"approve all assets for now\")",
+      "reviewed": "2026-10-25"
     }
   ]
 }
