@@ -161,11 +161,17 @@ export class FrameLoop {
     p.sky.update(p.camera);
     p.clouds.update(p.camera, p.clock.ms, u.lightDir!.value);
     p.stress?.update(now, p.globe, this.planet, p.camera, p.clock.ms);
-    // The camps first: the animals keep clear of their people (wildlife.md section 4).
-    p.tree.update(p.camera, p.clock.ms, p.clock.startDay);
-    // The hills of the caves in view rise from the ground (humankind.md section 8.2).
-    p.globe.setMounds(p.tree.mounds());
-    p.wildlife.update(p.camera, day, p.clock.ms, p.clock.startDay, p.tree.obstacles());
+    // While the loading screen's small globe stands, the camps and animals are left out
+    // (milestone-1 section 8.6) and not worked out either, so the frames are free for loading
+    // the first view; the tree's files still load, so the camps are there when the camera flies in.
+    if (p.tree.group.visible) {
+      // The camps first: the animals keep clear of their people (wildlife.md section 4).
+      p.tree.update(p.camera, p.clock.ms, p.clock.startDay);
+      // The hills of the caves in view rise from the ground (humankind.md section 8.2).
+      p.globe.setMounds(p.tree.mounds());
+    } else p.tree.prefetch(p.clock.ms, p.clock.startDay);
+    if (p.wildlife.group.visible)
+      p.wildlife.update(p.camera, day, p.clock.ms, p.clock.startDay, p.tree.obstacles());
 
     this.updateStats.push(performance.now() - updateStart);
     p.renderer.info.reset();
