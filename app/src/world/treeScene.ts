@@ -26,6 +26,8 @@ import {
   buildSpot,
   FLINT_MS,
   lodgingSpot,
+  villageHouse,
+  LODGING_MAX_M,
   rackOnLand,
   rackSpot,
   towards,
@@ -376,14 +378,17 @@ export function treeScene(
         ...towards(rack.x, rack.z, 0, 0),
       });
     }
+    // A village's house stands where its culture builds it, facing its green (villages.md section 5).
+    const house = villageHouse(l);
     scene.lodgings.push({
       id: l.id,
       kind: l.kind,
-      room: ringOf(l.camp) / LODGING_RING_M,
+      room: house ? 1 : ringOf(l.camp) / LODGING_RING_M,
+      ...(house && house.lengthM > LODGING_MAX_M * 3 + 1e-9 ? { maxM: house.lengthM / 3 } : {}),
       lat: deg(l.lat),
       lon: deg(l.lon),
       ...spot,
-      ...towards(spot.x, spot.z, 0, 0),
+      ...(house ? { dirX: house.dir.x, dirZ: house.dir.z } : towards(spot.x, spot.z, 0, 0)),
       // Lodgings standing when the timeline starts are already up; then built, then taken down.
       built:
         ms >= down

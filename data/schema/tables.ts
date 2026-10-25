@@ -352,6 +352,10 @@ export const culturesTable = z.strictObject({
             fieldTool: z.enum(['hoe', 'digging-stick']),
             /** From this year BCE the field tool is the ard. */
             ardFromBce: bce.optional(),
+            /** How its village is laid out (neolithic/villages.md section 5). */
+            layout: z.enum(['rows', 'cluster', 'hamlet', 'pits', 'stilts']),
+            /** The longest a house is drawn, in figure metres, where not the usual 2.7. */
+            houseM: z.number().positive().max(8).optional(),
             /** Percent of the grown-ups in each role, in the order of NEOLITHIC_ROLES. */
             mix: z
               .strictObject(

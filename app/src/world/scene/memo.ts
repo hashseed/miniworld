@@ -17,7 +17,14 @@ import type { TreeFigure, TreeLodging, TreeStage } from '../tree.ts';
 import type { FigureLook, TreeChunk } from './types.ts';
 import { type Pt, deg } from './units.ts';
 import { Itinerary } from './routes.ts';
-import { type Place, type CampEvent, inOutingLane, LODGING_SLOTS, gapDirection } from './camp.ts';
+import {
+  type Place,
+  type CampEvent,
+  inOutingLane,
+  LODGING_SLOTS,
+  gapDirection,
+  villageHouse,
+} from './camp.ts';
 import type { Hunt } from './hunt.ts';
 import { stageSessions } from './stages.ts';
 import { treeScene } from '../treeScene.ts';
@@ -137,6 +144,9 @@ export const HERD_FIELD_CLEAR_M = 2.5;
 /** Fields keep this far from a pen's middle: the pen is drawn about 12 layout metres across. */
 export const PEN_CLEAR_M = 8;
 
+/** Fields and the pen keep this far from a house's footprint (layout metres). */
+export const HOUSE_CLEAR_M = 2;
+
 /** The trees keep this far off a field's farthest corner (layout metres). */
 export const FIELD_TREE_MARGIN_M = 2.5;
 
@@ -152,8 +162,22 @@ export function buildVillage(chunk: TreeChunk, camp: number): Village | null {
   const kinds = neolithicProfile(
     profile ?? farmingProfileAt(deg(first.lat), deg(first.lon)) ?? 'pre-pottery-neolithic-levant',
   ).herd;
+  // Its houses where its culture builds them (villages.md section 5): no field or pen under one,
+  // nor behind one from the green, where the walk out would pass through it (section 6).
+  const houses = own.flatMap((l) => {
+    const h = villageHouse(l);
+    return h ? [{ x: h.at.x, z: h.at.z, r: h.lengthM / 2 + HOUSE_CLEAR_M }] : [];
+  });
+  const underHouse = (x: number, z: number) => {
+    const d = Math.sqrt(x * x + z * z);
+    return houses.some((h) => {
+      // The nearest point to the house on the way from the green out to (x, z).
+      const t = d < 1e-9 ? 0 : Math.max(0, Math.min(1, (h.x * x + h.z * z) / (d * d)));
+      return (x * t - h.x) ** 2 + (z * t - h.z) ** 2 < h.r * h.r;
+    });
+  };
   const free = (x: number, z: number) =>
-    !farm || (maskReach(farm.fieldLand!, x, z) && !inOutingLane(camp, x, z));
+    !farm || (maskReach(farm.fieldLand!, x, z) && !inOutingLane(camp, x, z) && !underHouse(x, z));
   // The herd is placed first, on land and out of the lanes; the fields then keep clear of its pen and animals.
   const a0 = hash01(camp, 235) * 2 * Math.PI;
   let herd: Village['herd'];
@@ -186,7 +210,7 @@ export function buildVillage(chunk: TreeChunk, camp: number): Village | null {
         lodgings,
         neolithicProfile(profile!).crops,
         farm.fieldLand!,
-        (x, z) => inOutingLane(camp, x, z) || nearHerd(x, z),
+        (x, z) => inOutingLane(camp, x, z) || nearHerd(x, z) || underHouse(x, z),
       )
     : [];
   if (!fields.length && !herd) return null;

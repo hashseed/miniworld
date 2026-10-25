@@ -114,6 +114,8 @@ export interface LodgingPose extends Placed {
   built: number;
   /** The share of the full camp's ring its camp's ring is: a lodging is at most that share of LODGING_MAX_M across (section 8.5), so five never touch. */
   room?: number;
+  /** The longest it is drawn, in figure metres, where its culture builds larger than LODGING_MAX_M (a longhouse). */
+  maxM?: number;
 }
 
 /** A field of a Neolithic camp (section 8.5): its outline in layout metres off the camp's place, and how far its crop has grown. */
