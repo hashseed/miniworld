@@ -47,6 +47,9 @@ import type { Pt } from './units.ts';
 import { hash32 } from '../../core/hash.ts';
 import type { SceneCx } from './context.ts';
 
+/** A reaper carrying a sheaf goes back along its way out to this far from the hearth (layout metres), inside the ring. */
+const SHEAF_BACK_M = 10;
+
 /**
  * What a figure goes out to do in its `k`-th turn on its own, as far as its gap has land
  * (section 8.1): a gathering or a stroll with its legs, a hunt (planned as a camp event
@@ -190,7 +193,12 @@ export function soloTurn(
     trip.go(w.at).stay(trip.t + FIELD_WORK_MS, go, w.face);
     if (go === 'reap' && room >= THRESH_ROOM_M) {
       const floor = outingPoint(st.s, camp, 8);
+      // Back the way it came, the land its field was laid out by (fieldMask maskReach), to
+      // inside the ring, and only then across to the floor: never straight over a bay.
+      const r = Math.sqrt(w.at.x ** 2 + w.at.z ** 2);
+      const back = { x: (w.at.x * SHEAF_BACK_M) / r, z: (w.at.z * SHEAF_BACK_M) / r };
       trip
+        .go(back, 'carry')
         .go(floor, 'carry')
         .stay(trip.t + THRESH_MS, 'thresh', { x: floor.x * 2, z: floor.z * 2 });
     }

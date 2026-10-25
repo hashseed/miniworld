@@ -1,0 +1,95 @@
+{
+  "description": "Neolithic village sites of the curated list (spec neolithic/villages.md section 2; Yang, 2026-10-25: \"curated list sounds good\"): excavated villages in regions that had villages but few later cities, here the Linear Pottery culture (LBK) of central Europe, each a village site like the places of future cities. bce is the year the village is dated from, approximate.",
+  "sites": [
+    {
+      "id": "schwanfeld",
+      "en": "Schwanfeld",
+      "de": "Schwanfeld",
+      "lat": 49.92,
+      "lon": 10.14,
+      "bce": 5500,
+      "source": "Position: the town the site lies at, rounded to two decimals (GeoNames, geonames.org); Gronenborn, D. 1999, A variation on a basic theme: the transition to farming in southern central Europe, Journal of World Prehistory 13, 123-210 (earliest LBK, c. 5500 BCE)"
+    },
+    {
+      "id": "brunn-am-gebirge",
+      "en": "Brunn am Gebirge",
+      "de": "Brunn am Gebirge",
+      "lat": 48.11,
+      "lon": 16.29,
+      "bce": 5500,
+      "source": "Position: the town the site lies at, rounded to two decimals (GeoNames, geonames.org); Stadler, P. 2005, Settlement of the Early Linear Ceramics Culture at Brunn am Gebirge, Wolfholz site, Documenta Praehistorica 32, 269-278 (c. 5550-5200 BCE)"
+    },
+    {
+      "id": "bylany",
+      "en": "Bylany",
+      "de": "Bylany",
+      "lat": 49.96,
+      "lon": 15.25,
+      "bce": 5400,
+      "source": "Position: the town the site lies at, rounded to two decimals (GeoNames, geonames.org); Pavlů, I. 2000, Life on a Neolithic Site. Bylany: Situational Analysis of Artefacts, Institute of Archaeology, Prague (LBK settlement c. 5400-4800 BCE)"
+    },
+    {
+      "id": "olszanica",
+      "en": "Olszanica",
+      "de": "Olszanica",
+      "lat": 50.07,
+      "lon": 19.8,
+      "bce": 5300,
+      "source": "Position: the town the site lies at, rounded to two decimals (GeoNames, geonames.org); Milisauskas, S. 1986, Early Neolithic Settlement and Society at Olszanica, Memoirs of the Museum of Anthropology 19, University of Michigan (LBK village c. 5300-5000 BCE)"
+    },
+    {
+      "id": "zwenkau",
+      "en": "Zwenkau",
+      "de": "Zwenkau",
+      "lat": 51.22,
+      "lon": 12.33,
+      "bce": 5300,
+      "source": "Position: the town the site lies at, rounded to two decimals (GeoNames, geonames.org); Stäuble, H. 2005, Häuser und absolute Datierung der Ältesten Bandkeramik, Universitätsforschungen zur prähistorischen Archäologie 117, Habelt, Bonn (c. 5300 BCE)"
+    },
+    {
+      "id": "langweiler-8",
+      "en": "Langweiler 8",
+      "de": "Langweiler 8",
+      "lat": 50.88,
+      "lon": 6.25,
+      "bce": 5300,
+      "source": "Position: the town the site lies at, rounded to two decimals (GeoNames, geonames.org); Boelicke, U., von Brandt, D., Lüning, J., Stehli, P. and Zimmermann, A. 1988, Der bandkeramische Siedlungsplatz Langweiler 8, Rheinische Ausgrabungen 28, Rheinland-Verlag, Köln (c. 5300-4950 BCE)"
+    },
+    {
+      "id": "vaihingen",
+      "en": "Vaihingen an der Enz",
+      "de": "Vaihingen an der Enz",
+      "lat": 48.93,
+      "lon": 8.96,
+      "bce": 5300,
+      "source": "Position: the town the site lies at, rounded to two decimals (GeoNames, geonames.org); Bogaard, A., Krause, R. and Strien, H.-C. 2011, Towards a social geography of cultivation and plant use in an early farming community: Vaihingen an der Enz, south-west Germany, Antiquity 85, 395-416 (c. 5300-5000 BCE)"
+    },
+    {
+      "id": "elsloo",
+      "en": "Elsloo",
+      "de": "Elsloo",
+      "lat": 50.95,
+      "lon": 5.77,
+      "bce": 5250,
+      "source": "Position: the town the site lies at, rounded to two decimals (GeoNames, geonames.org); Modderman, P. J. R. 1970, Linearbandkeramik aus Elsloo und Stein, Analecta Praehistorica Leidensia 3 (c. 5250-4950 BCE)"
+    },
+    {
+      "id": "vrable",
+      "en": "Vráble",
+      "de": "Vráble",
+      "lat": 48.24,
+      "lon": 18.31,
+      "bce": 5250,
+      "source": "Position: the town the site lies at, rounded to two decimals (GeoNames, geonames.org); Furholt, M. et al. 2020, Communality and discord in an early Neolithic settlement: the case of Vráble, PLoS ONE 15(8), e0237588 (c. 5250-4950 BCE)"
+    },
+    {
+      "id": "cuiry-les-chaudardes",
+      "en": "Cuiry-lès-Chaudardes",
+      "de": "Cuiry-lès-Chaudardes",
+      "lat": 49.39,
+      "lon": 3.76,
+      "bce": 5000,
+      "source": "Position: the town the site lies at, rounded to two decimals (GeoNames, geonames.org); Ilett, M. and Hachem, L. 2001, Le site néolithique de Cuiry-lès-Chaudardes (Aisne, France), in Guilaine, J. (ed.), Communautés villageoises du Proche-Orient à l'Atlantique, Errance, Paris (late LBK, c. 5000 BCE)"
+    }
+  ]
+}

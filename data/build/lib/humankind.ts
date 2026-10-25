@@ -6,11 +6,12 @@
 // trigonometry only, so the same inputs give the same tree on every machine.
 
 import { maskLost } from '../../../app/src/world/fieldMask.ts';
+import { BUILD_MS, TAKE_DOWN_MS, TURN_MS } from '../../../app/src/world/scene/camp.ts';
 import { hash32, hash01 } from '../../../app/src/core/hash.ts';
 import { detCos, detSin } from '../../../app/src/core/detmath.ts';
 import { DAYS_PER_YEAR, type Day } from '../../../app/src/time/calendar.ts';
 import { FIGURE_KM_PER_M, TEMPO, WALK_M_PER_S } from '../../../app/src/world/treeScene.ts';
-import { dayAtMs, dayAtWatch, watchAtDay } from '../../../app/src/time/rate.ts';
+import { dayAtMs, dayAtWatch, msAtDay, watchAtDay } from '../../../app/src/time/rate.ts';
 import {
   NEVER,
   aliveOn,
@@ -103,6 +104,8 @@ const FOUNDER_ALONE_MS = 60_000;
 const MIN_PLACES = 2;
 /** Groups budding off go at most this many links (sites.md section 4, Proposed). */
 const BUD_HOPS = 5;
+/** A band in farmland walks at most this far to a village site to found its village (villages.md section 2). */
+const VILLAGE_WALK_KM = 600;
 /** A band fleeing the water looks this many links away for a free site, and this many for bands to join. */
 const FLEE_HOPS = 6;
 const JOIN_HOPS = 6;
@@ -283,6 +286,8 @@ export interface TreeSettings {
   thresholdCulture?: (t: Threshold) => string | undefined;
   /** Whether a site is a village site, the place of a future city (neolithic/villages.md section 2). */
   villageSite?: (lat: number, lon: number) => boolean;
+  /** The farming profile the farming spread has brought to a place by a day, wherever it is (farming-spread.md section 9.4). */
+  farmingAt?: (lat: number, lon: number, day: Day) => string | undefined;
   /** Places that must have a band from a day to a day (sites.md section 4.1). */
   anchors?: Anchor[];
   /** Parties of several bands that meet at a place for a while (sites.md section 4.3). */
@@ -536,7 +541,12 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   /** Whether a site is far enough from every other band (sites.md section 4) and not kept for a plan. */
   const free = (site: Site, day: Day, except?: Camp) => {
     if (claimed(site, day, except)) return false;
-    const spacing = spacingAt(site, day);
+    // Farmland feeds more people: at a village site that farming has reached, villages keep
+    // only clear of each other's drawn camps, not their density's spacing (villages.md section 3).
+    const spacing =
+      s.villageSite?.(site.lat, site.lon) && s.farmingAt?.(site.lat, site.lon, day)
+        ? 0
+        : spacingAt(site, day);
     for (const h of held.values())
       if (distanceKm(h.lat, h.lon, site.lat, site.lon) < spacing) return false;
     // Overlapping sites are mutually exclusive, and bands keep their density's spacing.
@@ -1104,7 +1114,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     const flood = s.waterFlood ?? s.walkFlood!;
     const isWet = (k: number) => {
       const p = at(k);
-      return flood(p.lat, p.lon) < low - 3;
+      // Shallows are water too: they are drawn as sea, and walkers must not cross them.
+      return flood(p.lat, p.lon) <= low;
     };
     const wet = Array.from({ length: n + 1 }, (_, k) => isWet(k));
     const way: [number, number][] = [];
@@ -1824,6 +1835,19 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   // that points most nearly towards the anchor's place, of those with no drying rack whose
   // prop, people's places and way there stay dry land for the anchor's whole stay.
   const stages: TreeStage[] = [];
+  /** Whether a scene of the camp's anchor is in session in the step from `day`, with the time to take down and build round it. */
+  const inSession = (camp: Camp, day: Day): boolean => {
+    const from = msAtDay(day, s.startDay) - BUILD_MS;
+    const to = msAtDay(after(day, STEP_MS), s.startDay) + TAKE_DOWN_MS;
+    return stages.some(
+      (st) =>
+        st.camp === camp.site.key &&
+        // A session's people are held from its start for a whole turn (stageEvent's `until`).
+        stageSessions(st, s.startDay).some(
+          (q) => q.start < to && Math.max(q.stop, q.start + TURN_MS + 2_000) > from,
+        ),
+    );
+  };
   for (const a of s.anchors ?? []) {
     if (!a.scene) continue;
     const p = planByKey.get(placeKey('anchor', a.id))!;
@@ -2073,7 +2097,9 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         continue;
       }
       // The sea came up to its lodgings or lanes: it builds them again where they stay dry.
-      if (stale(camp, day)) {
+      // ... but not while its anchor's scene is in session: its people paint, dig or dance
+      // then, and a rebuild would take them away (humankind.md section 8.2). It waits until after.
+      if (stale(camp, day) && !inSession(camp, day)) {
         relocate(camp, [camp.site], day);
         continue;
       }
@@ -2091,7 +2117,34 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       // The end of a residence window: the band moves along a link, unless it has settled.
       if (day >= camp.nextMove) {
         camp.nextMove = after(day, RESIDENCE_MS + (hash32(camp.id, day, 12) % RESIDENCE_MS));
-        if (!camp.settled && !village && !isHeld(camp, day)) {
+        // Farming has come to its land but it stands off a village site: it walks to the
+        // nearest free one within a few links and founds its village there (villages.md section 2).
+        const farmland =
+          !village &&
+          !camp.thresholdCulture &&
+          !s.villageSite?.(camp.site.lat, camp.site.lon) &&
+          !!s.farmingAt?.(camp.site.lat, camp.site.lon, day);
+        const toVillage =
+          farmland && !camp.settled && !isHeld(camp, day)
+            ? best(
+                reach(
+                  camp.site,
+                  day,
+                  BUD_HOPS,
+                  (site) =>
+                    !!s.villageSite?.(site.lat, site.lon) &&
+                    distanceKm(site.lat, site.lon, camp.site.lat, camp.site.lon) <=
+                      VILLAGE_WALK_KM &&
+                    usable(site, day, headcount(camp)) &&
+                    free(site, day, camp) &&
+                    !reserved(site, camp),
+                ),
+                day,
+                2,
+              )
+            : undefined;
+        if (toVillage) relocate(camp, toVillage.path, day);
+        else if (!camp.settled && !village && !isHeld(camp, day)) {
           const n = headcount(camp);
           // Only among the sites of its home range (sites.md section 4).
           const options = () =>

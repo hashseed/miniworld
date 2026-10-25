@@ -242,6 +242,8 @@ A camp is drawn on a stage 1.7 times larger than the old vignette stages (milest
 
 **Nobody is ever teleported** (Yang, 2026-10-21): in every scene, whoever has a place to be walks there from where they actually are, leaving early enough to arrive in time (one who cannot goes unused), and walks back; a walk always begins with a rest at the walker's own spot until their departure, never with a position they were not at.
 
+**No rebuild in session** (2026-10-25): an anchor's camp that must rebuild its lodgings in place, the sea having reached them or their lanes, waits while one of its scene's sessions is under way (from the session's start for a whole turn, with the time to take down and build round it) and rebuilds after it, so the people the session needs are not taking their huts down instead (Lascaux had no painter for a session when a rebuild fell in it). A band whose site floods still leaves at once.
+
 Yang asked on 2026-10-20 for cave painting and burials ("do we have cave painting yet?"; "implement everything": the scenes at Leang Karampuang, Chauvet and Sungir). Before there are villages, the stories of the deep past are told by the camps themselves: an anchor (sites.md section 4.1) may carry a **scene**, which the band held at its site plays as part of its camp life. A scene is not a vignette: it has no cast of its own, only the anchor's band, so nobody is drawn twice and the band's people are the ones who paint or bury.
 
 | Field of `scene` | Meaning                                                                                                                                                                                                                           |
@@ -299,6 +301,8 @@ Yang asked on 2026-10-23 (issue 148): "For each event, create a card. ... About 
 - **Assets.** `prop-sign-metal` replaces the earlier wooden `prop-sign-wood`; it is a new model, generated and waiting for Yang's approval like every model (spec section 13); the sign is drawn only once it is approved (or in a preview build).
 
 ### 8.5 Neolithic villages
+
+Where villages stand, how they stay and how they are laid out is in [neolithic/villages.md](neolithic/villages.md).
 
 Yang, 2026-10-23, epic 128: "Implement everything and visually inspect everything." The models, field layout, crop stages, clips and farming spread of [neolithic/](neolithic/people-profiles.md) are put into the camp scene as follows.
 

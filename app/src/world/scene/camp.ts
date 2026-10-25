@@ -176,6 +176,8 @@ export function groupOffset(
   km: number,
   side = 0,
   water = false,
+  /** The furthest behind its point a walker may be, in layout metres: no further back than its leg's start after a landing. */
+  maxBack = Infinity,
 ): Pt {
   // A canoe keeps to the line of its way, where the water was checked, one behind the other.
   const fade = water ? 1 : Math.max(0, Math.min(1, t / GROUP_FADE, (1 - t) / GROUP_FADE));
@@ -183,8 +185,10 @@ export function groupOffset(
   // Never further behind than a twentieth of the walk: less than the way covered while the
   // rows form, so nobody walks backwards on a short walk.
   const rows = water ? spot : Math.floor(spot / 3);
-  const back =
-    Math.min(rows * (water ? CANOE_GAP_M : GROUP_BACK_M), (0.05 * km) / LAYOUT_KM_PER_M) * fade;
+  const back = Math.min(
+    Math.min(rows * (water ? CANOE_GAP_M : GROUP_BACK_M), (0.05 * km) / LAYOUT_KM_PER_M) * fade,
+    maxBack,
+  );
   // On the open way walkers close in to within GROUP_WAY_SIDE_M of the line, the strip a
   // link is checked for water (sites.md section 3); they spread out again near the camps.
   const across = p.x * -way.dirZ + p.z * way.dirX + side;

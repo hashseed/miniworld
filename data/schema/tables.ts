@@ -252,6 +252,12 @@ export const keyPlacesTable = z.strictObject({
   places: list(z.strictObject({ id, ...named, lat, lon, source: citation })),
 });
 
+/** Excavated Neolithic villages where few later cities stood (neolithic/villages.md section 2). */
+export const villageSitesTable = z.strictObject({
+  description,
+  sites: list(z.strictObject({ id, ...named, lat, lon, bce, source: citation })),
+});
+
 /** The scene kinds an anchor can stage (humankind.md section 8.2). */
 export const SCENE_KINDS = ['cave-painting', 'burial', 'monument', 'bone-hut'] as const;
 
@@ -519,6 +525,7 @@ export const TABLES = {
   'neolithic.json': neolithicTable,
   'key-places.json': keyPlacesTable,
   'anchors.json': anchorsTable,
+  'village-sites.json': villageSitesTable,
   'encounters.json': encountersTable,
   'farming.json': farmingTable,
   'cultures.json': culturesTable,
