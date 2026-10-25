@@ -1,57 +1,17 @@
 // Pipeline tests (spec milestone 1, section 13): the manifest, chunk keys and
 // content hashes of the built data. Like the golden tests they run on the
 // data in app/public/data (`npm run golden`; in CI on the fixture dataset) and
-// are skipped when nothing has been built.
+// are skipped when nothing has been built. The check of every file's hash and Brotli copy
+// is split over pipelineFiles*.test.ts, so vitest reads the files in parallel.
 
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
-import { brotliDecompressSync } from 'node:zlib';
+import { statSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import type { Manifest, PartFile, StartupIndex } from '../../app/src/content/types.ts';
-import { contentHash } from './lib/output.ts';
-
-const DATA = join(import.meta.dirname, '../../app/public/data');
-const built = existsSync(join(DATA, 'manifest.json'));
-
-const read = (file: string) => readFileSync(join(DATA, file));
-const json = <T>(file: string) => JSON.parse(read(file).toString('utf8')) as T;
-
-function walk(dir: string, out: string[] = []): string[] {
-  for (const name of readdirSync(dir)) {
-    const p = join(dir, name);
-    if (statSync(p).isDirectory()) walk(p, out);
-    else out.push(relative(DATA, p));
-  }
-  return out;
-}
+import type { Manifest, PartFile } from '../../app/src/content/types.ts';
+import { DATA, built, json, referenced, walk } from './lib/builtData.ts';
 
 describe.skipIf(!built)('built data pipeline', () => {
   const manifest = built ? json<Manifest>('manifest.json') : ({} as Manifest);
-
-  /** Every file the manifest names, directly or through a layer's part files. */
-  function referenced(): Set<string> {
-    const files = new Set<string>([manifest.lens.file]);
-    for (const f of Object.values(manifest.index)) {
-      files.add(f);
-      // Card texts and structures are named by the startup index.
-      const index = json<StartupIndex>(f);
-      for (const a of index.animals) files.add(a.text);
-      for (const a of index.siteCards) files.add(a.text);
-    }
-    for (const f of manifest.climate.files) files.add(f);
-    for (const f of manifest.foliage.files) files.add(f);
-    for (const f of manifest.tree?.files ?? []) if (f) files.add(f);
-    if (manifest.tree?.sites) files.add(manifest.tree.sites);
-    if (manifest.farming) files.add(manifest.farming);
-    for (const layer of Object.values(manifest.layers)) {
-      for (const f of Object.values(layer.chunks)) files.add(f);
-      for (const f of Object.values(layer.parts)) {
-        files.add(f);
-        for (const c of Object.values(json<PartFile>(f).chunks)) files.add(c);
-      }
-    }
-    return files;
-  }
 
   it('lists both languages, the time windows and matching slices', () => {
     expect(manifest.languages).toEqual(['en', 'de']);
@@ -94,18 +54,8 @@ describe.skipIf(!built)('built data pipeline', () => {
     }
   });
 
-  it('names every file by the hash of its content, with a matching Brotli copy', () => {
-    const files = referenced();
-    for (const file of files) {
-      const bytes = read(file);
-      const hash = /\.([0-9a-f]{16})\.[a-z]+$/.exec(file)?.[1];
-      expect(hash, file).toBe(contentHash(bytes));
-      expect(brotliDecompressSync(read(`${file}.br`)).equals(bytes), `${file}.br`).toBe(true);
-    }
-  });
-
   it('holds no file the manifest does not name', () => {
-    const files = referenced();
+    const files = referenced(manifest);
     files.add('manifest.json');
     const orphans = walk(DATA)
       .map((f) => f.replace(/\.br$/, ''))
