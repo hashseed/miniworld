@@ -166,15 +166,20 @@ export function buildVillage(chunk: TreeChunk, camp: number): Village | null {
   // nor behind one from the green, where the walk out would pass through it (section 6).
   const houses = own.flatMap((l) => {
     const h = villageHouse(l);
-    return h ? [{ x: h.at.x, z: h.at.z, r: h.lengthM / 2 + HOUSE_CLEAR_M }] : [];
+    return h ? [h] : [];
   });
-  const underHouse = (x: number, z: number) => {
-    const d = Math.sqrt(x * x + z * z);
-    return houses.some((h) => {
-      // The nearest point to the house on the way from the green out to (x, z).
-      const t = d < 1e-9 ? 0 : Math.max(0, Math.min(1, (h.x * x + h.z * z) / (d * d)));
-      return (x * t - h.x) ** 2 + (z * t - h.z) ** 2 < h.r * h.r;
+  /** Whether a point is on a house's footprint, HOUSE_CLEAR_M round it. */
+  const onHouse = (x: number, z: number) =>
+    houses.some((h) => {
+      const [dx, dz] = [x - h.at.x, z - h.at.z];
+      const u = dx * h.axis.x + dz * h.axis.z;
+      const v = -dx * h.axis.z + dz * h.axis.x;
+      return Math.abs(u) < h.lengthM / 2 + HOUSE_CLEAR_M && Math.abs(v) < h.deep + HOUSE_CLEAR_M;
     });
+  // On a house, or behind one on the way out from the green.
+  const underHouse = (x: number, z: number) => {
+    for (let k = 1; k <= 16; k++) if (onHouse((x * k) / 16, (z * k) / 16)) return true;
+    return false;
   };
   const free = (x: number, z: number) =>
     !farm || (maskReach(farm.fieldLand!, x, z) && !inOutingLane(camp, x, z) && !underHouse(x, z));

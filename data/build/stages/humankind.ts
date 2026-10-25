@@ -519,6 +519,7 @@ export function buildHumankind(
     (villageSite(lat, lon) ? farmingStateAt(lat, lon, day).profile : undefined) ??
     areaCulture?.(lat, lon, day);
   treeSettings.village = (culture) => culture in NEOLITHIC_PROFILES;
+  treeSettings.lodgingCapacity = (culture) => NEOLITHIC_PROFILES[culture]?.houseCapacity;
   // The band at a farming sign's site becomes its centre's village on the sign's day
   // (neolithic/villages.md section 1): the profile whose area holds the sign's point.
   treeSettings.thresholdCulture = (t) => farmingProfileAt(t.lat, t.lon) ?? undefined;
@@ -746,18 +747,25 @@ export function buildHumankind(
               : ['work'];
       // A burial's diggers are at work while the grave is dug, before they carry the dead.
       const g = stage.kind === 'burial' ? burialTimes(stage, TIMELINE_START) : undefined;
-      const ms = g ? Math.round((g.dig + g.digEnd) / 2) : Math.round((q.begin + q.stop) / 2);
-      const chunk = chunkAt(ms);
-      const busy = chunk
-        ? treeScene(chunk, ms, TIMELINE_START).figures.filter(
-            (f) =>
-              (monument
-                ? distanceKm(f.lat, f.lon, stage.lat / 1e6, stage.lon / 1e6) <=
-                  VISIT_M * LAYOUT_KM_PER_M
-                : Math.round(f.lat * 1e6) === stage.lat && Math.round(f.lon * 1e6) === stage.lon) &&
-              clips.includes(f.clip),
-          ).length
-        : 0;
+      // Who is at the work at some moment of the session: a bone carrier is now and then
+      // walking back for the next bone, so one moment alone would miss them.
+      const at = new Set<number>();
+      for (const u of [0.3, 0.4, 0.5, 0.6, 0.7]) {
+        const [from, to] = g ? [g.dig, g.digEnd] : [q.begin, q.stop];
+        const t = Math.round(from + (to - from) * u);
+        const chunk = chunkAt(t);
+        if (!chunk) continue;
+        for (const f of treeScene(chunk, t, TIMELINE_START).figures)
+          if (
+            (monument
+              ? distanceKm(f.lat, f.lon, stage.lat / 1e6, stage.lon / 1e6) <=
+                VISIT_M * LAYOUT_KM_PER_M
+              : Math.round(f.lat * 1e6) === stage.lat && Math.round(f.lon * 1e6) === stage.lon) &&
+            clips.includes(f.clip)
+          )
+            at.add(f.id);
+      }
+      const busy = at.size;
       if (busy < need)
         fail(
           `tree of humankind: session ${k + 1} of the scene of ${stage.id} has too few people to ${stage.kind === 'cave-painting' ? 'paint' : monument ? (k < MONUMENT_BUILD_SESSIONS ? 'raise the ring' : 'dance') : stage.kind === 'bone-hut' ? (k % 2 ? 'build the hut' : 'take out the bones') : 'dig the grave'}`,

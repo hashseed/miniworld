@@ -5,7 +5,7 @@ import { buildShelter, type ShelterId } from '../../../assets/src/shelters.ts';
 import '../../../assets/src/allCultureModels.ts';
 import { encodeMask, MASK_RINGS, MASK_SECTORS } from './fieldMask.ts';
 import { NEOLITHIC_PROFILES } from './neolithicProfiles.ts';
-import { LODGING_MAX_M, villageHouse } from './scene/camp.ts';
+import { housePlaces, LODGING_MAX_M, villageHouse } from './scene/camp.ts';
 import { NEVER, type TreeLodging } from './tree.ts';
 
 const land = encodeMask(new Array<boolean>(MASK_RINGS * MASK_SECTORS).fill(true));
@@ -74,23 +74,38 @@ describe('the houses of a village (neolithic/villages.md section 5)', () => {
   it.each(villages.map(([id]) => id))('%s: no two houses overlap, all clear of the green', (id) => {
     const p = NEOLITHIC_PROFILES[id]!;
     for (const camp of [3, 1_000_123, 777]) {
-      const all = [0, 1, 2, 3, 4].map((k) => lodging(id, p.architecture[0]!, k, camp));
+      const all = Array.from({ length: housePlaces(id) }, (_, k) =>
+        lodging(id, p.architecture[0]!, k, camp),
+      );
       expect(all.every((l) => villageHouse(l))).toBe(true);
       const rects = all.map((l) => rect(l, p.houseM ?? LODGING_MAX_M));
       for (let a = 0; a < rects.length; a++)
         for (let b = a + 1; b < rects.length; b++)
           expect(overlap(rects[a]!, rects[b]!), `${id} houses ${a} and ${b}`).toBe(false);
-      // The green keeps the people's spots, out to 8.5 layout metres (humankind.md section 8.1).
-      for (const r of rects)
-        expect(Math.hypot(r.cx, r.cz) - Math.hypot(r.hx, r.hz)).toBeGreaterThan(5);
+      // The green keeps the people's spots, out to about 8.5 layout metres (humankind.md
+      // section 8.1): the nearest point of every house is beyond 7.5.
+      for (const r of rects) {
+        const [dx, dz] = [-r.cx, -r.cz];
+        const lx = Math.abs(dx * r.ux + dz * r.uz) - r.hx;
+        const ly = Math.abs(-dx * r.uz + dz * r.ux) - r.hz;
+        expect(Math.hypot(Math.max(lx, 0), Math.max(ly, 0)), id).toBeGreaterThan(7.5);
+      }
     }
   });
 
-  it('draws the LBK longhouse twice as long as other houses', () => {
+  it('draws the LBK longhouse four times as long as other houses, one to a village', () => {
     const lbk = NEOLITHIC_PROFILES['lbk-farmer']!;
-    expect(lbk.houseM).toBe(2 * LODGING_MAX_M);
+    // Twice the 5.4 that was still too small (Yang, 2026-10-25).
+    expect(lbk.houseM).toBeCloseTo(4 * LODGING_MAX_M, 9);
+    expect(lbk.houseCapacity).toBe(10);
+    expect(housePlaces('lbk-farmer')).toBe(2);
     const h = villageHouse(lodging('lbk-farmer', lbk.architecture[0]!, 0, 5));
-    expect(h?.lengthM).toBeCloseTo(2 * LODGING_MAX_M * 3, 5);
+    expect(h?.lengthM).toBeCloseTo(4 * LODGING_MAX_M * 3, 5);
+  });
+
+  it('draws the Chinese houses half as large again', () => {
+    for (const id of ['yellow-river-millet-farmer', 'yangtze-rice-farmer'])
+      expect(NEOLITHIC_PROFILES[id]!.houseM).toBeCloseTo(1.5 * LODGING_MAX_M, 9);
   });
 
   it('keeps the whole village on the ring where the ground does not take every house', () => {

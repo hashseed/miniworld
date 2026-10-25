@@ -388,6 +388,15 @@ const GREEN_M = 9.5;
 /** The space between neighbouring houses of a row or block, in layout metres. */
 const HOUSE_GAP_M = 3;
 
+/** A village house's place: its middle, facing, length, long axis and half its depth across it, in layout metres. */
+export interface HousePlace {
+  at: Pt;
+  dir: Pt;
+  lengthM: number;
+  axis: Pt;
+  deep: number;
+}
+
 /**
  * A Neolithic village's house laid out as its culture builds them (neolithic/villages.md
  * section 5), or undefined for a camp's lodging, a ring layout (`pits`) or a place whose ground
@@ -399,7 +408,7 @@ function housePlace(
   culture: string,
   mask: string,
   k: number,
-): { at: Pt; dir: Pt; lengthM: number } | undefined {
+): HousePlace | undefined {
   const profile = neolithicProfile(culture);
   if (profile.layout === 'pits') return undefined;
   const lengthM = (profile.houseM ?? LODGING_MAX_M) * FIGURE_TO_LAYOUT;
@@ -407,7 +416,7 @@ function housePlace(
   // From the green out towards the houses; the LBK's longhouses run north-west to south-east.
   const out: Pt =
     profile.layout === 'rows'
-      ? { x: -Math.SQRT1_2, z: Math.SQRT1_2 }
+      ? { x: Math.SQRT1_2, z: Math.SQRT1_2 }
       : { x: detCos(turn), z: detSin(turn) };
   const side: Pt = { x: -out.z, z: out.x };
   let at: Pt;
@@ -415,14 +424,18 @@ function housePlace(
   // The house's long axis: the LBK model is long across its door, the others along it.
   let axis: Pt = dir;
   if (profile.layout === 'rows') {
-    dir = side;
-    axis = out;
-  }
-  if (profile.layout === 'rows' || profile.layout === 'stilts') {
+    // The longhouse north-east of the green, its long side to it, its long axis north-west to
+    // south-east as excavated (Coudart 1998); a second, while one is rebuilt, behind it.
+    const width = lengthM * 0.4;
+    const from = GREEN_M + width / 2 + k * (width + 1);
+    at = { x: out.x * from, z: out.z * from };
+    axis = side;
+  } else if (profile.layout === 'stilts') {
     // Side by side in a row off the green, the long sides together, the doors towards it.
-    const width = lengthM * (profile.layout === 'rows' ? 0.4 : 0.7);
+    const width = lengthM * 0.7;
     const from = GREEN_M + lengthM / 2;
-    const across = (k - (LODGING_SLOTS - 1) / 2) * (width + HOUSE_GAP_M);
+    const n = housePlaces(culture);
+    const across = (k - (n - 1) / 2) * (width + HOUSE_GAP_M);
     at = { x: out.x * from + side.x * across, z: out.z * from + side.z * across };
   } else if (profile.layout === 'cluster') {
     // Wall to wall in a block of three by two, entered from the roofs.
@@ -441,26 +454,25 @@ function housePlace(
   // Its ground: on land its people can walk to, not on a cliff (the land mask; neolithic/villages.md
   // section 6). The fields keep out of the houses' way instead (memo.ts, buildVillage).
   const half = lengthM / 2;
+  // Its depth across the long axis: the longhouse is narrow, the others about square.
+  const deep = (profile.layout === 'rows' ? 0.2 : 0.25) * lengthM;
   for (const [u, v] of [
     [0, 0],
     [half, 0],
     [-half, 0],
-    [0, half * 0.5],
-    [0, -half * 0.5],
+    [0, deep],
+    [0, -deep],
   ] as const) {
     const x = at.x + axis.x * u - axis.z * v;
     const z = at.z + axis.z * u + axis.x * v;
     const r = Math.sqrt(x * x + z * z);
     if (r >= MASK_R0 && !maskReach(mask, x, z)) return undefined;
   }
-  return { at, dir, lengthM };
+  return { at, dir, lengthM, axis, deep };
 }
 
 /** The village layout of each camp, culture and land mask: every house place, or null for the ring. */
-const villagePlaces = new Map<
-  string,
-  ({ at: Pt; dir: Pt; lengthM: number } | undefined)[] | null
->();
+const villagePlaces = new Map<string, (HousePlace | undefined)[] | null>();
 
 /**
  * A Neolithic village's house laid out as its culture builds them (neolithic/villages.md
@@ -469,19 +481,27 @@ const villagePlaces = new Map<
  * where the ground does not take every house of the layout: then all stand on the ring, so the
  * two never mix.
  */
-export function villageHouse(l: TreeLodging): { at: Pt; dir: Pt; lengthM: number } | undefined {
+export function villageHouse(l: TreeLodging): HousePlace | undefined {
   if (!isProfile(l.culture) || !l.fieldLand) return undefined;
   const key = `${l.camp}|${l.culture}|${l.fieldLand}`;
   let places = villagePlaces.get(key);
   if (places === undefined) {
     if (villagePlaces.size > 2_000) villagePlaces.clear();
-    const all = Array.from({ length: LODGING_SLOTS }, (_, k) =>
+    const all = Array.from({ length: housePlaces(l.culture) }, (_, k) =>
       housePlace(l.camp, l.culture!, l.fieldLand!, k),
     );
     places = neolithicProfile(l.culture).layout === 'pits' || all.some((p) => !p) ? null : all;
     villagePlaces.set(key, places);
   }
-  return places?.[l.slot];
+  return places?.[l.slot % places.length];
+}
+
+/**
+ * How many places a village's layout has: one per lodging slot, or two where one house holds the
+ * whole village (the longhouse, `houseCapacity`): the house, and its next while it is rebuilt.
+ */
+export function housePlaces(culture: string): number {
+  return neolithicProfile(culture).houseCapacity ? 2 : LODGING_SLOTS;
 }
 
 /** The direction out from the hearth through the middle of a gap between the lodging slots. */

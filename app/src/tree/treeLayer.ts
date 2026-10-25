@@ -292,7 +292,9 @@ export class TreeLayer {
       const object = batch.build().object;
       object.updateMatrixWorld(true);
       const size = new THREE.Box3().setFromObject(object).getSize(new THREE.Vector3());
-      fit = Math.min(1, (maxM * room) / Math.max(size.x, size.z, 1e-6));
+      // Never larger than the model, but for a culture that builds larger than the usual cap.
+      const fitted = (maxM * room) / Math.max(size.x, size.z, 1e-6);
+      fit = maxM > LODGING_MAX_M ? fitted : Math.min(1, fitted);
       this.fits.set(key, fit);
     }
     return fit;
