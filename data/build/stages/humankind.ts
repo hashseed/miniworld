@@ -562,7 +562,7 @@ export function buildHumankind(
       const [from, to] = [siteOf.get(`arrival:${p.id}`), siteOf.get(`arrival:${other}`)];
       if (from === undefined || to === undefined) continue;
       const seen = new Set([from]);
-      for (let ring = [from]; ring.length; ) {
+      for (let ring = [from]; ring.length;) {
         const next: number[] = [];
         for (const i of ring)
           for (const j of foot.get(i) ?? [])

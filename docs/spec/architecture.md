@@ -42,7 +42,7 @@ The anchors, arrivals and thresholds carry titles and dates the viewer reads; th
 - **Tree chunks by place.** The tree's chunks are split by time only and the app culls the figures out of view after loading a whole window (humankind.md section 8). As the tree grows with the Neolithic and later milestones, each window's chunk grows with the whole world's population. Chunks are to be keyed by quadtree tile as well, at a level chosen so a chunk holds a few hundred camps, with the figures walking between tiles in both. The world query must stay the same whether or not a neighbouring tile has arrived (milestone-2 section 2.3).
 - **Models per culture.** Every model is compiled into the app's JavaScript today, so each new culture makes the first download larger, against the 3 MB first view of spec section 10. Models are to be bundled per culture profile and loaded when that culture is near the camera and the current time window, drawn as stand-ins until they arrive.
 - **Bundled tables.** `wildlife.json`, `cultures.json` and the asset manifest are bundled into the app whole. They are small now; when they grow, they move into the startup index (what the first view needs) and chunks (the rest).
-- **Chunk size.** The data build fails when a chunk exceeds 1 MB (milestone-1 section 10.8); the check is to be written.
+- **Chunk size.** Done: the data build fails when a file's Brotli copy exceeds 1 MB and logs the five largest (milestone-1 section 10.8).
 
 These change the data build, the loader and the renderer together, and are judged by the real build in a browser (download sizes, prefetching while playing and scrubbing, frame time on the reference phone), so they are done in the devenv against the real data, with Yang looking at the result.
 
