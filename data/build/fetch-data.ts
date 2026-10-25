@@ -33,6 +33,8 @@ interface Download {
   note?: string;
   /** sha256 of each original download, by file name. */
   sha256?: Record<string, string>;
+  /** Each file's own URL, where the files do not share a folder (figshare's numbered downloads). */
+  urls?: Record<string, string>;
 }
 
 interface Entry extends SourceEntry {
@@ -64,7 +66,7 @@ async function main(): Promise<void> {
     mkdirSync(dir, { recursive: true });
     const names = dl.archive ? [`${src.id}.${dl.archive}`] : (dl.files ?? []);
     for (const name of names) {
-      const url = dl.url.endsWith('/') ? dl.url + name : dl.url;
+      const url = dl.urls?.[name] ?? (dl.url.endsWith('/') ? dl.url + name : dl.url);
       const dest = join(dir, name);
       if (!existsSync(dest)) await download(url, dest);
       const sum = await sha256(dest);

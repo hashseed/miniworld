@@ -170,6 +170,40 @@
           "bytes": 4422316
         }
       ]
+    },
+    {
+      "id": "reba-2016",
+      "title": "Historical urban population, 3700 BC to AD 2000 (Reba, Reitsma and Seto 2016), V2 files",
+      "role": "cities",
+      "licence": "CC-BY-4.0",
+      "citation": "Reba, M., Reitsma, F. and Seto, K. C. (2016): Spatializing 6,000 years of global urbanization from 3700 BC to AD 2000. Scientific Data 3, 160034, https://doi.org/10.1038/sdata.2016.34. Data: figshare, https://doi.org/10.6084/m9.figshare.2059494 (Chandler), https://doi.org/10.6084/m9.figshare.2059497 (Modelski ancient), https://doi.org/10.6084/m9.figshare.2059500 (Modelski modern)",
+      "url": "https://doi.org/10.1038/sdata.2016.34",
+      "download": {
+        "url": "https://ndownloader.figshare.com/files/",
+        "files": ["chandlerV2.csv", "modelskiAncientV2.csv", "modelskiModernV2.csv"],
+        "urls": {
+          "chandlerV2.csv": "https://ndownloader.figshare.com/files/5407640",
+          "modelskiAncientV2.csv": "https://ndownloader.figshare.com/files/5356132",
+          "modelskiModernV2.csv": "https://ndownloader.figshare.com/files/5407637"
+        },
+        "sha256": {
+          "chandlerV2.csv": "5b8df64e46988b216988eef18b46ebc2cba57ecc1adc8a5c2e1e6d5b78068031",
+          "modelskiAncientV2.csv": "71beafaacbdeb8d8fc156951521e9a14e20d6704b0d77be5528511c52fad3e1d",
+          "modelskiModernV2.csv": "927ee6a9122be6aded1a2f71ff5bb6f36312aae6a778574af47f4e8c65265726"
+        }
+      },
+      "files": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "99d7f13e72fe788f5947089893604a335cb7afbbc25ce0fb2dd1126dd003c5e4",
+          "bytes": 1210
+        },
+        {
+          "path": "cities.json",
+          "sha256": "0dcb52afd368db23f510d9b338fd448d8b1a5c34434b78239b9536f1cb4ae956",
+          "bytes": 195060
+        }
+      ]
     }
   ]
 }
