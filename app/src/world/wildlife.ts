@@ -1174,8 +1174,17 @@ export function wildlifeAt(
         const nx = dx / d;
         const ny = dy / d;
         if (d < need) {
-          x += nx * (need - d);
-          y += ny * (need - d);
+          // Out of the keep-out only as far as its ground stays open: never into the sea, a
+          // lake or the mountains, where the camp's circle reaches the coast (Yang, 2026-10-25:
+          // lions and tigers in the ocean).
+          let push = need - d;
+          if (mask && !swimmer)
+            for (let k = 8; k >= 0; k--) {
+              push = ((need - d) * k) / 8;
+              if (open(mask, roam, x + nx * push, y + ny * push)) break;
+            }
+          x += nx * push;
+          y += ny * push;
         }
         // Heading towards the hearth bends along the edge, fully at the edge.
         const towards = hx * nx + hy * ny;

@@ -27,7 +27,9 @@ import { iceSlicePair, planetAt } from '../planet/state.ts';
 import { isSea, LAKE_FIELD } from '../planet/surface.ts';
 import { dayAtMs, msAtDay } from '../time/rate.ts';
 import { LAYOUT_KM_PER_M, treeScene, type TreeChunk } from './treeScene.ts';
-import { WILD_GROUPS, decodeWildMask, flies, swims, wildlifeAt } from './wildlife.ts';
+import { WILD_GROUPS, decodeWildMask, flies, keepOutsOf, swims, wildlifeAt } from './wildlife.ts';
+import { VILLAGE_KEEP_OUT_KM } from './scene/camp.ts';
+import { NEVER } from './tree.ts';
 import { buildAnimal, type AnimalId } from '../../../assets/src/animals.ts';
 import { drawnSizeM, KM_PER_M } from '../wildlife/wildlifeLayer.ts';
 import { decodeLensGrids, LENS_STRENGTH, sampleScalar, widthFactors } from '../globe/lens.ts';
@@ -218,16 +220,31 @@ export function pathsOnLand(shard: number, shards: number): void {
           const masks = index.wildlife.map((hex) => (hex ? decodeWildMask(hex) : undefined));
           const wet = report();
           let checked = 0;
-          // Every fourth time window and today; an hour of the life clock at each,
-          // every 5 seconds, as a walk lasts about 20.
-          const days = [...manifest.windows.filter((_, i) => i % 4 === 0), manifest.cutoffDay];
+          // As the wildlife layer runs them: each animal's reach and the camps' keep-outs over
+          // the lens's width at the group's home, the keep-outs in clock seconds.
+          const start = manifest.timelineStartDay;
+          const widths = WILD_GROUPS.map((g) => lensWidth(g.lat, g.lon));
+          const camps = (index.wildlifeCamps ?? []).map(([lat, lon, from, to]) => ({
+            lat,
+            lon,
+            from: msAtDay(from, start) / 1000,
+            to: to === NEVER ? Infinity : msAtDay(to, start) / 1000,
+          }));
+          const keepOuts = WILD_GROUPS.map((g, i) =>
+            keepOutsOf(g, camps, VILLAGE_KEEP_OUT_KM / widths[i]!),
+          );
+          const reach = (model: string, g: { lat: number; lon: number }) =>
+            bodyKm(model) / lensWidth(g.lat, g.lon);
+          // Every time window and today, at the clock's own time there (keep-outs and roaming
+          // hang on it); a minute of the life clock at each, every 5 seconds.
+          const days = [...manifest.windows, manifest.cutoffDay];
           for (const day of days)
-            for (let s = 0; s < 3600; s += 5)
-              for (const a of wildlifeAt(day, s, WILD_GROUPS, masks, bodyKm)) {
+            for (let s = Math.floor(msAtDay(day, start) / 1000), end = s + 60; s < end; s += 5)
+              for (const a of wildlifeAt(day, s, WILD_GROUPS, masks, reach, keepOuts)) {
                 const g = WILD_GROUPS[Number(a.key.split(':')[0])]!;
                 if (flies(g) || swims(g) || a.grow <= 0) continue;
                 // Where the layer draws it: its group's spot plus its place in the group.
-                const r = bodyKm(a.model);
+                const r = reach(a.model, g);
                 const dir = offsetDir(
                   a.lat,
                   a.lon,
