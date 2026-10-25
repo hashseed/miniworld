@@ -29,6 +29,8 @@ import {
   gaitSpeed,
   type Clip,
 } from './clips.ts';
+// Every model that loads with its culture, so all of them can be built here.
+import './allCultureModels.ts';
 
 const params = new URLSearchParams(location.search);
 const sheetName = params.get('sheet') ?? 'people';

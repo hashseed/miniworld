@@ -5,14 +5,14 @@
 import * as THREE from 'three';
 import { type Model, type Vec3, ModelBuilder, STONE, blob, box, lathe, rod, shade } from './kit.ts';
 
-export const EAST_ASIA_AMERICAS_HOUSES = [
-  'shelter-yangtze-stilt-house',
-  'shelter-yellow-river-pit-house',
-  'shelter-mesoamerican-hut',
-  'shelter-andean-stone-house',
-  'shelter-highland-new-guinea-house',
-] as const;
-export type EastAsiaAmericasHouseId = (typeof EAST_ASIA_AMERICAS_HOUSES)[number];
+import {
+  EAST_ASIA_AMERICAS_HOUSES,
+  type EastAsiaAmericasHouseId,
+  registerShelters,
+} from './cultureModels.ts';
+import { WHIMSY, type Whimsy, whimsy } from './whimsy.ts';
+
+export { EAST_ASIA_AMERICAS_HOUSES, type EastAsiaAmericasHouseId };
 
 const OAK = '#c9a064';
 const THATCH = '#cdb26a';
@@ -396,3 +396,8 @@ export function buildEastAsiaAmericasHouse(id: EastAsiaAmericasHouseId): Model {
   }
   return mb.build(id);
 }
+
+// Loaded with its cultures (cultureModels.ts), drawn in storybook proportions (whimsy.ts).
+registerShelters(EAST_ASIA_AMERICAS_HOUSES, (id) =>
+  whimsy(buildEastAsiaAmericasHouse(id as EastAsiaAmericasHouseId), WHIMSY[id] as Whimsy),
+);

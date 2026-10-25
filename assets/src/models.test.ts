@@ -24,6 +24,8 @@ import {
 import type { Model } from './kit.ts';
 import { PROFILES, buildArrow, buildBow, buildPerson, type Kind } from './people.ts';
 import { SHELTERS, buildHearth, buildShelter } from './shelters.ts';
+// Every model that loads with its culture, so all of them can be built here.
+import './allCultureModels.ts';
 
 const KINDS: Kind[] = ['man', 'woman', 'child'];
 const people = PROFILES.flatMap((profile) => KINDS.map((kind) => ({ profile, kind })));
