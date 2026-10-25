@@ -326,14 +326,12 @@ export class TreeLayer {
     return this.cleared;
   }
 
-  update(camera: THREE.PerspectiveCamera, ms: number, startDay: number): void {
-    this.camera = camera;
-    this.blocked = 0;
-    const groundVersion = this.surface.version?.() ?? 0;
-    if (groundVersion !== this.groundVersion) {
-      this.groundVersion = groundVersion;
-      this.grounds.clear();
-    }
+  /**
+   * Loads the tree files around the clock's minute and forgets the far ones, without working
+   * out the scene; returns the minute's window. Also run while the layer is not drawn (the
+   * loading screen, milestone-1 section 8.6), so the camps are there when the camera flies in.
+   */
+  prefetch(ms: number, startDay: number): number {
     const day = dayAtMs(ms, startDay);
     let w = -1;
     while (w + 1 < this.windows.length && this.windows[w + 1]! <= day) w++;
@@ -347,6 +345,18 @@ export class TreeLayer {
         this.requested.delete(k);
         this.worker?.postMessage({ type: 'drop', w: k } satisfies SceneMessage);
       }
+    return w;
+  }
+
+  update(camera: THREE.PerspectiveCamera, ms: number, startDay: number): void {
+    this.camera = camera;
+    this.blocked = 0;
+    const groundVersion = this.surface.version?.() ?? 0;
+    if (groundVersion !== this.groundVersion) {
+      this.groundVersion = groundVersion;
+      this.grounds.clear();
+    }
+    const w = this.prefetch(ms, startDay);
     const key = [w, w - 1, w + 1].find((k) => this.chunks.has(k));
     const chunk = key === undefined ? undefined : this.chunks.get(key);
     if (!chunk || key === undefined) {
