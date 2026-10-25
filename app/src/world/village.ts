@@ -4,7 +4,7 @@
 import { hash01, hash32 } from '../core/hash.ts';
 import { detCos, detSin } from '../core/detmath.ts';
 import { layoutFields, MAX_FIELDS, type Field, type Pt } from './fieldShapes.ts';
-import { maskLand, MASK_R0 } from './fieldMask.ts';
+import { maskReach, MASK_R0 } from './fieldMask.ts';
 
 /** Fields are laid out in a frame this many times smaller than the layout, then scaled up (spec 8.5). */
 export const FIELD_FRAME_SCALE = 8;
@@ -25,7 +25,7 @@ export function fieldsOf(
     centre: { x: 0, z: 0 },
     ringRadius: MASK_R0 / s,
     crops,
-    isLand: (x, z) => maskLand(mask, x * s, z * s),
+    isLand: (x, z) => maskReach(mask, x * s, z * s),
     isBlocked: (x, z) => blocked(x * s, z * s),
     want: Math.min(MAX_FIELDS, Math.max(2, lodgings + 1)),
   });

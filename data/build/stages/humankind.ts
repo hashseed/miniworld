@@ -93,6 +93,8 @@ export type CampPlace = [number, number, number, number];
 const KOPPEN_DRY_MM_PER_C = 10;
 const KOPPEN_DRY_MM = 140;
 
+/** A place of a future city asks for a camp site within this far of it, in km (neolithic/villages.md section 2). */
+const VILLAGE_SITE_KM = 150;
 /** An anchor asks for a camp site within this far of its place, in km (sites.md section 4.1). */
 const ANCHOR_SITE_KM = 75;
 
@@ -270,6 +272,19 @@ export function buildHumankind(
   const lowestSea = Math.min(...climate.seaLevel.metres);
   const highestSea = Math.max(...climate.seaLevel.metres);
   const { places: keyPlaces } = ctx.curated('key-places.json');
+  // The places of future cities in farming land, where villages are founded
+  // (neolithic/villages.md section 2): each gets a site near it, as a key place does.
+  const cities = (
+    JSON.parse(readFileSync(join(ROOT, 'data/sources/reba-2016/cities.json'), 'utf8')) as {
+      cities: { name: string; lat: number; lon: number }[];
+    }
+  ).cities.filter((c) => farmingProfileAt(c.lat, c.lon) !== null);
+  const cityPlaces = cities.map((c, i) => ({
+    id: `city:${i}:${c.name}`,
+    lat: c.lat,
+    lon: c.lon,
+    km: VILLAGE_SITE_KM,
+  }));
   // Anchors: places that must have a band from a year (sites.md section 4.1).
   // Fields, places and texts are checked by the table's schema (data/schema/tables.ts).
   const { anchors } = ctx.curated('anchors.json');
@@ -343,6 +358,7 @@ export function buildHumankind(
   const siteInputs = {
     keyPlaces: [
       ...keyPlaces,
+      ...cityPlaces,
       ...dated.map((p) => ({
         id: `${p.kind}:${p.id}`,
         lat: p.lat,
@@ -429,8 +445,24 @@ export function buildHumankind(
     `camp sites: ${sites.sites.length} sites, ${sites.links.length} links ` +
       `(${sites.links.filter((l) => l.crossing).length} by canoe)`,
   );
-  if (sites.unplaced.length)
-    log(`camp sites: no camp fits near the key places ${sites.unplaced.join(', ')}`);
+  const unplacedKeys = sites.unplaced.filter((id) => !id.startsWith('city:'));
+  if (unplacedKeys.length)
+    log(`camp sites: no camp fits near the key places ${unplacedKeys.join(', ')}`);
+  // Each city's village site: the camp site nearest it within VILLAGE_SITE_KM (villages.md section 2).
+  const villageSites = new Set<string>();
+  for (const c of cities) {
+    let best: (typeof sites.sites)[number] | undefined;
+    let bestKm = VILLAGE_SITE_KM;
+    for (const x of sites.sites) {
+      if (x.pass) continue;
+      const km = distanceKm(x.lat, x.lon, c.lat, c.lon);
+      if (km <= bestKm) [best, bestKm] = [x, km];
+    }
+    if (best) villageSites.add(`${best.lat}:${best.lon}`);
+  }
+  log(
+    `village sites: ${villageSites.size} sites for ${cities.length} places of future cities in farming land`,
+  );
   // Sites on a steep mountainside: the ground out to the ring of children's catch rises or
   // falls more than STEEP_M from the hearth (Yang, 2026-10-20: "I have kids running up the
   // himalayas for playing catch").
@@ -462,8 +494,13 @@ export function buildHumankind(
   // into that profile from its first crops; the herders before them keep their culture (humankind.md
   // section 8.5).
   const areaCulture = treeSettings.culture;
+  // ... but only at village sites, the places of future cities: elsewhere the band stays
+  // hunter-gatherers until it founds a village at one (neolithic/villages.md section 2).
+  const villageSite = (lat: number, lon: number) => villageSites.has(`${lat}:${lon}`);
+  treeSettings.villageSite = villageSite;
   treeSettings.culture = (lat, lon, day) =>
-    farmingStateAt(lat, lon, day).profile ?? areaCulture?.(lat, lon, day);
+    (villageSite(lat, lon) ? farmingStateAt(lat, lon, day).profile : undefined) ??
+    areaCulture?.(lat, lon, day);
   treeSettings.village = (culture) => culture in NEOLITHIC_PROFILES;
   // The band at a farming sign's site becomes its centre's village on the sign's day
   // (neolithic/villages.md section 1): the profile whose area holds the sign's point.

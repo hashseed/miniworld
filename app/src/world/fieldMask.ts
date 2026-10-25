@@ -54,3 +54,23 @@ export function maskLand(mask: string, x: number, z: number): boolean {
   const i = ring * MASK_SECTORS + sector;
   return ((bytesOf(mask)[i >> 3]! >> (i & 7)) & 1) === 1;
 }
+
+/** Whether a cell that is land in mask `was` is not in mask `now` (none is land without one). */
+export function maskLost(was: string, now: string | undefined): boolean {
+  const a = bytesOf(was);
+  const b = now === undefined ? undefined : bytesOf(now);
+  return a.some((byte, i) => (byte & ~(b?.[i] ?? 0)) !== 0);
+}
+
+/**
+ * Whether a layout point is land and can be walked to over land: its cell and every cell on the
+ * straight way out to it from the mask's inner edge are land, so no one walks to a field or a pen
+ * across a bay (neolithic/villages.md section 6).
+ */
+export function maskReach(mask: string, x: number, z: number): boolean {
+  if (!maskLand(mask, x, z)) return false;
+  const r = Math.sqrt(x * x + z * z);
+  for (let d = MASK_R0 + MASK_DR / 2; d < r; d += MASK_DR / 2)
+    if (!maskLand(mask, (x * d) / r, (z * d) / r)) return false;
+  return true;
+}
