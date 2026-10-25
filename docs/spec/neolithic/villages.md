@@ -79,6 +79,8 @@ Each is a rule of the village's layout, checked for every village of the built t
 
 ## 8. Work
 
+**Built 2026-10-25**: a villager's rest at home has tool-making (the `grind` clip: grinding and polishing a stone axe on a slab) where a hunter-gatherer knaps; a villager's gathering, firewood and stroll outings, and the hunters' spear-making, become field work, the next job of a field of the village (`JOB_OUTING`), or a rest where the village has no field. The `polish` clip below stays to be modelled and reviewed; until then the grinding clip stands for it.
+
 A villager's day has no knapping, gathering or firewood outing:
 
 - **Making tools** replaces knapping: grinding and polishing a stone axe or adze on a grinding slab (the polished stone tools of the Neolithic), and hafting it, at a spot by the house; a new clip, `polish`, to be modelled and reviewed (milestone-2 section 13.5).

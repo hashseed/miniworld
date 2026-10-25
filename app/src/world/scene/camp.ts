@@ -454,6 +454,9 @@ export function activity(
     if (h < 84) return 'work';
     if (h < 96) return 'crack';
     if (h < 106) return 'point';
+    // A villager makes tools by grinding and polishing a stone axe, not knapping one
+    // (neolithic/villages.md section 8).
+    if (village) return knaps ? 'grind' : 'sit';
     return knaps ? 'knap' : 'sit';
   };
   const clip = clipOf(k);

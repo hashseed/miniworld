@@ -5,6 +5,7 @@ import { type Stay, isProfile, MILKED } from './memo.ts';
 import { type Outing, outingOf } from './outings.ts';
 import { Itinerary } from './routes.ts';
 import {
+  JOB_OUTING,
   outingRoom,
   FIREWOOD_M,
   rackOnLand,
@@ -42,6 +43,7 @@ import {
   ROAST_MS,
   TURN_MS,
 } from './camp.ts';
+import { jobAt } from '../fieldWork.ts';
 import { PREY_REACH_M, GATHER_M, GATHER_MS, LOOK_MS, PREY_FADE_MS } from './hunt.ts';
 import type { Pt } from './units.ts';
 import { hash32 } from '../../core/hash.ts';
@@ -59,6 +61,7 @@ export function soloTurn(
   cx: Pick<
     SceneCx,
     | 'farmOuting'
+    | 'fieldClockOf'
     | 'fieldSpot'
     | 'forcedHunt'
     | 'huntHeld'
@@ -71,8 +74,17 @@ export function soloTurn(
   k: number,
   plain = false,
 ): { go: Outing; trip?: Itinerary } {
-  const { farmOuting, fieldSpot, forcedHunt, huntHeld, huntOf, killAt, turnStartOf, villageOf } =
-    cx;
+  const {
+    farmOuting,
+    fieldClockOf,
+    fieldSpot,
+    forcedHunt,
+    huntHeld,
+    huntOf,
+    killAt,
+    turnStartOf,
+    villageOf,
+  } = cx;
   const turnStart = turnStartOf(st.f.id, k);
   if (turnStart < st.free) return { go: 'rest' };
   // After a hunt that brought its kill home, the hunter roasts it on the spit, unless an
@@ -94,6 +106,16 @@ export function soloTurn(
   let go: Outing = sure === 'stroll' && room < 13 ? 'rest' : sure;
   // No fire in a village: nobody cracks nuts or roasts at it.
   if (isProfile(st.home.culture) && (go === 'crack' || go === 'cook')) go = 'rest';
+  // Villagers no longer gather from the wild or fetch firewood, nor knap a spear point: they
+  // work the fields, helping with a field's next job (neolithic/villages.md section 8).
+  if (
+    isProfile(st.home.culture) &&
+    (go === 'gather' || go === 'firewood' || go === 'stroll' || go === 'spear')
+  ) {
+    const v = villageOf(st.home.camp);
+    const w = v?.fields.length && st.look !== 'child' ? fieldSpot(st, k) : undefined;
+    go = w && v ? JOB_OUTING[jobAt(fieldClockOf(st.home.camp, v), w.field.id, turnStart)] : 'rest';
+  }
   if (go === 'firewood' && room < FIREWOOD_M + 1) go = 'rest';
   // A compact camp has no drying racks.
   if ((go === 'scrape' || go === 'rack' || go === 'flay') && !rackOnLand(st.home)) go = 'rest';
