@@ -8,6 +8,7 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { Worker } from 'node:worker_threads';
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import { decodeClimateSlice, decodeTerrainTile, type TerrainTile } from '../content/formats.ts';
@@ -26,7 +27,7 @@ import { PlanetQuery, type IcePair } from '../planet/query.ts';
 import { iceSlicePair, planetAt } from '../planet/state.ts';
 import { isSea, LAKE_FIELD } from '../planet/surface.ts';
 import { dayAtMs, msAtDay } from '../time/rate.ts';
-import { LAYOUT_KM_PER_M, treeScene, type TreeChunk } from './treeScene.ts';
+import { LAYOUT_KM_PER_M } from './treeScene.ts';
 import { WILD_GROUPS, decodeWildMask, flies, keepOutsOf, swims, wildlifeAt } from './wildlife.ts';
 import { VILLAGE_KEEP_OUT_KM } from './scene/camp.ts';
 import { NEVER } from './tree.ts';
@@ -34,6 +35,9 @@ import { buildAnimal, type AnimalId } from '../../../assets/src/animals.ts';
 import { drawnSizeM, KM_PER_M } from '../wildlife/wildlifeLayer.ts';
 import { decodeLensGrids, Lens, LENS_STRENGTH, sampleScalar, widthFactors } from '../geo/lens.ts';
 import { placedTrue } from '../geo/placement.ts';
+
+/** Fields of each figure sampled by onLandScenes.ts. */
+const SAMPLE_FIELDS = 8;
 
 const DATA = join(import.meta.dirname, '../../public/data');
 const built = existsSync(join(DATA, 'manifest.json'));
@@ -105,13 +109,22 @@ export function pathsOnLand(shard: number, shards: number): void {
       };
 
       /** Why a place is water on a day: 'sea', 'lake' or undefined for land or ice, which penguins stand on. */
+      // The ground under a point is a pure function of the point, and most figures stand on
+      // the same spot from one moment to the next: kept per point, looked up once.
+      const grounds = new Map<string, ReturnType<PlanetQuery['groundAt']>>();
+      const ice = new PlanetQuery({ dataTileAt: () => undefined }, { icePairAt });
       async function water(dir: Vec3, day: number): Promise<string | undefined> {
-        const tile = await tileOf(dir);
-        const q = new PlanetQuery({ dataTileAt: () => tile }, { icePairAt });
-        const ground = q.groundAt(dir);
+        const key = `${dir[0]},${dir[1]},${dir[2]}`;
+        let ground = grounds.get(key);
+        if (!ground) {
+          const tile = await tileOf(dir);
+          ground = new PlanetQuery({ dataTileAt: () => tile }, { icePairAt }).groundAt(dir);
+          if (grounds.size > 2_000_000) grounds.clear();
+          grounds.set(key, ground);
+        }
         const sea = isSea(ground, planetAt(index, day).seaLevel);
         const lake = ground.lake > LAKE_FIELD;
-        if ((!sea && !lake) || q.iceKmAt(dir, day) > 0) return undefined;
+        if ((!sea && !lake) || ice.iceKmAt(dir, day) > 0) return undefined;
         return sea ? 'sea' : 'lake';
       }
 
@@ -153,45 +166,68 @@ export function pathsOnLand(shard: number, shards: number): void {
           const files = manifest.tree?.files ?? [];
           const wet = report();
           let checked = 0;
-          for (const [w, file] of files.entries()) {
-            if (!file || w % shards !== shard) continue;
-            const chunk = JSON.parse(await readFile(join(DATA, file), 'utf8')) as TreeChunk;
-            const start = manifest.timelineStartDay;
-            const from = msAtDay(chunk.fromDay, start);
-            const to = msAtDay(chunk.toDay, start);
-            // About 30 moments a minute of watching, an odd step so they do not fall on turns.
-            for (let ms = from; ms < to; ms += 1999) {
-              const day = dayAtMs(ms, start);
-              for (const f of treeScene(chunk, ms, start).figures) {
-                // Where the tree layer draws it: its spot laid out on the drawn globe, taken back
-                // through the inverse lens (history-lens.md section 4.2).
-                const dir = placedTrue(
-                  lens!,
-                  latLonToDir(f.lat, f.lon),
-                  f.x * LAYOUT_KM_PER_M,
-                  f.z * LAYOUT_KM_PER_M,
-                );
-                // Bands crossing the sea paddle canoes, and a canoe stays on the water
-                // (peopling.md section 6; Yang, 2026-10-20: "they must not be on boats on land").
-                if (f.clip === 'paddle') {
-                  if (!(await water(dir, day)))
-                    wet.add(
-                      `paddler ${f.id}`,
-                      'land',
-                      `window ${w}, ${ms} ms: figure ${f.id} paddles over land at ${where(dir)}`,
-                    );
-                  continue;
-                }
-                checked++;
-                const what = await water(dir, day);
-                if (what)
-                  wet.add(
-                    `figure ${f.id}`,
-                    what,
-                    `window ${w}, ${ms} ms: figure ${f.id} (${f.clip}) in the ${what} at ${where(dir)}`,
-                  );
-              }
+          const start = manifest.timelineStartDay;
+          // The scenes, from a worker thread (onLandScenes.ts).
+          const mine = [...files.entries()].filter(
+            (e): e is [number, string] => !!e[1] && e[0] % shards === shard,
+          );
+          const { samples, clips } = await new Promise<{ samples: Float64Array; clips: string[] }>(
+            (done, fail) => {
+              const worker = new Worker(new URL('./onLandScenes.ts', import.meta.url), {
+                workerData: { dir: DATA, files: mine, start },
+              });
+              worker.once('message', done);
+              worker.once('error', fail);
+            },
+          );
+          // A spot's place is a pure function of the camp's place and the spot, kept per spot.
+          const places = new Map<string, Vec3>();
+          const placed = (lat: number, lon: number, x: number, z: number): Vec3 => {
+            const key = `${lat},${lon},${x},${z}`;
+            let dir = places.get(key);
+            if (!dir) {
+              // Where the tree layer draws it: its spot laid out on the drawn globe, taken back
+              // through the inverse lens (history-lens.md section 4.2).
+              dir = placedTrue(
+                lens!,
+                latLonToDir(lat, lon),
+                x * LAYOUT_KM_PER_M,
+                z * LAYOUT_KM_PER_M,
+              );
+              if (places.size > 2_000_000) places.clear();
+              places.set(key, dir);
             }
+            return dir;
+          };
+          for (let k = 0; k * SAMPLE_FIELDS < samples.length; k++) {
+            const o = k * SAMPLE_FIELDS;
+            const [w, ms, id, paddle] = [
+              samples[o]!,
+              samples[o + 1]!,
+              samples[o + 2]!,
+              samples[o + 3]!,
+            ];
+            const day = dayAtMs(ms, start);
+            const dir = placed(samples[o + 4]!, samples[o + 5]!, samples[o + 6]!, samples[o + 7]!);
+            // Bands crossing the sea paddle canoes, and a canoe stays on the water
+            // (peopling.md section 6; Yang, 2026-10-20: "they must not be on boats on land").
+            if (paddle) {
+              if (!(await water(dir, day)))
+                wet.add(
+                  `paddler ${id}`,
+                  'land',
+                  `window ${w}, ${ms} ms: figure ${id} paddles over land at ${where(dir)}`,
+                );
+              continue;
+            }
+            checked++;
+            const what = await water(dir, day);
+            if (what)
+              wet.add(
+                `figure ${id}`,
+                what,
+                `window ${w}, ${ms} ms: figure ${id} (${clips[k]}) in the ${what} at ${where(dir)}`,
+              );
           }
           expect(wet.lines()).toEqual([]);
           expect(checked).toBeGreaterThan(0);

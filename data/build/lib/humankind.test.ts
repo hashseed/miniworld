@@ -78,6 +78,16 @@ describe('the tree of humankind', () => {
     expect(checkTree(tree, settings, habitat)).toEqual([]);
   });
 
+  it('finds two figures in one spot at once', () => {
+    // A copy whose second figure moves into the first person's spot while she still holds it.
+    const t = structuredClone(tree);
+    const [a, b] = [t.figures[0]!, t.figures.find((f) => f.id !== 0 && f.lost === NEVER)!];
+    const [day, lodging, spot] = a.homes[0]!;
+    b.homes.push([Math.max(day, b.homes.at(-1)![0]) + 1, lodging, spot]);
+    b.homes.sort((x, y) => x[0] - y[0]);
+    expect(checkTree(t, settings, habitat).some((p) => p.includes('share a spot'))).toBe(true);
+  });
+
   it('is the same tree every time', () => {
     expect(buildTree(settings, habitat)).toEqual(tree);
   }, 30_000);

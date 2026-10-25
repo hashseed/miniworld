@@ -1,3 +1,3 @@
 import { pathsOnLand } from './onLand.ts';
 
-pathsOnLand(1, 8);
+pathsOnLand(1, 14);

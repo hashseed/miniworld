@@ -62,6 +62,7 @@ import {
 import type { Profile } from '../../../app/src/world/cultures.ts';
 import type { Tree, TreeStage } from '../../../app/src/world/tree.ts';
 import { climateHabitat } from '../lib/habitat.ts';
+import { isSea, LAKE_FIELD, type Ground } from '../../../app/src/planet/surface.ts';
 import {
   buildTree,
   checkTree,
@@ -213,10 +214,39 @@ export function buildHumankind(
   };
   const lakeAt = (lat: number, lon: number) =>
     lakes.nearest(lat, lon) >= 128 || drawn.lake(lat, lon);
+  // The tree asks the same points (the sites' hearths) again and again as it grows: their
+  // drawn ground is kept, a pure function of the point (the sites' own search, over many more
+  // points asked once, goes without).
+  const grounds = new Map<number, Map<number, Ground>>();
+  let kept = 0;
+  const groundOf = (lat: number, lon: number) => {
+    let row = grounds.get(lat);
+    if (!row) {
+      if (kept >= 1_000_000) {
+        grounds.clear();
+        kept = 0;
+      }
+      row = new Map();
+      grounds.set(lat, row);
+    }
+    let g = row.get(lon);
+    if (g === undefined) {
+      g = drawn.groundAt(lat, lon);
+      row.set(lon, g);
+      kept++;
+    }
+    return g;
+  };
   const habitat = climateHabitat({
     slices: climate.slices,
-    isSea: seaAt,
-    isLake: lakeAt,
+    isSea: (lat, lon, day) => {
+      const v = connection.nearest(lat, lon);
+      const level = climate.seaLevelAt(day);
+      return (
+        (v !== OCEAN_NEVER && OCEAN_MIN_LEVEL + v <= level) || isSea(groundOf(lat, lon), level)
+      );
+    },
+    isLake: (lat, lon) => lakes.nearest(lat, lon) >= 128 || groundOf(lat, lon).lake > LAKE_FIELD,
     isRiver: (lat, lon) => rivers.nearest(lat, lon) > 0,
     // The globe draws a river where its field passes 128; the bank starts a little before.
     inRiver: (lat, lon) => rivers.bilinear(lat, lon) >= RIVER_BANK_FIELD,
