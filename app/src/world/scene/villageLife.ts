@@ -4,7 +4,7 @@
 import type { TreeLodging } from '../tree.ts';
 import { type Village, FIELD_TREE_MARGIN_M, isProfile, type Stay, MILKED } from './memo.ts';
 import { deg, LAYOUT_KM_PER_M, type Pt } from './units.ts';
-import { fieldStage, JOB_MS, fieldOfSlot, jobAt } from '../fieldWork.ts';
+import { fieldStage, jobAt, jobFrom, jobStart, UNPLOUGHED } from '../fieldWork.ts';
 import {
   PEN_SCALE,
   HERD_LOOK_MS,
@@ -30,15 +30,13 @@ export function villageScene(
   const { fieldClockOf, scene } = cx;
   const [lat, lon] = [deg(l.lat), deg(l.lon)];
   const clock = fieldClockOf(l.camp, v);
-  for (const field of v.fields)
-    scene.fields.push({
-      id: `${l.camp}:${field.id}`,
-      lat,
-      lon,
-      field,
-      stage: fieldStage(clock, field.id, now),
-    });
-  // The trees keep off the fields, as they keep off the camp.
+  // A field is there from its first ploughing (fields-and-crops.md section 2).
+  for (const field of v.fields) {
+    const stage = fieldStage(clock, field.id, now);
+    if (stage !== UNPLOUGHED)
+      scene.fields.push({ id: `${l.camp}:${field.id}`, lat, lon, field, stage });
+  }
+  // The trees keep off the fields' ground from the village's founding, as they keep off the camp.
   for (const field of v.fields)
     scene.clearings.push({
       lat,
@@ -90,18 +88,18 @@ export function villageScene(
 }
 
 /**
- * Who does the job of a slot: one of the camp's grown-up farmers and reapers who are at home
- * then, by hash; nobody where there is none, and then the slot's field is left as it is.
+ * Who does a field's job given at clock time `t`: one of the camp's grown-up farmers and reapers
+ * who are at home then, by hash; any grown-up at home where there is none.
  */
 export function jobWorker(
   cx: Pick<SceneCx, 'mates' | 'memo' | 'stayAt'>,
   camp: number,
-  slot: number,
+  field: number,
+  t: number,
 ): number | undefined {
   const { mates, memo, stayAt } = cx;
-  const key = `${camp}:${slot}`;
+  const key = `${camp}:${field}:${t}`;
   if (memo.workers.has(key)) return memo.workers.get(key);
-  const t = slot * JOB_MS;
   const ids: number[] = [];
   const others: number[] = [];
   for (const f of mates(camp)) {
@@ -115,7 +113,7 @@ export function jobWorker(
   // With no farmer at home, any grown-up of the village takes the job: a field is never left untended.
   const pool = ids.length ? ids : others;
   pool.sort((a, b) => a - b);
-  const worker = pool.length ? pool[hash32(camp, slot, 263) % pool.length] : undefined;
+  const worker = pool.length ? pool[hash32(camp, field, t, 263) % pool.length] : undefined;
   memo.workers.set(key, worker);
   return worker;
 }
@@ -128,11 +126,20 @@ export function assignedField(
 ): number | undefined {
   const { fieldClockOf, jobWorker, turnStartOf, villageOf } = cx;
   const turnStart = turnStartOf(st.f.id, k);
-  const slot = Math.ceil(turnStart / JOB_MS);
-  if (slot * JOB_MS >= turnStart + TURN_MS) return undefined;
   const v = villageOf(st.home.camp);
-  if (!v?.fields.length || jobWorker(st.home.camp, slot) !== st.f.id) return undefined;
-  return fieldOfSlot(fieldClockOf(st.home.camp, v), slot);
+  if (!v?.fields.length) return undefined;
+  const clock = fieldClockOf(st.home.camp, v);
+  // The first field whose job is given during the turn and falls to this figure.
+  for (const field of v.fields) {
+    const t = jobStart(clock, field.id, jobFrom(clock, field.id, turnStart));
+    if (
+      t < turnStart + TURN_MS &&
+      t >= clock.from &&
+      jobWorker(st.home.camp, field.id, t) === st.f.id
+    )
+      return field.id;
+  }
+  return undefined;
 }
 
 /** The field a figure works in its `k`-th turn, and where in it. */

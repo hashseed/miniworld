@@ -808,15 +808,15 @@ export function treeScene(
 
   /** The clock of a village's field jobs (fieldWork.ts). */
   function fieldClockOf(camp: number, v: Village): FieldClock {
-    return { fields: v.fields.length, seed: hash32(camp, 277) };
+    return { fields: v.fields.length, seed: hash32(camp, 277), from: at(v.founded) };
   }
 
   /**
    * Who does the job of a slot: one of the camp's grown-up farmers and reapers who are at home
    * then, by hash; nobody where there is none, and then the slot's field is left as it is.
    */
-  function jobWorker(camp: number, slot: number): number | undefined {
-    return jobWorkerOf(cx, camp, slot);
+  function jobWorker(camp: number, field: number, t: number): number | undefined {
+    return jobWorkerOf(cx, camp, field, t);
   }
 
   /** The field a figure is given to work in its `k`-th turn, if its turn starts in a slot whose job is its own. */

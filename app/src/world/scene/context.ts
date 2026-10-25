@@ -78,7 +78,7 @@ export interface SceneCx {
   hunts: Map<string, Hunt | undefined>;
   huntsDuring: (st: Stay, from: number, to: number) => boolean;
   huntsOf: (st: Stay, from: number, to: number) => Hunt[];
-  jobWorker: (camp: number, slot: number) => number | undefined;
+  jobWorker: (camp: number, field: number, t: number) => number | undefined;
   killAt: (st: Stay, t: number) => Hunt | undefined;
   legPoint: (legs: Leg[], ms: number) => Pt;
   lodgings: Map<number, TreeLodging>;

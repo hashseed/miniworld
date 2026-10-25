@@ -13,13 +13,6 @@ import type { SurfaceSource } from './surface.ts';
 const RINGS = [0.2, 0.4, 0.6, 0.8, 1];
 /** The patch floats this far over the ground, in km: just enough to clear the drawn terrain. */
 const LIFT_KM = 4;
-/** Seen from beyond GROW_FROM_KM of altitude a field is drawn larger about its centre, in proportion to the altitude, up to GROW_MAX times. */
-const GROW_FROM_KM = 6_000;
-const GROW_MAX = 4;
-/** The factor a field is enlarged by at a camera altitude in km (1 close up; never fades out). */
-export function fieldGrowth(altitudeKm: number): number {
-  return Math.min(GROW_MAX, Math.max(1, altitudeKm / GROW_FROM_KM));
-}
 /** Whole stage steps the ground colour is rewritten at (stage times this, rounded). */
 const STAGE_STEPS = 48;
 
@@ -43,7 +36,6 @@ const FALLBACK: [number, number] = [0x6fa83a, 0xd9b04a];
 
 interface Patch {
   position: Float32Array;
-  heart: Float32Array;
   local: Float32Array;
   rim: Float32Array;
   alpha: Float32Array;
@@ -67,7 +59,6 @@ export class FieldGround {
   private entries: Entry[] = [];
   private version = -1;
   private built = '';
-  private grow = { value: 1 };
   private n = new THREE.Vector3();
   private e = new THREE.Vector3();
   private p = new THREE.Vector3();
@@ -77,7 +68,6 @@ export class FieldGround {
   constructor(surface: SurfaceSource) {
     this.surface = surface;
     const material = new THREE.ShaderMaterial({
-      uniforms: { grow: this.grow },
       transparent: true,
       depthWrite: false,
       side: THREE.DoubleSide,
@@ -87,8 +77,6 @@ export class FieldGround {
       vertexShader: /* glsl */ `
         #include <common>
         #include <logdepthbuf_pars_vertex>
-        uniform float grow;
-        attribute vec3 heart;
         attribute vec2 local;
         attribute float rim;
         attribute float alpha;
@@ -111,10 +99,8 @@ export class FieldGround {
           vWater = water;
           vGreen = greenColour;
           vRipe = ripeColour;
-          // Far away the field is enlarged about its centre, along the sphere, so it stays a few pixels wide.
-          vec3 spread = heart + (position - heart) * grow;
-          vec3 placed = normalize(spread) * length(position);
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(placed, 1.0);
+          // Drawn at its own size from every altitude (issue: fields grew when zoomed out).
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
           #include <logdepthbuf_vertex>
         }`,
       fragmentShader: /* glsl */ `
@@ -198,10 +184,8 @@ export class FieldGround {
     });
   }
 
-  /** Builds the mesh if the list or any stage changed, and sets the enlargement for the camera's altitude. */
-  end(cameraKm: number, groundVersion: number): void {
-    const altitude = cameraKm - EARTH_RADIUS_KM;
-    this.grow.value = fieldGrowth(altitude);
+  /** Builds the mesh if the list or any stage changed. */
+  end(_cameraKm: number, groundVersion: number): void {
     this.mesh.visible = this.entries.length > 0;
     if (!this.mesh.visible) return;
     if (groundVersion !== this.version) {
@@ -224,7 +208,6 @@ export class FieldGround {
     let total = 0;
     for (const x of this.entries) total += x.vertexCount;
     const position = new Float32Array(total * 3);
-    const heart = new Float32Array(total * 3);
     const local = new Float32Array(total * 2);
     const rim = new Float32Array(total);
     const alpha = new Float32Array(total);
@@ -238,7 +221,6 @@ export class FieldGround {
     for (const x of this.entries) {
       const count = x.vertexCount;
       position.set(x.patch.position, at * 3);
-      for (let i = 0; i < count; i++) heart.set(x.patch.heart, (at + i) * 3);
       local.set(x.patch.local, at * 2);
       rim.set(x.patch.rim, at);
       alpha.set(x.patch.alpha, at);
@@ -264,7 +246,6 @@ export class FieldGround {
     }
     const geometry = this.mesh.geometry;
     geometry.setAttribute('position', new THREE.BufferAttribute(position, 3));
-    geometry.setAttribute('heart', new THREE.BufferAttribute(heart, 3));
     geometry.setAttribute('local', new THREE.BufferAttribute(local, 2));
     geometry.setAttribute('rim', new THREE.BufferAttribute(rim, 1));
     geometry.setAttribute('alpha', new THREE.BufferAttribute(alpha, 1));
@@ -319,6 +300,6 @@ export class FieldGround {
         put(x, z, (1 - share) * Math.hypot(p.x - field.centre.x, p.z - field.centre.z));
       }
     }
-    return { position, heart: position.slice(0, 3), local, rim, alpha };
+    return { position, local, rim, alpha };
   }
 }
