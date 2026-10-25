@@ -48,6 +48,9 @@ export interface HerdAnimal {
 }
 
 /** A pen and a herd of 3 to 6 animals standing round it, `dist` layout metres out in the direction `angle`. */
+/** The herd stands within this many layout metres of its pen's middle, inside its fence. */
+export const HERD_IN_PEN_M = 3.8;
+
 export function herdOf(
   camp: number,
   kinds: readonly string[],
@@ -59,7 +62,9 @@ export function herdOf(
   const animals: HerdAnimal[] = [];
   for (let i = 0; i < n; i++) {
     const a = hash01(camp, i, 223) * 2 * Math.PI;
-    const r = 8 + 4 * hash01(camp, i, 227);
+    // Inside the pen, which is drawn about 12 layout metres across (Yang, 2026-10-25: "there
+    // are no farm animals in the enclosures"; they stood 8 to 12 metres round it).
+    const r = HERD_IN_PEN_M * Math.sqrt(hash01(camp, i, 227));
     animals.push({
       kind: kinds[hash32(camp, i, 229) % kinds.length]!,
       x: pen.x + r * detCos(a),
