@@ -358,6 +358,11 @@ export const lightUniforms = {
   lightDir: { value: new THREE.Vector3(-0.35, 0.5, 0.8).normalize() },
   screenUp: { value: new THREE.Vector3(0, 1, 0) },
   inkPixels: { value: 2.0 },
+  /**
+   * Screen pixels per life-size metre from which a model's outline is drawn at its full width
+   * (inkPixels); below, it thins in proportion, to a fifth (milestone 2 section 5, issue 207).
+   */
+  inkFullPixels: { value: 40.0 },
   clayScale: { value: 9.0 },
   viewport: { value: new THREE.Vector2(1280, 800) },
   /** 1 drawn in full; below 1 the model dissolves in a screen-door pattern as it fades. */
@@ -526,28 +531,33 @@ void main() {
 }
 `;
 
-// Inverted hull: back faces pushed out along the normal by a fixed number of
-// pixels, so the outline keeps its width at every zoom like the globe's ink.
+// Inverted hull: back faces pushed out along the normal by a number of pixels: the globe's
+// ink width while the model is drawn large, thinner as it is drawn smaller (issue 207), so a
+// figure seen from far away is not swallowed by its outline.
 const inkVertex = /* glsl */ `
 #include <common>
 #include <logdepthbuf_pars_vertex>
 uniform float inkPixels;
+uniform float inkFullPixels;
 uniform vec2 viewport;
 ${poseChunk}
 void main() {
   #if defined(USE_POSE) || defined(USE_CLIPS)
-  mat4 posed = pose();
-  vec4 clip = projectionMatrix * modelViewMatrix * posed * vec4(position, 1.0);
-  vec3 nView = normalize(normalMatrix * mat3(posed) * normal);
+  mat4 placed = pose();
   #elif defined(USE_INSTANCING)
-  vec4 clip = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
-  vec3 nView = normalize(normalMatrix * mat3(instanceMatrix) * normal);
+  mat4 placed = instanceMatrix;
   #else
-  vec4 clip = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  vec3 nView = normalize(normalMatrix * normal);
+  mat4 placed = mat4(1.0);
   #endif
+  mat4 view = modelViewMatrix * placed;
+  vec4 clip = projectionMatrix * view * vec4(position, 1.0);
+  vec3 nView = normalize(normalMatrix * mat3(placed) * normal);
   vec2 dir = normalize((projectionMatrix * vec4(nView, 0.0)).xy + 1e-6);
-  clip.xy += dir * inkPixels * 2.0 / viewport * clip.w;
+  // Screen pixels per life-size metre of the model here (models are built in metres).
+  float metre = max(length(view[0].xyz), max(length(view[1].xyz), length(view[2].xyz)));
+  float perMetre = metre * projectionMatrix[1][1] * viewport.y * 0.5 / max(clip.w, 1e-6);
+  float width = inkPixels * clamp(perMetre / inkFullPixels, 0.2, 1.0);
+  clip.xy += dir * width * 2.0 / viewport * clip.w;
   gl_Position = clip;
   #include <logdepthbuf_vertex>
 }

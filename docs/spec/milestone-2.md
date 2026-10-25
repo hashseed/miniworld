@@ -91,7 +91,7 @@ Each culture area per period carries a `density` of `remote`, `sparse`, `low` or
 
 ### 5.1 Look and scale
 
-Figures follow the toy-planet style of spec section 8: chunky, rounded clay-like shapes, slightly large heads and hands, flat cel-shaded colours in three bands with dark ink outlines, no textures with painted detail beyond simple colour regions. A figure is about 700 triangles at the closest level of detail.
+Figures follow the toy-planet style of spec section 8: chunky, rounded clay-like shapes, slightly large heads and hands, flat cel-shaded colours in three bands with dark ink outlines, no textures with painted detail beyond simple colour regions. The outline of a model (people, animals, lodgings and props) is as wide as the globe's ink while the model is drawn large, at least 40 screen pixels per life-size metre (a figure about 70 pixels tall), and thins in proportion as it is drawn smaller, down to a fifth of that width, so a small figure seen from far away is not swallowed by its outline (Yang, issue 207: "ink outline on people, animals and buildings are the same thickness regardless of zoom level. That makes things when zoomed out look bad"). A figure is about 700 triangles at the closest level of detail.
 
 People and everything they make are drawn at a fixed **miniature factor**: **Proposed** 90, so a person of 1.7 m stands about 150 m tall on the globe, and the dozen figures of a close view fill the screen from the camera's lowest altitude of about 2 km (milestone 1 section 6.1). Camps are authored at life size and scaled by the same factor, so it can be tuned in one place.
 
