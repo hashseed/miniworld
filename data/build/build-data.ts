@@ -83,7 +83,10 @@ async function main(args: string[]): Promise<void> {
   if (hit) log('tree of humankind: from the stage cache');
   const events = [
     ...humankind.events,
-    ...farmingEvents(readFileSync(join(ROOT, 'data/curated/neolithic.json'), 'utf8')),
+    ...farmingEvents(
+      readFileSync(join(ROOT, 'data/curated/neolithic.json'), 'utf8'),
+      humankind.farmingStarts,
+    ),
   ];
   const index = timed('content', () =>
     buildContent(ctx, content, climate, wildlife, humankind.camps, events),

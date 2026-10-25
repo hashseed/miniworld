@@ -117,8 +117,8 @@ export const treeStats = {
    * crossing. Positions in degrees.
    */
   reached: [] as { leg: string; day: Day; lat: number; lon: number }[],
-  /** The day each Neolithic threshold's camps settled (peopling.md section 3.6). */
-  thresholds: [] as { id: string; day: Day }[],
+  /** The day each Neolithic threshold's camps settled, and the camp key of the band at its site (peopling.md section 3.6). */
+  thresholds: [] as { id: string; day: Day; camp: number }[],
   /** Each occurrence of an encounter (sites.md section 4.3): its day, site and how many came. */
   encounters: [] as { id: string; day: Day; site: number; parties: number; people: number }[],
   crossed: [] as { crossing: string; day: Day; lat: number; lon: number }[],
@@ -275,6 +275,8 @@ export interface TreeSettings {
   voyages?: Voyage[];
   /** Neolithic thresholds, where camps settle (peopling.md section 3.6). */
   thresholds?: Threshold[];
+  /** The farming profile the band at a threshold's site becomes on its day (neolithic/villages.md section 1). */
+  thresholdCulture?: (t: Threshold) => string | undefined;
   /** Places that must have a band from a day to a day (sites.md section 4.1). */
   anchors?: Anchor[];
   /** Parties of several bands that meet at a place for a while (sites.md section 4.3). */
@@ -347,6 +349,11 @@ interface Camp {
   settled: boolean;
   /** The day it takes on its site's new culture, once a morph has come (sites.md section 5). */
   morphAt: Day | undefined;
+  /**
+   * The farming profile of the threshold it was settled at, which it takes on that day wherever
+   * the farming grid has it (neolithic/villages.md section 1).
+   */
+  thresholdCulture?: string;
   /** Its home range: the sites it roams among, which no other band buds onto (sites.md section 4). */
   range: Site[];
   /** An anchor holds it at its site, settled, until this day (sites.md section 4.1). */
@@ -891,7 +898,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     if (!camp.range.includes(to)) takeRange(camp, day);
     capDay = NaN;
     camp.lodgings = [];
-    camp.culture = s.culture?.(to.lat, to.lon, day) ?? camp.culture;
+    camp.culture = camp.thresholdCulture ?? s.culture?.(to.lat, to.lon, day) ?? camp.culture;
     camp.morphAt = undefined;
     const way = wayOf(path, day);
     for (let k = 0; k < people.length; k += LODGING_CAPACITY) {
@@ -1059,7 +1066,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       bandAt.set(site.id, camp);
       camp.site = site;
       camp.lodgings = [];
-      camp.culture = s.culture?.(site.lat, site.lon, day) ?? camp.culture;
+      camp.culture = camp.thresholdCulture ?? s.culture?.(site.lat, site.lon, day) ?? camp.culture;
       for (let k = 0; k < people.length; k += LODGING_CAPACITY) {
         const group = people.slice(k, k + LODGING_CAPACITY);
         const fresh = newLodging(camp, group[0]![0], day, voyage);
@@ -1788,8 +1795,16 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     const band = planByKey.get(placeKey('threshold', t.id))!.band;
     if (!band || band.lodgings.length === 0) return false;
     band.settled = true;
+    // It becomes the centre's village that day: the first fields stand when the sign says
+    // (neolithic/villages.md section 1), with no morph delay and whatever the grid says there.
+    const culture = s.thresholdCulture?.(t);
+    if (culture) {
+      band.thresholdCulture = culture;
+      band.morphAt = day;
+    }
     const people = band.lodgings.flatMap((l) => residents.get(l)!);
-    treeStats.thresholds.push({ id: t.id, day });
+    // Its lodgings are keyed by its site (TreeLodging.camp), which it no longer leaves.
+    treeStats.thresholds.push({ id: t.id, day, camp: band.site.key });
     moment('neolithic-threshold', day, people[0]!, band);
     return true;
   };
@@ -2052,7 +2067,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         continue;
       }
       // A morph has come to its site: at its moment, it takes on the new culture (sites.md section 5).
-      const culture = s.culture?.(camp.site.lat, camp.site.lon, day);
+      const culture = camp.thresholdCulture ?? s.culture?.(camp.site.lat, camp.site.lon, day);
       if (culture && culture !== camp.culture) {
         camp.morphAt ??= day + (hash32(camp.id, day, 131) % morphDays);
         if (day >= camp.morphAt) {

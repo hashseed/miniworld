@@ -267,8 +267,16 @@ const centresOf = (neolithicJson: string): CentreRecord[] =>
 export const farmingEventIds = (neolithicJson: string): string[] =>
   centresOf(neolithicJson).map((c) => `farming-${c.id}`);
 
-/** The first-farming events of the events dialog: where and when each centre starts. */
-export function farmingEvents(neolithicJson: string): {
+/**
+ * The first-farming events of the events dialog: where and when each centre starts. Where the
+ * tree has the centre's first village with fields (`starts`), the event is its day and place, so
+ * the sign shows when it happens in miniworld (neolithic/villages.md section 1); else the
+ * centre's own date and point.
+ */
+export function farmingEvents(
+  neolithicJson: string,
+  starts: readonly { id: string; day: number; lat: number; lon: number }[] = [],
+): {
   id: string;
   kind: 'farming';
   title: { en: string; de: string };
@@ -277,13 +285,16 @@ export function farmingEvents(neolithicJson: string): {
   lon: number;
   card: string;
 }[] {
-  return centresOf(neolithicJson).map((c) => ({
-    id: `farming-${c.id}`,
-    kind: 'farming' as const,
-    title: { en: c.title.en, de: c.title.de },
-    day: dayOfFarmingYear(c.bce),
-    lat: c.lat,
-    lon: c.lon,
-    card: `farming-${c.id}`,
-  }));
+  return centresOf(neolithicJson).map((c) => {
+    const start = starts.find((s) => s.id === c.id);
+    return {
+      id: `farming-${c.id}`,
+      kind: 'farming' as const,
+      title: { en: c.title.en, de: c.title.de },
+      day: start?.day ?? dayOfFarmingYear(c.bce),
+      lat: start?.lat ?? c.lat,
+      lon: start?.lon ?? c.lon,
+      card: `farming-${c.id}`,
+    };
+  });
 }

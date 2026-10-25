@@ -82,6 +82,7 @@ const settings: TreeSettings = {
   lodgingOf: (c) => (c === 'coastal-asia-hunter' ? 'shelter-lean-to' : 'shelter-grass-hut'),
   voyages: map.legs,
   thresholds: [{ id: 'farming', day: bce(61_000), lat: 0, lon: 45 }],
+  thresholdCulture: () => 'first-farmers',
 };
 const habitat: Habitat = {
   habitable: land,
@@ -153,8 +154,11 @@ describe('ways of life (peopling.md section 5)', () => {
   });
 
   it('builds the lodgings of each culture and dresses its people', () => {
+    // All but the threshold's village, which farms from its day (the next block).
+    const hunters = eastern.filter((l) => l.culture !== 'first-farmers');
+    expect(hunters.length).toBeGreaterThan(0);
     expect(
-      eastern.every((l) => l.culture === 'coastal-asia-hunter' && l.kind === 'shelter-lean-to'),
+      hunters.every((l) => l.culture === 'coastal-asia-hunter' && l.kind === 'shelter-lean-to'),
     ).toBe(true);
   });
 
@@ -191,5 +195,18 @@ describe('Neolithic thresholds (peopling.md section 3.6)', () => {
     const staying = here.filter((l) => l.built > moment!.day).map((l) => l.camp);
     for (const l of tree.lodgings.filter((q) => staying.includes(q.camp) && q.built > moment!.day))
       expect([l.lat, l.lon]).toEqual([moment!.lat, moment!.lon]);
+  });
+
+  it("makes the band at a threshold its centre's village on the day, without a morph delay", () => {
+    const moment = tree.moments.find((m) => m.kind === 'neolithic-threshold')!;
+    const farm = tree.lodgings
+      .filter((l) => l.culture === 'first-farmers')
+      .sort((a, b) => a.built - b.built);
+    expect(farm.length).toBeGreaterThan(0);
+    // Built at the threshold's camp, within a step or two of its key moment (neolithic/villages.md section 1).
+    expect([farm[0]!.lat, farm[0]!.lon]).toEqual([moment.lat, moment.lon]);
+    expect(farm[0]!.built - moment.day).toBeLessThan(years(50));
+    // Only there: the morph of the culture areas does not reach other camps.
+    expect(new Set(farm.map((l) => l.camp)).size).toBe(1);
   });
 });
