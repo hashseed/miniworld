@@ -50,6 +50,8 @@ From its founding a village does not move: its band is settled at its site (as a
 
 ## 5. Layout: rows, not a ring
 
+**Built 2026-10-25.** Each farming profile names its `layout` and, where it builds larger, its `houseM` in the culture table (`cultures.json`, farming block); `villageHouse` (`world/scene/camp.ts`) places a village's houses by it, in layout metres from the village's middle, beyond a green of 9.5 m where the people's spots are: `rows` (the LBK) side by side north-west of the green, each house's long axis north-west to south-east, a house's width plus 3 m apart, drawn up to 5.4 figure metres long (`houseM`, twice the 2.7 of every other lodging); `stilts` (the Yangtze) the same in a row turned by the camp's hash; `cluster` (Anatolia) a block of three by two wall to wall; `hamlet` (the others) round the yard at 12 to 16 m, a little off any ring; `pits` (the Yellow River) keeps the ring. A house stands only on land of its land mask that people can walk to, not on a cliff (the mask's relief limit); where any place of the layout fails, the whole village keeps the ring, so the two never mix. Doors face the green; builders gather on the door side. Fields and the pen keep 2 m off every house and out of its shadow from the green, so no walk out to them passes through a house (section 6). A test lays out every profile's village and checks that no two houses overlap and all stand clear of the green.
+
 A village has no fire and no ring of lodgings (sections 8.1 and 8.5 of humankind.md stay for hunter-gatherer and herding camps):
 
 - **A layout per culture** (Yang, 2026-10-25: "different and matching each culture"), each profile naming its layout in the culture table, all of them without a fire ring, no two houses touching whatever their size:
@@ -67,8 +69,8 @@ A village has no fire and no ring of lodgings (sections 8.1 and 8.5 of humankind
 
 Each is a rule of the village's layout, checked for every village of the built tree, failing the build with the village and the rule:
 
-- **No house over a cliff.** Every house's footprint lies on ground whose drawn height varies by less than a set amount across it (Proposed: the height a figure is tall), and no house's footprint reaches water.
-- **No field under a house** and no field under the pen: fields keep a margin from every house's and the pen's footprint.
+- **No house over a cliff** (built 2026-10-25 for the village layouts: a house stands only on its land mask's land, whose cells keep within 300 m of the hearth's height; section 5). More strictly, proposed: every house's footprint lies on ground whose drawn height varies by less than a set amount across it (Proposed: the height a figure is tall), and no house's footprint reaches water.
+- **No field under a house** and no field under the pen: fields keep a margin from every house's and the pen's footprint (built 2026-10-25: 2 m from every house and out of its shadow from the green, 8 m from the pen's middle).
 - **No walk across water to a field or the pen** (built 2026-10-25): a cell of a house's land mask is land only where the straight way out to it from the hearth is land too, checked every half layout metre in the build (the cells are too coarse to see a narrow strait), and a field's or the pen's ground counts as free only where it and the way out to it are land (`maskReach`), as the camps' outing lanes are. A village by a bay had put fields across it, and its farmers walked through the sea. A reaper carries the sheaf back the way it came, to inside the ring, before crossing to the threshing floor.
 - **No tree in a field or an enclosure.** The trees keep off every field and the pen with a margin, from the village's founding (fields-and-crops.md section 2).
 

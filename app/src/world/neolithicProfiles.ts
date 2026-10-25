@@ -75,6 +75,10 @@ export interface NeolithicProfile {
   crops: string[];
   /** From when the farmer's field tool is the ard, in years BCE; absent where it never is. */
   ardFromBce?: number;
+  /** How its village is laid out (neolithic/villages.md section 5). */
+  layout: 'rows' | 'cluster' | 'hamlet' | 'pits' | 'stilts';
+  /** The longest a house is drawn, in figure metres, where not the usual LODGING_MAX_M. */
+  houseM?: number;
 }
 
 function farmingProfiles(): Record<NeolithicProfileId, NeolithicProfile> {
@@ -95,6 +99,8 @@ function farmingProfiles(): Record<NeolithicProfileId, NeolithicProfile> {
       herd: f.herd,
       crops: f.crops,
       ...(f.ardFromBce !== undefined ? { ardFromBce: f.ardFromBce } : {}),
+      layout: f.layout,
+      ...(f.houseM !== undefined ? { houseM: f.houseM } : {}),
     };
   }
   return out;

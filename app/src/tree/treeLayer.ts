@@ -283,15 +283,15 @@ export class TreeLayer {
   /** The hunted animals of the camps, likewise (clipBatches.ts). */
   private preyClips = new ClipBatches(animateAnimal, animalLoop);
   private scratch = new THREE.Object3D();
-  private fitOf(batch: TreeBatch, room = 1): number {
-    const key = `${batch.key}@${room.toFixed(2)}`;
+  private fitOf(batch: TreeBatch, room = 1, maxM = LODGING_MAX_M): number {
+    const key = `${batch.key}@${room.toFixed(2)}@${maxM}`;
     let fit = this.fits.get(key);
     if (fit === undefined) {
       // Measured on a model of its own, upright at the origin, as built.
       const object = batch.build().object;
       object.updateMatrixWorld(true);
       const size = new THREE.Box3().setFromObject(object).getSize(new THREE.Vector3());
-      fit = Math.min(1, (LODGING_MAX_M * room) / Math.max(size.x, size.z, 1e-6));
+      fit = Math.min(1, (maxM * room) / Math.max(size.x, size.z, 1e-6));
       this.fits.set(key, fit);
     }
     return fit;
@@ -628,7 +628,8 @@ export class TreeLayer {
       if (!batch || !this.place(at, l, false)) continue;
       this.block(at, LODGING_HALF_M);
       // Every lodging fits the camp's layout, at most LODGING_MAX_M across (humankind.md section 8.1).
-      const km = FIGURE_KM_PER_M * this.fitOf(batch, l.room);
+      // A longhouse is drawn as long as its culture builds it (neolithic/villages.md section 5).
+      const km = FIGURE_KM_PER_M * this.fitOf(batch, l.room, l.maxM);
       // While the band builds it, the lodging goes up step by step, or rises whole.
       if (this.stepped(batch)) {
         at.scale.setScalar(km);
