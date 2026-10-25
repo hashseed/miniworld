@@ -4,6 +4,7 @@
 // lodging, off gathering or hunting, or walking to a new home. A pure
 // function of the tree chunk and the clock time.
 
+import { neolithicProfile } from './neolithicProfiles.ts';
 import { hash32 } from '../core/hash.ts';
 import { detCos, RAD } from '../core/detmath.ts';
 import { dayAtMs, msAtDay } from '../time/rate.ts';
@@ -27,7 +28,6 @@ import {
   FLINT_MS,
   lodgingSpot,
   villageHouse,
-  LODGING_MAX_M,
   rackOnLand,
   rackSpot,
   towards,
@@ -386,7 +386,10 @@ export function treeScene(
       id: l.id,
       kind: l.kind,
       room: house ? 1 : ringOf(l.camp) / LODGING_RING_M,
-      ...(house && house.lengthM > LODGING_MAX_M * 3 + 1e-9 ? { maxM: house.lengthM / 3 } : {}),
+      // Drawn as large as its culture builds it (a longhouse, the Chinese houses; villages.md section 5).
+      ...(isProfile(l.culture) && neolithicProfile(l.culture).houseM !== undefined
+        ? { maxM: neolithicProfile(l.culture).houseM }
+        : {}),
       lat: deg(l.lat),
       lon: deg(l.lon),
       ...spot,

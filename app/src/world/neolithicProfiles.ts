@@ -79,6 +79,8 @@ export interface NeolithicProfile {
   layout: 'rows' | 'cluster' | 'hamlet' | 'pits' | 'stilts';
   /** The longest a house is drawn, in figure metres, where not the usual LODGING_MAX_M. */
   houseM?: number;
+  /** How many people one house holds, where not the usual four. */
+  houseCapacity?: number;
 }
 
 function farmingProfiles(): Record<NeolithicProfileId, NeolithicProfile> {
@@ -101,6 +103,7 @@ function farmingProfiles(): Record<NeolithicProfileId, NeolithicProfile> {
       ...(f.ardFromBce !== undefined ? { ardFromBce: f.ardFromBce } : {}),
       layout: f.layout,
       ...(f.houseM !== undefined ? { houseM: f.houseM } : {}),
+      ...(f.houseCapacity !== undefined ? { houseCapacity: f.houseCapacity } : {}),
     };
   }
   return out;

@@ -355,7 +355,9 @@ export const culturesTable = z.strictObject({
             /** How its village is laid out (neolithic/villages.md section 5). */
             layout: z.enum(['rows', 'cluster', 'hamlet', 'pits', 'stilts']),
             /** The longest a house is drawn, in figure metres, where not the usual 2.7. */
-            houseM: z.number().positive().max(8).optional(),
+            houseM: z.number().positive().max(12).optional(),
+            /** How many people one house holds, where a whole village lives in one (the longhouse). */
+            houseCapacity: z.number().int().positive().optional(),
             /** Percent of the grown-ups in each role, in the order of NEOLITHIC_ROLES. */
             mix: z
               .strictObject(

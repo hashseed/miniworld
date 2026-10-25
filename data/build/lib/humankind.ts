@@ -83,6 +83,9 @@ const VILLAGE_SPREAD = 5;
 /** Figures a lodging holds, and lodgings a camp may have (section 4.1, Proposed). */
 export const LODGING_CAPACITY = 4;
 export const MAX_LODGINGS = 5;
+/** A band of hunter-gatherers holds at most this many people, in at most this many lodgings (Yang, 2026-10-25). */
+const BAND_MAX = 7;
+const BAND_MAX_LODGINGS = 3;
 
 // The tree's rhythms are set in watching time, so camps look the same in every era
 // (section 4.3; Yang, 2026-10-19), and converted to days by the curve of spec section 2.1.
@@ -109,6 +112,8 @@ const VILLAGE_WALK_KM = 600;
 /** A band fleeing the water looks this many links away for a free site, and this many for bands to join. */
 const FLEE_HOPS = 6;
 const JOIN_HOPS = 6;
+/** People of a band that breaks up join others only this near, over land (sites.md section 3). */
+const JOIN_KM = 1000;
 /** ...and as a last resort this many for any empty site, however near another band. */
 const CROWD_HOPS = 12;
 
@@ -294,6 +299,8 @@ export interface TreeSettings {
     eastKm: number,
     northKm: number,
   ) => { lat: number; lon: number };
+  /** How many people a lodging of a culture holds, where not LODGING_CAPACITY (a longhouse). */
+  lodgingCapacity?: (culture: string) => number | undefined;
   /** Whether a site is a village site, the place of a future city (neolithic/villages.md section 2). */
   villageSite?: (lat: number, lon: number) => boolean;
   /** The farming profile the farming spread has brought to a place by a day, wherever it is (farming-spread.md section 9.4). */
@@ -687,6 +694,17 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     return dryPlaces(camp.site, day).filter((k) => !taken.has(k)).length;
   };
   const hasPlace = (camp: Camp, day: Day) => freePlaces(camp, day) > 0;
+  /**
+   * The most people and lodgings a camp holds: a band of hunter-gatherers at most BAND_MAX
+   * people in BAND_MAX_LODGINGS lodgings (Yang, 2026-10-25: "at most 7 people and 3 huts"),
+   * a village as many as its layout has room for.
+   */
+  const isVillage = (c: Camp) => !!c.culture && !!s.village?.(c.culture);
+  const maxPeople = (c: Camp) =>
+    isVillage(c) ? layoutOf(c.site.key).people : Math.min(BAND_MAX, layoutOf(c.site.key).people);
+  const maxLodgings = (c: Camp) => (isVillage(c) ? MAX_LODGINGS : BAND_MAX_LODGINGS);
+  /** How many people a lodging of a camp holds: its culture's houseCapacity (the LBK's longhouse holds a whole village), else LODGING_CAPACITY. */
+  const capOf = (c: Camp) => (c.culture && s.lodgingCapacity?.(c.culture)) || LODGING_CAPACITY;
 
   /** The share of a site's trees grown back since its last band left (sites.md section 6). */
   const regrown = (site: Site, day: Day) => {
@@ -927,8 +945,9 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     camp.culture = camp.thresholdCulture ?? s.culture?.(to.lat, to.lon, day) ?? camp.culture;
     camp.morphAt = undefined;
     const way = wayOf(path, day);
-    for (let k = 0; k < people.length; k += LODGING_CAPACITY) {
-      const group = people.slice(k, k + LODGING_CAPACITY);
+    const cap = capOf(camp);
+    for (let k = 0; k < people.length; k += cap) {
+      const group = people.slice(k, k + cap);
       const fresh = newLodging(camp, group[0]![0], day, way);
       for (const [f, id] of group) moveIn(f, id, fresh.id, day);
     }
@@ -1008,7 +1027,11 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     const options = reach(camp.site, day, JOIN_HOPS, (site) => {
       const c = bandAt.get(site.id);
       return !!c && c !== camp && !joined.has(c) && dry(site, day) && livable(site, ahead(day));
-    });
+    }).filter(
+      (o) =>
+        distanceKm(camp.site.lat, camp.site.lon, o.site.lat, o.site.lon) <= JOIN_KM &&
+        o.path.every((x, i) => i === 0 || !crossingOf(o.path[i - 1], x)),
+    );
     // They arrive at the end of the step, after anyone leaving those camps during it; their
     // site stays theirs until then.
     const at = after(day, STEP_MS) - 1;
@@ -1017,13 +1040,13 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     for (const o of options) {
       const to = bandAt.get(o.site.id)!;
       joined.add(to);
-      while (people.length && headcount(to) < layoutOf(to.site.key).people) {
+      while (people.length && headcount(to) < maxPeople(to)) {
         // A neighbour's lodgings with room are walked to straight; farther ones need a new lodging.
         let room =
           o.hops === 1 && !crossingOf(camp.site, o.site)
-            ? to.lodgings.find((l) => residents.get(l)!.length < LODGING_CAPACITY)
+            ? to.lodgings.find((l) => residents.get(l)!.length < capOf(to))
             : undefined;
-        if (room === undefined && to.lodgings.length < MAX_LODGINGS && hasPlace(to, at))
+        if (room === undefined && to.lodgings.length < maxLodgings(to) && hasPlace(to, at))
           room = newLodging(to, people[0]!, at, wayOf(o.path, at)).id;
         if (room === undefined) break;
         const f = people.shift()!;
@@ -1070,7 +1093,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
             freePlaces(to, day) >= Math.ceil(n / LODGING_CAPACITY) &&
             dry(site, day, headcount(to) + n) &&
             livable(site, ahead(day)) &&
-            headcount(to) + n <= layoutOf(site.key).people
+            headcount(to) + n <= maxPeople(to) &&
+            to.lodgings.length + Math.ceil(n / LODGING_CAPACITY) <= maxLodgings(to)
           : usable(site, day, n) && free(site, day, camp);
       if (!roomy) continue;
       const voyage = { id: 'stranded', ...shores(camp.site, site, sea) };
@@ -1566,6 +1590,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     // The band of an encounter's host stays small, so its guests have lodgings to come to.
     if (p.kind === 'anchor' && (s.encounters ?? []).some((e) => e.host === p.id))
       camp.target = Math.min(camp.target, LODGING_CAPACITY);
+    // Any other anchor's band grows to a full band, so its scene has its people (section 8.2).
+    else if (p.kind === 'anchor') camp.target = Math.max(camp.target, maxPeople(camp));
     takeRange(camp, day);
   };
   /** A camp leaves a plan's footprint: to the nearest free site it fits, else as from the sea. */
@@ -2176,7 +2202,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         let grown = false;
         for (const l of camp.lodgings) {
           const inside = residents.get(l)!;
-          if (inside.length === 0 || inside.length >= LODGING_CAPACITY) continue;
+          if (inside.length === 0 || inside.length >= capOf(camp)) continue;
           if (
             watchAtDay(day) - watchAtDay(lastEmerge.get(l)!) < EMERGE_MS &&
             !(l === hut.id && inside.length === 1)
@@ -2193,8 +2219,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
           break;
         }
         // Every lodging is full: someone builds another beside the hearth, on a dry place.
-        if (!grown && camp.lodgings.length < MAX_LODGINGS) {
-          const full = camp.lodgings.every((l) => residents.get(l)!.length >= LODGING_CAPACITY);
+        if (!grown && camp.lodgings.length < maxLodgings(camp)) {
+          const full = camp.lodgings.every((l) => residents.get(l)!.length >= capOf(camp));
           if (full && hasPlace(camp, day)) {
             const builder = people[hash32(camp.id, day, 3) % people.length]!;
             const l = newLodging(camp, builder, day + (hash32(camp.id, day, 4) % step));

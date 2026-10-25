@@ -249,9 +249,14 @@ export function soloTurn(
     // Beside the animal, on the side towards the camp.
     const d = Math.sqrt(a.x ** 2 + a.z ** 2);
     const by = { x: a.x - (a.x / d) * 1.6, z: a.z - (a.z / d) * 1.6 };
+    // Out along the animal's own line from the green, the way the pen's land was checked
+    // (maskReach), and back the same way, as to a field: never straight across a bay.
+    const gate = { x: (a.x * FIELD_GATE_M) / d, z: (a.z * FIELD_GATE_M) / d };
     trip
-      .go(by)
+      .go(gate)
+      .go(by, 'walk', true)
       .stay(trip.t + MILK_MS, 'milk', { x: a.x, z: a.z })
+      .go(gate, 'walk', true)
       .go(st.spot);
   } else if (go === 'grind' || go === 'shape' || go === 'spin') {
     // Beside its own lodging, to one side of the door.

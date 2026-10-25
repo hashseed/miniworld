@@ -155,7 +155,8 @@
         },
         "herd": ["animal-cattle", "animal-sheep", "animal-goat", "animal-pig", "animal-dog"],
         "crops": ["emmer", "einkorn", "barley", "flax", "lentil"],
-        "houseM": 5.4
+        "houseM": 10.8,
+        "houseCapacity": 10
       }
     },
     {
@@ -259,7 +260,8 @@
           "toolmaker": 4
         },
         "herd": ["animal-pig", "animal-dog"],
-        "crops": ["millet"]
+        "crops": ["millet"],
+        "houseM": 4.05
       }
     },
     {
@@ -293,7 +295,8 @@
           "toolmaker": 2
         },
         "herd": ["animal-pig", "animal-dog", "animal-water-buffalo"],
-        "crops": ["rice"]
+        "crops": ["rice"],
+        "houseM": 4.05
       }
     },
     {
