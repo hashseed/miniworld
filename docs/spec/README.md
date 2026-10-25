@@ -5,6 +5,7 @@ This folder is the source of truth for what Miniworld does. Every change to beha
 | File | Contents |
 | --- | --- |
 | [spec.md](spec.md) | Vision, time model, globe, history data, events, people, interface, localisation, visual style, architecture, content delivery, development environment, licences |
+| [architecture.md](architecture.md) | How the code separates content from the engine (content, data build, world, renderer), and the open architecture work in order |
 | [milestones.md](milestones.md) | Build order, scope and exit criteria for each milestone, and the definition of done |
 | [milestone-1.md](milestone-1.md) | Detailed spec for milestone 1, Globe and time |
 | [milestone-2.md](milestone-2.md) | Detailed spec for milestone 2, First people: figures, migrations and the info cards |
