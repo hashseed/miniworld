@@ -6,6 +6,8 @@
 // Usage: node data/build/build-data.ts [--fixture] [--max-level N] [--no-cache | --clean]
 //   --no-cache (or --fresh) reads and writes no cache; --clean forgets the caches first.
 
+// The world's tables from data/curated/, before anything asks the world (app/src/world/tables.ts).
+import './lib/worldTables.ts';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { LANGUAGES } from '../../app/src/i18n/messages.ts';

@@ -9,6 +9,8 @@ export default defineConfig({
       'tests/unit/**/*.test.ts',
     ],
     environment: 'node',
+    // The world's tables from data/curated/, as the app gets them from the startup index.
+    setupFiles: ['data/build/lib/worldTables.ts'],
     // `npm run coverage` (spec milestone 1, section 13). The thresholds are
     // the coverage of October 2026: they may rise, never fall.
     coverage: {

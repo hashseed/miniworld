@@ -4,6 +4,7 @@
 
 import { latLonToDir } from '../geo/cube.ts';
 import { FarmingGrid, setFarmingGrid } from '../world/farmingOnset.ts';
+import { setWorldTables, type WorldTables } from '../world/tables.ts';
 import { treeScene, type TreeChunk } from '../world/treeScene.ts';
 
 /** What the app sends: a tree file, a file to forget, or a request for a scene. */
@@ -11,6 +12,7 @@ export type SceneMessage =
   | { type: 'chunk'; w: number; chunk: TreeChunk }
   | { type: 'drop'; w: number }
   | { type: 'farming'; bytes: Uint8Array }
+  | { type: 'tables'; tables: WorldTables }
   | {
       type: 'scene';
       id: number;
@@ -29,6 +31,7 @@ self.onmessage = (e: MessageEvent<SceneMessage>) => {
   if (m.type === 'chunk') chunks.set(m.w, m.chunk);
   else if (m.type === 'drop') chunks.delete(m.w);
   else if (m.type === 'farming') setFarmingGrid(new FarmingGrid(m.bytes));
+  else if (m.type === 'tables') setWorldTables(m.tables);
   else {
     const chunk = chunks.get(m.w);
     const [cx, cy, cz] = m.camDir;

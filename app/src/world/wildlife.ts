@@ -4,8 +4,8 @@
 // using only + − × ÷ and Math.sqrt so every device computes the same animals
 // (milestone 2, section 2.3). The wildlife layer places them on the globe.
 
-import groupsFile from '../../../data/curated/wildlife.json' with { type: 'json' };
 import type { Table } from '../../../data/schema/tables.ts';
+import { onWorldTables } from './tables.ts';
 import { detCos, detSin, RAD } from '../core/detmath.ts';
 import { hash01, hashString } from '../core/hash.ts';
 import { EARTH_RADIUS_KM } from '../geo/earth.ts';
@@ -32,14 +32,18 @@ export interface WildGroup {
   source: string;
 }
 
-export const WILD_GROUPS: readonly WildGroup[] = (groupsFile as { groups: WildGroup[] }).groups;
+const groups: WildGroup[] = [];
+/** The wildlife groups, in the order of the wildlife table, once the world has its tables (tables.ts). */
+export const WILD_GROUPS: readonly WildGroup[] = groups;
 
 /** How a model moves and is drawn where it differs from the defaults: its row of `models` in the data file. */
 export type WildModelTraits = Table<'wildlife.json'>['models'][string];
 
-const MODEL_TRAITS: Readonly<Record<string, WildModelTraits>> = (
-  groupsFile as unknown as Table<'wildlife.json'>
-).models;
+let MODEL_TRAITS: Readonly<Record<string, WildModelTraits>> = {};
+onWorldTables((t) => {
+  groups.splice(0, groups.length, ...(t.wildlife.groups as WildGroup[]));
+  MODEL_TRAITS = t.wildlife.models;
+});
 
 /** A model's traits; none for a model the data file does not list. */
 export function traitsOf(model: string): WildModelTraits {

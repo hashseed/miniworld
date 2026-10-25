@@ -3,18 +3,20 @@
 // review them in place; such a build is never shipped. A model that loads with its
 // culture is drawn once its module has loaded (spec section 10, modelPacks.ts).
 
-import manifest from '../../../data/assets/manifest.json';
-import type { AssetManifest } from '../../../data/schema/assets.ts';
-import { loadModels, modelLoaded } from './modelPacks.ts';
+import type { ModelEntry } from './types.ts';
+import { loadModels, modelLoaded, setModuleFiles } from './modelPacks.ts';
 
 const preview = import.meta.env.VITE_PREVIEW_ASSETS === '1';
 
 /** Asset ids that may be drawn with their own model rather than a stand-in, once loaded. */
-const allowed = new Set(
-  (manifest as AssetManifest).assets
-    .filter((a) => a.status === 'approved' || (preview && a.status === 'generated'))
-    .map((a) => a.id),
-);
+const allowed = new Set<string>();
+
+/** Takes the models of the startup index (milestone-1 section 10.2): which may be drawn, and their modules. */
+export function setModels(models: readonly ModelEntry[]): void {
+  allowed.clear();
+  for (const m of models) if (m.status === 'approved' || preview) allowed.add(m.id);
+  setModuleFiles(models);
+}
 
 /** Which models are drawn with their own model now rather than a stand-in. */
 export const drawable = {

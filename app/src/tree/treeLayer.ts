@@ -51,6 +51,7 @@ import type { Model } from '../../../assets/src/kit.ts';
 import { buildSteps, flickerHearth, lightHearth, setBuilt } from '../../../assets/src/shelters.ts';
 import { ClipBatches } from './clipBatches.ts';
 import { FarmingGrid, setFarmingGrid } from '../world/farmingOnset.ts';
+import { setWorldTables, type WorldTables } from '../world/tables.ts';
 import type { SceneMessage } from './sceneWorker.ts';
 import { PosedBatches } from './posedBatches.ts';
 import type { SurfaceSource } from './surface.ts';
@@ -86,7 +87,15 @@ interface SceneAnswer {
 }
 
 let farmingBytes: Uint8Array | undefined;
+let worldTables: WorldTables | undefined;
 const sceneWorkers = new Set<Worker>();
+
+/** Hands the world its tables from the startup index, here and in the scene workers (world/tables.ts). */
+export function setTreeTables(tables: WorldTables): void {
+  worldTables = tables;
+  setWorldTables(tables);
+  for (const w of sceneWorkers) w.postMessage({ type: 'tables', tables } satisfies SceneMessage);
+}
 
 /** Sets the farming spread grid for the scenes computed here and in the scene workers. */
 export function setTreeFarming(bytes: Uint8Array): void {
@@ -99,7 +108,10 @@ export function setTreeFarming(bytes: Uint8Array): void {
 function startSceneWorker(answer: (a: SceneAnswer) => void): Worker | undefined {
   if (typeof Worker === 'undefined') return undefined;
   const worker = new Worker(new URL('./sceneWorker.ts', import.meta.url), { type: 'module' });
-  // The farming grid goes first, so no scene is computed without it (farming-spread.md section 9.4).
+  // The tables and the farming grid go first, so no scene is computed without them
+  // (milestone-1 section 10.2, farming-spread.md section 9.4).
+  if (worldTables)
+    worker.postMessage({ type: 'tables', tables: worldTables } satisfies SceneMessage);
   if (farmingBytes)
     worker.postMessage({ type: 'farming', bytes: farmingBytes } satisfies SceneMessage);
   sceneWorkers.add(worker);
