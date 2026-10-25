@@ -1,6 +1,6 @@
 # Neolithic villages that stay
 
-How a farming village of the tree of humankind is placed, laid out and lives, replacing the hunter-gatherer camp rules where they no longer fit. Status: **Proposed** (2026-10-25), for Yang's review; nothing here is built yet. It answers Yang's list of 2026-10-25:
+How a farming village of the tree of humankind is placed, laid out and lives, replacing the hunter-gatherer camp rules where they no longer fit. Status: approved by Yang on 2026-10-25 with the answers recorded below; built part by part. It answers Yang's list of 2026-10-25:
 
 > villages in the neolithic no longer move. they stay. So let's make sure they are in locations of future cities
 >
@@ -22,7 +22,7 @@ Each threshold of `data/curated/neolithic.json` (a farming centre, its year and 
 
 - A band stands at the threshold's site from 300 years before its year (as hunter-gatherers or herders, as the farming spread says there), and **at the threshold's year it becomes a village of the centre's profile and ploughs its first field**: no morph delay (today up to 100 years, `MORPH_YEARS`), and the threshold's point has the centre's date in the farming grid however far the site is from it (today only within `CENTRE_CORE_KM` = 100 km of the point; the Yellow River's site was 124 km from Cishan, so its fields began in 6016 BCE, not 6500).
 - **Checked.** The build fails when the first farming house with fields at a threshold's site is built later than its year, naming the centre, its site and the day: the sign and the first fields can no longer disagree.
-- The existing anchors at farming centres (`jericho`, `nanchoc`, `mehrgarh`, `kuk`, and `catalhoyuk` for the Konya plain) keep their scenes and texts, but their dates are made to agree with their centre's year or are dropped in favour of the threshold's (today `jericho` is 8000 BCE against the Fertile Crescent's 9500, `nanchoc` 8000 against the Andes' 3500, `kuk` 8000 against New Guinea's 5000). **Needs Yang's eye:** which date each sign should show where the sources differ (Jericho's Pre-Pottery Neolithic A begins about 9600 BCE; cultivated squash at Ñanchoc about 8000 BCE but villages with fields in the Andes later).
+- **The sign shows when it happens in miniworld** (Yang, 2026-10-25: "show the actual time when things take place in miniworld"). The sign's and the event's day is the day the first farming house with fields is built at the threshold's site in the built tree, read from the tree by the data build, not copied from the threshold's year; the threshold's year is what the tree aims for. The existing anchors at farming centres (`jericho`, `nanchoc`, `mehrgarh`, `kuk`, and `catalhoyuk` for the Konya plain) keep their scenes and texts; where their year differs from their centre's threshold (today `jericho` 8000 BCE against the Fertile Crescent's 9500, `nanchoc` 8000 against the Andes' 3500, `kuk` 8000 against New Guinea's 5000), the threshold's year is the farming village's and the anchor's own year stays the year its band arrives.
 - Centres without an anchor today get one at their threshold's point: Amazonia, Mesoamerica, the Yellow River (Cishan) and the Yangtze.
 
 ## 2. Village sites are the places of future cities
@@ -31,7 +31,8 @@ A farming village is founded only at a **village site**, a dated place of the pl
 
 - **Source (Proposed):** Reba, M., Reitsma, F. and Seto, K. C. 2016, *Spatializing 6,000 years of global urbanization from 3700 BC to AD 2000*, Scientific Data 3, 160034, its dataset of geocoded historical cities with their first dated population (from Chandler 1987 and Modelski 2003), licence CC BY 4.0 as published (to be checked on the dataset's own page before the extract is added), which the data licence policy allows (spec section 13). The extract keeps each city's name, position and first date, a few hundred rows.
 - Plus the farming anchors of part 1 and the Neolithic sites the spec already names (Çatalhöyük, Mehrgarh, Kuk), so the first villages stand where archaeology finds them.
-- In a farming area, the lattice sites (sites.md section 2) are not used for founding villages; a band that turns farmer at a lattice site walks to the nearest free village site within the culture area's spacing and founds its village there, or stays a hunter-gatherer band if there is none. **Needs Yang's eye:** where a region had villages but no later city (central Europe's LBK, much of New Guinea), the extract has few sites; such regions keep lattice sites as village sites, chosen near rivers, until a list of their own is curated.
+- Plus a **curated list** (`data/curated/village-sites.json`, Yang, 2026-10-25) for regions that had villages but few later cities, such as the LBK of central Europe and the New Guinea highlands: excavated Neolithic villages with their position, dates and source (for the LBK, for example, Elsloo, Langweiler 8, Bylany, Vaihingen), each a village site like the cities.
+- In a farming area, the lattice sites (sites.md section 2) are not used for founding villages; a band that turns farmer at a lattice site walks to the nearest free village site within the culture area's spacing and founds its village there, or stays a hunter-gatherer band if there is none.
 
 ## 3. Villages stay
 
@@ -45,7 +46,13 @@ A village holds **6 to 10 figures** (`VILLAGE_MIN` 6 plus a hash of its id below
 
 A village has no fire and no ring of lodgings (sections 8.1 and 8.5 of humankind.md stay for hunter-gatherer and herding camps):
 
-- **Houses in rows.** The houses stand side by side in one or two rows along a lane, all turned the same way, the row's direction a hash of the site and, for the LBK, north-west to south-east as the excavated longhouses (Bandkeramik longhouses run NW-SE across central Europe; Coudart 1998, *Architecture et société néolithique*). The spacing between houses is their own width plus 3 layout metres, so no two touch whatever their size.
+- **A layout per culture** (Yang, 2026-10-25: "different and matching each culture"), each profile naming its layout in the culture table, all of them without a fire ring, no two houses touching whatever their size:
+  - `rows` (LBK): longhouses side by side in loose rows, all turned north-west to south-east as the excavated longhouses (Coudart 1998, *Architecture et société néolithique*), a house's width plus 3 layout metres apart.
+  - `cluster` (Anatolia, Çatalhöyük): houses packed wall to wall in a block, entered from the roofs by ladders, open yards between blocks (Hodder 2006).
+  - `hamlet` (Levant, Mehrgarh, the Nile, Mesoamerica, the Andes, New Guinea): houses scattered round shared yards with storage, a few metres apart, turned towards the yard.
+  - `pits` (the Yellow River, Banpo): round pit houses in a ring round a central open space, inside a ditch (Banpo, c. 4800 BCE).
+  - `stilts` (the Yangtze, Hemudu): long stilt houses in a row along water (Hemudu, c. 5000 BCE).
+  The layouts' measures are set when each is built and shown to Yang.
 - **House sizes.** A house is drawn at the size its profile gives, no longer capped by a ring (`LODGING_MAX_M` stays for the camps): the LBK longhouse twice its present drawn length, about 5.4 figure metres; the others at their present size until Yang asks otherwise.
 - **The green and the spots.** Each figure's spot is by its own house's door, and the lane between the rows is the village's open ground, where the dances and games of the camp events take place.
 - **Fields and pen.** The fields lie beyond the ends of the rows and behind them, the pen at one end of the lane; outings go out along the lane.
@@ -71,9 +78,9 @@ A villager's day has no knapping, gathering or firewood outing:
 - **Field work** replaces gathering: the farmers' and reapers' extra work at the fields (fields-and-crops.md section 2) takes the turns that went to gathering, and the share of the activity mix that was gathering goes to field work.
 - Fetching water, the profile's crafts (pottery, spinning, grinding grain), herding and milking stay; hunting stays at the profile's small hunter share.
 
-## 9. Open questions for Yang
+## 9. Decisions (Yang, 2026-10-25)
 
-1. The source for future city sites (part 2): Reba et al. 2016 (CC BY 4.0), or another list?
-2. Regions with villages but few later cities (part 2): lattice sites as village sites, or a curated list per region?
-3. The signs' dates where the existing anchors differ (part 1).
-4. House rows for every profile, or a different layout for some (the agglutinated houses of Çatalhöyük, the pit houses of the Yellow River)?
+1. Future city sites from Reba et al. 2016: "sounds good".
+2. Regions with villages but few later cities: a curated list ("curated list sounds good").
+3. The signs' dates: "show the actual time when things take place in miniworld" (part 1).
+4. Layouts: "different and matching each culture" (part 5).
