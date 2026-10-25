@@ -90,6 +90,7 @@ import {
   legPoint as legPointOf,
 } from './scene/stageEvents.ts';
 import {
+  ploughTeam as ploughTeamOf,
   villageScene as villageSceneOf,
   jobWorker as jobWorkerOf,
   assignedField as assignedFieldOf,
@@ -598,6 +599,8 @@ export function treeScene(
     const st = c && ms < c.end ? undefined : stayOf(f, i);
     const profile = st ? (ms < st.changeAt ? st.wore : st.home.culture) : c?.prev.culture;
     if (profile) pose.profile = profile;
+    // Tilling with the ard: the oxen and the yoke in front (neolithic/villages.md section 7).
+    if (pose.clip === 'till' && st) ploughTeamOf(cx, pose, st.home.camp, st.home.culture ?? '', ms);
     scene.figures.push(pose);
   }
   // Each hunt's animal, spears and pole, once; an animal lies by the camp after its hunt.

@@ -1,6 +1,9 @@
 // Life in a Neolithic village (spec humankind.md section 8.5): the fields' jobs and who does
 // them, and what the village shows at a clock time.
 
+import { dayAtMs } from '../../time/rate.ts';
+import { fieldToolOf } from '../farmingOnset.ts';
+import type { FigurePose } from './types.ts';
 import type { TreeLodging } from '../tree.ts';
 import { type Village, FIELD_TREE_MARGIN_M, isProfile, type Stay, MILKED } from './memo.ts';
 import { deg, LAYOUT_KM_PER_M, type Pt } from './units.ts';
@@ -57,6 +60,16 @@ export function villageScene(
     });
   if (!v.herd) return;
   const { pen, penDir } = v.herd;
+  // No tree stands in the pen (neolithic/villages.md section 6).
+  scene.clearings.push({
+    lat,
+    lon,
+    x: pen.x,
+    z: pen.z,
+    km: PEN_TREE_CLEAR_M * LAYOUT_KM_PER_M,
+    amount: 1,
+    felling: false,
+  });
   scene.props.push({
     id: `pen:${l.camp}`,
     kind: 'prop-pen',
@@ -204,4 +217,64 @@ export function farmOuting(
     default:
       return undefined;
   }
+}
+
+/** The trees keep this far from a pen's middle (layout metres): its fence is about 6 out, and a crown is wide. */
+const PEN_TREE_CLEAR_M = 11;
+
+/** A ploughing team (neolithic/villages.md section 7), in layout metres in front of the ploughman. */
+const ARD_AHEAD_M = 2.4;
+const OX_AHEAD_M = 7.5;
+const OX_SIDE_M = 1.4;
+const YOKE_AHEAD_M = 9;
+
+/**
+ * Oxen at the ard (neolithic/villages.md section 7): a villager tilling where the profile's field
+ * tool is the ard on the day and the herd has cattle walks behind the ard, empty-handed, two of
+ * the village's cattle yoked in front, drawn at the herd's scale.
+ */
+export function ploughTeam(
+  cx: Pick<SceneCx, 'scene' | 'startDay' | 'villageOf'>,
+  pose: FigurePose,
+  camp: number,
+  culture: string,
+  ms: number,
+): void {
+  const { scene, startDay, villageOf } = cx;
+  if (!isProfile(culture) || fieldToolOf(culture, dayAtMs(ms, startDay)) !== 'ard') return;
+  if (!villageOf(camp)?.herd?.animals.some((a) => a.kind === 'animal-cattle')) return;
+  const { dirX: fx, dirZ: fz } = pose;
+  const at = (ahead: number, side: number) => ({
+    x: pose.x + fx * ahead - fz * side,
+    z: pose.z + fz * ahead + fx * side,
+  });
+  pose.unarmed = true;
+  for (const side of [-OX_SIDE_M, OX_SIDE_M])
+    scene.prey.push({
+      id: `ox:${pose.id}:${side < 0 ? 0 : 1}`,
+      kind: 'animal-cattle' as PreyKind,
+      lat: pose.lat,
+      lon: pose.lon,
+      ...at(OX_AHEAD_M, side),
+      dirX: fx,
+      dirZ: fz,
+      clip: 'idle',
+      clipMs: ms,
+      visibility: 1,
+      scale: HERD_SCALE,
+    });
+  for (const [kind, ahead] of [
+    ['prop-ard', ARD_AHEAD_M],
+    ['prop-yoke', YOKE_AHEAD_M],
+  ] as const)
+    scene.props.push({
+      id: `${kind}:${pose.id}`,
+      kind,
+      lat: pose.lat,
+      lon: pose.lon,
+      ...at(ahead, 0),
+      dirX: fx,
+      dirZ: fz,
+      scale: HERD_SCALE,
+    });
 }
