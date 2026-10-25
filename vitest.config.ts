@@ -21,7 +21,8 @@ export default defineConfig({
         'data/build/**/*.ts',
         'data/schema/**/*.ts',
       ],
-      exclude: ['**/*.test.ts'],
+      // The on-land check's scenes run in a worker thread outside the runner (onLand.ts).
+      exclude: ['**/*.test.ts', 'app/src/world/onLandScenes.ts'],
       reporter: ['text-summary', 'html', 'json-summary'],
       reportsDirectory: 'coverage',
       thresholds: {

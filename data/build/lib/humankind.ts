@@ -14,7 +14,6 @@ import { FIGURE_KM_PER_M, TEMPO, WALK_M_PER_S } from '../../../app/src/world/tre
 import { dayAtMs, dayAtWatch, msAtDay, watchAtDay } from '../../../app/src/time/rate.ts';
 import {
   NEVER,
-  aliveOn,
   type MomentKind,
   type Tree,
   type TreeFigure,
@@ -49,7 +48,7 @@ import {
   stageSpots,
   type TreeChunk,
 } from '../../../app/src/world/treeScene.ts';
-import { distanceKm, onGlobe } from './geo.ts';
+import { distanceKm, KM_PER_DEG, onGlobe } from './geo.ts';
 import {
   footprintM,
   laneReach,
@@ -498,8 +497,25 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       (s.frontKmPerYear * (day - s.startDay)) / DAYS_PER_YEAR;
 
   /** Whether the people of the site's area can live at its hearth on a day. */
-  const livable = (site: Site, day: Day) =>
-    habitat.habitable(site.lat, site.lon, day) && (s.livable?.(site.lat, site.lon, day) ?? true);
+  // Asked of the same sites on the same days many times over a step's searches, and a pure
+  // function of the site and the day: kept for the last few days asked.
+  const livableOn = new Map<Day, Map<number, boolean>>();
+  const livable = (site: Site, day: Day) => {
+    let m = livableOn.get(day);
+    if (!m) {
+      if (livableOn.size >= 16) livableOn.delete(livableOn.keys().next().value!);
+      m = new Map();
+      livableOn.set(day, m);
+    }
+    let v = m.get(site.id);
+    if (v === undefined) {
+      v =
+        habitat.habitable(site.lat, site.lon, day) &&
+        (s.livable?.(site.lat, site.lon, day) ?? true);
+      m.set(site.id, v);
+    }
+    return v;
+  };
 
   /** Whether the rules let a band camp at a site from a day: area, arrival, front and way of life. */
   const allowed = (site: Site, day: Day) =>
@@ -567,8 +583,14 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     for (const h of held.values())
       if (distanceKm(h.lat, h.lon, site.lat, site.lon) < spacing) return false;
     // Overlapping sites are mutually exclusive, and bands keep their density's spacing.
+    const mine = (footprintM(site.key) / site.width) * LAYOUT_KM_PER_M;
     return camps.every((c) => {
       if (c === except || c.lodgings.length === 0) return true;
+      // The distance is at least the difference in latitude: a camp farther north or south than
+      // either rule asks is clear without the distance worked out.
+      const theirs = (footprintM(c.site.key) / c.site.width) * LAYOUT_KM_PER_M;
+      const far = Math.max(Math.min(spacing, c.spacingKm), mine + theirs);
+      if (Math.abs(c.site.lat - site.lat) * KM_PER_DEG > far + 1) return true;
       const km = distanceKm(c.site.lat, c.site.lon, site.lat, site.lon);
       return (
         km >= Math.min(spacing, c.spacingKm) &&
@@ -2332,11 +2354,6 @@ export function checkTree(tree: Tree, s: TreeSettings, habitat: Habitat): string
       if (f.homes[i]![0] < f.homes[i - 1]![0]) problems.push(`figure ${f.id} moves back in time`);
   }
   // Lodgings and figures each have a place of their own at their camp (section 8.1).
-  const spotOn = (f: TreeFigure, day: Day) => {
-    let at: [Day, number, number] | undefined;
-    for (const h of f.homes) if (h[0] <= day) at = h;
-    return at;
-  };
   // Indexed by camp and slot: a scan of every lodging per lodging is quadratic in the tree.
   const bySlot = new Map<string, TreeLodging[]>();
   for (const l of tree.lodgings) {
@@ -2352,24 +2369,31 @@ export function checkTree(tree: Tree, s: TreeSettings, habitat: Habitat): string
       .find((o) => o.id < l.id && o.built <= l.built && (o.gone === NEVER || o.gone > l.built));
     if (clash) problems.push(`lodgings ${clash.id} and ${l.id} stand in the same place`);
   }
-  const byCamp = new Map<number, TreeFigure[]>();
+  // Each figure holds its spot at a camp from the day it moves in until its next move or its
+  // death; two of them at one camp and spot at once share it. Swept by camp and spot in order
+  // of moving in, rather than every figure against all its campmates.
+  const holds = new Map<string, { f: number; from: Day; to: number }[]>();
   for (const f of tree.figures)
-    for (const camp of new Set(f.homes.map((h) => tree.lodgings[h[1]]!.camp))) {
-      const group = byCamp.get(camp);
-      if (group) group.push(f);
-      else byCamp.set(camp, [f]);
-    }
-  for (const f of tree.figures)
-    for (const [day, lodging, spot] of f.homes) {
+    f.homes.forEach(([day, lodging, spot], i) => {
       if (spot >= HEARTH_SPOTS) problems.push(`figure ${f.id} has no spot at the hearth`);
-      const camp = tree.lodgings[lodging]!.camp;
-      for (const o of byCamp.get(camp)!) {
-        if (o.id === f.id || !aliveOn(o, day) || o.born > day) continue;
-        const at = spotOn(o, day);
-        if (at && at[2] === spot && tree.lodgings[at[1]]!.camp === camp)
-          problems.push(`figures ${o.id} and ${f.id} share a spot on day ${day}`);
-      }
+      const next = f.homes[i + 1]?.[0] ?? Infinity;
+      const to = Math.min(next, f.lost === NEVER ? Infinity : f.lost);
+      if (to <= day) return;
+      const key = `${tree.lodgings[lodging]!.camp}:${spot}`;
+      const list = holds.get(key);
+      const h = { f: f.id, from: Math.max(day, f.born), to };
+      if (list) list.push(h);
+      else holds.set(key, [h]);
+    });
+  for (const list of holds.values()) {
+    list.sort((a, b) => a.from - b.from || a.f - b.f);
+    let last: { f: number; from: Day; to: number } | undefined;
+    for (const h of list) {
+      if (last && h.from < last.to && h.f !== last.f)
+        problems.push(`figures ${last.f} and ${h.f} share a spot on day ${h.from}`);
+      if (!last || h.to > last.to) last = h;
     }
+  }
   // Every lodging stands at a site with room for all activities, on a place that stays dry
   // while it stands (sites.md section 7).
   const seaMax = (from: Day, to: Day) => {

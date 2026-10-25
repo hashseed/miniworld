@@ -4,7 +4,7 @@
 import { detAtan2, detCos, detSin, RAD } from '../../../app/src/core/detmath.ts';
 import { EARTH_RADIUS_KM } from '../../../app/src/geo/earth.ts';
 
-const KM_PER_DEG = 111.195;
+export const KM_PER_DEG = 111.195;
 
 /** Distance in km between two points, on a local flat map (good to a few per cent at camp range). */
 export function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
