@@ -43,6 +43,9 @@
     },
     "animal-cave-lion": {
       "shrink": 0.85
+    },
+    "animal-panda": {
+      "shrink": 0.7
     }
   },
   "groups": [
