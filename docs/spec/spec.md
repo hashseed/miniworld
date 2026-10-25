@@ -267,6 +267,8 @@ flowchart LR
 - One fixed quality level (section 8); dynamic resolution lowers the render scale when frame time rises.
 - A stress scene (thousands of figures over a dense city at close zoom) runs in milestone 1 to prove these targets before content work starts, and stays in the test suite as a performance check.
 
+**How the code follows this**, and the architecture work still open, are in [architecture.md](architecture.md).
+
 **Tests.** Golden snapshot tests compute the scene for a list of fixed dates and places and compare it to a stored result; any difference must be intended. Data validation runs in the same suite, and browser tests check the timeline and the camera fly-to on desktop and phone sizes.
 
 ## 10. Content delivery
@@ -309,7 +311,7 @@ The spec comes first, always: every change to behaviour, content or data format 
 
 ## 13. Licences
 
-**Code.** Miniworld is closed source. The code, spec and assets are proprietary, with all rights reserved, as stated in `LICENSE` at the root of the repository; the repository stays private. `package.json` is marked `"private": true` with the licence `UNLICENSED`. Third-party libraries the app includes must have permissive licences (such as MIT, BSD, ISC, Apache-2.0 or Zlib) that allow use in closed-source software. Fonts may also use the SIL Open Font License 1.1, which allows bundling with closed-source software. Their notices are collected into `app/public/third-party-notices.txt`, shipped with the app; `npm run notices` regenerates it from the runtime dependencies, and `npm run check` fails when it is out of date or a runtime dependency has a licence not on this list.
+**Code.** Miniworld is closed source. The code, spec and assets are proprietary, with all rights reserved, as stated in `LICENSE` at the root of the repository. The repository on GitHub is public on purpose (Yang, 2026-10-25): being able to read the code grants no right to use it. `package.json` is marked `"private": true` with the licence `UNLICENSED`. Third-party libraries the app includes must have permissive licences (such as MIT, BSD, ISC, Apache-2.0 or Zlib) that allow use in closed-source software. Fonts may also use the SIL Open Font License 1.1, which allows bundling with closed-source software. Their notices are collected into `app/public/third-party-notices.txt`, shipped with the app; `npm run notices` regenerates it from the runtime dependencies, and `npm run check` fails when it is out of date or a runtime dependency has a licence not on this list.
 
 **Data.** Every dataset used must be freely available and usable commercially, and the data actually used is kept in the repository under `data/sources/` with its licence text, so the app never depends on a source staying online. Only small simplified extracts are kept (the variables, times and resolution the app needs), not the full original downloads; the original URLs and checksums are recorded so the extracts can be remade (decided by Yang on 2026-10-17).
 
