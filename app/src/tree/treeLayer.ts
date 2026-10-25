@@ -70,6 +70,10 @@ const CAVE_CUT_DEEP_M = 1.8;
 const GRAVE_DEPTH_M = 0.75;
 /** The monument sinks its own height, 5.5 metres, linearly with the date (humankind.md section 8.2). */
 const MONUMENT_DEPTH_M = 5.5;
+/** The pen's fence is a ring this many model metres across its middle (assets prop-pen). */
+const PEN_FENCE_R = 5;
+/** Points round a ring where the ground under it is looked up. */
+const GROUND_RING_STEPS = 12;
 /** The ground is levelled this far round a monument's middle, in layout metres at its drawn size. */
 const MONUMENT_PLATEAU_M = 30;
 /** Below this share of its depth a cut has no wall; low, so the wall sinks into the ground rather than popping off. */
@@ -541,6 +545,8 @@ export class TreeLayer {
           -(1 - r) * (monument ? MONUMENT_DEPTH_M : GRAVE_DEPTH_M) * km,
         );
       } else at.scale.setScalar(km);
+      // The pen's fence follows the ground (neolithic/villages.md section 7).
+      if (q.kind === 'prop-pen') this.onGround(at, q, PEN_FENCE_R * km);
       if (q.height) at.position.addScaledVector(this.dir, q.height * FIGURE_KM_PER_M);
       // A scene's wall or grave grows in step by step as it is painted or filled (humankind.md section 8.2).
       // A cave's painting, a picture on the face, painted session by session.
@@ -720,6 +726,52 @@ export class TreeLayer {
       return this.surface.surfaceKm([v2.x, v2.y, v2.z]);
     };
     return [at(-1), at(1)];
+  }
+
+  /** How a ring-shaped prop lies on the ground: its lift and its slope east and north, by place. */
+  private tilts = new Map<string, { lift: number; east: number; north: number }>();
+
+  /**
+   * A ring-shaped prop placed by `place` laid on the drawn ground round it (Yang, 2026-10-25:
+   * "can we make the pen adjust to the terrain?"): turned to the plane that best fits the ground
+   * under its ring of `radiusKm`, and lowered so that no part of the ring stands above the ground.
+   */
+  private onGround(root: THREE.Object3D, p: Placed, radiusKm: number): void {
+    const d = this.dir;
+    const key = `${p.lat},${p.lon},${p.x},${p.z},${radiusKm}`;
+    let tilt = this.tilts.get(key);
+    const { e2: east, n2: north, v1 } = this;
+    northEast(d, north, east);
+    if (!tilt) {
+      if (this.tilts.size > 4096) this.tilts.clear();
+      const k = radiusKm / EARTH_RADIUS_KM;
+      const h: number[] = [];
+      let [a, b, c] = [0, 0, 0];
+      for (let i = 0; i < GROUND_RING_STEPS; i++) {
+        const t = (i / GROUND_RING_STEPS) * 2 * Math.PI;
+        v1.copy(d)
+          .addScaledVector(east, Math.cos(t) * k)
+          .addScaledVector(north, Math.sin(t) * k)
+          .normalize();
+        const g = this.surface.surfaceKm([v1.x, v1.y, v1.z]);
+        h.push(g);
+        a += g / GROUND_RING_STEPS;
+        b += (2 * g * Math.cos(t)) / GROUND_RING_STEPS;
+        c += (2 * g * Math.sin(t)) / GROUND_RING_STEPS;
+      }
+      // Lowered until the plane is nowhere above the ground under the ring.
+      let sink = 0;
+      h.forEach((g, i) => {
+        const t = (i / GROUND_RING_STEPS) * 2 * Math.PI;
+        sink = Math.max(sink, a + b * Math.cos(t) + c * Math.sin(t) - g);
+      });
+      const here = this.surface.surfaceKm([d.x, d.y, d.z]);
+      tilt = { lift: a - sink - here, east: b / radiusKm, north: c / radiusKm };
+      this.tilts.set(key, tilt);
+    }
+    root.position.addScaledVector(d, tilt.lift);
+    v1.copy(d).addScaledVector(east, -tilt.east).addScaledVector(north, -tilt.north).normalize();
+    root.quaternion.premultiply(this.turn.setFromUnitVectors(d, v1));
   }
 
   /** The true direction of a point of the scene: layout metres east and north of a place. */

@@ -23,6 +23,7 @@ import {
 } from './scene/memo.ts';
 import {
   BUILD_MS,
+  HERD_SCALE,
   TAKE_DOWN_MS,
   buildSpot,
   FLINT_MS,
@@ -206,6 +207,13 @@ export {
   stageHunts,
 } from './scene/stages.ts';
 export { shownAtMs, departureOf } from './scene/memo.ts';
+
+/** A village's dog keeps this far behind its person (ms of their walk), and stands this far to their side (layout metres). */
+const DOG_LAG_MS = 700;
+const DOG_SIDE_M = 1.1;
+/** It trots once its person went this far (layout metres) in the last DOG_PACE_MS. */
+const DOG_PACE_MS = 900;
+const DOG_TROT_M = 0.8;
 
 /** Everything the tree shows at a clock time (section 8.1). */
 export function treeScene(
@@ -612,6 +620,8 @@ export function treeScene(
     // Tilling with the ard: the oxen and the yoke in front (neolithic/villages.md section 7).
     if (pose.clip === 'till' && st) ploughTeamOf(cx, pose, st.home.camp, st.home.culture ?? '', ms);
     scene.figures.push(pose);
+    if (st && villageOf(st.home.camp)?.dog && dogMaster(st.home.camp, ms) === f.id)
+      dogOf(f, i, pose, ms);
   }
   // Each hunt's animal, spears and pole, once; an animal lies by the camp after its hunt.
   const shown = new Set<string>();
@@ -807,6 +817,55 @@ export function treeScene(
   }
   function turnOf(id: number, t: number): number {
     return Math.floor((t + (hash32(id, 73) % TURN_MS)) / TURN_MS);
+  }
+
+  /**
+   * Whom a village's dog follows at a time: the grown-up at home whose hash is lowest, so it
+   * keeps to one person until they leave (neolithic/villages.md section 7).
+   */
+  function dogMaster(camp: number, t: number): number | undefined {
+    let best: number | undefined;
+    let low = Infinity;
+    for (const g of mates(camp)) {
+      if (lookOf(g.id) === 'child') continue;
+      const st = stayAt(g, t);
+      if (!st || st.home.camp !== camp) continue;
+      const h = hash32(g.id, camp, 271);
+      if (h < low) [best, low] = [g.id, h];
+    }
+    return best;
+  }
+
+  /**
+   * The dog at its person's heels: where they were a moment ago, on their own way, so it walks
+   * where they walked; standing a little to their side when they stand.
+   */
+  function dogOf(f: TreeFigure, i: number, pose: FigurePose, ms: number): void {
+    const was = poseAt(f, i, ms - DOG_LAG_MS);
+    const before = poseAt(f, i, ms - DOG_LAG_MS - DOG_PACE_MS);
+    if (!was || !before || was.lat !== pose.lat || was.lon !== pose.lon || was.soul) return;
+    const moved = Math.sqrt((was.x - before.x) ** 2 + (was.z - before.z) ** 2);
+    // From standing beside them to trotting behind, by how far it went in the last moment.
+    const still = 1 - Math.min(1, moved / DOG_TROT_M);
+    // Beside them by the way they face, which turns smoothly; heading the way it trots.
+    const [fx, fz] =
+      moved > 1e-3
+        ? [(was.x - before.x) / moved, (was.z - before.z) / moved]
+        : [was.dirX, was.dirZ];
+    scene.prey.push({
+      id: `dog:${f.id}`,
+      kind: 'animal-dog' as PreyKind,
+      lat: was.lat,
+      lon: was.lon,
+      x: was.x + still * DOG_SIDE_M * was.dirZ,
+      z: was.z - still * DOG_SIDE_M * was.dirX,
+      dirX: still > 0.5 ? was.dirX : fx,
+      dirZ: still > 0.5 ? was.dirZ : fz,
+      clip: still > 0.5 ? 'idle' : 'walk',
+      clipMs: ms,
+      visibility: 1,
+      scale: HERD_SCALE,
+    });
   }
 
   /** The village of a camp (section 8.5), worked out once. */
