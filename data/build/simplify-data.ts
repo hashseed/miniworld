@@ -221,6 +221,104 @@ async function naturalEarth(): Promise<string[]> {
   return files;
 }
 
+// --- Reba, Reitsma and Seto 2016: every city with its first dated population ---------
+
+/** A row of a CSV file: fields split on commas outside double quotes. */
+function csvRow(line: string): string[] {
+  const out: string[] = [];
+  let field = '';
+  let quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i]!;
+    if (c === '"') {
+      if (quoted && line[i + 1] === '"') {
+        field += '"';
+        i++;
+      } else quoted = !quoted;
+    } else if (c === ',' && !quoted) {
+      out.push(field);
+      field = '';
+    } else field += c;
+  }
+  out.push(field);
+  return out;
+}
+
+/** A column such as BC_2250 or AD_100 as an astronomical year (1 BCE is 0). */
+const yearOf = (column: string): number | undefined => {
+  const m = /^(BC|AD)_(\d+)$/.exec(column);
+  if (!m) return undefined;
+  return m[1] === 'BC' ? 1 - Number(m[2]) : Number(m[2]);
+};
+
+async function reba(): Promise<string[]> {
+  type City = {
+    name: string;
+    country: string;
+    lat: number;
+    lon: number;
+    certainty: number;
+    first: number;
+    firstPop: number;
+  };
+  const cities: City[] = [];
+  for (const file of ['modelskiAncientV2.csv', 'chandlerV2.csv', 'modelskiModernV2.csv']) {
+    const text = new TextDecoder('windows-1252').decode(readFileSync(original('reba-2016', file)));
+    const lines = text.split(/\r?\n/).filter((l) => l.trim());
+    const head = csvRow(lines[0]!);
+    const years = head.map(yearOf);
+    for (const line of lines.slice(1)) {
+      const row = csvRow(line);
+      const lat = Number(row[3]);
+      const lon = Number(row[4]);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon) || (lat === 0 && lon === 0)) continue;
+      let first: number | undefined;
+      let firstPop = 0;
+      row.forEach((v, i) => {
+        const y = years[i];
+        if (y === undefined || v.trim() === '' || !(Number(v) > 0)) return;
+        if (first === undefined || y < first) [first, firstPop] = [y, Number(v)];
+      });
+      if (first === undefined) continue;
+      const city = {
+        name: row[0]!.trim(),
+        country: row[2]!.trim(),
+        lat,
+        lon,
+        certainty: Number(row[5]) || 3,
+        first,
+        firstPop,
+      };
+      // The same city in two files: one entry, its earliest date.
+      const same = cities.find(
+        (c) => c.name === city.name && Math.abs(c.lat - lat) < 0.2 && Math.abs(c.lon - lon) < 0.2,
+      );
+      if (!same) cities.push(city);
+      else if (city.first < same.first)
+        Object.assign(same, { first: city.first, firstPop: city.firstPop });
+    }
+  }
+  cities.sort((a, b) => a.first - b.first || a.name.localeCompare(b.name));
+  const dir = outDir('reba-2016');
+  writeFileSync(
+    join(dir, 'cities.json'),
+    `${JSON.stringify(
+      {
+        description:
+          'Every geocoded city of the three files, once, with the astronomical year of its first dated population (first, 1 BCE is 0) and that population (firstPop), its certainty (1 to 3, 1 the surest) and position in degrees.',
+        cities: cities.map((c) => ({
+          ...c,
+          lat: Math.round(c.lat * 1e4) / 1e4,
+          lon: Math.round(c.lon * 1e4) / 1e4,
+        })),
+      },
+      null,
+      0,
+    )}\n`,
+  );
+  return ['cities.json'];
+}
+
 // --- Main -------------------------------------------------------------------
 
 const SIMPLIFIERS: Record<string, () => Promise<string[]>> = {
@@ -228,6 +326,7 @@ const SIMPLIFIERS: Record<string, () => Promise<string[]>> = {
   'etopo-2022': etopo,
   'paleomist-1.0': paleomist,
   'beyer-2020': beyer,
+  'reba-2016': reba,
 };
 
 function checksum(path: string): { sha256: string; bytes: number } {
