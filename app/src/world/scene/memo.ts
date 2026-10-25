@@ -6,7 +6,7 @@ import { detAtan2 } from '../../core/detmath.ts';
 import type { Day } from '../../time/calendar.ts';
 import type { Field } from '../fieldShapes.ts';
 import { farmingProfileAt } from '../farmingOnset.ts';
-import { maskLand } from '../fieldMask.ts';
+import { maskReach } from '../fieldMask.ts';
 import {
   isNeolithicProfile,
   neolithicProfile,
@@ -153,7 +153,7 @@ export function buildVillage(chunk: TreeChunk, camp: number): Village | null {
     profile ?? farmingProfileAt(deg(first.lat), deg(first.lon)) ?? 'pre-pottery-neolithic-levant',
   ).herd;
   const free = (x: number, z: number) =>
-    !farm || (maskLand(farm.fieldLand!, x, z) && !inOutingLane(camp, x, z));
+    !farm || (maskReach(farm.fieldLand!, x, z) && !inOutingLane(camp, x, z));
   // The herd is placed first, on land and out of the lanes; the fields then keep clear of its pen and animals.
   const a0 = hash01(camp, 235) * 2 * Math.PI;
   let herd: Village['herd'];

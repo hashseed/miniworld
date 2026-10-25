@@ -5,6 +5,7 @@
 // lives where. Deterministic: whole days, the seeded hash and the deterministic
 // trigonometry only, so the same inputs give the same tree on every machine.
 
+import { maskLost } from '../../../app/src/world/fieldMask.ts';
 import { hash32, hash01 } from '../../../app/src/core/hash.ts';
 import { detCos, detSin } from '../../../app/src/core/detmath.ts';
 import { DAYS_PER_YEAR, type Day } from '../../../app/src/time/calendar.ts';
@@ -280,6 +281,8 @@ export interface TreeSettings {
   thresholds?: Threshold[];
   /** The farming profile the band at a threshold's site becomes on its day (neolithic/villages.md section 1). */
   thresholdCulture?: (t: Threshold) => string | undefined;
+  /** Whether a site is a village site, the place of a future city (neolithic/villages.md section 2). */
+  villageSite?: (lat: number, lon: number) => boolean;
   /** Places that must have a band from a day to a day (sites.md section 4.1). */
   anchors?: Anchor[];
   /** Parties of several bands that meet at a place for a while (sites.md section 4.3). */
@@ -1136,7 +1139,12 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       const l = tree.lodgings[id]!;
       return (
         camp.site.places[l.slot]! <= sea ||
-        l.reach.some((r, gap) => laneReach(camp.site, gap, sea) < r)
+        l.reach.some((r, gap) => laneReach(camp.site, gap, sea) < r) ||
+        // A village's fields: the sea came up over land its fields may use (it stays there
+        // for millennia while the sea rises, neolithic/villages.md section 3).
+        (l.fieldLand !== undefined &&
+          l.culture !== undefined &&
+          maskLost(l.fieldLand, fieldMaskOf(l.culture, camp.site, sea)))
       );
     });
   };
@@ -2150,7 +2158,13 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
           day,
           BUD_HOPS,
           // Not into another band's home range, nor a culture area at its cap (sites.md section 4).
-          (site) => usable(site, day) && free(site, day) && !reserved(site) && !areaFull(site, day),
+          (site) =>
+            usable(site, day) &&
+            free(site, day) &&
+            !reserved(site) &&
+            !areaFull(site, day) &&
+            // A village founds villages only at village sites (neolithic/villages.md section 2).
+            (!camp.culture || !s.village?.(camp.culture) || !!s.villageSite?.(site.lat, site.lon)),
         );
         const pick = best(options, day, 3);
         if (!pick) continue;

@@ -27,6 +27,8 @@ Each threshold of `data/curated/neolithic.json` (a farming centre, its year and 
 
 ## 2. Village sites are the places of future cities
 
+**Built 2026-10-25** (the curated list follows): every city of the extract that lies in a farming profile's area (`farmingProfileAt`) asks for a camp site within 150 km of it (`VILLAGE_SITE_KM`), laid as a key place's is, and the site nearest it within that distance is a **village site**. The farming grid gives a site its profile only at a village site, so a band elsewhere in farming land stays hunter-gatherers until it stands at one, and a village buds only to village sites. A threshold's band farms at its own site (part 1). On the real build: 276 village sites for 696 places of future cities in farming land; every one of the 18 villages stands within 25 to 125 km of a future city (Konya, Plovdiv, Shaoxing, Oaxaca, Elephantine and others), drawn on it at the camps' scale, but for the thresholds' own villages in the Andes and New Guinea, which the curated list is for.
+
 A farming village is founded only at a **village site**, a dated place of the place table (sites.md section 2.1) where a city later stood, so the villages of 7000 BCE stand where Jericho, Uruk, Thebes, Xi'an or Teotihuacan will grow. The sites come from a source extract under `data/sources/`:
 
 - **Source (Proposed):** Reba, M., Reitsma, F. and Seto, K. C. 2016, *Spatializing 6,000 years of global urbanization from 3700 BC to AD 2000*, Scientific Data 3, 160034, its dataset of geocoded historical cities with their first dated population (from Chandler 1987 and Modelski 2003), licence CC BY 4.0 as published (to be checked on the dataset's own page before the extract is added), which the data licence policy allows (spec section 13). The extract (`data/sources/reba-2016/cities.json`, added 2026-10-25) keeps every geocoded city once with its name, country, position, certainty and the year and size of its first dated population: 1,726 cities, from Eridu (3700 BCE) on.
@@ -36,7 +38,7 @@ A farming village is founded only at a **village site**, a dated place of the pl
 
 ## 3. Villages stay
 
-**Built 2026-10-25** (the founding at village sites follows with part 2): a camp of a farming profile does not move at the end of its residence window, as a settled band does not; unlike one, it still buds, also near a threshold. On the real build every farming village stands at one place, most to the end of the tree.
+**Built 2026-10-25** (the founding at village sites follows with part 2): a camp of a farming profile does not move at the end of its residence window, as a settled band does not; unlike one, it still buds, also near a threshold. On the real build every farming village stands at one place, most to the end of the tree. As it stays for millennia while the sea rises, it rebuilds its houses in place, as a camp does when the sea reaches its huts or lanes, also when the sea takes land its fields may use (its houses' `fieldLand` mask at the present sea), so its fields are laid out again on land.
 
 From its founding a village does not move: its band is settled at its site (as an anchor's band is, sites.md section 4.1) for as long as the culture area has people, its houses are rebuilt in place, and it buds off new villages by sending a small group (two to four grown-ups and their children) walking to the nearest free village site, never by moving the village. A village is abandoned only where the sea floods its site (it then moves to the nearest free village site inland) or a listed event ends it. The tree's checks add: a farming house is never taken down while its village stands, and no village's site changes.
 
@@ -65,6 +67,7 @@ Each is a rule of the village's layout, checked for every village of the built t
 
 - **No house over a cliff.** Every house's footprint lies on ground whose drawn height varies by less than a set amount across it (Proposed: the height a figure is tall), and no house's footprint reaches water.
 - **No field under a house** and no field under the pen: fields keep a margin from every house's and the pen's footprint.
+- **No walk across water to a field or the pen** (built 2026-10-25): a field's or the pen's ground counts as free only where it and the straight way out to it from the inner edge of the land mask are land (`maskReach`), as the camps' outing lanes are; a village by a bay put fields across it, and the farmers walked through the sea.
 - **No tree in a field or an enclosure.** The trees keep off every field and the pen with a margin, from the village's founding (fields-and-crops.md section 2).
 
 ## 7. Herds and oxen
