@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import { buildShelter, type ShelterId } from '../../../assets/src/shelters.ts';
+// The Neolithic houses load with their cultures; build them all here.
+import '../../../assets/src/allCultureModels.ts';
 import { detAtan2, detCos, detSin } from '../core/detmath.ts';
 import { NEOLITHIC_PROFILES } from './neolithicProfiles.ts';
 import {

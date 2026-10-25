@@ -18,14 +18,12 @@ import {
 } from './kit.ts';
 import { PROFILES, campLodgingOf, type Profile } from '../../app/src/world/cultures.ts';
 import { addGobekliRing } from './gobekli.ts';
-import { TOOL_PROPS, type ToolPropId, buildToolProp, isToolProp } from './neolithicTools.ts';
 import {
   EAST_ASIA_AMERICAS_HOUSES,
-  type EastAsiaAmericasHouseId,
-  buildEastAsiaAmericasHouse,
-} from './eastAsiaAmericasHouses.ts';
-import { WHIMSY, type Whimsy, whimsy } from './whimsy.ts';
-import { NEOLITHIC_HOUSES, type NeolithicHouseId, buildNeolithicHouse } from './neolithicHouses.ts';
+  NEOLITHIC_HOUSES,
+  TOOL_PROPS,
+  cultureShelter,
+} from './cultureModels.ts';
 
 export const SHELTERS = [
   'shelter-hide-tent',
@@ -144,11 +142,15 @@ function slab(min: Vec3, max: Vec3): THREE.BufferGeometry {
 }
 
 export function buildShelter(id: ShelterId): Model {
-  if (isToolProp(id)) return buildToolProp(id as ToolPropId);
-  if ((NEOLITHIC_HOUSES as readonly string[]).includes(id))
-    return whimsy(buildNeolithicHouse(id as NeolithicHouseId), WHIMSY[id] as Whimsy);
-  if ((EAST_ASIA_AMERICAS_HOUSES as readonly string[]).includes(id))
-    return whimsy(buildEastAsiaAmericasHouse(id as EastAsiaAmericasHouseId), WHIMSY[id] as Whimsy);
+  // The Neolithic houses, tools and props load with their cultures (cultureModels.ts).
+  const culture = cultureShelter(id);
+  if (culture) return culture(id);
+  if (
+    [...NEOLITHIC_HOUSES, ...EAST_ASIA_AMERICAS_HOUSES, ...TOOL_PROPS].includes(
+      id as (typeof TOOL_PROPS)[number],
+    )
+  )
+    throw new Error(`${id} loads with its culture, and its module has not loaded`);
   const mb = new ModelBuilder();
   switch (id) {
     case 'shelter-hide-tent': {

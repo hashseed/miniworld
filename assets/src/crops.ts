@@ -7,27 +7,16 @@ import * as THREE from 'three';
 import { detCos, detSin } from '../../app/src/core/detmath.ts';
 import { hash01 } from '../../app/src/core/hash.ts';
 
-export const CROPS = [
-  'emmer',
-  'einkorn',
-  'barley',
-  'millet',
-  'rice',
-  'maize',
-  'squash',
-  'potato',
-  'quinoa',
-  'taro',
-  'banana',
-  'flax',
-  'lentil',
-] as const;
-export type CropId = (typeof CROPS)[number];
+import {
+  CROPS,
+  CROP_SPACING_M,
+  RIPE_STAGE,
+  STAGES,
+  type CropId,
+  registerCrops,
+} from './cultureModels.ts';
 
-/** The five named stages: bare, sprout, green, ripe, stubble. */
-export const STAGES = [0, 0.25, 0.5, 0.75, 1] as const;
-/** The stage the approved model is built at. */
-export const RIPE_STAGE = 0.75;
+export { CROPS, CROP_SPACING_M, RIPE_STAGE, STAGES, type CropId };
 
 class Acc {
   pos: number[] = [];
@@ -814,19 +803,5 @@ export function cropTriangles(id: CropId, stage: number): number {
   return cropGeometry(id, stage).getAttribute('position').count / 3;
 }
 
-/** Spacing of the tufts in a field, in layout metres (spec section 1.2). */
-export const CROP_SPACING_M: Record<CropId, number> = {
-  emmer: 0.11,
-  einkorn: 0.11,
-  barley: 0.11,
-  flax: 0.11,
-  lentil: 0.11,
-  millet: 0.2,
-  rice: 0.2,
-  maize: 0.2,
-  squash: 0.2,
-  potato: 0.2,
-  quinoa: 0.2,
-  taro: 0.2,
-  banana: 0.4,
-};
+// Loaded with its cultures (cultureModels.ts).
+registerCrops(cropGeometry);

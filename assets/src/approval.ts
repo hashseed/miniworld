@@ -10,6 +10,8 @@ import { ANIMALS, buildAnimal } from './animals.ts';
 import { CROPS, RIPE_STAGE, cropGeometry } from './crops.ts';
 import { PROFILES, buildPerson, type Kind } from './people.ts';
 import { SHELTERS, buildHearth, buildShelter } from './shelters.ts';
+// Every model that loads with its culture, so all of them can be built here.
+import './allCultureModels.ts';
 
 const PERSON_KINDS: Kind[] = ['man', 'woman', 'child'];
 

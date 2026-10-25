@@ -9,6 +9,8 @@ import { CropLayer } from './cropLayer.ts';
 import { signsAt, type SignEvent } from '../world/eventSigns.ts';
 import * as THREE from 'three';
 import type { ContentLoader } from '../content/loader.ts';
+import { wantModels } from '../content/assets.ts';
+import { lodgingModels } from '../content/modelPacks.ts';
 import { latLonToDir } from '../geo/cube.ts';
 import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 import { dayAtMs } from '../time/rate.ts';
@@ -347,6 +349,13 @@ export class TreeLayer {
       const [x, y, z] = latLonToDir(lat, lon);
       return x * camDir.x + y * camDir.y + z * camDir.z >= cosLimit;
     };
+    // The models of the cultures near the camera in the loaded minutes, ahead of their camps (spec section 10).
+    for (let k = w - 1; k <= w + 3; k++) {
+      const c = this.chunks.get(k);
+      if (!c) continue;
+      for (const [ids, dirs] of this.cultureModelsOf(c))
+        if (dirs.some((d) => d.dot(camDir) >= cosLimit)) wantModels(ids);
+    }
     const scene = this.sceneAt(chunk, key, ms, startDay, near, camDir, cosLimit);
     this.pixels.clear();
     // What is too small on screen to see is left out (milestone 2 section 5.5).
@@ -776,6 +785,29 @@ export class TreeLayer {
       .normalize();
     return [up.x, up.y, up.z];
   }
+
+  /**
+   * The models that load with their culture which a tree file's lodgings need, each with where
+   * those lodgings stand, worked out once per file (spec section 10, modelPacks.ts).
+   */
+  private cultureModelsOf(chunk: TreeChunk): [string[], THREE.Vector3[]][] {
+    let list = this.cultureModels.get(chunk);
+    if (!list) {
+      const by = new Map<string, [string[], THREE.Vector3[]]>();
+      for (const l of chunk.lodgings) {
+        const ids = lodgingModels(l);
+        if (!ids.length) continue;
+        const key = ids.join(' ');
+        let entry = by.get(key);
+        if (!entry) by.set(key, (entry = [ids, []]));
+        entry[1].push(new THREE.Vector3(...latLonToDir(l.lat / 1e6, l.lon / 1e6)));
+      }
+      list = [...by.values()];
+      this.cultureModels.set(chunk, list);
+    }
+    return list;
+  }
+  private cultureModels = new WeakMap<TreeChunk, [string[], THREE.Vector3[]][]>();
 
   private request(w: number): void {
     const file = this.files[w];

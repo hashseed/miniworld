@@ -19,15 +19,10 @@ import {
   shade,
 } from './kit.ts';
 
-export const NEOLITHIC_HOUSES = [
-  'shelter-pre-pottery-levant-house',
-  'shelter-anatolian-house',
-  'shelter-anatolian-house-joined',
-  'shelter-lbk-longhouse',
-  'shelter-mehrgarh-house',
-  'shelter-egyptian-neolithic-hut',
-] as const;
-export type NeolithicHouseId = (typeof NEOLITHIC_HOUSES)[number];
+import { NEOLITHIC_HOUSES, type NeolithicHouseId, registerShelters } from './cultureModels.ts';
+import { WHIMSY, type Whimsy, whimsy } from './whimsy.ts';
+
+export { NEOLITHIC_HOUSES, type NeolithicHouseId };
 
 // Real materials (spec section 1): sandy mudbrick, cream plaster, oak, golden thatch.
 const MUD = '#cdb184';
@@ -415,3 +410,8 @@ export function buildNeolithicHouse(id: NeolithicHouseId): Model {
   }
   return mb.build(id);
 }
+
+// Loaded with its cultures (cultureModels.ts), drawn in storybook proportions (whimsy.ts).
+registerShelters(NEOLITHIC_HOUSES, (id) =>
+  whimsy(buildNeolithicHouse(id as NeolithicHouseId), WHIMSY[id] as Whimsy),
+);

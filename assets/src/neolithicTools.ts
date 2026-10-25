@@ -19,28 +19,9 @@ import {
   shade,
 } from './kit.ts';
 
-export const TOOL_PROPS = [
-  'prop-sickle',
-  'prop-digging-stick',
-  'prop-hoe',
-  'prop-ard',
-  'prop-yoke',
-  'prop-quern',
-  'prop-basket',
-  'prop-pot-small',
-  'prop-pot-large',
-  'prop-pot-jar',
-  'prop-kiln',
-  'prop-granary',
-  'prop-silo-pit',
-  'prop-pen',
-  'prop-well',
-] as const;
-export type ToolPropId = (typeof TOOL_PROPS)[number];
+import { TOOL_PROPS, type ToolPropId, isToolProp, registerShelters } from './cultureModels.ts';
 
-export function isToolProp(id: string): id is ToolPropId {
-  return (TOOL_PROPS as readonly string[]).includes(id);
-}
+export { TOOL_PROPS, type ToolPropId, isToolProp };
 
 // Real materials: oak is a light warm brown, never dark.
 const OAK = '#c9a064';
@@ -540,3 +521,6 @@ function ringWall(rows: Vec3[][]): THREE.BufferGeometry {
   g.computeVertexNormals();
   return g;
 }
+
+// Loaded with its cultures (cultureModels.ts).
+registerShelters(TOOL_PROPS, (id) => buildToolProp(id as ToolPropId));

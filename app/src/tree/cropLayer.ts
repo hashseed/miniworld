@@ -10,7 +10,12 @@ import { detCos, detSin } from '../core/detmath.ts';
 import { hash01 } from '../core/hash.ts';
 import { drawable } from '../content/assets.ts';
 import { celMaterial } from '../../../assets/src/kit.ts';
-import { CROP_SPACING_M, STAGES, cropGeometry, type CropId } from '../../../assets/src/crops.ts';
+import {
+  CROP_SPACING_M,
+  STAGES,
+  cropBuilder,
+  type CropId,
+} from '../../../assets/src/cultureModels.ts';
 import { pointInPolygon, type Field } from '../world/fieldShapes.ts';
 import type { SurfaceSource } from './surface.ts';
 
@@ -169,7 +174,8 @@ export class CropLayer {
     let g = this.geometries.get(k);
     if (!g) {
       const [crop, stage] = k.split(':');
-      g = cropGeometry(crop as CropId, Number(stage));
+      // drawable.has() let the field in only once crops.ts has loaded (modelPacks.ts).
+      g = cropBuilder()!(crop as CropId, Number(stage));
       this.geometries.set(k, g);
     }
     return g;
