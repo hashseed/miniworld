@@ -52,6 +52,9 @@ import type { SceneCx } from './context.ts';
 /** A reaper carrying a sheaf goes back along its way out to this far from the hearth (layout metres), inside the ring. */
 const SHEAF_BACK_M = 10;
 
+/** A farmer sets off for a field from this far out on the field's own line (layout metres). */
+const FIELD_GATE_M = 3;
+
 /**
  * What a figure goes out to do in its `k`-th turn on its own, as far as its gap has land
  * (section 8.1): a gathering or a stroll with its legs, a hunt (planned as a camp event
@@ -212,18 +215,24 @@ export function soloTurn(
     // Out to the field, work in it, and for the reaper a sheaf carried in to the threshing floor.
     const w = fieldSpot(st, k);
     if (!w || Math.sqrt(w.at.x ** 2 + w.at.z ** 2) > MAX_OUTING_M - 2) return { go: 'rest' };
-    trip.go(w.at).stay(trip.t + FIELD_WORK_MS, go, w.face);
+    // Out along the field's own line from the green, the way its land was checked (the land
+    // mask's maskReach, neolithic/villages.md section 6), and back the same way.
+    const r = Math.sqrt(w.at.x ** 2 + w.at.z ** 2);
+    const gate = { x: (w.at.x * FIELD_GATE_M) / r, z: (w.at.z * FIELD_GATE_M) / r };
+    trip
+      .go(gate)
+      .go(w.at, 'walk', true)
+      .stay(trip.t + FIELD_WORK_MS, go, w.face);
     if (go === 'reap' && room >= THRESH_ROOM_M) {
       const floor = outingPoint(st.s, camp, 8);
       // Back the way it came, the land its field was laid out by (fieldMask maskReach), to
       // inside the ring, and only then across to the floor: never straight over a bay.
-      const r = Math.sqrt(w.at.x ** 2 + w.at.z ** 2);
       const back = { x: (w.at.x * SHEAF_BACK_M) / r, z: (w.at.z * SHEAF_BACK_M) / r };
       trip
-        .go(back, 'carry')
+        .go(back, 'carry', true)
         .go(floor, 'carry')
         .stay(trip.t + THRESH_MS, 'thresh', { x: floor.x * 2, z: floor.z * 2 });
-    }
+    } else trip.go(gate, 'walk', true);
     trip.go(st.spot);
   } else if (go === 'thresh') {
     if (room < THRESH_ROOM_M) return { go: 'rest' };

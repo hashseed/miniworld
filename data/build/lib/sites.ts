@@ -121,6 +121,8 @@ export interface SiteInputs {
   crossings: { id: string; day: Day; way: { lat: number; lon: number }[] }[];
   /** Drawn km per true km at a place, from the history lens at its fixed strength; 1 without it. */
   widthAt?(lat: number, lon: number): number;
+  /** A layout point's true place through the history lens (history-lens.md section 4.2). */
+  placeAt?(lat: number, lon: number, eastKm: number, northKm: number): { lat: number; lon: number };
   /**
    * Places that need a site near them; `km` asks for one nearer than KEY_PLACE_KM (an anchor's),
    * `sea` for one dry only up to that sea level, not the highest (a dated place, section 2.1).
@@ -150,7 +152,21 @@ export interface SiteInputs {
  * land bigger (sites.md section 2).
  */
 const at = (s: { lat: number; lon: number; w: number }, x: number, z: number) =>
-  onGlobe(s.lat, s.lon, (x * LAYOUT_KM_PER_M) / s.w, (z * LAYOUT_KM_PER_M) / s.w);
+  placeKm(s.lat, s.lon, x * LAYOUT_KM_PER_M, z * LAYOUT_KM_PER_M);
+/**
+ * The true place of a point in drawn km east and north of a place, laid out on the drawn globe
+ * as the tree layer draws it (history-lens.md section 4.2), set from the inputs while the
+ * sites are built; true km without a lens.
+ */
+let placeKm: (
+  lat: number,
+  lon: number,
+  eastKm: number,
+  northKm: number,
+) => {
+  lat: number;
+  lon: number;
+} = onGlobe;
 /** Drawn km per true km at a place, set from the inputs while the sites are built. */
 let lensWidth: (lat: number, lon: number) => number = () => 1;
 /**
@@ -503,6 +519,7 @@ function keySite(
 /** Lays the sites and links them (sites.md sections 2 and 3). */
 export function buildSites(input: SiteInputs): SiteMap {
   lensWidth = input.widthAt ?? (() => 1);
+  placeKm = input.placeAt ?? onGlobe;
   groundAt = input.elevation ?? (() => 0);
   const KM = 111.195;
   const sites: Site[] = [];

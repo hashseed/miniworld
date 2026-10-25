@@ -90,6 +90,17 @@ Changing the strength morphs the globe instead of swapping it, so the viewer see
 - **Clocks and world.** The morph runs on the frame time of the screen, not on the clock of history, so it also plays while history is paused and never changes the clock. It changes only how the world is drawn, never the world.
 - **Start.** When the app opens, the globe is drawn straight in the saved state, with no morph.
 
+### 4.2 One mapping for everything laid out on the globe
+
+Yang, 2026-10-25: "I have ran into the issue with history lens distorting and making things not line up many times now. Let's fix this systematically so that it no longer occurs." A miniature (a camp's lodgings, people, lanes and fire, a village's houses, fields and pen, a hunt, a scene at an anchor, the trees' clearings round them) has its drawn size wherever it stands, so its layout is in drawn kilometres, and there is exactly **one** way to say where a point of it lies, `placedTrue` in `app/src/geo/placement.ts`:
+
+- The centre is a true place. Its drawn up is the lens's `toDrawn` of it; the point lies `east` and `north` drawn kilometres along the drawn up's own north and east (`geo/earth.ts` `northEast`), on the drawn globe, as the tree layer places everything (`place()`).
+- The point's true place, for asking about its ground, is the lens's `toTrue` of that drawn point.
+
+Everything that asks about the ground under a miniature uses it: the data build's sites (cores, lodging places, lanes), the steep check, the land masks of villages (each cell and the way out to it), the dry ground of the scenes at anchors and their rings, the tree layer's clearings, and the golden on-land test of figures. The lens's maths lives in `geo/lens.ts` so the world, the build and the renderer share it (`globe/lens.ts` re-exports it). Until 2026-10-25 the build divided a layout offset by the lens's width at the centre and laid it out along true north and east, which agrees with the drawing only where the lens is an even scale-up: the lens stretches more one way than another and turns north a little, and a camp's lanes reach 1,300 drawn km, so lanes, fields and huts were checked hundreds of km from where they were drawn; the clearings took layout kilometres as true ones (up to 300 km off); and the golden test used the build's mapping, so it could not see either. Walks out to a field go along the field's own checked line from the green (the itinerary's `direct` legs), and a band's rows and canoes never trail behind the start of a leg across a shore.
+
+Wild animals are placed in true space round their group's home and drawn through `toDrawn`, so they need no layout mapping; their keep-outs and reach are true km over the width at the home.
+
 ## 5. Settings and tests
 
 - The strength is kept with the other settings in local storage as a whole percentage from 0 to 200 ([spec.md](spec.md#76-what-is-saved) section 7.6, [milestone-1.md](milestone-1.md#82-settings) section 8.2). It is 100% by default on both desktop and phone. A saved value from the earlier on/off setting is read as 100% for on and 0% for off. Whether the hint of section 1 was closed is saved with it.

@@ -169,6 +169,7 @@ const tree = new TreeLayer(loader, {
   surfaceKm: surface.surfaceKm,
   version: surface.version,
   toDrawn: (d) => globe.lens.toDrawn(d),
+  toTrue: (d) => globe.lens.toTrue(d),
   // The sea of the day, drawn; a little lens width is allowed for (humankind.md section 8.2).
   seaKm: (): number => (loop.planet.seaLevel as number) * EXAGGERATION * 0.001 * 1.4,
 });

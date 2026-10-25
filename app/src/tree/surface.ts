@@ -7,6 +7,8 @@ export interface SurfaceSource {
   version?(): number;
   /** Where a true direction is drawn, through the history lens (history-lens.md section 4). */
   toDrawn(dir: Vec3): Vec3;
+  /** The true direction of a drawn direction, through the inverse lens; the drawn one where absent. */
+  toTrue?(dir: Vec3): Vec3;
   /** Drawn km per true km at a true direction; 1 where absent. */
   widthAt?(dir: Vec3): number;
   /** The drawn height of the sea of the day, in km; the caves' cuts never go below it. */

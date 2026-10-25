@@ -367,7 +367,9 @@ export function treeScene(
     const spot = lodgingSpot(l);
     const down = takeDown(l);
     // A drying rack stands behind some lodgings while they are up (section 8.1).
-    if (ms >= shown + BUILD_MS && ms < down && rackOnLand(l)) {
+    // No rack behind the lodging place a scene at an anchor stands behind (section 8.2).
+    const stageHere = chunk.stages?.some((x) => x.camp === l.camp && x.slot === l.slot);
+    if (ms >= shown + BUILD_MS && ms < down && rackOnLand(l) && !stageHere) {
       const rack = rackSpot(l);
       scene.props.push({
         id: `rack:${l.id}`,

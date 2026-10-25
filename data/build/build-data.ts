@@ -58,7 +58,7 @@ async function main(args: string[]): Promise<void> {
   const drawn = drawnTiles.ground();
   const wildlife = timed('wildlife', () => buildWildlifeMasks(ctx, map, drawn));
   const climate = timed('climate', () => buildClimate(ctx, map));
-  const { lens, widthAt } = timed('lens', () => buildLensStage(ctx));
+  const { lens, widthAt, placeAt } = timed('lens', () => buildLensStage(ctx));
   // The farming spread first: the tree gives camps their Neolithic culture from it (humankind.md section 8.5).
   const farming = timed('farming', () => buildFarming(ctx, map, climate));
   // The tree is the slowest stage, so its result is cached: under the land, the lens, its own
@@ -77,7 +77,7 @@ async function main(args: string[]): Promise<void> {
       stopRecording: () => output.stopRecording(),
       replay: (writes) => output.replay(writes),
     },
-    () => buildHumankind(ctx, map, climate, drawn, widthAt),
+    () => buildHumankind(ctx, map, climate, drawn, widthAt, placeAt),
   );
   timings.push(['humankind', (performance.now() - tree) / 1000, hit ? 'cached' : '']);
   if (hit) log('tree of humankind: from the stage cache');
