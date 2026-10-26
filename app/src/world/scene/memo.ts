@@ -6,7 +6,7 @@ import { detAtan2 } from '../../core/detmath.ts';
 import type { Day } from '../../time/calendar.ts';
 import type { Field } from '../fieldShapes.ts';
 import { farmingProfileAt } from '../farmingOnset.ts';
-import { maskReach } from '../fieldMask.ts';
+import { maskLand, maskReach } from '../fieldMask.ts';
 import {
   isNeolithicProfile,
   neolithicProfile,
@@ -194,8 +194,14 @@ export function buildVillage(chunk: TreeChunk, camp: number): Village | null {
     for (let k = 1; k <= 16; k++) if (onHouse((x * k) / 16, (z * k) / 16)) return true;
     return false;
   };
+  // Its own land: not on a neighbouring village's side of the line between them (villages.md section 3.1).
+  const ownLand = (x: number, z: number) => !farm?.fieldShare || maskLand(farm.fieldShare, x, z);
   const free = (x: number, z: number) =>
-    !farm || (maskReach(farm.fieldLand!, x, z) && !inOutingLane(camp, x, z) && !underHouse(x, z));
+    !farm ||
+    (maskReach(farm.fieldLand!, x, z) &&
+      ownLand(x, z) &&
+      !inOutingLane(camp, x, z) &&
+      !underHouse(x, z));
   // The herd is placed first, on land and out of the lanes; the fields then keep clear of its pen and animals.
   const a0 = hash01(camp, 235) * 2 * Math.PI;
   let herd: Village['herd'];
@@ -231,6 +237,7 @@ export function buildVillage(chunk: TreeChunk, camp: number): Village | null {
     const side = (k: number) => maskReach(farm!.fieldLand!, at.x - d.z * k, at.z + d.x * k);
     if (
       clearOfPen &&
+      ownLand(at.x, at.z) &&
       !underHouse(at.x, at.z) &&
       side(0) &&
       side(STORE_SIDE_M) &&

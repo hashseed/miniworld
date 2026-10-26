@@ -880,7 +880,9 @@ export function treeScene(
 
   /** The clock of a village's field jobs (fieldWork.ts). */
   function fieldClockOf(camp: number, v: Village): FieldClock {
-    return { fields: v.fields.length, seed: hash32(camp, 277), from: at(v.founded) };
+    // One job a slot for each field, however many plots it has (fields-and-crops.md section 3).
+    const fields = v.fields.reduce((n, f) => Math.max(n, f.job + 1), 0);
+    return { fields, seed: hash32(camp, 277), from: at(v.founded) };
   }
 
   /**

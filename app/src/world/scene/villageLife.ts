@@ -43,7 +43,7 @@ export function villageScene(
   // A field is there from its first ploughing (fields-and-crops.md section 2).
   let ploughed = false;
   for (const field of v.fields) {
-    const stage = fieldStage(clock, field.id, now);
+    const stage = fieldStage(clock, field.job, now);
     if (stage === UNPLOUGHED) continue;
     ploughed = true;
     scene.fields.push({ id: `${l.camp}:${field.id}`, lat, lon, field, stage });
@@ -180,7 +180,7 @@ export function jobWorker(
   return worker;
 }
 
-/** The field a figure is given to work in its `k`-th turn, if its turn starts in a slot whose job is its own. */
+/** The field (its `job`) a figure is given to work in its `k`-th turn, if its turn starts in a slot whose job is its own. */
 export function assignedField(
   cx: Pick<SceneCx, 'fieldClockOf' | 'jobWorker' | 'turnStartOf' | 'villageOf'>,
   st: Stay,
@@ -192,14 +192,10 @@ export function assignedField(
   if (!v?.fields.length) return undefined;
   const clock = fieldClockOf(st.home.camp, v);
   // The first field whose job is given during the turn and falls to this figure.
-  for (const field of v.fields) {
-    const t = jobStart(clock, field.id, jobFrom(clock, field.id, turnStart));
-    if (
-      t < turnStart + TURN_MS &&
-      t >= clock.from &&
-      jobWorker(st.home.camp, field.id, t) === st.f.id
-    )
-      return field.id;
+  for (let job = 0; job < clock.fields; job++) {
+    const t = jobStart(clock, job, jobFrom(clock, job, turnStart));
+    if (t < turnStart + TURN_MS && t >= clock.from && jobWorker(st.home.camp, job, t) === st.f.id)
+      return job;
   }
   return undefined;
 }
@@ -213,7 +209,10 @@ export function fieldSpot(
   const { assignedField, villageOf } = cx;
   const v = villageOf(st.home.camp);
   if (!v?.fields.length) return undefined;
-  const field = v.fields[assignedField(st, k) ?? hash32(st.f.id, k, 243) % v.fields.length]!;
+  // One of the plots of its field, or of any field when it only lends a hand.
+  const job = assignedField(st, k);
+  const plots = job === undefined ? v.fields : v.fields.filter((f) => f.job === job);
+  const field = plots[hash32(st.f.id, k, 243) % plots.length]!;
   // Somewhere in the field's middle third, in the furrow's line.
   const r = 0.5 * Math.sqrt(field.area / Math.PI) * hash01(st.f.id, k, 245);
   const a = hash01(st.f.id, k, 247) * 2 * Math.PI;
@@ -248,7 +247,7 @@ export function farmOuting(
       const w = fieldSpot(st, k);
       const v = villageOf(st.home.camp);
       if (!w || !v) return undefined;
-      const job = jobAt(fieldClockOf(st.home.camp, v), w.field.id, turnStart);
+      const job = jobAt(fieldClockOf(st.home.camp, v), w.field.job, turnStart);
       // Hands that are not the field's worker help with its next job; reapers only reap.
       if (role === 'reaper' && job !== 'reap' && !assigned) return undefined;
       return JOB_OUTING[job];

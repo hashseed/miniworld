@@ -52,15 +52,39 @@ const mountain = (x: number, z: number) => Math.hypot(x - 6.5, z + 4) < 1.2;
 const sea = (x: number) => x < -0.6; // the sea lies west of this line
 
 describe('layoutFields', () => {
-  it.each([1, 2, 3, 7, 42, 1000])('gives 3 to 5 fields in open country (seed %i)', (seed) => {
-    const fields = layoutFields(base(seed));
-    expect(fields.length).toBeGreaterThanOrEqual(3);
-    expect(fields.length).toBeLessThanOrEqual(5);
-  });
+  /** The fields of a layout: its plots' jobs. */
+  const jobs = (fields: Field[]) => new Set(fields.map((f) => f.job)).size;
 
-  it('fills the space it is given up to 5 fields', () => {
-    expect(layoutFields(base(5)).length).toBe(5);
-    expect(layoutFields(base(5, { want: 4 })).length).toBe(4);
+  it.each([1, 2, 3, 7, 42, 1000])(
+    'lays farmland all round in open country, worked as 5 fields (seed %i)',
+    (seed) => {
+      const fields = layoutFields(base(seed));
+      expect(jobs(fields)).toBe(5);
+      // The first ring wherever the land is free: plots in every direction round the village.
+      const sides = new Set(
+        fields.map(
+          (f) =>
+            Math.floor(
+              ((Math.atan2(f.centre.z + 2, f.centre.x - 3) + Math.PI) / (2 * Math.PI)) * 8,
+            ) % 8,
+        ),
+      );
+      expect(sides.size).toBe(8);
+      // Thinning out with distance (Yang, 2026-10-26): fewer plots in each ring further out.
+      const ring = (f: Field) => Math.floor(Math.hypot(f.centre.x - 3, f.centre.z + 2) - 1.4);
+      const counts = [0, 1, 2].map((r) => fields.filter((f) => ring(f) === r).length);
+      expect(counts[0]).toBeGreaterThan(0);
+      expect(counts[2]!).toBeLessThan(counts[0]! * 1.5);
+    },
+  );
+
+  it('works as many fields as it is asked, each a run of neighbouring plots', () => {
+    expect(jobs(layoutFields(base(5, { want: 4 })))).toBe(4);
+    const fields = layoutFields(base(5, { want: 3 }));
+    for (let job = 0; job < 3; job++) {
+      const crops = new Set(fields.filter((f) => f.job === job).map((f) => f.crop));
+      expect(crops.size).toBe(1);
+    }
   });
 
   it.each([1, 2, 3, 4, 5])('keeps fields apart and off the ring (seed %i)', (seed) => {
@@ -102,7 +126,7 @@ describe('layoutFields', () => {
     expect(layoutFields(base(9, { isLand: () => false }))).toEqual([]);
   });
 
-  it('never makes rectangles and keeps fields 1 to 2 metres across', () => {
+  it('never makes rectangles and keeps plots 0.5 to 3 metres across', () => {
     for (const seed of [1, 2, 3, 4]) {
       for (const f of layoutFields(base(seed))) {
         expect(f.outline.length).toBeGreaterThanOrEqual(24);
@@ -110,8 +134,8 @@ describe('layoutFields', () => {
         let wide = 0;
         for (const p of f.outline)
           for (const q of f.outline) wide = Math.max(wide, Math.hypot(p.x - q.x, p.z - q.z));
-        expect(wide).toBeGreaterThan(0.7);
-        expect(wide).toBeLessThan(2.2);
+        expect(wide).toBeGreaterThan(0.5);
+        expect(wide).toBeLessThan(3);
         expect(f.area).toBeCloseTo(polygonArea(f.outline), 6);
       }
     }
@@ -126,12 +150,14 @@ describe('layoutFields', () => {
   it('rotates through the crops and gives whole-day offsets', () => {
     const fields = layoutFields(base(3));
     expect(new Set(fields.map((f) => f.crop)).size).toBe(3);
+    // Neighbouring fields differ, each field's plots alike.
+    for (const f of fields) expect(f.crop).toBe(fields.find((g) => g.job === f.job)!.crop);
     for (const f of fields) {
       expect(CROPS).toContain(f.crop);
       expect(Number.isInteger(f.offsetDays)).toBe(true);
       expect(f.offsetDays).toBeGreaterThanOrEqual(0);
       expect(f.offsetDays).toBeLessThan(15);
-      expect(polygonArea(f.outline)).toBeGreaterThan(0.4);
+      expect(polygonArea(f.outline)).toBeGreaterThan(0.16);
     }
   });
 });

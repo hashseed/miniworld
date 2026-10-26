@@ -68,6 +68,12 @@ export interface TreeLodging {
    * polar mask (fieldMask.ts, humankind.md section 8.5).
    */
   fieldLand?: string;
+  /**
+   * Of a village with neighbours: the cells of its land mask on its own side of the line halfway
+   * to every other village standing in its life (neolithic/villages.md section 3.1), which its
+   * fields, pen and store keep to.
+   */
+  fieldShare?: string;
   /** Built while herders, not yet farmers, are in the land (humankind.md section 8.5): its camp keeps a herd and a pen. */
   herding?: boolean;
   /**

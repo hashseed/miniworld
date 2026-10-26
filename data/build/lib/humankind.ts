@@ -365,6 +365,11 @@ export interface Threshold {
 interface Camp {
   id: number;
   site: Site;
+  /**
+   * The layout its lodgings carry (TreeLodging.camp): its site's, or the compact one for a tight
+   * village at a full site (neolithic/villages.md section 3.1).
+   */
+  key: number;
   spacingKm: number;
   target: number;
   lodgings: number[];
@@ -572,7 +577,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       (p) => p.claim <= day && day <= p.until && (!camp || !p.bands.has(camp)),
     );
   /** Whether a site is far enough from every other band (sites.md section 4) and not kept for a plan. */
-  const free = (site: Site, day: Day, except?: Camp) => {
+  const free = (site: Site, day: Day, except?: Camp, key = site.key) => {
     if (claimed(site, day, except)) return false;
     // Farmland feeds more people: at a village site that farming has reached, villages keep
     // only clear of each other's drawn camps, not their density's spacing (villages.md section 3).
@@ -583,22 +588,33 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     for (const h of held.values())
       if (distanceKm(h.lat, h.lon, site.lat, site.lon) < spacing) return false;
     // Overlapping sites are mutually exclusive, and bands keep their density's spacing.
-    const mine = (footprintM(site.key) / site.width) * LAYOUT_KM_PER_M;
+    const mine = (footprintM(key) / site.width) * LAYOUT_KM_PER_M;
     return camps.every((c) => {
       if (c === except || c.lodgings.length === 0) return true;
       // The distance is at least the difference in latitude: a camp farther north or south than
       // either rule asks is clear without the distance worked out.
-      const theirs = (footprintM(c.site.key) / c.site.width) * LAYOUT_KM_PER_M;
+      const theirs = (footprintM(c.key) / c.site.width) * LAYOUT_KM_PER_M;
       const far = Math.max(Math.min(spacing, c.spacingKm), mine + theirs);
       if (Math.abs(c.site.lat - site.lat) * KM_PER_DEG > far + 1) return true;
       const km = distanceKm(c.site.lat, c.site.lon, site.lat, site.lon);
       return (
         km >= Math.min(spacing, c.spacingKm) &&
-        km >=
-          (footprintM(site.key) / site.width + footprintM(c.site.key) / c.site.width) *
-            LAYOUT_KM_PER_M
+        km >= (footprintM(key) / site.width + footprintM(c.key) / c.site.width) * LAYOUT_KM_PER_M
       );
     });
+  };
+  /**
+   * The layout a village founded at a site would take: its site's where that is free, else, at a
+   * full village site, the compact layout where that is (a tight village, villages.md section
+   * 3.1); undefined where neither fits.
+   */
+  const villageKey = (site: Site, day: Day, except?: Camp): number | undefined => {
+    if (free(site, day, except)) return site.key;
+    const tight = COMPACT_SITE + site.id;
+    const atVillageSite =
+      !!s.villageSite?.(site.lat, site.lon) && !!s.farmingAt?.(site.lat, site.lon, day);
+    if (site.key >= COMPACT_SITE || !atVillageSite) return undefined;
+    return free(site, day, except, tight) ? tight : undefined;
   };
 
   /** Whether a link can be walked, or paddled at a listed crossing, on a day. */
@@ -723,7 +739,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
    */
   const isVillage = (c: Camp) => !!c.culture && !!s.village?.(c.culture);
   const maxPeople = (c: Camp) =>
-    isVillage(c) ? layoutOf(c.site.key).people : Math.min(BAND_MAX, layoutOf(c.site.key).people);
+    isVillage(c) ? layoutOf(c.key).people : Math.min(BAND_MAX, layoutOf(c.key).people);
   const maxLodgings = (c: Camp) => (isVillage(c) ? MAX_LODGINGS : BAND_MAX_LODGINGS);
   /** How many people a lodging of a camp holds: its culture's houseCapacity (the LBK's longhouse holds a whole village), else LODGING_CAPACITY. */
   const capOf = (c: Camp) => (c.culture && s.lodgingCapacity?.(c.culture)) || LODGING_CAPACITY;
@@ -800,7 +816,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     const herding = !!s.herding?.(culture, site.lat, site.lon, day);
     const l: TreeLodging = {
       id: tree.lodgings.length,
-      camp: site.key,
+      camp: camp.key,
       lat: micro(site.lat),
       lon: micro(site.lon),
       built: day,
@@ -808,12 +824,12 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       builder,
       slot,
       reach: Array.from({ length: LODGING_SLOTS }, (_, gap) => laneReach(site, gap, sea)),
-      room: layoutOf(site.key).core,
+      room: layoutOf(camp.key).core,
       ...(site.steep ? { steep: true } : {}),
       ...(Math.abs(site.width - 1) >= 0.005 ? { width: Math.round(site.width * 100) / 100 } : {}),
       // A minimal camp's small shelter, else the culture's own (sites.md section 2).
       kind:
-        site.key >= MINIMAL_SITE
+        camp.key >= MINIMAL_SITE
           ? MINIMAL_LODGING
           : (culture && s.lodgingOf?.(culture)) || s.lodgingKind,
       ...(culture ? { culture } : {}),
@@ -916,7 +932,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   };
   const isHeld = (c: Camp, day: Day) => c.holdUntil !== undefined && c.holdUntil >= day;
 
-  const newCamp = (site: Site, day: Day): Camp => {
+  const newCamp = (site: Site, day: Day, key = site.key): Camp => {
     const density = {
       ...DENSITIES[s.density(site.lat, site.lon, day) ?? 'low'],
       spacingKm: spacingOf(site.lat, site.lon, day),
@@ -926,6 +942,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     const camp: Camp = {
       id,
       site,
+      key,
       spacingKm: density.spacingKm,
       target: lo + (hash32(id, 7) % (hi - lo + 1)),
       lodgings: [],
@@ -950,7 +967,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
    * sites, or where it stands for a path of one; as many lodgings as it needs, four to a
    * lodging, so they fit the dry places. It takes on the culture of its new site.
    */
-  const relocate = (camp: Camp, path: Path, day: Day) => {
+  const relocate = (camp: Camp, path: Path, day: Day, key?: number) => {
     const old = camp.lodgings;
     const people = old.flatMap((id) => residents.get(id)!.map((f) => [f, id] as const));
     const from = camp.site;
@@ -961,6 +978,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       bandAt.set(to.id, camp);
     }
     camp.site = to;
+    camp.key = key ?? (from !== to ? to.key : camp.key);
     if (!camp.range.includes(to)) takeRange(camp, day);
     capDay = NaN;
     camp.lodgings = [];
@@ -992,8 +1010,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   };
 
   /** A group founds a new camp at the end of a path of sites. */
-  const found = (group: number[], path: Path, day: Day): Camp => {
-    const child = newCamp(path.at(-1)!, day);
+  const found = (group: number[], path: Path, day: Day, key?: number): Camp => {
+    const child = newCamp(path.at(-1)!, day, key);
     const l = newLodging(child, group[0]!, day, wayOf(path, day));
     for (const f of group) moveIn(f, homeOf(f), l.id, day);
     return child;
@@ -1137,6 +1155,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       left.set(from.id, day);
       bandAt.set(site.id, camp);
       camp.site = site;
+      camp.key = site.key;
       camp.lodgings = [];
       camp.culture = camp.thresholdCulture ?? s.culture?.(site.lat, site.lon, day) ?? camp.culture;
       for (let k = 0; k < people.length; k += LODGING_CAPACITY) {
@@ -1233,8 +1252,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       (c) =>
         c.lodgings.length > 0 &&
         distanceKm(c.site.lat, c.site.lon, site.lat, site.lon) <
-          (footprintM(site.key) / site.width + footprintM(c.site.key) / c.site.width) *
-            LAYOUT_KM_PER_M,
+          (footprintM(site.key) / site.width + footprintM(c.key) / c.site.width) * LAYOUT_KM_PER_M,
     );
   /**
    * The place table (sites.md section 2.1): each dated place's own site, chosen once from the
@@ -1356,8 +1374,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       (c) =>
         c.lodgings.length > 0 &&
         distanceKm(c.site.lat, c.site.lon, site.lat, site.lon) <
-          (footprintM(site.key) / site.width + footprintM(c.site.key) / c.site.width) *
-            LAYOUT_KM_PER_M,
+          (footprintM(site.key) / site.width + footprintM(c.key) / c.site.width) * LAYOUT_KM_PER_M,
     );
   const bandOn = (site: Site, day: Day): Camp | null | undefined => {
     const here = bandAt.get(site.id);
@@ -1738,7 +1755,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       if (
         freePlaces(camp, day) < need ||
         camp.lodgings.length + need > MAX_LODGINGS ||
-        headcount(camp) + people.length > layoutOf(camp.site.key).people
+        headcount(camp) + people.length > layoutOf(camp.key).people
       )
         throw new Error(
           `tree of humankind: ${name}, role ${r.id}: the camp at its site has no room for its party (site ${camp.site.key}, free ${freePlaces(camp, day)}, need ${need}, lodgings ${camp.lodgings.length}, heads ${headcount(camp)}+${people.length})`,
@@ -1809,7 +1826,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         const left: number[] = [];
         for (const f of people) {
           const room =
-            headcount(home) < layoutOf(home.site.key).people
+            headcount(home) < layoutOf(home.key).people
               ? home.lodgings.find((l) => residents.get(l)!.length < LODGING_CAPACITY)
               : undefined;
           if (room === undefined) {
@@ -1884,7 +1901,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     }
     const people = band.lodgings.flatMap((l) => residents.get(l)!);
     // Its lodgings are keyed by its site (TreeLodging.camp), which it no longer leaves.
-    treeStats.thresholds.push({ id: t.id, day, camp: band.site.key });
+    treeStats.thresholds.push({ id: t.id, day, camp: band.key });
     moment('neolithic-threshold', day, people[0]!, band);
     return true;
   };
@@ -2183,14 +2200,14 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
                     distanceKm(site.lat, site.lon, camp.site.lat, camp.site.lon) <=
                       VILLAGE_WALK_KM &&
                     usable(site, day, headcount(camp)) &&
-                    free(site, day, camp) &&
+                    villageKey(site, day, camp) !== undefined &&
                     !reserved(site, camp),
                 ),
                 day,
                 2,
               )
             : undefined;
-        if (toVillage) relocate(camp, toVillage.path, day);
+        if (toVillage) relocate(camp, toVillage.path, day, villageKey(toVillage.site, day, camp));
         else if (!camp.settled && !village && !isHeld(camp, day)) {
           const n = headcount(camp);
           // Only among the sites of its home range (sites.md section 4).
@@ -2260,17 +2277,22 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
           // Not into another band's home range, nor a culture area at its cap (sites.md section 4).
           (site) =>
             usable(site, day) &&
-            free(site, day) &&
+            (village ? villageKey(site, day) !== undefined : free(site, day)) &&
             !reserved(site) &&
             !areaFull(site, day) &&
             // A village founds villages only at village sites (neolithic/villages.md section 2).
-            (!camp.culture || !s.village?.(camp.culture) || !!s.villageSite?.(site.lat, site.lon)),
+            (!village || !!s.villageSite?.(site.lat, site.lon)),
         );
         const pick = best(options, day, 3);
         if (!pick) continue;
         const group = groupOf(camp, day, 5);
         if (!group.length) continue;
-        const child = found(group, pick.path, day + (hash32(camp.id, day, 8) % step));
+        const child = found(
+          group,
+          pick.path,
+          day + (hash32(camp.id, day, 8) % step),
+          village ? villageKey(pick.site, day) : undefined,
+        );
         moment(
           'camp-founded',
           child.lodgings.length ? tree.lodgings[child.lodgings[0]!]!.built : day,

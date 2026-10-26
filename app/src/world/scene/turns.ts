@@ -122,7 +122,7 @@ export function soloTurn(
   ) {
     const v = villageOf(st.home.camp);
     const w = v?.fields.length && st.look !== 'child' ? fieldSpot(st, k) : undefined;
-    go = w && v ? JOB_OUTING[jobAt(fieldClockOf(st.home.camp, v), w.field.id, turnStart)] : 'rest';
+    go = w && v ? JOB_OUTING[jobAt(fieldClockOf(st.home.camp, v), w.field.job, turnStart)] : 'rest';
   }
   if (go === 'firewood' && room < FIREWOOD_M + 1) go = 'rest';
   // A compact camp has no drying racks.
