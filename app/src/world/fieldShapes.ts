@@ -13,6 +13,8 @@ export interface Pt {
 
 export interface Field {
   id: number;
+  /** The field it belongs to, whose jobs all its plots share (0 to MAX_FIELDS - 1). */
+  job: number;
   crop: string;
   /** Closed, counter-clockwise outline; the first point is not repeated. Star-shaped about `centre`. */
   outline: Pt[];
@@ -46,7 +48,9 @@ export const MAX_FIELDS = 5;
 export const FIELD_MARGIN_M = 0.08;
 /** A plot's width along the belt and its depth out from the village (layout metres of the field frame). */
 const SITE_SPACING_M = 1.5;
-const FIELD_DEPTH_M = 1.5;
+const FIELD_DEPTH_M = 1;
+/** The share of the free plots behind the ring inside that each ring takes: all of the first, fewer further out. */
+const FIELD_RING_KEEP = [1, 0.8, 0.45];
 /** Points along each of a plot's two arcs. */
 const ARC_STEPS = 6;
 const PATH_INSET_M = 0.09;
@@ -151,60 +155,69 @@ export function layoutFields(input: FieldInput): Field[] {
     return free(x, z) && free(x + m, z) && free(x - m, z) && free(x, z + m) && free(x, z - m);
   };
 
-  const roomAround = (x: number, z: number): boolean => {
-    let ok = 0;
-    for (let k = 0; k < 8; k++) {
-      const t = (k / 8) * TAU;
-      if (clear(x + 0.3 * detCos(t), z + 0.3 * detSin(t))) ok++;
-    }
-    return ok >= 6;
-  };
-  // In order round the village (Yang, 2026-10-25: "make them more regularly ordered around the
-  // village"): plots side by side in a belt just beyond the houses, each a sector of the ring
-  // between two lines out from the village, from the most open way out; a second belt behind
-  // the first where the first is short.
-  const r1 = inner + FIELD_DEPTH_M / 2;
-  const slots = Math.max(want, Math.round((TAU * r1) / SITE_SPACING_M));
-  const step = TAU / slots;
+  // Farmland almost all round the village, thinning out with distance (Yang, 2026-10-26:
+  // "almost all around the village, and taper off at distance"): plots in three rings of
+  // sectors, the first ring wherever the land is free, each ring after it only behind a plot of
+  // the one before and on a share of those (fields-and-crops.md section 3).
   const a0 = hash01(seed, 0, 0, 3) * TAU;
-  const mid = (belt: number, k: number) => {
-    const a = a0 + k * step;
-    const r = r1 + belt * FIELD_DEPTH_M;
-    return { x: centre.x + r * detCos(a), z: centre.z + r * detSin(a) };
-  };
-  const free1 = Array.from({ length: slots }, (_, k) => {
-    const p = mid(0, k);
-    return clear(p.x, p.z) && roomAround(p.x, p.z);
+  const rings = FIELD_RING_KEEP.map((_, ring) => {
+    const mid = inner + (ring + 0.5) * FIELD_DEPTH_M;
+    return { mid, slots: Math.max(want, Math.round((TAU * mid) / SITE_SPACING_M)) };
   });
-  // The longest run of free plots round the belt first, then the others, longest first.
-  const runs: number[][] = [];
-  if (free1.every(Boolean)) runs.push(Array.from({ length: slots }, (_, k) => k));
-  else {
-    const first = free1.indexOf(false);
-    let run: number[] = [];
-    // Once round from the first blocked plot, which closes the last run.
-    for (let n = 1; n <= slots; n++) {
-      const k = (first + n) % slots;
-      if (free1[k]) run.push(k);
-      else if (run.length) {
-        runs.push(run);
-        run = [];
-      }
+  const middleOf = (ring: number, k: number) => {
+    const { mid, slots } = rings[ring]!;
+    const a = a0 + ((k + 0.5) / slots) * TAU;
+    return { a, x: centre.x + mid * detCos(a), z: centre.z + mid * detSin(a) };
+  };
+  const plotFree = (ring: number, k: number) => {
+    // Its middle free; its edges are pulled in off a lane or a shore as it is shaped (rule 5).
+    const p = middleOf(ring, k);
+    return clear(p.x, p.z);
+  };
+  // The first ring: where its longest unbroken run of free plots starts, the order round the village begins.
+  const n0 = rings[0]!.slots;
+  const free0 = Array.from({ length: n0 }, (_, k) => plotFree(0, k));
+  let start = 0;
+  if (!free0.every(Boolean)) {
+    let best = -1;
+    for (let k = 0; k < n0; k++) {
+      if (!free0[k] || free0[(k + n0 - 1) % n0]) continue;
+      let len = 0;
+      while (len < n0 && free0[(k + len) % n0]) len++;
+      if (len > best) [best, start] = [len, k];
     }
   }
-  runs.sort((a, b) => b.length - a.length || a[0]! - b[0]!);
-  const plots: { belt: number; k: number }[] = [];
-  for (const run of runs) for (const k of run) if (plots.length < want) plots.push({ belt: 0, k });
-  for (const { k } of [...plots]) {
-    const p = mid(1, k);
-    if (plots.length < want && clear(p.x, p.z) && roomAround(p.x, p.z)) plots.push({ belt: 1, k });
+  const plots: { ring: number; k: number; order: number }[] = [];
+  for (let q = 0; q < n0; q++) {
+    const k = (start + q) % n0;
+    if (free0[k]) plots.push({ ring: 0, k, order: q });
   }
-  /** A plot's ground: its sector of the belt, a path's width in from every side. */
-  const sector = ({ belt, k }: { belt: number; k: number }): Pt[] => {
-    const rIn = inner + belt * FIELD_DEPTH_M + PATH_INSET_M;
-    const rOut = inner + (belt + 1) * FIELD_DEPTH_M - PATH_INSET_M;
-    const a = a0 + k * step;
-    const half = step / 2 - PATH_INSET_M / r1;
+  if (plots.length === 0) return [];
+  for (let ring = 1; ring < rings.length; ring++) {
+    const inside = plots.filter((p) => p.ring === ring - 1);
+    for (let k = 0; k < rings[ring]!.slots; k++) {
+      // Behind a plot of the ring inside: the one whose sector holds this plot's middle line.
+      const a = middleOf(ring, k).a;
+      const n = rings[ring - 1]!.slots;
+      const below = Math.floor((((a - a0) / TAU) * n + n * 8) % n);
+      const behind = inside.find((p) => p.k === below);
+      if (!behind || hash01(seed, ring, k, 7) >= FIELD_RING_KEEP[ring]! || !plotFree(ring, k))
+        continue;
+      plots.push({ ring, k, order: behind.order });
+    }
+  }
+  // The plots split into the village's fields: runs of about equal count round the village, each
+  // with the outer plots behind it.
+  const first = plots.filter((p) => p.ring === 0).sort((a, b) => a.order - b.order);
+  const jobs = Math.min(want, first.length);
+  const jobOfOrder = new Map(first.map((p, i) => [p.order, Math.floor((i * jobs) / first.length)]));
+  /** A plot's ground: its sector of its ring, a path's width in from every side. */
+  const sector = ({ ring, k }: { ring: number; k: number }): Pt[] => {
+    const { mid, slots } = rings[ring]!;
+    const rIn = inner + ring * FIELD_DEPTH_M + PATH_INSET_M;
+    const rOut = inner + (ring + 1) * FIELD_DEPTH_M - PATH_INSET_M;
+    const a = a0 + ((k + 0.5) / slots) * TAU;
+    const half = TAU / slots / 2 - PATH_INSET_M / mid;
     const out: Pt[] = [];
     for (const [r, from, to] of [
       [rIn, a - half, a + half],
@@ -217,32 +230,35 @@ export function layoutFields(input: FieldInput): Field[] {
     return out;
   };
 
-  const fields: Field[] = [];
+  const fields: (Field & { order: number })[] = [];
   const cropOffset = hash32(seed, 77) % input.crops.length;
-  for (let i = 0; i < plots.length; i++) {
-    const shaped = shapeField(sector(plots[i]!), seed, i, clear);
-    if (!shaped) continue;
+  plots.forEach((plot, i) => {
+    const shaped = shapeField(sector(plot), seed, i, clear);
+    if (!shaped) return;
+    const job = jobOfOrder.get(plot.order)!;
     fields.push({
       id: 0,
-      crop: input.crops[0]!,
+      job,
+      order: plot.order,
+      crop: input.crops[(job + cropOffset) % input.crops.length]!,
       outline: shaped.outline,
       centre: shaped.centre,
       area: shaped.area,
       // Furrows run out from the village, a little turned by the hash.
-      furrowAngle: a0 + plots[i]!.k * step + (hash01(seed, i, 0, 31) - 0.5) * 0.3,
+      furrowAngle: middleOf(plot.ring, plot.k).a + (hash01(seed, i, 0, 31) - 0.5) * 0.3,
       offsetDays: hash32(seed, i, 0, 9) % 15,
     });
-  }
+  });
+  // Fields whose plots all dropped out leave no gap: the others are numbered on in order.
+  const kept = [...new Set(fields.map((f) => f.job))].sort((a, b) => a - b);
+  for (const f of fields) f.job = kept.indexOf(f.job);
+  // By field, then nearest the village first.
   fields.sort((a, b) => {
     const da = (a.centre.x - centre.x) ** 2 + (a.centre.z - centre.z) ** 2;
     const db = (b.centre.x - centre.x) ** 2 + (b.centre.z - centre.z) ** 2;
-    return da - db || a.centre.x - b.centre.x;
+    return a.job - b.job || da - db || a.order - b.order;
   });
-  fields.forEach((f, i) => {
-    f.id = i;
-    f.crop = input.crops[(i + cropOffset) % input.crops.length]!;
-  });
-  return fields;
+  return fields.map(({ order: _order, ...f }, i) => ({ ...f, id: i }));
 }
 
 function shapeField(

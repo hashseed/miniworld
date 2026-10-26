@@ -55,6 +55,7 @@ import {
   encodeMask,
   FIELD_RELIEF_M,
   MASK_DR,
+  MASK_R1,
   MASK_RINGS,
   MASK_SECTORS,
   maskCentre,
@@ -635,6 +636,7 @@ export function buildHumankind(
   log(
     `tree of humankind: ${treeStats.crowded} bands crowded a neighbour, ${treeStats.stuck} steps a band found nowhere to go`,
   );
+  shareFarmland(tree, placeAt);
   // Written before the checks, so a failing tree can be looked into.
   mkdirSync(join(ROOT, 'data/build/tree'), { recursive: true });
   writeFileSync(
@@ -891,4 +893,74 @@ export function campPlaces(lodgings: readonly TreeLodging[]): CampPlace[] {
     }
   }
   return [...places.values()];
+}
+
+/** Two villages' farmland keeps this far apart either side of the line halfway between them (layout metres). */
+const SHARE_GAP_M = 2;
+/** Villages farther apart than this cannot share any land (km): twice the land mask's reach at the lens's widest. */
+const SHARE_NEAR_KM = 2 * MASK_R1 * LAYOUT_KM_PER_M;
+
+/**
+ * Each village's own land (neolithic/villages.md section 3.1): the cells of its land mask
+ * nearer its middle than any other village's that stands at any time in its life, by
+ * SHARE_GAP_M, as the field layout lays the cells out (`placeAt`); given to all its lodgings
+ * as `fieldShare` where any cell is lost.
+ */
+function shareFarmland(
+  tree: Tree,
+  placeAt: (
+    lat: number,
+    lon: number,
+    eastKm: number,
+    northKm: number,
+  ) => { lat: number; lon: number },
+): void {
+  const villages = new Map<
+    number,
+    { lat: number; lon: number; width: number; from: number; to: number; lodgings: TreeLodging[] }
+  >();
+  for (const l of tree.lodgings) {
+    if (!l.fieldLand) continue;
+    const v = villages.get(l.camp);
+    const to = l.gone === NEVER ? Infinity : l.gone;
+    if (v) {
+      v.from = Math.min(v.from, l.built);
+      v.to = Math.max(v.to, to);
+      v.lodgings.push(l);
+    } else
+      villages.set(l.camp, {
+        lat: l.lat / 1e6,
+        lon: l.lon / 1e6,
+        width: l.width ?? 1,
+        from: l.built,
+        to,
+        lodgings: [l],
+      });
+  }
+  const all = [...villages.values()];
+  for (const v of all) {
+    const near = all.filter(
+      (o) =>
+        o !== v &&
+        o.from < v.to &&
+        v.from < o.to &&
+        distanceKm(v.lat, v.lon, o.lat, o.lon) < SHARE_NEAR_KM,
+    );
+    if (!near.length) continue;
+    const gapKm = (SHARE_GAP_M * LAYOUT_KM_PER_M) / v.width;
+    let lost = false;
+    const flags: boolean[] = [];
+    for (let ring = 0; ring < MASK_RINGS; ring++)
+      for (let sector = 0; sector < MASK_SECTORS; sector++) {
+        const c = maskCentre(ring, sector);
+        const p = placeAt(v.lat, v.lon, c.x * LAYOUT_KM_PER_M, c.z * LAYOUT_KM_PER_M);
+        const own = distanceKm(p.lat, p.lon, v.lat, v.lon);
+        const ok = near.every((o) => own + gapKm < distanceKm(p.lat, p.lon, o.lat, o.lon));
+        lost ||= !ok;
+        flags.push(ok);
+      }
+    if (!lost) continue;
+    const share = encodeMask(flags);
+    for (const l of v.lodgings) l.fieldShare = share;
+  }
 }

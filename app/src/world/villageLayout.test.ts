@@ -5,7 +5,7 @@ import { buildShelter, type ShelterId } from '../../../assets/src/shelters.ts';
 import '../../../assets/src/allCultureModels.ts';
 import { encodeMask, MASK_RINGS, MASK_SECTORS } from './fieldMask.ts';
 import { NEOLITHIC_PROFILES } from './neolithicProfiles.ts';
-import { housePlaces, LODGING_MAX_M, villageHouse } from './scene/camp.ts';
+import { greenOf, housePlaces, LODGING_MAX_M, villageHouse } from './scene/camp.ts';
 import { NEVER, type TreeLodging } from './tree.ts';
 
 const land = encodeMask(new Array<boolean>(MASK_RINGS * MASK_SECTORS).fill(true));
@@ -82,13 +82,13 @@ describe('the houses of a village (neolithic/villages.md section 5)', () => {
       for (let a = 0; a < rects.length; a++)
         for (let b = a + 1; b < rects.length; b++)
           expect(overlap(rects[a]!, rects[b]!), `${id} houses ${a} and ${b}`).toBe(false);
-      // The green keeps the people's spots, out to about 8.5 layout metres (humankind.md
-      // section 8.1): the nearest point of every house is beyond 7.5.
+      // The green keeps the people's spots, out to its outer spots (8.5 layout metres, 5.8 in a
+      // tight village; humankind.md section 8.1): the nearest point of every house is near its edge.
       for (const r of rects) {
         const [dx, dz] = [-r.cx, -r.cz];
         const lx = Math.abs(dx * r.ux + dz * r.uz) - r.hx;
         const ly = Math.abs(-dx * r.uz + dz * r.ux) - r.hz;
-        expect(Math.hypot(Math.max(lx, 0), Math.max(ly, 0)), id).toBeGreaterThan(7.5);
+        expect(Math.hypot(Math.max(lx, 0), Math.max(ly, 0)), id).toBeGreaterThan(greenOf(camp) - 2);
       }
     }
   });

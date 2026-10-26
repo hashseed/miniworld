@@ -382,8 +382,10 @@ function houseDepth(l: TreeLodging, lengthM: number): number {
   );
 }
 
-/** A village's houses keep this far out from its middle, beyond the people's spots (layout metres). */
-const GREEN_M = 9.5;
+/** A village's houses keep this far out from its middle, beyond the people's spots (layout metres): a metre past the outer spots. */
+export function greenOf(camp: number): number {
+  return isCompact(camp) ? layoutOf(camp).inner + 3 : OUTER_M + 1;
+}
 
 /** The space between neighbouring houses of a row or block, in layout metres. */
 const HOUSE_GAP_M = 3;
@@ -412,6 +414,9 @@ function housePlace(
   const profile = neolithicProfile(culture);
   if (profile.layout === 'pits') return undefined;
   const lengthM = (profile.houseM ?? LODGING_MAX_M) * FIGURE_TO_LAYOUT;
+  // A tight village's houses stand closer, beyond its smaller ring of people (villages.md
+  // section 3.1): its green just outside its outer spots, as a full village's is.
+  const green = greenOf(camp);
   const turn = campTurn(camp) * 2 * Math.PI;
   // From the green out towards the houses; the LBK's longhouses run north-west to south-east.
   const out: Pt =
@@ -427,13 +432,13 @@ function housePlace(
     // The longhouse north-east of the green, its long side to it, its long axis north-west to
     // south-east as excavated (Coudart 1998); a second, while one is rebuilt, behind it.
     const width = lengthM * 0.4;
-    const from = GREEN_M + width / 2 + k * (width + 1);
+    const from = green + width / 2 + k * (width + 1);
     at = { x: out.x * from, z: out.z * from };
     axis = side;
   } else if (profile.layout === 'stilts') {
     // Side by side in a row off the green, the long sides together, the doors towards it.
     const width = lengthM * 0.7;
-    const from = GREEN_M + lengthM / 2;
+    const from = green + lengthM / 2;
     const n = housePlaces(culture);
     const across = (k - (n - 1) / 2) * (width + HOUSE_GAP_M);
     at = { x: out.x * from + side.x * across, z: out.z * from + side.z * across };
@@ -442,12 +447,14 @@ function housePlace(
     const size = lengthM * 1.02;
     const col = (k % 3) - 1;
     const row = Math.floor(k / 3);
-    const from = GREEN_M + size / 2 + row * size;
+    const from = green + size / 2 + row * size;
     at = { x: out.x * from + side.x * col * size, z: out.z * from + side.z * col * size };
   } else {
     // A hamlet: scattered round its yard, a little off any ring, turned towards the yard.
-    const a = turn + (k / LODGING_SLOTS) * 2 * Math.PI + (hash01(camp, k, 301) - 0.5) * 0.6;
-    const r = 12 + 4 * hash01(camp, k, 303);
+    // Less turned off its place on a tight village's shorter way round, so no two meet.
+    const jitter = isCompact(camp) ? 0.25 : 0.6;
+    const a = turn + (k / LODGING_SLOTS) * 2 * Math.PI + (hash01(camp, k, 301) - 0.5) * jitter;
+    const r = green + 2.5 + 4 * hash01(camp, k, 303);
     at = { x: r * detCos(a), z: r * detSin(a) };
     dir = { x: -detCos(a), z: -detSin(a) };
   }
