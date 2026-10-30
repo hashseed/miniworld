@@ -70,6 +70,7 @@
         },
         "fieldTool": "hoe",
         "layout": "hamlet",
+        "houseM": 4.05,
         "store": "granary",
         "mix": {
           "farmer": 20,
@@ -158,7 +159,7 @@
         },
         "herd": ["animal-cattle", "animal-sheep", "animal-goat", "animal-pig", "animal-dog"],
         "crops": ["emmer", "einkorn", "barley", "flax", "lentil"],
-        "houseM": 10.8,
+        "houseM": 7.56,
         "houseCapacity": 10
       }
     },

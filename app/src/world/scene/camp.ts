@@ -452,9 +452,14 @@ function housePlace(
   } else {
     // A hamlet: scattered round its yard, a little off any ring, turned towards the yard.
     // Less turned off its place on a tight village's shorter way round, so no two meet.
-    const jitter = isCompact(camp) ? 0.25 : 0.6;
+    // Larger houses turn less, so neighbours never meet.
+    const big = lengthM / (LODGING_MAX_M * FIGURE_TO_LAYOUT);
+    const jitter = (isCompact(camp) ? 0.25 : 0.6) / (big * big);
     const a = turn + (k / LODGING_SLOTS) * 2 * Math.PI + (hash01(camp, k, 301) - 0.5) * jitter;
-    const r = green + 2.5 + 4 * hash01(camp, k, 303);
+    // Its inner end a little into the green's edge, as the 2.7 m houses stand, however long it is.
+    // and far enough out that the houses fit side by side even at their inner ends.
+    const fit = lengthM / 2 + (LODGING_SLOTS * (lengthM + 1)) / (2 * Math.PI);
+    const r = Math.max(green + lengthM / 2 - 1.55, fit) + 4 * big * hash01(camp, k, 303);
     at = { x: r * detCos(a), z: r * detSin(a) };
     dir = { x: -detCos(a), z: -detSin(a) };
   }

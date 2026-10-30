@@ -93,18 +93,22 @@ describe('the houses of a village (neolithic/villages.md section 5)', () => {
     }
   });
 
-  it('draws the LBK longhouse four times as long as other houses, one to a village', () => {
+  it('draws the LBK longhouse 2.8 times as long as other houses, one to a village', () => {
     const lbk = NEOLITHIC_PROFILES['lbk-farmer']!;
-    // Twice the 5.4 that was still too small (Yang, 2026-10-25).
-    expect(lbk.houseM).toBeCloseTo(4 * LODGING_MAX_M, 9);
+    // 30% shorter than the 10.8 that was too large (Yang, 2026-10-30).
+    expect(lbk.houseM).toBeCloseTo(0.7 * 4 * LODGING_MAX_M, 9);
     expect(lbk.houseCapacity).toBe(10);
     expect(housePlaces('lbk-farmer')).toBe(2);
     const h = villageHouse(lodging('lbk-farmer', lbk.architecture[0]!, 0, 5));
-    expect(h?.lengthM).toBeCloseTo(4 * LODGING_MAX_M * 3, 5);
+    expect(h?.lengthM).toBeCloseTo(0.7 * 4 * LODGING_MAX_M * 3, 5);
   });
 
-  it('draws the Chinese houses half as large again', () => {
-    for (const id of ['yellow-river-millet-farmer', 'yangtze-rice-farmer'])
+  it('draws the Chinese and the pre-pottery Levant houses half as large again', () => {
+    for (const id of [
+      'yellow-river-millet-farmer',
+      'yangtze-rice-farmer',
+      'pre-pottery-neolithic-levant',
+    ])
       expect(NEOLITHIC_PROFILES[id]!.houseM).toBeCloseTo(1.5 * LODGING_MAX_M, 9);
   });
 

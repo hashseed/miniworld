@@ -20,6 +20,9 @@ import {
 import { isProfile } from './memo.ts';
 import type { SceneCx } from './context.ts';
 
+/** Rows behind keep this far (layout metres) from where their leg met the shore. */
+const SHORE_MARGIN_M = 0.3;
+
 export function poseAt(
   cx: Pick<
     SceneCx,
@@ -118,8 +121,11 @@ export function poseAt(
               (n < c.legs.length - 1 && c.legs[n + 1]!.water ? Math.min(1, 4 * (1 - u)) : 1),
         leg.water,
         // Just landed, the rows behind are not still out on the water; just put in, the canoes
-        // behind are not still on the shore.
-        leg.water || (n > 0 && c.legs[n - 1]!.water) ? (u * leg.km) / LAYOUT_KM_PER_M : Infinity,
+        // behind are not still on the shore; with a margin, as the drawn shore lies a little
+        // off the one the build found.
+        leg.water || (n > 0 && c.legs[n - 1]!.water)
+          ? Math.max(0, (u * leg.km) / LAYOUT_KM_PER_M - SHORE_MARGIN_M)
+          : Infinity,
       ),
       ...leg.way,
       clip: leg.water ? 'paddle' : 'walk',
