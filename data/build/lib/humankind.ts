@@ -110,6 +110,8 @@ const BUD_HOPS = 5;
 const VILLAGE_WALK_KM = 600;
 /** A band fleeing the water looks this many links away for a free site, and this many for bands to join. */
 const FLEE_HOPS = 6;
+/** A way is split into land and water stretches from samples this far apart (km; sites.md section 3). */
+const SHORE_STEP_KM = 2;
 const JOIN_HOPS = 6;
 /** People of a band that breaks up join others only this near, over land (sites.md section 3). */
 const JOIN_KM = 1000;
@@ -738,9 +740,15 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
    * a village as many as its layout has room for.
    */
   const isVillage = (c: Camp) => !!c.culture && !!s.village?.(c.culture);
+  /** The people one house of a village holds where it holds the whole village (the longhouse), else undefined. */
+  const oneHouse = (c: Camp) => (c.culture && s.lodgingCapacity?.(c.culture)) || undefined;
   const maxPeople = (c: Camp) =>
-    isVillage(c) ? layoutOf(c.key).people : Math.min(BAND_MAX, layoutOf(c.key).people);
-  const maxLodgings = (c: Camp) => (isVillage(c) ? MAX_LODGINGS : BAND_MAX_LODGINGS);
+    isVillage(c)
+      ? Math.min(layoutOf(c.key).people, oneHouse(c) ?? Infinity)
+      : Math.min(BAND_MAX, layoutOf(c.key).people);
+  // A village whose house holds it all never has a second (villages.md section 5).
+  const maxLodgings = (c: Camp) =>
+    isVillage(c) ? (oneHouse(c) ? 1 : MAX_LODGINGS) : BAND_MAX_LODGINGS;
   /** How many people a lodging of a camp holds: its culture's houseCapacity (the LBK's longhouse holds a whole village), else LODGING_CAPACITY. */
   const capOf = (c: Camp) => (c.culture && s.lodgingCapacity?.(c.culture)) || LODGING_CAPACITY;
 
@@ -1143,8 +1151,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       if (to) {
         // Into new lodgings at the band there, as many as they need.
         joined.add(to);
-        for (let k = 0; k < people.length; k += LODGING_CAPACITY) {
-          const group = people.slice(k, k + LODGING_CAPACITY);
+        for (let k = 0; k < people.length; k += capOf(to)) {
+          const group = people.slice(k, k + capOf(to));
           const fresh = newLodging(to, group[0]![0], day, voyage);
           for (const [f, id] of group) moveIn(f, id, fresh.id, day);
         }
@@ -1158,8 +1166,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       camp.key = site.key;
       camp.lodgings = [];
       camp.culture = camp.thresholdCulture ?? s.culture?.(site.lat, site.lon, day) ?? camp.culture;
-      for (let k = 0; k < people.length; k += LODGING_CAPACITY) {
-        const group = people.slice(k, k + LODGING_CAPACITY);
+      for (let k = 0; k < people.length; k += capOf(camp)) {
+        const group = people.slice(k, k + capOf(camp));
         const fresh = newLodging(camp, group[0]![0], day, voyage);
         for (const [f, id] of group) moveIn(f, id, fresh.id, day);
       }
@@ -1176,7 +1184,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     low = sea,
   ) => {
     const km = distanceKm(a.lat, a.lon, b.lat, b.lon);
-    const n = Math.max(1, Math.ceil(km / 10));
+    // Every SHORE_STEP_KM, so a strait between islands is not stepped over.
+    const n = Math.max(1, Math.ceil(km / SHORE_STEP_KM));
     let dLon = b.lon - a.lon;
     if (dLon > 180) dLon -= 360;
     else if (dLon < -180) dLon += 360;
@@ -2134,6 +2143,13 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       // A camp that a band joined this step waits for the next, so nobody has two moves a day.
       // An encounter's camp neither roams, buds nor grows (sites.md section 4.3).
       if (camp.lodgings.length === 0 || joined.has(camp) || camp.gathering) continue;
+      // Anyone still in a second house of a village whose one house holds it all moves into the
+      // first, which stands longest (villages.md section 5).
+      const cap = oneHouse(camp);
+      if (cap && camp.lodgings.length > 1 && headcount(camp) <= cap) {
+        const [first, ...rest] = camp.lodgings;
+        for (const l of rest) for (const f of [...residents.get(l)!]) moveIn(f, l, first!, day);
+      }
       // A village needs hands for its fields: it grows well past a band's size (humankind.md section 4.1).
       if (camp.culture && s.village?.(camp.culture) && !isHeld(camp, day))
         camp.target = Math.max(camp.target, VILLAGE_MIN + (hash32(camp.id, 13) % VILLAGE_SPREAD));
