@@ -22,6 +22,8 @@ import type { SceneCx } from './context.ts';
 
 /** Rows behind keep this far (layout metres) from where their leg met the shore. */
 const SHORE_MARGIN_M = 0.3;
+/** Canoes and walkers keep this far (km) off the point where their way meets the shore. */
+const SHORE_KM = 4;
 
 export function poseAt(
   cx: Pick<
@@ -86,7 +88,7 @@ export function poseAt(
     const leg = c.legs[n]!;
     const u = leg.km > 0 ? Math.min(1, km / leg.km) : 1;
     // Canoes spread out along the way, never past either shore.
-    const strung = leg.water
+    const spread = leg.water
       ? Math.max(
           0,
           Math.min(
@@ -97,6 +99,25 @@ export function poseAt(
           ),
         )
       : u;
+    // Whether the way is on the water just before or after this leg: the next leg that is not
+    // a point (a shore is two points a few metres apart).
+    const wetNext = (step: 1 | -1) => {
+      for (let j = n + step; j >= 0 && j < c.legs.length; j += step)
+        if (c.legs[j]!.km > 0.01) return c.legs[j]!.water;
+      return false;
+    };
+    const [wetBefore, wetAfter] = [wetNext(-1), wetNext(1)];
+    // Off the shore line itself, whose drawn place is a few km uncertain: a canoe keeps
+    // SHORE_KM out from either shore of its water, a walker SHORE_KM in from the water's side
+    // of its land (sites.md section 3); the step across is far less than a figure's size.
+    const off = Math.min(0.45, SHORE_KM / Math.max(leg.km, 1e-6));
+    const strung = Math.max(
+      leg.water || wetBefore ? off : 0,
+      Math.min(leg.water || wetAfter ? 1 - off : 1, spread),
+    );
+    // Walkers close up where they land or put in, so none steps off a narrow shore.
+    const closeIn =
+      (wetBefore ? Math.min(1, 4 * u) : 1) * (wetAfter ? Math.min(1, 4 * (1 - u)) : 1);
     const pose: FigurePose = {
       ...base,
       lat: leg.from.lat + (leg.to.lat - leg.from.lat) * strung,
@@ -116,16 +137,15 @@ export function poseAt(
           : ((f.homes[i]![2] % 3) - 1) *
               GROUP_SIDE_M *
               (n === 0 ? u : n === c.legs.length - 1 ? 1 - u : 1) *
-              // Walkers close up where they land or put in, so none steps off a narrow shore.
-              (n > 0 && c.legs[n - 1]!.water ? Math.min(1, 4 * u) : 1) *
-              (n < c.legs.length - 1 && c.legs[n + 1]!.water ? Math.min(1, 4 * (1 - u)) : 1),
+              closeIn,
         leg.water,
         // Just landed, the rows behind are not still out on the water; just put in, the canoes
         // behind are not still on the shore; with a margin, as the drawn shore lies a little
         // off the one the build found.
-        leg.water || (n > 0 && c.legs[n - 1]!.water)
+        leg.water || wetBefore
           ? Math.max(0, (u * leg.km) / LAYOUT_KM_PER_M - SHORE_MARGIN_M)
           : Infinity,
+        closeIn,
       ),
       ...leg.way,
       clip: leg.water ? 'paddle' : 'walk',

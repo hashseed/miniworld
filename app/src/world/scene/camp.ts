@@ -162,6 +162,8 @@ export const GROUP_SIDE_M = 2.2;
 export const GROUP_BACK_M = 3;
 
 export const GROUP_FADE = 0.1;
+/** ... but over no more than this many layout metres of either end. */
+export const GROUP_FADE_M = 1.5;
 
 /** Canoes on a crossing string out along the way by up to this many layout metres, none beyond its ends. */
 export const CANOE_GAP_M = 0.5;
@@ -179,10 +181,15 @@ export function groupOffset(
   water = false,
   /** The furthest behind its point a walker may be, in layout metres: no further back than its leg's start after a landing. */
   maxBack = Infinity,
+  /** How far it may still stray from the line, 0 to 1: closing in where it lands or puts in. */
+  closeIn = 1,
 ): Pt {
   // A canoe keeps to the line of its way, where the water was checked, one behind the other.
-  const fade = water ? 1 : Math.max(0, Math.min(1, t / GROUP_FADE, (1 - t) / GROUP_FADE));
-  const lim = water ? 0 : GROUP_WAY_SIDE_M;
+  // Over the first and last tenth of the way, but no more than GROUP_FADE_M of either end: on a
+  // long way the group keeps to the line's checked strip beyond the camps.
+  const ends = Math.min(GROUP_FADE, (GROUP_FADE_M * LAYOUT_KM_PER_M) / Math.max(km, 1e-6));
+  const fade = water ? 1 : Math.max(0, Math.min(1, t / ends, (1 - t) / ends));
+  const lim = water ? 0 : GROUP_WAY_SIDE_M * closeIn;
   // Never further behind than a twentieth of the walk: less than the way covered while the
   // rows form, so nobody walks backwards on a short walk.
   const rows = water ? spot : Math.floor(spot / 3);
