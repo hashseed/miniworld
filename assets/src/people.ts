@@ -245,6 +245,32 @@ export const LOOKS: Record<Profile, ProfileLook> = {
     pot: { clay: '#5e4636', band: '#3a2a20' },
     tools: { man: 'hoe', woman: 'pot', child: 'basket' },
   },
+  // Successors of the LBK (neolithic/culture-succession.md section 3.2): the LBK's look until
+  // their own model cards are reviewed.
+  'rossen-farmer': {
+    skin: ['#d1a07a', '#c48e66', '#b8835a', '#cfa07c'],
+    hair: ['#3b2a20', '#5c3a22', '#2a1d17', '#6a4a30'],
+    top: { man: 'tunic', woman: 'drape', child: 'tunic' },
+    bottom: { man: 'leg-wraps', woman: 'skirt', child: 'kilt' },
+    hide: ['#cdbf9a', '#c2b48c', '#d8cba6'],
+    trim: '#7a5a3a',
+    beads: '#e9b8a6',
+    bangles: '#e0745e',
+    pot: { clay: '#5e4636', band: '#3a2a20' },
+    tools: { man: 'hoe', woman: 'pot', child: 'basket' },
+  },
+  'lengyel-farmer': {
+    skin: ['#d1a07a', '#c48e66', '#b8835a', '#cfa07c'],
+    hair: ['#3b2a20', '#5c3a22', '#2a1d17', '#6a4a30'],
+    top: { man: 'tunic', woman: 'drape', child: 'tunic' },
+    bottom: { man: 'leg-wraps', woman: 'skirt', child: 'kilt' },
+    hide: ['#cdbf9a', '#c2b48c', '#d8cba6'],
+    trim: '#7a5a3a',
+    beads: '#e9b8a6',
+    bangles: '#e0745e',
+    pot: { clay: '#5e4636', band: '#3a2a20' },
+    tools: { man: 'hoe', woman: 'pot', child: 'basket' },
+  },
   // Cotton and plant fibre, turquoise beads, shell bangles (Mehrgarh).
   'indus-farmer': {
     skin: ['#8a5a3b', '#966342', '#a06c48'],

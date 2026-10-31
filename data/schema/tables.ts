@@ -258,6 +258,39 @@ export const villageSitesTable = z.strictObject({
   sites: list(z.strictObject({ id, ...named, lat, lon, bce, source: citation })),
 });
 
+/** Changes of a place's culture, in place or by replacement (neolithic/culture-succession.md section 2). */
+export const successionsTable = z.strictObject({
+  description,
+  successions: list(
+    z
+      .strictObject({
+        id,
+        from: z.enum(PROFILES),
+        to: z.enum(PROFILES),
+        /** Interim boxes [south, north, west, east]. */
+        area: z
+          .array(
+            z
+              .tuple([lat, lat, lon, lon])
+              .refine(([s, n, w, e]) => s < n && w < e, 'needs south < north and west < east'),
+          )
+          .min(1),
+        bce,
+        /** The window: the spread of the moments in place, or the front's crossing time. */
+        years: z.number().int().positive(),
+        mode: z.enum(['in-place', 'replace']),
+        /** Where a replacement's newcomers come from. */
+        source: z.tuple([lat, lon]).optional(),
+        evidence: citation,
+      })
+      .refine((r) => r.from !== r.to, 'a culture cannot follow itself')
+      .refine(
+        (r) => (r.mode === 'replace') === (r.source !== undefined),
+        'a replacement, and only one, names its source',
+      ),
+  ),
+});
+
 /** The scene kinds an anchor can stage (humankind.md section 8.2). */
 export const SCENE_KINDS = ['cave-painting', 'burial', 'monument', 'bone-hut'] as const;
 
@@ -333,10 +366,17 @@ export const culturesTable = z.strictObject({
         hunts: z.array(id).min(1).optional(),
         en: text.optional(),
         de: text.optional(),
+        /** The profile whose models it is drawn with until its own are approved (culture-succession.md section 4). */
+        looksAs: z.enum(PROFILES).optional(),
         farming: z
           .strictObject({
+            /**
+             * The profile it succeeds (culture-succession.md): it comes only by a succession
+             * record, never by the farming spread, so it has no regions or areas of its own.
+             */
+            follows: z.enum(PROFILES).optional(),
             /** Region ids of farming.json whose onset starts the profile. */
-            regions: z.array(id).min(1),
+            regions: z.array(id).min(1).optional(),
             /** Interim boxes [south, north, west, east]; where boxes overlap, the lower areaRank wins. */
             areas: z
               .array(
@@ -344,8 +384,9 @@ export const culturesTable = z.strictObject({
                   .tuple([lat, lat, lon, lon])
                   .refine(([s, n, w, e]) => s < n && w < e, 'needs south < north and west < east'),
               )
-              .min(1),
-            areaRank: z.number().int().positive(),
+              .min(1)
+              .optional(),
+            areaRank: z.number().int().positive().optional(),
             /** Shelter asset ids. */
             architecture: z.array(id).min(1),
             tools: z.strictObject({ man: tool, woman: tool, child: tool }),
@@ -376,6 +417,10 @@ export const culturesTable = z.strictObject({
             /** Crop ids; each is drawn by the asset crop-<id>. */
             crops: z.array(id).min(1),
           })
+          .refine(
+            (f) => (f.follows ? !f.regions && !f.areas : !!f.regions && !!f.areas && !!f.areaRank),
+            'a profile either follows another or spreads with its own regions, areas and rank',
+          )
           .optional(),
       })
       .refine((c) => (c.en === undefined) === (c.de === undefined), {
@@ -388,9 +433,11 @@ export const culturesTable = z.strictObject({
       }),
   )
     .refine((rows) => {
-      const ranks = rows.flatMap((r) => (r.farming ? [r.farming.areaRank] : []));
+      const ranks = rows.flatMap((r) =>
+        r.farming?.areaRank !== undefined ? [r.farming.areaRank] : [],
+      );
       return new Set(ranks).size === ranks.length;
-    }, 'every farming profile needs an areaRank of its own')
+    }, 'every spreading farming profile needs an areaRank of its own')
     .refine(
       (rows) => PROFILES.every((p) => rows.some((r) => r.id === p)),
       `every profile of app/src/world/cultures.ts needs a row: ${PROFILES.join(', ')}`,
@@ -534,6 +581,7 @@ export const TABLES = {
   'key-places.json': keyPlacesTable,
   'anchors.json': anchorsTable,
   'village-sites.json': villageSitesTable,
+  'successions.json': successionsTable,
   'encounters.json': encountersTable,
   'farming.json': farmingTable,
   'cultures.json': culturesTable,

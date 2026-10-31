@@ -79,6 +79,8 @@ export interface NeolithicProfile {
   layout: 'rows' | 'cluster' | 'hamlet' | 'pits' | 'stilts';
   /** The longest a house is drawn, in figure metres, where not the usual LODGING_MAX_M. */
   houseM?: number;
+  /** The profile it succeeds in place or by replacement (culture-succession.md); it has no spread areas. */
+  follows?: string;
   /** How many people one house holds, where not the usual four. */
   houseCapacity?: number;
   /** Where the village keeps its grain (villages.md section 8); none for root crops. */
@@ -93,9 +95,11 @@ function farmingProfiles(): Record<NeolithicProfileId, NeolithicProfile> {
     out[c.id] = {
       en: c.en,
       de: c.de,
-      farmingRegions: f.regions,
-      areas: f.areas,
-      areaRank: f.areaRank,
+      // A successor has none: it comes by a succession record, not the farming spread.
+      farmingRegions: f.regions ?? [],
+      areas: f.areas ?? [],
+      areaRank: f.areaRank ?? 0,
+      ...(f.follows !== undefined ? { follows: f.follows } : {}),
       architecture: f.architecture,
       tools: f.tools,
       fieldTool: f.fieldTool,

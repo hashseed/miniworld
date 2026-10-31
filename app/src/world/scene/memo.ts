@@ -263,8 +263,8 @@ export function buildVillage(chunk: TreeChunk, camp: number): Village | null {
     : [];
   if (!fields.length && !herd && !dog) return null;
   const founded = Math.min(
-    ...own.filter((l) => isProfile(l.culture) && l.fieldLand).map((l) => l.built),
-    first.built,
+    ...own.filter((l) => isProfile(l.culture) && l.fieldLand).map((l) => l.farmed ?? l.built),
+    first.farmed ?? first.built,
   );
   return {
     profile,

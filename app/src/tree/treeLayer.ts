@@ -46,7 +46,7 @@ import {
   type TreeBatch,
 } from './figures.ts';
 import type { StandIn } from './standIns.ts';
-import type { Profile } from '../world/cultures.ts';
+import { drawnAs, type Profile } from '../world/cultures.ts';
 import { animalLoop, animateAnimal } from '../../../assets/src/clips.ts';
 import type { Model } from '../../../assets/src/kit.ts';
 import { buildSteps, flickerHearth, lightHearth, setBuilt } from '../../../assets/src/shelters.ts';
@@ -427,7 +427,8 @@ export class TreeLayer {
       }
       // A figure with an approved model is a copy in its model's batch, playing baked clips
       // (clipBatches.ts).
-      const profile0 = (f.profile ?? 'african-stone-age') as Profile;
+      // Drawn with another culture's models until its own are approved (culture-succession.md section 4).
+      const profile0 = drawnAs(f.profile ?? 'african-stone-age') as Profile;
       // A soul is drawn on its own, see-through, never in a batch (humankind.md section 8.2).
       const batch = f.soul ? undefined : treeFigureBatch(f.look, f.id, profile0, f.tool);
       if (batch) {
@@ -454,7 +455,7 @@ export class TreeLayer {
         continue;
       }
       // A figure in new clothes is a new model (peopling.md section 5.3).
-      const profile = (f.profile ?? 'african-stone-age') as Profile;
+      const profile = drawnAs(f.profile ?? 'african-stone-age') as Profile;
       if (actor && this.profiles.get(f.id) !== profile) {
         this.prune(this.figures, new Set([...this.figures.keys()].filter((id) => id !== f.id)));
         actor = undefined;

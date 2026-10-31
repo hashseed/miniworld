@@ -215,7 +215,7 @@ const ANCHOR_LEAD_DAYS = Math.round(500 * 365.2425);
 /** In the last this many days before a plan's day, the nearest band moves there whole (sites.md section 4.2). */
 const LAST_RESORT_DAYS = Math.round(100 * 365.2425);
 /** Bands change culture at a moment chosen within this many years of a morph (sites.md section 5). */
-const MORPH_YEARS = 100;
+export const MORPH_YEARS = 100;
 
 /** Camps this close to a threshold settle from its day: they stop moving and budding. */
 export const SETTLE_KM = 800;
@@ -367,6 +367,8 @@ export interface Threshold {
 interface Camp {
   id: number;
   site: Site;
+  /** The day its first farming house stood at this site: its fields' founding, kept when it rebuilds (culture-succession.md section 1). */
+  farmedSince?: Day;
   /**
    * The layout its lodgings carry (TreeLodging.camp): its site's, or the compact one for a tight
    * village at a full site (neolithic/villages.md section 3.1).
@@ -842,6 +844,9 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
           : (culture && s.lodgingOf?.(culture)) || s.lodgingKind,
       ...(culture ? { culture } : {}),
       ...(fieldLand ? { fieldLand } : {}),
+      ...(fieldLand && camp.farmedSince !== undefined && camp.farmedSince < day
+        ? { farmed: camp.farmedSince }
+        : {}),
       ...(herding ? { herding: true } : {}),
       ...(habitat.wood
         ? {
@@ -851,6 +856,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         : {}),
       ...(way ? { voyage: way } : {}),
     };
+    if (fieldLand) camp.farmedSince ??= day;
     tree.lodgings.push(l);
     camp.lodgings.push(l.id);
     campOfLodging.set(l.id, camp);
@@ -987,6 +993,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     }
     camp.site = to;
     camp.key = key ?? (from !== to ? to.key : camp.key);
+    if (from !== to) camp.farmedSince = undefined;
     if (!camp.range.includes(to)) takeRange(camp, day);
     capDay = NaN;
     camp.lodgings = [];
@@ -1164,6 +1171,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       bandAt.set(site.id, camp);
       camp.site = site;
       camp.key = site.key;
+      camp.farmedSince = undefined;
       camp.lodgings = [];
       camp.culture = camp.thresholdCulture ?? s.culture?.(site.lat, site.lon, day) ?? camp.culture;
       for (let k = 0; k < people.length; k += capOf(camp)) {

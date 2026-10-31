@@ -1508,6 +1508,54 @@
       "reviewed": "2026-10-25"
     },
     {
+      "id": "figure-rossen-farmer-man",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "Interim: the LBK's look until its own model card is reviewed (neolithic/culture-succession.md section 4); drawn with the LBK's models meanwhile"
+    },
+    {
+      "id": "figure-rossen-farmer-woman",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "Interim: the LBK's look until its own model card is reviewed (neolithic/culture-succession.md section 4); drawn with the LBK's models meanwhile"
+    },
+    {
+      "id": "figure-rossen-farmer-child",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "Interim: the LBK's look until its own model card is reviewed (neolithic/culture-succession.md section 4); drawn with the LBK's models meanwhile"
+    },
+    {
+      "id": "figure-lengyel-farmer-man",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "Interim: the LBK's look until its own model card is reviewed (neolithic/culture-succession.md section 4); drawn with the LBK's models meanwhile"
+    },
+    {
+      "id": "figure-lengyel-farmer-woman",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "Interim: the LBK's look until its own model card is reviewed (neolithic/culture-succession.md section 4); drawn with the LBK's models meanwhile"
+    },
+    {
+      "id": "figure-lengyel-farmer-child",
+      "file": "assets/src/people.ts",
+      "kind": "figure",
+      "generated": "Modelling script, buildPerson",
+      "status": "generated",
+      "note": "Interim: the LBK's look until its own model card is reviewed (neolithic/culture-succession.md section 4); drawn with the LBK's models meanwhile"
+    },
+    {
       "id": "animal-sheep",
       "file": "assets/src/livestock.ts",
       "kind": "animal",

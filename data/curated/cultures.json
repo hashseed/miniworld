@@ -410,6 +410,80 @@
         "herd": ["animal-dog"],
         "crops": ["taro", "banana"]
       }
+    },
+    {
+      "id": "rossen-farmer",
+      "lodging": "shelter-lbk-longhouse",
+      "en": "Rössen farmers of the Rhine and Elbe",
+      "de": "Rössener Bauern an Rhein und Elbe",
+      "farming": {
+        "follows": "lbk-farmer",
+        "architecture": ["shelter-lbk-longhouse"],
+        "tools": {
+          "man": "hoe",
+          "woman": "pot",
+          "child": "basket"
+        },
+        "fieldTool": "hoe",
+        "ardFromBce": 4000,
+        "layout": "rows",
+        "store": "pots",
+        "mix": {
+          "farmer": 22,
+          "reaper": 10,
+          "herder": 14,
+          "potter": 10,
+          "weaver": 8,
+          "builder": 12,
+          "grinder": 8,
+          "hunter": 6,
+          "gatherer": 6,
+          "fisher": 0,
+          "toolmaker": 4
+        },
+        "herd": ["animal-cattle", "animal-sheep", "animal-goat", "animal-pig", "animal-dog"],
+        "crops": ["emmer", "einkorn", "barley", "flax", "lentil"],
+        "houseM": 7.56,
+        "houseCapacity": 10
+      },
+      "looksAs": "lbk-farmer"
+    },
+    {
+      "id": "lengyel-farmer",
+      "lodging": "shelter-lbk-longhouse",
+      "en": "Lengyel farmers of the Middle Danube",
+      "de": "Lengyel-Bauern an der mittleren Donau",
+      "farming": {
+        "follows": "lbk-farmer",
+        "architecture": ["shelter-lbk-longhouse"],
+        "tools": {
+          "man": "hoe",
+          "woman": "pot",
+          "child": "basket"
+        },
+        "fieldTool": "hoe",
+        "ardFromBce": 4000,
+        "layout": "rows",
+        "store": "pots",
+        "mix": {
+          "farmer": 22,
+          "reaper": 10,
+          "herder": 14,
+          "potter": 10,
+          "weaver": 8,
+          "builder": 12,
+          "grinder": 8,
+          "hunter": 6,
+          "gatherer": 6,
+          "fisher": 0,
+          "toolmaker": 4
+        },
+        "herd": ["animal-cattle", "animal-sheep", "animal-goat", "animal-pig", "animal-dog"],
+        "crops": ["emmer", "einkorn", "barley", "flax", "lentil"],
+        "houseM": 7.56,
+        "houseCapacity": 10
+      },
+      "looksAs": "lbk-farmer"
     }
   ]
 }
