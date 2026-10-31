@@ -582,7 +582,8 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
     );
   /** Whether a site is far enough from every other band (sites.md section 4) and not kept for a plan. */
   const free = (site: Site, day: Day, except?: Camp, key = site.key) => {
-    if (claimed(site, day, except)) return false;
+    // Nor where a plan's claim begins before the band's next decision: it would have to leave again at once.
+    if (claimed(site, day, except) || claimed(site, ahead(day), except)) return false;
     // Farmland feeds more people: at a village site that farming has reached, villages keep
     // only clear of each other's drawn camps, not their density's spacing (villages.md section 3).
     const spacing =
@@ -1653,7 +1654,16 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
   /** A camp leaves a plan's footprint: to the nearest free site it fits, else as from the sea. */
   const makeWay = (camp: Camp, day: Day): void => {
     const n = headcount(camp);
-    const way = reach(camp.site, day, FLEE_HOPS, (x) => usable(x, day, n) && free(x, day, camp))[0];
+    // The whole band moves out, to a free site, else any empty one it can use (as the water's
+    // last resort), and only then as from the water, where it might split up and leave some behind.
+    const way =
+      reach(camp.site, day, FLEE_HOPS, (x) => usable(x, day, n) && free(x, day, camp))[0] ??
+      reach(
+        camp.site,
+        day,
+        CROWD_HOPS,
+        (x) => usable(x, day, n) && !bandAt.has(x.id) && !claimed(x, day, camp),
+      )[0];
     if (way) relocate(camp, way.path, day);
     else if (!flee(camp, day)) treeStats.stuck++;
   };
@@ -2260,7 +2270,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
       }
 
       const people = camp.lodgings.flatMap((l) => residents.get(l)!);
-      if (people.length < camp.target) {
+      if (people.length < Math.min(camp.target, maxPeople(camp))) {
         // New people step out of lodgings with room (section 4.3).
         let grown = false;
         for (const l of camp.lodgings) {
