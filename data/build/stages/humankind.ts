@@ -49,7 +49,12 @@ import {
 } from '../../../app/src/world/treeScene.ts';
 import { arrivalMap, dayOfBce, type ArrivalMap, type Arrivals } from '../lib/arrivals.ts';
 import { CAMP_SHELTER } from '../../../assets/src/shelters.ts';
-import { farmingProfileAt, farmingStateAt } from '../../../app/src/world/farmingOnset.ts';
+import { hash32 } from '../../../app/src/core/hash.ts';
+import {
+  dayOfFarmingYear,
+  farmingProfileAt,
+  farmingStateAt,
+} from '../../../app/src/world/farmingOnset.ts';
 import { NEOLITHIC_PROFILES } from '../../../app/src/world/neolithicProfiles.ts';
 import {
   encodeMask,
@@ -69,6 +74,7 @@ import {
   checkTree,
   datedPlaces,
   distanceKm,
+  MORPH_YEARS,
   treeChunks,
   treeStats,
 } from '../lib/humankind.ts';
@@ -545,10 +551,38 @@ export function buildHumankind(
   // hunter-gatherers until it founds a village at one (neolithic/villages.md section 2).
   const villageSite = (lat: number, lon: number) => villageSites.has(`${lat}:${lon}`);
   treeSettings.villageSite = villageSite;
-  treeSettings.farmingAt = (lat, lon, day) => farmingStateAt(lat, lon, day).profile ?? undefined;
+  // A place's culture after the changes of culture-succession.md: each record applies from a
+  // moment of its window hashed by the place, so the villages change over the window, each by
+  // the morph (sites.md section 5), and villages founded after it take the new culture.
+  const successions = ctx
+    .curated('successions.json')
+    .successions.map((r) => ({
+      ...r,
+      start: dayOfFarmingYear(r.bce),
+      end: dayOfFarmingYear(r.bce - r.years),
+    }))
+    .sort((a, b) => a.start - b.start);
+  const inArea = (area: number[][], lat: number, lon: number) =>
+    area.some(
+      ([south, north, west, east]) =>
+        lat >= south! && lat <= north! && lon >= west! && lon <= east!,
+    );
+  const succeeded = (profile: string | null | undefined, lat: number, lon: number, day: number) => {
+    let p = profile ?? undefined;
+    for (const r of successions) {
+      if (p !== r.from || r.mode !== 'in-place' || !inArea(r.area, lat, lon)) continue;
+      const span = Math.max(1, r.end - r.start);
+      if (day >= r.start + (hash32(Math.round(lat * 1e6), Math.round(lon * 1e6), 151) % span))
+        p = r.to;
+    }
+    return p;
+  };
+  treeSettings.farmingAt = (lat, lon, day) =>
+    succeeded(farmingStateAt(lat, lon, day).profile, lat, lon, day);
   treeSettings.culture = (lat, lon, day) =>
-    (villageSite(lat, lon) ? farmingStateAt(lat, lon, day).profile : undefined) ??
-    areaCulture?.(lat, lon, day);
+    (villageSite(lat, lon)
+      ? succeeded(farmingStateAt(lat, lon, day).profile, lat, lon, day)
+      : undefined) ?? areaCulture?.(lat, lon, day);
   treeSettings.village = (culture) => culture in NEOLITHIC_PROFILES;
   treeSettings.lodgingCapacity = (culture) => NEOLITHIC_PROFILES[culture]?.houseCapacity;
   // The band at a farming sign's site becomes its centre's village on the sign's day
@@ -644,6 +678,22 @@ export function buildHumankind(
     JSON.stringify({ startDay: treeSettings.startDay, endDay: treeSettings.endDay, tree }),
   );
   const treeProblems = checkTree(tree, treeSettings, habitat);
+  // After each change's window, and the morph's after it, no village of the old culture stands
+  // in its area (culture-succession.md section 2).
+  const MORPH_DAYS = Math.round((MORPH_YEARS + 10) * DAYS_PER_YEAR);
+  for (const r of successions) {
+    const late = tree.lodgings.find(
+      (l) =>
+        l.culture === r.from &&
+        l.built <= r.end + MORPH_DAYS &&
+        (l.gone === NEVER || l.gone > r.end + MORPH_DAYS) &&
+        inArea(r.area, l.lat / 1e6, l.lon / 1e6),
+    );
+    if (late)
+      treeProblems.push(
+        `succession ${r.id}: a village of ${r.from} still stands at ${(late.lat / 1e6).toFixed(2)}, ${(late.lon / 1e6).toFixed(2)} after its window`,
+      );
+  }
   if (treeProblems.length) fail(`tree of humankind:\n${treeProblems.slice(0, 20).join('\n')}`);
   for (const line of [...arrived.notes, ...peoplingReport(tree, arrivals, thresholds, arrived)])
     log(`peopling: ${line}`);

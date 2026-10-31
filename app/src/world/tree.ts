@@ -74,6 +74,8 @@ export interface TreeLodging {
    * fields, pen and store keep to.
    */
   fieldShare?: string;
+  /** Of a house rebuilt where its village farmed before: the day the village's fields began, so they stay (culture-succession.md section 1). */
+  farmed?: Day;
   /** Built while herders, not yet farmers, are in the land (humankind.md section 8.5): its camp keeps a herd and a pen. */
   herding?: boolean;
   /**

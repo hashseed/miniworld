@@ -31,6 +31,9 @@ export const PROFILES = [
   'mesoamerican-farmer',
   'andean-farmer',
   'new-guinea-highland-farmer',
+  // Successors in place (neolithic/culture-succession.md section 3).
+  'rossen-farmer',
+  'lengyel-farmer',
 ] as const;
 export type Profile = (typeof PROFILES)[number];
 
@@ -47,6 +50,14 @@ onWorldTables((t) => {
 
 /** The founder's people, whose prey a profile without its own hunts. */
 const FOUNDER_PROFILE: Profile = 'african-stone-age';
+
+/**
+ * The profile whose models a profile is drawn with until its own are approved
+ * (neolithic/culture-succession.md section 4), else itself.
+ */
+export function drawnAs(profile: string): string {
+  return CULTURES.get(profile)?.looksAs ?? profile;
+}
 
 /** The asset id of a profile's camp lodging, if it has one. */
 export function campLodgingOf(profile: string | undefined): string | undefined {

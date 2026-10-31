@@ -1,0 +1,25 @@
+{
+  "description": "Changes of a place's culture (spec neolithic/culture-succession.md; Yang, 2026-10-31): in place, where the same people take up a new way of life, or by replacement, where newcomers colonise and the old people leave. Each record names its evidence. Areas are interim boxes [south, north, west, east]; bce is approximate.",
+  "successions": [
+    {
+      "id": "lbk-to-rossen",
+      "from": "lbk-farmer",
+      "to": "rossen-farmer",
+      "area": [[47.5, 53, -1, 12.5]],
+      "bce": 4900,
+      "years": 200,
+      "mode": "in-place",
+      "evidence": "Brandt, G. et al. 2013, Ancient DNA reveals key stages in the formation of central European mitochondrial genetic diversity, Science 342, 257-261: maternal lineages continue from the LBK into the Middle Neolithic; the Rössen cemetery of Wittmar (2014) shows the same"
+    },
+    {
+      "id": "lbk-to-lengyel",
+      "from": "lbk-farmer",
+      "to": "lengyel-farmer",
+      "area": [[45.5, 51, 12.5, 22.5]],
+      "bce": 4900,
+      "years": 200,
+      "mode": "in-place",
+      "evidence": "Brandt, G. et al. 2013, Science 342, 257-261: genetic continuity from the Early into the Middle Neolithic of central Europe, where the Lengyel and Stroked Pottery cultures followed the LBK on the Middle Danube"
+    }
+  ]
+}

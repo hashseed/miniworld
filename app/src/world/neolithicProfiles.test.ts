@@ -40,7 +40,8 @@ describe('Neolithic profiles', () => {
   });
 
   it('are the profiles of the culture table with a farming block', () => {
-    expect(ids.length).toBe(10);
+    // The ten of the farming spread and their two successors (culture-succession.md section 3.2).
+    expect(ids.length).toBe(12);
     for (const p of PROFILES)
       expect(isNeolithicProfile(p)).toBe(CULTURES.get(p)?.farming !== undefined);
     expect(() => neolithicProfile('african-stone-age')).toThrow();
