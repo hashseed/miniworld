@@ -87,11 +87,12 @@ export interface StartupIndex {
   /** Ground mask of each wildlife group, in the order of data/curated/wildlife.json (wildlife.md section 4). */
   wildlife: string[];
   /**
-   * Every place a camp of the tree of humankind stands near a walking wildlife group, as
-   * [lat, lon] in whole microdegrees and the days it stands from and to (to NEVER, -1, for
-   * one that still stands), so the animals keep clear of it (wildlife.md section 4).
+   * Every place a camp of the tree of humankind, or the scene of an anchor, stands near a
+   * walking wildlife group, as [lat, lon] in whole microdegrees, the days it stands from and to
+   * (to NEVER, -1, for one that still stands) and its keep-out's radius in layout metres, so the
+   * animals keep clear of it (wildlife.md section 4).
    */
-  wildlifeCamps?: [number, number, number, number][];
+  wildlifeCamps?: [number, number, number, number, number][];
   /** Card of each wildlife species: title in the index's language and its text file (wildlife.md section 8). */
   animals: AnimalEntry[];
   /** Card of each anchor: the real place a scene shows (humankind.md section 8.3). */

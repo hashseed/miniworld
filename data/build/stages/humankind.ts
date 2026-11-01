@@ -46,7 +46,10 @@ import {
   MONUMENT_MIN,
   VISIT_M,
   treeScene,
+  stageScale,
+  stageSpots,
 } from '../../../app/src/world/treeScene.ts';
+import { STAGE_CLEARING_M } from '../../../app/src/world/scene/hunt.ts';
 import { arrivalMap, dayOfBce, type ArrivalMap, type Arrivals } from '../lib/arrivals.ts';
 import { CAMP_SHELTER } from '../../../assets/src/shelters.ts';
 import { hash32 } from '../../../app/src/core/hash.ts';
@@ -95,7 +98,14 @@ export type TreeFiles = { files: (string | null)[]; days: number[]; sites: strin
 const CHUNK_MS = 60_000;
 
 /** A place a camp stands: [lat, lon] in whole microdegrees, first and last day (wildlife.md section 4). */
-export type CampPlace = [number, number, number, number];
+/**
+ * A place wild animals keep clear of (wildlife.md section 4): [lat, lon] in whole microdegrees,
+ * the days it stands from and to, and its keep-out's radius in layout metres.
+ */
+export type CampPlace = [number, number, number, number, number];
+/** A band's camp keeps wild animals this far off its hearth, a village or herders' camp (fields, pen and herd) this far (layout metres). */
+const CAMP_KEEP_OUT_M = 20;
+const VILLAGE_KEEP_OUT_M = 50;
 
 /** Köppen's desert: annual rain under 10 mm per °C of the annual mean plus 140 mm (peopling.md section 5.2). */
 const KOPPEN_DRY_MM_PER_C = 10;
@@ -732,13 +742,14 @@ export function buildHumankind(
     `tree of humankind: ${tree.figures.length} figures, ${tree.lodgings.length} lodgings, ` +
       `${tree.moments.filter((m) => m.kind === 'camp-founded').length + 1} camps founded`,
   );
-  const camps = campPlaces(tree.lodgings).filter(([lat, lon]) =>
-    WILD_GROUPS.some(
-      (g) =>
-        !flies(g) &&
-        !swims(g) &&
-        distanceKm(g.lat, g.lon, lat / 1e6, lon / 1e6) < CAMP_NEAR_WILDLIFE_KM,
-    ),
+  const camps = [...campPlaces(tree.lodgings), ...stagePlaces(tree.stages ?? [], placeAt)].filter(
+    ([lat, lon]) =>
+      WILD_GROUPS.some(
+        (g) =>
+          !flies(g) &&
+          !swims(g) &&
+          distanceKm(g.lat, g.lon, lat / 1e6, lon / 1e6) < CAMP_NEAR_WILDLIFE_KM,
+      ),
   );
   log(`tree of humankind: ${camps.length} camp places near wildlife`);
   // One chunk per minute of watching, from the start of the timeline to the tree's end.
@@ -936,13 +947,47 @@ export function campPlaces(lodgings: readonly TreeLodging[]): CampPlace[] {
   for (const l of lodgings) {
     const key = `${l.camp}:${l.lat}:${l.lon}`;
     const p = places.get(key);
-    if (!p) places.set(key, [l.lat, l.lon, l.built, l.gone]);
+    // A village or a herders' camp keeps them off its fields, pen and herd too.
+    const r = l.fieldLand || l.herding ? VILLAGE_KEEP_OUT_M : CAMP_KEEP_OUT_M;
+    if (!p) places.set(key, [l.lat, l.lon, l.built, l.gone, r]);
     else {
       p[2] = Math.min(p[2], l.built);
       p[3] = p[3] === NEVER || l.gone === NEVER ? NEVER : Math.max(p[3], l.gone);
+      p[4] = Math.max(p[4], r);
     }
   }
   return [...places.values()];
+}
+
+/**
+ * The scenes of the anchors as places wild animals keep clear of (wildlife.md section 4): each
+ * prop where it is drawn (`placeAt`, its layout offset from its camp), from the day it is first
+ * shown to the day it is taken away, as far as the trees keep from it.
+ */
+export function stagePlaces(
+  stages: readonly TreeStage[],
+  placeAt: (
+    lat: number,
+    lon: number,
+    eastKm: number,
+    northKm: number,
+  ) => { lat: number; lon: number },
+): CampPlace[] {
+  return stages.flatMap((x) => {
+    if (x.shown === undefined) return [];
+    const { prop } = stageSpots(x.camp, x.slot, x.beyond);
+    const p = placeAt(x.lat / 1e6, x.lon / 1e6, prop.x * LAYOUT_KM_PER_M, prop.z * LAYOUT_KM_PER_M);
+    const r = STAGE_CLEARING_M[x.kind] * stageScale(x.camp);
+    return [
+      [
+        Math.round(p.lat * 1e6),
+        Math.round(p.lon * 1e6),
+        x.shown,
+        x.keep ?? x.until,
+        r,
+      ] as CampPlace,
+    ];
+  });
 }
 
 /** Two villages' farmland keeps this far apart either side of the line halfway between them (layout metres). */

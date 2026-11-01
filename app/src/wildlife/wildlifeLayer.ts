@@ -14,7 +14,7 @@ import { ClipBatches } from '../tree/clipBatches.ts';
 import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 import { latLonToDir, type Vec3 } from '../geo/cube.ts';
 import { msAtDay } from '../time/rate.ts';
-import { VILLAGE_KEEP_OUT_KM } from '../world/treeScene.ts';
+import { LAYOUT_KM_PER_M, VILLAGE_KEEP_OUT_KM } from '../world/treeScene.ts';
 import { NEVER } from '../world/tree.ts';
 import {
   decodeWildMask,
@@ -138,7 +138,7 @@ export class WildlifeLayer {
   count = 0;
   /** Each group's ground mask from the startup index; nothing is drawn before it arrives. */
   private masks: WildMask[] | undefined;
-  private camps: readonly [number, number, number, number][] = [];
+  private camps: readonly (readonly [number, number, number, number, number?])[] = [];
   private keepOutKey = '';
   private keepOutList: KeepOut[][] = [];
   /** The clearings of the last few stretches of the clock, by stretch and what they hang on. */
@@ -191,7 +191,7 @@ export class WildlifeLayer {
   }
 
   /** The camp places of the startup index, which the groups keep clear of (section 4). */
-  setCamps(camps: readonly [number, number, number, number][]): void {
+  setCamps(camps: readonly (readonly [number, number, number, number, number?])[]): void {
     this.camps = camps;
     this.keepOutKey = '';
   }
@@ -205,14 +205,20 @@ export class WildlifeLayer {
     const widths = WILD_GROUPS.map((g) => this.surface.widthAt?.(latLonToDir(g.lat, g.lon)) ?? 1);
     const key = `${startDay}:${widths.map((w) => w.toFixed(4)).join(',')}`;
     if (key === this.keepOutKey) return this.keepOutList;
-    const camps = this.camps.map(([lat, lon, from, to]) => ({
+    const camps = this.camps.map(([lat, lon, from, to, r]) => ({
       lat,
       lon,
       from: msAtDay(from, startDay) / 1000,
       to: to === NEVER ? Infinity : msAtDay(to, startDay) / 1000,
+      // Its own radius in layout metres (a band's camp, a village, a scene's prop), else a village's.
+      km: r === undefined ? VILLAGE_KEEP_OUT_KM : r * LAYOUT_KM_PER_M,
     }));
     this.keepOutList = WILD_GROUPS.map((g, i) =>
-      keepOutsOf(g, camps, VILLAGE_KEEP_OUT_KM / widths[i]!),
+      keepOutsOf(
+        g,
+        camps.map((c) => ({ ...c, rKm: c.km / widths[i]! })),
+        VILLAGE_KEEP_OUT_KM / widths[i]!,
+      ),
     );
     this.keepOutKey = key;
     return this.keepOutList;

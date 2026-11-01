@@ -325,6 +325,19 @@ describe('wildlifeAt (wildlife.md section 4)', () => {
     ).toEqual([]);
   });
 
+  it('gives each place its own keep-out: a camp, a village, a scene (issue 228)', () => {
+    const g = WILD_GROUPS.find((w) => w.species === 'giraffe')!;
+    const at = (dLon: number, rKm?: number) => ({
+      lat: Math.round(g.lat * 1e6),
+      lon: Math.round((g.lon + dLon) * 1e6),
+      from: 0,
+      to: 9,
+      ...(rKm !== undefined ? { rKm } : {}),
+    });
+    const ks = keepOutsOf(g, [at(1, 300), at(2, 700), at(3)], 500);
+    expect(ks.map((k) => k.r)).toEqual([300, 700, 500]);
+  });
+
   it('round-trips a mask through its hex string', () => {
     const m = Uint8Array.from({ length: WILD_MASK_N * WILD_MASK_N }, (_, i) =>
       (i * 7) % 3 === 0 ? 1 : 0,
