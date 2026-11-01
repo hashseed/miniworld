@@ -945,15 +945,17 @@ function farmingStarts(tree: Tree): FarmingStart[] {
 export function campPlaces(lodgings: readonly TreeLodging[]): CampPlace[] {
   const places = new Map<string, CampPlace>();
   for (const l of lodgings) {
-    const key = `${l.camp}:${l.lat}:${l.lon}`;
-    const p = places.get(key);
-    // A village or a herders' camp keeps them off its fields, pen and herd too.
+    // A village or a herders' camp keeps them off its fields, pen and herd too. A place listed
+    // once for each, with the days each stands, so a band's long stay before the village
+    // keeps only a band's circle (issue 228: a village's circle over 34,000 years of a camp
+    // covered a herd's ground, and its walks crossed it).
     const r = l.fieldLand || l.herding ? VILLAGE_KEEP_OUT_M : CAMP_KEEP_OUT_M;
+    const key = `${l.camp}:${l.lat}:${l.lon}:${r}`;
+    const p = places.get(key);
     if (!p) places.set(key, [l.lat, l.lon, l.built, l.gone, r]);
     else {
       p[2] = Math.min(p[2], l.built);
       p[3] = p[3] === NEVER || l.gone === NEVER ? NEVER : Math.max(p[3], l.gone);
-      p[4] = Math.max(p[4], r);
     }
   }
   return [...places.values()];

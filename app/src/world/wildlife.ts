@@ -902,6 +902,8 @@ function catmullRomTangent(p0: P2, p1: P2, p2: P2, p3: P2, u: number): P2 {
 interface WildMemo {
   spots: Map<string, [number, number, number]>;
   paths: Map<string, P2[] | null>;
+  /** The walks with no way round the camps standing during them: the animal fades out and in instead (section 4). */
+  blocked: Set<string>;
 }
 /** The memo for one set of groups, masks and keep-outs; a new set starts afresh. */
 const memos = new WeakMap<object, { masks: object; keepOuts: object; memo: WildMemo }>();
@@ -914,11 +916,14 @@ function memoOf(
 ): WildMemo {
   let m = memos.get(groups);
   if (!m || m.masks !== masks || m.keepOuts !== keepOuts) {
-    m = { masks, keepOuts, memo: { spots: new Map(), paths: new Map() } };
+    m = { masks, keepOuts, memo: { spots: new Map(), paths: new Map(), blocked: new Set() } };
     memos.set(groups, m);
   }
   if (m.memo.spots.size > MEMO_MAX) m.memo.spots.clear();
-  if (m.memo.paths.size > MEMO_MAX) m.memo.paths.clear();
+  if (m.memo.paths.size > MEMO_MAX) {
+    m.memo.paths.clear();
+    m.memo.blocked.clear();
+  }
   return m.memo;
 }
 
@@ -1105,6 +1110,25 @@ export function wildlifeAt(
         const sy = qy * f0;
         const circles = standingNow.map((c) => ({ x: c.x - sx, y: c.y - sy, r: c.r + ownHalf }));
         if (circles.length > 0) {
+          // A walk from a spot that a circle grew round while the animal grazed starts at the
+          // circle's edge, where the push-out below holds it, so it is planned round the
+          // circles from there instead of crossing them (section 4).
+          // Out of each circle in turn, as the push-out does, so it starts where it stands.
+          const edgeOf = (q: P2): P2 => {
+            let at = q;
+            for (const c of circles) {
+              const [dx, dy] = [at[0] - c.x, at[1] - c.y];
+              const d = len2d(dx, dy);
+              if (d >= c.r) continue;
+              at =
+                d < 1e-9
+                  ? [c.x + c.r * 1.001, c.y]
+                  : [c.x + (dx / d) * c.r * 1.001, c.y + (dy / d) * c.r * 1.001];
+            }
+            return at;
+          };
+          const start = edgeOf(p1);
+          if (start !== p1) path = [start, ...(path ?? [p1, p2]).slice(1)];
           const inside = (q: P2) => circles.some((c) => len2d(q[0] - c.x, q[1] - c.y) < c.r * 0.98);
           // The route's corners inside a circle are dropped: the detour finds its own way past.
           const base: P2[] = (path ?? [p1, p2]).filter(
@@ -1143,6 +1167,9 @@ export function wildlifeAt(
               way = tidy(smooth) ? smooth : way;
               if (tidy(way)) path = way;
             }
+            // No way round at any distance: rather than cross the circles, it fades out where
+            // it stands and in at its new spot (section 4).
+            if (path === base0) memo.blocked.add(walkKey);
           }
         }
         memo.paths.set(walkKey, path);
@@ -1157,6 +1184,11 @@ export function wildlifeAt(
       const u = f * f * (3 - 2 * f);
       const along = path && walking ? alongPath(path, u) : undefined;
       let [x, y] = along ? along.at : catmullRom(p0, p1, p2, p3, u);
+      // A walk with no way round the camps: out of sight instead, shrinking away at its start
+      // over the first half of the walk and growing in at its new spot over the second.
+      const vanish = walking && memo.blocked.has(walkKey);
+      if (vanish) [x, y] = u < 0.5 ? p1 : p2;
+      const seen = vanish ? Math.abs(2 * u - 1) : 1;
       const fit = fits.get(k)! + (fits.get(k + 1)! - fits.get(k)!) * u;
       // Facing along its own curve; between walks the tangent there, so it never snaps round.
       let [hx, hy] = along ? along.dir : catmullRomTangent(p0, p1, p2, p3, u);
@@ -1226,7 +1258,7 @@ export function wildlifeAt(
         clip: walking ? 'walk' : 'idle',
         seconds: walking ? u * walkS : seconds + hash01(seed, 30 + i) * 0.8,
         walkS: walking ? walkS : 0,
-        grow,
+        grow: grow * seen * seen * (3 - 2 * seen),
         liftKm: 0,
         rise: 0,
         pitch: 0,
