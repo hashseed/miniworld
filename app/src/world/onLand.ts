@@ -262,14 +262,19 @@ export function pathsOnLand(shard: number, shards: number): void {
           // the lens's width at the group's home, the keep-outs in clock seconds.
           const start = manifest.timelineStartDay;
           const widths = WILD_GROUPS.map((g) => lensWidth(g.lat, g.lon));
-          const camps = (index.wildlifeCamps ?? []).map(([lat, lon, from, to]) => ({
+          const camps = (index.wildlifeCamps ?? []).map(([lat, lon, from, to, r]) => ({
             lat,
             lon,
             from: msAtDay(from, start) / 1000,
             to: to === NEVER ? Infinity : msAtDay(to, start) / 1000,
+            km: r === undefined ? VILLAGE_KEEP_OUT_KM : r * LAYOUT_KM_PER_M,
           }));
           const keepOuts = WILD_GROUPS.map((g, i) =>
-            keepOutsOf(g, camps, VILLAGE_KEEP_OUT_KM / widths[i]!),
+            keepOutsOf(
+              g,
+              camps.map((c) => ({ ...c, rKm: c.km / widths[i]! })),
+              VILLAGE_KEEP_OUT_KM / widths[i]!,
+            ),
           );
           const reach = (model: string, g: { lat: number; lon: number }) =>
             bodyKm(model) / lensWidth(g.lat, g.lon);

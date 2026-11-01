@@ -176,7 +176,8 @@ export interface KeepOut {
  */
 export function keepOutsOf(
   g: WildGroup,
-  camps: readonly { lat: number; lon: number; from: number; to: number }[],
+  /** Each place's own radius in km on the true globe, where it has one, else rKm. */
+  camps: readonly { lat: number; lon: number; from: number; to: number; rKm?: number }[],
   rKm: number,
 ): KeepOut[] {
   if (isBird(g.model) || isSwimmer(g.model)) return [];
@@ -203,9 +204,10 @@ export function keepOutsOf(
     if (h < 0.5) continue;
     const x = (EARTH_RADIUS_KM * dot(d, east)) / h;
     const y = (EARTH_RADIUS_KM * dot(d, north)) / h;
-    const far = roamOf(g) + WILD_MASK_MARGIN_KM + 2 * rKm;
+    const r = c.rKm ?? rKm;
+    const far = roamOf(g) + WILD_MASK_MARGIN_KM + 2 * r;
     if (x * x + y * y > far * far) continue;
-    out.push({ x, y, r: rKm, from: c.from, to: c.to });
+    out.push({ x, y, r, from: c.from, to: c.to });
   }
   return out;
 }

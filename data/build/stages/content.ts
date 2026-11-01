@@ -138,7 +138,7 @@ export function buildContent(
   content: Content,
   climate: { seaLevel: StartupIndex['seaLevel']; iceDays: number[] },
   wildlife: string[],
-  wildlifeCamps: [number, number, number, number][],
+  wildlifeCamps: [number, number, number, number, number][],
   /** The events of the events dialog, named in every language (milestone-1 section 8.3). */
   events: {
     id: string;
