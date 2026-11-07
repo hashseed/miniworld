@@ -1,0 +1,248 @@
+/* Interface of the geo-history pack; the base tokens and buttons come from the engine's styles. */
+
+.geo-ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+.geo-ui > * {
+  pointer-events: auto;
+}
+.geo-top {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  pointer-events: none;
+}
+.geo-top > * {
+  pointer-events: auto;
+}
+.geo-top-right {
+  display: flex;
+  gap: 8px;
+}
+.geo-box {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.geo-title {
+  padding: 10px 16px;
+}
+.geo-age {
+  position: fixed;
+  top: max(64px, calc(env(safe-area-inset-top) + 52px));
+  left: max(12px, env(safe-area-inset-left));
+  padding: 10px 18px;
+  min-width: 190px;
+}
+.geo-age-main {
+  font-size: 1.9rem;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.geo-age-sub {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+.cert-text0 {
+  color: #2f7a39;
+}
+.cert-text1 {
+  color: #9a6a12;
+}
+.cert-text2 {
+  color: #b23b2b;
+}
+.geo-legend {
+  position: fixed;
+  top: max(64px, calc(env(safe-area-inset-top) + 52px));
+  right: max(12px, env(safe-area-inset-right));
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  max-width: 280px;
+}
+.geo-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+.swatch {
+  flex: none;
+  width: 22px;
+  height: 5px;
+  border-radius: 3px;
+}
+.geo-bottom {
+  position: fixed;
+  left: max(8px, env(safe-area-inset-left));
+  right: max(8px, env(safe-area-inset-right));
+  bottom: max(8px, env(safe-area-inset-bottom));
+  padding: 8px 10px 6px;
+}
+.geo-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.geo-speeds {
+  display: flex;
+  gap: 4px;
+  margin-left: 6px;
+}
+.geo-spacer {
+  flex: 1;
+}
+.timeline {
+  display: block;
+  width: 100%;
+  touch-action: none;
+  cursor: ew-resize;
+  overflow: visible;
+}
+.tl-label {
+  font-size: 11px;
+  fill: #2b2118;
+  pointer-events: none;
+}
+.tl-label.light {
+  fill: #fff;
+}
+.tl-small {
+  font-size: 10px;
+  fill: var(--muted);
+  pointer-events: none;
+}
+.cert0 {
+  fill: #6dbb74;
+}
+.cert1 {
+  fill: #e0b455;
+}
+.cert2 {
+  fill: #d98273;
+}
+.tl-ruler text {
+  font-size: 10px;
+  fill: var(--muted);
+}
+.tl-ruler line {
+  stroke: var(--muted);
+}
+.tl-playhead line {
+  stroke: #e0323a;
+  stroke-width: 2;
+}
+.tl-playhead path {
+  fill: #e0323a;
+}
+.tl-moment {
+  cursor: pointer;
+  outline: none;
+}
+.tl-moment circle {
+  fill: #fff;
+  stroke: #3b2a1e;
+  stroke-width: 2.5;
+}
+.tl-moment:hover circle,
+.tl-moment:focus-visible circle,
+.tl-moment.on circle {
+  fill: var(--accent);
+}
+.geo-card {
+  position: fixed;
+  left: max(12px, env(safe-area-inset-left));
+  bottom: 170px;
+  width: min(420px, calc(100vw - 24px));
+  padding: 14px 18px 12px;
+  max-height: 45vh;
+  overflow: auto;
+}
+.geo-card h2,
+.geo-about h2 {
+  margin: 0 36px 2px 0;
+  font-size: 1.25rem;
+}
+.geo-card p {
+  margin: 6px 0;
+  line-height: 1.4;
+}
+.geo-when {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.geo-card summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.geo-card li,
+.geo-credits li {
+  font-size: 0.8rem;
+  margin: 4px 0;
+}
+.geo-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+}
+.geo-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 20, 14, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+.geo-about {
+  position: relative;
+  background: #fffbf3;
+  width: min(640px, 100%);
+  max-height: 88vh;
+  overflow: auto;
+  padding: 18px 22px;
+}
+.geo-about p,
+.geo-about li {
+  line-height: 1.45;
+}
+.geo-loading {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: var(--text);
+  pointer-events: none;
+}
+@media (max-width: 700px) {
+  .geo-speeds {
+    margin-left: 0;
+  }
+  .geo-speeds .btn,
+  .geo-controls .btn {
+    padding: 0 8px;
+    font-size: 0.85rem;
+  }
+  .geo-legend {
+    display: none;
+  }
+  .geo-card {
+    bottom: 230px;
+  }
+}

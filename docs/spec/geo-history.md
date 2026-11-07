@@ -63,11 +63,13 @@ The zip holds, among others:
 | `Topologies/*.gpml` | the plate boundaries over time, in three ranges (1,000 to 410, 410 to 250 and 250 to 0 Ma), with convergent, divergent and transform sections and their building blocks |
 | `Cratons/shapes_cratons_Merdith_etal.gpml` | the old cores of the continents, for a later tint |
 
-The data build keeps, under `data/packs/geo-history/sources/merdith-2021/`, only small simplified extracts (spec section 13): the rotation tree as numbers, the polygons simplified to the drawing resolution, and the boundary sections with their valid times, in compact binary chunks. The originals are recorded by URL and checksum and downloaded by `npm run fetch-data`.
+The repository keeps, under `data/sources/merdith-2021/`, only small simplified extracts (spec section 13), made by `node data/packs/geo-history/build/simplify.ts` from the downloaded zip: `rotations.json` (the rotation rows as numbers, 177 KB), `land.json` (the continents' polygons, 845 of them, simplified to 0.05 degrees, 319 KB) and `boundaries.json` (2,784 ridge, subduction and transform sections with their plate ids, valid times, polarity and, for half-stage sections, their two plates, simplified to 0.08 degrees, 568 KB). The extracts are listed in `data/sources.json` with their checksums and the field `pack: "geo-history"`, which keeps them out of the history pack's source list; the originals are recorded by URL and checksum and downloaded by `npm run fetch-data merdith-2021` and extracted by hand into `data/out/merdith-2021/`.
+
+The topological plate polygons of the model are not used: only the boundary sections that make them up. Ridges and rifts of the model move by half-stage rotation, the mean of the poses of the two plates beside them, and are placed as digitised at the age the feature records; all other sections and all land move with the pose of their plate id.
 
 Other free sources:
 
-- **Today's coasts**: Natural Earth, already in the repository (public domain), whose vertices the build assigns to the plate of the static polygon they fall in.
+- **Today's coasts**: Natural Earth 1:10m land, already in the repository (public domain), simplified to 0.1 degrees. The build assigns each vertex the plate of the model's continent polygon that contains it at 0 Ma (the nearest polygon where none does) and cuts the outlines into pieces at the points where the plate changes, so each piece moves with its plate.
 - **Geological periods**: the International Chart of Stratigraphy, CC BY 4.0, for the band names and ages.
 
 Out of scope for version 1, and the sources to look at later: a finer Mesozoic and Cenozoic model with deformation (Müller et al. 2019, CC BY 4.0, Zenodo 11601026), the 2,000 to 540 Ma model of Merdith et al. (2023, Zenodo 10256054) if the range is ever extended, and any palaeo-elevation or sea-level dataset. Scotese's PALEOMAP is not used until its licence is confirmed to meet section 13.
@@ -82,15 +84,15 @@ The model gives, for each plate id, finite rotations at key ages relative to a f
 2. Compose the result with the pose of its fixed plate at the same age, up the tree to the root.
 3. The result is one unit quaternion per plate: the plate's pose at that age.
 
-This is the world of geo-history: `poses(age)` returns a quaternion per plate id, plus the drawn-ness of every plate and boundary section (a section exists only between its valid times). It is deterministic code on integer ages, with no wall clock and no randomness.
+This is the world of geo-history: `RotationModel.poses(age)` returns a quaternion per plate id (`app/src/packs/geo-history/world/poses.ts`), and a polygon or boundary section exists only between its valid times. It is deterministic code on the age, with no wall clock and no randomness. Where a plate's fixed plate changes between two key ages, the two poses themselves are interpolated; before a plate's first and after its last age it keeps the nearest rotation. The pack's world uses sin, cos and acos for the great-circle interpolation, which the lint rule of the history world forbids for determinism across engines; the rule does not apply to this pack, because nothing in geo-history branches on a pose, and the golden tests compare within a tolerance (section 10).
 
 ### 5.2 Drawing
 
-The plate meshes are built once, in each plate's own frame: the land polygons triangulated on the sphere, the boundary sections as lines, the present-day coasts as lines. The renderer sets one quaternion per plate each frame, so moving the whole planet costs a few hundred uniforms, not new geometry. The shapes are drawn:
+The meshes are built once, in each plate's own frame: the land polygons triangulated on the sphere (by ear clipping in a stereographic projection about each polygon's centre, the triangles split until no edge is longer than about 1.7 degrees), the boundary sections and the present-day coasts as lines, and the teeth of the subduction zones as small triangles. Every vertex carries the slot of its plate and its valid ages. The poses go to the graphics card as one row of a float texture, one texel per plate (and per half-stage section), which is rewritten when the age changes; the vertex shader looks its pose up, rotates the vertex and drops it off screen when the age is outside its valid ages. Moving the whole planet costs one small texture upload, not new geometry. The shapes are drawn:
 
-- land: natural colours from the expected climate (section 5.3), with a darker edge, over a deep blue ocean sphere;
-- plate boundaries: ridges, subduction zones with teeth and transforms as three line styles, on land and under water; they appear and disappear as their sections' valid times begin and end, with a short fade;
-- today's coasts: thin lines on the plates, drawn over the land.
+- land: natural colours from the expected climate (section 5.3), lit softly from the camera's side, over a deep blue ocean sphere;
+- plate boundaries: ridges (orange), subduction zones (crimson, with teeth on the side of the overriding plate where the model says it) and transforms (yellow) as lines of a fixed width in pixels, on land and under water; they appear and disappear as their sections' valid times begin and end;
+- today's coasts: thin pale lines on the plates, drawn over the land, and fading with age (opacity 0.85 today, 0.35 at 1,000 Ma), because the further back they are carried, the less these coasts say.
 
 The camera range is the one of history (spec section 3), except that the lowest zoom stops where a figure would have filled the screen: nothing in geo-history is drawn at human size.
 
@@ -116,7 +118,7 @@ Later steps (section 9) replace the zones by an ice line that follows the known 
 
 ### 5.4 Performance
 
-The data for the whole range is a few MB; there is nothing to stream by place, and the pack ships its poses and meshes in the first download. The target is the performance budget of spec section 9: 60 fps on a first MacBook Air M1 and 30 fps on a Pixel 9, with a world query under 8 ms, which poses and a few hundred uniforms meet by a wide margin.
+The data for the whole range is one file of 1.8 MB (about 0.4 MB compressed), content-hashed, and there is nothing to stream by place. The target is the performance budget of spec section 9: 60 fps on a first MacBook Air M1 and 30 fps on a Pixel 9. The poses of about 1,200 plates and 1,200 half-stage sections cost a few milliseconds when the age changes, and nothing while it stands still. Not yet measured on the reference devices: only in a headless browser with software rendering, which is no judge of frame time.
 
 ## 6. Moments
 
@@ -168,18 +170,19 @@ In order, none of it in version 1:
 
 ## 10. Milestones and tests
 
-| Step | Content | Done when |
-| --- | --- | --- |
-| G0 | The engine and pack boundary and the build-time pack choice ([engine.md](engine.md#4-getting-history-behind-the-boundary), steps 1 to 3) | history is unchanged: golden, on-land and browser tests pass as they are; the lint rule is on; `PACK=geo-history` builds an empty pack |
-| G1 | The data build: fetch, parsers for the rotation file, polygons and boundaries, the compact chunks, licence entries | `npm run build-data` makes the geo-history chunks; the build fails on a missing licence |
-| G2 | `poses(age)` and the golden tests | the poses of the golden ages (0, 50, 100, 250, 335, 540, 750 and 1,000 Ma) match the stored result, and spot checks of the rotation arithmetic match values worked out by hand from the rotation file; where a GPlates figure for a pose exists, it matches within a tolerance of 0.01 degrees |
-| G3 | The plate meshes, the globe and the climate colours | scrubbing from 1,000 Ma to 0 shows Rodinia, Pangaea and today's map, on the reference laptop and phone within the performance budget |
-| G4 | The timeline in Ma, the bands, the moments, the cards | the first list of section 6 is in both languages with sources, and switching language keeps the time |
-| G5 | The About panel, the uncertainty band, review in both languages, an approved look; both packs deployed side by side | Yang's feedback is in |
+| Step | Content | Done when | State (2026-11-07) |
+| --- | --- | --- | --- |
+| G0 | The engine and pack boundary and the build-time pack choice ([engine.md](engine.md#4-getting-history-behind-the-boundary), steps 1 to 3) | history is unchanged: golden, on-land and browser tests pass as they are; a test keeps the boundary; `PACK=geo-history` builds the second pack | Done, except that the engine still imports the history pack in 14 places ([engine.md](engine.md#4-getting-history-behind-the-boundary)) and the browser tests were not run |
+| G1 | The data build: fetch, parsers for the rotation file, polygons and boundaries, the extracts and the data file, licence entries | `npm run build-data:geo-history` makes the data file; the build fails on a missing licence, a changed extract or a source a record names that is not in the bibliography | Done |
+| G2 | `poses(age)` and the golden tests | the poses match values worked out by hand for a small model, and golden places match the stored result (Delhi, New York and Sydney at the ages of the table in the test) within 0.06 degrees; the motion of the main plates never jumps | Done; no GPlates figures to compare with were available, so the golden values are this code's, checked for plausibility against the known motions of India, North America and Australia |
+| G3 | The plate meshes, the globe and the climate colours | scrubbing from 1,000 Ma to 0 shows Rodinia, Pangaea and today's map, on the reference laptop and phone within the performance budget | Looks right in a headless browser (Rodinia at 920 Ma, Gondwana at 520 Ma, Pangaea at 280 Ma, India meeting Asia at 50 Ma, today); performance on the reference devices not measured |
+| G4 | The timeline in Ma, the bands, the moments, the cards | the first list of section 6 is in both languages with sources, and switching language keeps the time | Done: 12 moments, English and German; the ages and the card texts are still to be checked against their sources |
+| G5 | The About panel, the uncertainty band, review in both languages, an approved look; both packs deployed side by side | Yang's feedback is in | About panel and uncertainty band built; waiting for Yang's review and for the deploy |
 
 Golden tests compare the numbers within a tolerance, since the trigonometric functions of different devices may differ in the last digits; the rule that the same age shows the same planet holds up to that tolerance.
 
 ## 11. Open decisions
 
-- The latitude bands of section 5.3 are a first guess; Yang reviews the look in G3.
+- The latitude bands of section 5.3 are a first guess; Yang reviews the look in G3. One consequence to judge: land that lies at a pole is drawn white at every age, such as Gondwana at 520 Ma, although the early Palaeozoic was mostly warm; the ice line of section 9 item 1 would fix it.
+- Whether today's coasts should be on by default at the oldest ages, where they are scattered over blocks of land they did not belong to.
 - Whether the ice line of section 9 item 1 should come before the ocean plates, since the Cryogenian is the most dramatic moment of the range.

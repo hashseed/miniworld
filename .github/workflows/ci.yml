@@ -52,6 +52,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build 2>&1 | tee build.log
+      # The second pack builds on its own, and neither build holds the other's code
+      # or data (engine.md, sections 3 and 6).
+      - run: npm run build:geo-history 2>&1 | tee -a build.log
+      - run: |
+          ! grep -rqF 'Cryogenian' dist
+          ! grep -rqF 'miniworld.settings.v1' dist-geo-history
       - if: failure()
         run: echo "::error title=release build::$(grep -v '^\s*$' build.log | tail -n 60 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')"
 
