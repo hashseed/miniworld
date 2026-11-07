@@ -1,5 +1,7 @@
 # Miniworld spec: a living globe of world history
 
+This is the spec of the **history pack**. The engine and the boundary between engine and packs are in [engine.md](engine.md), and the second pack, the continents over the last 1 billion years, is in [geo-history.md](geo-history.md). Sections 2.2, 2.3, 3 (camera), 7, 8, 9, 10, 11 and 13 below also hold engine rules ([engine.md](engine.md#5-where-the-engines-rules-live-now)).
+
 ## 1. Vision
 
 Miniworld is a passive, historically accurate diorama of human history on a 3D globe, made for exploring history together with a child. You do not play it; you watch it, travel through time and fly to wherever something is happening. Miniature people live era-typical lives on accurate continents, from the last ice age to the end of the Soviet Union in 1991.

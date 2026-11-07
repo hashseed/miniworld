@@ -2,67 +2,39 @@
 
 Miniworld gets a second mode, **geo-history**: a passive globe that shows how the continents moved over the last 1 billion years, from the supercontinent Rodinia through Gondwana and Pangaea to today's map. Plates, continents and plate boundaries only; no life and no people yet. The current mode, now called **history**, is not changed.
 
-This file is the spec of the geo-history pack (section 2) and of the engine changes it needs. Decided by Yang on 2026-11-07: one engine and two sets of content, the history lens supported by the engine but not used by geo-history, plates and continents only in version 1, and a range of 1 Ga because no scientific plate model reaches further back with continuous motion.
+This file is the spec of the geo-history pack only. What the engine is, how packs plug into it, how the pack is chosen when the app is built and how history moves behind the boundary are in [engine.md](engine.md). Decided by Yang on 2026-11-07: plates and continents only in version 1, a range of 1 Ga because no scientific plate model reaches further back with continuous motion, a play-through of one hour, natural continent colours from the expected climate, and no switch in the running app.
 
 ## 1. What the viewer sees
 
 - The same kind of globe as history: you fly around it from orbit, with the same camera and controls, the sky and the day and night light.
-- Continents are drawn as flat painted land on a deep blue ocean, moving as the timeline moves: Rodinia breaking up, the oceans opening and closing, Pangaea assembling and splitting, India crashing into Asia.
+- Continents are drawn as land in natural colours, on a deep blue ocean, moving as the timeline moves: Rodinia breaking up, the oceans opening and closing, Pangaea assembling and splitting, India crashing into Asia.
 - Plate boundaries are drawn as lines on land and under water, in three kinds that a child can tell apart at a glance: spreading ridges, subduction zones (with teeth on the overriding side) and transform faults.
 - An overlay **Today's coasts** draws the present-day coastlines on the moving plates, so the viewer can see where Africa or India was. It is on by default.
 - The timeline at the bottom runs from 1,000 Ma on the left to today on the right, linear (section 3). Moments such as "Rodinia breaks up" sit on it; tapping one shows a card and flying there moves time.
-- There is no elevation, no ice, no sea level and no life: nobody has a global model of them for this whole range that meets our licence policy, and the viewer is told so in the About panel (section 8). A banner shows that the older the age, the less certain the map (section 7).
-- No history lens: the globe is drawn in true proportions.
+- There is no elevation, no sea level and no life: nobody has a global model of them for this whole range that meets our licence policy, and the viewer is told so in the About panel (section 8). A banner shows that the older the age, the less certain the map (section 7).
+- No history lens: the pack sets the lens to none ([engine.md](engine.md#2-what-a-pack-provides)) and the globe is drawn in true proportions.
+- No switch to history in the running app: the pack is chosen when the app is built ([engine.md](engine.md#3-the-pack-is-chosen-at-build-time)).
 
-## 2. One engine, two packs
+## 2. What this pack provides to the engine
 
-### 2.1 The split
+The pack interface is in [engine.md](engine.md#2-what-a-pack-provides). For geo-history:
 
-| Part | Holds | Rule |
-| --- | --- | --- |
-| **Engine** | the clock and time curve, the camera, the globe renderer and its surface sources, the timeline widget, localisation, storage, the lens, the data-build framework, the quality and performance machinery | knows nothing of any pack |
-| **Pack** | a spec, data (`data/`), the curated records, its data-build stages, its world code, its models and textures, its UI panels, its golden tests, its localisation strings, its entry page | registers itself with the engine; imports the engine, never another pack |
+| Part | Geo-history |
+| --- | --- |
+| Time axis | linear age from 1,000 Ma to 0, in whole years (section 3) |
+| Surface | plate meshes, posed per age (section 5) |
+| Lens | none |
+| Timeline content | the lanes "Geological time" and "Supercontinents", and the moments of section 6 |
+| Panels | the About panel with the attribution and the limits of section 7; the overlay "Today's coasts" |
+| Data | `data/packs/geo-history/`, with its own manifest, built by `PACK=geo-history npm run build-data` |
+| Port in the devenv | 8801 |
 
-Two packs exist:
-
-| Pack | Entry page | Range | Status |
-| --- | --- | --- | --- |
-| `history` | `index.html` | the last ice age to 1991 | today's Miniworld, moved behind the pack boundary without changing behaviour |
-| `geo-history` | `geo-history.html` | 1,000 Ma to today | new |
-
-A lint rule keeps the engine from importing a pack and a pack from importing the other, like the rule that keeps the world from importing the renderer ([architecture.md](architecture.md#1-layers)). Each pack has its own storage key prefix, so settings, the last time and the bookmarks of one never touch the other.
-
-### 2.2 What a pack provides
-
-A pack is an object the entry page hands to the engine:
-
-- its **time axis**: the range, the function from watching time to the date, the unit of the date, the date formatting and the speed modes (section 3);
-- its **surface**: how the globe is drawn (section 5), the elevation tiles of history or the plate meshes of geo-history, behind one engine interface;
-- its **lens setting**: history builds and uses the fixed 120% warp; geo-history sets the lens to none, so the engine skips the warp and draws true proportions;
-- its **timeline content**: lanes, bands and moments, from its own records;
-- its **panels, overlays and cards**, and its **strings** in English and German;
-- its **world**: a pure function of the clock, as in spec section 9.
-
-The engine owns the timeline widget, the controls, the loop and the loader. Everything that says what a date is, what is on the globe or what text to show comes from the pack.
-
-### 2.3 Mode switch
-
-A small control in the corner switches between the two entry pages; it keeps the language and the quality setting and starts the other mode at its last saved time. The end of the geo-history timeline links to history ("Humans appear in the last few hundred thousand years: see them in Miniworld history").
-
-### 2.4 Getting there without breaking history
-
-Today history's code is mixed with the engine: `world/`, `tree/` and `wildlife/` are history content, and the globe renderer is tied to the elevation tile quadtree. The split is made first, in small pull requests, each judged by the golden and on-land tests and the browser tests, which must pass unchanged:
-
-1. Name the boundary: move the history-only code under `app/src/packs/history/` and the engine under `app/src/engine/`, with the lint rule, no behaviour change.
-2. Put the time axis, the lens and the terrain source behind the pack interface of section 2.2, history being the only implementation.
-3. Add the second entry page and Vite page; geo-history registers an empty pack to prove the boundary.
-
-The data build splits the same way: `data/build/` keeps the framework, and each pack has its `stages/`, `curated/` and `sources/` under `data/packs/<pack>/`, with its own manifest and startup index.
+The pack's code lives in `app/src/packs/geo-history/`, its strings under its own namespace and its storage keys under the prefix `geo-history`.
 
 ## 3. Time
 
 - The axis is **linear in time, with no curve**: unlike history (spec section 2.1), geo-history has no deep past that passes quickly and a recent past that passes slowly. A metre of timeline is the same number of years anywhere on it.
-- The date is the **age** in whole years before today, an integer from 1,000,000,000 down to 0. Watching time is counted in milliseconds as in history; at regular speed 1,000 Ma pass in 10 minutes, 100 Ma per minute (decided as a default; the speed modes of milestone 1 section 8.1 scale it as they do in history).
+- The date is the **age** in whole years before today, an integer from 1,000,000,000 down to 0. Watching time is counted in milliseconds as in history; at regular speed 1,000 Ma pass in one hour (decided by Yang on 2026-11-07), which is about 16.7 Ma per minute or 0.28 Ma per second; the speed modes of milestone 1 section 8.1 scale it as they do in history.
 - The pack runs forward in time: it starts at 1,000 Ma and ends at 0, today. There is no future.
 - The world is a pure function of the age and the data, so scrubbing is instant and the same age always shows the same planet.
 - The timeline zooms from the whole 1,000 Ma down to about 1 Ma across, which is the finest the plate model supports. At full range the Cenozoic is a sliver, the last 66 Ma are 6.6% of the line; the zoom and the moments of section 6 are what make it explorable.
@@ -116,7 +88,7 @@ This is the world of geo-history: `poses(age)` returns a quaternion per plate id
 
 The plate meshes are built once, in each plate's own frame: the land polygons triangulated on the sphere, the boundary sections as lines, the present-day coasts as lines. The renderer sets one quaternion per plate each frame, so moving the whole planet costs a few hundred uniforms, not new geometry. The shapes are drawn:
 
-- land: flat painted colour per continent with a darker edge, over a deep blue ocean sphere; the colours are chosen so neighbouring continents can be told apart and so a continent keeps its colour across the whole timeline;
+- land: natural colours from the expected climate (section 5.3), with a darker edge, over a deep blue ocean sphere;
 - plate boundaries: ridges, subduction zones with teeth and transforms as three line styles, on land and under water; they appear and disappear as their sections' valid times begin and end, with a short fade;
 - today's coasts: thin lines on the plates, drawn over the land.
 
@@ -124,7 +96,25 @@ The camera range is the one of history (spec section 3), except that the lowest 
 
 Version 1 does not fill the ocean plates, because that needs the full topological polygons resolved at every age: the ocean shows only the plate boundaries. Seafloor age, the ocean floor's colour by age, is a later step (section 9).
 
-### 5.3 Performance
+### 5.3 Climate colours
+
+Decided by Yang on 2026-11-07: continents are drawn in regular natural colours based on the expected climate. There is no climate dataset for the whole range that meets section 13 of the main spec, so the colour comes from a simple model with one input, the **latitude each point of land has at the current age**, which the poses give (section 5.1): the same continent is green in the tropics and white near a pole, and changes colour as it drifts.
+
+| Latitude | Expected climate | Colour |
+| --- | --- | --- |
+| 0° to about 10° | tropical rainforest | deep green |
+| about 10° to 20° | tropical savanna | olive green |
+| about 20° to 35° | subtropical desert, where the dry air of the Hadley cells sinks | sand |
+| about 35° to 50° | temperate | fresh green |
+| about 50° to 65° | cold forest | dark blue-green |
+| about 65° to 75° | tundra | grey-brown |
+| beyond about 75° | polar ice | white |
+
+The bands blend smoothly in the shader, with no hard lines, and are the same in the northern and the southern hemisphere. They are the same for the whole timeline in version 1: the model does not know that the Sun was fainter, that the Earth had a ice-free "greenhouse" or a snowball state, or that the interior of a big continent is drier than its coast. The About panel says that the colours are an expectation from latitude and not a reconstruction (section 7). The latitude bands and their blending are data in `data/packs/geo-history/curated/climate-bands.json`, with a source for each (a climate textbook or the Köppen-Geiger zones' typical latitudes), so they can be tuned without code.
+
+Later steps (section 9) replace the zones by an ice line that follows the known icehouse and greenhouse intervals, and by a real palaeoclimate dataset, if one is found.
+
+### 5.4 Performance
 
 The data for the whole range is a few MB; there is nothing to stream by place, and the pack ships its poses and meshes in the first download. The target is the performance budget of spec section 9: 60 fps on a first MacBook Air M1 and 30 fps on a Pixel 9, with a world query under 8 ms, which poses and a few hundred uniforms meet by a wide margin.
 
@@ -155,12 +145,12 @@ The plate model is a reconstruction, and the further back, the less is known. Th
 
 - **Uncertainty.** Between 1,000 and 410 Ma the model is constrained mostly by palaeomagnetic poles that fix latitude but not longitude, and by the geology of the continents; the oceans in that range are inferred. A band on the timeline marks the ranges "well constrained" (the last 250 Ma, with the ocean floor record), "constrained" (250 to 540 Ma) and "less certain" (540 to 1,000 Ma), and the About panel explains it in both languages.
 - **Reference frame.** The model's frame is palaeomagnetic: it gives latitudes, but the east-west position is a convention, and the Pacific plates before 83 Ma keep only their motion relative to the continents (the model's README says not to use the model for the Pacific's absolute motion). Version 1 shows the model's own frame and says so on the card of the About panel; a choice of frame is a later step.
-- **No relief.** Land is flat and the same colour all over: an old continent is drawn as the area the model says was continental crust, not as a coast with a shelf and mountains.
+- **Colours are an expectation.** Land is coloured by the latitude it had, as in section 5.3: a desert band is where deserts are expected, not where one was known. Land is flat, with no shelf and no mountains.
 - **Continent outlines.** Before about 400 Ma, the model's coastlines do not exist; the land drawn there is the shape of continental crust, which is wider than the dry land was.
 
 ## 8. Interface, localisation, licences
 
-- The interface is the engine's, in the pack's strings; every string and every moment has `en` and `de`, with German allowed to run longer.
+- The interface is the engine's ([engine.md](engine.md)), in the pack's strings; every string and every moment has `en` and `de`, with German allowed to run longer.
 - The About panel gives the attribution that CC BY 4.0 requires for Merdith et al. (2021), the ICS chart and Natural Earth, in both languages, and the limits of section 7.
 - Third-party libraries and data follow section 13 of the main spec: the data build fails when a source's licence is missing or not on the allowed list. The GPlates software and its Python library (pyGPlates) are not dependencies of the build or the app. The rotation, polygon and boundary parsers are written in TypeScript in the data build. Test fixtures of poses may be made once by hand with GPlates by anyone who has it, as plain numbers (section 10).
 
@@ -168,28 +158,28 @@ The plate model is a reconstruction, and the further back, the less is known. Th
 
 In order, none of it in version 1:
 
-1. Ocean plates filled and the ocean floor coloured by age, which needs the topological polygons resolved at each age.
-2. A choice of reference frame, such as keeping one continent fixed.
-3. A finer last 250 Ma from Müller et al. (2019), if the Merdith model's boundary sections prove too coarse.
-4. Palaeo-elevation, ice and sea level, if a dataset meeting section 13 is found.
-5. Life, as a pack layer: the first animals, the Cambrian, the dinosaurs.
-6. Extending the range with the 2,000 to 540 Ma model.
+1. An ice line and climate colours that follow the known icehouse and greenhouse intervals (such as the Cryogenian), in place of the fixed zones of section 5.3.
+2. Ocean plates filled and the ocean floor coloured by age, which needs the topological polygons resolved at each age.
+3. A choice of reference frame, such as keeping one continent fixed.
+4. A finer last 250 Ma from Müller et al. (2019), if the Merdith model's boundary sections prove too coarse.
+5. Palaeo-elevation, ice and sea level, if a dataset meeting section 13 is found.
+6. Life, as a pack layer: the first animals, the Cambrian, the dinosaurs.
+7. Extending the range with the 2,000 to 540 Ma model.
 
 ## 10. Milestones and tests
 
 | Step | Content | Done when |
 | --- | --- | --- |
-| G0 | This spec, and the engine and pack boundary of section 2.4 steps 1 and 2 | history is unchanged: golden, on-land and browser tests pass as they are; the lint rule is on |
+| G0 | The engine and pack boundary and the build-time pack choice ([engine.md](engine.md#4-getting-history-behind-the-boundary), steps 1 to 3) | history is unchanged: golden, on-land and browser tests pass as they are; the lint rule is on; `PACK=geo-history` builds an empty pack |
 | G1 | The data build: fetch, parsers for the rotation file, polygons and boundaries, the compact chunks, licence entries | `npm run build-data` makes the geo-history chunks; the build fails on a missing licence |
 | G2 | `poses(age)` and the golden tests | the poses of the golden ages (0, 50, 100, 250, 335, 540, 750 and 1,000 Ma) match the stored result, and spot checks of the rotation arithmetic match values worked out by hand from the rotation file; where a GPlates figure for a pose exists, it matches within a tolerance of 0.01 degrees |
-| G3 | The geo-history entry, the plate meshes and the globe | scrubbing from 1,000 Ma to 0 shows Rodinia, Pangaea and today's map, on the reference laptop and phone within the performance budget |
-| G4 | The timeline in Ma, the bands, the moments, the cards and the mode switch | the first list of section 6 is in both languages with sources, and switching language and mode keeps the other mode's state |
-| G5 | The About panel, the uncertainty band, review in both languages, an approved look | Yang's feedback is in |
+| G3 | The plate meshes, the globe and the climate colours | scrubbing from 1,000 Ma to 0 shows Rodinia, Pangaea and today's map, on the reference laptop and phone within the performance budget |
+| G4 | The timeline in Ma, the bands, the moments, the cards | the first list of section 6 is in both languages with sources, and switching language keeps the time |
+| G5 | The About panel, the uncertainty band, review in both languages, an approved look; both packs deployed side by side | Yang's feedback is in |
 
 Golden tests compare the numbers within a tolerance, since the trigonometric functions of different devices may differ in the last digits; the rule that the same age shows the same planet holds up to that tolerance.
 
 ## 11. Open decisions
 
-- How long the default play-through is (section 3 assumes 10 minutes for 1 Ga).
-- Whether the continent colours should follow the plates' ids or be fixed by hand per continent.
-- Whether the mode switch and the About panel belong in the first view of history too, and in what form.
+- The latitude bands of section 5.3 are a first guess; Yang reviews the look in G3.
+- Whether the ice line of section 9 item 1 should come before the ocean plates, since the Cryogenian is the most dramatic moment of the range.
