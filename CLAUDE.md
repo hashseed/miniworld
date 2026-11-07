@@ -6,6 +6,10 @@ A passive, historically accurate 3D globe diorama of world history for the brows
 
 The spec in `docs/spec/` is the source of truth. Before implementing any change to behaviour, content or data format, update the spec first, in the same pull request or an earlier one. If code and spec disagree, the spec wins until the spec is changed. Start any task by reading the relevant part of `docs/spec/spec.md`.
 
+## Two modes, one engine
+
+Miniworld has two content packs on one engine: `history` (this spec) and `geo-history` (the plates and continents of the last 1 Ga, [docs/spec/geo-history.md](docs/spec/geo-history.md)). The engine never imports a pack and a pack never imports the other. The history lens is an engine feature that only history uses.
+
 ## Development environment
 
 - Local development happens in Yang's devenv Docker container, which Claude Code controls remotely. Run commands there with `npm run …`; nothing project-specific is installed globally.

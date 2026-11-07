@@ -9,6 +9,7 @@ This folder is the source of truth for what Miniworld does. Every change to beha
 | [milestones.md](milestones.md) | Build order, scope and exit criteria for each milestone, and the definition of done |
 | [milestone-1.md](milestone-1.md) | Detailed spec for milestone 1, Globe and time |
 | [milestone-2.md](milestone-2.md) | Detailed spec for milestone 2, First people: figures, migrations and the info cards |
+| [geo-history.md](geo-history.md) | The second mode: the continents and plate boundaries moving over the last 1 billion years, one engine with two content packs (history and geo-history), the linear time axis in Ma, the Merdith et al. plate model, how it is honest about uncertainty (proposed) |
 | [history-lens.md](history-lens.md) | Design of the default lens that draws regions with many events larger |
 | [humankind.md](humankind.md) | The tree of humankind: one first person at Lake Turkana, people stepping out of lodgings, the tree the data build computes and how to inspect it (proposed) |
 | [peopling.md](peopling.md) | How humankind leaves Africa and spreads over the world up to the Neolithic thresholds: dated arrival points, the arrival map, canoe crossings, adapting to each region through culture profiles and their limits and the thresholds where farming begins |

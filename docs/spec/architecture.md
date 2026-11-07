@@ -14,6 +14,8 @@ The world on screen is a pure function of the clock and the built data (spec sec
 
 Models are generated code in `assets/src/`, reviewed by Yang and listed in the manifest; the app draws only approved ones, and stand-ins for the rest.
 
+Above these layers sits the split into **packs** (decided on 2026-11-07): the engine serves two sets of content, `history` (everything described so far) and `geo-history` (the continents over the last 1 Ga), and never imports either. The boundary, the pack interface and the order of the refactor that gets history behind it are in [geo-history.md](geo-history.md#2-one-engine-two-packs).
+
 ## 2. The line between content and engine
 
 - **Data says what exists, where and when, and how one culture or species differs from the next**: a culture's lodging, houses, tools, role mix, herd, crops, prey and area (`cultures.json`); whether an animal walks, flies or swims, how far it roams and how large it is drawn (`models` in `wildlife.json`); event titles, dates, places and card texts.
