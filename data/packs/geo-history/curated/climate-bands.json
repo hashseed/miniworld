@@ -1,0 +1,18 @@
+{
+  "description": "Natural colours of land by the latitude it has at the drawn age (geo-history.md, section 5.3): colour stops from the equator to the pole, blended smoothly between neighbours and the same in both hemispheres. An expectation from latitude alone, not a climate reconstruction.",
+  "sources": ["peel-2007"],
+  "stops": [
+    { "lat": 0, "colour": "#2e7d32", "climate": "tropical rainforest" },
+    { "lat": 10, "colour": "#4f8f2f", "climate": "tropical rainforest to savanna" },
+    { "lat": 18, "colour": "#8d9a3a", "climate": "tropical savanna" },
+    { "lat": 23, "colour": "#d9c07f", "climate": "subtropical desert" },
+    { "lat": 31, "colour": "#d6b97a", "climate": "subtropical desert" },
+    { "lat": 38, "colour": "#8fb054", "climate": "temperate" },
+    { "lat": 48, "colour": "#5fa24a", "climate": "temperate" },
+    { "lat": 56, "colour": "#3f7f4f", "climate": "cold forest" },
+    { "lat": 64, "colour": "#3a6f55", "climate": "cold forest" },
+    { "lat": 71, "colour": "#8d8a74", "climate": "tundra" },
+    { "lat": 77, "colour": "#d8dde0", "climate": "polar ice" },
+    { "lat": 90, "colour": "#f4f7fa", "climate": "polar ice" }
+  ]
+}

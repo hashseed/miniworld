@@ -1,0 +1,173 @@
+{
+  "description": "Moments on the timeline (geo-history.md, section 6): an age range in Ma, the age the camera jumps to, where it looks and a card in English and German. 'follow' is a present-day place on a plate (the camera looks where that plate has taken it by the age); 'centre' looks at the middle of all the land at the age. Ages are the commonly cited ones and marked approximate; the sources name where they come from.",
+  "moments": [
+    {
+      "id": "rodinia",
+      "from": 1000,
+      "to": 900,
+      "age": 920,
+      "approx": true,
+      "look": { "centre": true },
+      "sources": ["li-2008", "merdith-2021"],
+      "title": { "en": "Rodinia", "de": "Rodinia" },
+      "text": {
+        "en": "About a billion years ago, most of the land on Earth was joined into one giant supercontinent. Scientists call it Rodinia. Nobody knows exactly how its pieces fitted together, and there were no plants or animals on land yet.",
+        "de": "Vor etwa einer Milliarde Jahren war fast alles Land der Erde zu einem riesigen Superkontinent verbunden. Die Forschenden nennen ihn Rodinia. Wie genau die Teile zusammenpassten, weiß niemand, und an Land gab es noch keine Pflanzen und Tiere."
+      }
+    },
+    {
+      "id": "rodinia-breakup",
+      "from": 800,
+      "to": 700,
+      "age": 780,
+      "approx": true,
+      "look": { "centre": true },
+      "sources": ["li-2008", "merdith-2021"],
+      "title": { "en": "Rodinia breaks up", "de": "Rodinia bricht auseinander" },
+      "text": {
+        "en": "From about 800 million years ago, Rodinia began to tear apart. Long cracks opened in the land and new oceans filled the gaps. The pieces drifted off and, much later, came together again in new ways.",
+        "de": "Vor etwa 800 Millionen Jahren begann Rodinia auseinanderzureißen. Lange Risse öffneten sich im Land, und neue Ozeane füllten die Lücken. Die Teile trieben davon und fanden sich viel später auf neue Weise wieder zusammen."
+      }
+    },
+    {
+      "id": "cryogenian",
+      "from": 720,
+      "to": 635,
+      "age": 680,
+      "approx": true,
+      "look": { "centre": true },
+      "sources": ["hoffman-1998", "ics-chart"],
+      "title": { "en": "The Snowball Earth ice ages", "de": "Die Schneeball-Erde-Eiszeiten" },
+      "text": {
+        "en": "Between about 720 and 635 million years ago there were ice ages so cold that glaciers may have reached the sea near the equator. Scientists call this idea Snowball Earth. They still argue about how much of the planet froze. This map shows only the land, not the ice.",
+        "de": "Zwischen etwa 720 und 635 Millionen Jahren vor heute gab es Eiszeiten, die so kalt waren, dass Gletscher vielleicht sogar am Äquator bis ans Meer reichten. Die Forschenden nennen diese Idee Schneeball Erde. Sie streiten noch darüber, wie viel der Erde gefroren war. Diese Karte zeigt nur das Land, nicht das Eis."
+      }
+    },
+    {
+      "id": "gondwana",
+      "from": 600,
+      "to": 500,
+      "age": 520,
+      "approx": true,
+      "look": { "follow": { "plate": 701, "lat": 5, "lon": 20 } },
+      "sources": ["torsvik-cocks-2017", "merdith-2021"],
+      "title": { "en": "Gondwana", "de": "Gondwana" },
+      "text": {
+        "en": "Africa, South America, India, Australia and Antarctica were joined into one huge southern continent, Gondwana. It lay mostly in the south and drifted slowly across the globe for more than 300 million years.",
+        "de": "Afrika, Südamerika, Indien, Australien und die Antarktis waren zu einem riesigen Südkontinent verbunden, Gondwana. Er lag großenteils im Süden und wanderte über mehr als 300 Millionen Jahre langsam über den Globus."
+      }
+    },
+    {
+      "id": "cambrian",
+      "from": 538.8,
+      "to": 538.8,
+      "age": 538.8,
+      "approx": false,
+      "look": { "follow": { "plate": 701, "lat": 5, "lon": 20 } },
+      "sources": ["ics-chart"],
+      "title": { "en": "The Cambrian begins", "de": "Das Kambrium beginnt" },
+      "text": {
+        "en": "About 539 million years ago a new period of Earth's history begins. Soon after, many kinds of animals with shells and hard parts appear in the sea. From here on, rocks hold many fossils, which is why geologists start counting periods here.",
+        "de": "Vor etwa 539 Millionen Jahren beginnt ein neuer Abschnitt der Erdgeschichte. Bald danach tauchen im Meer viele Tierarten mit Schalen und harten Teilen auf. Seitdem enthalten Gesteine viele Fossilien, deshalb beginnen die Geologen hier mit der Zählung der Zeitalter."
+      }
+    },
+    {
+      "id": "iapetus",
+      "from": 440,
+      "to": 400,
+      "age": 420,
+      "approx": true,
+      "look": { "follow": { "plate": 101, "lat": 45, "lon": -70 } },
+      "sources": ["torsvik-cocks-2017", "merdith-2021"],
+      "title": { "en": "The Iapetus Ocean closes", "de": "Der Iapetus-Ozean schließt sich" },
+      "text": {
+        "en": "An ocean called Iapetus lay between North America and Europe. About 430 to 400 million years ago it closed as the two came together. The crash raised mountains, whose worn-down remains are found today in Scotland, Norway and the Appalachians.",
+        "de": "Zwischen Nordamerika und Europa lag ein Ozean namens Iapetus. Vor etwa 430 bis 400 Millionen Jahren schloss er sich, als die beiden Kontinente zusammenstießen. Dabei wurden Gebirge aufgefaltet, deren abgetragene Reste man heute in Schottland, Norwegen und in den Appalachen findet."
+      }
+    },
+    {
+      "id": "pangaea",
+      "from": 320,
+      "to": 250,
+      "age": 280,
+      "approx": true,
+      "look": { "centre": true },
+      "sources": ["domeier-torsvik-2014", "merdith-2021"],
+      "title": { "en": "Pangaea", "de": "Pangäa" },
+      "text": {
+        "en": "About 300 million years ago almost all land was joined once more, into the supercontinent Pangaea ('all Earth'). One giant ocean, Panthalassa, covered the rest of the globe. You could have walked from today's Brazil to today's Siberia.",
+        "de": "Vor etwa 300 Millionen Jahren war fast das gesamte Land wieder zu einem Superkontinent verbunden, Pangäa ('ganze Erde'). Ein riesiger Ozean, Panthalassa, bedeckte den Rest der Erde. Man hätte vom heutigen Brasilien bis zum heutigen Sibirien laufen können."
+      }
+    },
+    {
+      "id": "pangaea-breakup",
+      "from": 200,
+      "to": 170,
+      "age": 190,
+      "approx": true,
+      "look": { "follow": { "plate": 101, "lat": 35, "lon": -80 } },
+      "sources": ["muller-2016", "merdith-2021"],
+      "title": { "en": "Pangaea breaks up", "de": "Pangäa bricht auseinander" },
+      "text": {
+        "en": "From about 200 million years ago Pangaea began to split. The first crack opened between North America and Africa, and the Atlantic Ocean began to grow. It is still growing today, by a few centimetres every year.",
+        "de": "Vor etwa 200 Millionen Jahren begann Pangäa zu zerbrechen. Der erste Riss öffnete sich zwischen Nordamerika und Afrika, und der Atlantische Ozean begann zu wachsen. Er wächst bis heute, jedes Jahr um einige Zentimeter."
+      }
+    },
+    {
+      "id": "south-atlantic",
+      "from": 135,
+      "to": 110,
+      "age": 125,
+      "approx": true,
+      "look": { "follow": { "plate": 701, "lat": -10, "lon": 12 } },
+      "sources": ["muller-2016", "merdith-2021"],
+      "title": { "en": "The South Atlantic opens", "de": "Der Südatlantik öffnet sich" },
+      "text": {
+        "en": "About 130 million years ago South America began to pull away from Africa. The gap widened from south to north, like a zipper opening. The matching coasts of Brazil and West Africa still show where they were once joined.",
+        "de": "Vor etwa 130 Millionen Jahren begann sich Südamerika von Afrika zu lösen. Der Spalt weitete sich von Süden nach Norden, wie ein Reißverschluss, der aufgeht. Die zueinander passenden Küsten von Brasilien und Westafrika zeigen noch heute, wo sie einmal verbunden waren."
+      }
+    },
+    {
+      "id": "india-asia",
+      "from": 60,
+      "to": 40,
+      "age": 50,
+      "approx": true,
+      "look": { "follow": { "plate": 501, "lat": 25, "lon": 78 } },
+      "sources": ["hu-2016", "merdith-2021"],
+      "title": { "en": "India meets Asia", "de": "Indien trifft auf Asien" },
+      "text": {
+        "en": "India had drifted north for tens of millions of years, faster than any other big plate. About 55 to 50 million years ago it ran into Asia. Neither plate would sink, so the land was pushed up into the Himalaya, the highest mountains on Earth.",
+        "de": "Indien war viele Millionen Jahre nach Norden gewandert, schneller als jede andere große Platte. Vor etwa 55 bis 50 Millionen Jahren stieß es auf Asien. Keine der Platten ließ sich unterschieben, also wurde das Land zum Himalaya hochgedrückt, dem höchsten Gebirge der Erde."
+      }
+    },
+    {
+      "id": "alps",
+      "from": 40,
+      "to": 25,
+      "age": 33,
+      "approx": true,
+      "look": { "follow": { "plate": 301, "lat": 46, "lon": 10 } },
+      "sources": ["handy-2010", "muller-2016"],
+      "title": { "en": "The Alps rise", "de": "Die Alpen heben sich" },
+      "text": {
+        "en": "As Africa moved north towards Europe, the sea between them, called Tethys, shrank. The sea floor and the edges of the continents were squeezed and folded up into the Alps. They began to rise about 35 million years ago and are still rising.",
+        "de": "Als Afrika nach Norden auf Europa zuwanderte, schrumpfte das Meer dazwischen, die Tethys. Meeresboden und Kontinentränder wurden zusammengeschoben und zu den Alpen aufgefaltet. Sie begannen sich vor etwa 35 Millionen Jahren zu heben und steigen noch immer."
+      }
+    },
+    {
+      "id": "today",
+      "from": 0,
+      "to": 0,
+      "age": 0,
+      "approx": false,
+      "look": { "follow": { "plate": 701, "lat": 5, "lon": 20 } },
+      "sources": ["merdith-2021"],
+      "title": { "en": "Today", "de": "Heute" },
+      "text": {
+        "en": "This is the world you know. The plates keep moving, about as fast as your fingernails grow. In a hundred million years the map will look quite different again.",
+        "de": "Das ist die Welt, die du kennst. Die Platten bewegen sich weiter, ungefähr so schnell, wie deine Fingernägel wachsen. In hundert Millionen Jahren sieht die Karte wieder ganz anders aus."
+      }
+    }
+  ]
+}

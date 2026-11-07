@@ -1,0 +1,45 @@
+{
+  "description": "Bibliography of the geo-history pack: the sources its records name (geo-history.md, section 6). Data sources are in data/sources.json; these are the papers and charts behind the facts on the cards.",
+  "sources": [
+    {
+      "id": "merdith-2021",
+      "citation": "Merdith, A. S. et al. 2021: Extending full-plate tectonic models into deep time: Linking the Neoproterozoic and the Phanerozoic. Earth-Science Reviews 214, 103477."
+    },
+    {
+      "id": "ics-chart",
+      "citation": "Cohen, K. M., Finney, S. C., Gibbard, P. L., Fan, J.-X. 2013 (updated): The ICS International Chronostratigraphic Chart. Episodes 36, 199-204. International Commission on Stratigraphy, version 2023/09."
+    },
+    {
+      "id": "li-2008",
+      "citation": "Li, Z. X. et al. 2008: Assembly, configuration, and break-up history of Rodinia: A synthesis. Precambrian Research 160, 179-210."
+    },
+    {
+      "id": "hoffman-1998",
+      "citation": "Hoffman, P. F., Kaufman, A. J., Halverson, G. P., Schrag, D. P. 1998: A Neoproterozoic Snowball Earth. Science 281, 1342-1346."
+    },
+    {
+      "id": "torsvik-cocks-2017",
+      "citation": "Torsvik, T. H., Cocks, L. R. M. 2017: Earth History and Palaeogeography. Cambridge University Press."
+    },
+    {
+      "id": "domeier-torsvik-2014",
+      "citation": "Domeier, M., Torsvik, T. H. 2014: Plate tectonics in the late Paleozoic. Geoscience Frontiers 5, 303-350."
+    },
+    {
+      "id": "muller-2016",
+      "citation": "Müller, R. D., Seton, M., Zahirovic, S. et al. 2016: Ocean basin evolution and global-scale plate reorganization events since Pangea breakup. Annual Review of Earth and Planetary Sciences 44, 107-138."
+    },
+    {
+      "id": "hu-2016",
+      "citation": "Hu, X., Garzanti, E., Wang, J., Huang, W., An, W., Webb, A. 2016: The timing of India-Asia collision onset: Facts, theories, controversies. Earth-Science Reviews 160, 264-299."
+    },
+    {
+      "id": "handy-2010",
+      "citation": "Handy, M. R., Schmid, S. M., Bousquet, R., Kissling, E., Bernoulli, D. 2010: Reconciling plate-tectonic reconstructions of Alpine Tethys with the geological-geophysical record of spreading and subduction in the Alps. Earth-Science Reviews 102, 121-158."
+    },
+    {
+      "id": "peel-2007",
+      "citation": "Peel, M. C., Finlayson, B. L., McMahon, T. A. 2007: Updated world map of the Köppen-Geiger climate classification. Hydrology and Earth System Sciences 11, 1633-1644."
+    }
+  ]
+}

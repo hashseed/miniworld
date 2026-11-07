@@ -152,6 +152,7 @@ export function buildContent(
 ): Record<Language, string> {
   const { output, log } = ctx;
   const sources: SourceInfo[] = ctx.registry
+    .filter((s) => (s.pack ?? 'history') === 'history')
     .filter((s) => !(ctx.fixture && s.id === 'etopo-2022'))
     .map((s) => ({
       id: s.id,

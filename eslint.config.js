@@ -10,6 +10,8 @@ export default tseslint.config(
     ignores: [
       'node_modules',
       'dist',
+      'dist-*',
+      'app/packs/*/public',
       'app/public/data',
       'data/out',
       'data/sources',

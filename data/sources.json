@@ -204,6 +204,40 @@
           "bytes": 195060
         }
       ]
+    },
+    {
+      "id": "merdith-2021",
+      "title": "Plate model of Merdith et al. (2021), 1 Ga to present, version 1.2.4: rotations, continents and plate boundaries, simplified to 0.05 to 0.08 degrees",
+      "role": "plates",
+      "pack": "geo-history",
+      "licence": "CC-BY-4.0",
+      "citation": "Merdith, A. S., Williams, S. E., Collins, A. S., Tetley, M. G., Mulder, J. A., Blades, M. L., Young, A., Armistead, S. E., Cannon, J., Zahirovic, S., M\u00fcller, R. D. 2021: Extending full-plate tectonic models into deep time: Linking the Neoproterozoic and the Phanerozoic. Earth-Science Reviews 214, 103477. https://doi.org/10.1016/j.earscirev.2020.103477. Model files: Zenodo, https://doi.org/10.5281/zenodo.13635864",
+      "url": "https://doi.org/10.5281/zenodo.13635864",
+      "download": {
+        "url": "https://zenodo.org/api/records/13635864/files/Merdith_etal_2021_ESR_v1.2.4.zip/content",
+        "archive": "zip",
+        "note": "Extract the zip into data/out/merdith-2021/ (folders Rotations, Continents, Topologies and so on), then run node data/packs/geo-history/build/simplify.ts.",
+        "sha256": {
+          "merdith-2021.zip": "c08cd59f9fc26a99315a9a28c7a8da33ef7dc16e60c14eaec24e673cb6b78e6e"
+        }
+      },
+      "files": [
+        {
+          "path": "rotations.json",
+          "sha256": "e90136f41c675cbd5c330bfcbc232461aa880919f4fb350c486600a9caa40dc8",
+          "bytes": 176728
+        },
+        {
+          "path": "land.json",
+          "sha256": "d707e43c4b06369ae31856aeded83c8b6909da620d40d5a42cd48abcf79934fa",
+          "bytes": 319240
+        },
+        {
+          "path": "boundaries.json",
+          "sha256": "96a239fae489cba1509078435a719546e6eb0c0bee9fa6c959121f2ec9207a80",
+          "bytes": 567556
+        }
+      ]
     }
   ]
 }

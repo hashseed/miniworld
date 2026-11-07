@@ -25,6 +25,8 @@ export interface SourceEntry {
   licence: string;
   citation: string;
   url: string;
+  /** The pack that uses the source (engine.md, section 1); the history pack when absent. */
+  pack?: string;
   /** Name and date of Yang's approval, for licences that need it. */
   approvedBy?: string;
   download?: { url: string; files?: string[]; archive?: string; note?: string };

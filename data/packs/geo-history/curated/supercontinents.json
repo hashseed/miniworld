@@ -1,0 +1,32 @@
+{
+  "description": "The supercontinents as ranges on the lane 'Supercontinents' of the timeline (geo-history.md, section 3). Approximate: the dates of assembly and break-up are debated and the ranges are the commonly cited ones.",
+  "supercontinents": [
+    {
+      "id": "rodinia",
+      "from": 1000,
+      "to": 750,
+      "approx": true,
+      "colour": "#b36b3c",
+      "sources": ["li-2008", "merdith-2021"],
+      "name": { "en": "Rodinia", "de": "Rodinia" }
+    },
+    {
+      "id": "gondwana",
+      "from": 550,
+      "to": 180,
+      "approx": true,
+      "colour": "#3c8f6b",
+      "sources": ["torsvik-cocks-2017", "merdith-2021"],
+      "name": { "en": "Gondwana", "de": "Gondwana" }
+    },
+    {
+      "id": "pangaea",
+      "from": 320,
+      "to": 200,
+      "approx": true,
+      "colour": "#a24a4a",
+      "sources": ["domeier-torsvik-2014", "merdith-2021"],
+      "name": { "en": "Pangaea", "de": "Pangäa" }
+    }
+  ]
+}

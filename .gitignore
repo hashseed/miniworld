@@ -12,3 +12,5 @@ coverage/
 .env.local
 data/build/tree/
 assets/review/
+app/packs/*/public/
+dist-*/

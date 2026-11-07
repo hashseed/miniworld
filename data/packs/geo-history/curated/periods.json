@@ -1,0 +1,111 @@
+{
+  "description": "Geological periods shown as bands on the timeline (geo-history.md, section 3), ages in Ma from the ICS chart of 2023/09, rounded to 0.1 Ma, with the ICS colours. Only the periods inside the range of 1,000 Ma to today.",
+  "source": "ics-chart",
+  "periods": [
+    {
+      "id": "tonian",
+      "from": 1000,
+      "to": 720,
+      "colour": "#cc9a52",
+      "name": { "en": "Tonian", "de": "Tonium" }
+    },
+    {
+      "id": "cryogenian",
+      "from": 720,
+      "to": 635,
+      "colour": "#d9a762",
+      "name": { "en": "Cryogenian", "de": "Kryogenium" }
+    },
+    {
+      "id": "ediacaran",
+      "from": 635,
+      "to": 538.8,
+      "colour": "#e8c68a",
+      "name": { "en": "Ediacaran", "de": "Ediacarium" }
+    },
+    {
+      "id": "cambrian",
+      "from": 538.8,
+      "to": 485.4,
+      "colour": "#7fa056",
+      "name": { "en": "Cambrian", "de": "Kambrium" }
+    },
+    {
+      "id": "ordovician",
+      "from": 485.4,
+      "to": 443.8,
+      "colour": "#009270",
+      "name": { "en": "Ordovician", "de": "Ordovizium" }
+    },
+    {
+      "id": "silurian",
+      "from": 443.8,
+      "to": 419.2,
+      "colour": "#b3e1b6",
+      "name": { "en": "Silurian", "de": "Silur" }
+    },
+    {
+      "id": "devonian",
+      "from": 419.2,
+      "to": 358.9,
+      "colour": "#cb8c37",
+      "name": { "en": "Devonian", "de": "Devon" }
+    },
+    {
+      "id": "carboniferous",
+      "from": 358.9,
+      "to": 298.9,
+      "colour": "#67a599",
+      "name": { "en": "Carboniferous", "de": "Karbon" }
+    },
+    {
+      "id": "permian",
+      "from": 298.9,
+      "to": 251.9,
+      "colour": "#f04028",
+      "name": { "en": "Permian", "de": "Perm" }
+    },
+    {
+      "id": "triassic",
+      "from": 251.9,
+      "to": 201.4,
+      "colour": "#812b92",
+      "name": { "en": "Triassic", "de": "Trias" }
+    },
+    {
+      "id": "jurassic",
+      "from": 201.4,
+      "to": 143.1,
+      "colour": "#34b2c9",
+      "name": { "en": "Jurassic", "de": "Jura" }
+    },
+    {
+      "id": "cretaceous",
+      "from": 143.1,
+      "to": 66,
+      "colour": "#7fc64e",
+      "name": { "en": "Cretaceous", "de": "Kreide" }
+    },
+    {
+      "id": "paleogene",
+      "from": 66,
+      "to": 23,
+      "colour": "#fd9a52",
+      "name": { "en": "Paleogene", "de": "Paläogen" }
+    },
+    {
+      "id": "neogene",
+      "from": 23,
+      "to": 2.6,
+      "colour": "#ffe619",
+      "name": { "en": "Neogene", "de": "Neogen" }
+    },
+    {
+      "id": "quaternary",
+      "from": 2.6,
+      "to": 0,
+      "colour": "#f9f97f",
+      "name": { "en": "Quaternary", "de": "Quartär" }
+    }
+  ]
+}
