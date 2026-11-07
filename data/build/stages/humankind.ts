@@ -6,11 +6,11 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { OCEAN_MIN_LEVEL, OCEAN_NEVER } from '../../../app/src/content/formats.ts';
-import { DAYS_PER_YEAR, TIMELINE_START, type Day } from '../../../app/src/time/calendar.ts';
-import { detCos, detSin } from '../../../app/src/core/detmath.ts';
+import { OCEAN_MIN_LEVEL, OCEAN_NEVER } from '../../../app/src/engine/content/formats.ts';
+import { DAYS_PER_YEAR, TIMELINE_START, type Day } from '../../../app/src/engine/time/calendar.ts';
+import { detCos, detSin } from '../../../app/src/engine/core/detmath.ts';
 import { onGlobe } from '../lib/geo.ts';
-import { dayAtMs, dayAtWatch, msAtDay } from '../../../app/src/time/rate.ts';
+import { dayAtMs, dayAtWatch, msAtDay } from '../../../app/src/engine/time/rate.ts';
 import {
   areasAt,
   FOUNDER,
@@ -48,17 +48,17 @@ import {
   treeScene,
   stageScale,
   stageSpots,
-} from '../../../app/src/world/treeScene.ts';
-import { STAGE_CLEARING_M } from '../../../app/src/world/scene/hunt.ts';
+} from '../../../app/src/packs/history/world/treeScene.ts';
+import { STAGE_CLEARING_M } from '../../../app/src/packs/history/world/scene/hunt.ts';
 import { arrivalMap, dayOfBce, type ArrivalMap, type Arrivals } from '../lib/arrivals.ts';
 import { CAMP_SHELTER } from '../../../assets/src/shelters.ts';
-import { hash32 } from '../../../app/src/core/hash.ts';
+import { hash32 } from '../../../app/src/engine/core/hash.ts';
 import {
   dayOfFarmingYear,
   farmingProfileAt,
   farmingStateAt,
-} from '../../../app/src/world/farmingOnset.ts';
-import { NEOLITHIC_PROFILES } from '../../../app/src/world/neolithicProfiles.ts';
+} from '../../../app/src/packs/history/world/farmingOnset.ts';
+import { NEOLITHIC_PROFILES } from '../../../app/src/packs/history/world/neolithicProfiles.ts';
 import {
   encodeMask,
   FIELD_RELIEF_M,
@@ -67,11 +67,11 @@ import {
   MASK_RINGS,
   MASK_SECTORS,
   maskCentre,
-} from '../../../app/src/world/fieldMask.ts';
-import type { Profile } from '../../../app/src/world/cultures.ts';
-import type { Tree, TreeStage } from '../../../app/src/world/tree.ts';
+} from '../../../app/src/packs/history/world/fieldMask.ts';
+import type { Profile } from '../../../app/src/packs/history/world/cultures.ts';
+import type { Tree, TreeStage } from '../../../app/src/packs/history/world/tree.ts';
 import { climateHabitat } from '../lib/habitat.ts';
-import { isSea, LAKE_FIELD, type Ground } from '../../../app/src/planet/surface.ts';
+import { isSea, LAKE_FIELD, type Ground } from '../../../app/src/packs/history/planet/surface.ts';
 import {
   buildTree,
   checkTree,
@@ -81,8 +81,8 @@ import {
   treeChunks,
   treeStats,
 } from '../lib/humankind.ts';
-import { NEVER, type TreeLodging } from '../../../app/src/world/tree.ts';
-import { flies, swims, WILD_GROUPS } from '../../../app/src/world/wildlife.ts';
+import { NEVER, type TreeLodging } from '../../../app/src/packs/history/world/tree.ts';
+import { flies, swims, WILD_GROUPS } from '../../../app/src/packs/history/world/wildlife.ts';
 import type { DrawnGround } from '../lib/drawnGround.ts';
 import type { Climate } from './climate.ts';
 import { ROOT, sha256, type WriteContext } from './context.ts';
@@ -176,7 +176,7 @@ const SITES_CODE = [
   'data/build/stages/terrain.ts',
   'data/build/stages/climate.ts',
   'data/build/stages/lens.ts',
-  'app/src/core/detmath.ts',
+  'app/src/engine/core/detmath.ts',
 ];
 
 /** An event of the events dialog, named in every language (milestone-1 section 8.3). */

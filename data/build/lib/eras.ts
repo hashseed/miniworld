@@ -5,8 +5,8 @@
 // functions of the texts handed in; the content stage reads the files.
 
 import { parse } from 'yaml';
-import type { EraRecord } from '../../../app/src/content/types.ts';
-import { LANGUAGES, type Language } from '../../../app/src/i18n/messages.ts';
+import type { EraRecord } from '../../../app/src/engine/content/types.ts';
+import { LANGUAGES, type Language } from '../../../app/src/engine/i18n/messages.ts';
 import { Errors, isMap, parseDate, str, unknownFields, type Yaml } from './records.ts';
 
 export interface Lane {

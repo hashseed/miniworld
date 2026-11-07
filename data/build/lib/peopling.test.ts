@@ -3,10 +3,10 @@
 // the Neolithic thresholds, on a world of two round continents.
 
 import { describe, expect, it } from 'vitest';
-import { DAYS_PER_YEAR, TIMELINE_START } from '../../../app/src/time/calendar.ts';
-import { msAtDay } from '../../../app/src/time/rate.ts';
-import { NEVER } from '../../../app/src/world/tree.ts';
-import { treeScene } from '../../../app/src/world/treeScene.ts';
+import { DAYS_PER_YEAR, TIMELINE_START } from '../../../app/src/engine/time/calendar.ts';
+import { msAtDay } from '../../../app/src/engine/time/rate.ts';
+import { NEVER } from '../../../app/src/packs/history/world/tree.ts';
+import { treeScene } from '../../../app/src/packs/history/world/treeScene.ts';
 import { arrivalMap, CLOSED, dayOfBce, type ArrivalInputs, type Arrivals } from './arrivals.ts';
 import { buildTree, checkTree, distanceKm, type Habitat, type TreeSettings } from './humankind.ts';
 import { buildSites } from './sites.ts';

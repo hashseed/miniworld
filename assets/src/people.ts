@@ -3,7 +3,7 @@
 // shapes with few details, because dioramas are drawn far larger than life.
 
 import * as THREE from 'three';
-import { PROFILES, type Profile } from '../../app/src/world/cultures.ts';
+import { PROFILES, type Profile } from '../../app/src/packs/history/world/cultures.ts';
 import {
   type BoneDef,
   type Model,

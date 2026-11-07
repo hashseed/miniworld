@@ -40,7 +40,7 @@ export default tseslint.config(
         {
           object: 'Math',
           property: 'random',
-          message: 'Use the seeded hash in app/src/core/hash.ts.',
+          message: 'Use the seeded hash in app/src/engine/core/hash.ts.',
         },
       ],
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
@@ -53,8 +53,8 @@ export default tseslint.config(
     // never imports the renderer, the asset models or the interface, so what
     // is drawn or loaded can never change it. Tests and the on-land harness,
     // which builds the drawn ground to check against, are outside the rule.
-    files: ['app/src/world/**/*.ts', 'app/src/core/**/*.ts'],
-    ignores: ['**/*.test.ts', 'app/src/world/onLand.ts'],
+    files: ['app/src/packs/history/world/**/*.ts', 'app/src/engine/core/**/*.ts'],
+    ignores: ['**/*.test.ts', 'app/src/packs/history/world/onLand.ts'],
     rules: {
       'no-restricted-globals': [
         'error',

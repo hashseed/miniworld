@@ -3,7 +3,7 @@
 
 import { brotliDecompressSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
-import type { Manifest } from '../../app/src/content/types.ts';
+import type { Manifest } from '../../app/src/engine/content/types.ts';
 import { built, json, read, referenced } from './lib/builtData.ts';
 import { contentHash } from './lib/output.ts';
 

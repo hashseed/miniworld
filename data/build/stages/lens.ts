@@ -8,7 +8,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
-import type { Manifest } from '../../../app/src/content/types.ts';
+import type { Manifest } from '../../../app/src/engine/content/types.ts';
 import {
   decodeLensGrids,
   encodeLensGrids,
@@ -17,9 +17,9 @@ import {
   MAX_STRENGTH,
   sampleScalar,
   widthFactors,
-} from '../../../app/src/globe/lens.ts';
-import { dirToLatLon, latLonToDir } from '../../../app/src/geo/cube.ts';
-import { placedTrue } from '../../../app/src/geo/placement.ts';
+} from '../../../app/src/engine/globe/lens.ts';
+import { dirToLatLon, latLonToDir } from '../../../app/src/engine/geo/cube.ts';
+import { placedTrue } from '../../../app/src/engine/geo/placement.ts';
 import { atStrength, buildLens, checkLens, LENS_PARAMS, parseCoordinates } from '../lib/lens.ts';
 import { lensPreviewSvg } from '../lib/lensPreview.ts';
 import { readFeatures } from '../lib/readers.ts';
@@ -31,7 +31,7 @@ export function buildLensStage(ctx: WriteContext): {
   widthAt(lat: number, lon: number): number;
   /**
    * The true place of a point `eastKm` east and `northKm` north of a place in drawn km, laid out
-   * on the drawn globe as the tree layer places it (app/src/geo/placement.ts): the one mapping
+   * on the drawn globe as the tree layer places it (app/src/engine/geo/placement.ts): the one mapping
    * the build checks the ground of every camp, field and pen by (history-lens.md section 4.2).
    */
   placeAt(lat: number, lon: number, eastKm: number, northKm: number): { lat: number; lon: number };

@@ -2,7 +2,11 @@
 // sea level at which it is connected to the open ocean, computed by a
 // priority flood outward from the deep ocean.
 
-import { OCEAN_MIN_LEVEL, OCEAN_NEVER, OCEAN_RANGE } from '../../../app/src/content/formats.ts';
+import {
+  OCEAN_MIN_LEVEL,
+  OCEAN_NEVER,
+  OCEAN_RANGE,
+} from '../../../app/src/engine/content/formats.ts';
 import type { Grid, GridData } from './grid.ts';
 
 /** Cells deeper than this seed the flood; deep inland basins (Black Sea, Caspian) stay out. */

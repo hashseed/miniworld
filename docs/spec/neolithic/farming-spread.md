@@ -128,7 +128,7 @@ Each hold in `farming.json` is a box with a `notBeforeBce`, a source and `approx
 
 ### 9.4 App module
 
-`app/src/world/farmingOnset.ts` holds the lookup:
+`app/src/packs/history/world/farmingOnset.ts` holds the lookup:
 
 - `farmingOnsetDay(lat, lon): number | null` is the whole-day onset (null for sea, ice, desert, high ground, mainland Australia), `cropFarmingDay(lat, lon)` the day of the first crops.
 - `settlementStage(lat, lon, day)` is `none`, `herding` (from the onset to the first crops, where herders came first) or `farming`.

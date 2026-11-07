@@ -4,7 +4,7 @@
 // shelves and land bridges keep their depth, and land that is land today
 // stays land, so small islands never vanish.
 
-import { KM_PER_DEG } from '../../../app/src/geo/earth.ts';
+import { KM_PER_DEG } from '../../../app/src/engine/geo/earth.ts';
 import { Grid } from './grid.ts';
 
 /** Cells above this height (m) are smoothed together; deeper ones separately. */

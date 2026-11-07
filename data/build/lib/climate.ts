@@ -3,8 +3,8 @@
 // Beyer, Krapp and Manica 2020 for precipitation. Both are stacks of global
 // grids over time, read from the extracts under data/sources/.
 
-import { KM_PER_DEG } from '../../../app/src/geo/earth.ts';
-import { ARIDITY_LEVELS } from '../../../app/src/content/formats.ts';
+import { KM_PER_DEG } from '../../../app/src/engine/geo/earth.ts';
+import { ARIDITY_LEVELS } from '../../../app/src/engine/content/formats.ts';
 import type { ExtractData, ExtractHeader } from './extract.ts';
 
 /** A stack of global grids over time, sampled bilinearly in space and linearly in time. */

@@ -4,7 +4,7 @@
 import { chromium } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { PROFILES } from '../app/src/world/cultures.ts';
+import { PROFILES } from '../app/src/packs/history/world/cultures.ts';
 
 const out = process.argv[2] ?? 'assets/sheets';
 const base = process.env.SHEET_URL ?? 'http://localhost:8800/asset-sheet.html';

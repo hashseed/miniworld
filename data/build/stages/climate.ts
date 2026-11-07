@@ -10,15 +10,15 @@ import {
   OCEAN_MIN_LEVEL,
   OCEAN_NEVER,
   type ClimateSlice,
-} from '../../../app/src/content/formats.ts';
-import type { StartupIndex } from '../../../app/src/content/types.ts';
-import { TIMELINE_START } from '../../../app/src/time/calendar.ts';
+} from '../../../app/src/engine/content/formats.ts';
+import type { StartupIndex } from '../../../app/src/engine/content/types.ts';
+import { TIMELINE_START } from '../../../app/src/engine/time/calendar.ts';
 import { aridityGrid, iceThickness, meanSeaLevel, TimeStack } from '../lib/climate.ts';
 import { polarWeight } from '../lib/coast.ts';
 import { readExtract } from '../lib/extract.ts';
 import { foliageGrid } from '../lib/foliage.ts';
-import { FOLIAGE_GRID_H, FOLIAGE_GRID_W } from '../../../app/src/content/formats.ts';
-import { recipeOf } from '../../../app/src/globe/foliageKinds.ts';
+import { FOLIAGE_GRID_H, FOLIAGE_GRID_W } from '../../../app/src/engine/content/formats.ts';
+import { recipeOf } from '../../../app/src/engine/globe/foliageKinds.ts';
 import { climateStepYears, iceGrid, seaLevelCurve, sliceDay } from '../lib/ice.ts';
 import type { WriteContext } from './context.ts';
 import type { WorldMap } from './terrain.ts';

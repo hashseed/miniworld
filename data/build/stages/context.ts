@@ -5,10 +5,14 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { TIME_WINDOWS } from '../../../app/src/content/formats.ts';
-import { DATA_MAX_LEVEL } from '../../../app/src/geo/cube.ts';
-import { TIMELINE_END, TIMELINE_START, dayFromDate } from '../../../app/src/time/calendar.ts';
-import { dayAtPosition } from '../../../app/src/time/axis.ts';
+import { TIME_WINDOWS } from '../../../app/src/engine/content/formats.ts';
+import { DATA_MAX_LEVEL } from '../../../app/src/engine/geo/cube.ts';
+import {
+  TIMELINE_END,
+  TIMELINE_START,
+  dayFromDate,
+} from '../../../app/src/engine/time/calendar.ts';
+import { dayAtPosition } from '../../../app/src/engine/time/axis.ts';
 import { BuildCache, cacheKey } from '../lib/buildCache.ts';
 import { checkLicences, type SourceEntry } from '../lib/licence.ts';
 import type { Output } from '../lib/output.ts';
@@ -166,13 +170,13 @@ export function createContext(args: string[]): BuildContext {
       join(ROOT, 'data/build/stages/climate.ts'),
       join(ROOT, 'data/build/stages/context.ts'),
       ...[
-        'app/src/content',
-        'app/src/core',
-        'app/src/geo',
-        'app/src/planet',
-        'app/src/time',
+        'app/src/engine/content',
+        'app/src/engine/core',
+        'app/src/engine/geo',
+        'app/src/packs/history/planet',
+        'app/src/engine/time',
       ].flatMap((d) => code(d)),
-      join(ROOT, 'app/src/globe/foliageKinds.ts'),
+      join(ROOT, 'app/src/engine/globe/foliageKinds.ts'),
     ],
     { fixture, maxLevel, cutoffDay },
   );

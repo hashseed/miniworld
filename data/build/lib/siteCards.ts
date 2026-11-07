@@ -5,7 +5,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse } from 'yaml';
-import { LANGUAGES, type Language } from '../../../app/src/i18n/messages.ts';
+import { LANGUAGES, type Language } from '../../../app/src/engine/i18n/messages.ts';
 import { Errors, isMap, str, unknownFields, type CardText, type Yaml } from './records.ts';
 
 const RECORD_FIELDS = ['id', 'kind', 'sources'];

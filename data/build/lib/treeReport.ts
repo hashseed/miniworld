@@ -1,9 +1,9 @@
 // Keeping track of the tree of humankind (spec humankind.md, section 6): the
 // report, the questions `at` and `lineage`, and a map of the camps.
 
-import { formatYear } from '../../../app/src/i18n/dates.ts';
-import { dateFromDay, DAYS_PER_YEAR, type Day } from '../../../app/src/time/calendar.ts';
-import { aliveOn, homeOn, NEVER, type Tree } from '../../../app/src/world/tree.ts';
+import { formatYear } from '../../../app/src/engine/i18n/dates.ts';
+import { dateFromDay, DAYS_PER_YEAR, type Day } from '../../../app/src/engine/time/calendar.ts';
+import { aliveOn, homeOn, NEVER, type Tree } from '../../../app/src/packs/history/world/tree.ts';
 import { regionAt } from './regions.ts';
 
 export const yearOf = (day: Day): string => formatYear(dateFromDay(day).year, 'en');

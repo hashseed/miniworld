@@ -3,7 +3,7 @@
 // labels are for the reviewer, not viewer-facing text.
 
 import * as THREE from 'three';
-import { cameraLight } from '../../app/src/globe/sky.ts';
+import { cameraLight } from '../../app/src/engine/globe/sky.ts';
 import { ModelBuilder, blob, celMaterial, lightUniforms, type Model } from './kit.ts';
 import { PROFILES, buildPerson, posePerson, type Kind, type Pose } from './people.ts';
 import {

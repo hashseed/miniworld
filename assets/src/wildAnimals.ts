@@ -2,7 +2,7 @@
 // metres, facing +Z, feet on y = 0, built like the prehistoric animals.
 
 import * as THREE from 'three';
-import { hash01 } from '../../app/src/core/hash.ts';
+import { hash01 } from '../../app/src/engine/core/hash.ts';
 import {
   type Model,
   type Pattern,

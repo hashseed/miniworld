@@ -6,8 +6,11 @@
 // it is used.
 
 import { z } from 'zod';
-import { PROFILES } from '../../app/src/world/cultures.ts';
-import { NEOLITHIC_ROLES, NEOLITHIC_TOOLS } from '../../app/src/world/neolithicProfiles.ts';
+import { PROFILES } from '../../app/src/packs/history/world/cultures.ts';
+import {
+  NEOLITHIC_ROLES,
+  NEOLITHIC_TOOLS,
+} from '../../app/src/packs/history/world/neolithicProfiles.ts';
 
 /** A stable lowercase slug: letters, digits and single hyphens. */
 export const id = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'must be a lowercase slug');
@@ -440,7 +443,7 @@ export const culturesTable = z.strictObject({
     }, 'every spreading farming profile needs an areaRank of its own')
     .refine(
       (rows) => PROFILES.every((p) => rows.some((r) => r.id === p)),
-      `every profile of app/src/world/cultures.ts needs a row: ${PROFILES.join(', ')}`,
+      `every profile of app/src/packs/history/world/cultures.ts needs a row: ${PROFILES.join(', ')}`,
     ),
 });
 

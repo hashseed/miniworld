@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { astronomicalYear, dayFromDate, dayOfYearStart } from '../../../app/src/time/calendar.ts';
+import {
+  astronomicalYear,
+  dayFromDate,
+  dayOfYearStart,
+} from '../../../app/src/engine/time/calendar.ts';
 import { parseDate } from './records.ts';
 
 const START = dayOfYearStart(astronomicalYear(70000, 'BCE'));

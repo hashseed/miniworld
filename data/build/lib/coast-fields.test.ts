@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { OCEAN_MIN_LEVEL, OCEAN_SCALE, OCEAN_TOP } from '../../../app/src/content/formats.ts';
+import {
+  OCEAN_MIN_LEVEL,
+  OCEAN_SCALE,
+  OCEAN_TOP,
+} from '../../../app/src/engine/content/formats.ts';
 import { coarseOcean, smoothLakes, type Strait } from './coast.ts';
 import { Grid } from './grid.ts';
 

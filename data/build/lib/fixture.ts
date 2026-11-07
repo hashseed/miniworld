@@ -4,7 +4,7 @@
 // heights, shelves and ice are invented, so a build from it is marked as a
 // fixture and is never shipped.
 
-import { valueNoise } from '../../../app/src/core/hash.ts';
+import { valueNoise } from '../../../app/src/engine/core/hash.ts';
 import { Grid } from './grid.ts';
 import { featurePolygons, rasterizePolygon, type GeoJsonFeature } from './rasterize.ts';
 

@@ -7,8 +7,8 @@ import {
   decodeFoliageSlice,
   encodeFoliageSlice,
   FOLIAGE_GRID_W,
-} from '../../../app/src/content/formats.ts';
-import { HUMID_SAVANNA } from '../../../app/src/globe/foliageKinds.ts';
+} from '../../../app/src/engine/content/formats.ts';
+import { HUMID_SAVANNA } from '../../../app/src/engine/globe/foliageKinds.ts';
 
 const root = new URL('../../sources/', import.meta.url).pathname;
 const biome = readExtract(root + 'beyer-2020/biome');

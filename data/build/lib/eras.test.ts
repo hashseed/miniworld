@@ -1,7 +1,11 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
-import { TIMELINE_START, dayFromDate, dayOfYearStart } from '../../../app/src/time/calendar.ts';
+import {
+  TIMELINE_START,
+  dayFromDate,
+  dayOfYearStart,
+} from '../../../app/src/engine/time/calendar.ts';
 import {
   checkEraList,
   erasForLanguage,

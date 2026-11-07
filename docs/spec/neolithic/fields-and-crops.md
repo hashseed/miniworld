@@ -48,7 +48,7 @@ Heights, fruit size and colours are interpolated between keyframes, so any `s` i
 
 ## 2. The stage of a crop on a day (part B)
 
-**A field changes only when somebody works it (Yang, 2026-10-24: "crops grow too quickly. they should grow much slower, and I want activities in the field like plowing and harvest etc. fields that are not harvested or plowed should not continue to grow").** The old calendar (`cropCalendar.ts`, a crop's stage from the day of the year) is gone: at Neolithic dates a year passes in a few seconds of watching, so the crops flickered through their whole cycle. The stage is now a **pure function of the village's life clock**, `fieldStage(clock, field, ms)` in `app/src/world/fieldWork.ts`. No `Math.random`, no wall-clock time.
+**A field changes only when somebody works it (Yang, 2026-10-24: "crops grow too quickly. they should grow much slower, and I want activities in the field like plowing and harvest etc. fields that are not harvested or plowed should not continue to grow").** The old calendar (`cropCalendar.ts`, a crop's stage from the day of the year) is gone: at Neolithic dates a year passes in a few seconds of watching, so the crops flickered through their whole cycle. The stage is now a **pure function of the village's life clock**, `fieldStage(clock, field, ms)` in `app/src/packs/history/world/fieldWork.ts`. No `Math.random`, no wall-clock time.
 
 **States.** A crop cycle has six states: stubble (stage 1), tilled earth (0), seed (0.1), sprouts (0.35), green (0.55), ripe (0.75). Each is left by one job: `till` (stubble to tilled), `sow`, `weed` three times, then `reap` (ripe to stubble). The next job of a field is `CYCLE[state]`. **A field exists only once it is ploughed** (Yang, 2026-10-25: "the fields should not exist until they were plowed. instead of adding these dotted blots, they should only exist when plowed", and "fields only grow in this order: plow, sow, grow, ripen, reap. repeat. humans need to perform work for the field to grow"): every field of a village starts unploughed when the village is founded (the day its first farming house is built, `Village.founded`), is not drawn at all, and its first job is `till`; the cycle then runs till, sow, weed three times (sprouts, green, ripe), reap, and again. Until 2026-10-25 each field started at a state taken from the village's hash, so a new village showed fields of stubble and clods nobody had ploughed. The trees keep off the fields' ground from the founding on, so none stands where a field will be ploughed.
 
@@ -60,7 +60,7 @@ Heights, fruit size and colours are interpolated between keyframes, so any `s` i
 
 ## 3. Field shapes (part C)
 
-`app/src/world/fieldShapes.ts` is a pure, deterministic module in layout metres (x east, z north, one layout metre about 24 drawn km, `LAYOUT_KM_PER_M`). `layoutFields(input)` returns the fields of one village.
+`app/src/packs/history/world/fieldShapes.ts` is a pure, deterministic module in layout metres (x east, z north, one layout metre about 24 drawn km, `LAYOUT_KM_PER_M`). `layoutFields(input)` returns the fields of one village.
 
 **Inputs.** The village centre, the outer radius of its ring of lodgings, a seed, the list of crops the village grows, a land test (`isLand(x, z)`, true at dry level and on gentle slope; the caller combines the sea of the date, slope and height), a blocked test (`isBlocked(x, z)`, true on rivers, lakes, mountains and anything else fields must avoid), and the most fields wanted (default 10, at most 10). Land and blocked tests are plain functions so the module has no dependency on the globe: the caller builds them from `SurfaceSource` and the river/sea fields of the tree layer.
 
@@ -81,7 +81,7 @@ Heights, fruit size and colours are interpolated between keyframes, so any `s` i
 
 ## 4. Drawing the ground of a field (part D)
 
-`app/src/tree/fieldGround.ts` follows `campGround.ts`: a ground patch, triangulated from the outline, draped on the drawn terrain.
+`app/src/packs/history/tree/fieldGround.ts` follows `campGround.ts`: a ground patch, triangulated from the outline, draped on the drawn terrain.
 
 - **Triangulation.** The outline is star-shaped about its centroid (part C), so a fan from the centroid works: five rings (0.2, 0.4, 0.6, 0.8, 1 of the radius) of the outline's own points give a draped patch of about five triangles per outline point. Each vertex is lifted onto `SurfaceSource.surfaceKm` plus a lift of 4 km (just enough to clear the drawn terrain; at 22 km the patches hovered over sloping ground, Yang 2026-10-24).
 - **Layout to globe.** `add(origin, field, stage)` takes the village's drawn position on the globe and places layout metres with `northEast` and `LAYOUT_KM_PER_M`, as the camps do; the patch is cached by place and field and rebuilt only when `groundVersion` changes.

@@ -5,7 +5,7 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { valueNoise3 } from '../../app/src/core/hash.ts';
+import { valueNoise3 } from '../../app/src/engine/core/hash.ts';
 
 export type Vec3 = [number, number, number];
 

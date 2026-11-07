@@ -3,7 +3,7 @@
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import type { Manifest, PartFile, StartupIndex } from '../../../app/src/content/types.ts';
+import type { Manifest, PartFile, StartupIndex } from '../../../app/src/engine/content/types.ts';
 
 export const DATA = join(import.meta.dirname, '../../../app/public/data');
 export const built = existsSync(join(DATA, 'manifest.json'));

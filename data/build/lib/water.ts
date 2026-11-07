@@ -1,7 +1,7 @@
 // Lakes and rivers from Natural Earth (spec milestone 1, section 4.3).
 
-import { KM_PER_DEG } from '../../../app/src/geo/earth.ts';
-import { OCEAN_RANGE } from '../../../app/src/content/formats.ts';
+import { KM_PER_DEG } from '../../../app/src/engine/geo/earth.ts';
+import { OCEAN_RANGE } from '../../../app/src/engine/content/formats.ts';
 import { forCellsNearLine } from './coast.ts';
 import type { Grid, GridData } from './grid.ts';
 import {

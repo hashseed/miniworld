@@ -92,7 +92,7 @@ Changing the strength morphs the globe instead of swapping it, so the viewer see
 
 ### 4.2 One mapping for everything laid out on the globe
 
-Yang, 2026-10-25: "I have ran into the issue with history lens distorting and making things not line up many times now. Let's fix this systematically so that it no longer occurs." A miniature (a camp's lodgings, people, lanes and fire, a village's houses, fields and pen, a hunt, a scene at an anchor, the trees' clearings round them) has its drawn size wherever it stands, so its layout is in drawn kilometres, and there is exactly **one** way to say where a point of it lies, `placedTrue` in `app/src/geo/placement.ts`:
+Yang, 2026-10-25: "I have ran into the issue with history lens distorting and making things not line up many times now. Let's fix this systematically so that it no longer occurs." A miniature (a camp's lodgings, people, lanes and fire, a village's houses, fields and pen, a hunt, a scene at an anchor, the trees' clearings round them) has its drawn size wherever it stands, so its layout is in drawn kilometres, and there is exactly **one** way to say where a point of it lies, `placedTrue` in `app/src/engine/geo/placement.ts`:
 
 - The centre is a true place. Its drawn up is the lens's `toDrawn` of it; the point lies `east` and `north` drawn kilometres along the drawn up's own north and east (`geo/earth.ts` `northEast`), on the drawn globe, as the tree layer places everything (`place()`).
 - The point's true place, for asking about its ground, is the lens's `toTrue` of that drawn point.

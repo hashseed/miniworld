@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { OCEAN_NEVER } from '../../../app/src/content/formats.ts';
+import { OCEAN_NEVER } from '../../../app/src/engine/content/formats.ts';
 import { Grid } from './grid.ts';
 import { floodInlandSeas, oceanConnection } from './ocean.ts';
 

@@ -2,9 +2,9 @@
 // files of each layer, then the manifest that names every file.
 
 import { createHash } from 'node:crypto';
-import type { Manifest } from '../../../app/src/content/types.ts';
-import { LANGUAGES, type Language } from '../../../app/src/i18n/messages.ts';
-import { TIMELINE_START } from '../../../app/src/time/calendar.ts';
+import type { Manifest } from '../../../app/src/engine/content/types.ts';
+import { LANGUAGES, type Language } from '../../../app/src/engine/i18n/messages.ts';
+import { TIMELINE_START } from '../../../app/src/engine/time/calendar.ts';
 import type { Climate } from './climate.ts';
 import type { WriteContext } from './context.ts';
 import type { TreeFiles } from './humankind.ts';

@@ -4,12 +4,12 @@
 //   npm run tree -- lineage <figure id>
 // The tree comes from data/build/tree/tree.json, written by `npm run build-data`.
 
-// The world's tables from data/curated/, before anything asks the world (app/src/world/tables.ts).
+// The world's tables from data/curated/, before anything asks the world (app/src/packs/history/world/tables.ts).
 import './lib/worldTables.ts';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { dayOfYearStart } from '../../app/src/time/calendar.ts';
-import type { Tree } from '../../app/src/world/tree.ts';
+import { dayOfYearStart } from '../../app/src/engine/time/calendar.ts';
+import type { Tree } from '../../app/src/packs/history/world/tree.ts';
 import { parseYear, treeAt, treeLineage, treeMapSvg, treeReport } from './lib/treeReport.ts';
 
 const DIR = new URL('tree/', import.meta.url).pathname;

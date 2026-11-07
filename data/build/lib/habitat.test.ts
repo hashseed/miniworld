@@ -5,7 +5,7 @@ import {
   ICE_DISTANCE_ZERO,
   ICE_GRID_H,
   ICE_GRID_W,
-} from '../../../app/src/content/formats.ts';
+} from '../../../app/src/engine/content/formats.ts';
 import { climateHabitat, insideRing } from './habitat.ts';
 
 // Two slices: ice north of 60°N in the first, a desert band from 15°N to 30°N in the second.

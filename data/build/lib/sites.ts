@@ -4,8 +4,8 @@
 // canoe at a listed crossing. Whole cells, fixed points and the deterministic maths only,
 // so the sites are the same on every machine.
 
-import { detAtan2, detCos, detSin, RAD } from '../../../app/src/core/detmath.ts';
-import type { Day } from '../../../app/src/time/calendar.ts';
+import { detAtan2, detCos, detSin, RAD } from '../../../app/src/engine/core/detmath.ts';
+import type { Day } from '../../../app/src/engine/time/calendar.ts';
 import {
   LAYOUT_KM_PER_M,
   LODGING_SLOTS,
@@ -19,7 +19,7 @@ import {
   isCompact,
   layoutOf,
   slotPoint,
-} from '../../../app/src/world/treeScene.ts';
+} from '../../../app/src/packs/history/world/treeScene.ts';
 import { distanceKm, onGlobe } from './geo.ts';
 
 /** Rows of sites lie this far apart, and the sites of a row too (sites.md section 2, Proposed). */

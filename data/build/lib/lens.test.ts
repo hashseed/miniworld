@@ -4,10 +4,10 @@ import {
   MORPH_OMEGA,
   decodeLensGrids,
   encodeLensGrids,
-} from '../../../app/src/globe/lens.ts';
-import { latLonToDir, type Vec3 } from '../../../app/src/geo/cube.ts';
+} from '../../../app/src/engine/globe/lens.ts';
+import { latLonToDir, type Vec3 } from '../../../app/src/engine/geo/cube.ts';
 import { LENS_PARAMS, buildLens, jacobians, parseCoordinates } from './lens.ts';
-import { LENS_COLS, LENS_STEP } from '../../../app/src/globe/lens.ts';
+import { LENS_COLS, LENS_STEP } from '../../../app/src/engine/globe/lens.ts';
 
 const KM = 6371;
 

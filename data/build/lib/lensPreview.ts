@@ -2,8 +2,8 @@
 // section 3): today's land in true and in drawn positions on two
 // equirectangular maps, with a 30-degree graticule, for Yang to approve.
 
-import { sampleGrid } from '../../../app/src/globe/lens.ts';
-import type { Vec3 } from '../../../app/src/geo/cube.ts';
+import { sampleGrid } from '../../../app/src/engine/globe/lens.ts';
+import type { Vec3 } from '../../../app/src/engine/geo/cube.ts';
 import type { GeoJsonFeature } from './rasterize.ts';
 
 const W = 1440;

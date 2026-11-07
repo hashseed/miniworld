@@ -10,7 +10,7 @@ import {
   dayOfYearStart,
   DAYS_PER_YEAR,
   type Day,
-} from '../../../app/src/time/calendar.ts';
+} from '../../../app/src/engine/time/calendar.ts';
 import { distanceKm } from './humankind.ts';
 
 /** Half a degree, as the climate grids (milestone 1, section 4.3). */

@@ -3,7 +3,7 @@
 // per question. Pure and deterministic: the land, the limits and the data come in as
 // arguments, and the same inputs always give the same raster.
 
-import { detCos, RAD } from '../../../app/src/core/detmath.ts';
+import { detCos, RAD } from '../../../app/src/engine/core/detmath.ts';
 import {
   FARMING_CELL_DEG,
   FARMING_COLS,
@@ -11,7 +11,7 @@ import {
   FARMING_YEAR_BIAS,
   farmingCellOf,
   type FarmingSeedInfo,
-} from '../../../app/src/world/farmingOnset.ts';
+} from '../../../app/src/packs/history/world/farmingOnset.ts';
 
 const KM_PER_DEG = 111.195;
 

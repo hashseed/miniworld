@@ -1,10 +1,10 @@
-// Hands the world its tables from data/curated/ (app/src/world/tables.ts), for the data build,
+// Hands the world its tables from data/curated/ (app/src/packs/history/world/tables.ts), for the data build,
 // the asset tools and the tests; the app gets the same tables from the startup index.
 // Imported for its effect, before anything asks the world.
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { setWorldTables, type WorldTables } from '../../../app/src/world/tables.ts';
+import { setWorldTables, type WorldTables } from '../../../app/src/packs/history/world/tables.ts';
 
 const CURATED = join(import.meta.dirname, '../../curated');
 

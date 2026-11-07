@@ -12,9 +12,9 @@ import {
   wildMaskCell,
   WILD_MASK_N,
   type WildGroup,
-} from '../../../app/src/world/wildlife.ts';
-import { dirToLatLon, latLonToDir } from '../../../app/src/geo/cube.ts';
-import { EARTH_RADIUS_KM, northEast, type Vec3Like } from '../../../app/src/geo/earth.ts';
+} from '../../../app/src/packs/history/world/wildlife.ts';
+import { dirToLatLon, latLonToDir } from '../../../app/src/engine/geo/cube.ts';
+import { EARTH_RADIUS_KM, northEast, type Vec3Like } from '../../../app/src/engine/geo/earth.ts';
 
 /** Sea animals keep to water at least this deep (metres), sea at every date (section 4). */
 export const SEA_DEPTH_M = 300;

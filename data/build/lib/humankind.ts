@@ -5,13 +5,21 @@
 // lives where. Deterministic: whole days, the seeded hash and the deterministic
 // trigonometry only, so the same inputs give the same tree on every machine.
 
-import { maskLost } from '../../../app/src/world/fieldMask.ts';
-import { BUILD_MS, TAKE_DOWN_MS, TURN_MS } from '../../../app/src/world/scene/camp.ts';
-import { hash32, hash01 } from '../../../app/src/core/hash.ts';
-import { detCos, detSin } from '../../../app/src/core/detmath.ts';
-import { DAYS_PER_YEAR, type Day } from '../../../app/src/time/calendar.ts';
-import { FIGURE_KM_PER_M, TEMPO, WALK_M_PER_S } from '../../../app/src/world/treeScene.ts';
-import { dayAtMs, dayAtWatch, msAtDay, watchAtDay } from '../../../app/src/time/rate.ts';
+import { maskLost } from '../../../app/src/packs/history/world/fieldMask.ts';
+import {
+  BUILD_MS,
+  TAKE_DOWN_MS,
+  TURN_MS,
+} from '../../../app/src/packs/history/world/scene/camp.ts';
+import { hash32, hash01 } from '../../../app/src/engine/core/hash.ts';
+import { detCos, detSin } from '../../../app/src/engine/core/detmath.ts';
+import { DAYS_PER_YEAR, type Day } from '../../../app/src/engine/time/calendar.ts';
+import {
+  FIGURE_KM_PER_M,
+  TEMPO,
+  WALK_M_PER_S,
+} from '../../../app/src/packs/history/world/treeScene.ts';
+import { dayAtMs, dayAtWatch, msAtDay, watchAtDay } from '../../../app/src/engine/time/rate.ts';
 import {
   NEVER,
   type MomentKind,
@@ -19,7 +27,7 @@ import {
   type TreeFigure,
   type TreeLodging,
   type TreeStage,
-} from '../../../app/src/world/tree.ts';
+} from '../../../app/src/packs/history/world/tree.ts';
 import {
   COMPACT_SITE,
   LAYOUT_KM_PER_M,
@@ -47,7 +55,7 @@ import {
   CAVE_WATER_CLEAR_M,
   stageSpots,
   type TreeChunk,
-} from '../../../app/src/world/treeScene.ts';
+} from '../../../app/src/packs/history/world/treeScene.ts';
 import { distanceKm, KM_PER_DEG, onGlobe } from './geo.ts';
 import {
   footprintM,

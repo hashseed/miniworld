@@ -12,10 +12,10 @@
 // does not depend on timing: the date readout, the sea level and the lens.
 
 import { expect, test, type Page } from '@playwright/test';
-import { formatDateReadout } from '../../app/src/i18n/dates.ts';
-import { astronomicalYear, dayFromDate } from '../../app/src/time/calendar.ts';
+import { formatDateReadout } from '../../app/src/engine/i18n/dates.ts';
+import { astronomicalYear, dayFromDate } from '../../app/src/engine/time/calendar.ts';
 
-/** The dates of the golden tests (app/src/planet/golden.test.ts); `today` is the cutoff. */
+/** The dates of the golden tests (app/src/packs/history/planet/golden.test.ts); `today` is the cutoff. */
 const DATES: [string, number | 'today'][] = [
   ...[70_000, 50_000, 20_000, 12_000, 8000, 6200, 3000].map((y): [string, number] => [
     `${y}-bce`,

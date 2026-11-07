@@ -1099,7 +1099,7 @@
     },
     {
       "id": "plant-rainforest",
-      "file": "app/src/globe/foliageModels.ts",
+      "file": "app/src/engine/globe/foliageModels.ts",
       "kind": "plant",
       "generated": "Modelling script, plantGeometry",
       "status": "approved",
@@ -1109,7 +1109,7 @@
     },
     {
       "id": "plant-broadleaf",
-      "file": "app/src/globe/foliageModels.ts",
+      "file": "app/src/engine/globe/foliageModels.ts",
       "kind": "plant",
       "generated": "Modelling script, plantGeometry",
       "status": "approved",
@@ -1119,7 +1119,7 @@
     },
     {
       "id": "plant-conifer",
-      "file": "app/src/globe/foliageModels.ts",
+      "file": "app/src/engine/globe/foliageModels.ts",
       "kind": "plant",
       "generated": "Modelling script, plantGeometry",
       "status": "approved",
@@ -1129,7 +1129,7 @@
     },
     {
       "id": "plant-acacia",
-      "file": "app/src/globe/foliageModels.ts",
+      "file": "app/src/engine/globe/foliageModels.ts",
       "kind": "plant",
       "generated": "Modelling script, plantGeometry",
       "status": "approved",
@@ -1139,7 +1139,7 @@
     },
     {
       "id": "plant-palm",
-      "file": "app/src/globe/foliageModels.ts",
+      "file": "app/src/engine/globe/foliageModels.ts",
       "kind": "plant",
       "generated": "Modelling script, plantGeometry",
       "status": "approved",
@@ -1149,7 +1149,7 @@
     },
     {
       "id": "plant-olive",
-      "file": "app/src/globe/foliageModels.ts",
+      "file": "app/src/engine/globe/foliageModels.ts",
       "kind": "plant",
       "generated": "Modelling script, plantGeometry",
       "status": "approved",
@@ -1159,7 +1159,7 @@
     },
     {
       "id": "plant-cypress",
-      "file": "app/src/globe/foliageModels.ts",
+      "file": "app/src/engine/globe/foliageModels.ts",
       "kind": "plant",
       "generated": "Modelling script, plantGeometry",
       "status": "approved",
@@ -1169,7 +1169,7 @@
     },
     {
       "id": "plant-bush",
-      "file": "app/src/globe/foliageModels.ts",
+      "file": "app/src/engine/globe/foliageModels.ts",
       "kind": "plant",
       "generated": "Modelling script, plantGeometry",
       "status": "approved",

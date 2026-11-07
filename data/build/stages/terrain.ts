@@ -3,20 +3,20 @@
 // them (spec milestone 1, sections 4.2, 5.1 and 10.1).
 
 import { fromPlain, plainGrid, type PlainGrid } from '../lib/buildCache.ts';
-import { KM_PER_DEG } from '../../../app/src/geo/earth.ts';
+import { KM_PER_DEG } from '../../../app/src/engine/geo/earth.ts';
 import {
   encodeTerrainTile,
   OCEAN_MIN_LEVEL,
   OCEAN_NEVER,
   OCEAN_SCALE,
   PART_LEVEL,
-} from '../../../app/src/content/formats.ts';
-import { chunkKey } from '../../../app/src/content/types.ts';
-import { ancestorAt, tilePath, TILE_N, type TileKey } from '../../../app/src/geo/cube.ts';
+} from '../../../app/src/engine/content/formats.ts';
+import { chunkKey } from '../../../app/src/engine/content/types.ts';
+import { ancestorAt, tilePath, TILE_N, type TileKey } from '../../../app/src/engine/geo/cube.ts';
 import { fixtureElevation } from '../lib/fixture.ts';
 import { Grid, GridPyramid } from '../lib/grid.ts';
 import { openShare, wildMasks } from '../lib/wildlife.ts';
-import { WILD_GROUPS } from '../../../app/src/world/wildlife.ts';
+import { WILD_GROUPS } from '../../../app/src/packs/history/world/wildlife.ts';
 import { floodInlandSeas, oceanConnection, validateInlandSeas } from '../lib/ocean.ts';
 import { readElevation, readFeatures } from '../lib/readers.ts';
 import {

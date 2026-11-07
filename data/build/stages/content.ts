@@ -10,10 +10,10 @@ import type {
   ModelEntry,
   SourceInfo,
   StartupIndex,
-} from '../../../app/src/content/types.ts';
+} from '../../../app/src/engine/content/types.ts';
 import { curatedWorldTables } from '../lib/worldTables.ts';
-import { LANGUAGES, type Language } from '../../../app/src/i18n/messages.ts';
-import { TIMELINE_START } from '../../../app/src/time/calendar.ts';
+import { LANGUAGES, type Language } from '../../../app/src/engine/i18n/messages.ts';
+import { TIMELINE_START } from '../../../app/src/engine/time/calendar.ts';
 import {
   checkEraList,
   erasForLanguage,
@@ -26,7 +26,7 @@ import {
 import { buildAnimals } from '../lib/animals.ts';
 import { buildSiteCards } from '../lib/siteCards.ts';
 import { farmingEventIds } from './farming.ts';
-import { WILD_GROUPS } from '../../../app/src/world/wildlife.ts';
+import { WILD_GROUPS } from '../../../app/src/packs/history/world/wildlife.ts';
 import { regionGrid } from '../lib/regions.ts';
 import {
   checkAssetRefs,

@@ -6,11 +6,11 @@
 // Usage: node data/build/build-data.ts [--fixture] [--max-level N] [--no-cache | --clean]
 //   --no-cache (or --fresh) reads and writes no cache; --clean forgets the caches first.
 
-// The world's tables from data/curated/, before anything asks the world (app/src/world/tables.ts).
+// The world's tables from data/curated/, before anything asks the world (app/src/packs/history/world/tables.ts).
 import './lib/worldTables.ts';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { LANGUAGES } from '../../app/src/i18n/messages.ts';
+import { LANGUAGES } from '../../app/src/engine/i18n/messages.ts';
 import { chunkSizeProblems, largestFiles } from './lib/chunkSize.ts';
 import { DrawnTiles } from './lib/drawnGround.ts';
 import { Output } from './lib/output.ts';

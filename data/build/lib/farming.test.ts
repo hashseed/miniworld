@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { FarmingGrid, farmingCellOf } from '../../../app/src/world/farmingOnset.ts';
+import { FarmingGrid, farmingCellOf } from '../../../app/src/packs/history/world/farmingOnset.ts';
 import {
   checkFarming,
   computeFarming,

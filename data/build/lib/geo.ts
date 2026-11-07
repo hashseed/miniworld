@@ -1,8 +1,8 @@
 // Distances and drawn offsets on the globe for the data build (spec humankind.md, section 8.1),
 // with the deterministic maths only.
 
-import { detAtan2, detCos, detSin, RAD } from '../../../app/src/core/detmath.ts';
-import { EARTH_RADIUS_KM } from '../../../app/src/geo/earth.ts';
+import { detAtan2, detCos, detSin, RAD } from '../../../app/src/engine/core/detmath.ts';
+import { EARTH_RADIUS_KM } from '../../../app/src/engine/geo/earth.ts';
 
 export const KM_PER_DEG = 111.195;
 

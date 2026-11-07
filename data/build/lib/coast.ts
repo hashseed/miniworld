@@ -3,13 +3,13 @@
 // level crosses the date's sea level, so they are smooth curves like the
 // rivers; named straits are carved so the smoothing never closes them.
 
-import { KM_PER_DEG } from '../../../app/src/geo/earth.ts';
+import { KM_PER_DEG } from '../../../app/src/engine/geo/earth.ts';
 import {
   OCEAN_MIN_LEVEL,
   OCEAN_NEVER,
   OCEAN_SCALE,
   OCEAN_TOP,
-} from '../../../app/src/content/formats.ts';
+} from '../../../app/src/engine/content/formats.ts';
 import { distanceKm } from './distance.ts';
 import { Grid, type GridData } from './grid.ts';
 import { blurLine, boxRadius } from './simplify.ts';

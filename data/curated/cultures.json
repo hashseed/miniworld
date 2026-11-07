@@ -1,5 +1,5 @@
 {
-  "description": "Culture profiles (spec milestone-2 section 4, peopling.md section 5.1, neolithic/people-profiles.md), one row per id of app/src/world/cultures.ts, until culture records exist (content-format.md section 5): the camp lodging, the animals the profile hunts and, for a farming profile, its labels, farming region ids (farming.json), interim area boxes as [south, north, west, east] with a rank (where boxes overlap, the lower rank wins), architecture set, tools by kind, field tool, the year BCE it takes up the ard, role mix in percent, herd and crops. Looks are in assets/src/people.ts.",
+  "description": "Culture profiles (spec milestone-2 section 4, peopling.md section 5.1, neolithic/people-profiles.md), one row per id of app/src/packs/history/world/cultures.ts, until culture records exist (content-format.md section 5): the camp lodging, the animals the profile hunts and, for a farming profile, its labels, farming region ids (farming.json), interim area boxes as [south, north, west, east] with a rank (where boxes overlap, the lower rank wins), architecture set, tools by kind, field tool, the year BCE it takes up the ard, role mix in percent, herd and crops. Looks are in assets/src/people.ts.",
   "cultures": [
     {
       "id": "african-stone-age",

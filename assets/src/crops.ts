@@ -4,8 +4,8 @@
 // from 0 to 1 (bare, sprout, green, ripe, stubble) shapes and paints the tuft.
 
 import * as THREE from 'three';
-import { detCos, detSin } from '../../app/src/core/detmath.ts';
-import { hash01 } from '../../app/src/core/hash.ts';
+import { detCos, detSin } from '../../app/src/engine/core/detmath.ts';
+import { hash01 } from '../../app/src/engine/core/hash.ts';
 
 import {
   CROPS,

@@ -3,7 +3,7 @@ import {
   DEEP_HEIGHT,
   TERRAIN_BORDERED,
   TERRAIN_SAMPLES,
-} from '../../../app/src/content/formats.ts';
+} from '../../../app/src/engine/content/formats.ts';
 import { Grid, GridPyramid } from './grid.ts';
 import { allTileKeys, buildTerrainTile, isDeepTile, type TerrainInputs } from './terrain.ts';
 import { NO_LAKE } from './water.ts';

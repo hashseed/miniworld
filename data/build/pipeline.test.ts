@@ -7,7 +7,7 @@
 import { statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import type { Manifest, PartFile } from '../../app/src/content/types.ts';
+import type { Manifest, PartFile } from '../../app/src/engine/content/types.ts';
 import { DATA, built, json, referenced, walk } from './lib/builtData.ts';
 
 describe.skipIf(!built)('built data pipeline', () => {

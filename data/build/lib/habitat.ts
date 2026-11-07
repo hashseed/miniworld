@@ -3,7 +3,7 @@
 // mountains; and how good a camp site is (section 3.2): near a river, lake
 // or coast is better, high ground worse.
 
-import { detCos, detSin, RAD } from '../../../app/src/core/detmath.ts';
+import { detCos, detSin, RAD } from '../../../app/src/engine/core/detmath.ts';
 import {
   ARID_GRID_H,
   ARID_GRID_W,
@@ -11,8 +11,8 @@ import {
   ICE_DISTANCE_ZERO,
   ICE_GRID_H,
   ICE_GRID_W,
-} from '../../../app/src/content/formats.ts';
-import type { Day } from '../../../app/src/time/calendar.ts';
+} from '../../../app/src/engine/content/formats.ts';
+import type { Day } from '../../../app/src/engine/time/calendar.ts';
 import type { Habitat } from './humankind.ts';
 
 /** Aridity at which land counts as desert (milestone 2, section 3.1). */

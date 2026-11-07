@@ -4,8 +4,12 @@
 
 import en from '../../../app/messages/en.json' with { type: 'json' };
 import de from '../../../app/messages/de.json' with { type: 'json' };
-import { LANGUAGES, type Language } from '../../../app/src/i18n/messages.ts';
-import { astronomicalYear, dayFromDate, dayOfYearStart } from '../../../app/src/time/calendar.ts';
+import { LANGUAGES, type Language } from '../../../app/src/engine/i18n/messages.ts';
+import {
+  astronomicalYear,
+  dayFromDate,
+  dayOfYearStart,
+} from '../../../app/src/engine/time/calendar.ts';
 
 /** The record heading over the "Learn more" text, as the card labels it (content-format section 2). */
 const LEARN_MORE: Record<Language, string> = {

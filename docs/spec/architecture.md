@@ -31,7 +31,7 @@ In the order to do it. Items marked with the milestone they belong to should be 
 [content-format.md](content-format.md) specifies events completely; none of it is built yet. Today's events (first arrivals on a continent, scenes at anchors, first farming) are put together by the data build from `arrivals.json`, `anchors.json` and `neolithic.json`, with their cards as `event-card` records under `site-cards/`.
 
 1. The record kind `event` under `data/curated/events/` with its schema: the envelope of section 2, `type` from a new `vocab/event-types.yaml`, `when` with `peak` and `phases` (the date grammar of section 3 is built), `where` with `place`, `point`, `area` or `path` and the computed `anchor` with its 25 km check against the spec lists (section 4).
-2. `effects` (section 6) with `vocab/effect-types.yaml` and one shared system per effect type in the world; presenters per event type in `app/src/world/presenters/` (section 7), registered by type id.
+2. `effects` (section 6) with `vocab/effect-types.yaml` and one shared system per effect type in the world; presenters per event type in `app/src/packs/history/world/presenters/` (section 7), registered by type id.
 3. The existing synthesised events move onto records, with their dates and places checked against the tables they come from, so nothing is kept in two places.
 4. The spec list check of section 9 for events and the generated `CHRONOLOGY.md`, `INDEX.md` and coverage report of section 8.
 

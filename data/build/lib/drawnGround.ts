@@ -9,10 +9,15 @@ import {
   decodeTerrainTile,
   encodeTerrainTile,
   type TerrainTile,
-} from '../../../app/src/content/formats.ts';
-import { dirToFaceUv, latLonToDir, tileAt, type TileKey } from '../../../app/src/geo/cube.ts';
-import { PlanetQuery } from '../../../app/src/planet/query.ts';
-import { isSea, LAKE_FIELD, type Ground } from '../../../app/src/planet/surface.ts';
+} from '../../../app/src/engine/content/formats.ts';
+import {
+  dirToFaceUv,
+  latLonToDir,
+  tileAt,
+  type TileKey,
+} from '../../../app/src/engine/geo/cube.ts';
+import { PlanetQuery } from '../../../app/src/packs/history/planet/query.ts';
+import { isSea, LAKE_FIELD, type Ground } from '../../../app/src/packs/history/planet/surface.ts';
 
 export interface DrawnGround {
   /** The interpolated terrain data at a point, as the globe draws it. */

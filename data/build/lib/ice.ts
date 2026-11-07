@@ -7,10 +7,10 @@ import {
   ICE_DISTANCE_ZERO,
   ICE_GRID_H,
   ICE_GRID_W,
-} from '../../../app/src/content/formats.ts';
+} from '../../../app/src/engine/content/formats.ts';
 import { blurFieldPolar } from './coast.ts';
 import { distanceKm, signedDistanceKm } from './distance.ts';
-import { dayFromDate } from '../../../app/src/time/calendar.ts';
+import { dayFromDate } from '../../../app/src/engine/time/calendar.ts';
 
 export function sliceDay(yearsBP: number): number {
   return dayFromDate(1950 - yearsBP, 1, 1);

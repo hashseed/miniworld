@@ -4,8 +4,8 @@
 
 import { createHash } from 'node:crypto';
 import * as THREE from 'three';
-import { plantGeometry } from '../../app/src/globe/foliageModels.ts';
-import { KINDS as PLANT_KINDS } from '../../app/src/globe/foliageKinds.ts';
+import { plantGeometry } from '../../app/src/engine/globe/foliageModels.ts';
+import { KINDS as PLANT_KINDS } from '../../app/src/engine/globe/foliageKinds.ts';
 import { ANIMALS, buildAnimal } from './animals.ts';
 import { CROPS, RIPE_STAGE, cropGeometry } from './crops.ts';
 import { PROFILES, buildPerson, type Kind } from './people.ts';

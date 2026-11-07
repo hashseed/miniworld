@@ -120,7 +120,7 @@ Measurements of the built foliage with the history lens on (headless Chromium, 1
 
 ## 9. Assets
 
-The plant models are built in code from simple shapes (balls, cones and strips with flat colours) in `app/src/globe/foliageModels.ts`, like the prehistoric figures, and each kind is listed in `data/assets/manifest.json`. Yang approved the look from previews on 2026-10-18 ("commit this"), asking for arched palm fronds at the same triangle count, which were added.
+The plant models are built in code from simple shapes (balls, cones and strips with flat colours) in `app/src/engine/globe/foliageModels.ts`, like the prehistoric figures, and each kind is listed in `data/assets/manifest.json`. Yang approved the look from previews on 2026-10-18 ("commit this"), asking for arched palm fronds at the same triangle count, which were added.
 
 ## 10. Open questions
 

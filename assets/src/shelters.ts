@@ -16,8 +16,12 @@ import {
   sheet,
   shade,
 } from './kit.ts';
-import { PROFILES, campLodgingOf, type Profile } from '../../app/src/world/cultures.ts';
-import { onWorldTables } from '../../app/src/world/tables.ts';
+import {
+  PROFILES,
+  campLodgingOf,
+  type Profile,
+} from '../../app/src/packs/history/world/cultures.ts';
+import { onWorldTables } from '../../app/src/packs/history/world/tables.ts';
 import { addGobekliRing } from './gobekli.ts';
 import {
   EAST_ASIA_AMERICAS_HOUSES,
@@ -69,7 +73,7 @@ export const BUILD_BONE = 'build-';
  * data/curated/cultures.json (neolithic/people-profiles.md section 5).
  */
 export const CAMP_SHELTER: Partial<Record<Profile, ShelterId>> = {};
-// Filled when the world has its tables (app/src/world/tables.ts), after the culture table.
+// Filled when the world has its tables (app/src/packs/history/world/tables.ts), after the culture table.
 onWorldTables(() => {
   for (const p of PROFILES) {
     const lodging = campLodgingOf(p);

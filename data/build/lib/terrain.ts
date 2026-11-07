@@ -9,13 +9,13 @@ import {
   tileSampleUv,
   type TileKey,
   type Vec3,
-} from '../../../app/src/geo/cube.ts';
+} from '../../../app/src/engine/geo/cube.ts';
 import {
   DEEP_HEIGHT,
   TERRAIN_BORDERED,
   TERRAIN_SAMPLES,
   type TerrainTile,
-} from '../../../app/src/content/formats.ts';
+} from '../../../app/src/engine/content/formats.ts';
 import { Grid, type GridPyramid } from './grid.ts';
 import { NO_LAKE } from './water.ts';
 

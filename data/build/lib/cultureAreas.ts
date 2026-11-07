@@ -6,7 +6,7 @@ import {
   dayOfYearStart,
   TIMELINE_START,
   type Day,
-} from '../../../app/src/time/calendar.ts';
+} from '../../../app/src/engine/time/calendar.ts';
 import { insideRing, MAX_CAMP_M, type Ring } from './habitat.ts';
 import { SITE_STEP_KM, type SiteMap } from './sites.ts';
 import {

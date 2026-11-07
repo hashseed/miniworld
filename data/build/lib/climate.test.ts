@@ -10,7 +10,11 @@ import {
   type HumidPeriod,
 } from './climate.ts';
 import { iceGrid } from './ice.ts';
-import { ICE_GRID_H, ICE_GRID_W, ICE_DISTANCE_ZERO } from '../../../app/src/content/formats.ts';
+import {
+  ICE_GRID_H,
+  ICE_GRID_W,
+  ICE_DISTANCE_ZERO,
+} from '../../../app/src/engine/content/formats.ts';
 import { readExtract } from './extract.ts';
 
 const root = new URL('../../sources/', import.meta.url).pathname;
