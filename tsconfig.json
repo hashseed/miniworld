@@ -17,7 +17,8 @@
     "jsxImportSource": "preact",
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["node", "vite/client"]
+    "types": ["node", "vite/client"],
+    "paths": { "@pack": ["./app/src/packs/history/index.ts"] }
   },
   "include": ["app", "assets", "data/build", "data/schema", "scripts", "tests", "*.config.ts"]
 }

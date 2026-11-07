@@ -6,6 +6,7 @@ export default defineConfig({
       'app/src/**/*.test.ts',
       'assets/src/**/*.test.ts',
       'data/build/**/*.test.ts',
+      'data/packs/**/*.test.ts',
       'tests/unit/**/*.test.ts',
     ],
     environment: 'node',
@@ -19,6 +20,7 @@ export default defineConfig({
         'app/src/**/*.{ts,tsx}',
         'assets/src/**/*.ts',
         'data/build/**/*.ts',
+        'data/packs/**/*.ts',
         'data/schema/**/*.ts',
       ],
       // The on-land check's scenes run in a worker thread outside the runner (onLand.ts).

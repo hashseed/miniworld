@@ -1,0 +1,19 @@
+{
+  "description": "Files of the engine (app/src/engine) that still import the history pack (engine.md, section 1). The boundary test fails on any import not listed here and on any entry that is no longer needed, so this list only shrinks. Each entry is engine file -> pack file, relative to app/src.",
+  "debt": [
+    "engine/content/modelPacks.ts -> packs/history/world/cultures.ts",
+    "engine/content/types.ts -> packs/history/world/tables.ts",
+    "engine/globe/climate.ts -> packs/history/planet/query.ts",
+    "engine/globe/climate.ts -> packs/history/planet/state.ts",
+    "engine/globe/foliage.ts -> packs/history/planet/state.ts",
+    "engine/globe/foliagePlace.ts -> packs/history/planet/sample.ts",
+    "engine/globe/foliagePlace.ts -> packs/history/planet/surface.ts",
+    "engine/globe/globe.ts -> packs/history/planet/query.ts",
+    "engine/globe/globe.ts -> packs/history/planet/state.ts",
+    "engine/globe/globe.ts -> packs/history/planet/surface.ts",
+    "engine/globe/shaders.ts -> packs/history/planet/surface.ts",
+    "engine/globe/terrainJobs.ts -> packs/history/planet/sample.ts",
+    "engine/globe/terrainStore.ts -> packs/history/planet/query.ts",
+    "engine/globe/terrainStore.ts -> packs/history/planet/sample.ts"
+  ]
+}
