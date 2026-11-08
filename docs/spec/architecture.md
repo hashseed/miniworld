@@ -60,4 +60,4 @@ Textures are listed in the manifest without a content hash, so a changed image k
 
 ### 3.6 Deploy
 
-The hub repository `hashseed/hashseed-pages` builds the preview site from the `preview` branch when its deploy is started by hand; its hourly run, which should redeploy when a source moves, fails before it builds, so a push to `preview` does not reach the site on its own.
+The hub repository `hashseed/hashseed-pages` builds the site `hashseed.pages.dev/miniworld/` from `main` (Yang, 2026-11-08: "remove the miniworld-preview deployment and just deploy the main branch"; until then it built a preview site from the `preview` branch, with models still waiting for review). Its hourly run redeploys when `main` moves; a site is invite-only until switched to public on the hub's admin page. GitHub Pages still publishes `main` too (`pages.yml`).
