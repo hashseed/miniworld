@@ -30,6 +30,9 @@ import {
   type WildMask,
 } from '../world/wildlife.ts';
 import type { SurfaceSource } from '../tree/surface.ts';
+import { standOnGround } from '../globe/grounding.ts';
+
+export { standOnGround };
 
 /** Drawn kilometres per life-size metre: half as large again as the figures (section 1). */
 export const KM_PER_M = 63.75;
@@ -68,67 +71,13 @@ interface Species {
   count: number;
 }
 
-/** How far the ground around an animal may lift it, in body heights (section 5). */
-const MAX_LIFT = 0.1;
-/** The most the ground may lift an animal to keep its feet out of a slope steeper than it leans. */
-const MAX_SLOPE_LIFT = 0.3;
 /** Smallest radius around an animal that a tap hits, in CSS pixels (section 8). */
 const HIT_MIN_PX = 24;
 /** Rounds of pushing overlapping animals apart each frame (section 5). */
 const SEPARATE_PASSES = 3;
-/** The steepest an animal leans with the ground, as a slope (about 15 degrees). */
-const MAX_TILT = 0.27;
 /** How far, in body lengths from the middle, the slope points and the nose, tail and flanks lie. */
 const SLOPE_REACH = 0.35;
 const END_REACH = 0.5;
-
-/**
- * Where an animal stands given the ground under its middle and a distance halfKm in front, behind,
- * right and left of it (spec wildlife.md, section 5): raised by at most a tenth of its height where
- * the points around it lie higher (a valley), leaning with the slope by at most MAX_TILT. Where the
- * ground is steeper than the lean (clamped), it is raised until none of the four points lies above its feet,
- * by at most MAX_SLOPE_LIFT body heights, so no animal sinks into a hillside (issue 129).
- */
-export function standOnGround(
-  middle: number,
-  front: number,
-  back: number,
-  right: number,
-  left: number,
-  halfKm: number,
-  heightKm: number,
-  ends?: { front: number; back: number; right: number; left: number },
-): { ground: number; along: number; across: number } {
-  const mean = (front + back + right + left) / 4;
-  let ground = middle + Math.min(Math.max(mean - middle, 0), heightKm * MAX_LIFT);
-  let along = (front - back) / (2 * halfKm);
-  let across = (right - left) / (2 * halfKm);
-  const steep = Math.sqrt(along * along + across * across);
-  if (steep > MAX_TILT) {
-    along *= MAX_TILT / steep;
-    across *= MAX_TILT / steep;
-    const buried = Math.max(
-      front - (ground + along * halfKm),
-      back - (ground - along * halfKm),
-      right - (ground + across * halfKm),
-      left - (ground - across * halfKm),
-    );
-    if (buried > 0) ground += Math.min(buried, heightKm * MAX_SLOPE_LIFT);
-  }
-  // Nose, tail and flanks reach further than the slope points: none may lie above its feet,
-  // even on gentle ground (the aurochs sank into the ground by a river, 2026-10-23).
-  if (ends) {
-    const reach = (halfKm * END_REACH) / SLOPE_REACH;
-    const buried = Math.max(
-      ends.front - (ground + along * reach),
-      ends.back - (ground - along * reach),
-      ends.right - (ground + across * reach),
-      ends.left - (ground - across * reach),
-    );
-    if (buried > 0) ground += Math.min(buried, heightKm * MAX_SLOPE_LIFT);
-  }
-  return { ground, along, across };
-}
 
 export class WildlifeLayer {
   readonly group = new THREE.Group();

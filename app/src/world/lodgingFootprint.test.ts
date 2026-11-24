@@ -1,25 +1,22 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import { buildShelter, type ShelterId } from '../../../assets/src/shelters.ts';
+import { aboveGroundBounds } from '../../../assets/src/plinth.ts';
 // The Neolithic houses load with their cultures; build them all here.
 import '../../../assets/src/allCultureModels.ts';
 import { detAtan2, detCos, detSin } from '../core/detmath.ts';
 import { NEOLITHIC_PROFILES } from './neolithicProfiles.ts';
+import { LODGING_MAX_M, LODGING_RING_M, MINIMAL_LODGING, ringOf } from './scene/camp.ts';
 import {
   COMPACT_SITE,
   FIGURE_KM_PER_M,
   LAYOUT_KM_PER_M,
   LODGING_SLOTS,
-  MINIMAL_LODGING,
   MINIMAL_SITE,
-  LODGING_RING_M,
   layoutOf,
-  ringOf,
   slotPoint,
 } from './treeScene.ts';
 
-/** A lodging model is drawn at most this many figure metres across (treeLayer.ts, LODGING_MAX_M). */
-const LODGING_MAX_M = 2.7;
 const TO_LAYOUT = FIGURE_KM_PER_M / LAYOUT_KM_PER_M;
 
 type Rect = { cx: number; cz: number; ux: number; uz: number; hx: number; hz: number };
@@ -40,29 +37,52 @@ function overlap(a: Rect, b: Rect): boolean {
   });
 }
 
-/** The footprint of a model after the layer's fit, in layout metres, round its box's middle. */
-function footprint(id: ShelterId, room: number) {
+/**
+ * The above-ground footprint of a shelter after TreeLayer's scale rule, in layout metres
+ * round its middle. `room === undefined` draws at 1.0x model scale (1 model m = 1 game m).
+ */
+function footprint(id: ShelterId, room: number | undefined) {
   const object = buildShelter(id).object;
   object.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(object);
+  const box = aboveGroundBounds(object);
   const size = box.getSize(new THREE.Vector3());
-  const fit = Math.min(1, (LODGING_MAX_M * room) / Math.max(size.x, size.z, 1e-6));
+  const fit =
+    room === undefined ? 1 : Math.min(1, (LODGING_MAX_M * room) / Math.max(size.x, size.z, 1e-6));
   const mid = box.getCenter(new THREE.Vector3());
   const k = fit * TO_LAYOUT;
-  return { hx: (size.x * k) / 2, hz: (size.z * k) / 2, mx: mid.x * k, mz: mid.z * k };
+  return { fit, hx: (size.x * k) / 2, hz: (size.z * k) / 2, mx: mid.x * k, mz: mid.z * k };
 }
 
 describe('the lodgings of a camp', () => {
+  const prehistoric: ShelterId[] = [
+    'shelter-hide-tent',
+    'shelter-mammoth-bone-hut',
+    'shelter-windbreak',
+    'shelter-grass-hut',
+    'shelter-lean-to',
+    'shelter-bark',
+    'shelter-natufian-house',
+  ];
   const houses = new Set<string>(Object.values(NEOLITHIC_PROFILES).flatMap((p) => p.architecture));
+  const allFullAndCompact = [...new Set<string>([...prehistoric, ...houses])];
   const layouts = [
-    ['full', 0, [...houses]],
-    ['compact', COMPACT_SITE, [...houses]],
+    ['full', 0, allFullAndCompact],
+    ['compact', COMPACT_SITE, allFullAndCompact],
     ['minimal', MINIMAL_SITE, [MINIMAL_LODGING]],
   ] as const;
+
+  it('draws every prehistoric shelter on a full camp and shelter-small-hut on a minimal camp at 1.0x', () => {
+    for (const id of prehistoric) {
+      expect(footprint(id, 1).fit, id).toBeCloseTo(1, 5);
+    }
+    expect(footprint(MINIMAL_LODGING, undefined).fit).toBe(1);
+  });
+
   for (const [name, camp, ids] of layouts)
     it(`never overlap in a ${name} camp or reach its hearth`, () => {
       for (const id of ids) {
-        const f = footprint(id as ShelterId, ringOf(camp) / LODGING_RING_M);
+        const room = id === MINIMAL_LODGING ? undefined : ringOf(camp) / LODGING_RING_M;
+        const f = footprint(id as ShelterId, room);
         // Each faces the hearth, its door on either side of the model, so both are tried.
         for (const flip of [0, Math.PI]) {
           const rects = Array.from({ length: LODGING_SLOTS }, (_, slot) => {
@@ -80,7 +100,6 @@ describe('the lodgings of a camp', () => {
             };
           });
           for (let i = 0; i < rects.length; i++) {
-            // A box's half diagonal short of the hearth's rim (about a metre) is the clearance asked.
             expect(
               Math.sqrt(rects[i]!.cx ** 2 + rects[i]!.cz ** 2) - Math.sqrt(f.hx ** 2 + f.hz ** 2),
             ).toBeGreaterThan(layoutOf(camp).ring * 0.2);

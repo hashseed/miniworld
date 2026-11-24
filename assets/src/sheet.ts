@@ -4,7 +4,8 @@
 
 import * as THREE from 'three';
 import { cameraLight } from '../../app/src/globe/sky.ts';
-import { ModelBuilder, blob, celMaterial, lightUniforms, type Model } from './kit.ts';
+import { ModelBuilder, blob, box, celMaterial, lightUniforms, type Model } from './kit.ts';
+import { aboveGroundBounds, isPlinthMesh } from './plinth.ts';
 import { PROFILES, buildPerson, posePerson, type Kind, type Pose } from './people.ts';
 import {
   SHELTERS,
@@ -57,6 +58,14 @@ function place(m: Model, x: number, z: number, turn = 0): Model {
   m.object.rotation.y = turn;
   scene.add(m.object);
   triangles += m.triangles;
+  return m;
+}
+
+/** Hides the underground -1.5 m plinth skirt on flat-plate review sheets. */
+function hidePlinth(m: Model): Model {
+  m.object.traverse((o) => {
+    if (isPlinthMesh(o)) o.visible = false;
+  });
   return m;
 }
 
@@ -146,7 +155,7 @@ function campSheet(): void {
   const profile = (params.get('profile') ?? 'ice-age-hunter') as (typeof PROFILES)[number];
   ground(0, 0, 5.5, GROUND[profile]);
   const shelter = CAMP_SHELTER[profile];
-  if (shelter) place(buildShelter(shelter), -1.6, -1.4, 0.4);
+  if (shelter) place(hidePlinth(buildShelter(shelter)), -1.6, -1.4, 0.4);
   place(buildHearth(), 0.9, 0.2);
   const poses: Pose[] = ['work', 'walk', 'throw', 'carry', 'point', 'stand'];
   const spots: [number, number, number][] = [
@@ -175,7 +184,7 @@ function sheltersSheet(): void {
     const x = (col - 1.5) * 7.4;
     const z = row * 7.5 - 3.75;
     ground(x, z, 3.4, '#b2b874');
-    place(buildShelter(id), x, z, 0.5);
+    place(hidePlinth(buildShelter(id)), x, z, 0.5);
     labels.push({
       text: id,
       at: row ? new THREE.Vector3(x, 0, z + 3.5) : new THREE.Vector3(x, 3.6, z),
@@ -186,6 +195,204 @@ function sheltersSheet(): void {
   place(ref, -3.7 - 2.6, -3.75 + 2.4, 0.3);
   camera.position.set(0, 17, 33);
   camera.lookAt(0, 0.2, 0);
+}
+
+/**
+ * All 19 shelters and Neolithic houses at exact 1:1 in-game scale beside 1.7 m adult
+ * figures (`sheet=house-lineup`), with measured WxDxH labels.
+ */
+function houseLineupSheet(): void {
+  const rows: readonly { title: string; z: number; ids: readonly (typeof SHELTERS)[number][] }[] = [
+    {
+      title: 'Prehistoric shelters',
+      z: 11,
+      ids: [
+        'shelter-small-hut',
+        'shelter-grass-hut',
+        'shelter-bark',
+        'shelter-lean-to',
+        'shelter-windbreak',
+        'shelter-hide-tent',
+        'shelter-mammoth-bone-hut',
+        'shelter-natufian-house',
+      ],
+    },
+    {
+      title: 'Old World West Neolithic',
+      z: 0,
+      ids: [
+        'shelter-egyptian-neolithic-hut',
+        'shelter-anatolian-house',
+        'shelter-anatolian-house-joined',
+        'shelter-mehrgarh-house',
+        'shelter-pre-pottery-levant-house',
+        'shelter-lbk-longhouse',
+      ],
+    },
+    {
+      title: 'East Asia, Americas & New Guinea',
+      z: -11,
+      ids: [
+        'shelter-andean-stone-house',
+        'shelter-highland-new-guinea-house',
+        'shelter-mesoamerican-hut',
+        'shelter-yellow-river-pit-house',
+        'shelter-yangtze-stilt-house',
+      ],
+    },
+  ];
+  const shortName = (id: string) =>
+    id
+      .replace('shelter-', '')
+      .replace('-neolithic-hut', '')
+      .replace('pre-pottery-', '')
+      .replace('-house', '')
+      .replace('-hut', '')
+      .replace('highland-new-guinea', 'new-guinea');
+  const gap = 2.25;
+  for (const row of rows) {
+    const items = row.ids.map((id) => {
+      const m = hidePlinth(buildShelter(id));
+      const b = aboveGroundBounds(m.object);
+      const s = b.getSize(new THREE.Vector3());
+      const c = b.getCenter(new THREE.Vector3());
+      return { id, m, w: s.x, h: s.y, d: s.z, cx: c.x, cz: c.z };
+    });
+    const personWidth = 1.6;
+    const totalW =
+      personWidth + gap + items.reduce((acc, it) => acc + it.w, 0) + (items.length - 1) * gap;
+    const mbStrip = new ModelBuilder([], 0);
+    mbStrip.add(box([-totalW / 2 - 2.2, -0.32, -2.8], [totalW / 2 + 2.2, -0.005, 2.8]), '#b2b874');
+    const strip = mbStrip.build('row-ground');
+    strip.object.position.set(0, 0, row.z);
+    scene.add(strip.object);
+
+    let cursor = -totalW / 2;
+    const ref = buildPerson({ profile: 'ice-age-hunter', kind: 'man' });
+    posePerson(ref, 'stand');
+    place(ref, cursor + personWidth / 2, row.z + 0.4, 0.25);
+    cursor += personWidth + gap;
+
+    items.forEach((it, idx) => {
+      const x = cursor + it.w / 2 - it.cx;
+      place(it.m, x, row.z - it.cz, 0.2);
+      if (it.id === 'shelter-lbk-longhouse') {
+        const companion = buildPerson({ profile: 'lbk-farmer', kind: 'man' });
+        posePerson(companion, 'stand');
+        place(companion, x - it.w / 2 + 0.3, row.z + it.d / 2 + 0.55, 0.15);
+      }
+      const dims = `${it.w.toFixed(1)}×${it.d.toFixed(1)}×${it.h.toFixed(1)}m`;
+      const text = `${shortName(it.id)} ${dims}`;
+      const labelPos =
+        row.z < 0
+          ? new THREE.Vector3(x + it.cx, it.h + 0.45 + (idx % 2) * 1.3, row.z)
+          : new THREE.Vector3(
+              x + it.cx,
+              idx % 2 === 0 ? 0.15 : -1.05,
+              row.z + Math.max(it.d / 2, 0.8) + 0.95,
+            );
+      labels.push({ text, at: labelPos });
+      cursor += it.w + gap;
+    });
+  }
+  camera.position.set(0, 23, 52);
+  camera.lookAt(0, 0.7, 0.5);
+  info.text = `house-lineup (1 model m = 1 game m, vs 1.7 m adult): ${Math.round(triangles).toLocaleString('en')} tris`;
+}
+
+/**
+ * Representative shelters and houses grounded upright via groundUprightPlinth math
+ * on an 18° hillside ramp with plinth skirts and stilt piles visible (`sheet=house-slopes`).
+ */
+function houseSlopesSheet(): void {
+  const slope = Math.tan((18 * Math.PI) / 180);
+  const rampRows: { z: number; ids: readonly (typeof SHELTERS)[number][] }[] = [
+    {
+      z: 6.5,
+      ids: [
+        'shelter-hide-tent',
+        'shelter-mammoth-bone-hut',
+        'shelter-anatolian-house',
+        'shelter-lbk-longhouse',
+      ],
+    },
+    {
+      z: -6.5,
+      ids: [
+        'shelter-mehrgarh-house',
+        'shelter-yellow-river-pit-house',
+        'shelter-highland-new-guinea-house',
+        'shelter-yangtze-stilt-house',
+      ],
+    },
+  ];
+  const makeRamp = (z: number, halfW: number) => {
+    const mb = new ModelBuilder([], 0);
+    const gTop = box([-halfW, -0.06, -3.2], [halfW, 0, 3.2]);
+    const gSoil = box([-halfW, -2.6, -3.15], [halfW, -0.06, 3.15]);
+    for (const g of [gTop, gSoil]) {
+      const p = g.getAttribute('position');
+      for (let i = 0; i < p.count; i++) p.setY(i, p.getY(i) - slope * p.getX(i));
+      p.needsUpdate = true;
+    }
+    mb.add(gTop, '#a8b468');
+    mb.add(gSoil, '#7d6245');
+    const ramp = mb.build('ramp');
+    ramp.object.position.set(0, 0, z);
+    scene.add(ramp.object);
+  };
+  for (const row of rampRows) {
+    const items = row.ids.map((id) => {
+      const m = buildShelter(id);
+      const b = aboveGroundBounds(m.object);
+      const full = new THREE.Box3().setFromObject(m.object);
+      const s = b.getSize(new THREE.Vector3());
+      return { id, m, b, s, plinthDepth: Math.max(0, -full.min.y) };
+    });
+    const gap = 2.6;
+    const totalW = items.reduce((acc, it) => acc + it.s.x, 0) + (items.length - 1) * gap;
+    makeRamp(row.z, Math.max(15, totalW / 2 + 2.5));
+    let cursor = -totalW / 2;
+    for (const it of items) {
+      const cx = cursor + it.s.x / 2;
+      const cz = row.z;
+      const turn = 0.2;
+      const cos = Math.cos(turn);
+      const sin = Math.sin(turn);
+      const surf = (wx: number) => -slope * wx;
+      const centerH = surf(cx);
+      let minH = centerH;
+      let maxH = centerH;
+      for (const lx of [it.b.min.x, it.b.max.x]) {
+        for (const lz of [it.b.min.z, it.b.max.z]) {
+          const wx = cx + lx * cos + lz * sin;
+          const h = surf(wx);
+          if (h < minH) minH = h;
+          if (h > maxH) maxH = h;
+        }
+      }
+      const baseY = Math.min(Math.max(centerH, maxH - 0.25), minH + it.plinthDepth);
+      it.m.object.position.set(cx, baseY, cz);
+      it.m.object.rotation.y = turn;
+      scene.add(it.m.object);
+      triangles += it.m.triangles;
+      const person = buildPerson({ profile: 'ice-age-hunter', kind: 'man' });
+      posePerson(person, 'stand');
+      const px = cx - it.s.x / 2 - 0.65;
+      const pz = cz + it.s.z / 2 - 0.3;
+      person.object.position.set(px, surf(px), pz);
+      person.object.rotation.y = 0.3;
+      scene.add(person.object);
+      labels.push({
+        text: it.id.replace('shelter-', ''),
+        at: new THREE.Vector3(cx, baseY + it.s.y + 0.5, cz),
+      });
+      cursor += it.s.x + gap;
+    }
+  }
+  camera.position.set(10.5, 13.5, 34);
+  camera.lookAt(0, -0.5, 0);
+  info.text = `house-slopes (18° slope, 1.5 m plinths & stilts visible): ${Math.round(triangles).toLocaleString('en')} tris`;
 }
 
 /** Crops of fields-and-crops.md section 1: 13 crops (rows) by 5 stages (columns), a 2 x 2 patch each. */
@@ -292,9 +499,9 @@ function singleSheet(): void {
   const build = () =>
     id.startsWith('animal-')
       ? buildAnimal(id as (typeof ANIMALS)[number])
-      : buildShelter(id as (typeof SHELTERS)[number]);
+      : hidePlinth(buildShelter(id as (typeof SHELTERS)[number]));
   const probe = build();
-  const size = new THREE.Box3().setFromObject(probe.object).getSize(new THREE.Vector3());
+  const size = aboveGroundBounds(probe.object).getSize(new THREE.Vector3());
   const span = Math.max(size.x, size.y, size.z);
   ground(0, 0, span * 1.9, '#b2b874');
   place(build(), -span * 0.8, 0, 0.7);
@@ -392,14 +599,14 @@ let renderViews: (() => void) | undefined;
  */
 function viewsSheet(): void {
   const id = params.get('id') ?? 'animal-mammoth';
-  const probe = buildAsset(id);
-  const box = new THREE.Box3().setFromObject(probe.object);
+  const probe = hidePlinth(buildAsset(id));
+  const box = aboveGroundBounds(probe.object);
   const size = box.getSize(new THREE.Vector3());
   const centre = box.getCenter(new THREE.Vector3());
   const span = Math.max(size.x, size.y, size.z, 1.8);
   const half = Math.max(size.y * 0.6, Math.max(size.z, size.x) * 0.68, 1.4);
   ground(0, 0, half * 1.15, '#b2b874');
-  const m = place(buildAsset(id), 0, 0, 0);
+  const m = place(hidePlinth(buildAsset(id)), 0, 0, 0);
   poseAsset(m, id);
   const ref = buildPerson({ profile: 'ice-age-hunter', kind: 'man' });
   posePerson(ref, 'stand');
@@ -490,7 +697,7 @@ function buildSheet(): void {
   stages.forEach((built, i) => {
     const x = (i - (stages.length - 1) / 2) * 3.4;
     ground(x, 0, 1.6, GROUND['african-stone-age']);
-    const m = place(buildShelter(id), x, 0, 0.3);
+    const m = place(hidePlinth(buildShelter(id)), x, 0, 0.3);
     setBuilt(buildSteps(m), built);
     labels.push({ text: `${Math.round(built * 100)}%`, at: new THREE.Vector3(x, 2.3, 0) });
   });
@@ -796,6 +1003,8 @@ const sheets: Record<string, () => void> = {
   turnaround: turnaroundSheet,
   camp: campSheet,
   shelters: sheltersSheet,
+  'house-lineup': houseLineupSheet,
+  'house-slopes': houseSlopesSheet,
   animals: animalsSheet,
   crops: cropsSheet,
 };

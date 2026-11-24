@@ -11,6 +11,7 @@ import {
   registerShelters,
 } from './cultureModels.ts';
 import { WHIMSY, type Whimsy, whimsy } from './whimsy.ts';
+import { addPlinth, type PlinthSpec } from './plinth.ts';
 
 export { EAST_ASIA_AMERICAS_HOUSES, type EastAsiaAmericasHouseId };
 
@@ -397,7 +398,68 @@ export function buildEastAsiaAmericasHouse(id: EastAsiaAmericasHouseId): Model {
   return mb.build(id);
 }
 
+const YANGTZE_POSTS: [number, number][] = [
+  ...[-1.9, 0, 1.9].flatMap((x) => [-2.7, -0.9, 0.9, 2.7].map((z): [number, number] => [x, z])),
+  [0.3, 4.5],
+];
+
+const NEW_GUINEA_POSTS: [number, number][] = [
+  ...Array.from({ length: 6 }, (_, i): [number, number] => {
+    const a = (i / 6) * Math.PI * 2 + 0.2;
+    return [Math.sin(a) * 1.7, Math.cos(a) * 1.7];
+  }),
+  [0.1, 2.9],
+];
+
+function eastAsiaPlinthSpec(id: EastAsiaAmericasHouseId, model: Model): PlinthSpec {
+  const base = (model.object.userData.baseScale as number | undefined) ?? 1;
+  switch (id) {
+    case 'shelter-yangtze-stilt-house':
+      return {
+        kind: 'piles',
+        posts: YANGTZE_POSTS.map(([x, z]) => [x * base, z * base]),
+        r: Math.max(0.035, 0.1 * base),
+        colour: shade(OAK, -0.1).getStyle(),
+      };
+    case 'shelter-yellow-river-pit-house':
+      return {
+        kind: 'round',
+        rx: 2.85 * base,
+        rz: 2.85 * base,
+        at: [0, 0],
+        top: 0.08,
+        colour: '#9e824c',
+      };
+    case 'shelter-mesoamerican-hut':
+      return {
+        kind: 'round',
+        rx: 1.56 * base,
+        rz: 1.56 * 1.4 * base,
+        at: [0, 0],
+        colour: '#9b8460',
+      };
+    case 'shelter-andean-stone-house':
+      return {
+        kind: 'round',
+        rx: 1.85 * base,
+        rz: 1.85 * base,
+        at: [0, 0],
+        colour: '#8c867b',
+        segments: 8,
+      };
+    case 'shelter-highland-new-guinea-house':
+      return {
+        kind: 'piles',
+        posts: NEW_GUINEA_POSTS.map(([x, z]) => [x * base, z * base]),
+        r: Math.max(0.04, 0.1 * base),
+        colour: shade(OAK, -0.1).getStyle(),
+      };
+  }
+}
+
 // Loaded with its cultures (cultureModels.ts), drawn in storybook proportions (whimsy.ts).
-registerShelters(EAST_ASIA_AMERICAS_HOUSES, (id) =>
-  whimsy(buildEastAsiaAmericasHouse(id as EastAsiaAmericasHouseId), WHIMSY[id] as Whimsy),
-);
+registerShelters(EAST_ASIA_AMERICAS_HOUSES, (id) => {
+  const houseId = id as EastAsiaAmericasHouseId;
+  const model = whimsy(buildEastAsiaAmericasHouse(houseId), WHIMSY[id] as Whimsy);
+  return addPlinth(model, eastAsiaPlinthSpec(houseId, model));
+});

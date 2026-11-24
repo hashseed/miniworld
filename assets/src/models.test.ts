@@ -23,7 +23,8 @@ import {
 } from './clips.ts';
 import type { Model } from './kit.ts';
 import { PROFILES, buildArrow, buildBow, buildPerson, type Kind } from './people.ts';
-import { SHELTERS, buildHearth, buildShelter } from './shelters.ts';
+import { buildShelter, SHELTERS, buildHearth } from './shelters.ts';
+import { aboveGroundBounds } from './plinth.ts';
 // Every model that loads with its culture, so all of them can be built here.
 import './allCultureModels.ts';
 
@@ -104,8 +105,51 @@ describe('shelters and animals', () => {
     expect(positions(m)).toEqual(positions(buildShelter(id)));
     // A painted cave wall, of which there are a few in the world, has room for its drawing.
     expect(m.triangles).toBeLessThanOrEqual(id.startsWith('prop-cave-wall-') ? 2400 : 1000);
-    // Rocks and floors may sit partly in the ground, but not deep.
-    expect(bounds(m).min.y).toBeGreaterThan(-0.5);
+    if (id.startsWith('shelter-')) {
+      // Every shelter and house extends a 1.5 m foundation plinth (or piles) below y = 0.
+      const full = bounds(m);
+      expect(full.min.y).toBeLessThanOrEqual(-1.35);
+      expect(full.min.y).toBeGreaterThanOrEqual(-1.65);
+      expect(aboveGroundBounds(m.object).min.y).toBeGreaterThan(-0.5);
+    } else {
+      // Rocks and floors may sit partly in the ground, but not deep.
+      expect(bounds(m).min.y).toBeGreaterThan(-0.5);
+    }
+  });
+
+  it('unified shelter and house scale: 1 model m = 1 game m', () => {
+    const manH = bounds(buildPerson({ profile: 'ice-age-hunter', kind: 'man', tool: 'none' })).max
+      .y;
+    for (const id of [
+      'shelter-hide-tent',
+      'shelter-mammoth-bone-hut',
+      'shelter-windbreak',
+      'shelter-grass-hut',
+      'shelter-lean-to',
+      'shelter-bark',
+      'shelter-natufian-house',
+    ] as const) {
+      const s = aboveGroundBounds(buildShelter(id).object).getSize(new THREE.Vector3());
+      expect(Math.max(s.x, s.z), id).toBeLessThanOrEqual(2.72);
+    }
+    const small = aboveGroundBounds(buildShelter('shelter-small-hut').object).getSize(
+      new THREE.Vector3(),
+    );
+    expect(Math.max(small.x, small.z)).toBeLessThanOrEqual(1.6);
+    for (const id of SHELTERS) {
+      if (!id.startsWith('shelter-') || id === 'shelter-small-hut' || id === 'shelter-grass-hut')
+        continue;
+      const b = aboveGroundBounds(buildShelter(id).object);
+      expect(b.max.y - b.min.y, `${id} height vs ${manH.toFixed(2)} m man`).toBeGreaterThanOrEqual(
+        1.8,
+      );
+    }
+    const lbk = aboveGroundBounds(buildShelter('shelter-lbk-longhouse').object).getSize(
+      new THREE.Vector3(),
+    );
+    expect(lbk.x).toBeGreaterThanOrEqual(7.3);
+    expect(lbk.x).toBeLessThanOrEqual(7.9);
+    expect(lbk.x / lbk.z).toBeGreaterThanOrEqual(2.6);
   });
 
   it('the hearth stays small', () => {
@@ -435,7 +479,7 @@ describe('asset manifest', () => {
     const waiting = Object.keys(MODELS).filter((id) => entries.get(id)?.status !== 'approved');
     expect(
       waiting.every((id) =>
-        /^(figure-african-stone-age-man|figure-(west-asia-hunter|east-asia-hunter|first-americans|pre-pottery-neolithic-levant|anatolian-farmer|lbk-farmer|indus-farmer|nile-neolithic|yellow-river-millet-farmer|yangtze-rice-farmer|mesoamerican-farmer|andean-farmer|new-guinea-highland-farmer|rossen-farmer|lengyel-farmer)-(man|woman|child)|prop-(sickle|digging-stick|hoe|ard|yoke|quern|basket|pot-small|pot-large|pot-jar|kiln|granary|silo-pit|pen|well|carry-pole|spit|canoe|cave-wall-sulawesi|cave-wall-chauvet|cave-wall-lascaux|burial|gobekli-ring|bone-hut|bone-pile|sign-metal)|crop-[a-z]+|shelter-small-hut|shelter-(pre-pottery-levant-house|anatolian-house|anatolian-house-joined|lbk-longhouse|mehrgarh-house|egyptian-neolithic-hut|yangtze-stilt-house|yellow-river-pit-house|mesoamerican-hut|andean-stone-house|highland-new-guinea-house)|animal-(sheep|goat|cattle|pig|dog|zebu|water-buffalo|llama|guinea-pig))$/.test(
+        /^(figure-african-stone-age-man|figure-(west-asia-hunter|east-asia-hunter|first-americans|pre-pottery-neolithic-levant|anatolian-farmer|lbk-farmer|indus-farmer|nile-neolithic|yellow-river-millet-farmer|yangtze-rice-farmer|mesoamerican-farmer|andean-farmer|new-guinea-highland-farmer|rossen-farmer|lengyel-farmer)-(man|woman|child)|prop-(sickle|digging-stick|hoe|ard|yoke|quern|basket|pot-small|pot-large|pot-jar|kiln|granary|silo-pit|pen|well|carry-pole|spit|canoe|cave-wall-sulawesi|cave-wall-chauvet|cave-wall-lascaux|burial|gobekli-ring|bone-hut|bone-pile|sign-metal)|crop-[a-z]+|shelter-[a-z-]+|animal-(sheep|goat|cattle|pig|dog|zebu|water-buffalo|llama|guinea-pig))$/.test(
           id,
         ),
       ),

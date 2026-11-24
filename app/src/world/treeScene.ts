@@ -4,7 +4,6 @@
 // lodging, off gathering or hunting, or walking to a new home. A pure
 // function of the tree chunk and the clock time.
 
-import { neolithicProfile } from './neolithicProfiles.ts';
 import { hash32 } from '../core/hash.ts';
 import { detCos, RAD } from '../core/detmath.ts';
 import { dayAtMs, msAtDay } from '../time/rate.ts';
@@ -24,6 +23,7 @@ import {
 import {
   BUILD_MS,
   HERD_SCALE,
+  MINIMAL_LODGING,
   TAKE_DOWN_MS,
   buildSpot,
   FLINT_MS,
@@ -393,11 +393,8 @@ export function treeScene(
     scene.lodgings.push({
       id: l.id,
       kind: l.kind,
-      room: house ? 1 : ringOf(l.camp) / LODGING_RING_M,
-      // Drawn as large as its culture builds it (a longhouse, the Chinese houses; villages.md section 5).
-      ...(isProfile(l.culture) && neolithicProfile(l.culture).houseM !== undefined
-        ? { maxM: neolithicProfile(l.culture).houseM }
-        : {}),
+      // Laid-out village houses and minimal shelters draw at 1.0x model scale; camp rings scale only when compact.
+      ...(house || l.kind === MINIMAL_LODGING ? {} : { room: ringOf(l.camp) / LODGING_RING_M }),
       lat: deg(l.lat),
       lon: deg(l.lon),
       ...spot,

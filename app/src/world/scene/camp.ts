@@ -419,7 +419,6 @@ function housePlace(
   k: number,
 ): HousePlace | undefined {
   const profile = neolithicProfile(culture);
-  if (profile.layout === 'pits') return undefined;
   const lengthM = (profile.houseM ?? LODGING_MAX_M) * FIGURE_TO_LAYOUT;
   // A tight village's houses stand closer, beyond its smaller ring of people (villages.md
   // section 3.1): its green just outside its outer spots, as a full village's is.
@@ -456,6 +455,14 @@ function housePlace(
     const row = Math.floor(k / 3);
     const from = green + size / 2 + row * size;
     at = { x: out.x * from + side.x * col * size, z: out.z * from + side.z * col * size };
+  } else if (profile.layout === 'pits') {
+    // Banpo pit-house ring sized to `lengthM` round a shared yard, doors facing in.
+    const fit = lengthM / 2 + (LODGING_SLOTS * (lengthM + 1)) / (2 * Math.PI);
+    const r = Math.max(green + lengthM / 2, fit);
+    const a = turn + (k / LODGING_SLOTS) * 2 * Math.PI;
+    at = { x: r * detCos(a), z: r * detSin(a) };
+    dir = { x: -detCos(a), z: -detSin(a) };
+    axis = dir;
   } else {
     // A hamlet: scattered round its yard, a little off any ring, turned towards the yard.
     // Less turned off its place on a tight village's shorter way round, so no two meet.
@@ -469,9 +476,10 @@ function housePlace(
     const r = Math.max(green + lengthM / 2 - 1.55, fit) + 4 * big * hash01(camp, k, 303);
     at = { x: r * detCos(a), z: r * detSin(a) };
     dir = { x: -detCos(a), z: -detSin(a) };
+    axis = dir;
   }
-  // Its ground: on land its people can walk to, not on a cliff (the land mask; neolithic/villages.md
-  // section 6). The fields keep out of the houses' way instead (memo.ts, buildVillage).
+  // Its ground: center, edge midpoints and all 4 footprint corners on land people can walk to,
+  // not over water or a steep slope (the land mask; neolithic/villages.md section 6).
   const half = lengthM / 2;
   // Its depth across the long axis: the longhouse is narrow, the others about square.
   const deep = (profile.layout === 'rows' ? 0.2 : 0.25) * lengthM;
@@ -481,6 +489,10 @@ function housePlace(
     [-half, 0],
     [0, deep],
     [0, -deep],
+    [half, deep],
+    [half, -deep],
+    [-half, deep],
+    [-half, -deep],
   ] as const) {
     const x = at.x + axis.x * u - axis.z * v;
     const z = at.z + axis.z * u + axis.x * v;
@@ -496,9 +508,8 @@ const villagePlaces = new Map<string, (HousePlace | undefined)[] | null>();
 /**
  * A Neolithic village's house laid out as its culture builds them (neolithic/villages.md
  * section 5): its middle, its facing (the door towards the village's green) and how long it is
- * drawn, in layout metres. Undefined for a camp's lodging, a ring layout (`pits`), or a village
- * where the ground does not take every house of the layout: then all stand on the ring, so the
- * two never mix.
+ * drawn, in layout metres. Undefined for a camp's lodging, or a village where the ground does
+ * not take every house of the layout: then all stand on the ring, so the two never mix.
  */
 export function villageHouse(l: TreeLodging): HousePlace | undefined {
   if (!isProfile(l.culture) || !l.fieldLand) return undefined;
@@ -509,7 +520,7 @@ export function villageHouse(l: TreeLodging): HousePlace | undefined {
     const all = Array.from({ length: housePlaces(l.culture) }, (_, k) =>
       housePlace(l.camp, l.culture!, l.fieldLand!, k),
     );
-    places = neolithicProfile(l.culture).layout === 'pits' || all.some((p) => !p) ? null : all;
+    places = all.some((p) => !p) ? null : all;
     villagePlaces.set(key, places);
   }
   return places?.[l.slot % places.length];

@@ -80,50 +80,114 @@ export function whimsy(model: Model, w: Whimsy): Model {
     o.position.copy(parent ? v.clone().sub(parent) : v);
     if (o.userData.rest) o.userData.rest = o.position.clone();
   }
+  model.object.userData.baseScale = k * w.base;
   return model;
 }
 
-/** One look per house: small, with a roof bigger than the base. */
+/**
+ * Scales any shelter model directly to its canonical in-game above-ground extent
+ * and total height (`1 model m = 1 game m`) while preserving bone hierarchy.
+ */
+export function fitModel(model: Model, maxXZ: number, targetHeight: number): Model {
+  model.object.updateMatrixWorld(true);
+  const box = new THREE.Box3();
+  const seen = new Set<THREE.BufferGeometry>();
+  const meshes: { g: THREE.BufferGeometry; pivot: THREE.Vector3 }[] = [];
+  const tmp = new THREE.Vector3();
+  model.object.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh || seen.has(m.geometry)) return;
+    seen.add(m.geometry);
+    const pivot = new THREE.Vector3().setFromMatrixPosition(m.parent!.matrixWorld);
+    meshes.push({ g: m.geometry, pivot });
+    const p = m.geometry.getAttribute('position');
+    for (let i = 0; i < p.count; i++)
+      box.expandByPoint(tmp.set(p.getX(i), p.getY(i), p.getZ(i)).add(pivot));
+  });
+  const size = box.getSize(new THREE.Vector3());
+  const sxz = maxXZ / Math.max(size.x, size.z, 1e-6);
+  const sy = targetHeight / Math.max(size.y, 1e-6);
+  const scaleV = (v: THREE.Vector3) => v.set(v.x * sxz, v.y * sy, v.z * sxz);
+  const world = new Map<THREE.Object3D, THREE.Vector3>();
+  model.object.traverse((o) => {
+    world.set(o, new THREE.Vector3().setFromMatrixPosition(o.matrixWorld));
+  });
+  for (const { g, pivot } of meshes) {
+    const np = scaleV(pivot.clone());
+    const p = g.getAttribute('position');
+    for (let i = 0; i < p.count; i++) {
+      scaleV(tmp.set(p.getX(i), p.getY(i), p.getZ(i)).add(pivot)).sub(np);
+      p.setXYZ(i, tmp.x, tmp.y, tmp.z);
+    }
+    p.needsUpdate = true;
+    g.computeBoundingBox();
+    g.computeBoundingSphere();
+  }
+  const moved = new Map<THREE.Object3D, THREE.Vector3>();
+  for (const [o, v] of world) moved.set(o, scaleV(v.clone()));
+  for (const [o, v] of moved) {
+    if (o === model.object) continue;
+    const parent = o.parent ? moved.get(o.parent) : undefined;
+    o.position.copy(parent ? v.clone().sub(parent) : v);
+    if (o.userData.rest) o.userData.rest = o.position.clone();
+  }
+  model.object.userData.fitXZ = sxz;
+  return model;
+}
+
+/** One look per house: 1 model metre = 1 game metre, with a roof bigger than the base. */
 export const WHIMSY: Record<string, Whimsy> = {
   'shelter-pre-pottery-levant-house': {
-    footprint: 5.1,
+    footprint: 4.17,
     eave: 0.8,
     base: 0.96,
     roof: 1.04,
-    tall: 1.2,
+    tall: 1.4,
   },
-  'shelter-anatolian-house': { footprint: 5.1, eave: 0.85, base: 0.96, roof: 1.04, tall: 1.2 },
-  'shelter-anatolian-house-joined': {
-    footprint: 6.8,
+  'shelter-anatolian-house': {
+    footprint: 3.73,
     eave: 0.85,
     base: 0.96,
     roof: 1.04,
-    tall: 1.2,
+    tall: 1.32,
   },
-  'shelter-lbk-longhouse': { footprint: 9.2, eave: 0.55, base: 0.96, roof: 1.04, tall: 1.4 },
-  'shelter-mehrgarh-house': { footprint: 5.1, eave: 0.8, base: 0.96, roof: 1.04, tall: 1.2 },
+  'shelter-anatolian-house-joined': {
+    footprint: 6.33,
+    eave: 0.85,
+    base: 0.96,
+    roof: 1.04,
+    tall: 1.32,
+  },
+  'shelter-lbk-longhouse': { footprint: 7.6, eave: 0.55, base: 0.96, roof: 1.04, tall: 1.45 },
+  'shelter-mehrgarh-house': { footprint: 3.83, eave: 0.8, base: 0.96, roof: 1.04, tall: 1.48 },
   'shelter-egyptian-neolithic-hut': {
-    footprint: 5.1,
+    footprint: 3.9,
     eave: 0.5,
     base: 0.96,
     roof: 1.04,
-    tall: 1.5,
+    tall: 1.8,
   },
-  'shelter-yangtze-stilt-house': { footprint: 6.1, eave: 0.55, base: 0.96, roof: 1.04, tall: 1.1 },
+  'shelter-yangtze-stilt-house': {
+    footprint: 4.66,
+    eave: 0.55,
+    base: 0.96,
+    roof: 1.04,
+    tall: 1.25,
+  },
   'shelter-yellow-river-pit-house': {
-    footprint: 5.4,
+    footprint: 4.71,
     eave: 0.4,
     base: 0.96,
     roof: 1.04,
-    tall: 1.2,
+    tall: 1.32,
   },
-  'shelter-mesoamerican-hut': { footprint: 5.1, eave: 0.55, base: 0.96, roof: 1.04, tall: 1.2 },
-  'shelter-andean-stone-house': { footprint: 5.1, eave: 0.55, base: 0.96, roof: 1.04, tall: 1.2 },
+  'shelter-mesoamerican-hut': { footprint: 3.6, eave: 0.55, base: 0.96, roof: 1.04, tall: 1.2 },
+  'shelter-andean-stone-house': { footprint: 3.4, eave: 0.55, base: 0.96, roof: 1.04, tall: 1.2 },
   'shelter-highland-new-guinea-house': {
-    footprint: 5.4,
+    footprint: 3.71,
     eave: 0.45,
     base: 0.96,
     roof: 1.04,
-    tall: 1.0,
+    tall: 1.05,
   },
 };

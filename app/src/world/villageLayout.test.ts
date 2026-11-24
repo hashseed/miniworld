@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import { buildShelter, type ShelterId } from '../../../assets/src/shelters.ts';
+import { aboveGroundBounds } from '../../../assets/src/plinth.ts';
 // The Neolithic houses load with their cultures; build them all here.
 import '../../../assets/src/allCultureModels.ts';
 import { encodeMask, MASK_RINGS, MASK_SECTORS } from './fieldMask.ts';
 import { NEOLITHIC_PROFILES } from './neolithicProfiles.ts';
-import { greenOf, housePlaces, LODGING_MAX_M, villageHouse } from './scene/camp.ts';
+import { greenOf, housePlaces, villageHouse } from './scene/camp.ts';
 import { NEVER, type TreeLodging } from './tree.ts';
 
 const land = encodeMask(new Array<boolean>(MASK_RINGS * MASK_SECTORS).fill(true));
@@ -47,15 +48,16 @@ function overlap(a: Rect, b: Rect): boolean {
   });
 }
 
-/** A house's footprint in layout metres, as the layer draws it (fit to its longest side). */
-function rect(l: TreeLodging, maxM: number): Rect {
+/** A house's above-ground footprint in layout metres at exact 1.0x model scale (`1 model m = 1 game m`). */
+function rect(l: TreeLodging): Rect {
   const h = villageHouse(l)!;
   const object = buildShelter(l.kind as ShelterId).object;
   object.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(object);
+  const box = aboveGroundBounds(object);
   const size = box.getSize(new THREE.Vector3());
   const mid = box.getCenter(new THREE.Vector3());
-  const k = Math.min(1, maxM / Math.max(size.x, size.z)) * 3;
+  // Laid-out village houses are never shrunk at render time: 3 layout metres per model metre.
+  const k = 3;
   // The model's +Z (its door) turned to the house's facing, its +X to the side.
   const u = { x: h.dir.z, z: -h.dir.x };
   return {
@@ -69,7 +71,7 @@ function rect(l: TreeLodging, maxM: number): Rect {
 }
 
 describe('the houses of a village (neolithic/villages.md section 5)', () => {
-  const villages = Object.entries(NEOLITHIC_PROFILES).filter(([, p]) => p.layout !== 'pits');
+  const villages = Object.entries(NEOLITHIC_PROFILES);
 
   it.each(villages.map(([id]) => id))('%s: no two houses overlap, all clear of the green', (id) => {
     const p = NEOLITHIC_PROFILES[id]!;
@@ -78,12 +80,10 @@ describe('the houses of a village (neolithic/villages.md section 5)', () => {
         lodging(id, p.architecture[0]!, k, camp),
       );
       expect(all.every((l) => villageHouse(l))).toBe(true);
-      const rects = all.map((l) => rect(l, p.houseM ?? LODGING_MAX_M));
+      const rects = all.map((l) => rect(l));
       for (let a = 0; a < rects.length; a++)
         for (let b = a + 1; b < rects.length; b++)
           expect(overlap(rects[a]!, rects[b]!), `${id} houses ${a} and ${b}`).toBe(false);
-      // The green keeps the people's spots, out to its outer spots (8.5 layout metres, 5.8 in a
-      // tight village; humankind.md section 8.1): the nearest point of every house is near its edge.
       for (const r of rects) {
         const [dx, dz] = [-r.cx, -r.cz];
         const lx = Math.abs(dx * r.ux + dz * r.uz) - r.hx;
@@ -93,23 +93,26 @@ describe('the houses of a village (neolithic/villages.md section 5)', () => {
     }
   });
 
-  it('draws the LBK longhouse 2.8 times as long as other houses, one to a village', () => {
+  it('matches every farming profile houseM 1:1 with its primary house model', () => {
+    for (const [id, p] of villages) {
+      expect(p.houseM, `${id} houseM missing`).toBeDefined();
+      const obj = buildShelter(p.architecture[0]! as ShelterId).object;
+      const size = aboveGroundBounds(obj).getSize(new THREE.Vector3());
+      const modelM = Math.max(size.x, size.z);
+      expect(
+        Math.abs(p.houseM! - modelM),
+        `${id}: houseM=${p.houseM} vs model=${modelM}`,
+      ).toBeLessThanOrEqual(0.05);
+    }
+  });
+
+  it('draws the LBK longhouse 7.6 m long, one to a village', () => {
     const lbk = NEOLITHIC_PROFILES['lbk-farmer']!;
-    // 30% shorter than the 10.8 that was too large (Yang, 2026-10-30).
-    expect(lbk.houseM).toBeCloseTo(0.7 * 4 * LODGING_MAX_M, 9);
+    expect(lbk.houseM).toBeCloseTo(7.6, 5);
     expect(lbk.houseCapacity).toBe(10);
     expect(housePlaces('lbk-farmer')).toBe(2);
     const h = villageHouse(lodging('lbk-farmer', lbk.architecture[0]!, 0, 5));
-    expect(h?.lengthM).toBeCloseTo(0.7 * 4 * LODGING_MAX_M * 3, 5);
-  });
-
-  it('draws the Chinese and the pre-pottery Levant houses half as large again', () => {
-    for (const id of [
-      'yellow-river-millet-farmer',
-      'yangtze-rice-farmer',
-      'pre-pottery-neolithic-levant',
-    ])
-      expect(NEOLITHIC_PROFILES[id]!.houseM).toBeCloseTo(1.5 * LODGING_MAX_M, 9);
+    expect(h?.lengthM).toBeCloseTo(7.6 * 3, 5);
   });
 
   it('keeps the whole village on the ring where the ground does not take every house', () => {

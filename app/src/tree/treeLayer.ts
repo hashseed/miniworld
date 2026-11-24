@@ -49,7 +49,9 @@ import type { StandIn } from './standIns.ts';
 import { drawnAs, type Profile } from '../world/cultures.ts';
 import { animalLoop, animateAnimal } from '../../../assets/src/clips.ts';
 import type { Model } from '../../../assets/src/kit.ts';
+import { aboveGroundBounds } from '../../../assets/src/plinth.ts';
 import { buildSteps, flickerHearth, lightHearth, setBuilt } from '../../../assets/src/shelters.ts';
+import { groundRingPlane, groundUprightPlinth } from '../globe/grounding.ts';
 import { ClipBatches } from './clipBatches.ts';
 import { FarmingGrid, setFarmingGrid } from '../world/farmingOnset.ts';
 import { setWorldTables, type WorldTables } from '../world/tables.ts';
@@ -270,8 +272,12 @@ export class TreeLayer {
     return perM * FIGURE_M < px;
   }
 
-  /** The scale that keeps a lodging model at most LODGING_MAX_M across, by its kind. */
-  private fits = new Map<string, number>();
+  /** Model-space footprint and plinth depth of a lodging batch, by its kind. */
+  private lodgingInfo = new Map<
+    string,
+    { minX: number; maxX: number; minZ: number; maxZ: number; maxM: number; plinthDepthM: number }
+  >();
+  private lodgingGrounds = new Map<string, number>();
   /** Everything of the camps with approved models, drawn as copies of a few models (posedBatches.ts). */
   private batches = new PosedBatches();
   /** The lighter ground under the camps seen from orbit (humankind.md section 8.1). */
@@ -288,20 +294,27 @@ export class TreeLayer {
   /** The hunted animals of the camps, likewise (clipBatches.ts). */
   private preyClips = new ClipBatches(animateAnimal, animalLoop);
   private scratch = new THREE.Object3D();
-  private fitOf(batch: TreeBatch, room = 1, maxM = LODGING_MAX_M): number {
-    const key = `${batch.key}@${room.toFixed(2)}@${maxM}`;
-    let fit = this.fits.get(key);
-    if (fit === undefined) {
-      // Measured on a model of its own, upright at the origin, as built.
+  private lodgingMetrics(batch: TreeBatch) {
+    let info = this.lodgingInfo.get(batch.key);
+    if (!info) {
+      // Unwind `turned()` so bounds sit in unrotated model space (+Z door, +X side).
       const object = batch.build().object;
+      object.rotation.set(0, 0, 0);
       object.updateMatrixWorld(true);
-      const size = new THREE.Box3().setFromObject(object).getSize(new THREE.Vector3());
-      // Never larger than the model, but for a culture that builds larger than the usual cap.
-      const fitted = (maxM * room) / Math.max(size.x, size.z, 1e-6);
-      fit = maxM > LODGING_MAX_M ? fitted : Math.min(1, fitted);
-      this.fits.set(key, fit);
+      const above = aboveGroundBounds(object);
+      const full = new THREE.Box3().setFromObject(object);
+      const size = above.getSize(new THREE.Vector3());
+      info = {
+        minX: above.min.x,
+        maxX: above.max.x,
+        minZ: above.min.z,
+        maxZ: above.max.z,
+        maxM: Math.max(size.x, size.z, 1e-6),
+        plinthDepthM: Math.max(0, -full.min.y),
+      };
+      this.lodgingInfo.set(batch.key, info);
     }
-    return fit;
+    return info;
   }
 
   /** The building steps of a batch's template, found once. */
@@ -364,6 +377,8 @@ export class TreeLayer {
     if (groundVersion !== this.groundVersion) {
       this.groundVersion = groundVersion;
       this.grounds.clear();
+      this.tilts.clear();
+      this.lodgingGrounds.clear();
     }
     const w = this.prefetch(ms, startDay);
     const key = [w, w - 1, w + 1].find((k) => this.chunks.has(k));
@@ -636,18 +651,47 @@ export class TreeLayer {
     for (const l of scene.lodgings) {
       const batch = treePropBatch(l.kind);
       if (!batch || !this.place(at, l, false)) continue;
-      this.block(at, LODGING_HALF_M);
-      // Every lodging fits the camp's layout, at most LODGING_MAX_M across (humankind.md section 8.1).
-      // A longhouse is drawn as long as its culture builds it (neolithic/villages.md section 5).
-      const km = FIGURE_KM_PER_M * this.fitOf(batch, l.room, l.maxM);
+      const metrics = this.lodgingMetrics(batch);
+      // Village houses and minimal shelters draw at 1.0x model scale; compact camp rings cap via `room`.
+      const scale = l.room === undefined ? 1 : Math.min(1, (LODGING_MAX_M * l.room) / metrics.maxM);
+      const km = FIGURE_KM_PER_M * scale;
+      this.block(at, Math.max(LODGING_HALF_M, (metrics.maxM * scale) / 2));
+      const stepped = this.stepped(batch);
+      const rise = stepped ? 1 : l.built * l.built * (3 - 2 * l.built);
+      const scaleXZ = stepped ? km : km * (0.5 + 0.5 * rise);
+      const scaleY = stepped ? km : km * Math.max(0.04, rise);
+      // Sample terrain at center and 4 oriented corners so plinth skirts ground every downhill wall.
+      const key = `${l.lat},${l.lon},${l.x},${l.z},${l.dirX},${l.dirZ},${l.kind},${scale.toFixed(3)}`;
+      let baseH = l.built >= 1 ? this.lodgingGrounds.get(key) : undefined;
+      if (baseH === undefined) {
+        baseH = groundUprightPlinth({
+          centerDir: [this.dir.x, this.dir.y, this.dir.z],
+          dirX: l.dirX,
+          dirZ: l.dirZ,
+          minXKm: metrics.minX * scaleXZ,
+          maxXKm: metrics.maxX * scaleXZ,
+          minZKm: metrics.minZ * scaleXZ,
+          maxZKm: metrics.maxZ * scaleXZ,
+          halfWidthKm: ((metrics.maxX - metrics.minX) * scaleXZ) / 2,
+          halfDepthKm: ((metrics.maxZ - metrics.minZ) * scaleXZ) / 2,
+          plinthDepthKm: metrics.plinthDepthM * scaleY,
+          maxBuryKm: 0.25 * scaleY,
+          surfaceAt: (d) => this.surface.surfaceKm(d),
+        }).baseH;
+        if (l.built >= 1) {
+          if (this.lodgingGrounds.size > 4096) this.lodgingGrounds.clear();
+          this.lodgingGrounds.set(key, baseH);
+        }
+      }
+      at.position
+        .copy(this.dir)
+        .multiplyScalar(EARTH_RADIUS_KM + baseH - this.cutAt(this.dir, baseH));
       // While the band builds it, the lodging goes up step by step, or rises whole.
-      if (this.stepped(batch)) {
+      if (stepped) {
         at.scale.setScalar(km);
         copy(batch, (m) => setBuilt(this.stepsOf(m), l.built));
       } else {
-        const rise = l.built * l.built * (3 - 2 * l.built);
-        const wide = km * (0.5 + 0.5 * rise);
-        at.scale.set(wide, km * Math.max(0.04, rise), wide);
+        at.scale.set(scaleXZ, scaleY, scaleXZ);
         copy(batch);
       }
     }
@@ -745,29 +789,9 @@ export class TreeLayer {
     northEast(d, north, east);
     if (!tilt) {
       if (this.tilts.size > 4096) this.tilts.clear();
-      const k = radiusKm / EARTH_RADIUS_KM;
-      const h: number[] = [];
-      let [a, b, c] = [0, 0, 0];
-      for (let i = 0; i < GROUND_RING_STEPS; i++) {
-        const t = (i / GROUND_RING_STEPS) * 2 * Math.PI;
-        v1.copy(d)
-          .addScaledVector(east, Math.cos(t) * k)
-          .addScaledVector(north, Math.sin(t) * k)
-          .normalize();
-        const g = this.surface.surfaceKm([v1.x, v1.y, v1.z]);
-        h.push(g);
-        a += g / GROUND_RING_STEPS;
-        b += (2 * g * Math.cos(t)) / GROUND_RING_STEPS;
-        c += (2 * g * Math.sin(t)) / GROUND_RING_STEPS;
-      }
-      // Lowered until the plane is nowhere above the ground under the ring.
-      let sink = 0;
-      h.forEach((g, i) => {
-        const t = (i / GROUND_RING_STEPS) * 2 * Math.PI;
-        sink = Math.max(sink, a + b * Math.cos(t) + c * Math.sin(t) - g);
-      });
-      const here = this.surface.surfaceKm([d.x, d.y, d.z]);
-      tilt = { lift: a - sink - here, east: b / radiusKm, north: c / radiusKm };
+      tilt = groundRingPlane([d.x, d.y, d.z], radiusKm, GROUND_RING_STEPS, (dir) =>
+        this.surface.surfaceKm(dir),
+      );
       this.tilts.set(key, tilt);
     }
     root.position.addScaledVector(d, tilt.lift);

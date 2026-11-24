@@ -108,6 +108,7 @@
         "ardFromBce": 4500,
         "layout": "cluster",
         "store": "silo-pit",
+        "houseM": 3.5,
         "mix": {
           "farmer": 20,
           "reaper": 10,
@@ -159,7 +160,7 @@
         },
         "herd": ["animal-cattle", "animal-sheep", "animal-goat", "animal-pig", "animal-dog"],
         "crops": ["emmer", "einkorn", "barley", "flax", "lentil"],
-        "houseM": 7.56,
+        "houseM": 7.6,
         "houseCapacity": 10
       }
     },
@@ -182,6 +183,7 @@
         "ardFromBce": 3500,
         "layout": "hamlet",
         "store": "granary",
+        "houseM": 3.8,
         "mix": {
           "farmer": 18,
           "reaper": 12,
@@ -218,6 +220,7 @@
         "ardFromBce": 3500,
         "layout": "hamlet",
         "store": "silo-pit",
+        "houseM": 3.4,
         "mix": {
           "farmer": 18,
           "reaper": 10,
@@ -304,7 +307,7 @@
         },
         "herd": ["animal-pig", "animal-dog", "animal-water-buffalo"],
         "crops": ["rice"],
-        "houseM": 4.05
+        "houseM": 4.2
       }
     },
     {
@@ -325,6 +328,7 @@
         "fieldTool": "digging-stick",
         "layout": "hamlet",
         "store": "silo-pit",
+        "houseM": 3.6,
         "mix": {
           "farmer": 26,
           "reaper": 8,
@@ -360,6 +364,7 @@
         "fieldTool": "hoe",
         "layout": "hamlet",
         "store": "pots",
+        "houseM": 3.4,
         "mix": {
           "farmer": 22,
           "reaper": 8,
@@ -394,6 +399,7 @@
         },
         "fieldTool": "digging-stick",
         "layout": "hamlet",
+        "houseM": 3.5,
         "mix": {
           "farmer": 34,
           "reaper": 6,
@@ -443,7 +449,7 @@
         },
         "herd": ["animal-cattle", "animal-sheep", "animal-goat", "animal-pig", "animal-dog"],
         "crops": ["emmer", "einkorn", "barley", "flax", "lentil"],
-        "houseM": 7.56,
+        "houseM": 7.6,
         "houseCapacity": 10
       },
       "looksAs": "lbk-farmer"
@@ -480,7 +486,7 @@
         },
         "herd": ["animal-cattle", "animal-sheep", "animal-goat", "animal-pig", "animal-dog"],
         "crops": ["emmer", "einkorn", "barley", "flax", "lentil"],
-        "houseM": 7.56,
+        "houseM": 7.6,
         "houseCapacity": 10
       },
       "looksAs": "lbk-farmer"

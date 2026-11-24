@@ -21,6 +21,7 @@ import {
 
 import { NEOLITHIC_HOUSES, type NeolithicHouseId, registerShelters } from './cultureModels.ts';
 import { WHIMSY, type Whimsy, whimsy } from './whimsy.ts';
+import { aboveGroundBounds, addPlinth, type PlinthSpec } from './plinth.ts';
 
 export { NEOLITHIC_HOUSES, type NeolithicHouseId };
 
@@ -275,21 +276,21 @@ export function buildNeolithicHouse(id: NeolithicHouseId): Model {
       // A post-built longhouse of the Linearbandkeramik: daub between posts, one great thatch roof.
       const walls = step(0);
       const roof = step(1, 1.6);
-      mb.add(prism({ w: 14.6, d: 5.2, r: 0.45, y0: 0, y1: 1.75, b: 0.14 }), DAUB, walls);
-      for (let i = 0; i < 7; i++)
+      mb.add(prism({ w: 15.4, d: 4.4, r: 0.45, y0: 0, y1: 1.75, b: 0.14 }), DAUB, walls);
+      for (let i = 0; i < 8; i++)
         for (const s of [-1, 1])
           mb.add(
-            rod([-6.6 + i * 2.2, 0, s * 2.66], [-6.6 + i * 2.2, 1.95, s * 2.66], 0.1, 4),
+            rod([-7.0 + i * 2.0, 0, s * 2.26], [-7.0 + i * 2.0, 1.95, s * 2.26], 0.1, 4),
             OAK,
             walls,
           );
-      addDoor(mb, walls, 0.6, 2.58, 0.9, 1.4);
+      addDoor(mb, walls, 0.6, 2.18, 0.9, 1.4);
       const half: [number, number][] = [
-        [3.35, 1.6],
-        [3.1, 2.2],
-        [2.55, 3.0],
-        [1.75, 3.8],
-        [0.85, 4.5],
+        [2.85, 1.6],
+        [2.6, 2.25],
+        [2.1, 3.05],
+        [1.45, 3.85],
+        [0.7, 4.5],
         [0, 4.85],
       ];
       // Courses of thatch, lighter and darker.
@@ -297,8 +298,8 @@ export function buildNeolithicHouse(id: NeolithicHouseId): Model {
         const k = Math.floor((p.y - 1.6) / 0.72);
         return shade(THATCH, k % 2 ? -0.1 : 0.06);
       };
-      mb.add(ridgeRoof(half, 15.8, 0.95), THATCH, roof, courses);
-      mb.add(rod([-6.4, 4.92, 0], [6.4, 4.92, 0], 0.2, 5), shade(THATCH, -0.2), roof);
+      mb.add(ridgeRoof(half, 16.4, 0.95), THATCH, roof, courses);
+      mb.add(rod([-6.8, 4.92, 0], [6.8, 4.92, 0], 0.2, 5), shade(THATCH, -0.2), roof);
       break;
     }
     case 'shelter-mehrgarh-house': {
@@ -411,7 +412,57 @@ export function buildNeolithicHouse(id: NeolithicHouseId): Model {
   return mb.build(id);
 }
 
+function housePlinthSpec(id: NeolithicHouseId, model: Model): PlinthSpec {
+  const b = aboveGroundBounds(model.object);
+  const s = b.getSize(new THREE.Vector3());
+  const c = b.getCenter(new THREE.Vector3());
+  const base = (model.object.userData.baseScale as number | undefined) ?? 1;
+  switch (id) {
+    case 'shelter-pre-pottery-levant-house':
+      return {
+        kind: 'rect',
+        w: Math.max(0.5, s.x * 0.88),
+        d: Math.max(0.5, s.z * 0.82),
+        chamfer: 0.7 * base,
+        at: [0, 0],
+        colour: '#9b8362',
+      };
+    case 'shelter-anatolian-house':
+      return { kind: 'rect', w: s.x * 0.9, d: s.z * 0.8, at: [0, 0], colour: '#9c8566' };
+    case 'shelter-anatolian-house-joined':
+      return {
+        kind: 'multi-rect',
+        boxes: [
+          { w: 5.3 * base, d: 5.9 * base, at: [0, 0] },
+          { w: 3.2 * base, d: 4.5 * base, at: [-4.45 * base, -0.6 * base] },
+        ],
+        colour: '#9c8566',
+      };
+    case 'shelter-lbk-longhouse':
+      return {
+        kind: 'rect',
+        w: 14.8 * base,
+        d: 4.1 * base,
+        chamfer: 0.35 * base,
+        at: [0, 0],
+        colour: '#8f7a5c',
+      };
+    case 'shelter-mehrgarh-house':
+      return { kind: 'rect', w: s.x * 0.9, d: s.z * 0.84, at: [c.x, 0], colour: '#9a7f5e' };
+    case 'shelter-egyptian-neolithic-hut':
+      return {
+        kind: 'round',
+        rx: 1.78 * 1.25 * base,
+        rz: 1.78 * base,
+        at: [0, 0],
+        colour: '#9a825c',
+      };
+  }
+}
+
 // Loaded with its cultures (cultureModels.ts), drawn in storybook proportions (whimsy.ts).
-registerShelters(NEOLITHIC_HOUSES, (id) =>
-  whimsy(buildNeolithicHouse(id as NeolithicHouseId), WHIMSY[id] as Whimsy),
-);
+registerShelters(NEOLITHIC_HOUSES, (id) => {
+  const houseId = id as NeolithicHouseId;
+  const model = whimsy(buildNeolithicHouse(houseId), WHIMSY[id] as Whimsy);
+  return addPlinth(model, housePlinthSpec(houseId, model));
+});

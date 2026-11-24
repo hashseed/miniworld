@@ -25,6 +25,8 @@ import {
   TOOL_PROPS,
   cultureShelter,
 } from './cultureModels.ts';
+import { addPlinth } from './plinth.ts';
+import { fitModel } from './whimsy.ts';
 
 export const SHELTERS = [
   'shelter-hide-tent',
@@ -729,7 +731,68 @@ export function buildShelter(id: ShelterId): Model {
   const model = mb.build(id);
   // The ring's stones rise straight up from where they stand.
   if (id === 'prop-gobekli-ring') for (const bone of buildSteps(model)) bone.userData.rigid = true;
-  return model;
+  switch (id) {
+    case 'shelter-hide-tent':
+      return addPlinth(fitModel(model, 2.7, 2.55), {
+        kind: 'round',
+        rx: 1.12,
+        rz: 1.2,
+        colour: '#8c7a5b',
+      });
+    case 'shelter-mammoth-bone-hut':
+      return addPlinth(fitModel(model, 2.7, 2.15), {
+        kind: 'round',
+        rx: 1.16,
+        rz: 1.14,
+        segments: 8,
+        colour: '#8a795d',
+      });
+    case 'shelter-windbreak':
+      return addPlinth(fitModel(model, 2.7, 2.25), {
+        kind: 'rect',
+        w: 2.35,
+        d: 1.45,
+        at: [-0.02, -0.35],
+        top: 0.12,
+        colour: '#857e72',
+      });
+    case 'shelter-grass-hut':
+      return addPlinth(model, { kind: 'round', rx: 1.05, rz: 1.05, colour: '#8c7a5b' });
+    case 'shelter-lean-to':
+      return addPlinth(fitModel(model, 2.7, 1.95), {
+        kind: 'rect',
+        w: 2.5,
+        d: 1.45,
+        at: [0, -0.34],
+        top: 0.08,
+        colour: '#8b785a',
+      });
+    case 'shelter-bark':
+      return addPlinth(fitModel(model, 2.65, 1.85), {
+        kind: 'round',
+        rx: 1.18,
+        rz: 0.62,
+        at: [0, 0.25],
+        colour: '#8b785a',
+      });
+    case 'shelter-natufian-house':
+      return addPlinth(fitModel(model, 2.7, 2.35), {
+        kind: 'round',
+        rx: 1.18,
+        rz: 1.16,
+        colour: '#8c867b',
+      });
+    case 'shelter-small-hut':
+      return addPlinth(fitModel(model, 1.5, 1.1), {
+        kind: 'round',
+        rx: 0.62,
+        rz: 0.56,
+        at: [0, -0.09],
+        colour: '#8c7a5b',
+      });
+    default:
+      return model;
+  }
 }
 
 /** The building steps of a shelter in order, or none when it is shown only whole. */
