@@ -15,6 +15,7 @@ import { dirToLatLon, latLonToDir, type Vec3 } from '../geo/cube.ts';
 import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 import { decodeLensGrids, LENS_STRENGTH, sampleScalar, widthFactors } from '../geo/lens.ts';
 import { planetAt } from '../planet/state.ts';
+import { astronomicalYear, dayOfYearStart } from '../time/calendar.ts';
 import { msAtDay } from '../time/rate.ts';
 import { openWaterLookup } from './onLandScenes.ts';
 import { LAYOUT_KM_PER_M } from './treeScene.ts';
@@ -148,33 +149,58 @@ export function pathsOnLand(shard: number, shards: number): void {
             const { lat, lon } = dirToLatLon(d);
             return `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
           };
+          const checkAnimal = (
+            a: ReturnType<typeof wildlifeAt>[number],
+            day: number,
+            s: number,
+            seaLevel: number,
+          ) => {
+            const g = WILD_GROUPS[Number(a.key.split(':')[0])]!;
+            if (flies(g) || swims(g) || a.grow <= 0) return;
+            const r = reach(a.model, g);
+            const d = offsetDir(
+              a.lat,
+              a.lon,
+              a.eastKm + a.offset[0] * r,
+              a.northKm + a.offset[1] * r,
+            );
+            checked++;
+            const what = lookup.water(d, day, seaLevel);
+            if (what) {
+              const k = `${a.model} of ${g.home}|${what}`;
+              const e = seen.get(k);
+              if (e) e.n++;
+              else
+                seen.set(k, {
+                  line: `day ${day}, ${s} s: ${a.model} of ${g.home} (${a.clip}) in the ${what} at ${where(d)}`,
+                  n: 1,
+                });
+            }
+          };
           const days = [...manifest.windows, manifest.cutoffDay];
           for (const day of days) {
             const seaLevel = planetAt(index, day).seaLevel;
             for (let s = Math.floor(msAtDay(day, start) / 1000), end = s + 60; s < end; s += 5)
-              for (const a of wildlifeAt(day, s, WILD_GROUPS, masks, reach, keepOuts)) {
-                const g = WILD_GROUPS[Number(a.key.split(':')[0])]!;
-                if (flies(g) || swims(g) || a.grow <= 0) continue;
-                const r = reach(a.model, g);
-                const d = offsetDir(
-                  a.lat,
-                  a.lon,
-                  a.eastKm + a.offset[0] * r,
-                  a.northKm + a.offset[1] * r,
-                );
-                checked++;
-                const what = lookup.water(d, day, seaLevel);
-                if (what) {
-                  const k = `${a.model} of ${g.home}|${what}`;
-                  const e = seen.get(k);
-                  if (e) e.n++;
-                  else
-                    seen.set(k, {
-                      line: `day ${day}, ${s} s: ${a.model} of ${g.home} (${a.clip}) in the ${what} at ${where(d)}`,
-                      n: 1,
-                    });
-                }
-              }
+              for (const a of wildlifeAt(day, s, WILD_GROUPS, masks, reach, keepOuts))
+                checkAnimal(a, day, s, seaLevel);
+          }
+          const neolithicTarget = dayOfYearStart(astronomicalYear(5000, 'BCE'));
+          const neolithicDay = manifest.windows.reduce((a, b) =>
+            Math.abs(b - neolithicTarget) < Math.abs(a - neolithicTarget) ? b : a,
+          );
+          const sweepDays = [
+            ...new Set([
+              manifest.windows[0]!,
+              manifest.windows[Math.floor(manifest.windows.length / 2)]!,
+              neolithicDay,
+              manifest.cutoffDay,
+            ]),
+          ];
+          for (const day of sweepDays) {
+            const seaLevel = planetAt(index, day).seaLevel;
+            for (let s = 0; s < 3600; s += 15)
+              for (const a of wildlifeAt(day, s, WILD_GROUPS, masks, reach, keepOuts))
+                checkAnimal(a, day, s, seaLevel);
           }
           expect([...seen.values()].map((e) => `${e.line} (${e.n} times)`)).toEqual([]);
           expect(checked).toBeGreaterThan(0);

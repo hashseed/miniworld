@@ -94,6 +94,8 @@ const ROUND_SECONDS = 10;
 const WALK_SHARE = 0.9;
 /** Walking speed in km of the globe per second of the clock. */
 const WALK_KM_S = 55;
+/** Maximum average speed (km/s) of a detour before it counts as unreachable (peak eased speed < 200 km/s, section 4). */
+const MAX_WALK_KM_S = 132;
 /**
  * A group grazes its spots up to this far around a centre that wanders
  * slowly over its open ground, a few rounds at a time (section 4).
@@ -694,19 +696,19 @@ function clear(mask: WildMask, roam: number, a: P2, b: P2): boolean {
   return true;
 }
 
-const routes = new WeakMap<Uint8Array, Map<string, P2[]>>();
+const routes = new WeakMap<Uint8Array, Map<string, P2[] | null>>();
 
 /**
  * A walk from a to b around closed ground (lakes, sea, mountains) through
  * the open cells of the mask, as a polyline from a to b with as few corners
- * as stay on open ground (section 4). The straight line when there is no way round.
+ * as stay on open ground (section 4). Undefined when no path through open cells exists.
  */
-function route(mask: Uint8Array, roam: number, a: P2, b: P2): P2[] {
+function route(mask: Uint8Array, roam: number, a: P2, b: P2): P2[] | undefined {
   const key = `${roam}:${a[0].toFixed(3)},${a[1].toFixed(3)}:${b[0].toFixed(3)},${b[1].toFixed(3)}`;
   let cache = routes.get(mask);
   if (!cache) routes.set(mask, (cache = new Map()));
   const hit = cache.get(key);
-  if (hit) return hit;
+  if (hit !== undefined) return hit ?? undefined;
   if (cache.size > 2000) cache.clear();
   const N = WILD_MASK_N;
   const half = roam + WILD_MASK_MARGIN_KM;
@@ -739,7 +741,7 @@ function route(mask: Uint8Array, roam: number, a: P2, b: P2): P2[] {
         queue.push(r);
       }
   }
-  let path: P2[] = [a, b];
+  let path: P2[] | undefined;
   if (prev[to]! >= 0) {
     const cells: P2[] = [];
     for (let q = prev[to]!; q !== from; q = prev[q]!) {
@@ -756,7 +758,7 @@ function route(mask: Uint8Array, roam: number, a: P2, b: P2): P2[] {
       k = m;
     }
   }
-  cache.set(key, path);
+  cache.set(key, path ?? null);
   return path;
 }
 
@@ -999,6 +1001,7 @@ export function wildlifeAt(
     for (let i = 0; i < size; i++) {
       const lag = i === 0 ? 0 : 0.4 + 1.2 * hash01(seed, 40 + i);
       const pace = 0.9 + 0.2 * hash01(seed, 50 + i);
+      const maxWalkKm = MAX_WALK_KM_S * period * walkShare;
       const t = seconds - lag + shift;
       const k = Math.floor(t / period);
       const inRound = t - k * period;
@@ -1027,7 +1030,8 @@ export function wildlifeAt(
             [q[0] + qx * fit, q[1] + qy * fit],
             [r[0] + qx * fit, r[1] + qy * fit],
           );
-        return aroundCircles(a, b, circles, fitsAt) !== undefined;
+        const way = aroundCircles(a, b, circles, fitsAt);
+        return way !== undefined && alongPath([a, ...way], 1).length <= maxWalkKm;
       };
       // Round j's spot: the animal stays at its last spot where camps leave no way to the new
       // one (section 4), so it never plans a walk it cannot make. Chains of held rounds start
@@ -1095,81 +1099,126 @@ export function wildlifeAt(
           roam,
           standingNow.map((c) => ({ x: c.x, y: c.y, r: c.r + half })),
         );
-        const curveOpen =
-          !wmask ||
-          (clear(wmask, roam, p1, p2) &&
-            [0.25, 0.5, 0.75].every((v) => {
-              const [cx, cy] = catmullRom(p0, p1, p2, p3, v);
-              return open(wmask, roam, cx, cy);
-            }));
-        path = curveOpen ? null : route(wmask!, roam, p1, p2);
+        let curveOpen = true;
+        if (wmask) {
+          if (!clear(wmask, roam, p1, p2)) curveOpen = false;
+          else {
+            const cell = (2 * (roam + WILD_MASK_MARGIN_KM)) / WILD_MASK_N;
+            const steps = Math.max(8, Math.ceil(len2d(p2[0] - p1[0], p2[1] - p1[1]) / (cell / 3)));
+            for (let s = 1; s < steps; s++) {
+              const [cx, cy] = catmullRom(p0, p1, p2, p3, s / steps);
+              if (!open(wmask, roam, cx, cy)) {
+                curveOpen = false;
+                break;
+              }
+            }
+          }
+        }
+        if (curveOpen) path = null;
+        else {
+          const found = route(wmask!, roam, p1, p2);
+          if (found) path = found;
+          else {
+            path = null;
+            memo.blocked.add(walkKey);
+          }
+        }
         // Round the camps standing during the walk, planned before it is walked (section 4).
         const [qx, qy] = places[i]!;
         const f0 = ((fits.get(k) ?? 1) + (fits.get(k + 1) ?? 1)) / 2;
         const sx = qx * f0;
         const sy = qy * f0;
         const circles = standingNow.map((c) => ({ x: c.x - sx, y: c.y - sy, r: c.r + ownHalf }));
-        if (circles.length > 0) {
+        if (circles.length > 0 && !memo.blocked.has(walkKey)) {
           // A walk from a spot that a circle grew round while the animal grazed starts at the
           // circle's edge, where the push-out below holds it, so it is planned round the
           // circles from there instead of crossing them (section 4).
-          // Out of each circle in turn, as the push-out does, so it starts where it stands.
+          // Out of each circle in turn, stepping in eighths on open ground without crossing water.
           const edgeOf = (q: P2): P2 => {
             let at = q;
             for (const c of circles) {
               const [dx, dy] = [at[0] - c.x, at[1] - c.y];
               const d = len2d(dx, dy);
               if (d >= c.r) continue;
-              at =
-                d < 1e-9
-                  ? [c.x + c.r * 1.001, c.y]
-                  : [c.x + (dx / d) * c.r * 1.001, c.y + (dy / d) * c.r * 1.001];
+              const ux = d < 1e-9 ? 1 : dx / d;
+              const uy = d < 1e-9 ? 0 : dy / d;
+              const tx = c.x + ux * c.r * 1.001;
+              const ty = c.y + uy * c.r * 1.001;
+              if (!wmask) {
+                at = [tx, ty];
+                continue;
+              }
+              let next: P2 = at;
+              for (let m = 8; m > 0; m--) {
+                const f = m / 8;
+                const cand: P2 = [at[0] + (tx - at[0]) * f, at[1] + (ty - at[1]) * f];
+                if (open(wmask, roam, cand[0], cand[1]) && clear(wmask, roam, at, cand)) {
+                  next = cand;
+                  break;
+                }
+              }
+              at = next;
             }
             return at;
           };
           const start = edgeOf(p1);
-          if (start !== p1) path = [start, ...(path ?? [p1, p2]).slice(1)];
-          const inside = (q: P2) => circles.some((c) => len2d(q[0] - c.x, q[1] - c.y) < c.r * 0.98);
-          // The route's corners inside a circle are dropped: the detour finds its own way past.
-          const base: P2[] = (path ?? [p1, p2]).filter(
-            (q, m, all) => m === 0 || m === all.length - 1 || !inside(q),
-          );
-          const samples: P2[] = path
-            ? path
-            : [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1].map((v) =>
-                catmullRom(p0, p1, p2, p3, v),
-              );
-          const base0 = path;
-          if (samples.some((q, m) => m > 0 && circles.some((c) => cuts(samples[m - 1]!, q, c)))) {
-            const fitsAt = (q: P2, r: P2) =>
-              clear(wmask, roam, [q[0] + sx, q[1] + sy], [r[0] + sx, r[1] + sy]);
-            // Round the full circles if open ground allows; where it does not (a narrow
-            // land between camps), closer in, the push-out below sliding it the rest of
-            // the way along the edge.
-            for (const scale of [1, 0.75, 0.5, 0.25]) {
-              if (path !== base0) break;
-              const near = circles.map((c) => ({ ...c, r: c.r * scale }));
-              let way: P2[] = [base[0]!];
-              let found = true;
-              for (let m = 1; m < base.length && found; m++) {
-                const part = aroundCircles(base[m - 1]!, base[m]!, near, fitsAt);
-                if (part) way.push(...part);
-                else found = false;
+          if (start !== p1) {
+            const nextPt = path ? path[1]! : p2;
+            if (wmask && !clear(wmask, roam, start, nextPt)) {
+              const rerouted = route(wmask, roam, start, p2);
+              if (rerouted) path = rerouted;
+              else {
+                memo.blocked.add(walkKey);
+                path = null;
               }
-              if (!found) continue;
-              const smooth = rounded(way);
-              const tidy = (pts: readonly P2[]) =>
-                pts.every(
-                  (q, m) =>
-                    m === 0 ||
-                    (fitsAt(pts[m - 1]!, q) && !near.some((c) => cuts(pts[m - 1]!, q, c))),
-                );
-              way = tidy(smooth) ? smooth : way;
-              if (tidy(way)) path = way;
+            } else {
+              path = [start, ...(path ?? [p1, p2]).slice(1)];
             }
-            // No way round at any distance: rather than cross the circles, it fades out where
-            // it stands and in at its new spot (section 4).
-            if (path === base0) memo.blocked.add(walkKey);
+          }
+          if (!memo.blocked.has(walkKey)) {
+            const inside = (q: P2) =>
+              circles.some((c) => len2d(q[0] - c.x, q[1] - c.y) < c.r * 0.98);
+            // The route's corners inside a circle are dropped: the detour finds its own way past.
+            const base: P2[] = (path ?? [p1, p2]).filter(
+              (q, m, all) => m === 0 || m === all.length - 1 || !inside(q),
+            );
+            const samples: P2[] = path
+              ? path
+              : [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1].map((v) =>
+                  catmullRom(p0, p1, p2, p3, v),
+                );
+            const base0 = path;
+            if (samples.some((q, m) => m > 0 && circles.some((c) => cuts(samples[m - 1]!, q, c)))) {
+              const fitsAt = (q: P2, r: P2) =>
+                clear(wmask, roam, [q[0] + sx, q[1] + sy], [r[0] + sx, r[1] + sy]);
+              // Round the full circles if open ground allows; where it does not (a narrow
+              // land between camps), closer in, the push-out below sliding it the rest of
+              // the way along the edge.
+              for (const scale of [1, 0.75, 0.5, 0.25]) {
+                if (path !== base0) break;
+                const near = circles.map((c) => ({ ...c, r: c.r * scale }));
+                let way: P2[] = [base[0]!];
+                let found = true;
+                for (let m = 1; m < base.length && found; m++) {
+                  const part = aroundCircles(base[m - 1]!, base[m]!, near, fitsAt);
+                  if (part) way.push(...part);
+                  else found = false;
+                }
+                if (!found) continue;
+                const smooth = rounded(way);
+                const tidy = (pts: readonly P2[]) =>
+                  pts.every(
+                    (q, m) =>
+                      m === 0 ||
+                      (fitsAt(pts[m - 1]!, q) && !near.some((c) => cuts(pts[m - 1]!, q, c))),
+                  );
+                way = tidy(smooth) ? smooth : way;
+                if (tidy(way) && alongPath(way, 1).length <= maxWalkKm * scale) path = way;
+              }
+              // No way round at any distance: rather than cross the circles, it fades out where
+              // it stands and in at its new spot (section 4).
+              if (path === base0) memo.blocked.add(walkKey);
+            }
           }
         }
         memo.paths.set(walkKey, path);
@@ -1184,9 +1233,9 @@ export function wildlifeAt(
       const u = f * f * (3 - 2 * f);
       const along = path && walking ? alongPath(path, u) : undefined;
       let [x, y] = along ? along.at : catmullRom(p0, p1, p2, p3, u);
-      // A walk with no way round the camps: out of sight instead, shrinking away at its start
-      // over the first half of the walk and growing in at its new spot over the second.
-      const vanish = walking && memo.blocked.has(walkKey);
+      // A walk with no way round the camps or too long a detour: out of sight instead, shrinking
+      // away at its start over the first half of the walk and growing in at its new spot over the second.
+      const vanish = walking && (memo.blocked.has(walkKey) || chord > maxWalkKm);
       if (vanish) [x, y] = u < 0.5 ? p1 : p2;
       const seen = vanish ? Math.abs(2 * u - 1) : 1;
       const fit = fits.get(k)! + (fits.get(k + 1)! - fits.get(k)!) * u;
@@ -1208,15 +1257,28 @@ export function wildlifeAt(
         const nx = dx / d;
         const ny = dy / d;
         if (d < need) {
-          // Out of the keep-out only as far as its ground stays open: never into the sea, a
-          // lake or the mountains, where the camp's circle reaches the coast (Yang, 2026-10-25:
-          // lions and tigers in the ocean).
+          // Out of the keep-out only as far as its ground stays open and clear along the step:
+          // never into the sea, a lake, mountains, or onto land for swimmers (Yang, 2026-10-25).
           let push = need - d;
-          if (mask && !swimmer)
-            for (let k = 8; k >= 0; k--) {
-              push = ((need - d) * k) / 8;
-              if (open(mask, roam, x + nx * push, y + ny * push)) break;
+          if (mask) {
+            const full = push;
+            const offsetWasOpen = open(mask, roam, px, py);
+            push = 0;
+            for (const wantOffset of offsetWasOpen ? [true, false] : [false]) {
+              for (let m = 8; m > 0; m--) {
+                const p = (full * m) / 8;
+                if (
+                  open(mask, roam, x + nx * p, y + ny * p) &&
+                  clear(mask, roam, [x, y], [x + nx * p, y + ny * p]) &&
+                  (!wantOffset || open(mask, roam, px + nx * p, py + ny * p))
+                ) {
+                  push = p;
+                  break;
+                }
+              }
+              if (push > 0) break;
             }
+          }
           x += nx * push;
           y += ny * push;
         }

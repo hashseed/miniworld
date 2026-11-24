@@ -240,7 +240,8 @@ if (data?.onLandWorker && parentPort) {
     for (let ms = from; ms < to; ms += SAMPLE_STEP_MS) {
       const day = dayAtMs(ms, start);
       const seaLevel = planetAt(index, day).seaLevel;
-      for (const f of treeScene(chunk, ms, start).figures) {
+      const scene = treeScene(chunk, ms, start);
+      for (const f of scene.figures) {
         const spot = spotOf(f.lat, f.lon, f.x, f.z);
         const what = lookup.waterFrom(spot.dir, spot.oceanLevel, spot.lake, day, seaLevel);
         if (f.clip === 'paddle') {
@@ -258,6 +259,18 @@ if (data?.onLandWorker && parentPort) {
             `figure ${f.id}`,
             what,
             `window ${w}, ${ms} ms: figure ${f.id} (${f.clip}) in the ${what} at ${where(spot.dir)}`,
+          );
+      }
+      for (const p of scene.prey) {
+        if (p.visibility <= 0) continue;
+        const spot = spotOf(p.lat, p.lon, p.x, p.z);
+        const what = lookup.waterFrom(spot.dir, spot.oceanLevel, spot.lake, day, seaLevel);
+        checked++;
+        if (what)
+          record(
+            `prey ${p.id}`,
+            what,
+            `window ${w}, ${ms} ms: prey ${p.id} (${p.kind}, ${p.clip}) in the ${what} at ${where(spot.dir)}`,
           );
       }
     }

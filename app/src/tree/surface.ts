@@ -11,6 +11,8 @@ export interface SurfaceSource {
   toTrue?(dir: Vec3): Vec3;
   /** Drawn km per true km at a true direction; 1 where absent. */
   widthAt?(dir: Vec3): number;
+  /** Whether open unfrozen water (sea or lake) covers a drawn direction, or undefined before terrain loads. */
+  isWater?(dir: Vec3): boolean | undefined;
   /** The drawn height of the sea of the day, in km; the caves' cuts never go below it. */
   seaKm?(): number;
 }

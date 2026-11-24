@@ -15,7 +15,7 @@ import { chunkKey } from '../../../app/src/content/types.ts';
 import { ancestorAt, tilePath, TILE_N, type TileKey } from '../../../app/src/geo/cube.ts';
 import { fixtureElevation } from '../lib/fixture.ts';
 import { Grid, GridPyramid } from '../lib/grid.ts';
-import { openShare, wildMasks } from '../lib/wildlife.ts';
+import { LAND_COAST_KM, openShare, wildMasks } from '../lib/wildlife.ts';
 import { WILD_GROUPS } from '../../../app/src/world/wildlife.ts';
 import { floodInlandSeas, oceanConnection, validateInlandSeas } from '../lib/ocean.ts';
 import { readElevation, readFeatures } from '../lib/readers.ts';
@@ -253,18 +253,29 @@ function mapOf(g: CachedMap, straits: Strait[], humidPeriods: HumidPeriod[]): Wo
  * The ground mask of every wildlife group, in the order of wildlife.json:
  * open lowland, or open sea for sea animals (wildlife.md section 4).
  */
-export function buildWildlifeMasks(ctx: BuildContext, map: WorldMap, drawn: DrawnGround): string[] {
+export function buildWildlifeMasks(
+  ctx: BuildContext,
+  map: WorldMap,
+  drawn: DrawnGround,
+  widthAt: (lat: number, lon: number) => number = () => 1,
+): string[] {
   const { connection, lakes, heights } = map;
   const relief = heights.levels[0]!;
   // Water in the source grids or as the globe draws it, whichever reaches
   // further, so no animal stands where the drawn shore lies (section 4).
   const lake = (lat: number, lon: number) => lakes.bilinear(lat, lon) > 127 || drawn.lake(lat, lon);
-  const masks = wildMasks(WILD_GROUPS, {
-    height: (lat, lon) => relief.bilinear(lat, lon),
-    wet: (lat, lon) =>
-      lake(lat, lon) || connection.nearest(lat, lon) <= -OCEAN_MIN_LEVEL || drawn.sea(lat, lon, 0),
-    lake,
-  });
+  const masks = wildMasks(
+    WILD_GROUPS,
+    {
+      height: (lat, lon) => relief.bilinear(lat, lon),
+      wet: (lat, lon) =>
+        lake(lat, lon) ||
+        connection.nearest(lat, lon) <= -OCEAN_MIN_LEVEL ||
+        drawn.sea(lat, lon, 0),
+      lake,
+    },
+    (g) => LAND_COAST_KM / widthAt(g.lat, g.lon),
+  );
   WILD_GROUPS.forEach((g, i) =>
     ctx.log(
       `wildlife ${g.species} at ${g.home}: ${Math.round(openShare(g, masks[i]!) * 100)}% open`,

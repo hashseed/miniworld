@@ -164,6 +164,10 @@ export class WildlifeLayer {
   private pos = new THREE.Vector3();
   private q = new THREE.Quaternion();
   private v2 = new THREE.Vector3();
+  private v3 = new THREE.Vector3();
+  private v4 = new THREE.Vector3();
+  private v5 = new THREE.Vector3();
+  private v6 = new THREE.Vector3();
   private scaleV = new THREE.Vector3();
   /** The animals drawn last frame, for taps: middle, drawn half size in km and group index. */
   private drawn: { at: THREE.Vector3; radiusKm: number; group: number }[] = [];
@@ -417,6 +421,72 @@ export class WildlifeLayer {
   }
 
   /**
+   * Moves `cur` along unit tangent-ish vector `dir` by up to `stepRad` radians without leaving
+   * land (or water for swimmers). Returns the radial fraction achieved (0 if blocked or slid).
+   */
+  private pushSafe(
+    cur: THREE.Vector3,
+    dir: THREE.Vector3,
+    stepRad: number,
+    wantWater: boolean,
+    halfRad: number,
+  ): number {
+    if (stepRad <= 0) return 0;
+    const isWater = this.surface.isWater;
+    if (!isWater) {
+      cur.addScaledVector(dir, stepRad).normalize();
+      return 1;
+    }
+    const okAt = (p: THREE.Vector3) => {
+      const w = isWater([p.x, p.y, p.z]);
+      return w === undefined || w === wantWater;
+    };
+    const moveOk = (d: THREE.Vector3, s: number) => {
+      const cand = this.v3.copy(cur).addScaledVector(d, s).normalize();
+      if (!okAt(cand)) return false;
+      if (s > halfRad) {
+        const mid = this.v4
+          .copy(cur)
+          .addScaledVector(d, s * 0.5)
+          .normalize();
+        if (!okAt(mid)) return false;
+      }
+      if (!wantWater && halfRad > 0) {
+        const edge = this.v4.copy(cand).addScaledVector(d, halfRad).normalize();
+        if (!okAt(edge)) return false;
+      }
+      return true;
+    };
+    for (const f of [1, 0.75, 0.5, 0.25]) {
+      const s = stepRad * f;
+      if (moveOk(dir, s)) {
+        cur.copy(this.v3);
+        return f;
+      }
+    }
+    const tangent = this.v5.crossVectors(cur, dir);
+    if (tangent.lengthSq() > 1e-12) {
+      tangent.normalize();
+      const slide = this.v6;
+      for (const [a, b] of [
+        [1, 1],
+        [1, -1],
+        [0, 1],
+        [0, -1],
+      ] as const) {
+        slide.set(0, 0, 0).addScaledVector(dir, a).addScaledVector(tangent, b).normalize();
+        for (const f of [1, 0.5, 0.25]) {
+          if (moveOk(slide, stepRad * f)) {
+            cur.copy(this.v3);
+            return 0;
+          }
+        }
+      }
+    }
+    return 0;
+  }
+
+  /**
    * Each animal's spot on the drawn globe, pushed apart from any other animal
    * closer than their two half lengths, so no two overlap (section 5; Yang,
    * 2026-10-18: "make sure animals don't overlap with each other"). Its place
@@ -445,24 +515,41 @@ export class WildlifeLayer {
           const b = ups[j]!;
           const gap = a.distanceTo(b);
           if (gap >= need) continue;
-          // Apart along the line between them, half each; a seeded way if they coincide.
-          if (gap < 1e-9) push.set(1, 0, 0).cross(a).normalize();
-          else push.subVectors(a, b).normalize();
-          const step = (need - gap) / 2;
-          a.addScaledVector(push, step).normalize();
-          b.addScaledVector(push, -step).normalize();
+          // Apart along the line between them, yielding inland near water; a seeded way if they coincide.
+          if (gap < 1e-9) {
+            push.set(1, 0, 0).cross(a);
+            if (push.lengthSq() < 1e-12) push.set(0, 1, 0).cross(a);
+            push.normalize();
+          } else push.subVectors(a, b).normalize();
+          const halfStep = (need - gap) / 2;
+          const wantA = animals[i]!.clip === 'swim';
+          const wantB = animals[j]!.clip === 'swim';
+          const halfA = this.halfKm[i]! / EARTH_RADIUS_KM;
+          const halfB = this.halfKm[j]! / EARTH_RADIUS_KM;
+          const movedA = this.pushSafe(a, push, halfStep, wantA, halfA);
+          push.negate();
+          const movedB = this.pushSafe(b, push, halfStep * (2 - movedA), wantB, halfB);
+          if (movedA === 1 && movedB < 1) {
+            push.negate();
+            this.pushSafe(a, push, halfStep * (1 - movedB), wantA, halfA);
+          }
         }
     // Then clear of people, hunted animals, lodgings and hearths, which never move (section 4).
     for (let i = 0; i < ups.length; i++) {
       if (this.halfKm[i] === 0) continue;
       const a = ups[i]!;
+      const want = animals[i]!.clip === 'swim';
+      const half = this.halfKm[i]! / EARTH_RADIUS_KM;
       for (const o of obstacles) {
         const need = (this.halfKm[i]! + o.km) / EARTH_RADIUS_KM;
         const gap = a.distanceTo(o.dir);
         if (gap >= need) continue;
-        if (gap < 1e-9) push.set(1, 0, 0).cross(a).normalize();
-        else push.subVectors(a, o.dir).normalize();
-        a.addScaledVector(push, need - gap).normalize();
+        if (gap < 1e-9) {
+          push.set(1, 0, 0).cross(a);
+          if (push.lengthSq() < 1e-12) push.set(0, 1, 0).cross(a);
+          push.normalize();
+        } else push.subVectors(a, o.dir).normalize();
+        this.pushSafe(a, push, need - gap, want, half);
       }
     }
     return ups;

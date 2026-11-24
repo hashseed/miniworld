@@ -129,4 +129,30 @@ describe('planet query', () => {
     pair = { a: one, b: one, t: 0.7 };
     expect(q.iceKmAt(dir, 40)).toBeCloseTo(272, 6);
   });
+
+  it('reports open unfrozen water on sea or lake tiles and undefined before loading', () => {
+    const seaTile = rampTile(root, -10, 0);
+    const landTile = rampTile(root, 40, 50);
+    const lakeTile = { ...landTile, lakes: new Uint8Array(S * S).fill(255) };
+    const noIce = { icePairAt: () => undefined };
+    expect(new PlanetQuery({ dataTileAt: () => undefined }, noIce).isWater([1, 0, 0], 0, 0)).toBe(
+      undefined,
+    );
+    expect(new PlanetQuery({ dataTileAt: () => 'deep' }, noIce).isWater([1, 0, 0], 0, 0)).toBe(
+      true,
+    );
+    expect(new PlanetQuery({ dataTileAt: () => seaTile }, noIce).isWater([1, 0, 0], 0, 0)).toBe(
+      true,
+    );
+    expect(new PlanetQuery({ dataTileAt: () => seaTile }, noIce).isWater([1, 0, 0], 0, -20)).toBe(
+      false,
+    );
+    expect(new PlanetQuery({ dataTileAt: () => lakeTile }, noIce).isWater([1, 0, 0], 0, 0)).toBe(
+      true,
+    );
+    const icy = { icePairAt: () => ({ a: iceSlice(0, 100), b: iceSlice(0, 100), t: 0 }) };
+    expect(new PlanetQuery({ dataTileAt: () => seaTile }, icy).isWater([1, 0, 0], 0, 0)).toBe(
+      false,
+    );
+  });
 });

@@ -17,7 +17,7 @@ import {
 } from '../content/formats.ts';
 import { TILE_N, dirToFaceUv, dirToLatLon, type Vec3 } from '../geo/cube.ts';
 import { bicubicBordered, bilinear, sampleGrid } from './sample.ts';
-import { isSea, surfaceM, type Ground } from './surface.ts';
+import { isSea, LAKE_FIELD, surfaceM, type Ground } from './surface.ts';
 
 /** Terrain data tiles: the finest loaded one holding a direction, 'deep' for open ocean. */
 export interface TerrainSource {
@@ -88,6 +88,21 @@ export class PlanetQuery {
   /** Whether the ocean covers a direction at a sea level. */
   isSea(dir: Vec3, seaLevel: number): boolean {
     return isSea(this.groundAt(dir), seaLevel);
+  }
+
+  /** Whether open unfrozen water (sea or lake) covers a direction at a date and sea level, or undefined before terrain loads. */
+  isWater(dir: Vec3, day: number, seaLevel: number): boolean | undefined {
+    const tile = this.terrain.dataTileAt(dir);
+    if (!tile) return undefined;
+    if (tile === 'deep') return isSea(DEEP, seaLevel) && this.iceKmAt(dir, day) <= 0;
+    const { u, v } = dirToFaceUv(dir);
+    const n = 1 << tile.key.level;
+    const fi = (((u + 1) / 2) * n - tile.key.x) * TILE_N;
+    const fj = (((v + 1) / 2) * n - tile.key.y) * TILE_N;
+    const S = TERRAIN_SAMPLES;
+    const oceanLevel = OCEAN_MIN_LEVEL + bilinear(tile.ocean, S, fi, fj) / OCEAN_SCALE;
+    const lake = bilinear(tile.lakes, S, fi, fj) / 255;
+    return (seaLevel - oceanLevel > 0 || lake > LAKE_FIELD) && this.iceKmAt(dir, day) <= 0;
   }
 
   /** Height of the drawn surface in metres (before exaggeration and the lens) at a direction and date. */

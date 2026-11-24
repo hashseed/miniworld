@@ -156,23 +156,43 @@ function openAt(ground: WildGround, lat: number, lon: number, homeM: number): bo
   return true;
 }
 
+/** Coastal dry buffer kept around walking land animals (km on the drawn globe, section 4). */
+export const LAND_COAST_KM = 115;
+/** Minimum open cells inside the roaming radius preserved when stepping down the coastal buffer. */
+export const MIN_COAST_CELLS = 8;
+
+const COMPASS_8 = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+  [0.7071, 0.7071],
+  [0.7071, -0.7071],
+  [-0.7071, 0.7071],
+  [-0.7071, -0.7071],
+] as const;
+
 /**
  * The ground mask of every group as hex strings in the order of the groups
  * (section 4), '' for birds.
  */
-export function wildMasks(groups: readonly WildGroup[], ground: WildGround): string[] {
+export function wildMasks(
+  groups: readonly WildGroup[],
+  ground: WildGround,
+  coastKm: (g: WildGroup) => number = () => LAND_COAST_KM,
+): string[] {
   return groups.map((g) => {
     if (flies(g)) return '';
     const homeM = ground.height(g.lat, g.lon);
     const sea = swims(g);
     const cellKm = wildMaskCell(g, 1, 0)[0] - wildMaskCell(g, 0, 0)[0];
-    const mask = new Uint8Array(WILD_MASK_N * WILD_MASK_N);
+    const q = cellKm / 2;
+    const base = new Uint8Array(WILD_MASK_N * WILD_MASK_N);
     for (let j = 0; j < WILD_MASK_N; j++)
       for (let i = 0; i < WILD_MASK_N; i++) {
         const [e, n] = wildMaskCell(g, i, j);
         // The whole cell must fit: its middle and the middles of its edges, so
         // no animal stands half in the sea or half on land (section 4).
-        const q = cellKm / 2;
         const open = (
           [
             [0, 0],
@@ -197,10 +217,48 @@ export function wildMasks(groups: readonly WildGroup[], ground: WildGround): str
               [-q, -q],
             ] as const
           ).every(([de, dn]) => !ground.wet(...at(g, e + de, n + dn)));
-        mask[j * WILD_MASK_N + i] = open && dry ? 1 : 0;
+        base[j * WILD_MASK_N + i] = open && dry ? 1 : 0;
       }
-    reachable(mask);
-    return encodeWildMask(mask);
+    reachable(base);
+    if (sea) return encodeWildMask(base);
+    const roam = roamOf(g);
+    const roam2 = roam * roam;
+    const countRoam = (m: Uint8Array) => {
+      let count = 0;
+      for (let j = 0; j < WILD_MASK_N; j++)
+        for (let i = 0; i < WILD_MASK_N; i++) {
+          if (m[j * WILD_MASK_N + i] !== 1) continue;
+          const [e, n] = wildMaskCell(g, i, j);
+          if (e * e + n * n <= roam2) count++;
+        }
+      return count;
+    };
+    const baseRoam = countRoam(base);
+    const margin = coastKm(g);
+    if (baseRoam === 0 || margin <= 0) return encodeWildMask(base);
+    const need = Math.min(MIN_COAST_CELLS, baseRoam);
+    let best = base;
+    for (const scale of [1, 0.5, 0.25]) {
+      const extra = margin * scale;
+      const radii = extra > cellKm ? [q + extra * 0.5, q + extra] : [q + extra];
+      const cand = new Uint8Array(base);
+      for (let j = 0; j < WILD_MASK_N; j++)
+        for (let i = 0; i < WILD_MASK_N; i++) {
+          const idx = j * WILD_MASK_N + i;
+          if (cand[idx] !== 1) continue;
+          const [e, n] = wildMaskCell(g, i, j);
+          const dryCoast = radii.every((r) =>
+            COMPASS_8.every(([dx, dy]) => !ground.wet(...at(g, e + dx * r, n + dy * r))),
+          );
+          if (!dryCoast) cand[idx] = 0;
+        }
+      reachable(cand);
+      if (countRoam(cand) >= need) {
+        best = cand;
+        break;
+      }
+    }
+    return encodeWildMask(best);
   });
 }
 

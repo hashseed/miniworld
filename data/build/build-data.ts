@@ -56,9 +56,9 @@ async function main(args: string[]): Promise<void> {
   const drawnTiles = new DrawnTiles(ctx.maxLevel);
   const terrain = timed('terrain', () => buildTerrain(ctx, map, drawnTiles));
   const drawn = drawnTiles.ground();
-  const wildlife = timed('wildlife', () => buildWildlifeMasks(ctx, map, drawn));
   const climate = timed('climate', () => buildClimate(ctx, map));
   const { lens, widthAt, placeAt } = timed('lens', () => buildLensStage(ctx));
+  const wildlife = timed('wildlife', () => buildWildlifeMasks(ctx, map, drawn, widthAt));
   // The farming spread first: the tree gives camps their Neolithic culture from it (humankind.md section 8.5).
   const farming = timed('farming', () => buildFarming(ctx, map, climate));
   // The tree is the slowest stage, so its result is cached: under the land, the lens, its own

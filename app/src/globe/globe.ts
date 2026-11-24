@@ -532,6 +532,11 @@ export class Globe {
     return this.store.generation * 1000 + Math.floor(this.day / 100_000);
   }
 
+  /** Whether open unfrozen water (sea or lake) covers a drawn direction, or undefined before terrain loads. */
+  isWater(drawnDir: Vec3, planet: PlanetState): boolean | undefined {
+    return this.query.isWater(this.lens.toTrue(drawnDir), this.day, planet.seaLevel);
+  }
+
   /** Drawn surface height in km above the sphere over a true direction. */
   surfaceAtTrue(dir: Vec3, planet: PlanetState): number {
     const top = this.query.surfaceM(dir, this.day, planet.seaLevel);

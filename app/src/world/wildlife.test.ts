@@ -304,6 +304,78 @@ describe('wildlifeAt (wildlife.md section 4)', () => {
       }
   }, 60_000);
 
+  it('fades instead of walking across closed ground when two open patches are disconnected', () => {
+    const gi = WILD_GROUPS.findIndex((g) => g.species === 'plains-zebra');
+    const masks = masksWhere((x) => Math.abs(x) > 150);
+    let crossed = 0;
+    let faded = 0;
+    for (let s = 0; s < 3000; s += 2) {
+      for (const a of wildlifeAt(day(1800), s, WILD_GROUPS, masks)) {
+        if (!a.key.startsWith(`${gi}:`)) continue;
+        if (Math.abs(a.eastKm) <= 100) crossed++;
+        if (a.clip === 'walk' && a.grow < 0.99) faded++;
+      }
+    }
+    expect(crossed).toBe(0);
+    expect(faded).toBeGreaterThan(0);
+  }, 30_000);
+
+  it('detours around a narrow cove when the spline between open points would bow into it', () => {
+    const gi = WILD_GROUPS.findIndex((g) => g.species === 'plains-zebra');
+    const mask = masksWhere((x, y) => !(y < 50 && Math.abs(x) < 120))[gi]!;
+    const masks = WILD_GROUPS.map((_, i) => (i === gi ? mask : undefined));
+    const g = WILD_GROUPS[gi]!;
+    const half = roamOf(g) + 450;
+    const cell = (2 * half) / WILD_MASK_N;
+    let inCove = 0;
+    for (let s = 0; s < 2400; s += 2) {
+      for (const a of wildlifeAt(day(1800), s, WILD_GROUPS, masks)) {
+        if (!a.key.startsWith(`${gi}:`) || a.grow <= 0.1) continue;
+        const i = Math.floor((a.eastKm + half) / cell);
+        const j = Math.floor((a.northKm + half) / cell);
+        if (
+          i >= 0 &&
+          j >= 0 &&
+          i < WILD_MASK_N &&
+          j < WILD_MASK_N &&
+          mask[j * WILD_MASK_N + i] === 0
+        )
+          inCove++;
+      }
+    }
+    expect(inCove).toBe(0);
+  });
+
+  it('never pushes an animal or its offset into coastal water around a camp keep-out', () => {
+    const gi = WILD_GROUPS.findIndex((g) => g.species === 'plains-zebra');
+    const g = WILD_GROUPS[gi]!;
+    const half = roamOf(g) + 450;
+    const cell = (2 * half) / WILD_MASK_N;
+    // Snap shoreline cleanly to a mask column west of an observed zebra spot.
+    const ref = wildlifeAt(day(1500), 500).find((a) => a.key === `${gi}:0`)!;
+    const shoreCol = Math.max(2, Math.floor((ref.eastKm - 40 + half) / cell));
+    const shoreX = -half + shoreCol * cell;
+    const mask = new Uint8Array(WILD_MASK_N * WILD_MASK_N);
+    for (let j = 0; j < WILD_MASK_N; j++)
+      for (let i = 0; i < WILD_MASK_N; i++) mask[j * WILD_MASK_N + i] = i >= shoreCol ? 1 : 0;
+    const masks = WILD_GROUPS.map((_, i) => (i === gi ? mask : undefined));
+    const reach = () => 60;
+    const camp: KeepOut = {
+      x: ref.eastKm + 100,
+      y: ref.northKm,
+      r: 260,
+      from: 420,
+      to: 950,
+    };
+    const keepOuts = WILD_GROUPS.map((_, i) => (i === gi ? [camp] : []));
+    for (let t = 350; t < 1100; t += 0.5)
+      for (const a of wildlifeAt(day(1500), t, WILD_GROUPS, masks, reach, keepOuts)) {
+        if (!a.key.startsWith(`${gi}:`)) continue;
+        expect(a.eastKm).toBeGreaterThanOrEqual(shoreX - 1e-6);
+        expect(a.eastKm + a.offset[0] * 60).toBeGreaterThanOrEqual(shoreX - 1e-6);
+      }
+  }, 30_000);
+
   it("lays a camp on the plane at a group's home", () => {
     const g = WILD_GROUPS.find((w) => w.species === 'giraffe')!;
     const [k] = keepOutsOf(

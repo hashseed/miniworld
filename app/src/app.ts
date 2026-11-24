@@ -164,6 +164,7 @@ const wildlife = new WildlifeLayer({
   version: surface.version,
   toDrawn: (d) => globe.lens.toDrawn(d),
   widthAt: (d) => globe.lens.widthAt(d),
+  isWater: (d): boolean | undefined => (index ? globe.isWater(d, loop.planet) : undefined),
 });
 const tree = new TreeLayer(loader, {
   surfaceKm: surface.surfaceKm,
