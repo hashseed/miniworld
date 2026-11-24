@@ -92,9 +92,7 @@ describe('wildlifeAt (wildlife.md section 4)', () => {
     for (const t of [0, 0.125, 0.25, 0.4, -0.3, 7.9]) {
       const [c, s] = cosSinTurn(t);
       const a = t * 2 * Math.PI;
-      // eslint-disable-next-line no-restricted-properties -- the reference only
       expect(c).toBeCloseTo(Math.cos(a), 5);
-      // eslint-disable-next-line no-restricted-properties -- the reference only
       expect(s).toBeCloseTo(Math.sin(a), 5);
     }
   });

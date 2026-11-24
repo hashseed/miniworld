@@ -299,7 +299,7 @@ Card texts and "Learn more" sections load on demand when a card opens. Models an
 
 ## 11. Development environment
 
-Development happens in Yang's devenv Docker container, the local development container that Claude Code controls remotely. The repository does not depend on anything specific to that container beyond Node and npm, so the same commands also work in a cloud session or on another machine.
+Development happens in Yang's devenv Docker container, the local development container controlled remotely by the coding agent. The repository does not depend on anything specific to that container beyond Node and npm, so the same commands also work in a cloud session or on another machine.
 
 - The Node version is pinned in `.nvmrc` and in `engines` in `package.json`; every other tool is a dev dependency installed by `npm ci`, so nothing project-specific is installed globally.
 - `npm run dev` starts the dev server on port 8800 (http://localhost:8800), serving the app with hot reload and the locally built content chunks under the same origin. It listens on all interfaces so the app can be opened from outside the container through its published port.
@@ -309,7 +309,7 @@ Development happens in Yang's devenv Docker container, the local development con
 
 ## 12. Development process
 
-The spec comes first, always: every change to behaviour, content or data format is written into this folder before any code is changed, in the same pull request or an earlier one. The rule is recorded in [CLAUDE.md](../../CLAUDE.md).
+The spec comes first, always: every change to behaviour, content or data format is written into this folder before any code is changed, in the same pull request or an earlier one. The rule is recorded in [AGENTS.md](../../AGENTS.md).
 
 ## 13. Licences
 

@@ -1,6 +1,6 @@
 # Miniworld specification
 
-This folder is the source of truth for what Miniworld does. Every change to behaviour, content or data format is written here first, then implemented (see [CLAUDE.md](../../CLAUDE.md)).
+This folder is the source of truth for what Miniworld does. Every change to behaviour, content or data format is written here first, then implemented (see [AGENTS.md](../../AGENTS.md)).
 
 | File | Contents |
 | --- | --- |

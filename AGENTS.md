@@ -8,9 +8,10 @@ The spec in `docs/spec/` is the source of truth. Before implementing any change 
 
 ## Development environment
 
-- Local development happens in Yang's devenv Docker container, which Claude Code controls remotely. Run commands there with `npm run …`; nothing project-specific is installed globally.
+- Local development happens in Yang's devenv Docker container, controlled remotely by the AI coding agent. Run commands there with `npm run …`; nothing project-specific is installed globally.
 - `npm run dev` serves the app on port 8800 (http://localhost:8800), listening on all interfaces so it is reachable from outside the container.
 - The devenv has one checkout, `~/workspace/miniworld`, used for development: work on a branch there, serve it with `npm run dev` on port 8800 for Yang to look at, and run `npm run check` there. No git worktrees, no test pool and no staging watcher (spec section 11, milestone 1 section 2.5).
+- Deployment: `https://hashseed.pages.dev/miniworld/` deploys automatically from `main` via `hashseed/hashseed-pages`, and `.github/workflows/pages.yml` also publishes `main` to GitHub Pages.
 
 ## Rules that are easy to break
 
@@ -21,7 +22,7 @@ The spec in `docs/spec/` is the source of truth. Before implementing any change 
 - Presentation: nothing bloody, nothing softened. Hard history (war, slavery, colonial violence, the Holocaust) is named and explained correctly at an 11 to 12-year-old reading level.
 - Assets are generated and must be approved by Yang before use; only assets with status `approved` in the asset manifest may ship.
 - Content is streamed in chunks by place, time window and language (spec section 10); never add content that the app must download in full at startup beyond the light index.
-- New or changed models follow the design and review loop of `docs/spec/milestone-2.md` section 13.4: model card, build, `npm run model -- <id> <round>`, self-check, images sent into the thread, Yang's numbered feedback, approve.
+- New or changed models follow the design and review loop of `docs/spec/milestone-2.md` section 13.4: model card, build, `npm run model -- <id> <round>`, self-check, review sheets copied to `/mnt/review/` (and/or embedded in an artifact per the `host-artifacts` convention), Yang's numbered feedback, approve.
 
 ## Animation review
 
