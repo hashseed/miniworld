@@ -54,7 +54,7 @@ export default tseslint.config(
     // is drawn or loaded can never change it. Tests and the on-land harness,
     // which builds the drawn ground to check against, are outside the rule.
     files: ['app/src/world/**/*.ts', 'app/src/core/**/*.ts'],
-    ignores: ['**/*.test.ts', 'app/src/world/onLand.ts'],
+    ignores: ['**/*.test.ts', 'app/src/world/onLand.ts', 'app/src/world/onLandScenes.ts'],
     rules: {
       'no-restricted-globals': [
         'error',

@@ -61,6 +61,30 @@ export const WALK_CHECK_KM = 10;
 export const WALK_SIDE_KM = 15;
 /** Rays across a gap between the lodgings, in radians from its middle, for how far people can go out. */
 const LANE_TURNS = Array.from({ length: 21 }, (_, k) => (k - 10) * 0.025);
+const RING_64: readonly [number, number][] = Array.from({ length: 64 }, (_, k) => {
+  const a = (k / 64) * 2 * Math.PI;
+  return [detCos(a), detSin(a)];
+});
+const RING_24: readonly [number, number][] = Array.from({ length: 24 }, (_, k) => {
+  const a = (k / 24) * 2 * Math.PI;
+  return [detCos(a), detSin(a)];
+});
+const RING_12: readonly [number, number][] = Array.from({ length: 12 }, (_, k) => {
+  const a = (k / 12) * 2 * Math.PI;
+  return [detCos(a), detSin(a)];
+});
+const LANE_TURN_CS: readonly [number, number][] = LANE_TURNS.map((turn) => [
+  detCos(turn),
+  detSin(turn),
+]);
+const OFFSETS_24: readonly [number, number][][] = [0, COMPACT_SITE, MINIMAL_SITE].map((siteKey) => {
+  const { floor, build, clear } = layoutOf(siteKey);
+  const b = Math.max(build + 1, clear * 1.3 + 0.5);
+  const pts: [number, number][] = [];
+  for (const r of [...floor, (floor.at(-1)! + b) / 2, b])
+    for (const [c, sn] of RING_24) pts.push([r * c, r * sn]);
+  return pts;
+});
 
 export interface Site {
   id: number;
@@ -193,8 +217,8 @@ function reliefAt(key: number, s: { lat: number; lon: number; w: number }): numb
   };
   const r = layoutOf(key).core;
   for (let k = 0; k < 12; k++) {
-    const a = (k / 12) * 2 * Math.PI;
-    take(r * detCos(a), r * detSin(a));
+    const [c, sn] = RING_12[k]!;
+    take(r * c, r * sn);
   }
   for (let k = 0; k < LODGING_SLOTS; k++) {
     const q = slotPoint(key, k);
@@ -207,16 +231,10 @@ function reliefAt(key: number, s: { lat: number; lon: number; w: number }): numb
 export function placePoints(siteId: number, k: number): { x: number; z: number }[] {
   const p = slotPoint(siteId, k);
   const compact = isCompact(siteId);
+  const bucket = siteId >= MINIMAL_SITE ? 2 : compact ? 1 : 0;
   const out = [p];
   // Rings every metre or less out past the builders, 24 points each, so no lake slips between.
-  const { floor, build, clear } = layoutOf(siteId);
-  // Out past the builders and the ways round the lodging, which bend out 1.3 times its clear.
-  const b = Math.max(build + 1, clear * 1.3 + 0.5);
-  for (const r of [...floor, (floor.at(-1)! + b) / 2, b])
-    for (let j = 0; j < 24; j++) {
-      const a = (j / 24) * 2 * Math.PI;
-      out.push({ x: p.x + r * detCos(a), z: p.z + r * detSin(a) });
-    }
+  for (const [dx, dz] of OFFSETS_24[bucket]!) out.push({ x: p.x + dx, z: p.z + dz });
   if (compact) return out;
   const len = Math.sqrt(p.x * p.x + p.z * p.z);
   const [ux, uz] = [p.x / len, p.z / len];
@@ -233,56 +251,97 @@ export function placePoints(siteId: number, k: number): { x: number; z: number }
   return out;
 }
 
-/** The flood levels of a site at a place (section 2). */
-function siteAt(
+type SiteFit = Omit<Site, 'lanes'>;
+
+/**
+ * The flood levels and relief of a site at a place without computing outing lanes; returns
+ * undefined immediately when core or enough lodging slots fail `minFit`.
+ */
+function siteFit(
   id: number,
   key: number,
   lat: number,
   lon: number,
   flood: (lat: number, lon: number) => number,
-): Site {
+  slotPts: { x: number; z: number }[][],
+  minFit = -Infinity,
+  breakSlotAt = minFit,
+): SiteFit | undefined {
   const s = { lat, lon, w: lensWidth(lat, lon) };
   const compact = isCompact(key);
   let core = flood(lat, lon);
-  for (let r = 0.75; r <= layoutOf(key).core + 1e-9; r += 0.75)
+  if (core <= minFit) return undefined;
+  for (let r = 0.75; r <= layoutOf(key).core + 1e-9; r += 0.75) {
     for (let k = 0; k < 64; k++) {
-      const a = (k / 64) * 2 * Math.PI;
-      const p = at(s, r * detCos(a), r * detSin(a));
-      core = Math.min(core, flood(p.lat, p.lon));
+      const [c, sn] = RING_64[k]!;
+      const p = at(s, r * c, r * sn);
+      const fl = flood(p.lat, p.lon);
+      if (fl < core) {
+        core = fl;
+        if (core <= minFit) return undefined;
+      }
     }
+  }
   // A lodging place far above or below the hearth is no place (RELIEF_M).
   const hearth = groundAt(lat, lon);
-  const places = Array.from({ length: LODGING_SLOTS }, (_, k) =>
-    placePoints(key, k).reduce((m, q) => {
+  const need = compact ? 1 : 2;
+  let passing = 0;
+  const places = new Array<number>(LODGING_SLOTS);
+  for (let k = 0; k < LODGING_SLOTS; k++) {
+    let m = Infinity;
+    for (const q of slotPts[k]!) {
       const p = at(s, q.x, q.z);
-      if (evenPlaces && Math.abs(groundAt(p.lat, p.lon) - hearth) > RELIEF_M) return -Infinity;
-      return Math.min(m, flood(p.lat, p.lon));
-    }, Infinity),
-  );
+      if (evenPlaces && Math.abs(groundAt(p.lat, p.lon) - hearth) > RELIEF_M) {
+        m = -Infinity;
+        break;
+      }
+      const fl = flood(p.lat, p.lon);
+      if (fl < m) {
+        m = fl;
+        if (m <= breakSlotAt) break;
+      }
+    }
+    places[k] = m;
+    if (m > minFit) passing++;
+    else if (passing + (LODGING_SLOTS - 1 - k) < need) return undefined;
+  }
+  return { id, key, compact, lat, lon, width: s.w, core, places, relief: reliefAt(key, s) };
+}
+
+/** Outing lane flood levels for a chosen site (section 2). */
+function siteLanes(site: SiteFit, flood: (lat: number, lon: number) => number): Site {
+  const s = { lat: site.lat, lon: site.lon, w: site.width };
+  const totalLanes = MAX_OUTING_M - LANE_FROM_M + 1;
   const lanes = Array.from({ length: LODGING_SLOTS }, (_, gap) => {
-    const d = gapDirection(key, gap);
+    const d = gapDirection(site.key, gap);
     const out: number[] = [];
-    let level = core;
+    let level = site.core;
     // From the edge of the core out to where the lanes are measured, as compact camps' cores are small.
-    for (let r = layoutOf(key).core; r < LANE_FROM_M; r += 0.5)
-      for (const turn of LANE_TURNS) {
-        const [c, sn] = [detCos(turn), detSin(turn)];
+    for (let r = layoutOf(site.key).core; level > -Infinity && r < LANE_FROM_M; r += 0.5)
+      for (let t = 0; level > -Infinity && t < LANE_TURN_CS.length; t++) {
+        const [c, sn] = LANE_TURN_CS[t]!;
         const p = at(s, (d.x * c - d.z * sn) * r * 1.1, (d.x * sn + d.z * c) * r * 1.1);
         level = Math.min(level, flood(p.lat, p.lon));
       }
     for (let m = LANE_FROM_M; m <= MAX_OUTING_M; m++) {
+      if (level === -Infinity) {
+        while (out.length < totalLanes) out.push(-Infinity);
+        break;
+      }
       // Across the lane, a little further out than people go, as coasts are drawn smoothed.
-      for (const r of [m - 0.5, m])
-        for (const turn of LANE_TURNS) {
-          const [c, sn] = [detCos(turn), detSin(turn)];
+      for (const r of [m - 0.5, m]) {
+        if (level === -Infinity) break;
+        for (let t = 0; level > -Infinity && t < LANE_TURN_CS.length; t++) {
+          const [c, sn] = LANE_TURN_CS[t]!;
           const p = at(s, (d.x * c - d.z * sn) * r * 1.1, (d.x * sn + d.z * c) * r * 1.1);
           level = Math.min(level, flood(p.lat, p.lon));
         }
+      }
       out.push(level);
     }
     return out;
   });
-  return { id, key, compact, lat, lon, width: s.w, core, places, lanes, relief: reliefAt(key, s) };
+  return { ...site, lanes };
 }
 
 /** How far a lane of a site reaches at a sea level, in layout metres; 0 when not past LANE_FROM_M. */
@@ -328,6 +387,7 @@ export function wayLevel(
   flood: (lat: number, lon: number) => number,
   // Walkers are drawn a little off the line; a place's own land needs only the line itself.
   sides = true,
+  minLevel = -Infinity,
 ): number {
   const km = distanceKm(a.lat, a.lon, b.lat, b.lon);
   const n = Math.max(1, Math.ceil(km / WALK_CHECK_KM));
@@ -344,8 +404,13 @@ export function wayLevel(
     let lon = a.lon + (dLon * k) / n;
     if (lon > 180) lon -= 360;
     else if (lon < -180) lon += 360;
-    for (const sgn of sides ? [0, 1, -1] : [0])
-      level = Math.min(level, flood(lat + sgn * side.lat, lon + sgn * side.lon));
+    for (const sgn of sides ? [0, 1, -1] : [0]) {
+      const fl = flood(lat + sgn * side.lat, lon + sgn * side.lon);
+      if (fl < level) {
+        level = fl;
+        if (level <= minLevel) return level;
+      }
+    }
   }
   return level;
 }
@@ -363,8 +428,8 @@ function roughFit(
   let core = flood(lat, lon);
   for (const r of compact ? [2, layoutOf(key).core] : [3, 6, CORE_M])
     for (let k = 0; k < 24; k++) {
-      const a = (k / 24) * 2 * Math.PI;
-      const p = at(s, r * detCos(a), r * detSin(a));
+      const [c, sn] = RING_24[k]!;
+      const p = at(s, r * c, r * sn);
       core = Math.min(core, flood(p.lat, p.lon));
     }
   const places = Array.from({ length: LODGING_SLOTS }, (_, k) => {
@@ -385,8 +450,18 @@ function roughFit(
 }
 
 /** How well a site fits: the lowest of its core and of the lodging places it needs. */
-const fitOf = (site: Site) =>
+const fitOf = (site: SiteFit) =>
   Math.min(site.core, [...site.places].sort((a, b) => b - a)[site.compact ? 0 : 1]!);
+
+function slotPtsCache(): (key: number) => { x: number; z: number }[][] {
+  const cache = new Map<number, { x: number; z: number }[][]>();
+  return (key: number) => {
+    let list = cache.get(key);
+    if (!list)
+      cache.set(key, (list = Array.from({ length: LODGING_SLOTS }, (_, k) => placePoints(key, k))));
+    return list;
+  };
+}
 
 /**
  * The best place for a site within its cell of the lattice (sites.md section 2): of a 5 by 5
@@ -405,6 +480,7 @@ function bestInCell(id: number, lat: number, lon: number, lonStep: number, input
       else if (lo < -180) lo += 360;
       if (input.campFlood(la, lo) > input.lowestSea) points.push({ lat: la, lon: lo });
     }
+  const slotPtsOf = slotPtsCache();
   // A full camp where one fits, else a compact one (section 2.1); on even ground where one
   // fits there as well as on uneven, often a compact camp with its shorter reach; else on
   // the evenest ground that does, not the highest.
@@ -422,11 +498,14 @@ function bestInCell(id: number, lat: number, lon: number, lonStep: number, input
     }
     return list;
   };
-  const full = new Map<string, Site>();
+  const full = new Map<string, SiteFit | null>();
   const siteOf = (key: number, lat: number, lon: number) => {
     const k = `${key}|${lat}|${lon}`;
     let site = full.get(k);
-    if (!site) full.set(k, (site = siteAt(id, key, lat, lon, input.campFlood)));
+    if (site === undefined) {
+      site = siteFit(id, key, lat, lon, input.campFlood, slotPtsOf(key), input.lowestSea) ?? null;
+      full.set(k, site);
+    }
     return site;
   };
   const pick = (key: number, ground: 'any' | 'even' | 'evenest') => {
@@ -438,10 +517,10 @@ function bestInCell(id: number, lat: number, lon: number, lonStep: number, input
           ? a.relief - b.relief || a.lat - b.lat || a.lon - b.lon
           : b.fit - a.fit || a.lat - b.lat || a.lon - b.lon,
       );
-    let best: Site | undefined;
+    let best: SiteFit | undefined;
     for (const o of options.slice(0, 2)) {
       const site = siteOf(key, o.lat, o.lon);
-      if (fitOf(site) <= input.lowestSea) continue;
+      if (!site || fitOf(site) <= input.lowestSea) continue;
       if (!best || (ground === 'evenest' ? site.relief < best.relief : fitOf(site) > fitOf(best)))
         best = site;
     }
@@ -453,9 +532,9 @@ function bestInCell(id: number, lat: number, lon: number, lonStep: number, input
   for (const ground of ['even', 'evenest'] as const)
     for (const key of [id, COMPACT_SITE + id]) {
       const site = pick(key, ground);
-      if (site && fitOf(site) >= need) return site;
+      if (site && fitOf(site) >= need) return siteLanes(site, input.campFlood);
     }
-  return anywhere;
+  return siteLanes(anywhere, input.campFlood);
 }
 
 /**
@@ -473,45 +552,64 @@ function keySite(
   const points = [{ lat: place.lat, lon: place.lon }];
   for (let r = 25; r <= radiusKm; r += 25)
     for (let k = 0; k < 24; k++) {
-      const a = (k / 24) * 2 * Math.PI;
-      points.push(onGlobe(place.lat, place.lon, r * detCos(a), r * detSin(a)));
+      const [c, sn] = RING_24[k]!;
+      points.push(onGlobe(place.lat, place.lon, r * c, r * sn));
     }
   const land = points.filter((p) => input.campFlood(p.lat, p.lon) > sea);
+  const slotPtsOf = slotPtsCache();
   // The largest layout whose camp stays dry even at the highest sea of the timeline (or of
   // the place's span).
   // On even ground first, in the smaller layouts too, then on the evenest that fits.
-  const rough = new Map<number, { lat: number; lon: number; fit: number; relief: number }[]>();
+  type Rough = { lat: number; lon: number; relief: number; fit?: number };
+  const rough = new Map<number, Rough[]>();
   const roughOf = (key: number) => {
     let list = rough.get(key);
     if (!list) {
       list = land.map((p) => ({
         ...p,
-        fit: roughFit(key, p.lat, p.lon, input.campFlood),
         relief: reliefAt(key, { ...p, w: lensWidth(p.lat, p.lon) }),
       }));
       rough.set(key, list);
     }
     return list;
   };
+  const full = new Map<string, SiteFit | null>();
+  const siteOf = (key: number, lat: number, lon: number) => {
+    const k = `${key}|${lat}|${lon}`;
+    let site = full.get(k);
+    if (site === undefined) {
+      site =
+        siteFit(id, key, lat, lon, input.campFlood, slotPtsOf(key), sea, input.lowestSea) ?? null;
+      full.set(k, site);
+    }
+    return site;
+  };
   for (const ground of ['even', 'evenest'] as const)
     for (const key of [id, COMPACT_SITE + id, MINIMAL_SITE + id]) {
-      const options = roughOf(key)
-        .filter((o) => (ground === 'even' ? o.relief <= RELIEF_M : o.fit > sea))
-        .sort((a, b) =>
-          ground === 'even'
-            ? b.fit - a.fit || a.lat - b.lat || a.lon - b.lon
-            : a.relief - b.relief || a.lat - b.lat || a.lon - b.lon,
-        );
-      let best: Site | undefined;
+      const candidates = roughOf(key);
+      let options: Rough[];
+      if (ground === 'even') {
+        options = candidates.filter((o) => o.relief <= RELIEF_M);
+        for (const o of options) o.fit ??= roughFit(key, o.lat, o.lon, input.campFlood);
+        options.sort((a, b) => b.fit! - a.fit! || a.lat - b.lat || a.lon - b.lon);
+      } else {
+        options = candidates.filter((o) => {
+          o.fit ??= roughFit(key, o.lat, o.lon, input.campFlood);
+          return o.fit > sea;
+        });
+        options.sort((a, b) => a.relief - b.relief || a.lat - b.lat || a.lon - b.lon);
+      }
+      let best: SiteFit | undefined;
       // The last layout, the minimal camp, is worked out at every place: on narrow land its one
       // hut stands dry at only a few, which the rough look does not find.
       for (const o of options.slice(0, key >= MINIMAL_SITE ? options.length : 6)) {
-        const site = siteAt(id, key, o.lat, o.lon, input.campFlood);
-        if (fitOf(site) <= sea) continue;
+        if (ground === 'evenest' && best && o.relief >= best.relief) break;
+        const site = siteOf(key, o.lat, o.lon);
+        if (!site || fitOf(site) <= sea) continue;
         if (!best || (ground === 'even' ? fitOf(site) > fitOf(best) : site.relief < best.relief))
           best = site;
       }
-      if (best) return best;
+      if (best) return siteLanes(best, input.campFlood);
     }
   return undefined;
 }
@@ -621,7 +719,7 @@ export function buildSites(input: SiteInputs): SiteMap {
     const key = a.id < b.id ? `${a.id}:${b.id}` : `${b.id}:${a.id}`;
     if (seen.has(key)) return;
     seen.add(key);
-    const level = wayLevel(a, b, input.walkFlood);
+    const level = wayLevel(a, b, input.walkFlood, true, input.lowestSea);
     if (level > input.lowestSea)
       links.push(a.id < b.id ? { a: a.id, b: b.id, km, level } : { a: b.id, b: a.id, km, level });
   };

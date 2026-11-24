@@ -9,16 +9,13 @@ import { EARTH_RADIUS_KM } from './earth.ts';
 import type { Lens } from './lens.ts';
 
 /**
- * The true direction of the point `eastKm` east and `northKm` north of a true centre, in
- * drawn km on the drawn globe, along the drawn up's north and east (geo/earth.ts northEast).
+ * Returns a mapper for points in drawn km east and north of `centre`, caching
+ * the drawn local tangent frame across multiple offsets around the same centre.
  */
-export function placedTrue(
+export function placedFrame(
   lens: Pick<Lens, 'toDrawn' | 'toTrue'>,
   centre: Vec3,
-  eastKm: number,
-  northKm: number,
-  out: Vec3 = [0, 0, 0],
-): Vec3 {
+): (eastKm: number, northKm: number, out?: Vec3) => Vec3 {
   const up = lens.toDrawn(centre, [0, 0, 0]);
   const ul = Math.hypot(up[0], up[1], up[2]);
   const [ux, uy, uz] = [up[0] / ul, up[1] / ul, up[2] / ul];
@@ -30,11 +27,28 @@ export function placedTrue(
   let [ex, ey, ez] = [ny * uz - nz * uy, nz * ux - nx * uz, nx * uy - ny * ux];
   const el = Math.hypot(ex, ey, ez) || 1;
   [ex, ey, ez] = [ex / el, ey / el, ez / el];
-  const p: Vec3 = [
-    ux * EARTH_RADIUS_KM + ex * eastKm + nx * northKm,
-    uy * EARTH_RADIUS_KM + ey * eastKm + ny * northKm,
-    uz * EARTH_RADIUS_KM + ez * eastKm + nz * northKm,
-  ];
-  const pl = Math.hypot(p[0], p[1], p[2]);
-  return lens.toTrue([p[0] / pl, p[1] / pl, p[2] / pl], out);
+  const bx = ux * EARTH_RADIUS_KM;
+  const by = uy * EARTH_RADIUS_KM;
+  const bz = uz * EARTH_RADIUS_KM;
+  return (eastKm: number, northKm: number, out: Vec3 = [0, 0, 0]): Vec3 => {
+    const px = bx + ex * eastKm + nx * northKm;
+    const py = by + ey * eastKm + ny * northKm;
+    const pz = bz + ez * eastKm + nz * northKm;
+    const pl = Math.hypot(px, py, pz);
+    return lens.toTrue([px / pl, py / pl, pz / pl], out);
+  };
+}
+
+/**
+ * The true direction of the point `eastKm` east and `northKm` north of a true centre, in
+ * drawn km on the drawn globe, along the drawn up's north and east (geo/earth.ts northEast).
+ */
+export function placedTrue(
+  lens: Pick<Lens, 'toDrawn' | 'toTrue'>,
+  centre: Vec3,
+  eastKm: number,
+  northKm: number,
+  out: Vec3 = [0, 0, 0],
+): Vec3 {
+  return placedFrame(lens, centre)(eastKm, northKm, out);
 }

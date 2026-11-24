@@ -1296,7 +1296,7 @@ export function buildTree(s: TreeSettings, habitat: Habitat): Tree {
         sites
           .filter((y) => km(y) <= KEY_PLACE_FAR_KM)
           .sort((a, b) => km(a) - km(b) || a.id - b.id)
-          .find((y) => !s.walkFlood || wayLevel(y, p, s.walkFlood, false) > sea),
+          .find((y) => !s.walkFlood || wayLevel(y, p, s.walkFlood, false, sea) > sea),
       );
     }
     return homes.get(key);

@@ -20,6 +20,8 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
+    "test:fast": "vitest run --exclude '**/onLand*.test.ts' --exclude 'data/build/pipelineFiles*.test.ts' --exclude 'app/src/planet/golden.test.ts'",
+    "test:world": "vitest run app/src/world/onLand data/build/pipelineFiles app/src/planet/golden.test.ts",
     "coverage": "vitest run --coverage",
     "golden": "vitest run app/src/planet/golden.test.ts data/build/pipeline.test.ts app/src/world/onLand",
     "check": "npm run lint && npm run typecheck && npm run test",

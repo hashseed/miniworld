@@ -30,6 +30,13 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - uses: actions/cache@v6
+        with:
+          path: data/out
+          key: data-out-${{ hashFiles('data/sources.json', 'data/curated/**') }}-${{ github.sha }}
+          restore-keys: |
+            data-out-${{ hashFiles('data/sources.json', 'data/curated/**') }}-
+            data-out-
       - run: npm run build
       # GitHub Pages compresses on its own and never serves the Brotli copies.
       - run: find dist -name '*.br' -delete

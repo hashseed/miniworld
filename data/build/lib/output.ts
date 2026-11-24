@@ -3,11 +3,14 @@
 
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { availableParallelism } from 'node:os';
 import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 import { brotliCompress, constants } from 'node:zlib';
 
 const compress = promisify(brotliCompress);
+const BROTLI_QUALITY = 6;
+const MAX_BROTLI_WORKERS = 8;
 
 export function contentHash(bytes: Uint8Array): string {
   return createHash('sha256').update(bytes).digest('hex').slice(0, 16);
@@ -25,7 +28,7 @@ export class Output {
    * so the build's memory and the machine's cores are not all taken at once (small CI
    * runners lost the job when every copy was queued while the build ran).
    */
-  private pending: { name: string; path: string; bytes: Uint8Array }[] = [];
+  private pending: { name: string; path: string; bytes: Uint8Array; hash?: string }[] = [];
 
   /**
    * Where Brotli copies are kept by the hash of their file's bytes, so an unchanged file is
@@ -60,8 +63,9 @@ export class Output {
 
   /** Writes bytes as `${base}.${hash}.${ext}` and returns the relative file name. */
   write(base: string, ext: string, bytes: Uint8Array): string {
-    const name = `${base}.${contentHash(bytes)}.${ext}`;
-    this.writeNamed(name, bytes);
+    const full = createHash('sha256').update(bytes).digest('hex');
+    const name = `${base}.${full.slice(0, 16)}.${ext}`;
+    this.writeNamed(name, bytes, full.slice(0, 32));
     return name;
   }
 
@@ -70,33 +74,36 @@ export class Output {
   }
 
   /** Writes a file under a fixed name (the manifest). */
-  writeNamed(name: string, bytes: Uint8Array): void {
+  writeNamed(name: string, bytes: Uint8Array, hash?: string): void {
     this.recording?.push({ name, bytes });
     const path = join(this.root, name);
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, bytes);
     this.rawBytes += bytes.length;
     this.files++;
-    this.pending.push({ name, path, bytes });
+    this.pending.push({ name, path, bytes, ...(hash ? { hash } : {}) });
   }
 
-  /** Writes every Brotli copy, two at a time. */
+  /** Writes every Brotli copy across bounded concurrent workers. */
   async finish(): Promise<void> {
     const queue = this.pending;
     this.pending = [];
     const cache = this.brotliCache;
     const used = new Set<string>();
     if (cache) mkdirSync(cache, { recursive: true });
+    let next = 0;
     const worker = async () => {
-      for (let job = queue.shift(); job; job = queue.shift()) {
-        const key =
-          cache && `${createHash('sha256').update(job.bytes).digest('hex').slice(0, 32)}.br`;
+      while (next < queue.length) {
+        const job = queue[next++]!;
+        const digest =
+          job.hash ?? createHash('sha256').update(job.bytes).digest('hex').slice(0, 32);
+        const key = cache && `q${BROTLI_QUALITY}-${digest}.br`;
         let br: Uint8Array;
         if (cache && key && existsSync(join(cache, key))) br = readFileSync(join(cache, key));
         else {
           br = await compress(job.bytes, {
             params: {
-              [constants.BROTLI_PARAM_QUALITY]: 9,
+              [constants.BROTLI_PARAM_QUALITY]: BROTLI_QUALITY,
               [constants.BROTLI_PARAM_SIZE_HINT]: job.bytes.length,
             },
           });
@@ -108,7 +115,8 @@ export class Output {
         this.sizes.set(job.name, br.length);
       }
     };
-    await Promise.all([worker(), worker()]);
+    const concurrency = Math.max(2, Math.min(availableParallelism(), MAX_BROTLI_WORKERS));
+    await Promise.all(Array.from({ length: concurrency }, worker));
     if (cache) for (const f of readdirSync(cache)) if (!used.has(f)) rmSync(join(cache, f));
   }
 }

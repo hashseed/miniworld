@@ -51,6 +51,13 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - uses: actions/cache@v6
+        with:
+          path: data/out
+          key: data-out-${{ hashFiles('data/sources.json', 'data/curated/**') }}-${{ github.sha }}
+          restore-keys: |
+            data-out-${{ hashFiles('data/sources.json', 'data/curated/**') }}-
+            data-out-
       - run: npm run build 2>&1 | tee build.log
       - if: failure()
         run: echo "::error title=release build::$(grep -v '^\s*$' build.log | tail -n 60 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')"

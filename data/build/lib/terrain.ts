@@ -6,7 +6,6 @@ import {
   TILE_N,
   dirToLatLon,
   faceUvToDir,
-  tileSampleUv,
   type TileKey,
   type Vec3,
 } from '../../../app/src/geo/cube.ts';
@@ -16,7 +15,7 @@ import {
   TERRAIN_SAMPLES,
   type TerrainTile,
 } from '../../../app/src/content/formats.ts';
-import { Grid, type GridPyramid } from './grid.ts';
+import { Grid, type GridData, type GridPyramid } from './grid.ts';
 import { NO_LAKE } from './water.ts';
 
 export interface TerrainInputs {
@@ -84,34 +83,114 @@ export function buildTerrainTile(key: TileKey, inputs: TerrainInputs): TerrainTi
   const coast = new Uint8Array(TERRAIN_SAMPLES * TERRAIN_SAMPLES);
   const oceanGrid = inputs.coarseOcean?.get(key.level) ?? inputs.ocean;
   const dir: Vec3 = [0, 0, 0];
+  const size = 2 / (1 << key.level);
+  const w = inputs.lakes.width;
+  const h = inputs.lakes.height;
+  const sameSize =
+    inputs.lakeLevel.width === w &&
+    inputs.lakeLevel.height === h &&
+    oceanGrid.width === w &&
+    oceanGrid.height === h &&
+    inputs.rivers.width === w &&
+    inputs.rivers.height === h &&
+    inputs.flowCos.width === w &&
+    inputs.flowCos.height === h &&
+    inputs.flowSin.width === w &&
+    inputs.flowSin.height === h &&
+    inputs.coast.width === w &&
+    inputs.coast.height === h &&
+    (!inputs.lakeNear || (inputs.lakeNear.width === w && inputs.lakeNear.height === h));
+  const hSame = sameSize && hgrid.width === w && hgrid.height === h;
+  const lakeData = inputs.lakes.data;
+  const lakeLevelData = inputs.lakeLevel.data;
+  const lakeNearData = inputs.lakeNear?.data;
+  const oceanData = oceanGrid.data;
+  const riverData = inputs.rivers.data;
+  const flowCosData = inputs.flowCos.data;
+  const flowSinData = inputs.flowSin.data;
+  const coastData = inputs.coast.data;
+  const hData = hgrid.data;
+
   for (let j = -1; j <= TILE_N + 1; j++) {
+    const v = -1 + (key.y + j / TILE_N) * size;
+    const jOk = j >= 0 && j <= TILE_N;
     for (let i = -1; i <= TILE_N + 1; i++) {
-      const { u, v } = tileSampleUv(key, i, j);
+      const u = -1 + (key.x + i / TILE_N) * size;
       faceUvToDir(key.face, u, v, dir);
       const { lat, lon } = dirToLatLon(dir);
-      let height = hgrid.bilinear(lat, lon);
-      const inner = i >= 0 && j >= 0 && i <= TILE_N && j <= TILE_N;
-      const lakeField = inputs.lakes.bilinear(lat, lon);
-      const lake = inputs.lakeLevel.nearest(lat, lon);
+      const inner = i >= 0 && jOk && i <= TILE_N;
+      let height: number;
+      let lakeField: number;
+      let lake: number;
+      let near = NO_LAKE;
+      let oceanVal = 0;
+      let riverVal = 0;
+      let flowCosVal = 0;
+      let flowSinVal = 0;
+      let coastVal = 0;
+      if (sameSize) {
+        const c = ((lon + 180) / 360) * w - 0.5;
+        const r = ((90 - lat) / 180) * h - 0.5;
+        const c0 = Math.floor(c);
+        const r0 = Math.floor(r);
+        const fc = c - c0;
+        const fr = r - r0;
+        const cc0 = ((c0 % w) + w) % w;
+        const cc1 = cc0 === w - 1 ? 0 : cc0 + 1;
+        const rr0 = r0 < 0 ? 0 : r0 >= h ? h - 1 : r0;
+        const rr1 = r0 + 1 < 0 ? 0 : r0 + 1 >= h ? h - 1 : r0 + 1;
+        const i00 = rr0 * w + cc0;
+        const i10 = rr0 * w + cc1;
+        const i01 = rr1 * w + cc0;
+        const i11 = rr1 * w + cc1;
+        const nc = ((Math.round(c) % w) + w) % w;
+        const nrRaw = Math.round(r);
+        const nr = nrRaw < 0 ? 0 : nrRaw >= h ? h - 1 : nrRaw;
+        const iNear = nr * w + nc;
+        const omfc = 1 - fc;
+        const omfr = 1 - fr;
+        const sample = (g: GridData) =>
+          (g[i00]! * omfc + g[i10]! * fc) * omfr + (g[i01]! * omfc + g[i11]! * fc) * fr;
+        height = hSame ? sample(hData) : hgrid.bilinear(lat, lon);
+        lakeField = sample(lakeData);
+        lake = lakeLevelData[iNear]!;
+        if (lakeNearData) near = lakeNearData[iNear]!;
+        if (inner) {
+          oceanVal = sample(oceanData);
+          riverVal = sample(riverData);
+          flowCosVal = sample(flowCosData);
+          flowSinVal = sample(flowSinData);
+          coastVal = sample(coastData);
+        }
+      } else {
+        height = hgrid.bilinear(lat, lon);
+        lakeField = inputs.lakes.bilinear(lat, lon);
+        lake = inputs.lakeLevel.nearest(lat, lon);
+        if (inputs.lakeNear) near = inputs.lakeNear.nearest(lat, lon);
+        if (inner) {
+          oceanVal = oceanGrid.bilinear(lat, lon);
+          riverVal = inputs.rivers.bilinear(lat, lon);
+          flowCosVal = inputs.flowCos.bilinear(lat, lon);
+          flowSinVal = inputs.flowSin.bilinear(lat, lon);
+          coastVal = inputs.coast.bilinear(lat, lon);
+        }
+      }
       if (lake !== NO_LAKE && lakeField >= 100) height = lake;
-      else if (inputs.lakeNear) {
+      else if (near !== NO_LAKE && lakeField > SHORE_FROM) {
         // A lake's shore slopes down to its water instead of standing over it as a wall
         // (section 4.3): the land's rise above the nearest lake shrinks as its field rises.
-        const near = inputs.lakeNear.nearest(lat, lon);
-        if (near !== NO_LAKE && lakeField > SHORE_FROM) {
-          const t = Math.min(1, (lakeField - SHORE_FROM) / (100 - SHORE_FROM));
-          height = near + Math.max(0, height - near) * (1 - t * t * (3 - 2 * t));
-        }
+        const t = Math.min(1, (lakeField - SHORE_FROM) / (100 - SHORE_FROM));
+        height = near + Math.max(0, height - near) * (1 - t * t * (3 - 2 * t));
       }
       if (inner) {
         const s = j * TERRAIN_SAMPLES + i;
-        ocean[s] = Math.round(oceanGrid.bilinear(lat, lon));
+        ocean[s] = Math.round(oceanVal);
         lakes[s] = Math.round(lakeField);
-        rivers[s] = Math.round(inputs.rivers.bilinear(lat, lon));
-        flow[s * 2] = Math.round(inputs.flowCos.bilinear(lat, lon));
-        flow[s * 2 + 1] = Math.round(inputs.flowSin.bilinear(lat, lon));
+        rivers[s] = Math.round(riverVal);
+        flow[s * 2] = Math.round(flowCosVal);
+        flow[s * 2 + 1] = Math.round(flowSinVal);
         bed[s] = Math.round(inputs.bed(lat, lon));
-        coast[s] = Math.round(inputs.coast.bilinear(lat, lon));
+        coast[s] = Math.round(coastVal);
       }
       heights[(j + 1) * TERRAIN_BORDERED + (i + 1)] = Math.max(DEEP_HEIGHT, Math.round(height));
     }

@@ -19,7 +19,7 @@ import {
   widthFactors,
 } from '../../../app/src/globe/lens.ts';
 import { dirToLatLon, latLonToDir } from '../../../app/src/geo/cube.ts';
-import { placedTrue } from '../../../app/src/geo/placement.ts';
+import { placedFrame } from '../../../app/src/geo/placement.ts';
 import { atStrength, buildLens, checkLens, LENS_PARAMS, parseCoordinates } from '../lib/lens.ts';
 import { lensPreviewSvg } from '../lib/lensPreview.ts';
 import { readFeatures } from '../lib/readers.ts';
@@ -111,9 +111,24 @@ export function buildLensStage(ctx: WriteContext): {
   const drawn = new Lens(grids.forward, grids.inverse);
   drawn.blend = LENS_STRENGTH;
   const out: [number, number, number] = [0, 0, 0];
+  let lastLat = NaN;
+  let lastLon = NaN;
+  let lastFrame:
+    | ((
+        eastKm: number,
+        northKm: number,
+        out?: [number, number, number],
+      ) => [number, number, number])
+    | undefined;
   return {
-    placeAt: (lat, lon, eastKm, northKm) =>
-      dirToLatLon(placedTrue(drawn, latLonToDir(lat, lon), eastKm, northKm, out)),
+    placeAt: (lat, lon, eastKm, northKm) => {
+      if (lat !== lastLat || lon !== lastLon || !lastFrame) {
+        lastLat = lat;
+        lastLon = lon;
+        lastFrame = placedFrame(drawn, latLonToDir(lat, lon));
+      }
+      return dirToLatLon(lastFrame(eastKm, northKm, out));
+    },
     lens: { file: ctx.output.write('lens', 'bin', bytes), version, exponent },
     widthAt: (lat, lon) => 1 + (sampleScalar(width, latLonToDir(lat, lon)) - 1) * LENS_STRENGTH,
   };

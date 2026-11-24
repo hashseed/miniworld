@@ -339,12 +339,54 @@ export class Lens {
     // Start from the blended inverse grid and correct by the forward error,
     // shrunk by the local width so that strong lenses converge too.
     const x: Vec3 = slerpDir(d, sampleGrid(this.inverse, d, this.tmp), this.blend, [0, 0, 0]);
+    const b = this.blend;
+    const fwd = this.forward;
+    const wid = this.width;
     for (let k = 0; k < 8; k++) {
-      const f = this.toDrawn(x, this.tmp2);
-      const k1 = 1 / this.widthAt(x);
-      x[0] += (d[0] - f[0]) * k1;
-      x[1] += (d[1] - f[1]) * k1;
-      x[2] += (d[2] - f[2]) * k1;
+      // One grid lookup per step for both forward displacement and local width.
+      const lat = Math.asin(Math.max(-1, Math.min(1, x[1]))) * (180 / Math.PI);
+      const lon = Math.atan2(x[0], x[2]) * (180 / Math.PI);
+      const fx = Math.min(LENS_COLS - 1.000001, Math.max(0, (lon + 180) / LENS_STEP));
+      const fy = Math.min(LENS_ROWS - 1.000001, Math.max(0, (lat + 90) / LENS_STEP));
+      const i = Math.floor(fx);
+      const j = Math.floor(fy);
+      const tx = fx - i;
+      const ty = fy - j;
+      const si = j * LENS_COLS + i;
+      const sc = si + LENS_COLS;
+      const a = si * 3;
+      const c = sc * 3;
+      const w0 = (1 - tx) * (1 - ty);
+      const w1 = tx * (1 - ty);
+      const w2 = (1 - tx) * ty;
+      const w3 = tx * ty;
+      let wx = fwd[a]! * w0 + fwd[a + 3]! * w1 + fwd[c]! * w2 + fwd[c + 3]! * w3;
+      let wy = fwd[a + 1]! * w0 + fwd[a + 4]! * w1 + fwd[c + 1]! * w2 + fwd[c + 4]! * w3;
+      let wz = fwd[a + 2]! * w0 + fwd[a + 5]! * w1 + fwd[c + 2]! * w2 + fwd[c + 5]! * w3;
+      const wlen = Math.hypot(wx, wy, wz) || 1;
+      wx /= wlen;
+      wy /= wlen;
+      wz /= wlen;
+      let fx0 = x[0] + (wx - x[0]) * b;
+      let fy0 = x[1] + (wy - x[1]) * b;
+      let fz0 = x[2] + (wz - x[2]) * b;
+      const flen = Math.hypot(fx0, fy0, fz0);
+      fx0 /= flen;
+      fy0 /= flen;
+      fz0 /= flen;
+      const ex = d[0] - fx0;
+      const ey = d[1] - fy0;
+      const ez = d[2] - fz0;
+      if (ex === 0 && ey === 0 && ez === 0) break;
+      const width =
+        wid[si]! * (1 - tx) * (1 - ty) +
+        wid[si + 1]! * tx * (1 - ty) +
+        wid[sc]! * (1 - tx) * ty +
+        wid[sc + 1]! * tx * ty;
+      const k1 = 1 / (1 + (width - 1) * b);
+      x[0] += ex * k1;
+      x[1] += ey * k1;
+      x[2] += ez * k1;
       const len = Math.hypot(x[0], x[1], x[2]);
       x[0] /= len;
       x[1] /= len;

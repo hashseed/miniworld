@@ -309,20 +309,27 @@ export function buildHumankind(
   }
   // The camp sites and their links (sites.md): flood levels from the source grids and the
   // drawn tiles, whichever floods first; lakes and drawn rivers are never dry for a camp.
+  const wl: [number, number] = [0, 0];
   const oceanFlood = (lat: number, lon: number) => {
     const v = connection.nearest(lat, lon);
     const grid = v === OCEAN_NEVER ? Infinity : OCEAN_MIN_LEVEL + v;
-    return Math.min(grid, drawn.groundAt(lat, lon).oceanLevel);
+    return Math.min(grid, drawn.oceanAndLake(lat, lon, wl)[0]);
   };
   // Water for a canoe: only where the grids and the drawn tiles both flood.
   const waterFlood = (lat: number, lon: number) => {
     if (drawn.lake(lat, lon)) return -Infinity;
     const v = connection.nearest(lat, lon);
     const grid = v === OCEAN_NEVER ? Infinity : OCEAN_MIN_LEVEL + v;
-    return Math.max(grid, drawn.groundAt(lat, lon).oceanLevel);
+    return Math.max(grid, drawn.oceanAndLake(lat, lon, wl)[0]);
   };
-  const walkFlood = (lat: number, lon: number) =>
-    lakeAt(lat, lon) ? -Infinity : oceanFlood(lat, lon);
+  const walkFlood = (lat: number, lon: number) => {
+    if (lakes.nearest(lat, lon) >= 128) return -Infinity;
+    drawn.oceanAndLake(lat, lon, wl);
+    if (wl[1] > LAKE_FIELD) return -Infinity;
+    const v = connection.nearest(lat, lon);
+    const grid = v === OCEAN_NEVER ? Infinity : OCEAN_MIN_LEVEL + v;
+    return Math.min(grid, wl[0]);
+  };
   const campFlood = (lat: number, lon: number) =>
     rivers.bilinear(lat, lon) >= RIVER_BANK_FIELD ? -Infinity : walkFlood(lat, lon);
   const lowestSea = Math.min(...climate.seaLevel.metres);
