@@ -5,6 +5,7 @@ This folder is the source of truth for what Miniworld does. Every change to beha
 | File | Contents |
 | --- | --- |
 | [spec.md](spec.md) | Vision, time model, globe, history data, events, people, interface, localisation, visual style, architecture, content delivery, development environment, licences |
+| [art-direction.md](art-direction.md) | Canonical clay proportions (`1 model m = 1 game m`), curated regional material palette (`assets/src/palette.ts`), closed-outline rules, visual QA sheets (`house-lineup`, `house-slopes`, `village-diorama`, `npm run tour`), and `?debug=1` placement inspector |
 | [architecture.md](architecture.md) | How the code separates content from the engine (content, data build, world, renderer), and the open architecture work in order |
 | [milestones.md](milestones.md) | Build order, scope and exit criteria for each milestone, and the definition of done |
 | [milestone-1.md](milestone-1.md) | Detailed spec for milestone 1, Globe and time |

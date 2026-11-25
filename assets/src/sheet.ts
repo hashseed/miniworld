@@ -4,6 +4,23 @@
 
 import * as THREE from 'three';
 import { cameraLight } from '../../app/src/globe/sky.ts';
+import { CROP_COLOURS } from '../../app/src/tree/fieldGround.ts';
+import { DAYS_PER_YEAR, TIMELINE_START } from '../../app/src/time/calendar.ts';
+import { msAtDay } from '../../app/src/time/rate.ts';
+import { drawnAs, type Profile } from '../../app/src/world/cultures.ts';
+import { encodeMask, maskCentre, MASK_RINGS, MASK_SECTORS } from '../../app/src/world/fieldMask.ts';
+import { pointInPolygon } from '../../app/src/world/fieldShapes.ts';
+import { neolithicProfile } from '../../app/src/world/neolithicProfiles.ts';
+import { housePlaces } from '../../app/src/world/scene/camp.ts';
+import { NEVER } from '../../app/src/world/tree.ts';
+import {
+  FIGURE_KM_PER_M,
+  HERD_SCALE,
+  LAYOUT_KM_PER_M,
+  treeScene,
+  type TreeChunk,
+} from '../../app/src/world/treeScene.ts';
+import { CROP_SPACING_M, type CropId } from './cultureModels.ts';
 import { ModelBuilder, blob, box, celMaterial, lightUniforms, type Model } from './kit.ts';
 import { aboveGroundBounds, isPlinthMesh } from './plinth.ts';
 import { PROFILES, buildPerson, posePerson, type Kind, type Pose } from './people.ts';
@@ -393,6 +410,367 @@ function houseSlopesSheet(): void {
   camera.position.set(10.5, 13.5, 34);
   camera.lookAt(0, -0.5, 0);
   info.text = `house-slopes (18° slope, 1.5 m plinths & stilts visible): ${Math.round(triangles).toLocaleString('en')} tris`;
+}
+
+/**
+ * Renders one farming culture's real `treeScene()` village across three terrain
+ * conditions (flat, 15° slope, coastal edge) and three distances (close, mid, orbital)
+ * at constant 1:1 toy-planet scale (`sheet=village-diorama&culture=<id>`).
+ */
+function villageDioramaSheet(): void {
+  const culture = params.get('culture') ?? 'lbk-farmer';
+  const profile = neolithicProfile(culture);
+  const layoutToFig = LAYOUT_KM_PER_M / FIGURE_KM_PER_M;
+  const figAngle = (dirX: number, dirZ: number) => Math.atan2(dirX, -dirZ);
+  const toFig = (x: number, z: number): [number, number] => [x * layoutToFig, -z * layoutToFig];
+
+  const allLand = encodeMask(new Array<boolean>(MASK_RINGS * MASK_SECTORS).fill(true));
+  const coastFlags: boolean[] = [];
+  for (let r = 0; r < MASK_RINGS; r++)
+    for (let s = 0; s < MASK_SECTORS; s++) coastFlags.push(maskCentre(r, s).x <= 15.5);
+  const coastLand = encodeMask(coastFlags);
+
+  const slope = Math.tan((15 * Math.PI) / 180);
+  type PadKind = 'flat' | 'slope' | 'coastal';
+  const surfOf =
+    (kind: PadKind) =>
+    (wx: number, _wz: number): number => {
+      if (kind === 'flat') return 0;
+      if (kind === 'slope') return -slope * wx;
+      if (wx <= 5.5) return 0;
+      const t = Math.min(1, (wx - 5.5) / 2.2);
+      return -0.55 * (t * t * (3 - 2 * t));
+    };
+
+  const makePad = (kind: PadKind, target: THREE.Scene) => {
+    const mb = new ModelBuilder([], 0);
+    const halfW = 20;
+    const halfD = 18;
+    if (kind === 'flat') {
+      mb.add(box([-halfW, -1.8, -halfD], [halfW, -0.01, halfD]), '#a9b86a');
+    } else if (kind === 'slope') {
+      const top = box([-halfW, -0.1, -halfD], [halfW, 0, halfD]);
+      const soil = box([-halfW, -3.5, -halfD + 0.1], [halfW, -0.1, halfD - 0.1]);
+      for (const g of [top, soil]) {
+        const p = g.getAttribute('position');
+        for (let i = 0; i < p.count; i++) p.setY(i, p.getY(i) - slope * p.getX(i));
+        p.needsUpdate = true;
+      }
+      mb.add(top, '#a8b468');
+      mb.add(soil, '#7d6245');
+    } else {
+      const surf = surfOf('coastal');
+      const gTop = new THREE.BoxGeometry(halfW * 2, 0.12, halfD * 2, 24, 1, 2).toNonIndexed();
+      const gSoil = new THREE.BoxGeometry(halfW * 2, 1.8, halfD * 2 - 0.2, 24, 1, 2).toNonIndexed();
+      const displace = (g: THREE.BufferGeometry, yOffset: number) => {
+        const p = g.getAttribute('position');
+        for (let i = 0; i < p.count; i++) {
+          const x = p.getX(i);
+          p.setY(i, p.getY(i) + surf(x, 0) + yOffset);
+        }
+        p.needsUpdate = true;
+      };
+      displace(gTop, -0.06);
+      displace(gSoil, -1.02);
+      mb.add(gTop, '#b6ba74');
+      mb.add(gSoil, '#8c7250');
+      mb.add(box([5.2, -0.38, -halfD], [halfW, -0.3, halfD]), '#5d9cc4');
+    }
+    target.add(mb.build(`pad-${kind}`).object);
+  };
+
+  const makeChunk = (fieldLand: string, kind: PadKind): TreeChunk => {
+    const d0 = TIMELINE_START;
+    const count = profile.houseCapacity ? 1 : Math.min(4, housePlaces(culture));
+    const houseKind = profile.architecture[0]!;
+    const reach = kind === 'coastal' ? [12, 80, 80, 80, 12] : [80, 80, 80, 80, 80];
+    return {
+      fromDay: d0,
+      toDay: d0 + Math.round(500 * DAYS_PER_YEAR),
+      figures: Array.from({ length: 8 }, (_, id) => ({
+        id,
+        parent: NEVER,
+        born: d0,
+        branch: id,
+        depth: 0,
+        homes: [[d0, id % count, id]] as [number, number, number][],
+        lost: NEVER,
+      })),
+      lodgings: Array.from({ length: count }, (_, slot) => ({
+        id: slot,
+        camp: 101,
+        lat: 49_000_000,
+        lon: 10_000_000,
+        built: d0,
+        gone: NEVER,
+        builder: 0,
+        slot,
+        reach,
+        kind: houseKind,
+        culture,
+        fieldLand,
+      })),
+    };
+  };
+
+  const buildPadScene = (kind: PadKind): { pad: THREE.Scene; tris: number } => {
+    const pad = new THREE.Scene();
+    let tris = 0;
+    const surf = surfOf(kind);
+    makePad(kind, pad);
+    const chunk = makeChunk(kind === 'coastal' ? coastLand : allLand, kind);
+    const baseMs = msAtDay(TIMELINE_START + Math.round(12 * DAYS_PER_YEAR), TIMELINE_START);
+    let picked = treeScene(chunk, baseMs + 120_000, TIMELINE_START);
+    for (let step = 0; step < 30; step++) {
+      const candidate = treeScene(chunk, baseMs + (120 + step * 35) * 1000, TIMELINE_START);
+      const midFields = candidate.fields.filter((f) => f.stage >= 0.35 && f.stage <= 0.85).length;
+      const curMid = picked.fields.filter((f) => f.stage >= 0.35 && f.stage <= 0.85).length;
+      if (
+        candidate.fields.length > picked.fields.length ||
+        (candidate.fields.length === picked.fields.length && midFields > curMid)
+      ) {
+        picked = candidate;
+        if (picked.fields.length >= 2 && midFields >= 1) break;
+      }
+    }
+
+    for (const f of picked.fields) {
+      const outline = f.field.outline;
+      if (outline.length < 3) continue;
+      const [greenHex, ripeHex] = CROP_COLOURS[f.field.crop] ?? [0x6fa83a, 0xd9b04a];
+      const baseCol = new THREE.Color(greenHex).lerp(
+        new THREE.Color(ripeHex),
+        THREE.MathUtils.clamp((f.stage - 0.25) / 0.6, 0, 1),
+      );
+      if (f.stage < 0.2) baseCol.lerp(new THREE.Color('#8a623c'), 0.65);
+      const cx = f.field.centre.x;
+      const cz = f.field.centre.z;
+      const rings = [0.55, 1];
+      const positions: number[] = [];
+      const colors: number[] = [];
+      const figAt = (lx: number, lz: number): [number, number, number] => {
+        const [wx, wz] = toFig(lx, lz);
+        return [wx, surf(wx, wz) + 0.035, wz];
+      };
+      const pushTri = (
+        a: [number, number, number],
+        b: [number, number, number],
+        c: [number, number, number],
+      ) => {
+        const ux = b[0] - a[0];
+        const uz = b[2] - a[2];
+        const vx = c[0] - a[0];
+        const vz = c[2] - a[2];
+        const ny = uz * vx - ux * vz;
+        const pts = ny >= 0 ? [a, b, c] : [a, c, b];
+        for (const pt of pts) {
+          positions.push(pt[0], pt[1], pt[2]);
+          colors.push(baseCol.r, baseCol.g, baseCol.b);
+        }
+      };
+      const cPt = figAt(cx, cz);
+      const ringPts = rings.map((share) =>
+        outline.map((p) => figAt(cx + (p.x - cx) * share, cz + (p.z - cz) * share)),
+      );
+      for (let i = 0; i < outline.length; i++) {
+        const j = (i + 1) % outline.length;
+        pushTri(cPt, ringPts[0]![i]!, ringPts[0]![j]!);
+        pushTri(ringPts[0]![i]!, ringPts[1]![i]!, ringPts[1]![j]!);
+        pushTri(ringPts[0]![i]!, ringPts[1]![j]!, ringPts[0]![j]!);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      g.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      g.computeVertexNormals();
+      const mesh = new THREE.Mesh(g, celMaterial());
+      pad.add(mesh);
+      tris += positions.length / 9;
+
+      const cropId = f.field.crop as CropId;
+      if (CROP_SPACING_M[cropId]) {
+        const tuftG = cropGeometry(cropId, Math.max(0.45, Math.min(1, f.stage)));
+        let minX = Infinity;
+        let maxX = -Infinity;
+        let minZ = Infinity;
+        let maxZ = -Infinity;
+        for (const p of outline) {
+          minX = Math.min(minX, p.x);
+          maxX = Math.max(maxX, p.x);
+          minZ = Math.min(minZ, p.z);
+          maxZ = Math.max(maxZ, p.z);
+        }
+        const spacing = Math.max(
+          CROP_SPACING_M[cropId] * 2.2,
+          Math.hypot(maxX - minX, maxZ - minZ) / 4,
+        );
+        const tuftScale = Math.min(0.95, spacing * 1.15 * layoutToFig);
+        for (let lx = minX + spacing * 0.4; lx <= maxX - spacing * 0.4; lx += spacing) {
+          for (let lz = minZ + spacing * 0.4; lz <= maxZ - spacing * 0.4; lz += spacing) {
+            if (!pointInPolygon(outline, lx, lz)) continue;
+            const [wx, wz] = toFig(lx, lz);
+            const tm = new THREE.Mesh(tuftG, celMaterial());
+            tm.position.set(wx, surf(wx, wz) + 0.03, wz);
+            tm.scale.setScalar(tuftScale);
+            tm.rotation.y = (lx * 1.7 + lz * 2.3) % (Math.PI * 2);
+            pad.add(tm);
+            tris += tuftG.getAttribute('position').count / 3;
+          }
+        }
+      }
+    }
+
+    for (const l of picked.lodgings) {
+      const m = buildShelter(l.kind as (typeof SHELTERS)[number]);
+      const [wx, wz] = toFig(l.x, l.z);
+      const turn = figAngle(l.dirX, l.dirZ);
+      const b = aboveGroundBounds(m.object);
+      const full = new THREE.Box3().setFromObject(m.object);
+      const plinthDepth = Math.max(0, -full.min.y);
+      const cos = Math.cos(turn);
+      const sin = Math.sin(turn);
+      const centerH = surf(wx, wz);
+      let minH = centerH;
+      let maxH = centerH;
+      for (const lx of [b.min.x, b.max.x]) {
+        for (const lz of [b.min.z, b.max.z]) {
+          const cx = wx + lx * cos + lz * sin;
+          const cz = wz - lx * sin + lz * cos;
+          const h = surf(cx, cz);
+          if (h < minH) minH = h;
+          if (h > maxH) maxH = h;
+        }
+      }
+      const baseY = Math.min(Math.max(centerH, maxH - 0.25), minH + plinthDepth);
+      m.object.position.set(wx, baseY, wz);
+      m.object.rotation.y = turn;
+      pad.add(m.object);
+      tris += m.triangles;
+    }
+
+    for (const q of picked.props) {
+      const m = buildShelter(q.kind as (typeof SHELTERS)[number]);
+      const [wx, wz] = toFig(q.x, q.z);
+      const turn = figAngle(q.dirX, q.dirZ);
+      const scale = q.scale ?? 1;
+      m.object.scale.setScalar(scale);
+      m.object.rotation.y = turn;
+      if (q.kind === 'prop-pen' && kind === 'slope') {
+        m.object.quaternion.premultiply(
+          new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -Math.atan(slope)),
+        );
+        m.object.position.set(wx, surf(wx, wz) - 0.08, wz);
+      } else {
+        m.object.position.set(wx, surf(wx, wz), wz);
+      }
+      pad.add(m.object);
+      tris += m.triangles;
+    }
+
+    for (const p of picked.prey) {
+      const m = buildAnimal(p.kind as AnimalId);
+      const [wx, wz] = toFig(p.x, p.z);
+      animateAnimal(m, p.clip, (p.clipMs * 3.6) / 1000);
+      m.object.scale.setScalar(p.scale ?? HERD_SCALE);
+      m.object.position.set(wx, surf(wx, wz), wz);
+      m.object.rotation.y = figAngle(p.dirX, p.dirZ);
+      pad.add(m.object);
+      tris += m.triangles;
+    }
+
+    const bodyProfile = drawnAs(culture) as Profile;
+    for (const f of picked.figures) {
+      const kindWho: Kind = f.look === 'woman' || f.look === 'child' ? f.look : 'man';
+      const m = buildPerson({
+        profile: bodyProfile,
+        kind: kindWho,
+        variant: f.id,
+        ...(f.tool ? { tool: f.tool as never } : {}),
+      });
+      animatePerson(m, f.clip as Clip, (f.clipMs * 3.6) / 1000);
+      const [wx, wz] = toFig(f.x, f.z);
+      m.object.position.set(wx, surf(wx, wz), wz);
+      m.object.rotation.y = figAngle(f.dirX, f.dirZ);
+      pad.add(m.object);
+      tris += m.triangles;
+    }
+
+    return { pad, tris };
+  };
+
+  const pads: { key: PadKind; label: string; scene: THREE.Scene }[] = (
+    [
+      ['flat', 'flat'],
+      ['slope', '15° slope'],
+      ['coastal', 'coastal edge'],
+    ] as const
+  ).map(([key, label]) => {
+    const built = buildPadScene(key);
+    triangles += built.tris;
+    return { key, label, scene: built.pad };
+  });
+
+  const alts = [
+    {
+      name: 'close',
+      pos: new THREE.Vector3(6, 5.2, 13.5),
+      target: new THREE.Vector3(0.5, 0.9, -2.5),
+    },
+    { name: 'mid', pos: new THREE.Vector3(16, 22, 34), target: new THREE.Vector3(0, 0, -1) },
+    { name: 'orbital', pos: new THREE.Vector3(32, 82, 76), target: new THREE.Vector3(0, 0, 0) },
+  ];
+
+  const headerH = 30;
+  const cols = pads.length;
+  const rows = alts.length;
+  const tileW = Math.floor(innerWidth / cols);
+  const tileH = Math.floor((innerHeight - headerH) / rows);
+  renderer.setScissorTest(true);
+  customRender = () => {
+    renderer.setClearColor(0xfbe3d4);
+    renderer.setScissor(0, 0, innerWidth, innerHeight);
+    renderer.setViewport(0, 0, innerWidth, innerHeight);
+    renderer.clear();
+    const pr = renderer.getPixelRatio();
+    alts.forEach((alt, r) => {
+      pads.forEach((pad, c) => {
+        const cam = new THREE.PerspectiveCamera(32, tileW / tileH, 0.2, 600);
+        cam.position.copy(alt.pos);
+        cam.lookAt(alt.target);
+        cam.updateMatrixWorld();
+        cameraLight(cam, lightUniforms.lightDir.value);
+        const me = cam.matrixWorld.elements;
+        lightUniforms.screenUp.value.set(me[4]!, me[5]!, me[6]!);
+        lightUniforms.viewport.value.set(tileW * pr, tileH * pr);
+        lightUniforms.inkPixels.value = 1.6 * pr;
+        lightUniforms.inkFullPixels.value = 40 * pr;
+        const vx = c * tileW;
+        const vy = innerHeight - headerH - (r + 1) * tileH;
+        renderer.setViewport(vx, vy, tileW, tileH);
+        renderer.setScissor(vx, vy, tileW, tileH);
+        renderer.render(pad.scene, cam);
+      });
+    });
+  };
+  customRender();
+  labels.length = 0;
+  alts.forEach((alt, r) => {
+    pads.forEach((pad, c) => {
+      const div = document.createElement('div');
+      div.textContent = `${pad.label} · ${alt.name}`;
+      Object.assign(div.style, {
+        position: 'absolute',
+        left: `${c * tileW + 8}px`,
+        top: `${headerH + r * tileH + 6}px`,
+        font: '600 12px system-ui, sans-serif',
+        color: '#3a261c',
+        background: 'rgba(255, 246, 238, 0.9)',
+        padding: '2px 7px',
+        borderRadius: '6px',
+      });
+      document.body.appendChild(div);
+    });
+  });
+  info.text = `village-diorama: ${culture} (${profile.layout}, houseM=${profile.houseM ?? 'default'}) · ${Math.round(triangles).toLocaleString('en')} tris`;
 }
 
 /** Crops of fields-and-crops.md section 1: 13 crops (rows) by 5 stages (columns), a 2 x 2 patch each. */
@@ -1005,6 +1383,7 @@ const sheets: Record<string, () => void> = {
   shelters: sheltersSheet,
   'house-lineup': houseLineupSheet,
   'house-slopes': houseSlopesSheet,
+  'village-diorama': villageDioramaSheet,
   animals: animalsSheet,
   crops: cropsSheet,
 };

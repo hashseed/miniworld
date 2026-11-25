@@ -50,6 +50,7 @@ import { groupSpanAt, WILD_GROUPS } from './world/wildlife.ts';
 
 const params = new URLSearchParams(location.search);
 const STRESS = params.get('scene') === 'stress';
+const DEBUG = params.has('debug') && params.get('debug') !== '0';
 /** Development only: the loading screen's small globe stays, unturned, for its still picture. */
 const INTRO_HOLD = import.meta.env.DEV && params.has('introHold');
 /** The first view: the first person's camp at Lake Turkana (spec humankind.md, section 7). */
@@ -177,6 +178,9 @@ const tree = new TreeLayer(loader, {
 scene.add(wildlife.group, tree.group);
 /** The camp sites for development, with `?sites` (sites.md section 7). */
 let sitesView: SitesLayer | undefined;
+/** Developer placement & art inspector loaded lazily only when `?debug=1`. */
+let debugView:
+  { update: (seaLevel: number, day: number, camera: THREE.Camera) => void } | undefined;
 // A tap on a scene opens its site card, a tap on an animal its animal card.
 {
   let down: { x: number; y: number; t: number } | undefined;
@@ -553,6 +557,7 @@ loop.afterFrame = (now) => {
   introFrame(lastFrame ? now - lastFrame : 0);
   lastFrame = now;
   sitesView?.update(loop.planet.seaLevel, camera);
+  debugView?.update(loop.planet.seaLevel, clock.day, camera);
   timeline?.draw();
   updateVisibleLanes();
   if (now - lastViewSave > VIEW_SAVE_MS) {
@@ -650,6 +655,31 @@ async function start(): Promise<void> {
     applyQuality();
     resize();
     placeIntro();
+    if (DEBUG) {
+      const { DebugInspector } = await import('./dev/debugInspector.ts');
+      const inspector = new DebugInspector({
+        scene,
+        camera,
+        globe,
+        tree,
+        wildlife,
+        controller,
+        clock,
+        loader,
+        index,
+        surface: {
+          surfaceKm: surface.surfaceKm,
+          version: surface.version,
+          toDrawn: (d) => globe.lens.toDrawn(d),
+        },
+        sitesFile: manifest.tree?.sites,
+      });
+      debugView = inspector;
+      if (import.meta.env.DEV) {
+        const mw = (globalThis as unknown as { __miniworld?: Record<string, unknown> }).__miniworld;
+        if (mw) mw.debug = inspector;
+      }
+    }
     loop.start();
     await settle(0.35, 0.7, 8000);
     // Load the tiles of the view the camera is about to fly to while the small globe still

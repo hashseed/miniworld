@@ -31,6 +31,7 @@
     "notices": "node data/build/notices.ts",
     "perf": "playwright test --project=perf",
     "asset-sheets": "node assets/sheets.ts",
+    "tour": "node scripts/tour.ts",
     "anim": "node assets/anim.ts",
     "approve-assets": "node assets/approve.ts",
     "model": "node assets/model.ts",

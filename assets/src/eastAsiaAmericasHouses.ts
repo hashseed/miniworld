@@ -12,15 +12,16 @@ import {
 } from './cultureModels.ts';
 import { WHIMSY, type Whimsy, whimsy } from './whimsy.ts';
 import { addPlinth, type PlinthSpec } from './plinth.ts';
+import { EARTH, OPENING, PLINTH, ROOF, TIMBER } from './palette.ts';
 
 export { EAST_ASIA_AMERICAS_HOUSES, type EastAsiaAmericasHouseId };
 
-const OAK = '#c9a064';
-const THATCH = '#cdb26a';
-const DAUB = '#cdb48a';
-const LOESS = '#c2a15f';
-const CANE = '#d9bb7c';
-const DOOR = '#3a2a20';
+const OAK = TIMBER.oakEast;
+const THATCH = ROOF.thatchStraw;
+const DAUB = EARTH.daubEast;
+const LOESS = EARTH.loess;
+const CANE = TIMBER.cane;
+const DOOR = OPENING.door;
 
 /** Normals pointing away from the middle, so the ink outline of a block stays closed at its edges. */
 function soft(g: THREE.BufferGeometry, mid?: Vec3): THREE.BufferGeometry {
@@ -428,7 +429,7 @@ function eastAsiaPlinthSpec(id: EastAsiaAmericasHouseId, model: Model): PlinthSp
         rz: 2.85 * base,
         at: [0, 0],
         top: 0.08,
-        colour: '#9e824c',
+        colour: PLINTH.loess,
       };
     case 'shelter-mesoamerican-hut':
       return {
@@ -436,7 +437,7 @@ function eastAsiaPlinthSpec(id: EastAsiaAmericasHouseId, model: Model): PlinthSp
         rx: 1.56 * base,
         rz: 1.56 * 1.4 * base,
         at: [0, 0],
-        colour: '#9b8460',
+        colour: PLINTH.mesoamerica,
       };
     case 'shelter-andean-stone-house':
       return {
@@ -444,7 +445,7 @@ function eastAsiaPlinthSpec(id: EastAsiaAmericasHouseId, model: Model): PlinthSp
         rx: 1.85 * base,
         rz: 1.85 * base,
         at: [0, 0],
-        colour: '#8c867b',
+        colour: PLINTH.andeanStone,
         segments: 8,
       };
     case 'shelter-highland-new-guinea-house':

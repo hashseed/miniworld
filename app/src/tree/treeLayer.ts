@@ -12,7 +12,7 @@ import * as THREE from 'three';
 import type { ContentLoader } from '../content/loader.ts';
 import { wantModels } from '../content/assets.ts';
 import { lodgingModels } from '../content/modelPacks.ts';
-import { latLonToDir } from '../geo/cube.ts';
+import { latLonToDir, type Vec3 } from '../geo/cube.ts';
 import { EARTH_RADIUS_KM, northEast } from '../geo/earth.ts';
 import { dayAtMs } from '../time/rate.ts';
 import type { Clearing } from '../globe/foliage.ts';
@@ -47,11 +47,16 @@ import {
 } from './figures.ts';
 import type { StandIn } from './standIns.ts';
 import { drawnAs, type Profile } from '../world/cultures.ts';
+import { isNeolithicProfile, neolithicProfile } from '../world/neolithicProfiles.ts';
 import { animalLoop, animateAnimal } from '../../../assets/src/clips.ts';
 import type { Model } from '../../../assets/src/kit.ts';
 import { aboveGroundBounds } from '../../../assets/src/plinth.ts';
 import { buildSteps, flickerHearth, lightHearth, setBuilt } from '../../../assets/src/shelters.ts';
-import { groundRingPlane, groundUprightPlinth } from '../globe/grounding.ts';
+import {
+  groundRingPlane,
+  groundUprightPlinth,
+  type UprightPlinthResult,
+} from '../globe/grounding.ts';
 import { ClipBatches } from './clipBatches.ts';
 import { FarmingGrid, setFarmingGrid } from '../world/farmingOnset.ts';
 import { setWorldTables, type WorldTables } from '../world/tables.ts';
@@ -151,8 +156,41 @@ const LODGING_PX = 3;
 const LODGING_MAX_M = 2.7;
 const HEARTH_HALF_M = 1;
 
+export interface DebugLodgingSnapshot {
+  id: number;
+  kind: string;
+  culture?: string;
+  camp: number;
+  lat: number;
+  lon: number;
+  scale: number;
+  baseH: number;
+  minH: number;
+  maxH: number;
+  reliefKm: number;
+  plinthDepthKm: number;
+  maxBuryKm: number;
+  hoverGapKm: number;
+  buryOverKm: number;
+  corners: [Vec3, Vec3, Vec3, Vec3];
+}
+
+export interface DebugVillageSnapshot {
+  camp: number;
+  culture?: string;
+  lat: number;
+  lon: number;
+  fieldLand: string;
+  fieldShare?: string;
+}
+
 export class TreeLayer {
   readonly group = new THREE.Group();
+  /** Developer inspector (`?debug=1`) flags & non-destructive size overrides (zero cost when false). */
+  debugEnabled = false;
+  debugTuning: { cultureHouseM?: Record<string, number> } | undefined;
+  private debugLodgings: DebugLodgingSnapshot[] = [];
+  private debugVillages: DebugVillageSnapshot[] = [];
 
   private loader: ContentLoader;
   private surface: SurfaceSource;
@@ -272,12 +310,22 @@ export class TreeLayer {
     return perM * FIGURE_M < px;
   }
 
+  /** Drops cached lodging grounds so live `?debug=1` size tweaks re-seat immediately. */
+  clearDebugCaches(): void {
+    this.lodgingGrounds.clear();
+  }
+
+  /** Latest visible lodging grounding diagnostics and village field masks for `?debug=1`. */
+  debugSnapshot(): { lodgings: DebugLodgingSnapshot[]; villages: DebugVillageSnapshot[] } {
+    return { lodgings: this.debugLodgings, villages: this.debugVillages };
+  }
+
   /** Model-space footprint and plinth depth of a lodging batch, by its kind. */
   private lodgingInfo = new Map<
     string,
     { minX: number; maxX: number; minZ: number; maxZ: number; maxM: number; plinthDepthM: number }
   >();
-  private lodgingGrounds = new Map<string, number>();
+  private lodgingGrounds = new Map<string, UprightPlinthResult>();
   /** Everything of the camps with approved models, drawn as copies of a few models (posedBatches.ts). */
   private batches = new PosedBatches();
   /** The lighter ground under the camps seen from orbit (humankind.md section 8.1). */
@@ -373,6 +421,8 @@ export class TreeLayer {
   update(camera: THREE.PerspectiveCamera, ms: number, startDay: number): void {
     this.camera = camera;
     this.blocked = 0;
+    this.debugLodgings = [];
+    this.debugVillages = [];
     const groundVersion = this.surface.version?.() ?? 0;
     if (groundVersion !== this.groundVersion) {
       this.groundVersion = groundVersion;
@@ -648,23 +698,40 @@ export class TreeLayer {
     }
     this.prune(this.prey, fading);
 
+    const chunkLodgings =
+      this.debugEnabled || this.debugTuning
+        ? new Map(chunk.lodgings.map((x) => [x.id, x]))
+        : undefined;
+    const seenDebugVillages = this.debugEnabled ? new Set<number>() : undefined;
     for (const l of scene.lodgings) {
       const batch = treePropBatch(l.kind);
       if (!batch || !this.place(at, l, false)) continue;
+      const raw = chunkLodgings?.get(l.id);
+      const culture = raw?.culture;
+      const baseHouseM =
+        culture && isNeolithicProfile(culture)
+          ? (neolithicProfile(culture).houseM ?? LODGING_MAX_M)
+          : undefined;
+      const tunedHouseM = culture ? this.debugTuning?.cultureHouseM?.[culture] : undefined;
+      const tunedRatio = baseHouseM && tunedHouseM ? tunedHouseM / baseHouseM : 1;
       const metrics = this.lodgingMetrics(batch);
       // Village houses and minimal shelters draw at 1.0x model scale; compact camp rings cap via `room`.
-      const scale = l.room === undefined ? 1 : Math.min(1, (LODGING_MAX_M * l.room) / metrics.maxM);
+      const scale =
+        (l.room === undefined ? 1 : Math.min(1, (LODGING_MAX_M * l.room) / metrics.maxM)) *
+        tunedRatio;
       const km = FIGURE_KM_PER_M * scale;
       this.block(at, Math.max(LODGING_HALF_M, (metrics.maxM * scale) / 2));
       const stepped = this.stepped(batch);
       const rise = stepped ? 1 : l.built * l.built * (3 - 2 * l.built);
       const scaleXZ = stepped ? km : km * (0.5 + 0.5 * rise);
       const scaleY = stepped ? km : km * Math.max(0.04, rise);
+      const plinthDepthKm = metrics.plinthDepthM * scaleY;
+      const maxBuryKm = 0.25 * scaleY;
       // Sample terrain at center and 4 oriented corners so plinth skirts ground every downhill wall.
       const key = `${l.lat},${l.lon},${l.x},${l.z},${l.dirX},${l.dirZ},${l.kind},${scale.toFixed(3)}`;
-      let baseH = l.built >= 1 ? this.lodgingGrounds.get(key) : undefined;
-      if (baseH === undefined) {
-        baseH = groundUprightPlinth({
+      let g = l.built >= 1 ? this.lodgingGrounds.get(key) : undefined;
+      if (g === undefined) {
+        g = groundUprightPlinth({
           centerDir: [this.dir.x, this.dir.y, this.dir.z],
           dirX: l.dirX,
           dirZ: l.dirZ,
@@ -674,18 +741,72 @@ export class TreeLayer {
           maxZKm: metrics.maxZ * scaleXZ,
           halfWidthKm: ((metrics.maxX - metrics.minX) * scaleXZ) / 2,
           halfDepthKm: ((metrics.maxZ - metrics.minZ) * scaleXZ) / 2,
-          plinthDepthKm: metrics.plinthDepthM * scaleY,
-          maxBuryKm: 0.25 * scaleY,
+          plinthDepthKm,
+          maxBuryKm,
           surfaceAt: (d) => this.surface.surfaceKm(d),
-        }).baseH;
+        });
         if (l.built >= 1) {
           if (this.lodgingGrounds.size > 4096) this.lodgingGrounds.clear();
-          this.lodgingGrounds.set(key, baseH);
+          this.lodgingGrounds.set(key, g);
+        }
+      }
+      if (this.debugEnabled) {
+        northEast(this.dir, this.n2, this.e2);
+        const dirLen = Math.hypot(l.dirX, l.dirZ);
+        const dx = dirLen > 1e-9 ? l.dirX / dirLen : 1;
+        const dz = dirLen > 1e-9 ? l.dirZ / dirLen : 0;
+        const cornerAt = (mx: number, mz: number): Vec3 => {
+          const eastKm = mz * dx - mx * dz;
+          const northKm = mz * dz + mx * dx;
+          this.v1
+            .copy(this.dir)
+            .addScaledVector(this.e2, eastKm / EARTH_RADIUS_KM)
+            .addScaledVector(this.n2, northKm / EARTH_RADIUS_KM)
+            .normalize();
+          return [this.v1.x, this.v1.y, this.v1.z];
+        };
+        const minX = metrics.minX * scaleXZ;
+        const maxX = metrics.maxX * scaleXZ;
+        const minZ = metrics.minZ * scaleXZ;
+        const maxZ = metrics.maxZ * scaleXZ;
+        this.debugLodgings.push({
+          id: l.id,
+          kind: l.kind,
+          ...(culture ? { culture } : {}),
+          camp: raw?.camp ?? -1,
+          lat: l.lat,
+          lon: l.lon,
+          scale,
+          baseH: g.baseH,
+          minH: g.minH,
+          maxH: g.maxH,
+          reliefKm: g.reliefKm,
+          plinthDepthKm,
+          maxBuryKm,
+          hoverGapKm: Math.max(0, g.plinthBottomH - g.minH),
+          buryOverKm: Math.max(0, g.maxH - g.baseH - maxBuryKm),
+          corners: [
+            cornerAt(minX, minZ),
+            cornerAt(maxX, minZ),
+            cornerAt(maxX, maxZ),
+            cornerAt(minX, maxZ),
+          ],
+        });
+        if (raw?.fieldLand && seenDebugVillages && !seenDebugVillages.has(raw.camp)) {
+          seenDebugVillages.add(raw.camp);
+          this.debugVillages.push({
+            camp: raw.camp,
+            ...(culture ? { culture } : {}),
+            lat: l.lat,
+            lon: l.lon,
+            fieldLand: raw.fieldLand,
+            ...(raw.fieldShare ? { fieldShare: raw.fieldShare } : {}),
+          });
         }
       }
       at.position
         .copy(this.dir)
-        .multiplyScalar(EARTH_RADIUS_KM + baseH - this.cutAt(this.dir, baseH));
+        .multiplyScalar(EARTH_RADIUS_KM + g.baseH - this.cutAt(this.dir, g.baseH));
       // While the band builds it, the lodging goes up step by step, or rises whole.
       if (stepped) {
         at.scale.setScalar(km);
@@ -977,6 +1098,8 @@ export class TreeLayer {
   private answer: SceneAnswer | undefined;
 
   private clear(): void {
+    this.debugLodgings = [];
+    this.debugVillages = [];
     this.batches.begin();
     this.batches.end();
     this.clips.begin();

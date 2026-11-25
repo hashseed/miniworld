@@ -79,8 +79,30 @@ const SEPARATE_PASSES = 3;
 const SLOPE_REACH = 0.35;
 const END_REACH = 0.5;
 
+export interface DebugWildlifeGroup {
+  index: number;
+  species: string;
+  model: string;
+  home: string;
+  lat: number;
+  lon: number;
+  roamKm: number;
+  water: boolean;
+  mask: WildMask;
+  baseDrawnM: number;
+  drawnM: number;
+}
+
+export interface DebugKeepOut {
+  lat: number;
+  lon: number;
+  km: number;
+}
+
 export class WildlifeLayer {
   readonly group = new THREE.Group();
+  /** Non-destructive wildlife `drawnM` overrides for `?debug=1`. */
+  debugTuning: { speciesDrawnM?: Record<string, number> } | undefined;
   private surface: SurfaceSource;
   private species = new Map<string, Species | null>();
   /** Animals drawn last frame. */
@@ -591,6 +613,50 @@ export class WildlifeLayer {
     this.clips.end();
   }
 
+  /** Clears cached wildlife templates/slopes so `?debug=1` size tweaks take effect immediately. */
+  clearDebugCaches(): void {
+    this.species.clear();
+    this.slopes.clear();
+    this.clearCache.clear();
+  }
+
+  /** Active wildlife groups + masks and camp keep-outs at a day for `?debug=1`. */
+  debugSnapshot(day: number): { groups: DebugWildlifeGroup[]; keepOuts: DebugKeepOut[] } {
+    const groups: DebugWildlifeGroup[] = [];
+    WILD_GROUPS.forEach((g, index) => {
+      if (groupGrowth(g, day) <= 0) return;
+      const traits = traitsOf(g.model);
+      const s = this.speciesOf(g.model);
+      const sizeM = s ? Math.max(s.height, s.length / 2) : 2.5;
+      const baseDrawnM = drawnSizeM(g.model, sizeM);
+      const drawnM = this.debugTuning?.speciesDrawnM?.[g.model] ?? baseDrawnM;
+      groups.push({
+        index,
+        species: g.species,
+        model: g.model,
+        home: g.home,
+        lat: g.lat,
+        lon: g.lon,
+        roamKm: g.roamKm ?? 1000,
+        water: traits.moves === 'swim',
+        mask: this.masks?.[index],
+        baseDrawnM,
+        drawnM,
+      });
+    });
+    const keepOuts: DebugKeepOut[] = [];
+    for (const [lat, lon, from, to, r] of this.camps) {
+      if (from <= day && (to === NEVER || to > day)) {
+        keepOuts.push({
+          lat: lat / 1e6,
+          lon: lon / 1e6,
+          km: r === undefined ? VILLAGE_KEEP_OUT_KM : r * LAYOUT_KM_PER_M,
+        });
+      }
+    }
+    return { groups, keepOuts };
+  }
+
   /** The instanced meshes of a species, built the first time it is seen; null without an approved model. */
   private speciesOf(model: string): Species | null {
     let s = this.species.get(model);
@@ -601,7 +667,7 @@ export class WildlifeLayer {
       template.object.updateMatrixWorld(true);
       const box = new THREE.Box3().setFromObject(template.object);
       const sizeM = Math.max(box.max.y - box.min.y, (box.max.z - box.min.z) / 2);
-      const drawnM = drawnSizeM(model, sizeM);
+      const drawnM = this.debugTuning?.speciesDrawnM?.[model] ?? drawnSizeM(model, sizeM);
       s = {
         template,
         scale: (KM_PER_M * drawnM) / sizeM,

@@ -27,6 +27,7 @@ import {
 } from './cultureModels.ts';
 import { addPlinth } from './plinth.ts';
 import { fitModel } from './whimsy.ts';
+import { EARTH, OPENING, PLINTH, ROOF, SHELTER, TIMBER } from './palette.ts';
 
 export const SHELTERS = [
   'shelter-hide-tent',
@@ -81,11 +82,11 @@ onWorldTables(() => {
   }
 });
 
-const POLE = '#7a5030';
-const HIDE = '#b58b5c';
-const BONE = '#ece2cc';
-const THATCH = '#cdb26a';
-const DOOR = '#3a2a20';
+const POLE = TIMBER.pole;
+const HIDE = SHELTER.hide;
+const BONE = SHELTER.bone;
+const THATCH = ROOF.thatchStraw;
+const DOOR = OPENING.door;
 
 const ring = (n: number, r: number, y: number, f: (p: Vec3, a: number, i: number) => void) => {
   for (let i = 0; i < n; i++) {
@@ -237,9 +238,9 @@ export function buildShelter(id: ShelterId): Model {
     }
     case 'shelter-windbreak': {
       // A rock overhang with a hide windbreak on a curved row of poles.
-      mb.add(blob([0, 1.2, -2.3], [3.0, 1.6, 0.9], 10), '#8e877c');
-      mb.add(blob([0.3, 2.55, -1.75], [2.8, 0.45, 1.3], 10), '#a39b8e');
-      mb.add(blob([-2.4, 0.5, -1.4], [0.8, 0.7, 0.8], 7), '#857e72');
+      mb.add(blob([0, 1.2, -2.3], [3.0, 1.6, 0.9], 10), SHELTER.rockDark);
+      mb.add(blob([0.3, 2.55, -1.75], [2.8, 0.45, 1.3], 10), SHELTER.rockLight);
+      mb.add(blob([-2.4, 0.5, -1.4], [0.8, 0.7, 0.8], 7), SHELTER.rockShadow);
       const poles: Vec3[] = [];
       for (let i = 0; i <= 4; i++) {
         const a = -0.9 + (i / 4) * 1.8;
@@ -319,7 +320,8 @@ export function buildShelter(id: ShelterId): Model {
         }
         mb.add(lathe(band, [0, 0, 0], 9), shade(THATCH, -0.12), bone);
         // The doorway: a low, shadowed opening under the grass.
-        if (j === 0) mb.add(blob(dome(0, 0.2, 0.99), [0.3, 0.36, 0.08], 6), '#5b3b26', bone);
+        if (j === 0)
+          mb.add(blob(dome(0, 0.2, 0.99), [0.3, 0.36, 0.08], 6), OPENING.grassDoor, bone);
         if (j === rows.length - 1)
           mb.add(
             lathe(
@@ -363,7 +365,7 @@ export function buildShelter(id: ShelterId): Model {
             [1.95, y - 0.5, z - 0.62],
           ],
         ];
-        mb.add(sheet(rows), shade('#6f8a45', (i % 2) * 0.1 - 0.05));
+        mb.add(sheet(rows), shade(ROOF.palmLeaf, (i % 2) * 0.1 - 0.05));
       }
       break;
     }
@@ -399,7 +401,7 @@ export function buildShelter(id: ShelterId): Model {
             ),
           );
         }
-        mb.add(sheet(rows), shade('#7d6650', (s % 2) * 0.1 - 0.06));
+        mb.add(sheet(rows), shade(TIMBER.bark, (s % 2) * 0.1 - 0.06));
       }
       break;
     }
@@ -415,7 +417,7 @@ export function buildShelter(id: ShelterId): Model {
           [0, 0, 0],
           12,
         ),
-        '#9a8463',
+        EARTH.natufianBase,
       );
       ring(12, 2.45, 0.38, (p, _a, i) =>
         mb.add(blob(p, [0.42, 0.28, 0.34], 5), shade(STONE, (i % 3) * 0.06 - 0.06)),
@@ -460,7 +462,7 @@ export function buildShelter(id: ShelterId): Model {
           [0.7, 0.35, 0.08],
         ],
       ];
-      mb.add(sheet(rows), '#c9a171');
+      mb.add(sheet(rows), SHELTER.dryingHide);
       break;
     }
     case 'prop-spit': {
@@ -471,7 +473,7 @@ export function buildShelter(id: ShelterId): Model {
         for (const s of [-1, 1]) mb.add(rod([0, 0.7, z], [s * 0.08, 0.86, z], 0.025, 4), POLE);
       }
       mb.add(rod([0, 0.79, -0.95], [0, 0.79, 0.95], 0.03, 5), POLE);
-      mb.add(blob([0, 0.76, 0], [0.16, 0.13, 0.3], 7), '#8b3a26');
+      mb.add(blob([0, 0.76, 0], [0.16, 0.13, 0.3], 7), OPENING.roastMeat);
       break;
     }
     case 'shelter-small-hut': {
@@ -503,7 +505,7 @@ export function buildShelter(id: ShelterId): Model {
           const z = Math.cos(a) * R * (1 - t) + apex[2] * t;
           mb.add(
             blob([x, H * t * 0.95, z], [size, size * 0.6, size], 6),
-            shade('#6f8a3c', 0.08 * (i % 3) - 0.08),
+            shade(ROOF.brushLeaf, 0.08 * (i % 3) - 0.08),
             leaves,
           );
         }
@@ -514,12 +516,12 @@ export function buildShelter(id: ShelterId): Model {
       // 2026-10-20: "make the boats shorter and a bit more like a caricature"): a short, tubby
       // hull whose bow and stern curl up into round knobs, a pale stripe under the rim, and
       // a stubby spare paddle along the side.
-      mb.add(blob([0, 0.2, 0], [0.42, 0.24, 1.05], 10), '#9a6438');
-      mb.add(blob([0, 0.37, 0], [0.32, 0.07, 0.82], 8), '#3e2a1c');
-      mb.add(blob([0, 0.3, 0], [0.44, 0.05, 1.02], 10), '#d9b27a');
+      mb.add(blob([0, 0.2, 0], [0.42, 0.24, 1.05], 10), TIMBER.canoeHull);
+      mb.add(blob([0, 0.37, 0], [0.32, 0.07, 0.82], 8), OPENING.canoeHollow);
+      mb.add(blob([0, 0.3, 0], [0.44, 0.05, 1.02], 10), TIMBER.canoeRim);
       for (const z of [-1, 1]) {
-        mb.add(blob([0, 0.36, z * 0.92], [0.17, 0.2, 0.2], 6), '#9a6438');
-        mb.add(blob([0, 0.58, z * 1.02], [0.12, 0.12, 0.12], 6), '#9a6438');
+        mb.add(blob([0, 0.36, z * 0.92], [0.17, 0.2, 0.2], 6), TIMBER.canoeHull);
+        mb.add(blob([0, 0.58, z * 1.02], [0.12, 0.12, 0.12], 6), TIMBER.canoeHull);
       }
       mb.add(rod([0.3, 0.42, -0.5], [0.3, 0.42, 0.35], 0.03, 4), POLE);
       mb.add(blob([0.3, 0.42, 0.48], [0.08, 0.025, 0.15], 5), POLE);
@@ -533,8 +535,20 @@ export function buildShelter(id: ShelterId): Model {
       // by the tree layer (cavePaintings.ts); here only the torch, lit while it is painted.
       mb.bone({ name: 'torch', pivot: [0.85, 0, 0.5] });
       mb.add(rod([0.9, 0, 0.65], [0.8, 1.3, 0.35], 0.03, 4), POLE, 'torch');
-      mb.add(blob([0.795, 1.42, 0.34], [0.1, 0.17, 0.1], 5), '#f08a2c', 'torch', undefined, 0);
-      mb.add(blob([0.795, 1.39, 0.37], [0.055, 0.1, 0.055], 4), '#ffd166', 'torch', undefined, 0);
+      mb.add(
+        blob([0.795, 1.42, 0.34], [0.1, 0.17, 0.1], 5),
+        SHELTER.flameOuter,
+        'torch',
+        undefined,
+        0,
+      );
+      mb.add(
+        blob([0.795, 1.39, 0.37], [0.055, 0.1, 0.055], 4),
+        SHELTER.torchEmber,
+        'torch',
+        undefined,
+        0,
+      );
       break;
     }
     case 'prop-burial': {
@@ -545,34 +559,34 @@ export function buildShelter(id: ShelterId): Model {
       // steps: the trench, dark and deep; the body laid in it, wrapped; the belongings added,
       // mammoth-ivory beads over it and ivory spears beside it; the trench closed with the earth and red
       // ochre; and grass grown over the heap (Yang: "the ground should just grow over it").
-      const EARTH = '#7a5a3c';
+      const BURIAL_EARTH = EARTH.burialEarth;
       // Dry grass, not green: the graves lie on steppe and dry savannah, where the surrounding
       // ground is yellow too (issue 174: Lake Mungo).
-      const STRAW = '#b9a766';
-      mb.add(blob([0, 0.06, 0], [1.3, 0.2, 0.75], 9), EARTH);
+      const STRAW = ROOF.burialStraw;
+      mb.add(blob([0, 0.06, 0], [1.3, 0.2, 0.75], 9), BURIAL_EARTH);
       const step = (k: number) => {
         const name = `${BUILD_BONE}${k}`;
         mb.bone({ name, pivot: [0, 0.2, 0] });
         return name;
       };
       let b = step(0);
-      mb.add(blob([0, 0.215, 0], [0.95, 0.05, 0.32], 8), '#2b211a', b);
+      mb.add(blob([0, 0.215, 0], [0.95, 0.05, 0.32], 8), OPENING.trench, b);
       for (const x of [-1, 1])
-        mb.add(blob([x * 1.1, 0.26, 0], [0.22, 0.12, 0.3], 5), shade(EARTH, 0.06), b);
+        mb.add(blob([x * 1.1, 0.26, 0], [0.22, 0.12, 0.3], 5), shade(BURIAL_EARTH, 0.06), b);
       b = step(1);
-      mb.add(blob([0, 0.25, 0], [0.75, 0.06, 0.2], 8), '#a88f68', b);
+      mb.add(blob([0, 0.25, 0], [0.75, 0.06, 0.2], 8), EARTH.burialShroud, b);
       b = step(2);
       for (let i = 0; i < 16; i++)
         mb.add(
           blob([-0.6 + 0.08 * i, 0.31, 0.06 * Math.sin(i * 1.7)], [0.025, 0.025, 0.025], 4),
-          '#efe6d2',
+          SHELTER.ivoryBead,
           b,
         );
       for (const z of [-0.25, 0.25])
-        mb.add(rod([-0.85, 0.24, z], [0.85, 0.24, z], 0.02, 3), '#e9dfc6', b);
+        mb.add(rod([-0.85, 0.24, z], [0.85, 0.24, z], 0.02, 3), SHELTER.ivorySpear, b);
       b = step(3);
-      mb.add(blob([0, 0.26, 0], [1.0, 0.1, 0.4], 8), EARTH, b);
-      mb.add(blob([0, 0.34, 0], [0.7, 0.025, 0.28], 7), '#a3412a', b);
+      mb.add(blob([0, 0.26, 0], [1.0, 0.1, 0.4], 8), BURIAL_EARTH, b);
+      mb.add(blob([0, 0.34, 0], [0.7, 0.025, 0.28], 7), EARTH.burialOchre, b);
       b = step(4);
       mb.add(blob([0, 0.1, 0], [1.38, 0.28, 0.8], 9), STRAW, b);
       for (const [x, z] of [
@@ -707,9 +721,9 @@ export function buildShelter(id: ShelterId): Model {
     case 'prop-sign-metal': {
       // A round, fully blue metal information sign on a thin steel rod, facing +Z, with a white "i"
       // (humankind.md section 8.4; Yang, issue 180).
-      const STEEL = '#8e9aa6';
-      const BLUE = '#3d86e6';
-      const WHITE = '#f4f1e8';
+      const STEEL = SHELTER.signSteel;
+      const BLUE = SHELTER.signBlue;
+      const WHITE = SHELTER.signWhite;
       mb.add(rod([0, 0, 0], [0, 1.75, 0], 0.03, 6), STEEL);
       mb.add(blob([0, 0.04, 0], [0.07, 0.04, 0.07], 6), shade(STEEL, -0.1));
       const disc = (r: number, z: number, t: number) => blob([0, 1.45, z], [r, r, t], 12);
@@ -724,7 +738,8 @@ export function buildShelter(id: ShelterId): Model {
       // middle over the origin, and two lashings of hide cord where an animal's legs
       // are bound to it (humankind.md section 8.1).
       mb.add(rod([0, POLE_R, -1.6], [0, POLE_R, 1.6], POLE_R, 5), POLE);
-      for (const z of [-0.45, 0.4]) mb.add(blob([0, POLE_R, z], [0.07, 0.07, 0.09], 5), '#8a5f38');
+      for (const z of [-0.45, 0.4])
+        mb.add(blob([0, POLE_R, z], [0.07, 0.07, 0.09], 5), TIMBER.lash);
       break;
     }
   }
@@ -737,7 +752,7 @@ export function buildShelter(id: ShelterId): Model {
         kind: 'round',
         rx: 1.12,
         rz: 1.2,
-        colour: '#8c7a5b',
+        colour: PLINTH.hide,
       });
     case 'shelter-mammoth-bone-hut':
       return addPlinth(fitModel(model, 2.7, 2.15), {
@@ -745,7 +760,7 @@ export function buildShelter(id: ShelterId): Model {
         rx: 1.16,
         rz: 1.14,
         segments: 8,
-        colour: '#8a795d',
+        colour: PLINTH.boneHut,
       });
     case 'shelter-windbreak':
       return addPlinth(fitModel(model, 2.7, 2.25), {
@@ -754,10 +769,10 @@ export function buildShelter(id: ShelterId): Model {
         d: 1.45,
         at: [-0.02, -0.35],
         top: 0.12,
-        colour: '#857e72',
+        colour: PLINTH.windbreak,
       });
     case 'shelter-grass-hut':
-      return addPlinth(model, { kind: 'round', rx: 1.05, rz: 1.05, colour: '#8c7a5b' });
+      return addPlinth(model, { kind: 'round', rx: 1.05, rz: 1.05, colour: PLINTH.hide });
     case 'shelter-lean-to':
       return addPlinth(fitModel(model, 2.7, 1.95), {
         kind: 'rect',
@@ -765,7 +780,7 @@ export function buildShelter(id: ShelterId): Model {
         d: 1.45,
         at: [0, -0.34],
         top: 0.08,
-        colour: '#8b785a',
+        colour: PLINTH.leanTo,
       });
     case 'shelter-bark':
       return addPlinth(fitModel(model, 2.65, 1.85), {
@@ -773,14 +788,14 @@ export function buildShelter(id: ShelterId): Model {
         rx: 1.18,
         rz: 0.62,
         at: [0, 0.25],
-        colour: '#8b785a',
+        colour: PLINTH.leanTo,
       });
     case 'shelter-natufian-house':
       return addPlinth(fitModel(model, 2.7, 2.35), {
         kind: 'round',
         rx: 1.18,
         rz: 1.16,
-        colour: '#8c867b',
+        colour: PLINTH.andeanStone,
       });
     case 'shelter-small-hut':
       return addPlinth(fitModel(model, 1.5, 1.1), {
@@ -788,7 +803,7 @@ export function buildShelter(id: ShelterId): Model {
         rx: 0.62,
         rz: 0.56,
         at: [0, -0.09],
-        colour: '#8c7a5b',
+        colour: PLINTH.hide,
       });
     default:
       return model;
@@ -817,10 +832,10 @@ export function setBuilt(steps: THREE.Object3D[], built: number): void {
 
 /** The flames of the hearth: base, tip, radius and colour; each is its own bone so it can flicker. */
 const FLAMES: [Vec3, Vec3, number, string][] = [
-  [[0, 0.05, 0], [0.04, 0.95, 0.02], 0.3, '#f08a2c'],
-  [[0.13, 0.05, 0.06], [0.2, 0.62, 0.08], 0.17, '#f6b23b'],
-  [[-0.12, 0.05, -0.04], [-0.18, 0.66, -0.05], 0.16, '#f6b23b'],
-  [[0, 0.05, 0.04], [0.0, 0.45, 0.05], 0.15, '#ffe08a'],
+  [[0, 0.05, 0], [0.04, 0.95, 0.02], 0.3, SHELTER.flameOuter],
+  [[0.13, 0.05, 0.06], [0.2, 0.62, 0.08], 0.17, SHELTER.flameMid],
+  [[-0.12, 0.05, -0.04], [-0.18, 0.66, -0.05], 0.16, SHELTER.flameMid],
+  [[0, 0.05, 0.04], [0.0, 0.45, 0.05], 0.15, SHELTER.flameCore],
 ];
 
 /** A ring of stones with a cartoon fire. */
@@ -829,8 +844,8 @@ export function buildHearth(): Model {
   ring(7, 0.55, 0.08, (p, _a, i) =>
     mb.add(blob(p, [0.21, 0.14, 0.18], 5), shade(STONE, (i % 3) * 0.07 - 0.07)),
   );
-  mb.add(rod([-0.35, 0.08, -0.1], [0.35, 0.16, 0.12], 0.06, 5), '#5a3a22');
-  mb.add(rod([0.3, 0.08, -0.2], [-0.25, 0.16, 0.2], 0.06, 5), '#6a4528');
+  mb.add(rod([-0.35, 0.08, -0.1], [0.35, 0.16, 0.12], 0.06, 5), TIMBER.firewoodDark);
+  mb.add(rod([0.3, 0.08, -0.2], [-0.25, 0.16, 0.2], 0.06, 5), TIMBER.firewoodLight);
   FLAMES.forEach(([base, tip, r, colour], i) => {
     mb.bone({ name: `flame-${i}`, pivot: base });
     mb.add(cone(base, tip, r, i === 0 ? 7 : 6), colour, `flame-${i}`);

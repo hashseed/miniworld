@@ -22,20 +22,21 @@ import {
 import { NEOLITHIC_HOUSES, type NeolithicHouseId, registerShelters } from './cultureModels.ts';
 import { WHIMSY, type Whimsy, whimsy } from './whimsy.ts';
 import { aboveGroundBounds, addPlinth, type PlinthSpec } from './plinth.ts';
+import { EARTH, OPENING, PLINTH, ROOF, TIMBER } from './palette.ts';
 
 export { NEOLITHIC_HOUSES, type NeolithicHouseId };
 
-// Real materials (spec section 1): sandy mudbrick, cream plaster, oak, golden thatch.
-const MUD = '#cdb184';
-const BRICK = '#c9a577';
-const PLASTER = '#e2d3ac';
-const EARTH = '#c3ab7c';
-const OAK = '#b88a54';
-const THATCH = '#d2b865';
-const DAUB = '#d6bf92';
-const REED = '#d6c27c';
-const OCHRE = '#b5502f';
-const DOOR = '#3a2a20';
+// Real materials (spec section 1, art-direction.md section 2): sandy mudbrick, cream plaster, oak, golden thatch.
+const MUD = EARTH.mud;
+const BRICK = EARTH.brick;
+const PLASTER = EARTH.plaster;
+const EARTH_COAT = EARTH.earth;
+const OAK = TIMBER.oakWest;
+const THATCH = ROOF.thatchGold;
+const DAUB = EARTH.daubWest;
+const REED = ROOF.reed;
+const OCHRE = EARTH.ochre;
+const DOOR = OPENING.door;
 
 /** Bones named like the other shelters' building steps (shelters.ts BUILD_BONE). */
 const STEP = 'build-';
@@ -208,7 +209,7 @@ export function buildNeolithicHouse(id: NeolithicHouseId): Model {
       mb.add(prism({ w: 4.6, d: 5.4, r: 1.2, y0: 0.3, y1: 2.25, b: 0.14 }), PLASTER, walls);
       addDoor(mb, walls, 0, 2.7, 0.8, 1.5);
       mb.add(blob([0, 0.08, 3.05], [0.7, 0.14, 0.38], 6), STONE, walls);
-      mb.add(prism({ w: 5.1, d: 5.9, r: 1.45, y0: 2.2, y1: 2.6, b: 0.14 }), EARTH, roof);
+      mb.add(prism({ w: 5.1, d: 5.9, r: 1.45, y0: 2.2, y1: 2.6, b: 0.14 }), EARTH_COAT, roof);
       // The roof beams, their ends showing at both sides.
       for (let i = -2; i <= 2; i++)
         for (const s of [-1, 1])
@@ -256,7 +257,7 @@ export function buildNeolithicHouse(id: NeolithicHouseId): Model {
         PLASTER,
         roof,
       );
-      mb.add(prism({ w: 5.3, d: 5.9, r: 0.3, y0: 2.5, y1: 2.8, b: 0.08 }), EARTH, roof);
+      mb.add(prism({ w: 5.3, d: 5.9, r: 0.3, y0: 2.5, y1: 2.8, b: 0.08 }), EARTH_COAT, roof);
       mb.add(slab([-1.45, 2.74, 1.45], [-0.25, 2.88, 2.65]), OAK, roof, undefined, 0);
       mb.add(slab([-1.25, 2.86, 1.65], [-0.45, 2.93, 2.45]), DOOR, roof, undefined, 0);
       // The ladder leans on the front wall, its rails standing above the roof edge.
@@ -314,7 +315,7 @@ export function buildNeolithicHouse(id: NeolithicHouseId): Model {
       mb.add(prism({ w: 6.4, d: 4.6, r: 0.22, y0: 0.25, y1: 2.15, b: 0.12 }), BRICK, walls);
       addDoor(mb, walls, -1.2, 2.3, 0.75, 1.45);
       mb.add(blob([-1.2, 0.07, 2.62], [0.55, 0.13, 0.3], 6), STONE, walls);
-      mb.add(prism({ w: 6.6, d: 4.8, r: 0.25, y0: 2.1, y1: 2.38, b: 0.1 }), EARTH, roof);
+      mb.add(prism({ w: 6.6, d: 4.8, r: 0.25, y0: 2.1, y1: 2.38, b: 0.1 }), EARTH_COAT, roof);
       // The cross walls of the compartments rise above the roof; bricks line its front edge.
       for (const x of [-1.1, 1.1])
         mb.add(slab([x - 0.17, 2.3, -2.0], [x + 0.17, 2.55, 2.0]), BRICK, roof, undefined, 0);
@@ -344,7 +345,7 @@ export function buildNeolithicHouse(id: NeolithicHouseId): Model {
           12,
           oval,
         ),
-        '#b59a6a',
+        EARTH.reedBase,
         frame,
       );
       // Arched bundles, tied and poking out over the mats.
@@ -425,10 +426,10 @@ function housePlinthSpec(id: NeolithicHouseId, model: Model): PlinthSpec {
         d: Math.max(0.5, s.z * 0.82),
         chamfer: 0.7 * base,
         at: [0, 0],
-        colour: '#9b8362',
+        colour: PLINTH.levant,
       };
     case 'shelter-anatolian-house':
-      return { kind: 'rect', w: s.x * 0.9, d: s.z * 0.8, at: [0, 0], colour: '#9c8566' };
+      return { kind: 'rect', w: s.x * 0.9, d: s.z * 0.8, at: [0, 0], colour: PLINTH.anatolia };
     case 'shelter-anatolian-house-joined':
       return {
         kind: 'multi-rect',
@@ -436,7 +437,7 @@ function housePlinthSpec(id: NeolithicHouseId, model: Model): PlinthSpec {
           { w: 5.3 * base, d: 5.9 * base, at: [0, 0] },
           { w: 3.2 * base, d: 4.5 * base, at: [-4.45 * base, -0.6 * base] },
         ],
-        colour: '#9c8566',
+        colour: PLINTH.anatolia,
       };
     case 'shelter-lbk-longhouse':
       return {
@@ -445,17 +446,17 @@ function housePlinthSpec(id: NeolithicHouseId, model: Model): PlinthSpec {
         d: 4.1 * base,
         chamfer: 0.35 * base,
         at: [0, 0],
-        colour: '#8f7a5c',
+        colour: PLINTH.lbk,
       };
     case 'shelter-mehrgarh-house':
-      return { kind: 'rect', w: s.x * 0.9, d: s.z * 0.84, at: [c.x, 0], colour: '#9a7f5e' };
+      return { kind: 'rect', w: s.x * 0.9, d: s.z * 0.84, at: [c.x, 0], colour: PLINTH.mehrgarh };
     case 'shelter-egyptian-neolithic-hut':
       return {
         kind: 'round',
         rx: 1.78 * 1.25 * base,
         rz: 1.78 * base,
         at: [0, 0],
-        colour: '#9a825c',
+        colour: PLINTH.egypt,
       };
   }
 }
