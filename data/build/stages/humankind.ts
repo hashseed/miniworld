@@ -85,7 +85,7 @@ import { NEVER, type TreeLodging } from '../../../app/src/world/tree.ts';
 import { flies, swims, WILD_GROUPS } from '../../../app/src/world/wildlife.ts';
 import type { DrawnGround } from '../lib/drawnGround.ts';
 import type { Climate } from './climate.ts';
-import { ROOT, sha256, type WriteContext } from './context.ts';
+import { CACHE_ROOT, ROOT, sha256, type WriteContext } from './context.ts';
 import type { WorldMap } from './terrain.ts';
 
 /** River field at which the drawn bank begins, so camps keep a little clear of the water. */
@@ -486,20 +486,20 @@ export function buildHumankind(
     )
     .digest('hex')
     .slice(0, 16);
-  const sitesCache = join(ROOT, 'data/out/sites', `${sitesKey}.json`);
+  const sitesCache = join(CACHE_ROOT, 'sites', `${sitesKey}.json`);
   let sites: SiteMap;
   if (ctx.landCache.on && existsSync(sitesCache)) {
     sites = JSON.parse(readFileSync(sitesCache, 'utf8'), (_k, v: unknown) =>
       v === '-Infinity' ? -Infinity : v === 'Infinity' ? Infinity : v,
     ) as SiteMap;
-    log(`camp sites from ${relative(ROOT, sitesCache)}`);
+    log(`camp sites from ${sitesCache.startsWith(ROOT) ? relative(ROOT, sitesCache) : sitesCache}`);
   } else {
     sites = buildSites(siteInputs);
     if (ctx.landCache.on) {
-      mkdirSync(join(ROOT, 'data/out/sites'), { recursive: true });
+      mkdirSync(join(CACHE_ROOT, 'sites'), { recursive: true });
       // Only the newest is kept: one build's sites are about 10 MB.
-      for (const old of readdirSync(join(ROOT, 'data/out/sites')))
-        rmSync(join(ROOT, 'data/out/sites', old));
+      for (const old of readdirSync(join(CACHE_ROOT, 'sites')))
+        rmSync(join(CACHE_ROOT, 'sites', old));
       // JSON has no infinities, which the flood levels use (lakes, never flooded).
       writeFileSync(
         sitesCache,

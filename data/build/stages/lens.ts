@@ -23,7 +23,7 @@ import { placedFrame } from '../../../app/src/geo/placement.ts';
 import { atStrength, buildLens, checkLens, LENS_PARAMS, parseCoordinates } from '../lib/lens.ts';
 import { lensPreviewSvg } from '../lib/lensPreview.ts';
 import { readFeatures } from '../lib/readers.ts';
-import { ROOT, sha256, type WriteContext } from './context.ts';
+import { CACHE_ROOT, ROOT, sha256, type WriteContext } from './context.ts';
 
 export function buildLensStage(ctx: WriteContext): {
   lens: Manifest['lens'];
@@ -60,14 +60,16 @@ export function buildLensStage(ctx: WriteContext): {
     .slice(0, 12);
   const lensCode = sha256(join(ROOT, 'data/build/lib/lens.ts')).slice(0, 12);
   const approvedLens = join(ROOT, 'data/curated/lens', `${version}.bin`);
-  const lensCache = join(ROOT, 'data/out/lens', `${version}-${lensCode}.bin`);
+  const lensCache = join(CACHE_ROOT, 'lens', `${version}-${lensCode}.bin`);
   let bytes: Uint8Array;
   let exponent: number;
   const stored = [approvedLens, lensCache].find((f) => existsSync(f));
   if (stored) {
     bytes = new Uint8Array(readFileSync(stored));
     exponent = Number(readFileSync(`${stored}.exponent`, 'utf8'));
-    log(`history lens ${version} from ${relative(ROOT, stored)}, exponent ${exponent}`);
+    log(
+      `history lens ${version} from ${stored.startsWith(ROOT) ? relative(ROOT, stored) : stored}, exponent ${exponent}`,
+    );
   } else {
     const lens = buildLens(eventPoints, LENS_PARAMS, log);
     bytes = encodeLensGrids(lens.forward, lens.inverse);
@@ -92,8 +94,9 @@ export function buildLensStage(ctx: WriteContext): {
   // The before-and-after preview Yang approves before a new warp ships (section 3).
   const { approvedVersion } = ctx.curated('lens.json');
   if (approvedVersion !== version) {
-    const preview = join(ROOT, 'data/out/lens', `preview-${version}.svg`);
-    if (!existsSync(preview))
+    const preview = join(CACHE_ROOT, 'lens', `preview-${version}.svg`);
+    if (!existsSync(preview)) {
+      mkdirSync(dirname(preview), { recursive: true });
       writeFileSync(
         preview,
         lensPreviewSvg(
@@ -101,6 +104,7 @@ export function buildLensStage(ctx: WriteContext): {
           decodeLensGrids(bytes).forward,
         ),
       );
+    }
     log(
       `history lens ${version} is not approved yet (approved: ${approvedVersion}); ` +
         `preview in ${preview}`,

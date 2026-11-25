@@ -3,8 +3,9 @@
 // manifest, the startup index per language and content-hashed chunks to
 // app/public/data. Each stage lives in data/build/stages/.
 //
-// Usage: node data/build/build-data.ts [--fixture] [--max-level N] [--no-cache | --clean]
+// Usage: node data/build/build-data.ts [--fixture] [--max-level N] [--no-cache | --clean] [--no-brotli]
 //   --no-cache (or --fresh) reads and writes no cache; --clean forgets the caches first.
+//   --no-brotli (or MINIWORLD_NO_BROTLI=1) skips `.br` compression when the host compresses on the fly.
 
 // The world's tables from data/curated/, before anything asks the world (app/src/world/tables.ts).
 import './lib/worldTables.ts';
@@ -18,7 +19,7 @@ import { StageCache } from './lib/stageCache.ts';
 import { buildClimate } from './stages/climate.ts';
 import { buildContent, validateContent } from './stages/content.ts';
 import { buildFarming, farmingEvents } from './stages/farming.ts';
-import { createContext, ROOT, type WriteContext } from './stages/context.ts';
+import { CACHE_ROOT, createContext, ROOT, type WriteContext } from './stages/context.ts';
 import { buildHumankind } from './stages/humankind.ts';
 import { buildLensStage } from './stages/lens.ts';
 import { writeManifest } from './stages/manifest.ts';
@@ -41,12 +42,16 @@ async function main(args: string[]): Promise<void> {
   const content = timed('validate', () => validateContent(base));
   const ctx: WriteContext = {
     ...base,
-    output: new Output(OUT, base.landCache.on ? join(ROOT, 'data/out/brotli') : undefined),
+    output: new Output(
+      OUT,
+      base.landCache.on && !base.noBrotli ? join(CACHE_ROOT, 'brotli') : undefined,
+      !base.noBrotli,
+    ),
   };
   const { output, log } = ctx;
 
   const stages = new StageCache(
-    join(ROOT, 'data/out/stages'),
+    join(CACHE_ROOT, 'stages'),
     ROOT,
     join(ROOT, 'data/curated'),
     !ctx.noCache && !ctx.fixture,
@@ -95,6 +100,16 @@ async function main(args: string[]): Promise<void> {
     writeManifest(ctx, { index, lens, terrain, climate, tree: humankind.files, farming }),
   );
 
+  const mb = (n: number) => (n / 1e6).toFixed(1);
+  if (ctx.noBrotli) {
+    timings.push(['brotli', 0, 'skipped']);
+    log(`${output.files} files, ${mb(output.rawBytes)} MB raw (Brotli skipped) → ${OUT}`);
+    log(
+      `stage seconds: ${timings.map(([n, t, note]) => `${n} ${t.toFixed(1)}${note ? ` (${note})` : ''}`).join(', ')}`,
+    );
+    return;
+  }
+
   const brotli = performance.now();
   await output.finish();
   timings.push(['brotli', (performance.now() - brotli) / 1000, '']);
@@ -104,7 +119,6 @@ async function main(args: string[]): Promise<void> {
     `climate slices ${brotliKb(climate.climateFiles)} KB Brotli, ` +
       `foliage slices ${brotliKb(climate.foliageFiles)} KB`,
   );
-  const mb = (n: number) => (n / 1e6).toFixed(1);
   log(
     `${output.files} files, ${mb(output.rawBytes)} MB raw, ${mb(output.compressedBytes)} MB Brotli → ${OUT}`,
   );

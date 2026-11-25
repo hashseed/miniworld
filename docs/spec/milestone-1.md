@@ -448,6 +448,7 @@ The data build keeps the results of its slow stages in `data/out/` (git-ignored)
 - **Brotli copies** are kept by the hash of their file's bytes in `data/out/brotli/`, so unchanged files are not compressed again.
 - **The stage cache** (`data/out/stages/`, section 10.7.2) holds the result and the files of whole stages.
 - Each cache keeps only what the latest build used. `npm run build-data -- --no-cache` (also `--fresh`) uses and writes no cache; `--clean` empties every cache first and then fills them. A cached build must write exactly the same files as a fresh one, and `npm run verify-cache` proves it by building without caches, with a clean fill and from the caches, and comparing a hash of every output file.
+- Set `MINIWORLD_DATA_CACHE` to keep build caches (`cache/`, `sites/`, `stages/`, `lens/`, `brotli/`) outside `data/out/` (used by CI and hub rebuilds that clone into fresh directories). Pass `--no-brotli` (or `MINIWORLD_NO_BROTLI=1`) when deploying to static hosts that compress on the fly (Cloudflare Pages, GitHub Pages) to skip writing `.br` copies, while CI `release` builds keep Brotli enabled to check compressed chunk budgets.
 
 ### 10.7.2 Incremental builds and the stage graph
 

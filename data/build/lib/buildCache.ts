@@ -52,10 +52,12 @@ export class BuildCache {
   }
 }
 
-/** A hash of files and values, for a cache key. */
-export function cacheKey(files: string[], values: unknown): string {
+/** A hash of files and values, for a cache key; strips `root` when provided so keys survive moving checkouts. */
+export function cacheKey(files: string[], values: unknown, root = ''): string {
   const h = createHash('sha256');
-  for (const f of files) h.update(f).update(readFileSync(f));
+  for (const f of files) {
+    h.update(root && f.startsWith(root) ? f.slice(root.length) : f).update(readFileSync(f));
+  }
   h.update(JSON.stringify(values));
   return h.digest('hex').slice(0, 16);
 }

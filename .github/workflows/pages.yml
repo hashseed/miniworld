@@ -37,9 +37,7 @@ jobs:
           restore-keys: |
             data-out-${{ hashFiles('data/sources.json', 'data/curated/**') }}-
             data-out-
-      - run: npm run build
-      # GitHub Pages compresses on its own and never serves the Brotli copies.
-      - run: find dist -name '*.br' -delete
+      - run: MINIWORLD_NO_BROTLI=1 npm run build
       - uses: actions/configure-pages@v5
       # Packed by hand: upload-pages-artifact leaves out hidden files, and the
       # terrain tiles of a level's first quadrant are named like `.<hash>.bin`.

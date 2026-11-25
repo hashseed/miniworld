@@ -4,7 +4,7 @@
 
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { TIME_WINDOWS } from '../../../app/src/content/formats.ts';
 import { DATA_MAX_LEVEL } from '../../../app/src/geo/cube.ts';
 import { TIMELINE_END, TIMELINE_START, dayFromDate } from '../../../app/src/time/calendar.ts';
@@ -15,6 +15,9 @@ import type { Output } from '../lib/output.ts';
 import { tableErrors, type Table, type TableName } from '../../schema/tables.ts';
 
 export const ROOT = new URL('../../..', import.meta.url).pathname;
+export const CACHE_ROOT = process.env.MINIWORLD_DATA_CACHE
+  ? resolve(process.env.MINIWORLD_DATA_CACHE)
+  : join(ROOT, 'data/out');
 const SOURCES = join(ROOT, 'data/sources');
 
 export interface BuildContext {
@@ -38,6 +41,8 @@ export interface BuildContext {
   curatedReads: Set<string>;
   /** Caches are off (`--no-cache`, `--fresh`). */
   noCache: boolean;
+  /** Skip writing `.br` copies (`--no-brotli`, `MINIWORLD_NO_BROTLI=1`). */
+  noBrotli: boolean;
   /**
    * The cache of the land: the map grids, the coarse coasts and the climate slices, kept
    * while the sources, the land's curated files, the build code that makes them and the
@@ -75,9 +80,10 @@ function fail(message: string): never {
 export function createContext(args: string[]): BuildContext {
   // `--clean` forgets every cache first; `--no-cache` (or `--fresh`) uses and writes none.
   const noCache = args.includes('--no-cache') || args.includes('--fresh');
+  const noBrotli = args.includes('--no-brotli') || process.env.MINIWORLD_NO_BROTLI === '1';
   if (args.includes('--clean'))
     for (const d of ['cache', 'sites', 'stages', 'brotli'])
-      rmSync(join(ROOT, 'data/out', d), { recursive: true, force: true });
+      rmSync(join(CACHE_ROOT, d), { recursive: true, force: true });
   const useFixture = args.includes('--fixture');
   const maxLevelArg = args.indexOf('--max-level');
   const maxLevel = maxLevelArg >= 0 ? Number(args[maxLevelArg + 1]) : DATA_MAX_LEVEL;
@@ -175,8 +181,9 @@ export function createContext(args: string[]): BuildContext {
       join(ROOT, 'app/src/globe/foliageKinds.ts'),
     ],
     { fixture, maxLevel, cutoffDay },
+    ROOT,
   );
-  const landCache = new BuildCache(join(ROOT, 'data/out/cache'), landKey, !noCache);
+  const landCache = new BuildCache(join(CACHE_ROOT, 'cache'), landKey, !noCache);
   if (landCache.on) log(`land cache ${landKey}`);
 
   return {
@@ -184,6 +191,7 @@ export function createContext(args: string[]): BuildContext {
     maxLevel,
     landCache,
     noCache,
+    noBrotli,
     curatedReads,
     release,
     registry,

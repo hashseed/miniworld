@@ -35,6 +35,7 @@ export class Output {
    * not compressed again; only the copies the build used are kept. None with `--fresh`.
    */
   private readonly brotliCache: string | undefined;
+  private readonly writeBrotli: boolean;
 
   /** The files written since `startRecording`, for the stage cache. */
   private recording: { name: string; bytes: Uint8Array }[] | undefined;
@@ -54,9 +55,10 @@ export class Output {
     for (const w of writes) this.writeNamed(w.name, w.bytes);
   }
 
-  constructor(root: string, brotliCache?: string) {
+  constructor(root: string, brotliCache?: string, writeBrotli = true) {
     this.root = root;
     this.brotliCache = brotliCache;
+    this.writeBrotli = writeBrotli;
     rmSync(root, { recursive: true, force: true });
     mkdirSync(root, { recursive: true });
   }
@@ -81,11 +83,14 @@ export class Output {
     writeFileSync(path, bytes);
     this.rawBytes += bytes.length;
     this.files++;
-    this.pending.push({ name, path, bytes, ...(hash ? { hash } : {}) });
+    if (this.writeBrotli) {
+      this.pending.push({ name, path, bytes, ...(hash ? { hash } : {}) });
+    }
   }
 
   /** Writes every Brotli copy across bounded concurrent workers. */
   async finish(): Promise<void> {
+    if (!this.writeBrotli) return;
     const queue = this.pending;
     this.pending = [];
     const cache = this.brotliCache;
