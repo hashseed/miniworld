@@ -365,56 +365,70 @@
       "file": "assets/src/shelters.ts",
       "kind": "shelter",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Updated to unified 1:1 game scale with 1.5 m foundation plinth skirt; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "76bcc39f59ac8e2b",
+      "note": "Approved unified 1:1 scale and 1.5 m plinth skirts (Yang, 2026-11-25)",
+      "reviewed": "2026-11-25"
     },
     {
       "id": "shelter-mammoth-bone-hut",
       "file": "assets/src/shelters.ts",
       "kind": "shelter",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Updated to unified 1:1 game scale with 1.5 m foundation plinth skirt; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "fd4f3f9548b5d21d",
+      "note": "Approved unified 1:1 scale and 1.5 m plinth skirts (Yang, 2026-11-25)",
+      "reviewed": "2026-11-25"
     },
     {
       "id": "shelter-windbreak",
       "file": "assets/src/shelters.ts",
       "kind": "shelter",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Updated to unified 1:1 game scale with 1.5 m foundation plinth skirt; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "42ba9ecd823f2296",
+      "note": "Approved unified 1:1 scale and 1.5 m plinth skirts (Yang, 2026-11-25)",
+      "reviewed": "2026-11-25"
     },
     {
       "id": "shelter-grass-hut",
       "file": "assets/src/shelters.ts",
       "kind": "shelter",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Updated to unified 1:1 game scale with 1.5 m foundation plinth skirt; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "463fa0b8e75ac1f1",
+      "note": "Approved unified 1:1 scale and 1.5 m plinth skirts (Yang, 2026-11-25)",
+      "reviewed": "2026-11-25"
     },
     {
       "id": "shelter-lean-to",
       "file": "assets/src/shelters.ts",
       "kind": "shelter",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Updated to unified 1:1 game scale with 1.5 m foundation plinth skirt; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "0ed03d944cc4794d",
+      "note": "Approved unified 1:1 scale and 1.5 m plinth skirts (Yang, 2026-11-25)",
+      "reviewed": "2026-11-25"
     },
     {
       "id": "shelter-bark",
       "file": "assets/src/shelters.ts",
       "kind": "shelter",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Updated to unified 1:1 game scale with 1.5 m foundation plinth skirt; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "3ce6030396e8cd19",
+      "note": "Approved unified 1:1 scale and 1.5 m plinth skirts (Yang, 2026-11-25)",
+      "reviewed": "2026-11-25"
     },
     {
       "id": "shelter-natufian-house",
       "file": "assets/src/shelters.ts",
       "kind": "shelter",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Updated to unified 1:1 game scale with 1.5 m foundation plinth skirt; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "d439324ee4322dae",
+      "note": "Approved unified 1:1 scale and 1.5 m plinth skirts (Yang, 2026-11-25)",
+      "reviewed": "2026-11-25"
     },
     {
       "id": "prop-drying-rack",
@@ -568,8 +582,10 @@
       "file": "assets/src/shelters.ts",
       "kind": "shelter",
       "generated": "Modelling script",
-      "status": "generated",
-      "note": "Updated to unified 1:1 game scale with 1.5 m foundation plinth skirt; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "d5782141a1a080c4",
+      "note": "Approved unified 1:1 scale and 1.5 m plinth skirts (Yang, 2026-11-25)",
+      "reviewed": "2026-11-25"
     },
     {
       "id": "prop-hearth",
@@ -1584,88 +1600,110 @@
       "file": "assets/src/neolithicHouses.ts",
       "kind": "shelter",
       "generated": "Modelling script, buildNeolithicHouse",
-      "status": "generated",
-      "note": "Updated to unified 1:1 game scale with 1.5 m foundation plinth skirt; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "4ccdad625bad6155",
+      "note": "Approved unified 1:1 scale and 1.5 m plinth skirts (Yang, 2026-11-25)",
+      "reviewed": "2026-11-25"
     },
     {
       "id": "shelter-anatolian-house",
       "file": "assets/src/neolithicHouses.ts",
       "kind": "shelter",
       "generated": "Modelling script, buildNeolithicHouse",
-      "status": "generated",
-      "note": "Updated to unified 1:1 game scale with 1.5 m foundation plinth skirt; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "63c53a57ee738bb0",
+      "note": "Approved unified 1:1 scale and 1.5 m plinth skirts (Yang, 2026-11-25)",
+      "reviewed": "2026-11-25"
     },
     {
       "id": "shelter-anatolian-house-joined",
       "file": "assets/src/neolithicHouses.ts",
       "kind": "shelter",
       "generated": "Modelling script, buildNeolithicHouse",
-      "status": "generated",
-      "note": "Updated to unified 1:1 game scale with 1.5 m foundation plinth skirt; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "350636c90aa6cc22",
+      "note": "Approved unified 1:1 scale and 1.5 m plinth skirts (Yang, 2026-11-25)",
+      "reviewed": "2026-11-25"
     },
     {
       "id": "shelter-lbk-longhouse",
       "file": "assets/src/neolithicHouses.ts",
       "kind": "shelter",
       "generated": "Modelling script, buildNeolithicHouse",
-      "status": "generated",
-      "note": "Updated to unified 1:1 game scale with 1.5 m foundation plinth skirt; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "a8f7831f7d3a4498",
+      "note": "Approved unified 1:1 scale and 1.5 m plinth skirts (Yang, 2026-11-25)",
+      "reviewed": "2026-11-25"
     },
     {
       "id": "shelter-mehrgarh-house",
       "file": "assets/src/neolithicHouses.ts",
       "kind": "shelter",
       "generated": "Modelling script, buildNeolithicHouse",
-      "status": "generated",
-      "note": "Updated to unified 1:1 game scale with 1.5 m foundation plinth skirt; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "542f31f76ee9e269",
+      "note": "Approved unified 1:1 scale and 1.5 m plinth skirts (Yang, 2026-11-25)",
+      "reviewed": "2026-11-25"
     },
     {
       "id": "shelter-egyptian-neolithic-hut",
       "file": "assets/src/neolithicHouses.ts",
       "kind": "shelter",
       "generated": "Modelling script, buildNeolithicHouse",
-      "status": "generated",
-      "note": "Updated to unified 1:1 game scale with 1.5 m foundation plinth skirt; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "58735474a0b37599",
+      "note": "Approved unified 1:1 scale and 1.5 m plinth skirts (Yang, 2026-11-25)",
+      "reviewed": "2026-11-25"
     },
     {
       "id": "shelter-yangtze-stilt-house",
       "file": "assets/src/eastAsiaAmericasHouses.ts",
       "kind": "shelter",
       "generated": "Modelling script, buildEastAsiaAmericasHouse",
-      "status": "generated",
-      "note": "Updated to unified 1:1 game scale with 1.5 m foundation plinth skirt; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "ede0168cc6430b6a",
+      "note": "Approved unified 1:1 scale and 1.5 m plinth skirts (Yang, 2026-11-25)",
+      "reviewed": "2026-11-25"
     },
     {
       "id": "shelter-yellow-river-pit-house",
       "file": "assets/src/eastAsiaAmericasHouses.ts",
       "kind": "shelter",
       "generated": "Modelling script, buildEastAsiaAmericasHouse",
-      "status": "generated",
-      "note": "Updated to unified 1:1 game scale with 1.5 m foundation plinth skirt; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "9ecd86179e7d8d81",
+      "note": "Approved unified 1:1 scale and 1.5 m plinth skirts (Yang, 2026-11-25)",
+      "reviewed": "2026-11-25"
     },
     {
       "id": "shelter-mesoamerican-hut",
       "file": "assets/src/eastAsiaAmericasHouses.ts",
       "kind": "shelter",
       "generated": "Modelling script, buildEastAsiaAmericasHouse",
-      "status": "generated",
-      "note": "Updated to unified 1:1 game scale with 1.5 m foundation plinth skirt; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "e5579839826f346c",
+      "note": "Approved unified 1:1 scale and 1.5 m plinth skirts (Yang, 2026-11-25)",
+      "reviewed": "2026-11-25"
     },
     {
       "id": "shelter-andean-stone-house",
       "file": "assets/src/eastAsiaAmericasHouses.ts",
       "kind": "shelter",
       "generated": "Modelling script, buildEastAsiaAmericasHouse",
-      "status": "generated",
-      "note": "Updated to unified 1:1 game scale with 1.5 m foundation plinth skirt; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "89d32d7eca1b7c23",
+      "note": "Approved unified 1:1 scale and 1.5 m plinth skirts (Yang, 2026-11-25)",
+      "reviewed": "2026-11-25"
     },
     {
       "id": "shelter-highland-new-guinea-house",
       "file": "assets/src/eastAsiaAmericasHouses.ts",
       "kind": "shelter",
       "generated": "Modelling script, buildEastAsiaAmericasHouse",
-      "status": "generated",
-      "note": "Updated to unified 1:1 game scale with 1.5 m foundation plinth skirt; waiting for Yang's review"
+      "status": "approved",
+      "geometry": "024e99d2e4f47d13",
+      "note": "Approved unified 1:1 scale and 1.5 m plinth skirts (Yang, 2026-11-25)",
+      "reviewed": "2026-11-25"
     },
     {
       "id": "prop-sickle",
